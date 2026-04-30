@@ -98,7 +98,7 @@ describe("GET /api/compliance/[id]/download", () => {
   });
 
   it("returns 302 for a coordinator in the same service", async () => {
-    mockSession({ id: "coord-1", name: "Coord", role: "coordinator", serviceId: "svc-1" });
+    mockSession({ id: "coord-1", name: "Coord", role: "member", serviceId: "svc-1" });
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-99",
@@ -122,7 +122,7 @@ describe("GET /api/compliance/[id]/download", () => {
   });
 
   it("returns 403 for a coordinator in a different service", async () => {
-    mockSession({ id: "coord-2", name: "Coord", role: "coordinator", serviceId: "svc-2" });
+    mockSession({ id: "coord-2", name: "Coord", role: "member", serviceId: "svc-2" });
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-99",

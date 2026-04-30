@@ -103,7 +103,7 @@ describe("GET /api/children/[id]/attendances", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-2",
     });
     prismaMock.child.findUnique.mockResolvedValue({
@@ -206,7 +206,7 @@ describe("GET /api/children/[id]/attendances", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.child.findUnique.mockResolvedValue({

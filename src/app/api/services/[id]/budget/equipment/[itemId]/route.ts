@@ -99,7 +99,7 @@ const { id, itemId } = await context!.params!;
   }
 
   return NextResponse.json(item);
-}, { roles: ["owner", "head_office", "admin", "coordinator"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });
 
 // DELETE /api/services/[id]/budget/equipment/[itemId]
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -136,4 +136,4 @@ const { id, itemId } = await context!.params!;
   await recalcFinancialsForWeek(id, existing.date);
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin", "coordinator"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });

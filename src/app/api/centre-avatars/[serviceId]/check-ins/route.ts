@@ -26,7 +26,7 @@ export const POST = withApiAuth(
 
     // Coordinators can only log check-ins for their own service.
     if (
-      session.user.role === "coordinator" &&
+      session.user.role === "member" &&
       session.user.serviceId !== serviceId
     ) {
       throw ApiError.forbidden(
@@ -73,5 +73,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ checkIn: row });
   },
-  { roles: ["marketing", "owner", "coordinator"] },
+  { roles: ["marketing", "owner", "member"] },
 );

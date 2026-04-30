@@ -256,7 +256,7 @@ export const GET = withApiHandler(async (req) => {
     const users = await prisma.user.findMany({
       where: {
         active: true,
-        role: { in: ["owner", "admin", "coordinator", "member"] },
+        role: { in: ["owner", "admin", "member"] },
       },
       select: { id: true, name: true, email: true },
     });

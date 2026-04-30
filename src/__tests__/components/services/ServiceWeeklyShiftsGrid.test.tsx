@@ -197,7 +197,7 @@ describe("ServiceWeeklyShiftsGrid", () => {
   });
 
   it("coordinator of another service is read-only", async () => {
-    sessionRef.role = "coordinator";
+    sessionRef.role = "member";
     sessionRef.serviceId = "svc-other"; // NOT svc-1
     installFetchMock();
 
@@ -215,7 +215,7 @@ describe("ServiceWeeklyShiftsGrid", () => {
   });
 
   it("coordinator of own service sees editor controls", async () => {
-    sessionRef.role = "coordinator";
+    sessionRef.role = "member";
     sessionRef.serviceId = "svc-1";
     installFetchMock();
 

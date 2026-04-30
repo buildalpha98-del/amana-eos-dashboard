@@ -13,12 +13,15 @@
  */
 
 import { useMemo, useState } from "react";
-import { Plus, Target, Smile, Meh, Frown } from "lucide-react";
+import { Plus, Target, Smile, Meh, Frown, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { FilterBar } from "@/components/ui/v2/FilterBar";
 import {
   useReflections,
   useCreateReflection,
+  useUpdateReflection,
+  useDeleteReflection,
   type ReflectionItem,
 } from "@/hooks/useReflections";
 import { useReflectionAiContext } from "@/hooks/useAiContext";
@@ -59,6 +62,15 @@ export function ServiceReflectionsTab({ serviceId }: { serviceId: string }) {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [qaFilter, setQaFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<ReflectionItem | null>(null);
+
+  // Author-or-admin gate. Editors/Directors should be able to manage their
+  // own reflections, and admins can clean up anyone's. Owner/head_office
+  // bypass via the admin role check (matches our bypass convention elsewhere).
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
+  const role = session?.user?.role;
+  const isAdminLike = role === "owner" || role === "head_office" || role === "admin";
 
   const filters = useMemo(
     () => ({
@@ -109,16 +121,34 @@ export function ServiceReflectionsTab({ serviceId }: { serviceId: string }) {
         <EmptyReflections onCreate={() => setCreateOpen(true)} />
       ) : (
         <ul className="space-y-3">
-          {data.items.map((r) => (
-            <ReflectionCard key={r.id} reflection={r} />
-          ))}
+          {data.items.map((r) => {
+            const canManage = isAdminLike || r.authorId === userId;
+            return (
+              <ReflectionCard
+                key={r.id}
+                reflection={r}
+                serviceId={serviceId}
+                canManage={canManage}
+                onEdit={() => setEditing(r)}
+              />
+            );
+          })}
         </ul>
       )}
 
       {createOpen && (
-        <CreateReflectionDialog
+        <ReflectionDialog
+          mode="create"
           serviceId={serviceId}
           onClose={() => setCreateOpen(false)}
+        />
+      )}
+      {editing && (
+        <ReflectionDialog
+          mode="edit"
+          serviceId={serviceId}
+          reflection={editing}
+          onClose={() => setEditing(null)}
         />
       )}
     </div>
@@ -184,7 +214,20 @@ function MoodIcon({ mood }: { mood: ReflectionItem["mood"] }) {
   return null;
 }
 
-function ReflectionCard({ reflection }: { reflection: ReflectionItem }) {
+function ReflectionCard({
+  reflection,
+  serviceId,
+  canManage,
+  onEdit,
+}: {
+  reflection: ReflectionItem;
+  serviceId: string;
+  canManage: boolean;
+  onEdit: () => void;
+}) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const del = useDeleteReflection(serviceId);
   const date = new Date(reflection.createdAt);
   return (
     <li
@@ -212,6 +255,51 @@ function ReflectionCard({ reflection }: { reflection: ReflectionItem }) {
             {reflection.title}
           </h3>
         </div>
+
+        {canManage && (
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowMenu((s) => !s)}
+              className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-[var(--radius-sm)] text-[color:var(--color-muted)] hover:bg-[color:var(--color-surface)] hover:text-[color:var(--color-foreground)] transition-colors"
+              aria-label="Reflection actions"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+            {showMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowMenu(false)}
+                />
+                <div className="absolute right-0 top-full mt-1 z-50 bg-[color:var(--color-cream-deep)] border border-[color:var(--color-border)] rounded-[var(--radius-sm)] shadow-lg py-1 min-w-[140px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onEdit();
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-sm text-[color:var(--color-foreground)] hover:bg-[color:var(--color-surface)] flex items-center gap-2 min-h-[44px]"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmDelete(true);
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-sm text-rose-600 hover:bg-[color:var(--color-surface)] flex items-center gap-2 min-h-[44px]"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </header>
       <p className="text-[13px] text-[color:var(--color-foreground)]/80 whitespace-pre-wrap">
         {reflection.content}
@@ -231,38 +319,109 @@ function ReflectionCard({ reflection }: { reflection: ReflectionItem }) {
           ))}
         </div>
       )}
+
+      {confirmDelete && (
+        <Dialog open onOpenChange={(o) => { if (!o) setConfirmDelete(false); }}>
+          <DialogContent>
+            <DialogTitle className="text-base font-semibold text-[color:var(--color-foreground)] mb-2">
+              Delete this reflection?
+            </DialogTitle>
+            <p className="text-sm text-[color:var(--color-muted)] mb-4">
+              "{reflection.title}" will be removed. This can't be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={del.isPending}
+                className="min-h-[44px] px-4 py-2 text-sm font-medium text-[color:var(--color-muted)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await del.mutateAsync({ reflectionId: reflection.id });
+                  setConfirmDelete(false);
+                }}
+                disabled={del.isPending}
+                className={cn(
+                  "min-h-[44px] px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium",
+                  "bg-rose-600 text-white hover:bg-rose-700 transition-colors",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                )}
+              >
+                {del.isPending ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </li>
   );
 }
 
-function CreateReflectionDialog({
+/**
+ * ReflectionDialog — unified create/edit dialog.
+ *
+ * Why one component instead of two:
+ * - The form fields, validation, AI-draft button, and styling are identical
+ *   between create and edit. The only differences are the title, the seed
+ *   values for the form state, and the mutation called on submit.
+ * - Keeping them in one component prevents drift (e.g. an "edit" form that
+ *   silently lacks a field added later to "create").
+ */
+function ReflectionDialog({
+  mode,
   serviceId,
+  reflection,
   onClose,
 }: {
+  mode: "create" | "edit";
   serviceId: string;
+  reflection?: ReflectionItem;
   onClose: () => void;
 }) {
   const create = useCreateReflection(serviceId);
+  const update = useUpdateReflection(serviceId);
   // Lazy — fires once when the dialog opens, then served from cache for any
-  // re-clicks of "Draft with AI" within 5 minutes.
+  // re-clicks of "Draft with AI" within 5 minutes. Only useful in create mode
+  // (edit reuses the saved content), but cheap to keep so the AI button stays
+  // available if the educator wants to redraft.
   const { data: aiContext } = useReflectionAiContext(serviceId);
-  const [type, setType] = useState<ReflectionItem["type"]>("weekly");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [qa, setQa] = useState<number[]>([]);
-  const [mood, setMood] = useState<ReflectionItem["mood"]>("neutral");
+  const [type, setType] = useState<ReflectionItem["type"]>(
+    reflection?.type ?? "weekly",
+  );
+  const [title, setTitle] = useState(reflection?.title ?? "");
+  const [content, setContent] = useState(reflection?.content ?? "");
+  const [qa, setQa] = useState<number[]>(reflection?.qualityAreas ?? []);
+  const [mood, setMood] = useState<ReflectionItem["mood"]>(
+    reflection?.mood ?? "neutral",
+  );
 
   const valid = title.trim().length > 0 && content.trim().length > 0;
+  const pending = create.isPending || update.isPending;
 
   async function submit() {
     if (!valid) return;
-    await create.mutateAsync({
-      type,
-      title: title.trim(),
-      content: content.trim(),
-      qualityAreas: qa,
-      mood,
-    });
+    if (mode === "edit" && reflection) {
+      await update.mutateAsync({
+        reflectionId: reflection.id,
+        type,
+        title: title.trim(),
+        content: content.trim(),
+        qualityAreas: qa,
+        mood,
+      });
+    } else {
+      await create.mutateAsync({
+        type,
+        title: title.trim(),
+        content: content.trim(),
+        qualityAreas: qa,
+        mood,
+      });
+    }
     onClose();
   }
 
@@ -270,7 +429,7 @@ function CreateReflectionDialog({
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogTitle className="text-base font-semibold text-[color:var(--color-foreground)] mb-4">
-          New reflection
+          {mode === "edit" ? "Edit reflection" : "New reflection"}
         </DialogTitle>
         <div className="space-y-3">
         <Field label="Type">
@@ -400,9 +559,13 @@ function CreateReflectionDialog({
           </button>
           <BrandButton
             onClick={submit}
-            disabled={!valid || create.isPending}
+            disabled={!valid || pending}
           >
-            {create.isPending ? "Saving…" : "Save reflection"}
+            {pending
+              ? "Saving…"
+              : mode === "edit"
+                ? "Save changes"
+                : "Save reflection"}
           </BrandButton>
         </div>
       </div>

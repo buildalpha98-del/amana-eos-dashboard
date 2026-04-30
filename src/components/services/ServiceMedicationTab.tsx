@@ -37,10 +37,16 @@ function todayIso() {
 export function ServiceMedicationTab({ serviceId }: { serviceId: string }) {
   const [logFor, setLogFor] = useState<ChildWithMedication | null>(null);
 
+  // /api/children returns { children, total } — was assumed to return an array,
+  // which caused "filter is not a function" at the .filter call below. Also
+  // the query param is `serviceId`, not `service` (silent bug — was returning
+  // every child system-wide before getCentreScope landed in PR #35).
   const { data: children } = useQuery<ChildWithMedication[]>({
     queryKey: ["service-children-medical", serviceId],
     queryFn: () =>
-      fetchApi<ChildWithMedication[]>(`/api/children?service=${serviceId}`),
+      fetchApi<{ children: ChildWithMedication[]; total: number }>(
+        `/api/children?serviceId=${serviceId}&status=current`,
+      ).then((r) => r.children),
     retry: 2,
     staleTime: 60_000,
   });

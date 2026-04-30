@@ -61,4 +61,4 @@ async function handler(req: NextRequest) {
   return downloadCsvResponse(csv, `revenue-report-${dateFrom}-to-${dateTo}`);
 }
 
-export const GET = withApiAuth(handler, { minRole: "coordinator" });
+export const GET = withApiAuth(handler, { minRole: "member" });

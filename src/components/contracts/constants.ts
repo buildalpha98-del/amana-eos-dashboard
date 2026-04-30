@@ -73,7 +73,7 @@ export const AWARD_LEVELS = [
   "cs3",
   "cs4",
   "director",
-  "coordinator",
+  "member",
   "custom",
 ];
 

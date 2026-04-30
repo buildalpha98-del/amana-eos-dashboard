@@ -20,7 +20,7 @@ const updateSchema = z.object({
     z.enum([
       "staff",
       "member",
-      "coordinator",
+      "member",
       "admin",
       "head_office",
       "owner",

@@ -213,10 +213,10 @@ function QuickActionButtons() {
 
 // ─── Role Helpers ────────────────────────────────────────────
 
-type DashboardRole = "owner" | "head_office" | "admin" | "coordinator" | "member" | "staff" | "marketing";
+type DashboardRole = "owner" | "head_office" | "admin" | "member" | "member" | "staff" | "marketing";
 
 function getDashboardRole(role: string): DashboardRole {
-  if (["owner", "head_office", "admin", "coordinator", "member", "staff", "marketing"].includes(role)) {
+  if (["owner", "head_office", "admin", "member", "staff", "marketing"].includes(role)) {
     return role as DashboardRole;
   }
   return "staff";
@@ -297,7 +297,7 @@ function CommandCentreDashboard({
 
   const isOwnerOrHO = role === "owner" || role === "head_office";
   const isAdmin = role === "admin";
-  const isCoordinator = role === "coordinator";
+  const isCoordinator = role === "member";
 
   const v2 = useStaffV2Flag();
 

@@ -205,6 +205,9 @@ function CreateObservationDialog({
 
   // Children list for this service. Includes `dob` so we can compute age
   // for the AI observation drafter.
+  // /api/children returns { children, total } — was assumed to return an
+  // array, causing "?.map is not a function" below. Also: the query param is
+  // `serviceId`, not `service`.
   const { data: childrenData } = useQuery<{
     id: string;
     firstName: string;
@@ -214,11 +217,16 @@ function CreateObservationDialog({
     queryKey: ["service-children", serviceId],
     queryFn: () =>
       fetchApi<{
-        id: string;
-        firstName: string;
-        surname: string;
-        dob: string | null;
-      }[]>(`/api/children?service=${serviceId}`),
+        children: {
+          id: string;
+          firstName: string;
+          surname: string;
+          dob: string | null;
+        }[];
+        total: number;
+      }>(`/api/children?serviceId=${serviceId}&status=current`).then(
+        (r) => r.children,
+      ),
     retry: 2,
     staleTime: 60_000,
   });

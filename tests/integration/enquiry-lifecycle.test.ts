@@ -23,7 +23,7 @@ let service: Service;
 beforeAll(async () => {
   await cleanupTestData();
   const s = await createTestService();
-  const u = await createTestUser("coordinator", { serviceId: s.id });
+  const u = await createTestUser("member", { serviceId: s.id });
   coordinator = u.user;
   service = s;
 });

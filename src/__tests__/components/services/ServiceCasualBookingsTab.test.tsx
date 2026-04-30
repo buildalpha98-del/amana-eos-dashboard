@@ -234,7 +234,7 @@ describe("ServiceCasualBookingsTab", () => {
   });
 
   it("shows the save button for coordinator of the same service", () => {
-    sessionRef.role = "coordinator";
+    sessionRef.role = "member";
     sessionRef.serviceId = "svc-1";
     const qc = makeClient();
     render(<ServiceCasualBookingsTab service={makeService()} />, {
@@ -247,7 +247,7 @@ describe("ServiceCasualBookingsTab", () => {
   });
 
   it("hides the save button for coordinator of another service", () => {
-    sessionRef.role = "coordinator";
+    sessionRef.role = "member";
     sessionRef.serviceId = "svc-other";
     const qc = makeClient();
     render(<ServiceCasualBookingsTab service={makeService()} />, {

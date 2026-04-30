@@ -28,7 +28,7 @@ export function DirectoryContent() {
 
   // Access-aware display rules
   const isAdmin = isAdminRole(viewerRole ?? undefined);
-  const showRole = isAdmin || viewerRole === "coordinator";
+  const showRole = isAdmin || viewerRole === "member";
   const showEmail = isAdmin;
   const showRoleFilter = isAdmin;
 

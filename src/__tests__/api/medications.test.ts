@@ -50,7 +50,7 @@ describe("medications API", () => {
 
   describe("GET /api/services/[id]/medications", () => {
     it("returns today's doses scoped to service + date window", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       prismaMock.medicationAdministration.findMany.mockResolvedValue([
         { id: "d1", medicationName: "Ventolin", child: { id: "c1" } },
       ]);
@@ -70,7 +70,7 @@ describe("medications API", () => {
 
   describe("POST /api/services/[id]/medications", () => {
     it("400 when injection has no witness", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       const res = await POST(
         createRequest("POST", "/api/services/s1/medications", {
           body: {
@@ -88,7 +88,7 @@ describe("medications API", () => {
     });
 
     it("400 when witness is the same user as administer", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       prismaMock.medicationAdministration.findUnique.mockResolvedValue(null);
       const res = await POST(
         createRequest("POST", "/api/services/s1/medications", {
@@ -108,7 +108,7 @@ describe("medications API", () => {
     });
 
     it("400 when child not in service", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       prismaMock.medicationAdministration.findUnique.mockResolvedValue(null);
       prismaMock.child.findFirst.mockResolvedValue(null);
       const res = await POST(
@@ -128,7 +128,7 @@ describe("medications API", () => {
     });
 
     it("201 on happy path — oral dose, no witness needed", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       prismaMock.medicationAdministration.findUnique.mockResolvedValue(null);
       prismaMock.child.findFirst.mockResolvedValue({ id: VALID_CHILD_ID });
       prismaMock.medicationAdministration.create.mockResolvedValue({
@@ -156,7 +156,7 @@ describe("medications API", () => {
     });
 
     it("201 on injection with witness", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       prismaMock.medicationAdministration.findUnique.mockResolvedValue(null);
       prismaMock.child.findFirst.mockResolvedValue({ id: VALID_CHILD_ID });
       prismaMock.user.findUnique.mockImplementation(({ where }: any) => {
@@ -191,7 +191,7 @@ describe("medications API", () => {
     });
 
     it("200 replay — dedupes by clientMutationId, doesn't insert again", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       prismaMock.medicationAdministration.findUnique.mockResolvedValue({
         id: "d-existing",
         clientMutationId: VALID_CMID,

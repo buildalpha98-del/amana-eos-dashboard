@@ -227,7 +227,7 @@ describe("ServiceOverviewTab — approvals & session times card", () => {
   });
 
   it("shows Edit button for coordinator of the same service", () => {
-    sessionRef.role = "coordinator";
+    sessionRef.role = "member";
     sessionRef.serviceId = "svc-1";
     const service = makeService();
 
@@ -246,7 +246,7 @@ describe("ServiceOverviewTab — approvals & session times card", () => {
   });
 
   it("hides Edit button for coordinator of another service", () => {
-    sessionRef.role = "coordinator";
+    sessionRef.role = "member";
     sessionRef.serviceId = "svc-other";
     const service = makeService();
 

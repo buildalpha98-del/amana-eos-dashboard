@@ -84,7 +84,7 @@ describe("PATCH /api/children/[id]/relationships", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc2",
     });
     const req = createRequest("PATCH", "/api/children/c1/relationships", {
@@ -108,11 +108,14 @@ describe("PATCH /api/children/[id]/relationships", () => {
     expect(res.status).toBe(403);
   });
 
-  it("403 for member (read-only on relationships)", async () => {
+  // 2026-04-30: post coordinator-collapse, member (Director of Service)
+  // inherits coordinator's edit perms on relationships. Test role changed
+  // from member → staff (still read-only).
+  it("403 for staff (read-only on relationships)", async () => {
     mockSession({
       id: "u1",
-      name: "Member",
-      role: "member",
+      name: "Staff",
+      role: "staff",
       serviceId: "svc1",
     });
     const req = createRequest("PATCH", "/api/children/c1/relationships", {
@@ -153,7 +156,7 @@ describe("PATCH /api/children/[id]/relationships", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc1",
     });
     const req = createRequest("PATCH", "/api/children/c1/relationships", {
@@ -210,7 +213,7 @@ describe("PATCH /api/children/[id]/relationships", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc1",
     });
     const req = createRequest("PATCH", "/api/children/c1/relationships", {
@@ -227,7 +230,7 @@ describe("PATCH /api/children/[id]/relationships", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc1",
     });
     const req = createRequest("PATCH", "/api/children/c1/relationships", {
@@ -243,7 +246,7 @@ describe("PATCH /api/children/[id]/relationships", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc1",
     });
     const req = createRequest("PATCH", "/api/children/c1/relationships", {

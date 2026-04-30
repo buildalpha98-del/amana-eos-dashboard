@@ -32,14 +32,10 @@ describe("filterNavItems", () => {
     expect(marketingFiltered.some((i) => i.href === "/audit-log")).toBe(false);
   });
 
-  it("includes /contracts for coordinator (has contracts.view + rolePageAccess)", () => {
-    const filtered = filterNavItems(navItems, "coordinator" as Role);
-    expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
-  });
-
-  // 2026-04-29: /contracts removed from member's rolePageAccess as part of
-  // the cross-service-tab cleanup (Centre Directors don't manage contracts —
-  // that's an HR / admin concern). canAccessPage returns false → nav hides it.
+  // 2026-04-30: coordinator collapsed into member; the prior
+  // "includes /contracts for coordinator" assertion is obsolete because
+  // member's allowlist (the post-2026-04-29 service-level scope) excludes
+  // cross-service HR surfaces like /contracts.
   it("excludes /contracts for member (cross-service HR surface)", () => {
     const filtered = filterNavItems(navItems, "member" as Role);
     expect(filtered.some((i) => i.href === "/contracts")).toBe(false);
@@ -110,28 +106,17 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
     it("result length is at least as large as the coordinator/marketing filtered result", () => {
       const owner = filterNavItems(navItems, "owner" as Role).length;
       const marketing = filterNavItems(navItems, "marketing" as Role).length;
-      const coordinator = filterNavItems(navItems, "coordinator" as Role).length;
+      const coordinator = filterNavItems(navItems, "member" as Role).length;
       expect(owner).toBeGreaterThan(marketing);
       expect(owner).toBeGreaterThanOrEqual(coordinator);
     });
   });
 
-  describe("coordinator role — unaffected by sprint 1 changes", () => {
-    const coordinatorFiltered = filterNavItems(navItems, "coordinator" as Role);
-    const hrefs = coordinatorFiltered.map((i) => i.href);
-
-    it.each(["/messaging", "/contact-centre", "/enrolments"])(
-      "still includes %s (ALL_NON_MARKETING doesn't hide for coordinators)",
-      (href) => {
-        expect(hrefs).toContain(href);
-      },
-    );
-
-    it("still excludes pages coordinator can't access via canAccessPage", () => {
-      // /financials isn't in coordinator's rolePageAccess — stays hidden.
-      expect(hrefs).not.toContain("/financials");
-    });
-  });
+  // 2026-04-30: the former "coordinator role unaffected by sprint 1" block
+  // was obsolete — coordinator role is gone, and the merged member role
+  // tracks the post-2026-04-29 cleaned-up service-level allowlist.
+  // Coverage of merged-member nav lives in the "member role — single-centre
+  // cleanup" describe block below.
 
   // ─── 2026-04-29: member nav cleanup ────────────────────────
   // Centre Directors (member role) had access to a long list of cross-
@@ -158,6 +143,19 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/contracts",         // Cross-service HR
       "/compliance/templates", // Admin audit-template config
       "/holiday-quest",     // Marketing planner
+      // 2026-04-30: removed from member sidebar so they log incidents
+      // inside the service detail page (cross-service /incidents view is
+      // for State Manager / Admin only).
+      "/incidents",
+      // 2026-04-30: EOS sidebar surfaces (vision/rocks/todos/issues/
+      // meetings/scorecard) hidden for member — they engage with EOS via
+      // the service detail tabs.
+      "/vision",
+      "/rocks",
+      "/todos",
+      "/issues",
+      "/meetings",
+      "/scorecard",
     ])("excludes cross-service / out-of-scope nav item %s", (href) => {
       expect(hrefs).not.toContain(href);
     });
@@ -168,7 +166,6 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/onboarding",
       "/compliance",
       "/policies",
-      "/incidents",
       "/leave",
       "/knowledge",
       "/queue",

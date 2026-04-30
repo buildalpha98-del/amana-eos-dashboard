@@ -55,7 +55,7 @@ describe("observations API (staff)", () => {
     mockSession({
       id: "u1",
       name: "C",
-      role: "coordinator",
+      role: "member",
       serviceId: "other",
     });
     const res = await GET(
@@ -66,7 +66,7 @@ describe("observations API (staff)", () => {
   });
 
   it("GET filters by mtop and childId", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.learningObservation.findMany.mockResolvedValue([
       {
         id: "o1",
@@ -97,7 +97,7 @@ describe("observations API (staff)", () => {
   });
 
   it("POST 400 on invalid body", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     const res = await POST(
       createRequest("POST", "/api/services/s1/observations", {
         body: { title: "", narrative: "" },
@@ -108,7 +108,7 @@ describe("observations API (staff)", () => {
   });
 
   it("POST rejects child not in service", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.child.findFirst.mockResolvedValue(null);
     const res = await POST(
       createRequest("POST", "/api/services/s1/observations", {
@@ -124,7 +124,7 @@ describe("observations API (staff)", () => {
   });
 
   it("POST creates an observation when child is in service", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.child.findFirst.mockResolvedValue({ id: "c1" });
     prismaMock.learningObservation.create.mockResolvedValue({
       id: "o1",
@@ -150,7 +150,7 @@ describe("observations API (staff)", () => {
   });
 
   it("POST dedupes by clientMutationId", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     const cmid = "550e8400-e29b-41d4-a716-446655440000";
     prismaMock.learningObservation.findUnique.mockResolvedValue({
       id: "o-existing",

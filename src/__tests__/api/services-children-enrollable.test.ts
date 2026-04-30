@@ -143,7 +143,7 @@ describe("GET /api/services/[id]/children/enrollable", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.child.findMany.mockResolvedValue([]);

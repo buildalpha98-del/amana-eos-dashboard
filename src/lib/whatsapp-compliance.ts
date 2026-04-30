@@ -180,7 +180,7 @@ export async function resolveCoordinatorForService(
   serviceId: string,
 ): Promise<ResolvedCoordinator | null> {
   const user = await prisma.user.findFirst({
-    where: { serviceId, role: "coordinator", active: true },
+    where: { serviceId, role: "member", active: true },
     orderBy: { createdAt: "asc" },
     select: { id: true, name: true, email: true, phone: true },
   });

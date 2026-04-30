@@ -41,7 +41,7 @@ describe("destinationForSession", () => {
 
   it("routes coordinator with serviceId to their service page", () => {
     const session = {
-      user: { role: "coordinator", serviceId: "svc-c1" },
+      user: { role: "member", serviceId: "svc-c1" },
     };
     expect(destinationForSession(session, "/dashboard")).toBe(
       "/services/svc-c1?tab=today",

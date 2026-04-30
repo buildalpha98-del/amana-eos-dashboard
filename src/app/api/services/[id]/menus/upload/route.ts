@@ -107,5 +107,5 @@ const { id } = await context!.params!;
 
   return NextResponse.json(menuWeek);
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

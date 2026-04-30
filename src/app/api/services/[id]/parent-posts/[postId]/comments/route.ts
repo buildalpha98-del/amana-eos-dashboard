@@ -74,7 +74,7 @@ export const GET = withApiAuth(
       nextCursor: hasMore ? rows[limit].id : undefined,
     });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );
 
 const createBodySchema = z.object({
@@ -138,5 +138,5 @@ export const POST = withApiAuth(
       { status: 201 },
     );
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

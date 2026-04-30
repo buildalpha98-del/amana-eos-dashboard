@@ -29,7 +29,7 @@ async function getServiceCoordinatorEmail(serviceId: string): Promise<{ email: s
     select: {
       manager: { select: { email: true, name: true } },
       staffMembers: {
-        where: { role: "coordinator", active: true },
+        where: { role: "member", active: true },
         select: { email: true, name: true },
         take: 1,
       },

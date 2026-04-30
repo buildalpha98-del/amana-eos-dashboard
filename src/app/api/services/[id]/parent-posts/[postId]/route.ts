@@ -105,7 +105,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(post);
   },
-  { roles: ["owner", "head_office", "admin", "coordinator", "member"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );
 
 // DELETE /api/services/[id]/parent-posts/[postId]
@@ -156,5 +156,5 @@ export const DELETE = withApiAuth(
 
     return NextResponse.json({ success: true });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator", "member"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

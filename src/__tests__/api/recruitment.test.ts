@@ -55,7 +55,7 @@ describe("GET /api/recruitment (list vacancies)", () => {
   });
 
   it("200 for coordinator (retains read access)", async () => {
-    mockSession({ id: "u-c", name: "Coord", role: "coordinator" });
+    mockSession({ id: "u-c", name: "Coord", role: "member" });
     prismaMock.recruitmentVacancy.findMany.mockResolvedValue([]);
     prismaMock.recruitmentVacancy.count.mockResolvedValue(0);
     const req = createRequest("GET", "/api/recruitment");
@@ -86,7 +86,7 @@ describe("POST /api/recruitment (create vacancy — feature: recruitment.edit)",
   });
 
   it("403 for coordinator (has recruitment.view only, not .edit)", async () => {
-    mockSession({ id: "u-c", name: "Coord", role: "coordinator" });
+    mockSession({ id: "u-c", name: "Coord", role: "member" });
     const req = createRequest("POST", "/api/recruitment", {
       body: { serviceId: "s-1", role: "educator", employmentType: "permanent" },
     });
@@ -127,7 +127,7 @@ describe("PATCH /api/recruitment/[id] (edit vacancy — feature: recruitment.edi
   });
 
   it("403 for coordinator", async () => {
-    mockSession({ id: "u-c", name: "Coord", role: "coordinator" });
+    mockSession({ id: "u-c", name: "Coord", role: "member" });
     const req = createRequest("PATCH", "/api/recruitment/v-1", { body: { status: "filled" } });
     const res = await patchVacancy(req, { params: Promise.resolve({ id: "v-1" }) });
     expect(res.status).toBe(403);
@@ -153,7 +153,7 @@ describe("POST /api/recruitment/[id]/candidates (feature: recruitment.candidates
   });
 
   it("403 for coordinator", async () => {
-    mockSession({ id: "u-c", name: "Coord", role: "coordinator" });
+    mockSession({ id: "u-c", name: "Coord", role: "member" });
     const req = createRequest("POST", "/api/recruitment/v-1/candidates", {
       body: { name: "Candidate X", source: "indeed" },
     });
@@ -185,7 +185,7 @@ describe("PATCH /api/recruitment/candidates/[id] (feature: recruitment.candidate
   });
 
   it("403 for coordinator (read-only access)", async () => {
-    mockSession({ id: "u-c", name: "Coord", role: "coordinator" });
+    mockSession({ id: "u-c", name: "Coord", role: "member" });
     const req = createRequest("PATCH", "/api/recruitment/candidates/c-1", { body: { stage: "offered" } });
     const res = await patchCandidate(req, { params: Promise.resolve({ id: "c-1" }) });
     expect(res.status).toBe(403);

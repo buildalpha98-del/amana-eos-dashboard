@@ -193,7 +193,7 @@ describe("GET /api/services/[id]/roll-call/weekly", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
 

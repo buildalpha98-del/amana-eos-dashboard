@@ -20,7 +20,7 @@ describe("RoleBadge", () => {
   });
 
   it("renders all 7 roles without throwing", () => {
-    const roles: Role[] = ["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"];
+    const roles: Role[] = ["owner", "head_office", "admin", "marketing", "member", "staff"];
     for (const role of roles) {
       expect(() => render(<RoleBadge role={role} />)).not.toThrow();
     }

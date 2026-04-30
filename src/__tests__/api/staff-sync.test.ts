@@ -40,12 +40,12 @@ describe("POST /api/cowork/staff/sync", () => {
     prismaMock.user.create.mockResolvedValue({ id: "u1" } as any);
 
     const req = createRequest("POST", "/api/cowork/staff/sync", {
-      body: { staff: [{ name: "Jane Doe", email: "jane@example.com", role: "coordinator" }] },
+      body: { staff: [{ name: "Jane Doe", email: "jane@example.com", role: "member" }] },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
     expect(prismaMock.user.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ role: "coordinator" }) })
+      expect.objectContaining({ data: expect.objectContaining({ role: "member" }) })
     );
   });
 
@@ -116,14 +116,14 @@ describe("POST /api/cowork/staff/sync", () => {
 
     const req = createRequest("POST", "/api/cowork/staff/sync", {
       body: {
-        staff: [{ name: "Jane Staff", email: "staff@example.com", role: "coordinator" }],
+        staff: [{ name: "Jane Staff", email: "staff@example.com", role: "member" }],
       },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
     expect(prismaMock.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ role: "coordinator" }),
+        data: expect.objectContaining({ role: "member" }),
       })
     );
   });

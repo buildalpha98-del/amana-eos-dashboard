@@ -96,7 +96,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
               >
                 <option value="educator">Educator</option>
                 <option value="senior_educator">Senior Educator</option>
-                <option value="coordinator">Coordinator</option>
+                <option value="member">Coordinator</option>
                 <option value="director">Director</option>
               </select>
             </div>

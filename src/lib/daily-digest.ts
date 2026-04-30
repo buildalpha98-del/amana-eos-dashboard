@@ -381,7 +381,7 @@ function buildUserNotifications(
   }
 
   // Unassigned tickets (admin/coordinator only)
-  if (isAdmin || user.role === "coordinator") {
+  if (isAdmin || user.role === "member") {
     for (const ticket of data.unassignedTickets) {
       const nId = `ticket-unassigned-${ticket.id}`;
       if (dismissedIds.has(nId)) continue;
@@ -409,7 +409,7 @@ function buildUserNotifications(
   }
 
   // SLA warnings (admin/coordinator only)
-  if (isAdmin || user.role === "coordinator") {
+  if (isAdmin || user.role === "member") {
     for (const ticket of data.slaTickets) {
       const nId = `sla-${ticket.id}`;
       if (dismissedIds.has(nId)) continue;
@@ -427,7 +427,7 @@ function buildUserNotifications(
   }
 
   // Low compliance (admin/coordinator only)
-  if (isAdmin || user.role === "coordinator") {
+  if (isAdmin || user.role === "member") {
     for (const metric of data.lowComplianceCentres) {
       const nId = `compliance-${metric.id}`;
       if (dismissedIds.has(nId)) continue;

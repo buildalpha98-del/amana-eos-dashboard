@@ -105,4 +105,4 @@ async function handler(req: NextRequest) {
   });
 }
 
-export const GET = withApiAuth(handler, { minRole: "coordinator" });
+export const GET = withApiAuth(handler, { minRole: "member" });

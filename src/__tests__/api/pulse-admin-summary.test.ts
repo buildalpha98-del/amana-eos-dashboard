@@ -35,7 +35,7 @@ describe("GET /api/communication/pulse/admin-summary", () => {
   });
 
   it("returns 403 for coordinator", async () => {
-    mockSession({ id: "u", name: "C", role: "coordinator" });
+    mockSession({ id: "u", name: "C", role: "member" });
     const res = await GET(createRequest("GET", `/api/communication/pulse/admin-summary?weekOf=${isoMonday(new Date()).toISOString()}`));
     expect(res.status).toBe(403);
   });

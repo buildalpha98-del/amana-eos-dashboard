@@ -58,7 +58,7 @@ describe("GET /api/services/[id]/ai-context/reflection", () => {
   });
 
   it("returns 403 for cross-service coordinator", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "other" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "other" });
     const res = await GET(
       createRequest("GET", "/api/services/s1/ai-context/reflection"),
       await ctx(),
@@ -67,7 +67,7 @@ describe("GET /api/services/[id]/ai-context/reflection", () => {
   });
 
   it("returns empty placeholders when there's no recent data", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     const res = await GET(
       createRequest("GET", "/api/services/s1/ai-context/reflection"),
       await ctx(),
@@ -82,7 +82,7 @@ describe("GET /api/services/[id]/ai-context/reflection", () => {
   });
 
   it("formats observations with child first name + MTOP tags + 140-char snippet", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.learningObservation.findMany.mockResolvedValue([
       {
         title: "Block tower",
@@ -102,7 +102,7 @@ describe("GET /api/services/[id]/ai-context/reflection", () => {
   });
 
   it("anonymises long descriptions on incidents to ≤120 chars", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     const longDesc = "x".repeat(300);
     prismaMock.incidentRecord.findMany.mockResolvedValue([
       {
@@ -124,7 +124,7 @@ describe("GET /api/services/[id]/ai-context/reflection", () => {
   });
 
   it("formats completed audits with QA + score + improvement gap", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.auditInstance.findMany.mockResolvedValue([
       {
         complianceScore: 87.5,
@@ -144,7 +144,7 @@ describe("GET /api/services/[id]/ai-context/reflection", () => {
   });
 
   it("computes a one-line attendance summary", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.dailyAttendance.findMany.mockResolvedValue([
       { date: new Date("2026-04-21"), enrolled: 25, attended: 22, sessionType: "asc" },
       { date: new Date("2026-04-22"), enrolled: 25, attended: 24, sessionType: "asc" },

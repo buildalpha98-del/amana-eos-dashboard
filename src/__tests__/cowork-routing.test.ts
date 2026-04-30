@@ -7,8 +7,8 @@ import { resolveAssignee } from "@/app/api/cowork/_lib/resolve-assignee";
 const JAYDEN = { id: "user-jayden", name: "Jayden Kowaider", email: "jayden@amanaoshc.com.au", role: "owner", state: null, active: true };
 const DANIEL = { id: "user-daniel", name: "Daniel", email: "daniel@amanaoshc.com.au", role: "admin", state: null, active: true };
 const AKRAM = { id: "user-akram", name: "Akram", email: "akram@amanaoshc.com.au", role: "marketing", state: null, active: true };
-const MIRNA = { id: "user-mirna", name: "Mirna", email: "mirna@amanaoshc.com.au", role: "coordinator", state: "NSW", active: true };
-const TRACIE = { id: "user-tracie", name: "Tracie", email: "tracie@amanaoshc.com.au", role: "coordinator", state: "VIC", active: true };
+const MIRNA = { id: "user-mirna", name: "Mirna", email: "mirna@amanaoshc.com.au", role: "member", state: "NSW", active: true };
+const TRACIE = { id: "user-tracie", name: "Tracie", email: "tracie@amanaoshc.com.au", role: "member", state: "VIC", active: true };
 
 describe("Assignee Resolution", () => {
   beforeEach(() => {

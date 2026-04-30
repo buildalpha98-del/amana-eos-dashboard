@@ -24,7 +24,7 @@ export const GET = withApiAuth(async (req) => {
 
   const [users, tickets, enquiries] = await Promise.all([
     prisma.user.findMany({
-      where: { active: true, role: { in: ["coordinator", "admin", "owner", "head_office", "member"] } },
+      where: { active: true, role: { in: ["member", "admin", "owner", "head_office", "member"] } },
       select: { id: true, name: true, email: true, avatar: true, role: true },
     }),
     prisma.supportTicket.findMany({

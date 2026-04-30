@@ -27,7 +27,7 @@ export const GET = withApiAuth(
 
     // Coordinators can only read their own service's Avatar.
     if (
-      session.user.role === "coordinator" &&
+      session.user.role === "member" &&
       session.user.serviceId !== serviceId
     ) {
       throw ApiError.forbidden(
@@ -107,7 +107,7 @@ export const GET = withApiAuth(
     });
   },
   {
-    roles: ["marketing", "owner", "admin", "head_office", "coordinator"],
+    roles: ["marketing", "owner", "admin", "head_office", "member"],
   },
 );
 

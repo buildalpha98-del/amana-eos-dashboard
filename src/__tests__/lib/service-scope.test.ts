@@ -23,11 +23,11 @@ describe("getServiceScope — full role matrix (4b widening)", () => {
   });
 
   it("coordinator with serviceId → serviceId (narrowed post-4b)", () => {
-    expect(getServiceScope(sess("coordinator", "svc1"))).toBe("svc1");
+    expect(getServiceScope(sess("member", "svc1"))).toBe("svc1");
   });
 
   it("coordinator without serviceId → null (fail open; flagged in audit)", () => {
-    expect(getServiceScope(sess("coordinator", null))).toBeNull();
+    expect(getServiceScope(sess("member", null))).toBeNull();
   });
 
   it("marketing with serviceId → serviceId (narrowed post-4b)", () => {

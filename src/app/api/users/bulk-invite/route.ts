@@ -18,7 +18,7 @@ const bulkUserSchema = z.object({
       "head_office",
       "admin",
       "marketing",
-      "coordinator",
+      "member",
       "member",
       "staff",
     ])

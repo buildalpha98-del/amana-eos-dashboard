@@ -8,14 +8,20 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
+// 2026-04-30: Role enum collapsed from 7 → 6 per training-session decision.
+// `coordinator` (Service Coordinator) was indistinguishable in practice from
+// `member` (Director of Service) — same scope, same surfaces, same workflows.
+// Existing coordinator users are migrated to `member` by
+// prisma/pre-migrate-coordinator.ts, which runs in vercel.json's build chain
+// BEFORE `prisma db push` drops the enum value (otherwise the cast would
+// fail on rows still holding the dropped value).
 enum Role {
   owner
-  head_office
+  head_office // displayed as "State Manager"
   admin
   marketing
-  coordinator
-  member
-  staff
+  member // displayed as "Director of Service"
+  staff // displayed as "Educator"
 }
 
 enum RockStatus {

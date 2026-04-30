@@ -61,10 +61,6 @@ const roleBadge: Record<string, { label: string; className: string }> = {
     label: ROLE_DISPLAY_NAMES.marketing,
     className: "bg-pink-100 text-pink-800",
   },
-  coordinator: {
-    label: ROLE_DISPLAY_NAMES.coordinator,
-    className: "bg-cyan-100 text-cyan-800",
-  },
   member: {
     label: ROLE_DISPLAY_NAMES.member,
     className: "bg-gray-100 text-gray-700",

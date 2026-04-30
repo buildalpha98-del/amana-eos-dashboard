@@ -16,7 +16,7 @@ function ensureCoordCanTouchAudit(
   userServiceId: string | null | undefined,
   auditServiceId: string,
 ) {
-  if (role !== "coordinator") return;
+  if (role !== "member") return;
   if (!userServiceId || userServiceId !== auditServiceId) {
     throw ApiError.forbidden(
       "Coordinators can only work on audits for their own service.",
@@ -202,5 +202,5 @@ const { id } = await context!.params!;
   // ("Centre Director") + admin tier always allowed. The
   // `ensureCoordCanTouchAudit` check inside the handler enforces the
   // own-service constraint for coordinators.
-  roles: ["owner", "head_office", "admin", "coordinator", "member"],
+  roles: ["owner", "head_office", "admin", "member"],
 });

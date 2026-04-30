@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { ChevronDown, Building2, Search } from "lucide-react";
 import { useServices } from "@/hooks/useServices";
 
-const SWITCHER_ROLES = new Set(["coordinator", "admin", "head_office", "owner"]);
+const SWITCHER_ROLES = new Set(["member", "admin", "head_office", "owner"]);
 
 const SERVICE_PAGE_PREFIXES = [
   "/services",

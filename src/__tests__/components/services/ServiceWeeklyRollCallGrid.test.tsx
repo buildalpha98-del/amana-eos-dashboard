@@ -207,7 +207,7 @@ describe("ServiceWeeklyRollCallGrid", () => {
 
   it("hides '+ Add child to week' for a coordinator at a DIFFERENT service (not same-service)", () => {
     // Per spec matrix: coordinator is R/W only at THEIR OWN service, 403 elsewhere.
-    sessionRef.role = "coordinator";
+    sessionRef.role = "member";
     sessionRef.serviceId = "svc-OTHER"; // viewing svc-1 while assigned to svc-OTHER
     weeklyRef.data = makeData();
     const qc = makeClient();
@@ -220,7 +220,7 @@ describe("ServiceWeeklyRollCallGrid", () => {
   });
 
   it("shows '+ Add child to week' for a coordinator at THEIR OWN service", () => {
-    sessionRef.role = "coordinator";
+    sessionRef.role = "member";
     sessionRef.serviceId = "svc-1";
     weeklyRef.data = makeData();
     const qc = makeClient();

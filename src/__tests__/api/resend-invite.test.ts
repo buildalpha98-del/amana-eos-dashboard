@@ -41,7 +41,7 @@ describe("POST /api/centre-contacts/[id]/resend-invite", () => {
   });
 
   it("403 when role is not allowed", async () => {
-    mockSession({ id: "u1", name: "X", role: "member", serviceId: "s1" });
+    mockSession({ id: "u1", name: "X", role: "staff", serviceId: "s1" });
     const res = await POST(createRequest("POST", `/api/centre-contacts/${CONTACT_ID}/resend-invite`), ctx);
     expect(res.status).toBe(403);
   });
@@ -54,7 +54,7 @@ describe("POST /api/centre-contacts/[id]/resend-invite", () => {
   });
 
   it("403 when coordinator is at a different service", async () => {
-    mockSession({ id: "u1", name: "X", role: "coordinator", serviceId: "other" });
+    mockSession({ id: "u1", name: "X", role: "member", serviceId: "other" });
     prismaMock.centreContact.findUnique.mockResolvedValue({
       id: CONTACT_ID,
       email: "p@y.com",

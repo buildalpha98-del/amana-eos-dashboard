@@ -80,7 +80,7 @@ describe("Newsletter end-to-end flow", () => {
   });
 
   it("generate → calls /api/ai/generate with the right template + variables", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
 
     // Stub the internal AI fetch — capture what got sent
     let capturedBody: Record<string, unknown> | null = null;
@@ -138,7 +138,7 @@ describe("Newsletter end-to-end flow", () => {
   });
 
   it("publish → creates a community ParentPost with type=newsletter", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.parentPost.create.mockResolvedValue({
       id: "post-1",
       type: "newsletter",
@@ -176,7 +176,7 @@ describe("Newsletter end-to-end flow", () => {
   });
 
   it("publish → 400 with empty content (validates before write)", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     const res = await publishPost(
       createRequest("POST", "/api/services/s1/newsletter/publish", {
         body: { title: "Week of 22 Apr", content: "" },

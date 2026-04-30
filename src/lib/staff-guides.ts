@@ -171,7 +171,7 @@ const memberGuide: GuideContent = {
 // ---------------------------------------------------------------------------
 
 const coordinatorGuide: GuideContent = {
-  role: "coordinator",
+  role: "member",
   displayName: "Service Coordinator",
   welcome:
     "You oversee multiple centres \u2014 the dashboard helps you stay across everything.",

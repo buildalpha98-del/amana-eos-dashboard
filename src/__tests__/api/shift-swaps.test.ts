@@ -557,7 +557,7 @@ describe("POST /api/shift-swaps/[id]/approve", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-OTHER",
     });
     prismaMock.shiftSwapRequest.findUnique.mockResolvedValue(
@@ -622,7 +622,7 @@ describe("POST /api/shift-swaps/[id]/approve", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.shiftSwapRequest.findUnique.mockResolvedValue(
@@ -760,7 +760,7 @@ describe("GET /api/shift-swaps (list)", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.shiftSwapRequest.findMany.mockResolvedValue([]);
@@ -789,7 +789,7 @@ describe("GET /api/shift-swaps (list)", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     const res = await GET(

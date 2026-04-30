@@ -112,7 +112,7 @@ describe("PATCH /api/services/[id]/casual-settings", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-other",
     });
 
@@ -131,7 +131,7 @@ describe("PATCH /api/services/[id]/casual-settings", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
 

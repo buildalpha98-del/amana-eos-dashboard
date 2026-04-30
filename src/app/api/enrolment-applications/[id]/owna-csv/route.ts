@@ -134,5 +134,5 @@ export const GET = withApiAuth(
       },
     });
   },
-  { minRole: "coordinator" },
+  { minRole: "member" },
 );

@@ -95,7 +95,7 @@ describe("PATCH /api/compliance/[id] — widened auth", () => {
   });
 
   it("allows a coordinator in the same service to PATCH", async () => {
-    mockSession({ id: "coord-1", name: "Coord", role: "coordinator", serviceId: "svc-1" });
+    mockSession({ id: "coord-1", name: "Coord", role: "member", serviceId: "svc-1" });
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-99",
@@ -113,7 +113,7 @@ describe("PATCH /api/compliance/[id] — widened auth", () => {
   });
 
   it("rejects a coordinator in a different service with 403", async () => {
-    mockSession({ id: "coord-1", name: "Coord", role: "coordinator", serviceId: "svc-OTHER" });
+    mockSession({ id: "coord-1", name: "Coord", role: "member", serviceId: "svc-OTHER" });
     prismaMock.complianceCertificate.findUnique.mockResolvedValue({
       id: "cert-1",
       userId: "user-99",

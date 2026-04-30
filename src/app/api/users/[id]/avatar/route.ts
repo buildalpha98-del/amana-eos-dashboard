@@ -23,7 +23,7 @@ async function canManageAvatar(
 ): Promise<boolean> {
   if (viewerId === targetId) return true;
   if ((ADMIN_ROLES as readonly string[]).includes(viewerRole)) return true;
-  if (viewerRole === "coordinator") {
+  if (viewerRole === "member") {
     const [target, viewer] = await Promise.all([
       prisma.user.findUnique({ where: { id: targetId }, select: { serviceId: true } }),
       prisma.user.findUnique({ where: { id: viewerId }, select: { serviceId: true } }),

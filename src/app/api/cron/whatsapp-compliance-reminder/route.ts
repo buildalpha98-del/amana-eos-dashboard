@@ -93,7 +93,7 @@ export const GET = withApiHandler(async (req) => {
           source: "whatsapp-compliance",
           targetId: concern.serviceId,
           taskType: "admin",
-          title: `Two-week WhatsApp pattern: ${concern.coordinatorName ?? "coordinator"} at ${concern.serviceName} — flag for Monday 1:1`,
+          title: `Two-week WhatsApp pattern: ${concern.coordinatorName ?? "member"} at ${concern.serviceName} — flag for Monday 1:1`,
           content: `${concern.serviceName} is below the weekly floor for two consecutive weeks. This week: ${concern.thisWeekPosted}/5 posted. Last week: ${concern.lastWeekPosted}/5 posted. Open the compliance dashboard to flag the coordinator or schedule a 1:1.`,
           metadata: {
             kind: "two_week_pattern",

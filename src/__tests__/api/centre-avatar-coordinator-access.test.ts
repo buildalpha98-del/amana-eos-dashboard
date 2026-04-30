@@ -27,9 +27,9 @@ describe("Centre Avatar — coordinator access (QOL #1)", () => {
     _clearUserActiveCache();
     prismaMock.user.findUnique.mockImplementation(async (args: any) => {
       if (args?.where?.id === "coord-own")
-        return { id: "coord-own", role: "coordinator", active: true };
+        return { id: "coord-own", role: "member", active: true };
       if (args?.where?.id === "coord-other")
-        return { id: "coord-other", role: "coordinator", active: true };
+        return { id: "coord-other", role: "member", active: true };
       return null;
     });
   });
@@ -39,7 +39,7 @@ describe("Centre Avatar — coordinator access (QOL #1)", () => {
       mockSession({
         id: "coord-own",
         name: "Own Coordinator",
-        role: "coordinator",
+        role: "member",
         serviceId: "svc-mine",
       });
       prismaMock.centreAvatar.findUnique.mockResolvedValue({
@@ -77,7 +77,7 @@ describe("Centre Avatar — coordinator access (QOL #1)", () => {
       mockSession({
         id: "coord-other",
         name: "Other Coordinator",
-        role: "coordinator",
+        role: "member",
         serviceId: "svc-other",
       });
 
@@ -96,7 +96,7 @@ describe("Centre Avatar — coordinator access (QOL #1)", () => {
       mockSession({
         id: "coord-own",
         name: "Own Coordinator",
-        role: "coordinator",
+        role: "member",
         serviceId: "svc-mine",
       });
       prismaMock.centreAvatar.findUnique.mockResolvedValue({ id: "ca1" });
@@ -124,7 +124,7 @@ describe("Centre Avatar — coordinator access (QOL #1)", () => {
       mockSession({
         id: "coord-other",
         name: "Other Coordinator",
-        role: "coordinator",
+        role: "member",
         serviceId: "svc-other",
       });
 

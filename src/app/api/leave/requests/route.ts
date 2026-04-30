@@ -129,7 +129,7 @@ const body = await parseJsonBody(req);
   try {
     const coordinators = session!.user.serviceId
       ? await prisma.user.findMany({
-          where: { role: "coordinator", serviceId: session!.user.serviceId, active: true },
+          where: { role: "member", serviceId: session!.user.serviceId, active: true },
           select: { id: true },
         })
       : [];

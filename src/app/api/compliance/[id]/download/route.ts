@@ -31,7 +31,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
   const isAdmin = isAdminRole(viewerRole);
 
   let canAccess = isOwn || isAdmin;
-  if (!canAccess && viewerRole === "coordinator") {
+  if (!canAccess && viewerRole === "member") {
     const viewer = await prisma.user.findUnique({
       where: { id: viewerId },
       select: { serviceId: true },

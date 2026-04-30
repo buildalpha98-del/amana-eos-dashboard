@@ -27,7 +27,7 @@ export function destinationForSession(
   const role = session?.user?.role;
   const serviceId = session?.user?.serviceId;
   const serviceScoped =
-    (role === "staff" || role === "member" || role === "coordinator") &&
+    (role === "staff" || role === "member" || role === "member") &&
     !!serviceId;
 
   if (serviceScoped) return `/services/${serviceId}?tab=today`;

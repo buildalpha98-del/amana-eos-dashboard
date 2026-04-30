@@ -224,7 +224,7 @@ describe("resolveCoordinatorForService", () => {
     const c = await resolveCoordinatorForService("svc-1");
     expect(c?.id).toBe("u-1");
     expect(prismaMock.user.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ serviceId: "svc-1", role: "coordinator" }) }),
+      expect.objectContaining({ where: expect.objectContaining({ serviceId: "svc-1", role: "member" }) }),
     );
   });
   it("returns null when none", async () => {

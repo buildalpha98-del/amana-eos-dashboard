@@ -160,5 +160,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(post, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator", "member"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

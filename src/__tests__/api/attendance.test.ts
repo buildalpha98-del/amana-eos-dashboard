@@ -200,7 +200,7 @@ describe("GET /api/attendance — 4b scope audit regression (narrow)", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc1",
     });
     vi.mocked(getServiceScope).mockReturnValue("svc1");
@@ -219,7 +219,7 @@ describe("GET /api/attendance — 4b scope audit regression (narrow)", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc1",
     });
     vi.mocked(getServiceScope).mockReturnValue("svc1");
@@ -241,7 +241,7 @@ describe("POST /api/attendance — 4b scope audit regression (narrow)", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc1",
     });
     vi.mocked(getServiceScope).mockReturnValue("svc1");

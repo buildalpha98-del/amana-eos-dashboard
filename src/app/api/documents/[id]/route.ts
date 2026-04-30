@@ -5,7 +5,13 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { indexDocument } from "@/lib/document-indexer";
 
-import { parseJsonBody } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+
+// Roles that may delete any document regardless of who uploaded it.
+// Everyone else may only delete their own uploads. This matches the
+// 2026-04-30 training-session feedback: head_office/admin were quietly
+// deleting other staff's uploads, and the team wanted that gated.
+const DOCUMENT_ADMIN_ROLES = new Set(["owner", "admin"]);
 const updateDocumentSchema = z.object({
   folderId: z.string().nullable().optional(),
   title: z.string().min(1).optional(),
@@ -59,10 +65,29 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 export const DELETE = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
 
+  // Look up the doc first so we can enforce uploader-or-admin gating.
+  // Without this check, head_office/admin could (and were) deleting
+  // documents uploaded by other staff — surfaced in 2026-04-30 training.
+  const doc = await prisma.document.findUnique({
+    where: { id },
+    select: { id: true, uploadedById: true, deleted: true },
+  });
+  if (!doc || doc.deleted) {
+    throw ApiError.notFound("Document not found");
+  }
+
+  const isUploader = doc.uploadedById === session.user.id;
+  const isAdmin = DOCUMENT_ADMIN_ROLES.has(session.user.role);
+  if (!isUploader && !isAdmin) {
+    throw ApiError.forbidden(
+      "You can only delete documents you uploaded. Ask the original uploader or an owner.",
+    );
+  }
+
   await prisma.document.update({
     where: { id },
     data: { deleted: true },
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+});

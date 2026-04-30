@@ -94,7 +94,7 @@ export const GET = withApiHandler(async (req) => {
       if (!coordinatorEmails) {
         const coordinators = await prisma.user.findMany({
           where: {
-            role: "coordinator",
+            role: "member",
             serviceId: cert.serviceId,
             active: true,
           },
@@ -228,7 +228,7 @@ export const GET = withApiHandler(async (req) => {
               title: `OVERDUE: ${audit.template.name} (QA${audit.template.qualityArea})`,
               description: `This audit was due ${audit.dueDate.toLocaleDateString("en-AU")} and has not been completed. Please complete immediately.`,
               category: "morning-prep",
-              assignedRole: "coordinator",
+              assignedRole: "member",
             },
           });
         }

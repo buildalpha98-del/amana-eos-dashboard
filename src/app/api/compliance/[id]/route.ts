@@ -37,7 +37,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   const isAdmin = isAdminRole(viewerRole);
 
   let canAccess = isOwn || isAdmin;
-  if (!canAccess && viewerRole === "coordinator") {
+  if (!canAccess && viewerRole === "member") {
     const viewer = await prisma.user.findUnique({
       where: { id: viewerId },
       select: { serviceId: true },
@@ -114,7 +114,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(cert);
-}, { roles: ["owner", "head_office", "admin", "coordinator", "staff", "member"] });
+}, { roles: ["owner", "head_office", "admin", "member", "staff", "member"] });
 
 export const DELETE = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;

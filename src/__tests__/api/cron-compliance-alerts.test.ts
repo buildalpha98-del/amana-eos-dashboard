@@ -294,7 +294,7 @@ describe("GET /api/cron/compliance-alerts", () => {
     prismaMock.userNotification.create.mockResolvedValue({ id: "n" });
     prismaMock.auditInstance.findMany.mockResolvedValue([]);
     prismaMock.user.findMany.mockImplementation((args: { where: { role?: string; serviceId?: string } }) => {
-      if (args.where.role === "coordinator" && args.where.serviceId === "svc-9") {
+      if (args.where.role === "member" && args.where.serviceId === "svc-9") {
         return Promise.resolve([
           { email: "coord1@test.com" },
           { email: "coord2@test.com" },

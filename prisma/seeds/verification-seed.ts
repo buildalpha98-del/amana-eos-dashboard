@@ -301,9 +301,9 @@ async function main() {
     { name: "Tracie Admin", email: "tracie@amanaoshc.com.au", role: "admin", serviceCode: null, state: "NSW" },
     { name: "Mirna Admin", email: "mirna@amanaoshc.com.au", role: "admin", serviceCode: null, state: "NSW" },
     { name: "Akram Marketing", email: "akram@amanaoshc.com.au", role: "marketing", serviceCode: null, state: null },
-    { name: "Coord Riverstone", email: "coord.riv@amanaoshc.com.au", role: "coordinator", serviceCode: "RIV", state: "NSW" },
-    { name: "Coord Marsden Park", email: "coord.mpk@amanaoshc.com.au", role: "coordinator", serviceCode: "MPK", state: "NSW" },
-    { name: "Coord Schofields", email: "coord.sch@amanaoshc.com.au", role: "coordinator", serviceCode: "SCH", state: "NSW" },
+    { name: "Coord Riverstone", email: "coord.riv@amanaoshc.com.au", role: "member", serviceCode: "RIV", state: "NSW" },
+    { name: "Coord Marsden Park", email: "coord.mpk@amanaoshc.com.au", role: "member", serviceCode: "MPK", state: "NSW" },
+    { name: "Coord Schofields", email: "coord.sch@amanaoshc.com.au", role: "member", serviceCode: "SCH", state: "NSW" },
     { name: "Member Riverstone", email: "member.riv@amanaoshc.com.au", role: "member", serviceCode: "RIV", state: "NSW" },
     { name: "Member Marsden Park", email: "member.mpk@amanaoshc.com.au", role: "member", serviceCode: "MPK", state: "NSW" },
     { name: "Member Schofields", email: "member.sch@amanaoshc.com.au", role: "member", serviceCode: "SCH", state: "NSW" },
@@ -618,7 +618,7 @@ async function main() {
   }> = [
     { id: "verify-vac-riv-1", serviceCode: "RIV", role: "educator", status: "open", employmentType: "casual" },
     { id: "verify-vac-mpk-1", serviceCode: "MPK", role: "senior_educator", status: "interviewing", employmentType: "permanent" },
-    { id: "verify-vac-sch-1", serviceCode: "SCH", role: "coordinator", status: "filled", employmentType: "permanent" },
+    { id: "verify-vac-sch-1", serviceCode: "SCH", role: "member", status: "filled", employmentType: "permanent" },
     { id: "verify-vac-riv-2", serviceCode: "RIV", role: "educator", status: "open", employmentType: "casual" },
   ];
 

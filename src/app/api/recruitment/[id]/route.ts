@@ -41,7 +41,7 @@ const { id } = await context!.params!;
   }
 
   return NextResponse.json(vacancy);
-}, { roles: ["owner", "head_office", "admin", "coordinator"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });
 
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;

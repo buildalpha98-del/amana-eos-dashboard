@@ -45,7 +45,7 @@ export async function getCentreScope(
   const userServiceId = session.user.serviceId as string | undefined;
 
   // Coordinator: their assigned service + any services they manage
-  if (role === "coordinator") {
+  if (role === "member") {
     const managedServices = await prisma.service.findMany({
       where: { managerId: session.user.id as string },
       select: { id: true },

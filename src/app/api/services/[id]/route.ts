@@ -126,7 +126,7 @@ export const PATCH = withApiAuth(
 
     // Coordinators may only edit their own service. Admin/owner/head_office bypass.
     const role = session.user.role ?? "";
-    if (role === "coordinator") {
+    if (role === "member") {
       const coordinatorServiceId = (session.user as { serviceId?: string | null })
         .serviceId ?? null;
       if (!coordinatorServiceId || coordinatorServiceId !== id) {
@@ -181,7 +181,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(service);
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );
 
 // DELETE /api/services/[id]

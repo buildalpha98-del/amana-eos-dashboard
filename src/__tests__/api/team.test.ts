@@ -110,13 +110,15 @@ describe("GET /api/team", () => {
     expect(call.where.serviceId).toBe("svc-1");
   });
 
+  // 2026-04-30: previously asserted ?role=coordinator → where.role=coordinator;
+  // coordinator enum value is dropped, so use member here.
   it("?role= filter is applied when the role is valid", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
-    const req = createRequest("GET", "/api/team?role=coordinator");
+    const req = createRequest("GET", "/api/team?role=member");
     const res = await GET(req);
     expect(res.status).toBe(200);
     const call = prismaMock.user.findMany.mock.calls[0][0];
-    expect(call.where.role).toBe("coordinator");
+    expect(call.where.role).toBe("member");
   });
 
   it("?role= is ignored when value is not a valid Role", async () => {

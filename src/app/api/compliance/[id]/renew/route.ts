@@ -60,12 +60,12 @@ export const POST = withApiAuth(async (req, session, context) => {
   }
 
   const isOwnCert = !!existing.userId && existing.userId === viewerId;
-  if (!isAdminRole(role) && role !== "coordinator" && !isOwnCert) {
+  if (!isAdminRole(role) && role !== "member" && !isOwnCert) {
     throw ApiError.forbidden();
   }
 
   // Coordinators are limited to certs at their own service.
-  if (role === "coordinator" && existing.serviceId !== session!.user.serviceId) {
+  if (role === "member" && existing.serviceId !== session!.user.serviceId) {
     throw ApiError.forbidden();
   }
 

@@ -159,7 +159,7 @@ describe("POST /api/compliance/[id]/renew", () => {
     mockSession({
       id: "u-coord",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-other",
     });
     const req = createRequest("POST", "/api/compliance/cert-1/renew", {
@@ -176,7 +176,7 @@ describe("POST /api/compliance/[id]/renew", () => {
     mockSession({
       id: "u-coord",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     const req = createRequest("POST", "/api/compliance/cert-1/renew", {

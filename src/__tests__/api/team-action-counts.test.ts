@@ -93,7 +93,7 @@ describe("GET /api/team/action-counts", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
 
@@ -249,7 +249,7 @@ describe("GET /api/team/action-counts", () => {
   });
 
   it("scopes pulsesConcerning for coordinator via user.serviceId", async () => {
-    mockSession({ id: "u2", name: "Coord", role: "coordinator", serviceId: "svc-1" });
+    mockSession({ id: "u2", name: "Coord", role: "member", serviceId: "svc-1" });
     prismaMock.complianceCertificate.count.mockResolvedValue(0);
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);

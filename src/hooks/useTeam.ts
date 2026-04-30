@@ -14,7 +14,7 @@ export interface TeamMember {
   id: string;
   name: string;
   email: string;
-  role: "owner" | "head_office" | "admin" | "marketing" | "coordinator" | "member" | "staff";
+  role: "owner" | "head_office" | "admin" | "marketing" | "member" | "member" | "staff";
   avatar: string | null;
   service: { id: string; name: string } | null;
   activeRocks: number;

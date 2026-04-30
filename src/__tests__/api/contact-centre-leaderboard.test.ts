@@ -36,8 +36,8 @@ describe("GET /api/contact-centre/leaderboard", () => {
     mockSession({ id: "u1", name: "Owner", role: "owner" });
 
     prismaMock.user.findMany.mockResolvedValue([
-      { id: "c1", name: "Ali", email: "ali@x.com", avatar: null, role: "coordinator" },
-      { id: "c2", name: "Bea", email: "bea@x.com", avatar: null, role: "coordinator" },
+      { id: "c1", name: "Ali", email: "ali@x.com", avatar: null, role: "member" },
+      { id: "c2", name: "Bea", email: "bea@x.com", avatar: null, role: "member" },
     ]);
     prismaMock.supportTicket.findMany.mockResolvedValue([
       { id: "t1", assignedToId: "c1", status: "resolved",

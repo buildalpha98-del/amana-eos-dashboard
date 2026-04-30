@@ -127,7 +127,7 @@ describe("ActionRequiredWidget — role visibility", () => {
   it("renders all four cards for role=coordinator", async () => {
     installFetchMock({ certsExpiring: 1, leavePending: 0, timesheetsPending: 3, shiftSwapsPending: 0 });
     const qc = makeClient();
-    render(<ActionRequiredWidget userRole="coordinator" />, {
+    render(<ActionRequiredWidget userRole="member" />, {
       wrapper: makeWrapper(qc),
     });
 

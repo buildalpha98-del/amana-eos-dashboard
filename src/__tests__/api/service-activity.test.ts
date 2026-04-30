@@ -55,7 +55,7 @@ describe("GET /api/services/[id]/activity", () => {
     mockSession({
       id: "u1",
       name: "C",
-      role: "coordinator",
+      role: "member",
       serviceId: "other",
     });
     const res = await GET(
@@ -66,7 +66,7 @@ describe("GET /api/services/[id]/activity", () => {
   });
 
   it("filters to NQS actions and returns friendly labels", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.activityLog.findMany.mockResolvedValue([
       {
         id: "log1",
@@ -106,7 +106,7 @@ describe("GET /api/services/[id]/activity", () => {
   });
 
   it("respects the limit parameter (clamped to safeLimit ceiling)", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.activityLog.findMany.mockResolvedValue([]);
     await GET(
       createRequest("GET", "/api/services/s1/activity?limit=5"),

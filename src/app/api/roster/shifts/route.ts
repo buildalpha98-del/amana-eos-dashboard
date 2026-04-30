@@ -56,7 +56,7 @@ export const POST = withApiAuth(async (req, session) => {
   }
   const role = session.user.role ?? "";
   if (!isAdminRole(role)) {
-    if (role !== "coordinator" || session.user.serviceId !== data.serviceId) {
+    if (role !== "member" || session.user.serviceId !== data.serviceId) {
       throw ApiError.forbidden();
     }
   }

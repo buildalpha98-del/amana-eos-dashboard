@@ -70,7 +70,7 @@ interface ChecklistItem {
 type RoleKey =
   | "staff"
   | "member"
-  | "coordinator"
+  | "member"
   | "admin"
   | "head_office"
   | "owner"
@@ -85,8 +85,8 @@ const ROLE_DISPLAY_NAMES: Record<RoleKey, string> = {
   head_office: "State Manager",
   admin: "Admin",
   marketing: "Marketing Coordinator",
-  coordinator: "Service Coordinator",
-  member: "Centre Director",
+  // 2026-04-30: coordinator merged into member (Director of Service).
+  member: "Director of Service",
   staff: "Educator",
 };
 
@@ -331,134 +331,6 @@ const CHECKLISTS: Record<RoleKey, ChecklistItem[]> = {
     },
   ],
 
-  // ── Coordinator / Service Coordinator (14 items) ───────────
-  coordinator: [
-    {
-      key: "coord_dashboard",
-      title: "Review your dashboard overview",
-      description:
-        "See an overview of your centres and key metrics at a glance.",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      category: "Getting Set Up",
-    },
-    {
-      key: "coord_compliance",
-      title: "Check all centres' compliance",
-      description:
-        "Ensure every centre meets staffing ratios and regulatory standards.",
-      href: "/compliance",
-      icon: ShieldCheck,
-      category: "Getting Set Up",
-    },
-    {
-      key: "coord_services",
-      title: "Explore the services section",
-      description:
-        "Browse all centres, sessions, and operational data in one place.",
-      href: "/services",
-      icon: Building2,
-      category: "Getting Set Up",
-    },
-    {
-      key: "coord_attendance",
-      title: "Monitor attendance across centres",
-      description:
-        "Compare attendance rates and capacity usage across your centres.",
-      href: "/services",
-      icon: Users,
-      category: "Operations",
-    },
-    {
-      key: "coord_checklists",
-      title: "Review checklists",
-      description:
-        "Check that daily operational checklists are being completed on time.",
-      href: "/services",
-      icon: ClipboardCheck,
-      category: "Operations",
-    },
-    {
-      key: "coord_incidents",
-      title: "Manage incidents",
-      description:
-        "Review incident reports across centres and follow up on flagged items.",
-      href: "/incidents",
-      icon: AlertCircle,
-      category: "Operations",
-    },
-    {
-      key: "coord_policies",
-      title: "Check policies",
-      description:
-        "Ensure centre policies are current and acknowledged by staff.",
-      href: "/policies",
-      icon: FileText,
-      category: "Operations",
-    },
-    {
-      key: "coord_rocks",
-      title: "Track rocks across centres",
-      description:
-        "Monitor quarterly priorities for each centre you oversee.",
-      href: "/rocks",
-      icon: Target,
-      category: "EOS Rhythm",
-    },
-    {
-      key: "coord_todos",
-      title: "Manage to-dos",
-      description:
-        "Review and assign weekly action items across your centres.",
-      href: "/todos",
-      icon: ListTodo,
-      category: "EOS Rhythm",
-    },
-    {
-      key: "coord_scorecard",
-      title: "Review scorecard",
-      description:
-        "Track weekly measurables and spot trends across your centres.",
-      href: "/scorecard",
-      icon: TrendingUp,
-      category: "EOS Rhythm",
-    },
-    {
-      key: "coord_issues",
-      title: "Review issues",
-      description:
-        "Identify, discuss, and solve issues raised across centres.",
-      href: "/issues",
-      icon: AlertCircle,
-      category: "EOS Rhythm",
-    },
-    {
-      key: "coord_leave",
-      title: "Approve leave requests",
-      description:
-        "Review and action pending leave applications from staff.",
-      href: "/leave",
-      icon: CalendarOff,
-      category: "People",
-    },
-    {
-      key: "coord_timesheets",
-      title: "Review timesheets",
-      description: "Check and approve staff timesheets before payroll.",
-      href: "/timesheets",
-      icon: Clock,
-      category: "People",
-    },
-    {
-      key: "coord_directory",
-      title: "Check staff directory",
-      description:
-        "Browse team members, contact details, and role assignments.",
-      href: "/staff-directory",
-      icon: Users,
-      category: "People",
-    },
-  ],
 
   // ── Marketing Coordinator (12 items) ───────────────────────
   marketing: [

@@ -11,7 +11,7 @@ const updateContractSchema = z.object({
     .enum([
       "es1", "es2", "es3", "es4",
       "cs1", "cs2", "cs3", "cs4",
-      "director", "coordinator", "custom",
+      "director", "member", "custom",
     ])
     .nullable()
     .optional(),

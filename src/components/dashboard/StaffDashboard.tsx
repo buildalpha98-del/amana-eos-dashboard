@@ -403,7 +403,7 @@ export function StaffDashboard() {
       <MobileQuickActions role={session?.user?.role as string || "staff"} />
 
       {/* ── Director Analytics (centre directors only) ── */}
-      {(session?.user?.role === "member" || session?.user?.role === "coordinator") && (
+      {session?.user?.role === "member" && (
         <DirectorAnalyticsWidget />
       )}
 

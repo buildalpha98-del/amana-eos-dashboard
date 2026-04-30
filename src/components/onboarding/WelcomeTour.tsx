@@ -82,7 +82,7 @@ const ALL_STEPS: TourStepDef[] = [
 ];
 
 const COORDINATOR_PLUS_ROLES = [
-  "coordinator",
+  "member",
   "admin",
   "head_office",
   "owner",

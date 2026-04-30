@@ -113,7 +113,7 @@ export const GET = withApiHandler(async (req) => {
                 title: `Complete ${template.name} — due ${dueDateStr}`,
                 description: `NQS QA${template.qualityArea} audit scheduled for this month. ${template.items.length} checklist items.`,
                 category: "morning-prep",
-                assignedRole: "coordinator",
+                assignedRole: "member",
               },
             });
           }

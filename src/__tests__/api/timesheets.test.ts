@@ -277,7 +277,7 @@ describe("POST /api/timesheets/[id]/submit", () => {
     expect(prismaMock.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          role: "coordinator",
+          role: "member",
           serviceId: "svc-1",
           active: true,
         }),

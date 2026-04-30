@@ -169,5 +169,5 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(result);
   },
-  { roles: ["owner", "head_office", "admin", "coordinator", "member"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );
