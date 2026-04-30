@@ -42,7 +42,9 @@ describe("ROLE_DISPLAY_NAMES", () => {
     expect(ROLE_DISPLAY_NAMES.admin).toBe("Admin");
     expect(ROLE_DISPLAY_NAMES.marketing).toBe("Marketing");
     expect(ROLE_DISPLAY_NAMES.coordinator).toBe("Service Coordinator");
-    expect(ROLE_DISPLAY_NAMES.member).toBe("Centre Director");
+    // 2026-04-30: renamed from "Centre Director" to "Director of Service"
+    // per training-session terminology refresh.
+    expect(ROLE_DISPLAY_NAMES.member).toBe("Director of Service");
     expect(ROLE_DISPLAY_NAMES.staff).toBe("Educator");
   });
 });
@@ -67,8 +69,15 @@ describe("rolePageAccess", () => {
     expect(rolePageAccess.owner).toEqual(allPages);
   });
 
-  it("head_office has access to all pages", () => {
-    expect(rolePageAccess.head_office).toEqual(allPages);
+  // 2026-04-30: head_office (State Manager) lost /leadership per the
+  // training-session feedback — Leadership is HQ-cockpit (owner + admin)
+  // only, not a per-state concern.
+  it("head_office can access everything except /leadership", () => {
+    expect(rolePageAccess.head_office).not.toContain("/leadership");
+    for (const page of allPages) {
+      if (page === "/leadership") continue;
+      expect(rolePageAccess.head_office).toContain(page);
+    }
   });
 
   it("admin can access everything except /crm/templates", () => {

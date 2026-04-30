@@ -140,4 +140,8 @@ const body = await parseJsonBody(req);
   }
 
   return NextResponse.json(rock, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+  // 2026-04-30: opened up to coordinator + member so service-level users can
+  // create rocks from inside their /services/[id] EOS tab. Service scoping
+  // is enforced by the UI passing serviceId on create; cross-service rocks
+  // remain admin-only via the parent flow.
+}, { roles: ["owner", "head_office", "admin", "coordinator", "member"] });

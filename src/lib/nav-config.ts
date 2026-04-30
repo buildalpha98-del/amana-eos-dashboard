@@ -155,7 +155,12 @@ export const navItems: NavItem[] = [
   { href: "/directory", label: "Staff Directory", icon: Contact, section: "People", tooltip: "Find and connect with your team" },
 
   // ── Admin — config, strategy & utilities ──────────────────
-  { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ALL_NON_MARKETING },
+  // 2026-04-30: tightened to admin (the org-admin role, not the state-manager
+  // head_office role). Owner bypasses. State Manager (head_office), marketing,
+  // member, and staff/educator no longer see the Leadership cockpit. Service
+  // Coordinator implicit-kept (user listed 6 roles in target spec without
+  // explicitly removing coordinator).
+  { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ["admin", "coordinator"] },
   { href: "/reports", label: "Reports", icon: BarChart3, section: "Operations", tooltip: "Attendance, booking, revenue, enrolment, and medical reports", roles: ALL_NON_MARKETING },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },

@@ -98,11 +98,31 @@ describe("POST /api/rocks", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 403 when member tries to create", async () => {
-    mockSession({ id: "user-2", name: "Member", role: "member" });
+  // 2026-04-30: opened POST /api/rocks to coordinator + member so service-
+  // level users (Director of Service) can create rocks from inside their
+  // /services/[id] EOS tab. The previous 403-on-member test is now stale.
+  it("allows member (Director of Service) to create — was previously 403", async () => {
+    mockSession({ id: "user-2", name: "Member", role: "member", serviceId: "svc-1" });
+    prismaMock.rock.create.mockResolvedValue({
+      id: "rock-2",
+      title: "Service Rock",
+      ownerId: "user-2",
+      serviceId: "svc-1",
+    } as never);
 
     const req = createRequest("POST", "/api/rocks", {
-      body: { title: "Test Rock", ownerId: "user-2", quarter: "Q1-2025" },
+      body: { title: "Service Rock", ownerId: "user-2", quarter: "Q1-2025", serviceId: "svc-1" },
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+  });
+
+  it("returns 403 when marketing tries to create (no rock surface for marketing)", async () => {
+    mockSession({ id: "user-3", name: "Marketing", role: "marketing" });
+
+    const req = createRequest("POST", "/api/rocks", {
+      body: { title: "Test Rock", ownerId: "user-3", quarter: "Q1-2025" },
     });
     const res = await POST(req);
 

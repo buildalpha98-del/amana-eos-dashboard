@@ -35,13 +35,17 @@ export function parseRole(value: unknown): Role | null {
 // ---------------------------------------------------------------------------
 
 /** Maps database role values → user-facing display names */
+// 2026-04-30: terminology refresh per training-session feedback —
+// "Centre Director" → "Director of Service" so the title reflects the
+// service-leader scope. Other labels unchanged ("Educator" was already
+// the staff-role label; "State Manager" already in use for head_office).
 export const ROLE_DISPLAY_NAMES: Record<Role, string> = {
   owner: "Owner",
   head_office: "State Manager",
   admin: "Admin",
   marketing: "Marketing",
   coordinator: "Service Coordinator",
-  member: "Centre Director",
+  member: "Director of Service",
   staff: "Educator",
 };
 
@@ -160,10 +164,21 @@ export type AppPage = (typeof allPages)[number];
  * - **member**       : limited subset; no Financials, Performance, Team, Settings, Marketing, or Tickets
  * - **staff**        : very limited — service-scoped
  */
+// 2026-04-30: surfaces tightened away from State Manager (head_office) per
+// the post-training feedback. Leadership cockpit is owner + admin only —
+// State Manager (a per-state operational role) doesn't need the org-wide
+// rollup. CRM templates remain admin-config (out of head_office scope).
+const HEAD_OFFICE_EXCLUDED: ReadonlySet<AppPage> = new Set([
+  "/leadership",
+]);
+const ADMIN_EXCLUDED: ReadonlySet<AppPage> = new Set([
+  "/crm/templates",
+]);
+
 export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   owner: allPages,
-  head_office: allPages,
-  admin: allPages.filter((p) => p !== "/crm/templates"),
+  head_office: allPages.filter((p) => !HEAD_OFFICE_EXCLUDED.has(p)),
+  admin: allPages.filter((p) => !ADMIN_EXCLUDED.has(p)),
   marketing: [
     "/dashboard",
     "/getting-started",
