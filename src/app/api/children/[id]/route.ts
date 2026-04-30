@@ -207,3 +207,33 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   return NextResponse.json(updated);
 });
+
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
+  const role = session.user.role ?? "";
+
+  if (!isAdminRole(role)) {
+    throw ApiError.forbidden("Only admins can delete child records");
+  }
+
+  const child = await prisma.child.findUnique({
+    where: { id },
+    select: { id: true, firstName: true, surname: true },
+  });
+  if (!child) throw ApiError.notFound("Child not found");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.authorisedPickup.deleteMany({ where: { childId: id } });
+    await tx.childDocument.deleteMany({ where: { childId: id } });
+    await tx.booking.deleteMany({ where: { childId: id } });
+    await tx.child.delete({ where: { id } });
+  });
+
+  logger.info("Child record deleted", {
+    childId: id,
+    childName: `${child.firstName} ${child.surname}`,
+    deletedBy: session.user.id,
+  });
+
+  return NextResponse.json({ success: true });
+}, { minRole: "head_office" });
