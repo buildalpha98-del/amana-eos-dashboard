@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Pencil, X, Save } from "lucide-react";
+import { Loader2, Pencil, X, Save, AlertTriangle, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 import type { ChildProfileRecord } from "../types";
@@ -306,6 +306,147 @@ export function DetailsTab({ child, canEdit }: DetailsTabProps) {
             <Field label="Status" value={child.status} />
           </dl>
         )}
+      </div>
+
+      {/* Deactivate / Delete actions */}
+      {canEdit && (
+        <ChildDangerZone childId={child.id} childName={`${child.firstName} ${child.surname}`} status={child.status} />
+      )}
+    </div>
+  );
+}
+
+function ChildDangerZone({ childId, childName, status }: { childId: string; childName: string; status: string }) {
+  const router = useRouter();
+  const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDeactivate = async () => {
+    setDeactivating(true);
+    try {
+      await mutateApi(`/api/children/${childId}`, {
+        method: "PATCH",
+        body: { status: "withdrawn" },
+      });
+      toast({ description: `${childName} has been deactivated.` });
+      router.refresh();
+    } catch (err) {
+      toast({ variant: "destructive", description: err instanceof Error ? err.message : "Failed to deactivate" });
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setDeactivating(true);
+    try {
+      await mutateApi(`/api/children/${childId}`, {
+        method: "PATCH",
+        body: { status: "active" },
+      });
+      toast({ description: `${childName} has been reactivated.` });
+      router.refresh();
+    } catch (err) {
+      toast({ variant: "destructive", description: err instanceof Error ? err.message : "Failed to reactivate" });
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await mutateApi(`/api/children/${childId}`, { method: "DELETE" });
+      toast({ description: `${childName} has been permanently deleted.` });
+      router.push("/children");
+    } catch (err) {
+      toast({ variant: "destructive", description: err instanceof Error ? err.message : "Failed to delete" });
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50/50 p-6">
+      <h3 className="text-sm font-semibold text-red-700 flex items-center gap-2 mb-3">
+        <AlertTriangle className="w-4 h-4" />
+        Danger Zone
+      </h3>
+      <div className="space-y-3">
+        {status !== "withdrawn" ? (
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-foreground font-medium">Deactivate child</p>
+              <p className="text-xs text-muted">Set status to withdrawn. This can be reversed.</p>
+            </div>
+            <button
+              onClick={handleDeactivate}
+              disabled={deactivating}
+              className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+            >
+              {deactivating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Deactivate
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-foreground font-medium">Reactivate child</p>
+              <p className="text-xs text-muted">Set status back to active.</p>
+            </div>
+            <button
+              onClick={handleReactivate}
+              disabled={deactivating}
+              className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+            >
+              {deactivating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Reactivate
+            </button>
+          </div>
+        )}
+
+        <div className="border-t border-red-200 pt-3">
+          {!confirmDelete ? (
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-foreground font-medium">Delete child record</p>
+                <p className="text-xs text-muted">Permanently remove this child and all related data. This cannot be undone.</p>
+              </div>
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </button>
+            </div>
+          ) : (
+            <div className="bg-red-100 rounded-lg p-4">
+              <p className="text-sm text-red-800 font-medium mb-3">
+                Are you sure you want to permanently delete {childName}? This will remove all bookings, documents, and pickup records.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  {deleting ? "Deleting..." : "Yes, delete permanently"}
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="text-sm px-4 py-2 rounded-lg border border-border text-foreground hover:bg-surface transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
