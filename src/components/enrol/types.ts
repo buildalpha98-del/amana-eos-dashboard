@@ -272,6 +272,17 @@ export const CULTURAL_OPTIONS = [
 
 export const AUSTRALIAN_STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"];
 
+export const RELATIONSHIP_OPTIONS = [
+  "Mum",
+  "Dad",
+  "Uncle",
+  "Auntie",
+  "Grandparent",
+  "Other Relative",
+  "Guardian",
+  "Other",
+] as const;
+
 export const DOCUMENT_TYPES = [
   { value: "child_photo", label: "Photo of Child" },
   { value: "birth_certificate", label: "Birth Certificate" },
@@ -309,13 +320,22 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
         const label = data.children.length > 1 ? ` (Child ${i + 1})` : "";
         if (!child.crn.trim()) errors.push(`Child CRN is required${label}`);
       });
-      // If secondary parent has any field filled, require key fields
-      const sp = data.secondaryParent;
-      const hasSecondary = sp.firstName || sp.surname || sp.email || sp.mobile;
-      if (hasSecondary) {
-        if (!sp.firstName.trim()) errors.push("Secondary parent first name is required");
-        if (!sp.surname.trim()) errors.push("Secondary parent surname is required");
-        if (!sp.mobile.trim()) errors.push("Secondary parent mobile is required");
+      // If no court orders, secondary parent is required
+      // If court orders exist, secondary parent is optional but validate if partially filled
+      {
+        const sp = data.secondaryParent;
+        const hasSecondary = sp.firstName || sp.surname || sp.email || sp.mobile;
+        if (data.courtOrders === false) {
+          // No court orders — secondary parent is mandatory
+          if (!sp.firstName.trim()) errors.push("Secondary parent first name is required");
+          if (!sp.surname.trim()) errors.push("Secondary parent surname is required");
+          if (!sp.mobile.trim()) errors.push("Secondary parent mobile is required");
+        } else if (hasSecondary) {
+          // Court orders exist but user partially filled secondary — validate consistency
+          if (!sp.firstName.trim()) errors.push("Secondary parent first name is required");
+          if (!sp.surname.trim()) errors.push("Secondary parent surname is required");
+          if (!sp.mobile.trim()) errors.push("Secondary parent mobile is required");
+        }
       }
       break;
 

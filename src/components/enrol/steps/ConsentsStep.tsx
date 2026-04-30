@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Upload, Trash2 } from "lucide-react";
 import { EnrolmentFormData, Consents } from "../types";
 
 interface Props {
@@ -51,39 +49,10 @@ const CONSENT_ITEMS: { key: keyof Consents; label: string; description: string }
 ];
 
 export function ConsentsStep({ data, updateData }: Props) {
-  const [uploading, setUploading] = useState(false);
-
   const setConsent = (key: keyof Consents, value: boolean) => {
     updateData({
       consents: { ...data.consents, [key]: value },
     });
-  };
-
-  const handleCourtOrderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const res = await fetch("/api/upload/enrolment-file", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file: base64, filename: file.name, contentType: file.type }),
-        });
-        if (res.ok) {
-          const { fileUrl, fileName } = await res.json();
-          updateData({
-            courtOrderFiles: [...data.courtOrderFiles, { filename: fileName, url: fileUrl }],
-          });
-        }
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      setUploading(false);
-    }
   };
 
   return (
@@ -138,65 +107,6 @@ export function ConsentsStep({ data, updateData }: Props) {
         </div>
       </div>
 
-      <hr className="border-border" />
-
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Court Orders</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground/80 mb-2">
-              Are there any court orders or parenting orders related to this child?
-            </label>
-            <div className="flex gap-3">
-              {[true, false].map((opt) => (
-                <button
-                  key={String(opt)}
-                  type="button"
-                  onClick={() => updateData({ courtOrders: opt })}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
-                    data.courtOrders === opt
-                      ? opt
-                        ? "bg-red-50 border-red-300 text-red-700"
-                        : "bg-green-50 border-green-300 text-green-700"
-                      : "bg-surface/50 border-border text-muted hover:bg-surface"
-                  }`}
-                >
-                  {opt ? "Yes" : "No"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {data.courtOrders && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800 mb-3 font-medium">
-                Please upload any relevant court orders or parenting plans.
-              </p>
-
-              {data.courtOrderFiles.map((f, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded-lg mb-2">
-                  <span>{f.filename}</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateData({ courtOrderFiles: data.courtOrderFiles.filter((_, fi) => fi !== i) })
-                    }
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-
-              <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm text-muted hover:border-brand hover:text-brand cursor-pointer transition-colors">
-                <Upload className="h-4 w-4" />
-                {uploading ? "Uploading..." : "Upload court order document"}
-                <input type="file" className="sr-only" onChange={handleCourtOrderUpload} accept=".pdf,.jpg,.jpeg,.png" />
-              </label>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

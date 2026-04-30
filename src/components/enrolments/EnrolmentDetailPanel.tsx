@@ -21,6 +21,8 @@ import {
   Eye,
   EyeOff,
   Archive,
+  Paperclip,
+  ExternalLink,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEnrolment, useUpdateEnrolment, type EnrolmentSubmission } from "@/hooks/useEnrolments";
@@ -436,17 +438,76 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
             <Field label="Court Orders" value={e.courtOrders} />
           </Section>
 
+          {/* Documents */}
+          {(e.documentUploads?.length || e.courtOrderFiles?.length || e.medicalFiles?.length) ? (
+            <Section title="Uploaded Documents" icon={Paperclip}>
+              {e.documentUploads?.map((doc, i) => {
+                const childName = e.children[doc.childIndex]?.firstName || `Child ${doc.childIndex + 1}`;
+                const typeLabel = doc.type === "child_photo" ? "Photo" : doc.type === "birth_certificate" ? "Birth Certificate" : doc.type === "immunisation_record" ? "Immunisation Record" : doc.type;
+                return (
+                  <div key={`doc-${i}`} className="flex items-center justify-between gap-2 py-1">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-foreground/50">{childName} — {typeLabel}</span>
+                      <p className="text-xs font-medium text-foreground truncate">{doc.filename}</p>
+                    </div>
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1.5 rounded-lg hover:bg-surface transition-colors text-brand">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                );
+              })}
+              {e.medicalFiles?.map((doc, i) => {
+                const childName = e.children[doc.childIndex]?.firstName || `Child ${doc.childIndex + 1}`;
+                return (
+                  <div key={`med-${i}`} className="flex items-center justify-between gap-2 py-1">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-foreground/50">{childName} — Medical: {doc.type}</span>
+                      <p className="text-xs font-medium text-foreground truncate">{doc.filename}</p>
+                    </div>
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1.5 rounded-lg hover:bg-surface transition-colors text-brand">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                );
+              })}
+              {e.courtOrderFiles?.map((doc, i) => (
+                <div key={`court-${i}`} className="flex items-center justify-between gap-2 py-1">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs text-foreground/50">Court Order</span>
+                    <p className="text-xs font-medium text-foreground truncate">{doc.filename}</p>
+                  </div>
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1.5 rounded-lg hover:bg-surface transition-colors text-brand">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              ))}
+            </Section>
+          ) : null}
+
           {/* Booking */}
           <Section title="Booking Preferences" icon={Calendar}>
             {e.children.map((child, i) => {
               const bp = child.bookingPrefs as Record<string, unknown> | undefined;
               if (!bp) return null;
+              const days = bp.days as Record<string, string[]> | undefined;
+              const sessionTypes = bp.sessionTypes as string[] | undefined;
+              const SESSION_LABELS: Record<string, string> = { bsc: "Before School Care", asc: "After School Care", vc: "Vacation Care" };
               return (
                 <div key={i} className={i > 0 ? "pt-2 border-t border-border" : ""}>
                   {e.children.length > 1 && (
                     <p className="font-semibold text-foreground text-xs mb-1">{child.firstName}</p>
                   )}
-                  <Field label="Sessions" value={(bp.sessionTypes as string[])?.join(", ")?.toUpperCase()} />
+                  {sessionTypes?.map((st) => {
+                    const sessionDays = days?.[st];
+                    const dayStr = sessionDays?.length
+                      ? sessionDays.map((d) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ")
+                      : null;
+                    return (
+                      <div key={st} className="mb-1.5">
+                        <Field label={SESSION_LABELS[st] || st.toUpperCase()} value={dayStr || "Days not specified"} />
+                      </div>
+                    );
+                  })}
                   <Field label="Type" value={bp.bookingType as string} />
                   <Field label="Start Date" value={bp.startDate as string} />
                   <Field label="Requirements" value={bp.requirements as string} />
