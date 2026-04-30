@@ -116,6 +116,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       occupation: true,
       workplace: true,
       workPhone: true,
+      smsOptIn: true,
       address: true,
     },
   });
@@ -125,6 +126,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
   let profileOccupation: string | null = null;
   let profileWorkplace: string | null = null;
   let profileWorkPhone: string | null = null;
+  let profileSmsOptIn = false;
   if (contactRow) {
     if (contactRow.firstName) firstName = contactRow.firstName;
     if (contactRow.lastName) lastName = contactRow.lastName;
@@ -135,6 +137,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     profileOccupation = contactRow.occupation;
     profileWorkplace = contactRow.workplace;
     profileWorkPhone = contactRow.workPhone;
+    profileSmsOptIn = contactRow.smsOptIn;
     const contactAddr = contactRow.address as Record<string, string> | null;
     if (contactAddr && typeof contactAddr === "object") {
       address = {
@@ -323,6 +326,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     occupation: profileOccupation,
     workplace: profileWorkplace,
     workPhone: profileWorkPhone,
+    smsOptIn: profileSmsOptIn,
   });
 });
 

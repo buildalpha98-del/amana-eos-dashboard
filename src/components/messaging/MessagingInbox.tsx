@@ -826,11 +826,19 @@ function BroadcastDialog({
   const [serviceId, setServiceId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [emailChecked, setEmailChecked] = useState(true);
+  const [smsChecked, setSmsChecked] = useState(false);
 
-  // Count families for preview
-  const familyCount = useMemo(() => {
-    if (!families || !serviceId) return 0;
-    return families.filter((f) => f.serviceId === serviceId).length;
+  // Count families for preview, plus SMS-eligible (opt-in + mobile present)
+  const { familyCount, smsEligibleCount } = useMemo(() => {
+    if (!families || !serviceId) {
+      return { familyCount: 0, smsEligibleCount: 0 };
+    }
+    const filtered = families.filter((f) => f.serviceId === serviceId);
+    return {
+      familyCount: filtered.length,
+      smsEligibleCount: filtered.filter((f) => f.smsOptIn && f.mobile).length,
+    };
   }, [families, serviceId]);
 
   const serviceName = services?.find((s) => s.id === serviceId)?.name;
@@ -839,12 +847,18 @@ function BroadcastDialog({
     setServiceId("");
     setSubject("");
     setBody("");
+    setEmailChecked(true);
+    setSmsChecked(false);
   };
 
   const handleSend = () => {
     if (!serviceId || !subject || !body) return;
+    if (!emailChecked && !smsChecked) return;
+    const channels: ("email" | "sms")[] = [];
+    if (emailChecked) channels.push("email");
+    if (smsChecked) channels.push("sms");
     sendBroadcast.mutate(
-      { serviceId, subject, body },
+      { serviceId, subject, body, channels },
       {
         onSuccess: () => {
           resetForm();
@@ -909,12 +923,56 @@ function BroadcastDialog({
             />
           </div>
 
+          <div>
+            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1.5">
+              Channels
+            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-sm text-[#1a1a2e]">
+                <input
+                  type="checkbox"
+                  checked={emailChecked}
+                  onChange={(e) => setEmailChecked(e.target.checked)}
+                  className="h-4 w-4 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+                />
+                Email
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-[#1a1a2e]">
+                <input
+                  type="checkbox"
+                  checked={smsChecked}
+                  onChange={(e) => setSmsChecked(e.target.checked)}
+                  className="h-4 w-4 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+                />
+                SMS
+                {smsChecked && serviceId && (
+                  <span className="text-xs text-[#7c7c8a]">
+                    ({smsEligibleCount} of {familyCount} eligible)
+                  </span>
+                )}
+              </label>
+            </div>
+            {smsChecked && serviceId && smsEligibleCount === 0 && (
+              <p className="text-xs text-amber-700 mt-1.5">
+                No families at {serviceName} have opted in to SMS yet — only the
+                email channel will deliver.
+              </p>
+            )}
+          </div>
+
           {serviceId && (
             <div className="bg-[#FECE00]/10 border border-[#FECE00]/30 rounded-lg p-3">
               <p className="text-xs text-[#1a1a2e]">
                 <Megaphone className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
                 This will be sent to <strong>{familyCount}</strong> families at{" "}
-                <strong>{serviceName}</strong>.
+                <strong>{serviceName}</strong>
+                {smsChecked && smsEligibleCount > 0 && (
+                  <>
+                    {" — "}
+                    <strong>{smsEligibleCount}</strong> via SMS
+                  </>
+                )}
+                .
               </p>
             </div>
           )}
@@ -922,7 +980,11 @@ function BroadcastDialog({
           <button
             onClick={handleSend}
             disabled={
-              !serviceId || !subject || !body || sendBroadcast.isPending
+              !serviceId ||
+              !subject ||
+              !body ||
+              (!emailChecked && !smsChecked) ||
+              sendBroadcast.isPending
             }
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >

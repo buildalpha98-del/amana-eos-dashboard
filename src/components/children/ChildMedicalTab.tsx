@@ -1,10 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Save, AlertTriangle, UtensilsCrossed } from "lucide-react";
+import { Loader2, Save, AlertTriangle, UtensilsCrossed, Syringe } from "lucide-react";
 import { useChildMedical, useUpdateChildMedical } from "@/hooks/useChildProfile";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+
+/** Format an ISO date (or null) for an `<input type="date">` (YYYY-MM-DD). */
+function isoToDateInput(iso: string | null): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
+/** Convert an empty date input to null, otherwise to ISO at start-of-day UTC. */
+function dateInputToIso(value: string): string | null {
+  if (!value) return null;
+  return new Date(`${value}T00:00:00.000Z`).toISOString();
+}
 
 const COMMON_CONDITIONS = [
   "Asthma",
@@ -87,6 +99,7 @@ export function ChildMedicalTab({ childId }: { childId: string }) {
   const [anaphylaxisPlan, setAnaphylaxisPlan] = useState(false);
   const [dietary, setDietary] = useState<string[]>([]);
   const [additionalNeeds, setAdditionalNeeds] = useState("");
+  const [nextImmunisationDue, setNextImmunisationDue] = useState("");
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
@@ -96,6 +109,7 @@ export function ChildMedicalTab({ childId }: { childId: string }) {
       setAnaphylaxisPlan(data.anaphylaxisActionPlan);
       setDietary(data.dietaryRequirements);
       setAdditionalNeeds(data.additionalNeeds ?? "");
+      setNextImmunisationDue(isoToDateInput(data.nextImmunisationDue));
       setDirty(false);
     }
   }, [data]);
@@ -118,6 +132,7 @@ export function ChildMedicalTab({ childId }: { childId: string }) {
       anaphylaxisActionPlan: anaphylaxisPlan,
       dietaryRequirements: dietary,
       additionalNeeds: additionalNeeds.trim() || null,
+      nextImmunisationDue: dateInputToIso(nextImmunisationDue),
     });
     setDirty(false);
   };
@@ -176,6 +191,26 @@ export function ChildMedicalTab({ childId }: { childId: string }) {
           rows={3}
           className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
         />
+      </div>
+
+      {/* Next immunisation due */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          <Syringe className="w-4 h-4 text-blue-500" />
+          Next Immunisation Due
+        </label>
+        <input
+          type="date"
+          value={nextImmunisationDue}
+          onChange={(e) => {
+            setNextImmunisationDue(e.target.value);
+            setDirty(true);
+          }}
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-brand focus:border-transparent"
+        />
+        <p className="text-xs text-muted">
+          Set when staff have reviewed the child&apos;s immunisation history. Drives reminder alerts.
+        </p>
       </div>
 
       <hr className="border-border" />

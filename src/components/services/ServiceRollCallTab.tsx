@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MedicalAlertBadge } from "@/components/children/MedicalAlertBadge";
+import { CustodyChip } from "@/components/children/CustodyChip";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { ServiceWeeklyRollCallGrid } from "./ServiceWeeklyRollCallGrid";
 import { ServiceMonthlyRollCallView } from "./ServiceMonthlyRollCallView";
@@ -331,9 +332,16 @@ function RollCallRow({
           {entry.child.yearLevel && (
             <p className="text-xs text-muted">{entry.child.yearLevel}</p>
           )}
-          {hasMedFlags && (
-            <div className="mt-1">
-              <MedicalAlertBadge child={entry.child} compact />
+          {(hasMedFlags || entry.child.custodyArrangements) && (
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              {hasMedFlags && (
+                <MedicalAlertBadge child={entry.child} compact />
+              )}
+              <CustodyChip
+                custody={entry.child.custodyArrangements}
+                childName={`${entry.child.firstName} ${entry.child.surname}`}
+                compact
+              />
             </div>
           )}
           {entry.child.anaphylaxisActionPlan && (

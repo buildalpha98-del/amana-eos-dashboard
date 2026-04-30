@@ -587,14 +587,15 @@ model User {
   // ── HR Relations ─────────────────────────────────────────────
   emergencyContacts EmergencyContact[]
   qualifications    StaffQualification[]
-  contracts         EmploymentContract[]    @relation("ContractEmployee")
-  leaveRequests     LeaveRequest[]          @relation("LeaveRequester")
-  approvedLeaves    LeaveRequest[]          @relation("LeaveApprover")
+  pdRecords         ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
+  contracts         EmploymentContract[]            @relation("ContractEmployee")
+  leaveRequests     LeaveRequest[]                  @relation("LeaveRequester")
+  approvedLeaves    LeaveRequest[]                  @relation("LeaveApprover")
   leaveBalances     LeaveBalance[]
-  timesheetEntries  TimesheetEntry[]        @relation("TimesheetStaff")
-  policyAcks        PolicyAcknowledgement[] @relation("PolicyAcknowledger")
-  offboardings      StaffOffboarding[]      @relation("OffboardingUser")
-  apiKeys           ApiKey[]                @relation("ApiKeyCreator")
+  timesheetEntries  TimesheetEntry[]                @relation("TimesheetStaff")
+  policyAcks        PolicyAcknowledgement[]         @relation("PolicyAcknowledger")
+  offboardings      StaffOffboarding[]              @relation("OffboardingUser")
+  apiKeys           ApiKey[]                        @relation("ApiKeyCreator")
 
   // ── CRM Relations ───────────────────────────────────────────
   assignedLeads           Lead[]                         @relation("LeadAssignee")
@@ -3190,22 +3191,29 @@ enum CertificateType {
 }
 
 model ComplianceCertificate {
-  id           String          @id @default(cuid())
-  serviceId    String
-  service      Service         @relation("ServiceCertificates", fields: [serviceId], references: [id], onDelete: Cascade)
-  userId       String?
-  user         User?           @relation("UserCertificates", fields: [userId], references: [id], onDelete: SetNull)
-  type         CertificateType
-  label        String?
-  issueDate    DateTime
-  expiryDate   DateTime
-  notes        String?         @db.Text
-  fileUrl      String?
-  fileName     String?
-  alertDays    Int             @default(30)
-  acknowledged Boolean         @default(false)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id                    String                 @id @default(cuid())
+  serviceId             String
+  service               Service                @relation("ServiceCertificates", fields: [serviceId], references: [id], onDelete: Cascade)
+  userId                String?
+  user                  User?                  @relation("UserCertificates", fields: [userId], references: [id], onDelete: SetNull)
+  type                  CertificateType
+  label                 String?
+  issueDate             DateTime
+  expiryDate            DateTime
+  notes                 String?                @db.Text
+  fileUrl               String?
+  fileName              String?
+  alertDays             Int                    @default(30)
+  acknowledged          Boolean                @default(false)
+  /// Renewal chain — points at the prior certificate this one renews.
+  /// `previous.supersededAt` gets set when this cert is created via the renew flow.
+  previousCertificateId String?                @unique
+  previous              ComplianceCertificate? @relation("CertificateRenewal", fields: [previousCertificateId], references: [id])
+  renewedBy             ComplianceCertificate? @relation("CertificateRenewal")
+  /// Set on the OLD cert when a successor (renewal) is created.
+  supersededAt          DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   alerts ComplianceCertificateAlert[] @relation("CertificateAlerts")
 
@@ -3562,6 +3570,27 @@ model StaffQualification {
 
   @@index([userId])
   @@index([type])
+}
+
+/// Lightweight ongoing CPD/PD log — sits alongside the static StaffQualification
+/// (initial credentials) and ComplianceCertificate (renewable cards). One row
+/// per attended training, course, conference, mentoring session, etc. Hours sum
+/// up for state-regulator CPD requirements.
+model ProfessionalDevelopmentRecord {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation("UserPdRecords", fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  type          String // "course" | "workshop" | "conference" | "online" | "mentoring" | "reading" | "other"
+  hours         Decimal  @db.Decimal(5, 2)
+  completedAt   DateTime @db.Date
+  provider      String? // e.g. "ACECQA", "TAFE NSW", internal name
+  attachmentUrl String? // certificate or completion proof (Vercel Blob)
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, completedAt])
 }
 
 // ============================================================
@@ -4039,6 +4068,12 @@ model CentreContact {
 
   // Link to any enrolment submission this contact was created from (provenance)
   sourceEnrolmentId String?
+
+  // OWNA legacy mapping — populated when OWNA family sync is wired
+  ownaFamilyId String? @unique
+
+  // SMS opt-in — required before broadcast SMS dispatch (Spam Act 2003 compliance)
+  smsOptIn Boolean @default(false)
 
   nurtureSteps          ParentNurtureStep[]    @relation("ContactNurtureSteps")
   npsResponses          NpsSurveyResponse[]    @relation("ContactNpsResponses")
@@ -5516,6 +5551,9 @@ model Child {
   medicareExpiry        DateTime?
   medicareRef           String?
   vaccinationStatus     String?
+  nextImmunisationDue   DateTime?            @db.Date
+  // ── Custody / guardianship (admin-set, surfaced on sign-out + medical) ──
+  custodyArrangements   Json? // { type: "shared" | "sole" | "court_order" | "informal", primaryGuardian?, details?, courtOrderUrl? }
   // ── CCS + room + tags (first-class filter dimensions, 4b) ──
   ccsStatus             String? // "eligible" | "pending" | "ineligible" — documented values, free-text for forward compat
   room                  String? // dashboard-controlled room label; decoupled from OWNA's ownaRoomName
@@ -5549,6 +5587,7 @@ model Child {
   @@index([ownaChildId])
   @@index([serviceId, ccsStatus])
   @@index([serviceId, room])
+  @@index([serviceId, nextImmunisationDue])
 }
 
 // ── Sequences (Parent Nurture + CRM Outreach) ───────────────
@@ -5967,15 +6006,19 @@ model Message {
 }
 
 model Broadcast {
-  id             String   @id @default(cuid())
-  serviceId      String
-  subject        String
-  body           String   @db.Text
-  sentById       String // User.id
-  sentByName     String
-  recipientCount Int      @default(0)
-  sentAt         DateTime @default(now())
-  createdAt      DateTime @default(now())
+  id                String   @id @default(cuid())
+  serviceId         String
+  subject           String
+  body              String   @db.Text
+  /// Channels to dispatch on: "email" | "sms" | "push". Pre-G broadcasts
+  /// default to email-only; new ones can opt into multi-channel send.
+  channels          String[] @default(["email"])
+  sentById          String // User.id
+  sentByName        String
+  recipientCount    Int      @default(0)
+  smsRecipientCount Int      @default(0)
+  sentAt            DateTime @default(now())
+  createdAt         DateTime @default(now())
 
   service Service @relation(fields: [serviceId], references: [id])
   sentBy  User    @relation("BroadcastSentBy", fields: [sentById], references: [id])

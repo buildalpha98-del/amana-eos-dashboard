@@ -213,9 +213,11 @@ export function StaffProfileTabs({
         )}
         {active === "compliance" && (
           <ComplianceTab
+            userId={data.targetUser.id}
             qualifications={data.qualifications}
             certificates={data.certificates}
             canManage={canManageCompliance}
+            isSelf={isSelf}
           />
         )}
         {active === "documents" && <DocumentsTab documents={data.documents} />}

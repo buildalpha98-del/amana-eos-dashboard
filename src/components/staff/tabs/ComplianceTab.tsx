@@ -1,12 +1,16 @@
 import type { StaffQualification, ComplianceCertificate } from "@prisma/client";
 import { CertStatusBadge } from "@/components/staff/CertStatusBadge";
 import { CertActionBar } from "@/components/compliance/CertActionBar";
+import { PdLogSection } from "@/components/staff/PdLogSection";
 import { Download } from "lucide-react";
 
 interface ComplianceTabProps {
+  userId: string;
   qualifications: StaffQualification[];
   certificates: ComplianceCertificate[];
   canManage: boolean;
+  /** True when the viewer is looking at their own profile. Enables self-record on PD log. */
+  isSelf: boolean;
 }
 
 function formatDate(d: Date | null | undefined): string {
@@ -23,7 +27,7 @@ function humanize(value: string | null | undefined): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function ComplianceTab({ qualifications, certificates, canManage }: ComplianceTabProps) {
+export function ComplianceTab({ userId, qualifications, certificates, canManage, isSelf }: ComplianceTabProps) {
   return (
     <div className="space-y-6">
       {/* Qualifications */}
@@ -108,6 +112,10 @@ export function ComplianceTab({ qualifications, certificates, canManage }: Compl
           </ul>
         )}
       </div>
+
+      {/* Professional Development log — OWNA gap F. canManage gates admin
+          edits; isSelf gates self-recording (staff log their own CPD hours). */}
+      <PdLogSection userId={userId} canManage={canManage} isSelf={isSelf} />
     </div>
   );
 }

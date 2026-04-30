@@ -6,6 +6,7 @@ import { Loader2, Pencil, Save, X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 import type { ChildProfileRecord } from "../types";
+import { ChildCustodyCard } from "./ChildCustodyCard";
 
 interface MedicalTabProps {
   child: ChildProfileRecord;
@@ -35,6 +36,7 @@ interface FormState {
   medicareExpiry: string; // YYYY-MM-DD
   medicareRef: string;
   vaccinationStatus: "" | VaccinationStatus;
+  nextImmunisationDue: string; // YYYY-MM-DD
 }
 
 function toDateInput(date: Date | string | null | undefined): string {
@@ -83,6 +85,7 @@ function buildInitial(child: ChildProfileRecord): FormState {
     medicareRef: child.medicareRef ?? "",
     vaccinationStatus:
       (child.vaccinationStatus as "" | VaccinationStatus) ?? "",
+    nextImmunisationDue: toDateInput(child.nextImmunisationDue),
   };
 }
 
@@ -155,6 +158,10 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
       diff.vaccinationStatus =
         form.vaccinationStatus === "" ? null : form.vaccinationStatus;
     }
+    // nextImmunisationDue
+    if (form.nextImmunisationDue !== initial.nextImmunisationDue) {
+      diff.nextImmunisationDue = toIsoOrNull(form.nextImmunisationDue);
+    }
 
     if (Object.keys(diff).length === 0) {
       setEditing(false);
@@ -204,6 +211,7 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
             <button
               type="button"
               onClick={() => setEditing(true)}
+              aria-label="Edit medical details"
               className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-surface transition-colors"
             >
               <Pencil className="w-3.5 h-3.5" />
@@ -294,6 +302,12 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
                 }
                 options={VACCINATION_OPTIONS}
               />
+              <Input
+                type="date"
+                label="Next immunisation due"
+                value={form.nextImmunisationDue}
+                onChange={(v) => update("nextImmunisationDue", v)}
+              />
             </div>
           </div>
         ) : (
@@ -319,6 +333,10 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
               label="Vaccination status"
               value={vaccinationLabel(child.vaccinationStatus)}
             />
+            <Field
+              label="Next immunisation due"
+              value={formatDateDisplay(child.nextImmunisationDue)}
+            />
           </dl>
         )}
       </div>
@@ -328,6 +346,9 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
           Medical details can only be edited by coordinators and admins.
         </p>
       )}
+
+      {/* Custody arrangements — same tab, separate card; admin-managed */}
+      <ChildCustodyCard child={child} canEdit={canEdit} />
     </div>
   );
 }

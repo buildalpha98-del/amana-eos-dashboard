@@ -1,8 +1,16 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { ComplianceTab } from "@/components/staff/tabs/ComplianceTab";
+
+// PdLogSection (rendered inside ComplianceTab) uses React Query hooks; mock
+// them out so this test stays focused on qualification + certificate rendering.
+vi.mock("@/hooks/usePdRecords", () => ({
+  usePdRecords: () => ({ data: [], isLoading: false }),
+  useCreatePdRecord: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDeletePdRecord: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 
 function makeQual(overrides: Record<string, unknown> = {}) {
   return {
@@ -44,7 +52,7 @@ function makeCert(overrides: Record<string, unknown> = {}) {
 describe("ComplianceTab", () => {
   it("shows empty messages when nothing uploaded", () => {
     const { container } = render(
-      <ComplianceTab qualifications={[]} certificates={[]} canManage={false} />,
+      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={false} isSelf={false} />,
     );
     expect(container.textContent).toContain("No qualifications recorded");
     expect(container.textContent).toContain("No certificates uploaded");
@@ -52,10 +60,10 @@ describe("ComplianceTab", () => {
 
   it("renders qualifications with name, institution, expiry, download link", () => {
     const { container } = render(
-      <ComplianceTab
-        qualifications={[makeQual()]}
+      <ComplianceTab userId="u-test" qualifications={[makeQual()]}
         certificates={[]}
         canManage={false}
+            isSelf={false}
       />,
     );
     expect(container.textContent).toContain("HLTAID011 First Aid");
@@ -66,10 +74,10 @@ describe("ComplianceTab", () => {
 
   it("renders certificates with label and expiry", () => {
     const { container } = render(
-      <ComplianceTab
-        qualifications={[]}
+      <ComplianceTab userId="u-test" qualifications={[]}
         certificates={[makeCert()]}
         canManage={false}
+            isSelf={false}
       />,
     );
     expect(container.textContent).toContain("WWCC VIC");
@@ -80,24 +88,24 @@ describe("ComplianceTab", () => {
 
   it("hides the Add qualification button when canManage is false", () => {
     const { container } = render(
-      <ComplianceTab qualifications={[]} certificates={[]} canManage={false} />,
+      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={false} isSelf={false} />,
     );
     expect(container.textContent).not.toContain("Add qualification");
   });
 
   it("shows the Add qualification button when canManage is true", () => {
     const { container } = render(
-      <ComplianceTab qualifications={[]} certificates={[]} canManage={true} />,
+      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={true} isSelf={false} />,
     );
     expect(container.textContent).toContain("Add qualification");
   });
 
   it("hides Replace/Delete actions on cert cards when canManage is false", () => {
     const { container } = render(
-      <ComplianceTab
-        qualifications={[]}
+      <ComplianceTab userId="u-test" qualifications={[]}
         certificates={[makeCert()]}
         canManage={false}
+            isSelf={false}
       />,
     );
     expect(container.textContent).not.toContain("Replace");
@@ -106,10 +114,10 @@ describe("ComplianceTab", () => {
 
   it("shows Replace/Delete actions on cert cards when canManage is true", () => {
     const { container } = render(
-      <ComplianceTab
-        qualifications={[]}
+      <ComplianceTab userId="u-test" qualifications={[]}
         certificates={[makeCert()]}
         canManage={true}
+            isSelf={false}
       />,
     );
     expect(container.textContent).toContain("Replace");
