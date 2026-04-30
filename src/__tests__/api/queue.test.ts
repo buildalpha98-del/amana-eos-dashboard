@@ -92,10 +92,13 @@ describe("GET /api/queue", () => {
     expect(todoCall.where.assignedToId).toBe("u1");
   });
 
-  it.skip("applies seat filter to report // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite where clause", async () => {
+  // 2026-04-30: post coordinator-collapse, the queue route is now a direct
+  // passthrough on `seat` (no coordinator → member translation). Test the
+  // current behaviour: passing `seat=member` lands as `where.seat=member`.
+  it("applies seat filter to report where clause", async () => {
     mockSession({ id: "u1", name: "Member", role: "member" });
 
-    const req = createRequest("GET", "/api/queue?seat=coordinator");
+    const req = createRequest("GET", "/api/queue?seat=member");
     await GET(req);
 
     const reportCall = prismaMock.coworkReport.findMany.mock.calls[0][0];

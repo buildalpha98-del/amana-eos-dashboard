@@ -79,13 +79,33 @@ describe("Audits — admin tier allocates, coordinator (own service) completes",
     expect(res.status).toBe(403);
   });
 
-  it.skip("coordinator CANNOT POST a new audit // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite instance (admin allocates)", async () => {
+  // 2026-04-30: post coordinator-collapse, member is in the audit POST
+  // allowlist (`{ roles: ["owner", "head_office", "admin", "member"] }` —
+  // see src/app/api/audits/route.ts). The pre-collapse "coordinator
+  // CANNOT POST a new audit" assertion is obsolete. Member CAN now
+  // create audit instances for their own service. (Note: the route does
+  // NOT currently service-scope on POST, so a member at service A could
+  // technically create an audit for service B too — flagged separately
+  // for a security follow-up.)
+  it("member CAN POST a new audit instance for their own service", async () => {
     mockSession({
       id: "u1",
       name: "C",
       role: "member",
       serviceId: "s1",
     });
+    prismaMock.auditTemplate.findUnique.mockResolvedValue({
+      id: "t1",
+      items: [{ id: "i1" }],
+    });
+    prismaMock.auditInstance.create.mockResolvedValue({
+      id: "aud1",
+      template: { name: "Test" },
+      service: { id: "s1", name: "S", code: "S" },
+      auditor: null,
+    });
+    prismaMock.auditItemResponse.createMany.mockResolvedValue({ count: 1 });
+    prismaMock.activityLog.create.mockResolvedValue({});
     const res = await auditsPost(
       createRequest("POST", "/api/audits", {
         body: {
@@ -96,7 +116,7 @@ describe("Audits — admin tier allocates, coordinator (own service) completes",
         },
       }),
     );
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(201);
   });
 
   it("head_office CAN POST a new audit instance", async () => {
@@ -156,7 +176,10 @@ describe("Audits — admin tier allocates, coordinator (own service) completes",
     expect(res.status).toBe(200);
   });
 
-  it.skip("coordinator CANNOT PATCH an audit on a different // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite service", async () => {
+  // 2026-04-30: still holds for member — service-scoping is enforced in
+  // src/app/api/audits/[id]/route.ts via `ensureCoordOwnService(role,
+  // userServiceId, instance.serviceId)`. Renamed coordinator → member.
+  it("member CANNOT PATCH an audit on a different service", async () => {
     mockSession({
       id: "u1",
       name: "C",
@@ -200,7 +223,9 @@ describe("Audits — admin tier allocates, coordinator (own service) completes",
     expect(res.status).toBe(200);
   });
 
-  it.skip("coordinator CANNOT PATCH responses on another // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite service's audit", async () => {
+  // 2026-04-30: still holds for member — same `ensureCoordOwnService` gate
+  // applies to PATCH /api/audits/[id]/responses.
+  it("member CANNOT PATCH responses on another service's audit", async () => {
     mockSession({
       id: "u1",
       name: "C",
@@ -269,7 +294,9 @@ describe("Budget — coordinator (own service) can fill in line items", () => {
     expect(res.status).toBe(201);
   });
 
-  it.skip("coordinator CANNOT POST a budget item // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite for a different service", async () => {
+  // 2026-04-30: still holds for member — `ensureCoordOwnService` gate in
+  // src/app/api/services/[id]/budget/route.ts.
+  it("member CANNOT POST a budget item for a different service", async () => {
     mockSession({
       id: "u1",
       name: "C",
@@ -340,7 +367,8 @@ describe("Budget — coordinator (own service) can fill in line items", () => {
     expect(res.status).toBe(200);
   });
 
-  it.skip("coordinator CANNOT DELETE a budget item // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite from a different service", async () => {
+  // 2026-04-30: still holds for member — same gate.
+  it("member CANNOT DELETE a budget item from a different service", async () => {
     mockSession({
       id: "u1",
       name: "C",

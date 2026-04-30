@@ -49,8 +49,12 @@ describe("GET /api/staff-referrals", () => {
     expect(body.error).toBe("Unauthorized");
   });
 
-  it.skip("returns 403 when non-admin member // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite tries to list", async () => {
-    mockSession({ id: "u-1", name: "Test", role: "member" });
+  // 2026-04-30: post coordinator-collapse, member is in the staff-referrals
+  // GET allowlist (`{ roles: ["owner","head_office","admin","member"] }`).
+  // Re-asserting the 403 boundary on `staff` instead — they're the only
+  // role left below member in the referrals workflow.
+  it("returns 403 when staff (below the referrals allowlist) tries to list", async () => {
+    mockSession({ id: "u-1", name: "Test", role: "staff" });
     const req = createRequest("GET", "/api/staff-referrals");
     const res = await GET(req);
 

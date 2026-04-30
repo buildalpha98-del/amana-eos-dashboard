@@ -226,26 +226,14 @@ describe("GET /api/rocks — 4b scope audit regression (exempt inline)", () => {
     expect(callArgs.where.serviceId).toBeUndefined();
   });
 
-  it.skip("member is NOT exempt // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite — narrowing still applies to OR[serviceId, ownerId]", async () => {
-    mockSession({
-      id: "mem-1",
-      name: "Member",
-      role: "member",
-      serviceId: "svc1",
-    });
-    vi.mocked(getServiceScope).mockReturnValue("svc1");
-
-    prismaMock.rock.findMany.mockResolvedValue([]);
-
-    const req = createRequest("GET", "/api/rocks");
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-
-    const callArgs = prismaMock.rock.findMany.mock.calls[0][0];
-    // Members keep the narrowing: see rocks in their service OR owned by them.
-    expect(callArgs.where.OR).toEqual([
-      { serviceId: "svc1" },
-      { ownerId: "mem-1" },
-    ]);
-  });
+  // 2026-04-30: post coordinator-collapse, the rocks route at
+  // src/app/api/rocks/route.ts explicitly exempts BOTH member and marketing
+  // from getServiceScope (`role === "member" || role === "marketing" → scope
+  // = null`). Member retains the same cross-service visibility coordinator
+  // had pre-collapse. The pre-collapse "member is NOT exempt — narrowing
+  // still applies" assertion is obsolete and contradicts the current code;
+  // the cross-service-visibility case is already covered by the
+  // "coordinator sees cross-service rocks" test above (which uses
+  // role="member"). Removed rather than rewritten — it would just be a
+  // duplicate.
 });
