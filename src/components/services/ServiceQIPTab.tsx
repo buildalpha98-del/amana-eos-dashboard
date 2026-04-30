@@ -17,6 +17,19 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AiButton } from "@/components/ui/AiButton";
 import { toast } from "@/hooks/useToast";
+import { useService } from "@/hooks/useServices";
+
+// 2026-04-30: NSW services use the SAT (Self-Assessment Tool) terminology
+// instead of QIP (Quality Improvement Plan). Same underlying model — just
+// the regulator-facing label differs.
+function getDocLabels(state: string | null | undefined) {
+  const isNSW = state === "NSW";
+  return {
+    short: isNSW ? "SAT" : "QIP",
+    long: isNSW ? "Self-Assessment Tool" : "Quality Improvement Plan",
+    article: isNSW ? "a" : "a", // both "a SAT" / "a QIP"
+  };
+}
 
 interface QIPQualityArea {
   id: string;
@@ -72,6 +85,8 @@ const RATING_COLORS: Record<string, string> = {
 
 export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
   const queryClient = useQueryClient();
+  const { data: service } = useService(serviceId);
+  const docLabels = getDocLabels(service?.state);
   const [expandedArea, setExpandedArea] = useState<string | null>(null);
   const [editingArea, setEditingArea] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<QIPQualityArea>>({});
@@ -151,11 +166,11 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
           <ClipboardCheck className="w-6 h-6 text-brand" />
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-1">
-          No QIP Found
+          No {docLabels.short} Found
         </h3>
         <p className="text-sm text-muted max-w-md mb-4">
-          Create a Quality Improvement Plan to track NQS quality areas, strengths,
-          and improvement strategies for this service.
+          Create {docLabels.article} {docLabels.long} to track NQS quality
+          areas, strengths, and improvement strategies for this service.
         </p>
         <button
           onClick={() => createQIP.mutate()}
@@ -167,7 +182,7 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
           ) : (
             <Plus className="w-4 h-4" />
           )}
-          Create QIP
+          Create {docLabels.short}
         </button>
       </div>
     );
@@ -186,9 +201,12 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
               <ClipboardCheck className="w-5 h-5 text-brand" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground">Quality Improvement Plan</h3>
+              <h3 className="font-semibold text-foreground">{docLabels.long}</h3>
               <p className="text-sm text-muted">
-                {qip.documentType === "qip" ? "QIP" : "SAT"} •{" "}
+                {/* Reflect the row's stored documentType (in case it diverges
+                    from the service's current state — e.g. a service was
+                    re-located and the row hasn't been re-issued yet). */}
+                {qip.documentType === "sat" ? "SAT" : "QIP"} •{" "}
                 {qip.lastReviewDate
                   ? `Last reviewed ${new Date(qip.lastReviewDate).toLocaleDateString()}`
                   : "Not yet reviewed"}
