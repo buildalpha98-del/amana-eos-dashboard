@@ -87,6 +87,14 @@ const OPERATIONAL_ROLES: Role[] = ["head_office", "admin", "member", "staff"];
 const MARKETING_ACCESS: Role[] = ["marketing"];
 const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "member", "staff"];
 
+// 2026-04-30: per training-session feedback, EOS surfaces in the sidebar are
+// for State Manager + Admin (owner bypasses). Director of Service (member)
+// and Educator (staff) interact with EOS exclusively inside the service
+// detail tabs (/services/[id]?tab=eos&sub=...) — having a parallel global
+// sidebar entry was confusing because most of the rocks/todos/issues they
+// touch are service-scoped.
+const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin"];
+
 /**
  * Single source of truth for the app's navigation items.
  * Consumed by Sidebar (full nav), CommandPalette (quick-nav), and TopBar (page titles).
@@ -99,12 +107,19 @@ export const navItems: NavItem[] = [
   { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "Home", tooltip: "Your onboarding checklist — get up to speed quickly" },
 
   // ── EOS — pure EOS methodology ────────────────────────────
-  { href: "/vision", label: "Vision / V-TO", icon: Eye, section: "EOS", tooltip: "Vision/Traction Organiser — your long-term goals & strategic plan", roles: ALL_NON_MARKETING },
-  { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS", tooltip: "Quarterly priorities — 90-day goals for the team", roles: ALL_NON_MARKETING },
-  { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS", tooltip: "Weekly measurables & KPIs" },
-  { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings", roles: ALL_NON_MARKETING },
-  { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)", roles: ALL_NON_MARKETING },
-  { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings", roles: ALL_NON_MARKETING },
+  // 2026-04-30: tightened from ALL_NON_MARKETING → EOS_SIDEBAR_ROLES.
+  // Director of Service (member) and Educator (staff) now see EOS only
+  // inside the service detail page; they don't get a sidebar shortcut.
+  { href: "/vision", label: "Vision / V-TO", icon: Eye, section: "EOS", tooltip: "Vision/Traction Organiser — your long-term goals & strategic plan", roles: EOS_SIDEBAR_ROLES },
+  { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS", tooltip: "Quarterly priorities — 90-day goals for the team", roles: EOS_SIDEBAR_ROLES },
+  // Scorecard is a special case: it lives in the EOS section but is also
+  // surfaced in Akram's marketing cockpit (campaign metrics roll up here).
+  // Allowed for State Manager, Admin, and Marketing — but NOT Director of
+  // Service or Educator. Owner bypasses.
+  { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS", tooltip: "Weekly measurables & KPIs", roles: ["head_office", "admin", "marketing"] },
+  { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings", roles: EOS_SIDEBAR_ROLES },
+  { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)", roles: EOS_SIDEBAR_ROLES },
+  { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings", roles: EOS_SIDEBAR_ROLES },
 
   // ── Operations — day-to-day running ───────────────────────
   { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING },
@@ -122,7 +137,11 @@ export const navItems: NavItem[] = [
   // member because /compliance prefix-matched /compliance/templates.
   { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ["head_office", "admin"] },
   { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance", roles: ALL_NON_MARKETING },
-  { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking", roles: ALL_NON_MARKETING },
+  // 2026-04-30: tightened from ALL_NON_MARKETING → ["head_office", "admin"].
+  // Director of Service (member) and Educator (staff) now log incidents from
+  // inside the service detail page (service-scoped). The cross-service
+  // Incidents view in the sidebar is for State Manager / Admin only.
+  { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking", roles: ["head_office", "admin"] },
   { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
   { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
 

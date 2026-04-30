@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import {
   useDocuments,
   useCreateDocument,
@@ -142,6 +143,19 @@ export default function DocumentsPage() {
   const [editDocForm, setEditDocForm] = useState({ title: "", description: "", category: "" });
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
   const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
+
+  // Delete-gate (matches the server-side rule in /api/documents/[id]):
+  // owner + admin can delete anything; everyone else can only delete their
+  // own uploads. State Manager (head_office) is intentionally NOT an admin
+  // here per 2026-04-30 training-session feedback that head office was
+  // quietly removing other staff's documents.
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
+  const currentRole = session?.user?.role;
+  const canDeleteDoc = (doc: DocumentData) => {
+    if (currentRole === "owner" || currentRole === "admin") return true;
+    return doc.uploadedById === currentUserId;
+  };
 
   // Build breadcrumb path
   const breadcrumbs = useMemo(() => {
@@ -614,13 +628,15 @@ export default function DocumentsPage() {
                     >
                       <FolderInput className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => setDeleteDocId(doc.id)}
-                      disabled={deleteDocument.isPending}
-                      className="px-3 py-2 rounded-lg text-sm text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {canDeleteDoc(doc) && (
+                      <button
+                        onClick={() => setDeleteDocId(doc.id)}
+                        disabled={deleteDocument.isPending}
+                        className="px-3 py-2 rounded-lg text-sm text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -705,14 +721,16 @@ export default function DocumentsPage() {
                             >
                               <FolderInput className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => setDeleteDocId(doc.id)}
-                              disabled={deleteDocument.isPending}
-                              className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
-                              title="Delete document"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canDeleteDoc(doc) && (
+                              <button
+                                onClick={() => setDeleteDocId(doc.id)}
+                                disabled={deleteDocument.isPending}
+                                className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                                title="Delete document"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

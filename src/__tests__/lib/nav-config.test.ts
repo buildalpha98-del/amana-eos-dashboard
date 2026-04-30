@@ -143,6 +143,19 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/contracts",         // Cross-service HR
       "/compliance/templates", // Admin audit-template config
       "/holiday-quest",     // Marketing planner
+      // 2026-04-30: removed from member sidebar so they log incidents
+      // inside the service detail page (cross-service /incidents view is
+      // for State Manager / Admin only).
+      "/incidents",
+      // 2026-04-30: EOS sidebar surfaces (vision/rocks/todos/issues/
+      // meetings/scorecard) hidden for member — they engage with EOS via
+      // the service detail tabs.
+      "/vision",
+      "/rocks",
+      "/todos",
+      "/issues",
+      "/meetings",
+      "/scorecard",
     ])("excludes cross-service / out-of-scope nav item %s", (href) => {
       expect(hrefs).not.toContain(href);
     });
@@ -153,7 +166,6 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/onboarding",
       "/compliance",
       "/policies",
-      "/incidents",
       "/leave",
       "/knowledge",
       "/queue",

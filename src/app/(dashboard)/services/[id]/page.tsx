@@ -73,6 +73,13 @@ interface SubTab {
   key: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  /**
+   * When true, the sub-tab is hidden for everyone except owner + admin.
+   * 2026-04-30: introduced for Weekly Data — surfaces revenue/cost
+   * breakdowns that State Manager, Director of Service, Educator, and
+   * Marketing should not see.
+   */
+  adminOnly?: boolean;
 }
 
 interface TabGroup {
@@ -140,7 +147,10 @@ const tabGroups: TabGroup[] = [
       { key: "todos", label: "To-Dos", icon: CheckSquare },
       { key: "issues", label: "Issues", icon: AlertCircle },
       { key: "projects", label: "Projects", icon: FolderKanban },
-      { key: "weekly", label: "Weekly Data", icon: CalendarDays },
+      // 2026-04-30: admin-only — hides revenue/cost figures from State
+      // Manager / Director of Service / Educator / Marketing per training-
+      // session permission audit.
+      { key: "weekly", label: "Weekly Data", icon: CalendarDays, adminOnly: true },
     ],
   },
   {
@@ -236,17 +246,26 @@ export default function ServiceDetailPage() {
     isAdminRole(role) ||
     (role === "member" && sessionServiceId === id);
 
+  const isAdminPlus = hasMinRole(role, "admin");
+
   const visibleGroups = useMemo(() => {
     return tabGroups
-      .filter((g) => !g.adminOnly || hasMinRole(role, "admin"))
+      .filter((g) => !g.adminOnly || isAdminPlus)
       .map((g) => {
+        let subTabs = g.subTabs;
+        // Strip admin-only sub-tabs (Weekly Data) for non-admins. Server
+        // routes still enforce — this is a sidebar-visibility cleanup so the
+        // tab pill doesn't 403 when clicked.
+        if (!isAdminPlus) {
+          subTabs = subTabs.filter((s) => !s.adminOnly);
+        }
         // Append Casual Bookings sub-tab for admin/coord on this service only
         if (g.key === "daily" && canSeeCasualBookings) {
-          return { ...g, subTabs: [...g.subTabs, CASUAL_BOOKINGS_SUBTAB] };
+          subTabs = [...subTabs, CASUAL_BOOKINGS_SUBTAB];
         }
-        return g;
+        return subTabs === g.subTabs ? g : { ...g, subTabs };
       });
-  }, [role, canSeeCasualBookings]);
+  }, [isAdminPlus, canSeeCasualBookings]);
 
   const currentGroup = visibleGroups.find((g) => g.key === activeGroup) || visibleGroups[0];
   const currentSubKey = activeSubTab[activeGroup] || currentGroup?.subTabs[0]?.key;
@@ -540,7 +559,7 @@ export default function ServiceDetailPage() {
         {activeGroup === "eos" && currentSubKey === "projects" && (
           <ServiceProjectsTab serviceId={service.id} />
         )}
-        {activeGroup === "eos" && currentSubKey === "weekly" && (
+        {activeGroup === "eos" && currentSubKey === "weekly" && isAdminPlus && (
           <WeeklyDataEntry
             serviceId={service.id}
             bscRate={service.bscDailyRate || 0}
