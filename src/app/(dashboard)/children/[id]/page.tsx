@@ -86,7 +86,7 @@ export default async function ChildDetailPage({ params, searchParams }: PageProp
     );
   }
 
-  const canEdit = isAdminRole(role) || role === "coordinator";
+  const canEdit = isAdminRole(role) || role === "member";
 
   return (
     <ChildProfileTabs

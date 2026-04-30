@@ -66,7 +66,7 @@ function getActionsForRole(role: string): QuickAction[] {
       return educatorActions;
     case "member":
       return directorActions;
-    case "coordinator":
+    case "member":
       return coordinatorActions;
     case "marketing":
       return marketingActions;

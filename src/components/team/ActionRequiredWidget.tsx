@@ -25,11 +25,10 @@ interface ActionCounts {
  * admin/owner/head_office see org-wide.
  */
 export function ActionRequiredWidget({ userRole }: { userRole: string }) {
-  // Hide for roles that shouldn't see org-wide counts
-  const hidden =
-    userRole === "staff" ||
-    userRole === "member" ||
-    userRole === "marketing";
+  // Hide for roles that shouldn't see org-wide counts.
+  // 2026-04-30: member (Director of Service, post coordinator-collapse) now
+  // SHOWS the widget — the previous coordinator role saw it; member inherits.
+  const hidden = userRole === "staff" || userRole === "marketing";
 
   const { data } = useQuery({
     queryKey: ["team", "action-counts"],

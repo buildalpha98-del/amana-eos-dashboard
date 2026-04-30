@@ -38,7 +38,7 @@ export function ServiceOverviewTab({
   const role = session?.user?.role as Role | undefined;
   const sessionServiceId = (session?.user as { serviceId?: string | null } | undefined)?.serviceId ?? null;
   const canEdit =
-    isAdminRole(role) || (role === "coordinator" && sessionServiceId === service.id);
+    isAdminRole(role) || (role === "member" && sessionServiceId === service.id);
   const updateService = useUpdateService();
   const deleteService = useDeleteService();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

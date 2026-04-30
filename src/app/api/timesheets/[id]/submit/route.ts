@@ -62,7 +62,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   // do not fail the request.
   try {
     const coordinators = await prisma.user.findMany({
-      where: { role: "coordinator", serviceId: timesheet.serviceId, active: true },
+      where: { role: "member", serviceId: timesheet.serviceId, active: true },
       select: { id: true },
     });
 

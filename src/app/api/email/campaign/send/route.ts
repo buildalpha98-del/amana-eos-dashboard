@@ -55,7 +55,7 @@ if (!isBrevoConfigured()) {
   const body = parsed.data;
 
   // Coordinators can only send enquiry emails
-  if (session.user.role === "coordinator" && !body.enquiryId) {
+  if (session.user.role === "member" && !body.enquiryId) {
     return NextResponse.json(
       { error: "Coordinators can only send enquiry emails" },
       { status: 403 },

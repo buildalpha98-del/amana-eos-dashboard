@@ -16,11 +16,11 @@ const ROLE_MAP: Record<string, string> = {
   head_office: "head_office",
   admin: "admin",
   marketing: "marketing",
-  coordinator: "coordinator",
+  coordinator: "member",
   member: "member",
   staff: "staff",
   educator: "staff",
-  "service-coordinator": "coordinator",
+  "service-coordinator": "member",
 };
 
 function mapRegistryRole(registryRole: string): string {

@@ -57,4 +57,4 @@ export const GET = withApiAuth(async (req: NextRequest) => {
   }));
 
   return NextResponse.json(results);
-}, { roles: ["owner", "head_office", "admin", "coordinator"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });

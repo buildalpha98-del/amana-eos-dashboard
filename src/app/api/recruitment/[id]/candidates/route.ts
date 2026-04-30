@@ -27,7 +27,7 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(candidates);
-}, { roles: ["owner", "head_office", "admin", "coordinator"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });
 
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;

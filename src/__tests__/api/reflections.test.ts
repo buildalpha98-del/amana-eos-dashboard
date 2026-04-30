@@ -57,7 +57,7 @@ describe("reflections API", () => {
     });
 
     it("403 for cross-service coordinator", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "other" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "other" });
       const res = await GET(
         createRequest("GET", "/api/services/s1/reflections"),
         await ctx(),
@@ -66,7 +66,7 @@ describe("reflections API", () => {
     });
 
     it("filters by type + qa", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       prismaMock.staffReflection.findMany.mockResolvedValue([
         {
           id: "r1",
@@ -97,7 +97,7 @@ describe("reflections API", () => {
 
   describe("POST /api/services/[id]/reflections", () => {
     it("400 on invalid body", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       const res = await POST(
         createRequest("POST", "/api/services/s1/reflections", {
           body: { type: "bogus", title: "", content: "" },
@@ -108,7 +108,7 @@ describe("reflections API", () => {
     });
 
     it("creates a reflection", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       prismaMock.service.findUnique.mockResolvedValue({ id: "s1" });
       prismaMock.staffReflection.create.mockResolvedValue({
         id: "r1",
@@ -132,7 +132,7 @@ describe("reflections API", () => {
     });
 
     it("dedupes by clientMutationId", async () => {
-      mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
       const cmid = "550e8400-e29b-41d4-a716-446655440000";
       prismaMock.staffReflection.findUnique.mockResolvedValue({
         id: "r-existing",
@@ -166,7 +166,7 @@ describe("reflections API", () => {
       mockSession({
         id: "u2",
         name: "Other",
-        role: "coordinator",
+        role: "member",
         serviceId: "s1",
       });
       prismaMock.staffReflection.findUnique.mockResolvedValue({
@@ -184,7 +184,7 @@ describe("reflections API", () => {
     });
 
     it("allows author edits", async () => {
-      mockSession({ id: "u1", name: "Me", role: "coordinator", serviceId: "s1" });
+      mockSession({ id: "u1", name: "Me", role: "member", serviceId: "s1" });
       prismaMock.staffReflection.findUnique.mockResolvedValue({
         id: "r1",
         serviceId: "s1",

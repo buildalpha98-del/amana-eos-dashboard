@@ -119,7 +119,7 @@ const { id } = await context!.params!;
 
   return NextResponse.json(activity, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );
 
 // PUT /api/services/[id]/programs — bulk upsert (replace all for a week)
@@ -182,5 +182,5 @@ const { id } = await context!.params!;
 
   return NextResponse.json(result);
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

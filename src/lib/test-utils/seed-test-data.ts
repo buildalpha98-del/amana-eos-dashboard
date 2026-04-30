@@ -23,7 +23,7 @@ const ROLES: Role[] = [
   "head_office",
   "admin",
   "marketing",
-  "coordinator",
+  "member",
   "member",
   "staff",
 ];
@@ -122,7 +122,7 @@ export async function seedTestData() {
           email: `test-${role}@amana-test.local`,
           passwordHash: PASSWORD_HASH,
           role,
-          serviceId: ["coordinator", "member", "staff"].includes(role)
+          serviceId: ["member", "staff"].includes(role)
             ? services[0].id
             : null,
           state: i < 4 ? "NSW" : "VIC",

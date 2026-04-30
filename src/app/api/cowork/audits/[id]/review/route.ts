@@ -77,7 +77,7 @@ export const POST = withApiHandler(async (req, context) => {
         title: `Review Action: ${response.templateItem.question.substring(0, 80)}`,
         description: `From ${instance.template.name} review (QA${instance.template.qualityArea})\nAction: ${response.actionRequired}`,
         category: "morning-prep",
-        assignedRole: "coordinator",
+        assignedRole: "member",
       },
     });
     todosCreated++;

@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         where: {
           OR: [
             { id: bookings[0].service.managerId ?? "" },
-            { serviceId, role: "coordinator", active: true },
+            { serviceId, role: "member", active: true },
           ],
         },
         select: { email: true, name: true },

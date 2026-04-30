@@ -69,7 +69,7 @@ const { id, activityId } = await context!.params!;
 
   return NextResponse.json(activity);
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );
 
 // DELETE /api/services/[id]/programs/[activityId]
@@ -100,5 +100,5 @@ const { id, activityId } = await context!.params!;
 
   return NextResponse.json({ success: true });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

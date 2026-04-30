@@ -43,5 +43,5 @@ export const DELETE = withApiAuth(
     await prisma.parentPostComment.delete({ where: { id: commentId } });
     return NextResponse.json({ deleted: true });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

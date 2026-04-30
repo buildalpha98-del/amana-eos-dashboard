@@ -125,7 +125,7 @@ describe("GET /api/services/[id] — centre scope", () => {
     mockSession({
       id: "u-coord",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-a",
     });
     prismaMock.service.findMany.mockResolvedValue([

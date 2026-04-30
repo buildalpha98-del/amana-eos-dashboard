@@ -48,7 +48,7 @@ describe("risk-assessments API", () => {
   });
 
   it("POST 400 when no hazards", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     const res = await POST(
       createRequest("POST", "/api/services/s1/risk-assessments", {
         body: {
@@ -64,7 +64,7 @@ describe("risk-assessments API", () => {
   });
 
   it("POST creates a risk assessment", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.service.findUnique.mockResolvedValue({ id: "s1" });
     prismaMock.riskAssessment.create.mockResolvedValue({
       id: "ra1",
@@ -91,7 +91,7 @@ describe("risk-assessments API", () => {
   });
 
   it("GET filters by approved status", async () => {
-    mockSession({ id: "u1", name: "C", role: "coordinator", serviceId: "s1" });
+    mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
     prismaMock.riskAssessment.findMany.mockResolvedValue([]);
     await GET(
       createRequest("GET", "/api/services/s1/risk-assessments?status=approved"),
@@ -108,7 +108,7 @@ describe("risk-assessments API", () => {
     mockSession({
       id: "u1",
       name: "Author",
-      role: "coordinator",
+      role: "member",
       serviceId: "s1",
     });
     prismaMock.riskAssessment.findUnique.mockResolvedValue({
@@ -128,7 +128,7 @@ describe("risk-assessments API", () => {
     mockSession({
       id: "u2",
       name: "Approver",
-      role: "coordinator",
+      role: "member",
       serviceId: "s1",
     });
     prismaMock.riskAssessment.findUnique.mockResolvedValue({

@@ -122,7 +122,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   // ── Role narrowing ─────────────────────────────────────────
   const role = session.user.role ?? "";
-  const isCoordOrAbove = isAdminRole(role) || role === "coordinator";
+  const isCoordOrAbove = isAdminRole(role) || role === "member";
   const hasRestrictedField = RESTRICTED_KEYS.some(
     (k) => parsed.data[k] !== undefined,
   );
@@ -131,7 +131,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
 
   // Coordinator must only edit children at their own service
-  if (role === "coordinator") {
+  if (role === "member") {
     const existing = await prisma.child.findUnique({
       where: { id },
       select: { serviceId: true },

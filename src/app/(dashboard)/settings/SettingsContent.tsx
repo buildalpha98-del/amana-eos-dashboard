@@ -240,7 +240,7 @@ function InviteUserModal({
             >
               <option value="staff">{ROLE_DISPLAY_NAMES.staff}</option>
               <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
-              <option value="coordinator">{ROLE_DISPLAY_NAMES.coordinator}</option>
+              <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
               <option value="marketing">{ROLE_DISPLAY_NAMES.marketing}</option>
               <option value="admin">{ROLE_DISPLAY_NAMES.admin}</option>
               {currentUserRole === "owner" && <option value="head_office">{ROLE_DISPLAY_NAMES.head_office}</option>}
@@ -501,10 +501,10 @@ function UserRow({
                     Set as {ROLE_DISPLAY_NAMES.member}
                   </button>
                   <button
-                    onClick={() => updateRole.mutate("coordinator")}
+                    onClick={() => updateRole.mutate("member")}
                     className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
-                    Set as {ROLE_DISPLAY_NAMES.coordinator}
+                    Set as {ROLE_DISPLAY_NAMES.member}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("marketing")}
@@ -1810,7 +1810,7 @@ function PermissionsPanel() {
                 {ROLE_DISPLAY_NAMES.marketing}
               </th>
               <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                {ROLE_DISPLAY_NAMES.coordinator}
+                {ROLE_DISPLAY_NAMES.member}
               </th>
               <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.member}
@@ -1839,7 +1839,7 @@ function PermissionsPanel() {
                     <td className="py-2 px-3 text-sm text-foreground/80">
                       {row.label}
                     </td>
-                    {(["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"] as const).map((role) => (
+                    {(["owner", "head_office", "admin", "marketing", "member", "staff"] as const).map((role) => (
                       <td key={role} className="py-2 px-3 text-center">
                         {row[role] ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />
@@ -2993,7 +2993,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       {isOwner && <PermissionsPanel />}
 
       {/* Notification Log (coordinator+) */}
-      {(userRole === "owner" || userRole === "head_office" || userRole === "admin" || userRole === "coordinator") && (
+      {(userRole === "owner" || userRole === "head_office" || userRole === "admin" || userRole === "member") && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-4">
             <Mail className="w-5 h-5 text-muted" />

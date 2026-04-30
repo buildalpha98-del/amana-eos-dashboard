@@ -16,7 +16,7 @@ const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   password: passwordSchema,
-  role: z.enum(["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"]).default("member"),
+  role: z.enum(["owner", "head_office", "admin", "marketing", "member", "staff"]).default("member"),
   serviceId: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
 });
@@ -53,7 +53,7 @@ export const GET = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json(users);
-}, { minRole: "coordinator" });
+}, { minRole: "member" });
 
 // POST /api/users — create a new user (owner + admin)
 export const POST = withApiAuth(async (req, session) => {

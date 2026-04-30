@@ -142,7 +142,7 @@ describe("GET /api/roster/shifts", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.rosterShift.findMany.mockResolvedValue([]);
@@ -205,7 +205,7 @@ describe("POST /api/roster/shifts", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-other",
     });
     const res = await POST(
@@ -279,7 +279,7 @@ describe("PATCH /api/roster/shifts/[id]", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-other",
     });
     prismaMock.rosterShift.findUnique.mockResolvedValue(
@@ -377,7 +377,7 @@ describe("DELETE /api/roster/shifts/[id]", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-other",
     });
     prismaMock.rosterShift.findUnique.mockResolvedValue(
@@ -445,7 +445,7 @@ describe("POST /api/roster/publish", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-other",
     });
     const res = await publishPost(
@@ -525,7 +525,7 @@ describe("POST /api/roster/copy-week", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-other",
     });
     const res = await copyWeekPost(

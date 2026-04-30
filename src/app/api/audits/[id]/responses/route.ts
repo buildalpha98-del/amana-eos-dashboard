@@ -43,7 +43,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   // Coordinators must be on the audit's own service.
   const role = session!.user.role ?? "";
-  if (role === "coordinator") {
+  if (role === "member") {
     const userServiceId =
       (session!.user as { serviceId?: string | null }).serviceId ?? null;
     if (!userServiceId || userServiceId !== instance.serviceId) {
@@ -75,5 +75,5 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 }, {
   // Same gate as PATCH /api/audits/[id]: coord+ on their own service,
   // admin tier and member elsewhere.
-  roles: ["owner", "head_office", "admin", "coordinator", "member"],
+  roles: ["owner", "head_office", "admin", "member"],
 });

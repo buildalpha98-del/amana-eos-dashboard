@@ -234,7 +234,7 @@ export default function ServiceDetailPage() {
     null;
   const canSeeCasualBookings =
     isAdminRole(role) ||
-    (role === "coordinator" && sessionServiceId === id);
+    (role === "member" && sessionServiceId === id);
 
   const visibleGroups = useMemo(() => {
     return tabGroups

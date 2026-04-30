@@ -61,7 +61,7 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   const role = session?.user?.role ?? "";
   const sessionServiceId = (session?.user as { serviceId?: string | null } | undefined)?.serviceId ?? null;
   const canEdit =
-    isAdminRole(role) || (role === "coordinator" && sessionServiceId === serviceId);
+    isAdminRole(role) || (role === "member" && sessionServiceId === serviceId);
 
   const [weekOffset, setWeekOffset] = useState(0);
   const weekStart = useMemo(() => getMondayIso(weekOffset), [weekOffset]);

@@ -64,4 +64,4 @@ const body = await parseJsonBody(req);
   return NextResponse.json(measurable, { status: 201 });
   // 2026-04-30: opened up to coordinator + member for service-level scorecard
   // creation from inside the /services/[id] EOS tab.
-}, { roles: ["owner", "head_office", "admin", "coordinator", "member"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });

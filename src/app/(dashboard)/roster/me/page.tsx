@@ -54,7 +54,7 @@ async function canViewTarget(
 ): Promise<boolean> {
   if (viewerId === target.id) return true;
   if (isAdminRole(viewerRole)) return true;
-  if (viewerRole === "coordinator") {
+  if (viewerRole === "member") {
     const viewer = await prisma.user.findUnique({
       where: { id: viewerId },
       select: { serviceId: true },

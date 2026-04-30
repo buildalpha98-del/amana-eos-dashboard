@@ -43,7 +43,7 @@ export default function CentreAvatarDetailPage({
   const { serviceId } = use(params);
   const { data: session } = useSession();
   const role = session?.user?.role;
-  const isCoordinator = role === "coordinator";
+  const isCoordinator = role === "member";
   const canEditSections = role === "owner" || role === "marketing";
 
   const { data: avatar, isLoading, error, refetch } = useCentreAvatar(serviceId);

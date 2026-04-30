@@ -59,7 +59,7 @@ describe("GET /api/onboarding/assign", () => {
   // assignments because the route only scoped for role==="staff".
   it.each([
     ["member" as const, "u-member"],
-    ["coordinator" as const, "u-coord"],
+    ["member" as const, "u-coord"],
     ["marketing" as const, "u-marketing"],
   ])("%s can only see their own assignments (regression)", async (role, id) => {
     mockSession({ id, name: role, role, serviceId: "svc-1" });
@@ -227,8 +227,8 @@ describe("POST /api/onboarding/assign — assignment creation", () => {
   });
 
   it("non-admin/owner roles → 403", async () => {
-    mockSession({ id: "u-coord", name: "Coord", role: "coordinator" });
-    prismaMock.user.findUnique.mockResolvedValue({ id: "u-coord", active: true, role: "coordinator" });
+    mockSession({ id: "u-coord", name: "Coord", role: "member" });
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u-coord", active: true, role: "member" });
 
     const req = createRequest("POST", "/api/onboarding/assign", {
       body: { userId: "u-target", packId: "p1" },

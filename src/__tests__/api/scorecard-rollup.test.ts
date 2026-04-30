@@ -27,7 +27,7 @@ describe("GET /api/scorecard/rollup", () => {
   });
 
   it("returns 403 for coordinator", async () => {
-    mockSession({ id: "u", name: "C", role: "coordinator" });
+    mockSession({ id: "u", name: "C", role: "member" });
     const res = await GET(createRequest("GET", "/api/scorecard/rollup"));
     expect(res.status).toBe(403);
   });

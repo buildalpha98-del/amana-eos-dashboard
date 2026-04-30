@@ -14,7 +14,7 @@ export function ensureCoordOwnService(
   userServiceId: string | null | undefined,
   serviceId: string,
 ) {
-  if (role !== "coordinator") return;
+  if (role !== "member") return;
   if (!userServiceId || userServiceId !== serviceId) {
     throw ApiError.forbidden(
       "Coordinators can only access the budget for their own service.",
@@ -193,7 +193,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 }, {
   // Coordinators can read their own service's budget; admin tier sees any.
   // The own-service check fires inline above for coordinators.
-  roles: ["owner", "head_office", "admin", "coordinator"],
+  roles: ["owner", "head_office", "admin", "member"],
 });
 
 // ── Helpers ─────────────────────────────────────────────────

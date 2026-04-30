@@ -29,8 +29,8 @@ async function main() {
     { name: "Jayden Kowaider", email: "jayden@amanaoshc.com.au", role: "owner" as const, state: null },
     { name: "Daniel", email: "daniel@amanaoshc.com.au", role: "admin" as const, state: null },
     { name: "Akram", email: "akram@amanaoshc.com.au", role: "marketing" as const, state: null },
-    { name: "Mirna", email: "mirna@amanaoshc.com.au", role: "coordinator" as const, state: "NSW" },
-    { name: "Tracie", email: "tracie@amanaoshc.com.au", role: "coordinator" as const, state: "VIC" },
+    { name: "Mirna", email: "mirna@amanaoshc.com.au", role: "member" as const, state: "NSW" },
+    { name: "Tracie", email: "tracie@amanaoshc.com.au", role: "member" as const, state: "VIC" },
   ];
 
   for (const staff of staffUsers) {

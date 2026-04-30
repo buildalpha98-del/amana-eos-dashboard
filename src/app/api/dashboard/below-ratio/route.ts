@@ -19,7 +19,6 @@ export const GET = withApiAuth(async (_req, session) => {
   dayStart.setHours(0, 0, 0, 0);
 
   const serviceFilter =
-    session.user.role === "coordinator" ||
     session.user.role === "member" ||
     session.user.role === "staff"
       ? session.user.serviceId

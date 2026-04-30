@@ -83,7 +83,7 @@ describe("PATCH /api/children/[id] — role narrowing", () => {
   });
 
   it("member role patching medicalConditions → 403", async () => {
-    mockSession({ id: "u1", name: "Member", role: "member", serviceId: "svc-1" });
+    mockSession({ id: "u1", name: "Member", role: "staff", serviceId: "svc-1" });
     const req = createRequest("PATCH", "/api/children/child-1", {
       body: { medicalConditions: ["Asthma"] },
     });
@@ -124,7 +124,7 @@ describe("PATCH /api/children/[id] — role narrowing", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.child.findUnique.mockResolvedValue({ serviceId: "svc-1" });
@@ -145,7 +145,7 @@ describe("PATCH /api/children/[id] — role narrowing", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.child.findUnique.mockResolvedValue({ serviceId: "svc-2" });
@@ -160,7 +160,7 @@ describe("PATCH /api/children/[id] — role narrowing", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.child.findUnique.mockResolvedValue({ serviceId: null });
@@ -175,7 +175,7 @@ describe("PATCH /api/children/[id] — role narrowing", () => {
     mockSession({
       id: "u1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.child.findUnique.mockResolvedValue(null);

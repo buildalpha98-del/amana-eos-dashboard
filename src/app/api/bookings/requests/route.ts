@@ -24,7 +24,7 @@ export const GET = withApiAuth(async (req: NextRequest, session) => {
   // If serviceId provided, filter to that service; otherwise scope by user's service if coordinator
   if (serviceId) {
     where.serviceId = serviceId;
-  } else if (session.user.role === "coordinator" && session.user.serviceId) {
+  } else if (session.user.role === "member" && session.user.serviceId) {
     where.serviceId = session.user.serviceId;
   }
 

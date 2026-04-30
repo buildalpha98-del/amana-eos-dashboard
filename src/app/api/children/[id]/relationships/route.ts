@@ -57,7 +57,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
 
   const role = session.user.role ?? "";
-  const canEdit = isAdminRole(role) || role === "coordinator";
+  const canEdit = isAdminRole(role) || role === "member";
   if (!canEdit) throw ApiError.forbidden();
 
   const child = await prisma.child.findUnique({
@@ -70,7 +70,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
 
   // Coordinator must be at the same service
-  if (role === "coordinator" && child.serviceId !== session.user.serviceId) {
+  if (role === "member" && child.serviceId !== session.user.serviceId) {
     throw ApiError.forbidden();
   }
 

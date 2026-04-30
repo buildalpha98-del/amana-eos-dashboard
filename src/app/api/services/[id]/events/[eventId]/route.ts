@@ -75,7 +75,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );
 
 // DELETE /api/services/[id]/events/[eventId]
@@ -94,5 +94,5 @@ export const DELETE = withApiAuth(
     await prisma.serviceEvent.delete({ where: { id: eventId } });
     return NextResponse.json({ ok: true });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

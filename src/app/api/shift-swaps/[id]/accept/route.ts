@@ -57,7 +57,7 @@ export const POST = withApiAuth(async (_req, session, context) => {
           { role: "admin" },
           { role: "owner" },
           { role: "head_office" },
-          { role: "coordinator", serviceId: swap.shift.serviceId },
+          { role: "member", serviceId: swap.shift.serviceId },
         ],
       },
       select: { id: true },

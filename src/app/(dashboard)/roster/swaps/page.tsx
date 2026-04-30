@@ -66,7 +66,7 @@ export default function SwapsInboxPage() {
   const role = session?.user?.role ?? "";
   const sessionServiceId = (session?.user as { serviceId?: string | null } | undefined)?.serviceId ?? null;
   const isAdmin = isAdminRole(role);
-  const isCoord = role === "coordinator";
+  const isCoord = role === "member";
   const canApprove = isAdmin || isCoord;
 
   // Staff see their own swaps; admins/coords see service-scoped swaps.

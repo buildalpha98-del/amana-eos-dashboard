@@ -60,7 +60,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(items);
-}, { roles: ["owner", "head_office", "admin", "coordinator"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });
 
 // POST /api/services/[id]/budget/equipment — create equipment item
 export const POST = withApiAuth(async (req, session, context) => {
@@ -118,4 +118,4 @@ const { id } = await context!.params!;
   await recalcFinancialsForWeek(id, new Date(data.date));
 
   return NextResponse.json(item, { status: 201 });
-}, { roles: ["owner", "head_office", "admin", "coordinator"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });

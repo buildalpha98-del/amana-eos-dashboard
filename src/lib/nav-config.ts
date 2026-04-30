@@ -82,10 +82,10 @@ export interface NavItem {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const LEADERSHIP_ROLES: Role[] = ["head_office", "admin"];
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const OPERATIONAL_ROLES: Role[] = ["head_office", "admin", "coordinator", "member", "staff"];
+const OPERATIONAL_ROLES: Role[] = ["head_office", "admin", "member", "staff"];
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const MARKETING_ACCESS: Role[] = ["marketing"];
-const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "coordinator", "member", "staff"];
+const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "member", "staff"];
 
 /**
  * Single source of truth for the app's navigation items.
@@ -120,7 +120,7 @@ export const navItems: NavItem[] = [
   // configuration concern — Centre Directors (member) and on-shift staff
   // shouldn't see it. Without this tightening the nav still showed it for
   // member because /compliance prefix-matched /compliance/templates.
-  { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ["head_office", "admin", "coordinator"] },
+  { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ["head_office", "admin"] },
   { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance", roles: ALL_NON_MARKETING },
   { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking", roles: ALL_NON_MARKETING },
   { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
@@ -160,7 +160,7 @@ export const navItems: NavItem[] = [
   // member, and staff/educator no longer see the Leadership cockpit. Service
   // Coordinator implicit-kept (user listed 6 roles in target spec without
   // explicitly removing coordinator).
-  { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ["admin", "coordinator"] },
+  { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ["admin"] },
   { href: "/reports", label: "Reports", icon: BarChart3, section: "Operations", tooltip: "Attendance, booking, revenue, enrolment, and medical reports", roles: ALL_NON_MARKETING },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },

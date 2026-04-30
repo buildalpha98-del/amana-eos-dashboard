@@ -155,7 +155,7 @@ export function withApiAuth(
       );
     }
 
-    const VALID_ROLES: Role[] = ["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"];
+    const VALID_ROLES: Role[] = ["owner", "head_office", "admin", "marketing", "member", "staff"];
     const role = session.user.role as string;
     if (!VALID_ROLES.includes(role as Role)) {
       logger.error("Invalid role in session", { userId: session.user.id, role });

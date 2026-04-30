@@ -47,7 +47,7 @@ describe("EmploymentTab", () => {
       <EmploymentTab targetUser={makeUser()} latestContract={null} canEdit={false} />,
     );
     expect(container.textContent).toContain("Amana Centre");
-    expect(container.textContent).toContain("Staff");
+    expect(container.textContent).toContain("Educator");
     expect(container.textContent).toContain("No contract on file");
   });
 

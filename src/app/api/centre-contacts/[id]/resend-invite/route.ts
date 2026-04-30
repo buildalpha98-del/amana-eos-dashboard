@@ -44,5 +44,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ sent: true, email: result.email });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

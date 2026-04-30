@@ -30,7 +30,7 @@ describe("GET /api/ai-drafts/admin", () => {
     ["owner", 200],
     ["head_office", 200],
     ["admin", 200],
-    ["coordinator", 403],
+    ["member", 403],
     ["member", 403],
     ["staff", 403],
     ["marketing", 403],

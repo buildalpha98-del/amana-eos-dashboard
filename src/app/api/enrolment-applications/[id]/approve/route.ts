@@ -174,5 +174,5 @@ export const POST = withApiAuth(
       },
     });
   },
-  { minRole: "coordinator" },
+  { minRole: "member" },
 );

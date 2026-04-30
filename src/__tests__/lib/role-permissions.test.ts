@@ -14,14 +14,13 @@ import {
   allPages,
 } from "@/lib/role-permissions";
 
-// ── All 7 roles ────────────────────────────────────────────
+// ── All 6 roles (post-2026-04-30 coordinator-collapse) ─────
 
 const ALL_ROLES: Role[] = [
   "owner",
   "head_office",
   "admin",
   "marketing",
-  "coordinator",
   "member",
   "staff",
 ];
@@ -36,14 +35,13 @@ describe("ROLE_DISPLAY_NAMES", () => {
     }
   });
 
+  // 2026-04-30: coordinator collapsed into member (Director of Service);
+  // "Centre Director" label retired. The 7-role display table is now 6.
   it("has correct display names", () => {
     expect(ROLE_DISPLAY_NAMES.owner).toBe("Owner");
     expect(ROLE_DISPLAY_NAMES.head_office).toBe("State Manager");
     expect(ROLE_DISPLAY_NAMES.admin).toBe("Admin");
     expect(ROLE_DISPLAY_NAMES.marketing).toBe("Marketing");
-    expect(ROLE_DISPLAY_NAMES.coordinator).toBe("Service Coordinator");
-    // 2026-04-30: renamed from "Centre Director" to "Director of Service"
-    // per training-session terminology refresh.
     expect(ROLE_DISPLAY_NAMES.member).toBe("Director of Service");
     expect(ROLE_DISPLAY_NAMES.staff).toBe("Educator");
   });
@@ -108,8 +106,12 @@ describe("rolePageAccess", () => {
     expect(allowed).not.toContain("/rocks");
   });
 
-  it("coordinator can access operational pages but not admin/financial", () => {
-    const allowed = rolePageAccess.coordinator;
+  // 2026-04-30: `coordinator` enum value dropped — Service Coordinators
+  // collapsed into Director of Service (`member`). The coordinator-specific
+  // and "member ⊂ coordinator" tests below were removed; member's allowlist
+  // is the canonical service-level scope going forward.
+  it("member can access operational pages but not admin/financial", () => {
+    const allowed = rolePageAccess.member;
     expect(allowed).toContain("/rocks");
     expect(allowed).toContain("/todos");
     expect(allowed).toContain("/compliance");
@@ -118,17 +120,6 @@ describe("rolePageAccess", () => {
     expect(allowed).not.toContain("/settings");
     expect(allowed).not.toContain("/marketing");
     expect(allowed).not.toContain("/team");
-  });
-
-  it("member access is a subset of coordinator access", () => {
-    // Coordinator access is a superset of member's — everywhere a member can
-    // go, a coordinator can too. The reverse isn't required (e.g. coordinators
-    // see /centre-avatars/[serviceId] for their own service; members don't).
-    const memberPages = new Set(rolePageAccess.member);
-    const coordPages = new Set(rolePageAccess.coordinator);
-    for (const page of memberPages) {
-      expect(coordPages.has(page)).toBe(true);
-    }
   });
 
   it("staff has very limited access", () => {
@@ -169,7 +160,7 @@ describe("canAccessPage", () => {
   });
 
   it("allows sub-path matching", () => {
-    expect(canAccessPage("coordinator", "/compliance/templates")).toBe(true);
+    expect(canAccessPage("member", "/compliance/templates")).toBe(true);
     expect(canAccessPage("staff", "/compliance/templates")).toBe(true);
   });
 
@@ -241,10 +232,10 @@ describe("hasFeature", () => {
   });
 
   it("coordinator has member features plus compliance.create", () => {
-    expect(hasFeature("coordinator", "compliance.create")).toBe(true);
-    expect(hasFeature("coordinator", "onboarding.create")).toBe(true);
+    expect(hasFeature("member", "compliance.create")).toBe(true);
+    expect(hasFeature("member", "onboarding.create")).toBe(true);
     // But not admin-level
-    expect(hasFeature("coordinator", "financials.view")).toBe(false);
+    expect(hasFeature("member", "financials.view")).toBe(false);
   });
 
   it("all roles can request leave", () => {
@@ -275,32 +266,31 @@ describe("hasMinRole (rolePriority)", () => {
   });
 
   it("marketing (3) is above coordinator (2)", () => {
-    expect(hasMinRole("marketing", "coordinator")).toBe(true);
-    expect(hasMinRole("coordinator", "marketing")).toBe(false);
+    expect(hasMinRole("marketing", "member")).toBe(true);
+    expect(hasMinRole("member", "marketing")).toBe(false);
   });
 
-  it("coordinator and member have same priority (2)", () => {
-    expect(hasMinRole("coordinator", "member")).toBe(true);
-    expect(hasMinRole("member", "coordinator")).toBe(true);
+  it("member meets the member minimum (priority 2)", () => {
+    expect(hasMinRole("member", "member")).toBe(true);
+    expect(hasMinRole("member", "marketing")).toBe(false);
   });
 
   it("staff (1) cannot meet any higher role requirement", () => {
     expect(hasMinRole("staff", "staff")).toBe(true);
     expect(hasMinRole("staff", "member")).toBe(false);
-    expect(hasMinRole("staff", "coordinator")).toBe(false);
     expect(hasMinRole("staff", "marketing")).toBe(false);
     expect(hasMinRole("staff", "admin")).toBe(false);
     expect(hasMinRole("staff", "owner")).toBe(false);
   });
 
-  it("priority chain: owner(5) > head_office=admin(4) > marketing(3) > coordinator=member(2) > staff(1)", () => {
+  it("priority chain: owner(5) > head_office=admin(4) > marketing(3) > member(2) > staff(1)", () => {
     expect(hasMinRole("owner", "head_office")).toBe(true);
     expect(hasMinRole("head_office", "marketing")).toBe(true);
-    expect(hasMinRole("marketing", "coordinator")).toBe(true);
-    expect(hasMinRole("coordinator", "staff")).toBe(true);
+    expect(hasMinRole("marketing", "member")).toBe(true);
+    expect(hasMinRole("member", "staff")).toBe(true);
     // Not vice versa
-    expect(hasMinRole("staff", "coordinator")).toBe(false);
-    expect(hasMinRole("coordinator", "marketing")).toBe(false);
+    expect(hasMinRole("staff", "member")).toBe(false);
+    expect(hasMinRole("member", "marketing")).toBe(false);
     expect(hasMinRole("marketing", "admin")).toBe(false);
   });
 });
@@ -330,7 +320,6 @@ describe("permissionsTable", () => {
     expect(row!.head_office).toBe(true);
     expect(row!.admin).toBe(true);
     expect(row!.marketing).toBe(false);
-    expect(row!.coordinator).toBe(false);
     expect(row!.member).toBe(false);
     expect(row!.staff).toBe(false);
   });
@@ -384,7 +373,7 @@ describe("parseRole", () => {
   it("returns the Role enum value for a valid role string", () => {
     expect(parseRole("admin")).toBe(Role.admin);
     expect(parseRole("owner")).toBe(Role.owner);
-    expect(parseRole("coordinator")).toBe(Role.coordinator);
+    expect(parseRole("member")).toBe(Role.member);
   });
 
   it("returns null for undefined", () => {

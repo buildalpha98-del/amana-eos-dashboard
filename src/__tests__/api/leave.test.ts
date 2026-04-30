@@ -180,7 +180,7 @@ describe("POST /api/leave/requests", () => {
     expect(prismaMock.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          role: "coordinator",
+          role: "member",
           serviceId: "svc-1",
           active: true,
         }),

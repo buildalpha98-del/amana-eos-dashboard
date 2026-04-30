@@ -20,8 +20,8 @@ const SEAT_ROLE_MAP: Record<string, string[]> = {
   people: ["admin", "head_office"],
   operations: ["admin", "head_office"],
   finance: ["admin", "head_office"],
-  programming: ["coordinator"],
-  "parent-experience": ["coordinator"],
+  programming: ["member"],
+  "parent-experience": ["member"],
   partnerships: ["owner"],
 };
 
@@ -128,7 +128,7 @@ async function resolveByRole(
       // Fallback: coordinator by state
       if (state) {
         const user = await prisma.user.findFirst({
-          where: { state, role: "coordinator", active: true },
+          where: { state, role: "member", active: true },
           select: { id: true },
         });
         if (user) return [user.id];
@@ -141,7 +141,7 @@ async function resolveByRole(
         const users = await prisma.user.findMany({
           where: {
             state,
-            role: { in: ["coordinator", "admin"] },
+            role: { in: ["member", "admin"] },
             active: true,
           },
           select: { id: true },

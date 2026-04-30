@@ -47,4 +47,4 @@ async function handler(req: NextRequest) {
   return NextResponse.json(results);
 }
 
-export const GET = withApiAuth(handler, { minRole: "coordinator" });
+export const GET = withApiAuth(handler, { minRole: "member" });

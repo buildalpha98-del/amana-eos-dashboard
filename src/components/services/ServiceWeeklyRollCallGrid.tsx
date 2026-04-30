@@ -97,7 +97,7 @@ export function ServiceWeeklyRollCallGrid({
   // service (per access-control matrix in spec). Members and marketing are read-only.
   const canEdit =
     isAdminRole(role) ||
-    (role === "coordinator" && userServiceId === serviceId) ||
+    (role === "member" && userServiceId === serviceId) ||
     (role === "staff" && userServiceId === serviceId);
 
   const [weekOffset, setWeekOffset] = useState(0);

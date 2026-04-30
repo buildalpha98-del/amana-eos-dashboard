@@ -44,7 +44,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   const role = session.user.role ?? "";
   const targetServiceId = data.serviceId ?? existing.serviceId;
   if (!isAdminRole(role)) {
-    if (role !== "coordinator") throw ApiError.forbidden();
+    if (role !== "member") throw ApiError.forbidden();
     // Coordinators must own BOTH the existing and the proposed service.
     if (
       session.user.serviceId !== existing.serviceId ||
@@ -104,7 +104,7 @@ export const DELETE = withApiAuth(async (_req, session, context) => {
 
   const role = session.user.role ?? "";
   if (!isAdminRole(role)) {
-    if (role !== "coordinator" || session.user.serviceId !== existing.serviceId) {
+    if (role !== "member" || session.user.serviceId !== existing.serviceId) {
       throw ApiError.forbidden();
     }
   }

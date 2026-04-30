@@ -56,5 +56,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { minRole: "coordinator" },
+  { minRole: "member" },
 );

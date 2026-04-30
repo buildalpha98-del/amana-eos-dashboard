@@ -64,7 +64,7 @@ export const GET = withApiHandler(async (req) => {
             title: `Audit Action: ${response.templateItem.question.substring(0, 80)}`,
             description: `From ${audit.template.name} (QA${audit.template.qualityArea})\nAction: ${response.actionRequired}\nDue within 7 days.`,
             category: "morning-prep",
-            assignedRole: "coordinator",
+            assignedRole: "member",
           },
         });
         todosCreated++;

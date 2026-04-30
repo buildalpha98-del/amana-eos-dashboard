@@ -10,7 +10,7 @@ describe("canAccessPage /children/[id]", () => {
     "owner",
     "head_office",
     "admin",
-    "coordinator",
+    "member",
     "member",
     "staff",
     "marketing",

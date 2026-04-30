@@ -112,7 +112,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
     null;
   const canEdit =
     isAdminRole(role) ||
-    (role === "coordinator" && sessionServiceId === service.id);
+    (role === "member" && sessionServiceId === service.id);
 
   const [settings, setSettings] = useState<SettingsBlob>(() =>
     parseInitial(service.casualBookingSettings),

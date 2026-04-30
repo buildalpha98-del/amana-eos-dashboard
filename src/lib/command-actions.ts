@@ -61,7 +61,7 @@ export interface CommandAction {
 
 const ORG_WIDE_ROLES: Role[] = ["owner", "head_office"];
 const ADMIN_ROLES: Role[] = ["owner", "head_office", "admin"];
-const COORD_UP: Role[] = ["owner", "head_office", "admin", "coordinator"];
+const COORD_UP: Role[] = ["owner", "head_office", "admin", "member"];
 
 const isOrgWide = (ctx: CommandActionContext) =>
   ctx.role ? ORG_WIDE_ROLES.includes(ctx.role) : false;

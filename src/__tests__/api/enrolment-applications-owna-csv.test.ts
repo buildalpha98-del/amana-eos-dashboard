@@ -142,7 +142,7 @@ describe("GET /api/enrolment-applications/[id]/owna-csv", () => {
   });
 
   it("returns 404 when application does not exist", async () => {
-    mockSession({ role: "coordinator", id: "u-1", name: "Coordinator" });
+    mockSession({ role: "member", id: "u-1", name: "Coordinator" });
     prismaMock.enrolmentApplication.findUnique.mockResolvedValueOnce(null);
     const { GET } = await import(
       "@/app/api/enrolment-applications/[id]/owna-csv/route"
@@ -155,7 +155,7 @@ describe("GET /api/enrolment-applications/[id]/owna-csv", () => {
   });
 
   it("returns 200 with CSV + sets ownaExportedAt, pulling address from EnrolmentSubmission", async () => {
-    mockSession({ role: "coordinator", id: "u-1", name: "Coordinator" });
+    mockSession({ role: "member", id: "u-1", name: "Coordinator" });
     prismaMock.enrolmentApplication.findUnique.mockResolvedValueOnce(APP_FIXTURE);
     prismaMock.enrolmentSubmission.findFirst.mockResolvedValueOnce(SUBMISSION_FIXTURE);
     prismaMock.enrolmentApplication.update.mockResolvedValueOnce({
@@ -193,7 +193,7 @@ describe("GET /api/enrolment-applications/[id]/owna-csv", () => {
   });
 
   it("returns 200 with empty address when no matching EnrolmentSubmission exists", async () => {
-    mockSession({ role: "coordinator", id: "u-1", name: "Coordinator" });
+    mockSession({ role: "member", id: "u-1", name: "Coordinator" });
     prismaMock.enrolmentApplication.findUnique.mockResolvedValueOnce(APP_FIXTURE);
     prismaMock.enrolmentSubmission.findFirst.mockResolvedValueOnce(null);
     prismaMock.enrolmentApplication.update.mockResolvedValueOnce({

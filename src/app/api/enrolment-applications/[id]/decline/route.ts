@@ -60,5 +60,5 @@ export const POST = withApiAuth(
       declineReason: updated.declineReason,
     });
   },
-  { minRole: "coordinator" },
+  { minRole: "member" },
 );

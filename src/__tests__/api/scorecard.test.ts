@@ -81,7 +81,7 @@ describe("GET /api/scorecard — 4b scope audit regression (narrow)", () => {
     mockSession({
       id: "coord-1",
       name: "Coord",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc1",
     });
     vi.mocked(getServiceScope).mockReturnValue("svc1");

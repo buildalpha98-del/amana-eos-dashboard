@@ -16,7 +16,7 @@ export const GET = withApiAuth(async (req, session) => {
   // docs/superpowers/plans/2026-04-22-services-daily-ops-4b-scope-audit.md#12.
   const role = session!.user.role as string;
   const scope =
-    role === "coordinator" || role === "marketing"
+    role === "member" || role === "marketing"
       ? null
       : getServiceScope(session);
   const stateScope = getStateScope(session);
@@ -144,4 +144,4 @@ const body = await parseJsonBody(req);
   // create rocks from inside their /services/[id] EOS tab. Service scoping
   // is enforced by the UI passing serviceId on create; cross-service rocks
   // remain admin-only via the parent flow.
-}, { roles: ["owner", "head_office", "admin", "coordinator", "member"] });
+}, { roles: ["owner", "head_office", "admin", "member"] });

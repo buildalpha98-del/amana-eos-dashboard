@@ -39,7 +39,7 @@ describe("OverviewTab", () => {
     expect(container.textContent).toContain("Jane Doe");
     expect(container.textContent).toContain("jane@test.com");
     expect(container.textContent).toContain("Amana Centre");
-    expect(container.textContent).toContain("Staff");
+    expect(container.textContent).toContain("Educator");
   });
 
   it("renders all stat labels", () => {

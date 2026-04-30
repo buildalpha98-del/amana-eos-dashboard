@@ -26,7 +26,7 @@ export const POST = withApiAuth(
     ) {
       throw ApiError.forbidden("You do not have access to this service");
     }
-    if (!ADMIN_ROLES.has(session.user.role) && session.user.role !== "coordinator") {
+    if (!ADMIN_ROLES.has(session.user.role) && session.user.role !== "member") {
       throw ApiError.forbidden(
         "Only coordinators and admins can generate newsletters",
       );
@@ -145,5 +145,5 @@ export const POST = withApiAuth(
       usage: data.usage,
     });
   },
-  { roles: ["owner", "head_office", "admin", "coordinator"] },
+  { roles: ["owner", "head_office", "admin", "member"] },
 );

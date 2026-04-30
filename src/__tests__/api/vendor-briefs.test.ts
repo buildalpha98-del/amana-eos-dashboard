@@ -82,13 +82,13 @@ describe("POST /api/marketing/vendor-briefs (create)", () => {
       if (args?.where?.id === "m1")
         return { id: "m1", role: "marketing", active: true };
       if (args?.where?.id === "c1")
-        return { id: "c1", role: "coordinator", active: true };
+        return { id: "c1", role: "member", active: true };
       return null;
     });
   });
 
   it("returns 403 for coordinator role", async () => {
-    mockSession({ id: "c1", name: "Coord", role: "coordinator" });
+    mockSession({ id: "c1", name: "Coord", role: "member" });
     const res = await POST_CREATE(
       createRequest("POST", "/api/marketing/vendor-briefs", {
         body: { title: "Test", type: "print_collateral" },

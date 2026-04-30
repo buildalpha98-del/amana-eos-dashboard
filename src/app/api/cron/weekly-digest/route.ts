@@ -183,7 +183,7 @@ export const GET = withApiHandler(async (req) => {
   const recipients = await prisma.user.findMany({
     where: {
       active: true,
-      role: { in: ["owner", "head_office", "admin", "member", "coordinator"] },
+      role: { in: ["owner", "head_office", "admin", "member"] },
     },
     select: {
       id: true,
@@ -252,7 +252,7 @@ export const GET = withApiHandler(async (req) => {
 
       // Pending leave — only for coordinator/admin/head_office/owner
       let pendingLeave = 0;
-      const leaveRoles = ["coordinator", "admin", "head_office", "owner"];
+      const leaveRoles = ["member", "admin", "head_office", "owner"];
       if (leaveRoles.includes(recipient.role)) {
         const leaveWhere: Record<string, unknown> = {
           status: "leave_pending",

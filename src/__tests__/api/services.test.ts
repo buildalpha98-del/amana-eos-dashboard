@@ -344,7 +344,7 @@ describe("PATCH /api/services/[id]", () => {
     mockSession({
       id: "coord-1",
       name: "Coordinator",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-1",
     });
     prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
@@ -377,7 +377,7 @@ describe("PATCH /api/services/[id]", () => {
     mockSession({
       id: "coord-1",
       name: "Coordinator",
-      role: "coordinator",
+      role: "member",
       serviceId: "svc-other",
     });
 

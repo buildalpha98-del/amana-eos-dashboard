@@ -81,7 +81,7 @@ export const GET = withApiHandler(async (req) => {
       const recipient = coordinator ??
         (await prisma.user.findFirst({
           where: {
-            role: { in: ["coordinator", "admin", "owner"] },
+            role: { in: ["member", "admin", "owner"] },
             active: true,
           },
           select: { name: true, email: true },

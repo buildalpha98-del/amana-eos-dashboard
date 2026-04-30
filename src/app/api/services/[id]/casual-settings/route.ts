@@ -22,7 +22,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   const role = session.user.role ?? "";
 
   if (!isAdminRole(role)) {
-    if (role !== "coordinator") throw ApiError.forbidden();
+    if (role !== "member") throw ApiError.forbidden();
     const coordinatorServiceId =
       (session.user as { serviceId?: string | null }).serviceId ?? null;
     if (!coordinatorServiceId || coordinatorServiceId !== id) {

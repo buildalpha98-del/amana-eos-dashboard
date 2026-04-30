@@ -9,7 +9,7 @@ const VALID_ROLES: Role[] = [
   "head_office",
   "admin",
   "marketing",
-  "coordinator",
+  "member",
   "member",
   "staff",
 ];
