@@ -9,7 +9,7 @@ import { logger } from "@/lib/logger";
  * Idempotent: a missed day just piles up expired rows until the next run.
  * `acquireCronLock("handover-cleanup", "daily")` guards against double-run.
  */
-export async function POST(req: Request) {
+export async function GET(req: Request) {
   const authError = verifyCronSecret(req);
   if (authError) return authError.error;
 

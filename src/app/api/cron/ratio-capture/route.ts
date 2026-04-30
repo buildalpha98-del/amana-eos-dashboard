@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
  *
  * Trigger: `vercel.json` schedule entry (caller: add hourly)
  */
-export async function POST(req: Request) {
+export async function GET(req: Request) {
   const authError = verifyCronSecret(req);
   if (authError) return authError.error;
 
