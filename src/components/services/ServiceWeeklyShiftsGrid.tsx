@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRosterShifts, type RosterShiftListItem } from "@/hooks/useRosterShifts";
 import { useRoster } from "@/hooks/useRoster";
 import { useTeam } from "@/hooks/useTeam";
+import { useRosterCost } from "@/hooks/useRosterCost";
 import { computeRatio } from "@/lib/roster-ratio";
 import {
   useStaffCertStatus,
@@ -92,6 +93,10 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   // 2026-05-02: pull child bookings for the same week so the ratio row
   // can show real numerators (PR #50).
   const { data: rosterData } = useRoster(serviceId, weekStart);
+  // 2026-05-02: pull the wage-cost projection so we can show a "≈ $X
+  // this week" chip up top. Hidden when the projection returns zero
+  // hours (an empty week).
+  const { data: costData } = useRosterCost(serviceId, weekStart);
   // 2026-05-02: roll up each staff member's compliance certs against the
   // last day of the visible week. The grid flags a red shield next to
   // anyone whose cert has already expired by week-end, and an amber shield
@@ -290,6 +295,13 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
             <Button size="xs" variant="ghost" onClick={() => setWeekOffset(0)}>
               Today
             </Button>
+          )}
+          {costData && costData.totalHours > 0 && (
+            <RosterCostChip
+              totalHours={costData.totalHours}
+              totalCost={costData.totalCost}
+              unpricedHours={costData.unpricedHours}
+            />
           )}
         </div>
 
@@ -647,6 +659,63 @@ function CertExpiryBadge({ status }: { status: UserCertStatus }) {
     >
       <Icon className="w-3 h-3" />
       {verdictText}
+    </span>
+  );
+}
+
+// ── RosterCostChip ─────────────────────────────────────────────────
+//
+// Inline projection of "this week will cost ≈ $X" rendered next to the
+// week navigator. Surfaces unpriced hours (shifts where the user has
+// no active employment contract) as a subtle warning so the rostering
+// admin can chase the missing contract before publishing.
+//
+// 2026-05-02: introduced alongside `/api/roster/cost-projection` as
+// the fifth Connecteam-style roster deliverable.
+
+const AUD = new Intl.NumberFormat("en-AU", {
+  style: "currency",
+  currency: "AUD",
+  maximumFractionDigits: 0,
+});
+
+function RosterCostChip({
+  totalHours,
+  totalCost,
+  unpricedHours,
+}: {
+  totalHours: number;
+  totalCost: number;
+  unpricedHours: number;
+}) {
+  // Compose the tooltip lazily — we don't want a multi-line title attr
+  // when there's nothing unpriced.
+  const tooltipParts: string[] = [
+    `${totalHours.toFixed(1)}h scheduled this week`,
+    `Wage cost ≈ ${AUD.format(totalCost)}`,
+  ];
+  if (unpricedHours > 0) {
+    tooltipParts.push(
+      `${unpricedHours.toFixed(1)}h unpriced — staff member has no active employment contract`,
+    );
+  }
+  return (
+    <span
+      title={tooltipParts.join("\n")}
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium",
+        unpricedHours > 0
+          ? "border-amber-300 bg-amber-50 text-amber-800"
+          : "border-border bg-surface text-foreground/80",
+      )}
+    >
+      <span>≈ {AUD.format(totalCost)}</span>
+      <span className="opacity-70">· {totalHours.toFixed(1)}h</span>
+      {unpricedHours > 0 && (
+        <span className="opacity-80">
+          · {unpricedHours.toFixed(1)}h unpriced
+        </span>
+      )}
     </span>
   );
 }
