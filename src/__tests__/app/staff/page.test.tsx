@@ -133,8 +133,17 @@ describe("canAccessProfile", () => {
     expect(result).toBe(false);
   });
 
-  it.skip("blocks member from viewing // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite any other profile", async () => {
-    const result = await canAccessProfile("u1", "member", { id: "u2", serviceId: "svc-1" });
+  // 2026-04-30: post coordinator-collapse, member inherits the same
+  // single-service-scoping logic that coordinator had — they CAN view staff
+  // at their own centre, but not at another. The pre-collapse assertion
+  // ("member is blocked unconditionally") only made sense back when member
+  // was the floor role. Re-asserts the cross-service block explicitly.
+  it("blocks member from viewing staff at a different service", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ serviceId: "svc-2" });
+    const result = await canAccessProfile("u1", "member", {
+      id: "u2",
+      serviceId: "svc-1",
+    });
     expect(result).toBe(false);
   });
 

@@ -203,12 +203,14 @@ describe("POST /api/services/[id]/events", () => {
     expect(res.status).toBe(201);
   });
 
-  it.skip("returns 403 for a member // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite", async () => {
+  // 2026-04-30: post coordinator-collapse, member IS now in the events
+  // POST allowlist (`{ roles: ["owner","head_office","admin","member"] }`).
+  // Re-asserting the new role-boundary: marketing is rejected.
+  it("returns 403 for marketing", async () => {
     mockSession({
       id: "u1",
-      name: "Staff",
-      role: "member",
-      serviceId: "s1",
+      name: "Marketing",
+      role: "marketing",
     });
     const res = await POST(
       createRequest("POST", "/api/services/s1/events", {

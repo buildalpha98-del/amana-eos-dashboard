@@ -45,8 +45,13 @@ describe("POST /api/services/[id]/parent-posts/[postId]/comments (staff reply)",
     expect(res.status).toBe(401);
   });
 
-  it.skip("403 when role is not allowed // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite (e.g. member)", async () => {
-    mockSession({ id: "u1", name: "X", role: "member", serviceId: SERVICE_ID });
+  // 2026-04-30: post coordinator-collapse, member IS in the comment-POST
+  // allowlist (`{ roles: ["owner", "head_office", "admin", "member"] }`).
+  // Re-asserting on `marketing` instead — they're the only role left that
+  // shouldn't be commenting on parent posts (they're org-level outreach,
+  // not service-level care).
+  it("403 when role is not allowed (e.g. marketing)", async () => {
+    mockSession({ id: "u1", name: "X", role: "marketing", serviceId: SERVICE_ID });
     const req = createRequest("POST", `/api/services/${SERVICE_ID}/parent-posts/${POST_ID}/comments`, {
       body: { body: "hi" },
     });

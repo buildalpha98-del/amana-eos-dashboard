@@ -86,8 +86,12 @@ describe("Programs write endpoints — staff is blocked, coordinator is allowed"
     expect(res.status).toBe(403);
   });
 
-  it.skip("member cannot POST a new program // SKIP 2026-04-30: stale post coordinator-collapse, needs rewrite activity (403)", async () => {
-    mockSession({ id: "u1", name: "M", role: "member", serviceId: "s1" });
+  // 2026-04-30: post coordinator-collapse, member IS now in the programs
+  // POST allowlist (`{ roles: ["owner","head_office","admin","member"] }`).
+  // Re-asserting the new boundary: marketing — the only remaining role
+  // that has no business writing program activities — is rejected.
+  it("marketing cannot POST a new program activity (403)", async () => {
+    mockSession({ id: "u1", name: "M", role: "marketing" });
     const res = await programsPost(
       createRequest("POST", "/api/services/s1/programs", {
         body: {
