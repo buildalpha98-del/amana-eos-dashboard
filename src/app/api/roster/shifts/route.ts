@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
+import { assertStaffCertsValidForShift } from "../_lib/cert-guard";
 
 // ---------------------------------------------------------------------------
 // GET /api/roster/shifts?serviceId=...&weekStart=YYYY-MM-DD
@@ -65,6 +66,17 @@ export const POST = withApiAuth(async (req, session) => {
     select: { name: true },
   });
   if (!user) throw ApiError.notFound("User not found");
+
+  // 2026-05-02: block assignment when the user has any expired blocking
+  // certificate (WWCC / first aid / food safety) by the shift date. The
+  // visual badge from PR #51 surfaced these to the rostering admin; this
+  // elevates it to API enforcement so a swap or quick re-assignment
+  // can't slip past.
+  await assertStaffCertsValidForShift({
+    userId: data.userId,
+    shiftDate: new Date(data.date),
+  });
+
   const shift = await prisma.rosterShift.create({
     data: {
       serviceId: data.serviceId,
