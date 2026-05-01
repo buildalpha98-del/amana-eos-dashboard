@@ -1953,9 +1953,13 @@ Be concise. Only flag genuine issues.`,
       slug: "services/activity-suggester",
       name: "Program Activity Suggester",
       model: "claude-sonnet-4-20250514",
-      maxTokens: 1024,
+      maxTokens: 600,
       variables: JSON.stringify(["serviceName", "weekTheme", "ageGroup", "category", "existingActivities", "learningOutcomes"]),
-      promptTemplate: `Suggest 3 engaging OSHC program activities for Amana OSHC.
+      // 2026-05-01: JSON output. Used to be human-readable prose dropped into
+      // a side panel; now drops directly into the "Add Activity" form's
+      // title + description + outcomes fields. Single activity (not three),
+      // since the user's filling one form at a time.
+      promptTemplate: `Suggest ONE engaging OSHC program activity for Amana OSHC.
 
 Centre: {{serviceName}}
 Week theme: {{weekTheme}}
@@ -1964,15 +1968,16 @@ Activity category: {{category}}
 Already planned this week: {{existingActivities}}
 Target learning outcomes (MTOP/NQS): {{learningOutcomes}}
 
-For each activity, provide:
-- **Name**: Creative, engaging title
-- **Description**: 2-3 sentences explaining the activity
-- **Materials needed**: Bullet list
-- **Duration**: Estimated time
-- **Learning outcomes**: Which MTOP/NQS outcomes it addresses
-- **Differentiation**: How to adapt for younger/older children
+Constraints:
+- Practical for an OSHC setting (limited space, mixed ages, minimal prep).
+- Avoid duplicating anything in "Already planned" above.
 
-Activities should be practical for an OSHC setting (limited space, mixed ages, minimal prep).`,
+Return a JSON object with exactly these keys (no prose, no markdown fences):
+{
+  "title": string (≤60 chars, creative & engaging),
+  "description": string (2-3 sentences explaining what to do, materials needed, and approximate duration),
+  "outcomes": number[] (MTOP outcome ids 1-5 most relevant — usually 1-2 ids)
+}`,
     },
     {
       slug: "todos/from-meeting-notes",

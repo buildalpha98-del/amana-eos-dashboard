@@ -161,7 +161,8 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  // 2026-05-01: aiSuggestion state was removed — the AI button now lives
+  // inside ActivityModal and fills the form directly (see ActivityModal).
   const [editingActivity, setEditingActivity] = useState<ProgramActivity | null>(null);
   const [prefillTemplate, setPrefillTemplate] = useState<ActivityTemplate | null>(null);
   const [showInterests, setShowInterests] = useState(false);
@@ -345,41 +346,13 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
             <FileText className="w-3.5 h-3.5" />
             Print
           </a>
-          <AiButton
-            templateSlug="services/activity-suggester"
-            variables={{
-              serviceName: "this centre",
-              weekTheme: "General program",
-              ageGroup: "5-12 years",
-              category: "mixed",
-              existingActivities: activities?.slice(0, 10).map((a: { title: string }) => a.title).join(", ") || "None planned",
-              learningOutcomes: "MTOP outcomes 1-5",
-            }}
-            onResult={(text) => setAiSuggestion(text)}
-            label="AI Suggest"
-            size="sm"
-            section="services"
-          />
+          {/* 2026-05-01: page-level "AI Suggest" button + side panel were
+              removed in favour of an inline AI Draft button inside the
+              ActivityModal. Drafting one activity at a time and auto-
+              dropping it into the form fields was a much cleaner flow than
+              showing a prose panel the educator had to manually re-type. */}
         </div>
       </div>
-
-      {/* AI Suggestion Panel */}
-      {aiSuggestion && (
-        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-medium text-purple-800">AI Activity Suggestions</h4>
-            <button
-              onClick={() => setAiSuggestion(null)}
-              className="text-purple-400 hover:text-purple-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="text-sm text-purple-900 whitespace-pre-wrap">
-            {aiSuggestion}
-          </div>
-        </div>
-      )}
 
       {/* Day Grid — split into Before School Care + After School Care */}
       {isLoading ? (
@@ -549,6 +522,9 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
           activity={editingActivity}
           prefillTemplate={prefillTemplate}
           defaultSession={defaultSession}
+          existingTitles={
+            activities?.map((a: { title: string }) => a.title) ?? []
+          }
           onClose={() => {
             setShowModal(false);
             setEditingActivity(null);
@@ -687,6 +663,7 @@ function ActivityModal({
   activity,
   prefillTemplate,
   defaultSession,
+  existingTitles = [],
   onClose,
   onCreate,
   onUpdate,
@@ -696,6 +673,12 @@ function ActivityModal({
   activity: ProgramActivity | null;
   prefillTemplate?: ActivityTemplate | null;
   defaultSession?: Session | null;
+  /**
+   * 2026-05-01: list of titles already on the week's program. Passed to
+   * the in-modal AI Draft button so the suggestion avoids duplicates of
+   * what the educator's already planned.
+   */
+  existingTitles?: string[];
   onClose: () => void;
   onCreate: ReturnType<typeof useCreateActivity>;
   onUpdate: ReturnType<typeof useUpdateActivity>;
@@ -774,6 +757,73 @@ function ActivityModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* 2026-05-01: in-modal AI Draft. Returns one activity as JSON
+              ({ title, description, outcomes[] }) and fills the form
+              directly. Educator can edit any field before saving. */}
+          {!isEditing && (
+            <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-purple-50/60 px-3 py-2">
+              <p className="text-[12px] text-purple-900">
+                Need ideas? Draft this activity with AI, then edit before saving.
+              </p>
+              <AiButton
+                templateSlug="services/activity-suggester"
+                section="services"
+                metadata={{ serviceId, weekStart }}
+                variables={{
+                  serviceName: "this centre",
+                  weekTheme: "General program",
+                  ageGroup: "5-12 years",
+                  category: "mixed",
+                  existingActivities:
+                    existingTitles.length > 0
+                      ? existingTitles.slice(0, 10).join(", ")
+                      : "None planned",
+                  learningOutcomes: "MTOP outcomes 1-5",
+                }}
+                onResult={(text) => {
+                  try {
+                    const cleaned = text
+                      .trim()
+                      .replace(/^```(?:json)?\s*/i, "")
+                      .replace(/\s*```$/i, "")
+                      .trim();
+                    let parsed: unknown;
+                    try {
+                      parsed = JSON.parse(cleaned);
+                    } catch {
+                      // Forgive prose-prefix: take the first {…} substring.
+                      const s = cleaned.indexOf("{");
+                      const e = cleaned.lastIndexOf("}");
+                      if (s === -1 || e === -1) throw new Error("no JSON object");
+                      parsed = JSON.parse(cleaned.slice(s, e + 1));
+                    }
+                    if (!parsed || typeof parsed !== "object") throw new Error("not an object");
+                    const obj = parsed as Record<string, unknown>;
+                    const newTitle = String(obj.title ?? "").slice(0, 200).trim();
+                    const newDesc = String(obj.description ?? "").slice(0, 1000).trim();
+                    const newOutcomes = Array.isArray(obj.outcomes)
+                      ? obj.outcomes
+                          .map((n) => Number(n))
+                          .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5)
+                      : [];
+                    if (!newTitle) throw new Error("empty title");
+                    setTitle(newTitle);
+                    if (newDesc) setDescription(newDesc);
+                    if (newOutcomes.length > 0) setSelectedOutcomes(newOutcomes);
+                    toast({ description: "AI draft applied — review and edit before saving." });
+                  } catch {
+                    toast({
+                      variant: "destructive",
+                      description:
+                        "AI didn't return valid JSON — try again or fill the form manually.",
+                    });
+                  }
+                }}
+                label="AI Draft"
+                size="sm"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-foreground/80 mb-1">
