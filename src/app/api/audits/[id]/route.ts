@@ -4,25 +4,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-
-/**
- * Coordinators can complete audits, but only for the service they're
- * assigned to. Org-wide roles (owner / head_office / admin) bypass this
- * check; member ("Centre Director") also bypasses since they're already
- * scoped at the user-management level.
- */
-function ensureCoordCanTouchAudit(
-  role: string,
-  userServiceId: string | null | undefined,
-  auditServiceId: string,
-) {
-  if (role !== "member") return;
-  if (!userServiceId || userServiceId !== auditServiceId) {
-    throw ApiError.forbidden(
-      "Coordinators can only work on audits for their own service.",
-    );
-  }
-}
+// 2026-05-01: helper moved to ../_lib/scope so POST /api/audits can reuse it.
+import { ensureCoordCanTouchAudit } from "../_lib/scope";
 
 const patchSchema = z.object({
   action: z.enum(["start", "complete", "skip"]).optional(),

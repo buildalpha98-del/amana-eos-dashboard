@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 import { parseJsonBody } from "@/lib/api-error";
+import { ensureCoordCanTouchAudit } from "./_lib/scope";
 /**
  * GET /api/audits — list audit instances with filters + pagination
  */
@@ -118,6 +119,16 @@ export const POST = withApiAuth(
       );
     }
     const { templateId, serviceId, scheduledMonth, scheduledYear, dueDate, auditorId } = parsed.data;
+
+    // 2026-05-01: gate cross-service POSTs. A member at service A previously
+    // could create audits for service B by sending serviceId=B in the body —
+    // PATCH already enforced this; POST didn't. Same helper reused here so
+    // the rule stays in one place.
+    ensureCoordCanTouchAudit(
+      session!.user.role,
+      (session!.user as { serviceId?: string | null }).serviceId,
+      serviceId,
+    );
 
     // Verify template exists and pre-seed response rows
     const template = await prisma.auditTemplate.findUnique({
