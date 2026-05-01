@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRosterShifts, type RosterShiftListItem } from "@/hooks/useRosterShifts";
+import { useRoster } from "@/hooks/useRoster";
 import { useTeam } from "@/hooks/useTeam";
+import { computeRatio } from "@/lib/roster-ratio";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
 import { RatioBadge } from "@/components/roster/RatioBadge";
 import { ShiftEditModal } from "@/components/roster/ShiftEditModal";
@@ -81,6 +83,11 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   } = useRosterShifts(serviceId, weekStart);
 
   const { data: teamData, isLoading: teamLoading } = useTeam({ service: serviceId });
+  // 2026-05-02: pull child bookings for the same week so the ratio row
+  // can show real numerators. Previously the RatioBadge was rendered with
+  // childrenCount={0}, which made every cell green regardless of actual
+  // booking load — see the TODO at the bottom of this component.
+  const { data: rosterData } = useRoster(serviceId, weekStart);
 
   const staff = useMemo(() => {
     if (!teamData) return [];
@@ -120,6 +127,45 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
     }
     return out;
   }, [shiftsData, weekDates]);
+
+  // Per-day × session-type child-booking count (the ratio denominator).
+  // useRoster returns dateString → sessionType → RosterChild[]. We just
+  // count length per cell — no need to reshape.
+  const childrenCountsByDay = useMemo(() => {
+    const out: Record<string, Record<string, number>> = {};
+    for (const dateKey of weekDates) {
+      out[dateKey] = { bsc: 0, asc: 0, vc: 0 };
+    }
+    if (rosterData) {
+      for (const dateKey of weekDates) {
+        const dayBlock = rosterData[dateKey];
+        if (!dayBlock) continue;
+        for (const st of SESSION_TYPES) {
+          out[dateKey][st] = dayBlock[st]?.length ?? 0;
+        }
+      }
+    }
+    return out;
+  }, [rosterData, weekDates]);
+
+  // Roll up actual breaches across the week so we can surface a single
+  // banner at the top instead of forcing the user to scan 15 cells. A
+  // "breach" comes back from computeRatio when the cell is over the
+  // 1:13 NQF guideline; "warning" is near-the-limit (>= 85%).
+  const ratioSummary = useMemo(() => {
+    const breaches: { dateKey: string; sessionType: string; staff: number; children: number }[] = [];
+    const warnings: { dateKey: string; sessionType: string; staff: number; children: number }[] = [];
+    for (const dateKey of weekDates) {
+      for (const st of SESSION_TYPES) {
+        const staff = ratioCountsByDay[dateKey]?.[st] ?? 0;
+        const children = childrenCountsByDay[dateKey]?.[st] ?? 0;
+        const r = computeRatio(staff, children);
+        if (r.status === "breach") breaches.push({ dateKey, sessionType: st, staff, children });
+        else if (r.status === "warning") warnings.push({ dateKey, sessionType: st, staff, children });
+      }
+    }
+    return { breaches, warnings };
+  }, [ratioCountsByDay, childrenCountsByDay, weekDates]);
 
   const [modalState, setModalState] = useState<ModalState>(null);
   const [publishing, setPublishing] = useState(false);
@@ -256,6 +302,18 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
         )}
       </div>
 
+      {/* Ratio summary banner — surface breaches + warnings at the top
+          so educators don't have to eyeball 15 cells in the footer.
+          2026-05-02: introduced once the real childrenCount got wired in;
+          previously this would have always been "0 breaches" because
+          children count was hardcoded to 0. */}
+      {(ratioSummary.breaches.length > 0 || ratioSummary.warnings.length > 0) && (
+        <RatioSummaryBanner
+          breaches={ratioSummary.breaches}
+          warnings={ratioSummary.warnings}
+        />
+      )}
+
       {/* Grid */}
       {shiftsError ? (
         <ErrorState error={shiftsError} />
@@ -381,10 +439,13 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                   </td>
                   {weekDates.map((dateStr) => {
                     const staffCount = ratioCountsByDay[dateStr]?.[st] ?? 0;
-                    // Children count wired to 0 — follow-up hooks useRoster booking data.
+                    // 2026-05-02: real children count wired in via useRoster.
+                    // Replaces the hardcoded `childrenCount={0}` that made every
+                    // ratio cell green regardless of booking load.
+                    const childrenCount = childrenCountsByDay[dateStr]?.[st] ?? 0;
                     return (
                       <td key={dateStr} className="p-1 border border-border">
-                        <RatioBadge staffCount={staffCount} childrenCount={0} />
+                        <RatioBadge staffCount={staffCount} childrenCount={childrenCount} />
                       </td>
                     );
                   })}
@@ -435,6 +496,70 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
           }}
         />
       )}
+    </div>
+  );
+}
+
+
+// ── Ratio summary banner ────────────────────────────────────────────
+//
+// Renders a single rolled-up alert above the grid when any cell breaches
+// the NQS 1:13 staff:children ratio (red) or sits within 85-100% of it
+// (amber). Replaces the "scan-the-15-cells" UX with a clear "fix these
+// shifts before publishing" callout.
+
+interface RatioCell {
+  dateKey: string;
+  sessionType: string;
+  staff: number;
+  children: number;
+}
+
+const SESSION_LABEL: Record<string, string> = { bsc: "BSC", asc: "ASC", vc: "VC" };
+
+function formatCell(c: RatioCell): string {
+  const d = new Date(c.dateKey);
+  const day = d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric" });
+  return `${day} ${SESSION_LABEL[c.sessionType] ?? c.sessionType.toUpperCase()} (${c.staff} staff / ${c.children} children)`;
+}
+
+function RatioSummaryBanner({
+  breaches,
+  warnings,
+}: {
+  breaches: RatioCell[];
+  warnings: RatioCell[];
+}) {
+  if (breaches.length === 0 && warnings.length === 0) return null;
+  const hasBreach = breaches.length > 0;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn(
+        "rounded-lg border px-3 py-2 text-sm",
+        hasBreach
+          ? "border-red-300 bg-red-50 text-red-900"
+          : "border-amber-300 bg-amber-50 text-amber-900",
+      )}
+    >
+      <div className="font-medium">
+        {hasBreach
+          ? `${breaches.length} session${breaches.length === 1 ? "" : "s"} over the NQF 1:13 staff:children ratio`
+          : `${warnings.length} session${warnings.length === 1 ? "" : "s"} near the NQF ratio limit`}
+      </div>
+      <ul className="mt-1 text-xs leading-5 space-y-0.5">
+        {breaches.map((c) => (
+          <li key={`b-${c.dateKey}-${c.sessionType}`}>
+            <strong>Breach:</strong> {formatCell(c)}
+          </li>
+        ))}
+        {warnings.slice(0, hasBreach ? 3 : warnings.length).map((c) => (
+          <li key={`w-${c.dateKey}-${c.sessionType}`}>
+            <span className="opacity-80">Near limit:</span> {formatCell(c)}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
