@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -84,10 +84,21 @@ function currentMonthStr(offset = 0): string {
 describe("ServiceMonthlyRollCallView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // 2026-05-01: pin "now" so date-flip rollovers don't break the
+    // hard-coded April-2026 cell assertion below. The component derives
+    // the rendered month from `new Date()` + monthOffset, so without a
+    // pinned clock the suite started failing the day "today" rolled into
+    // May. Mid-month avoids any DST/UTC edge-cases.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-15T12:00:00Z"));
     searchParamsRef.value = new URLSearchParams();
     routerReplace.mockClear();
     monthlyRef.data = undefined;
     useMonthlyCalls.length = 0;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("requests the current month on mount", () => {
