@@ -82,6 +82,10 @@ function resetCommon() {
     // Fallback for any other shape.
     return Promise.resolve({ active: true, name: "Lookup User" });
   });
+  // 2026-05-02: cert-guard added to POST + PATCH. Default to "no expired
+  // certs" so existing happy-path tests don't need to be re-stubbed.
+  // Cert-specific tests override this to return expired certs.
+  prismaMock.complianceCertificate.findMany.mockResolvedValue([]);
 }
 
 // ---------------------------------------------------------------------------
@@ -255,6 +259,68 @@ describe("POST /api/roster/shifts", () => {
     );
     expect(res.status).toBe(404);
   });
+
+  // ── Cert-expiry guard (2026-05-02) ─────────────────────────────────
+  it("returns 400 when target user has an expired WWCC", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    // Shift date is 2026-04-20; WWCC expired 2026-03-15 → blocked.
+    prismaMock.complianceCertificate.findMany.mockResolvedValue([
+      { type: "wwcc", expiryDate: new Date("2026-03-15") },
+    ]);
+
+    const res = await POST(
+      createRequest("POST", "/api/roster/shifts", { body: validBody }),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/WWCC/);
+    expect(body.error).toMatch(/expired/i);
+    expect(prismaMock.rosterShift.create).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 listing every blocking cert that's expired", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.complianceCertificate.findMany.mockResolvedValue([
+      { type: "wwcc", expiryDate: new Date("2026-03-01") },
+      { type: "first_aid", expiryDate: new Date("2026-04-01") },
+      // food_safety not expired — should NOT show in the message.
+      { type: "food_safety", expiryDate: new Date("2027-01-01") },
+    ]);
+
+    const res = await POST(
+      createRequest("POST", "/api/roster/shifts", { body: validBody }),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/WWCC/);
+    expect(body.error).toMatch(/First Aid/);
+    expect(body.error).not.toMatch(/Food Safety/);
+  });
+
+  it("creates the shift when blocking certs are valid for the date", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    // Shift date 2026-04-20; everything expires after.
+    prismaMock.complianceCertificate.findMany.mockResolvedValue([
+      { type: "wwcc", expiryDate: new Date("2027-01-01") },
+      { type: "first_aid", expiryDate: new Date("2026-12-31") },
+    ]);
+    prismaMock.user.findUnique.mockImplementation((args: unknown) => {
+      const { where, select } = args as {
+        where?: { id?: string };
+        select?: Record<string, boolean>;
+      };
+      if (select && "active" in select) return Promise.resolve({ active: true });
+      if (where?.id === "u-1") return Promise.resolve({ name: "Alice" });
+      return Promise.resolve(null);
+    });
+    prismaMock.rosterShift.create.mockResolvedValue(makeShift({ staffName: "Alice" }));
+
+    const res = await POST(
+      createRequest("POST", "/api/roster/shifts", { body: validBody }),
+    );
+    expect(res.status).toBe(201);
+    expect(prismaMock.rosterShift.create).toHaveBeenCalledOnce();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -341,6 +407,56 @@ describe("PATCH /api/roster/shifts/[id]", () => {
     const call = prismaMock.rosterShift.update.mock.calls[0][0];
     expect(call.data.userId).toBe("u-2");
     expect(call.data.staffName).toBe("Bob");
+  });
+
+  // ── Cert-expiry guard on PATCH (2026-05-02) ──────────────────────
+  it("returns 400 when re-assigning to a user with an expired blocking cert", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.rosterShift.findUnique.mockResolvedValue(
+      makeShift({ userId: "u-1", staffName: "Alice", date: new Date("2026-04-20") }),
+    );
+    prismaMock.user.findUnique.mockImplementation((args: unknown) => {
+      const { where, select } = args as {
+        where?: { id?: string };
+        select?: Record<string, boolean>;
+      };
+      if (select && "active" in select) return Promise.resolve({ active: true });
+      if (where?.id === "u-2") return Promise.resolve({ name: "Bob" });
+      return Promise.resolve(null);
+    });
+    // Bob's WWCC expired before the shift date.
+    prismaMock.complianceCertificate.findMany.mockResolvedValue([
+      { type: "wwcc", expiryDate: new Date("2026-04-01") },
+    ]);
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/roster/shifts/sh-1", {
+        body: { userId: "u-2" },
+      }),
+      paramsOf("sh-1"),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/WWCC/);
+    expect(prismaMock.rosterShift.update).not.toHaveBeenCalled();
+  });
+
+  it("does NOT re-validate certs on a pure time-shift edit (no userId/date change)", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.rosterShift.findUnique.mockResolvedValue(makeShift());
+    prismaMock.rosterShift.update.mockResolvedValue(
+      makeShift({ shiftStart: "16:00" }),
+    );
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/roster/shifts/sh-1", {
+        body: { shiftStart: "16:00" },
+      }),
+      paramsOf("sh-1"),
+    );
+    expect(res.status).toBe(200);
+    // Cert query should NOT have been called for a time-only edit.
+    expect(prismaMock.complianceCertificate.findMany).not.toHaveBeenCalled();
   });
 
   it("returns 400 when the proposed time window is invalid", async () => {

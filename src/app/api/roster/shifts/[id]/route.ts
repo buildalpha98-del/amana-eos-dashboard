@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
+import { assertStaffCertsValidForShift } from "../../_lib/cert-guard";
 
 // ---------------------------------------------------------------------------
 // Partial-update schema mirrors the create schema but every field optional.
@@ -70,6 +71,20 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     });
     if (!user) throw ApiError.notFound("User not found");
     staffNameUpdate = user.name;
+  }
+
+  // 2026-05-02: re-validate compliance certs whenever the assignee or the
+  // shift date changes (a re-assignment to someone with an expired cert
+  // is exactly the slip we're guarding against). For a pure time-shift
+  // edit (e.g. shiftStart only) we don't re-check; the original
+  // assignment was already validated at create-time.
+  const newUserId = data.userId ?? existing.userId;
+  const newDate = data.date ? new Date(data.date) : existing.date;
+  const userOrDateChanged =
+    (data.userId && data.userId !== existing.userId) ||
+    (data.date && newDate.getTime() !== existing.date.getTime());
+  if (newUserId && userOrDateChanged) {
+    await assertStaffCertsValidForShift({ userId: newUserId, shiftDate: newDate });
   }
 
   const shift = await prisma.rosterShift.update({
