@@ -107,7 +107,8 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
   const [cells, setCells] = useState<Record<CellKey, CellData>>({});
   const [notes, setNotes] = useState("");
   const [dirty, setDirty] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  // 2026-05-01: aiSuggestion state was removed — the AI Menu button now
+  // writes directly into the cells grid (see onResult parser below).
   const [allergenCheckResult, setAllergenCheckResult] = useState<string | null>(null);
 
   // Sync from server data
@@ -326,7 +327,71 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
               dietaryNotes: "All food must be halal. Check for common allergens.",
               budget: "Standard OSHC budget",
             }}
-            onResult={(text) => setAiSuggestion(text)}
+            onResult={(text) => {
+              // 2026-05-01: parse JSON array → auto-fill the grid cells
+              // instead of dumping prose into a side panel. Same shape /
+              // tolerance as the Risk tab's hazards parser:
+              //  - strip ```json / ``` fences
+              //  - on parse failure, fall back to first balanced [...]
+              //    substring (forgives prose prefixes Sonnet sometimes adds)
+              try {
+                const cleaned = text
+                  .trim()
+                  .replace(/^```(?:json)?\s*/i, "")
+                  .replace(/\s*```$/i, "")
+                  .trim();
+                let parsed: unknown;
+                try {
+                  parsed = JSON.parse(cleaned);
+                } catch {
+                  const s = cleaned.indexOf("[");
+                  const e = cleaned.lastIndexOf("]");
+                  if (s === -1 || e === -1 || e <= s) throw new Error("no array");
+                  parsed = JSON.parse(cleaned.slice(s, e + 1));
+                }
+                if (!Array.isArray(parsed)) throw new Error("not an array");
+
+                const validDay = new Set(DAYS);
+                const validSlot = new Set(SLOTS);
+                const validAllergen = new Set(ALLERGEN_OPTIONS);
+
+                let applied = 0;
+                setCells((prev) => {
+                  const next = { ...prev };
+                  for (const item of parsed as unknown[]) {
+                    if (!item || typeof item !== "object") continue;
+                    const obj = item as Record<string, unknown>;
+                    const day = String(obj.day ?? "").toLowerCase();
+                    const slot = String(obj.session ?? "").toLowerCase();
+                    if (!validDay.has(day as (typeof DAYS)[number])) continue;
+                    if (!validSlot.has(slot as (typeof SLOTS)[number])) continue;
+                    const description = String(obj.description ?? "").slice(0, 200).trim();
+                    if (!description) continue;
+                    const allergensRaw = Array.isArray(obj.allergens) ? obj.allergens : [];
+                    const allergens = allergensRaw
+                      .map((a) => String(a).toLowerCase())
+                      .filter((a) => validAllergen.has(a));
+                    next[cellKey(day, slot)] = { description, allergens };
+                    applied += 1;
+                  }
+                  return next;
+                });
+                if (applied > 0) {
+                  setDirty(true);
+                  toast({ description: `AI menu drafted (${applied} cells) — review and edit before saving.` });
+                } else {
+                  toast({
+                    variant: "destructive",
+                    description: "AI returned no usable cells — try again.",
+                  });
+                }
+              } catch {
+                toast({
+                  variant: "destructive",
+                  description: "AI didn't return valid JSON — try again or fill the grid manually.",
+                });
+              }
+            }}
             label="AI Menu"
             size="sm"
             section="services"
@@ -348,27 +413,6 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           />
         </div>
       </div>
-
-      {/* AI Suggestion Panel */}
-      {aiSuggestion && (
-        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-medium text-purple-800">AI Menu Suggestion</h4>
-            <button
-              onClick={() => setAiSuggestion(null)}
-              className="text-purple-400 hover:text-purple-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="text-sm text-purple-900 whitespace-pre-wrap prose prose-sm max-w-none">
-            {aiSuggestion}
-          </div>
-          <p className="text-xs text-purple-500 mt-2">
-            Copy the suggestions above into the menu grid below. You can edit them as needed.
-          </p>
-        </div>
-      )}
 
       {/* Allergen Check Results */}
       {allergenCheckResult && (

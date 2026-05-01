@@ -1898,8 +1898,11 @@ Guidelines:
       slug: "services/menu-planner",
       name: "Weekly Menu Planner",
       model: "claude-sonnet-4-20250514",
-      maxTokens: 1500,
+      maxTokens: 2000,
       variables: JSON.stringify(["serviceName", "existingMenus", "dietaryNotes", "budget"]),
+      // 2026-05-01: JSON output. Used to be a markdown table dropped into a
+      // side panel — educators read it then re-typed into the inline grid.
+      // Now drops directly into each day × session cell of the menu grid.
       promptTemplate: `Generate a weekly OSHC menu plan (Monday–Friday) for Amana OSHC.
 
 Centre: {{serviceName}}
@@ -1907,20 +1910,22 @@ Recent menus to avoid repeating: {{existingMenus}}
 Dietary notes: {{dietaryNotes}}
 Budget guidance: {{budget}}
 
-For each day, provide:
-- Morning tea (light snack + drink)
-- Lunch (main meal)
-- Afternoon tea (snack + drink)
+Constraints:
+- All food must be halal.
+- Mix cultural cuisines (Middle Eastern, Australian, Asian, Mediterranean).
+- Balance nutrition: protein, vegetables, grains, fruit.
+- Use seasonal Australian produce.
+- Keep meals practical for OSHC kitchen prep (no complex cooking).
+- Flag common allergens.
 
-Requirements:
-- All food must be halal
-- Include a mix of cultural cuisines (Middle Eastern, Australian, Asian, Mediterranean)
-- Balance nutrition: protein, vegetables, grains, fruit
-- Use seasonal Australian produce
-- Keep meals practical for OSHC kitchen preparation (no complex cooking)
-- Flag common allergens (nuts, dairy, gluten, eggs) next to each item
-
-Format as a markdown table with columns: Day | Morning Tea | Lunch | Afternoon Tea`,
+Return a JSON array with exactly 15 entries (5 days × 3 sessions), no
+prose, no markdown fences. Each entry:
+{
+  "day": "monday" | "tuesday" | "wednesday" | "thursday" | "friday",
+  "session": "morning_tea" | "lunch" | "afternoon_tea",
+  "description": string (≤120 chars, the dish + drink combo),
+  "allergens": string[] (subset of: "gluten","dairy","nuts","eggs","soy","shellfish","vegan","halal" — empty array if none apply)
+}`,
     },
     {
       slug: "services/allergen-check",
