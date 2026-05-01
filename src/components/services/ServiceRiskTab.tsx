@@ -9,13 +9,14 @@
  * "different user than author" rule.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   Plus,
   ShieldCheck,
   AlertTriangle,
   Check,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
@@ -29,6 +30,60 @@ import {
   type Hazard,
   type RiskAssessmentItem,
 } from "@/hooks/useRiskAssessments";
+
+/**
+ * Local hazard shape with a stable client-side `_uid`. React keys off `_uid`
+ * so reordering / replacing the array (e.g. when AI seeds 4–8 hazards at
+ * once) doesn't tear down + rebuild every input — which previously caused
+ * a perceptible main-thread stall and contributed to the "Suggest hazards
+ * froze the page" report from the 2026-04-30 training session.
+ *
+ * Stripped before submitting to the server (the API doesn't know about
+ * `_uid` and validates strictly).
+ */
+type LocalHazard = Hazard & { _uid: string };
+
+function uid(): string {
+  // crypto.randomUUID is available in all targeted browsers (Safari 15.4+,
+  // Chrome 92+, Firefox 95+) — Math.random fallback for jsdom test runners.
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `h_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+}
+
+/**
+ * Extract the first JSON array from an LLM response. Sonnet usually returns
+ * pure JSON when the prompt says "no prose", but it occasionally wraps the
+ * array in a sentence ("Here are the hazards: [...]") or markdown fences.
+ *
+ * Strategy:
+ *  1. Strip ```json / ``` fences (already handled before — keep the regex).
+ *  2. Try a direct JSON.parse on the trimmed text.
+ *  3. Fall back to extracting the first balanced `[...]` substring and
+ *     parsing that. This survives prose-prefix and prose-suffix.
+ *  4. If both fail, throw — caller decides what to show the user.
+ */
+function extractHazardsArray(raw: string): unknown {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    /* fall through to substring extraction */
+  }
+
+  const start = cleaned.indexOf("[");
+  const end = cleaned.lastIndexOf("]");
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error("No JSON array found in AI response");
+  }
+  return JSON.parse(cleaned.slice(start, end + 1));
+}
 
 const ACTIVITY_OPTIONS = [
   { value: "all", label: "All activities" },
@@ -260,9 +315,20 @@ function CreateDialog({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
   const [location, setLocation] = useState("");
-  const [hazards, setHazards] = useState<Hazard[]>([
-    { hazard: "", likelihood: 1, severity: 1, controls: "" },
+  const [hazards, setHazards] = useState<LocalHazard[]>(() => [
+    { _uid: uid(), hazard: "", likelihood: 1, severity: 1, controls: "" },
   ]);
+  // Streaming preview — populated while AI is generating so the user can
+  // see characters arriving in real time. Cleared once the final JSON is
+  // parsed and merged into `hazards`. Without this, the only visible
+  // feedback during a 10–25s generation was the AiButton's small spinner,
+  // which staff reported as "the page froze".
+  const [aiPreview, setAiPreview] = useState<string>("");
+  // setHazards on a wholesale replacement re-renders ~30 form inputs, which
+  // can stall the main thread for 100–300ms on slower devices. Wrapping in a
+  // transition lets React keep the AiButton interactive (and the streaming
+  // preview updating) while the form catches up.
+  const [, startTransition] = useTransition();
 
   const valid =
     title.trim() &&
@@ -277,6 +343,7 @@ function CreateDialog({
       activityType,
       date,
       location: location.trim() || undefined,
+      // Strip the client-only _uid before posting.
       hazards: hazards.map((h) => ({
         hazard: h.hazard.trim(),
         likelihood: h.likelihood,
@@ -287,9 +354,9 @@ function CreateDialog({
     onClose();
   }
 
-  function updateHazard(i: number, patch: Partial<Hazard>) {
+  function updateHazard(_uid: string, patch: Partial<Hazard>) {
     setHazards((prev) =>
-      prev.map((h, idx) => (idx === i ? { ...h, ...patch } : h)),
+      prev.map((h) => (h._uid === _uid ? { ...h, ...patch } : h)),
     );
   }
 
@@ -366,15 +433,22 @@ function CreateDialog({
                     location: location || "(unspecified)",
                     knownContext: title || "(no extra context)",
                   }}
+                  // Stream so the educator sees characters arriving as they
+                  // do — feedback that the page is alive during the model
+                  // call. The full text is still delivered via onResult once
+                  // the stream completes; we parse JSON there.
+                  stream
+                  onStream={(partial) => setAiPreview(partial)}
                   onResult={(text) => {
+                    setAiPreview("");
                     try {
-                      const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
-                      const parsed = JSON.parse(cleaned);
+                      const parsed = extractHazardsArray(text);
                       if (!Array.isArray(parsed)) throw new Error("expected array");
-                      const safe: Hazard[] = parsed
-                        .filter((p) => p && typeof p === "object")
+                      const safe: LocalHazard[] = parsed
+                        .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
                         .slice(0, 25)
                         .map((p) => ({
+                          _uid: uid(),
                           hazard: String(p.hazard ?? "").slice(0, 200),
                           likelihood: Math.max(1, Math.min(5, Number(p.likelihood) || 1)),
                           severity: Math.max(1, Math.min(5, Number(p.severity) || 1)),
@@ -382,7 +456,10 @@ function CreateDialog({
                         }))
                         .filter((h) => h.hazard && h.controls);
                       if (safe.length > 0) {
-                        setHazards(safe);
+                        // Big array swap → keep the AiButton interactive and
+                        // the rest of the dialog responsive while the form
+                        // re-renders.
+                        startTransition(() => setHazards(safe));
                         toast({ description: `Drafted ${safe.length} hazards — review and edit before saving.` });
                       } else {
                         toast({
@@ -405,7 +482,7 @@ function CreateDialog({
                   onClick={() =>
                     setHazards((prev) => [
                       ...prev,
-                      { hazard: "", likelihood: 1, severity: 1, controls: "" },
+                      { _uid: uid(), hazard: "", likelihood: 1, severity: 1, controls: "" },
                     ])
                   }
                   className="text-[11px] font-medium text-[color:var(--color-brand)]"
@@ -414,12 +491,27 @@ function CreateDialog({
                 </button>
               </div>
             </div>
+            {aiPreview && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="rounded-[var(--radius-sm)] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900"
+              >
+                <div className="flex items-center gap-1.5 font-medium">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  AI is drafting hazards…
+                </div>
+                <pre className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] text-amber-800">
+                  {aiPreview}
+                </pre>
+              </div>
+            )}
             <div className="space-y-2">
-              {hazards.map((h, i) => {
+              {hazards.map((h) => {
                 const score = h.likelihood * h.severity;
                 return (
                   <div
-                    key={i}
+                    key={h._uid}
                     className="p-2 rounded-[var(--radius-sm)] bg-[color:var(--color-cream-deep)] border border-[color:var(--color-border)]"
                   >
                     <div className="flex items-start gap-2">
@@ -434,7 +526,7 @@ function CreateDialog({
                       <input
                         value={h.hazard}
                         onChange={(e) =>
-                          updateHazard(i, { hazard: e.target.value })
+                          updateHazard(h._uid, { hazard: e.target.value })
                         }
                         placeholder="Hazard"
                         className="flex-1 rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm min-h-[44px]"
@@ -444,7 +536,7 @@ function CreateDialog({
                           type="button"
                           onClick={() =>
                             setHazards((prev) =>
-                              prev.filter((_, idx) => idx !== i),
+                              prev.filter((x) => x._uid !== h._uid),
                             )
                           }
                           className="p-1 text-[color:var(--color-muted)] hover:text-[color:var(--color-danger)]"
@@ -457,18 +549,18 @@ function CreateDialog({
                       <RatingPicker
                         label="Likelihood"
                         value={h.likelihood}
-                        onChange={(v) => updateHazard(i, { likelihood: v })}
+                        onChange={(v) => updateHazard(h._uid, { likelihood: v })}
                       />
                       <RatingPicker
                         label="Severity"
                         value={h.severity}
-                        onChange={(v) => updateHazard(i, { severity: v })}
+                        onChange={(v) => updateHazard(h._uid, { severity: v })}
                       />
                     </div>
                     <input
                       value={h.controls}
                       onChange={(e) =>
-                        updateHazard(i, { controls: e.target.value })
+                        updateHazard(h._uid, { controls: e.target.value })
                       }
                       placeholder="Controls / mitigation"
                       className="w-full mt-2 rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm min-h-[44px]"
