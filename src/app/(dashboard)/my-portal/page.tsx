@@ -43,6 +43,7 @@ import { toast } from "@/hooks/useToast";
 import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
+import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -685,6 +686,12 @@ export default function MyPortalPage() {
       {session?.user?.id && (
         <MyUpcomingShiftsCard userId={session.user.id} />
       )}
+
+      {/* ============================================================ */}
+      {/* 3d. OPEN SHIFTS (PR #54 — claimable unassigned shifts)        */}
+      {/* Quiet by default: card hides itself when there are none.      */}
+      {/* ============================================================ */}
+      {session?.user?.id && <OpenShiftsCard />}
 
       {/* ============================================================ */}
       {/* 4. LEAVE BALANCES                                            */}
