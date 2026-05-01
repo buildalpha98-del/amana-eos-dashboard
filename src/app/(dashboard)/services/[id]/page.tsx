@@ -17,6 +17,7 @@ import {
   Mountain,
   CheckSquare,
   AlertCircle,
+  AlertTriangle,
   CalendarDays,
   CalendarClock,
   DollarSign,
@@ -58,6 +59,7 @@ import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRoste
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 import { ServiceCasualBookingsTab } from "@/components/services/ServiceCasualBookingsTab";
 import { ServiceReflectionsTab } from "@/components/services/ServiceReflectionsTab";
+import { ServiceIncidentsTab } from "@/components/services/ServiceIncidentsTab";
 import { ServiceObservationsTab } from "@/components/services/ServiceObservationsTab";
 import { ServiceMedicationTab } from "@/components/services/ServiceMedicationTab";
 import { ServiceRiskTab } from "@/components/services/ServiceRiskTab";
@@ -161,6 +163,10 @@ const tabGroups: TabGroup[] = [
       { key: "audits", label: "Audits", icon: ShieldCheck },
       { key: "qip", label: "QIP", icon: ClipboardCheck },
       { key: "reflections", label: "Reflections", icon: Target },
+      // 2026-04-30: in-service incidents log. Cross-service /incidents
+      // is now hidden from member/staff (sidebar tightened in PR #37);
+      // this is where Director of Service + Educators log their own.
+      { key: "incidents", label: "Incidents", icon: AlertTriangle },
       { key: "risk", label: "Risk", icon: ShieldCheck },
       { key: "comms", label: "Comms", icon: Radio },
     ],
@@ -577,6 +583,9 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "compliance" && currentSubKey === "reflections" && (
           <ServiceReflectionsTab serviceId={service.id} />
+        )}
+        {activeGroup === "compliance" && currentSubKey === "incidents" && (
+          <ServiceIncidentsTab serviceId={service.id} />
         )}
         {activeGroup === "compliance" && currentSubKey === "risk" && (
           <ServiceRiskTab serviceId={service.id} />
