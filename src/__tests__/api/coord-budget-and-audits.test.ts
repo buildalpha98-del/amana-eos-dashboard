@@ -99,6 +99,32 @@ describe("Audits — admin tier allocates, coordinator (own service) completes",
     expect(res.status).toBe(403);
   });
 
+  // 2026-05-01: regression guard for the cross-service POST gap discovered
+  // while rewriting the SKIP-2026-04-30 tests in PR #43. Member is in the
+  // POST allowlist now (so they CAN create audits for their own service),
+  // but the route was missing a body-vs-session service comparison, letting
+  // them point a POST at any other service's serviceId. ensureCoordCanTouchAudit
+  // now runs in both POST and PATCH.
+  it("member CANNOT POST a new audit instance for a different service", async () => {
+    mockSession({
+      id: "u1",
+      name: "C",
+      role: "member",
+      serviceId: "s-other",
+    });
+    const res = await auditsPost(
+      createRequest("POST", "/api/audits", {
+        body: {
+          templateId: "t1",
+          serviceId: "s1",
+          scheduledMonth: 5,
+          scheduledYear: 2026,
+        },
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
   it("head_office CAN POST a new audit instance", async () => {
     mockSession({ id: "u1", name: "HO", role: "head_office" });
     prismaMock.auditTemplate.findUnique.mockResolvedValue({
