@@ -34,9 +34,13 @@ export const GET = withApiAuth(async (req) => {
 // Create a shift. Admins: global. Coordinators: own service only.
 // ---------------------------------------------------------------------------
 
+// 2026-05-02: `userId` is now optional. Admin can create a shift without
+// an assignee — that's an "open shift" any qualified staff can claim via
+// POST /api/roster/shifts/[id]/claim. staffName is conditionally hydrated
+// so the row stays internally consistent.
 const createShiftSchema = z.object({
   serviceId: z.string().min(1),
-  userId: z.string().min(1),
+  userId: z.string().min(1).nullish(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   sessionType: z.enum(["bsc", "asc", "vc"]),
   shiftStart: z.string().regex(/^\d{2}:\d{2}$/),
@@ -61,27 +65,34 @@ export const POST = withApiAuth(async (req, session) => {
       throw ApiError.forbidden();
     }
   }
-  const user = await prisma.user.findUnique({
-    where: { id: data.userId },
-    select: { name: true },
-  });
-  if (!user) throw ApiError.notFound("User not found");
-
-  // 2026-05-02: block assignment when the user has any expired blocking
-  // certificate (WWCC / first aid / food safety) by the shift date. The
-  // visual badge from PR #51 surfaced these to the rostering admin; this
-  // elevates it to API enforcement so a swap or quick re-assignment
-  // can't slip past.
-  await assertStaffCertsValidForShift({
-    userId: data.userId,
-    shiftDate: new Date(data.date),
-  });
+  // Hydrate staffName + run cert-expiry guard only when a user is
+  // assigned. Open shifts (no assignee) skip both: staffName falls
+  // back to the literal "Open shift" so existing grid renderers still
+  // produce a recognisable cell, and the cert check is deferred to
+  // POST /api/roster/shifts/[id]/claim — which is when an actual user
+  // attaches to the shift.
+  let staffName = "Open shift";
+  if (data.userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: data.userId },
+      select: { name: true },
+    });
+    if (!user) throw ApiError.notFound("User not found");
+    staffName = user.name;
+    // 2026-05-02 (PR #52): block assignment when the user has any
+    // expired blocking certificate (WWCC / first aid / food safety) by
+    // the shift date.
+    await assertStaffCertsValidForShift({
+      userId: data.userId,
+      shiftDate: new Date(data.date),
+    });
+  }
 
   const shift = await prisma.rosterShift.create({
     data: {
       serviceId: data.serviceId,
-      userId: data.userId,
-      staffName: user.name,
+      userId: data.userId ?? null,
+      staffName,
       date: new Date(data.date),
       sessionType: data.sessionType,
       shiftStart: data.shiftStart,
