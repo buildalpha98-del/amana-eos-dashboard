@@ -7,6 +7,12 @@ import { useRosterShifts, type RosterShiftListItem } from "@/hooks/useRosterShif
 import { useRoster } from "@/hooks/useRoster";
 import { useTeam } from "@/hooks/useTeam";
 import { computeRatio } from "@/lib/roster-ratio";
+import {
+  useStaffCertStatus,
+  type CertStatus,
+  type UserCertStatus,
+} from "@/hooks/useServiceStaffCertificates";
+import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
 import { RatioBadge } from "@/components/roster/RatioBadge";
 import { ShiftEditModal } from "@/components/roster/ShiftEditModal";
@@ -84,10 +90,19 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
 
   const { data: teamData, isLoading: teamLoading } = useTeam({ service: serviceId });
   // 2026-05-02: pull child bookings for the same week so the ratio row
-  // can show real numerators. Previously the RatioBadge was rendered with
-  // childrenCount={0}, which made every cell green regardless of actual
-  // booking load — see the TODO at the bottom of this component.
+  // can show real numerators (PR #50).
   const { data: rosterData } = useRoster(serviceId, weekStart);
+  // 2026-05-02: roll up each staff member's compliance certs against the
+  // last day of the visible week. The grid flags a red shield next to
+  // anyone whose cert has already expired by week-end, and an amber shield
+  // for anyone with a cert expiring within 30 days.
+  const weekFriday = useMemo(() => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + 4);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }, [weekStart]);
+  const { rollup: certStatusByUser } = useStaffCertStatus(serviceId, weekFriday);
 
   const staff = useMemo(() => {
     if (!teamData) return [];
@@ -353,7 +368,9 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
               </tr>
             </thead>
             <tbody>
-              {staff.map((member) => (
+              {staff.map((member) => {
+                const certStatus = certStatusByUser[member.id];
+                return (
                 <tr key={member.id}>
                   <td className="p-2 border border-border align-top min-w-[160px]">
                     <div className="flex items-center gap-2">
@@ -364,6 +381,9 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                       <span className="text-sm font-medium text-foreground truncate">
                         {member.name}
                       </span>
+                      {certStatus && certStatus.status !== "ok" && (
+                        <CertExpiryBadge status={certStatus} />
+                      )}
                     </div>
                   </td>
                   {weekDates.map((date) => {
@@ -428,7 +448,8 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                     );
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
             {/* Ratio row per day × sessionType */}
             <tfoot>
@@ -561,5 +582,71 @@ function RatioSummaryBanner({
         ))}
       </ul>
     </div>
+  );
+}
+
+// ── CertExpiryBadge ────────────────────────────────────────────────
+//
+// Renders a small shield next to a staff member's name in the roster
+// grid when one of their compliance certificates (WWCC, first aid,
+// food safety, etc.) is expired or expiring within 30 days of the
+// visible week's end. Tooltip lists each cert + the date so the
+// rostering admin can fix it before publishing.
+//
+// 2026-05-02: introduced alongside `useStaffCertStatus` as the second
+// deliverable of the Connecteam-style roster spec.
+
+const CERT_TYPE_LABELS: Record<string, string> = {
+  wwcc: "WWCC",
+  first_aid: "First Aid",
+  anaphylaxis: "Anaphylaxis",
+  asthma: "Asthma",
+  cpr: "CPR",
+  police_check: "Police Check",
+  annual_review: "Annual Review",
+  child_protection: "Child Protection",
+  geccko: "GECCKO",
+  food_safety: "Food Safety",
+  food_handler: "Food Handler",
+  other: "Other",
+};
+
+function formatCertLabel(type: string): string {
+  return CERT_TYPE_LABELS[type] ?? type;
+}
+
+function formatCertDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function CertExpiryBadge({ status }: { status: UserCertStatus }) {
+  const variant: CertStatus = status.status;
+  const Icon = variant === "expired" ? ShieldAlert : ShieldCheck;
+  const palette =
+    variant === "expired"
+      ? "bg-red-100 text-red-700 border-red-300"
+      : "bg-amber-100 text-amber-700 border-amber-400";
+  const verdictText = variant === "expired" ? "Cert expired" : "Cert expiring";
+  // Build a compact tooltip: list each non-OK cert with its formatted
+  // date. Skip certs that are well in the future (the tooltip only
+  // surfaces ones that will or did matter for this visible week).
+  const tooltip = status.certs
+    .map((c) => `${formatCertLabel(c.type)}: expires ${formatCertDate(c.expiryDate)}`)
+    .join("\n");
+  return (
+    <span
+      title={tooltip || verdictText}
+      className={cn(
+        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-[10px] font-medium",
+        palette,
+      )}
+    >
+      <Icon className="w-3 h-3" />
+      {verdictText}
+    </span>
   );
 }
