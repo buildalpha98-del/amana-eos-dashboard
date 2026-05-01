@@ -11,6 +11,7 @@ import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
+import { parseRoleParam } from "@/lib/role-enum";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -29,10 +30,17 @@ export const GET = withApiAuth(async (req, session) => {
   const role = searchParams.get("role");
   const active = searchParams.get("active");
 
+  // 2026-05-01: validate `?role=` against the actual Role enum before
+  // letting it reach Prisma's where clause. Previously `role as any`
+  // forwarded any string and Prisma 500'd when the value wasn't in the
+  // enum. parseRoleParam returns null for unknown values so the filter
+  // is silently dropped — matches the /api/team route's contract.
+  const validatedRole = parseRoleParam(role);
+
   const users = await prisma.user.findMany({
     where: {
       ...(serviceId ? { serviceId } : {}),
-      ...(role ? { role: role as any } : {}),
+      ...(validatedRole ? { role: validatedRole } : {}),
       ...(active !== null && active !== undefined
         ? { active: active === "true" }
         : {}),
