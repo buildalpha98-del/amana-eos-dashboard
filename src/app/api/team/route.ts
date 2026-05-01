@@ -1,18 +1,9 @@
 import { NextResponse } from "next/server";
-import type { Prisma, Role } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parsePagination } from "@/lib/pagination";
 import { withApiAuth } from "@/lib/server-auth";
-
-const VALID_ROLES: Role[] = [
-  "owner",
-  "head_office",
-  "admin",
-  "marketing",
-  "member",
-  "member",
-  "staff",
-];
+import { parseRoleParam } from "@/lib/role-enum";
 
 export const GET = withApiAuth(async (req) => {
   const { searchParams } = new URL(req.url);
@@ -26,9 +17,14 @@ export const GET = withApiAuth(async (req) => {
 
   const userWhere: Prisma.UserWhereInput = { active: true };
   if (serviceParam) userWhere.serviceId = serviceParam;
-  if (roleParam && (VALID_ROLES as string[]).includes(roleParam)) {
-    userWhere.role = roleParam as Role;
-  }
+  // 2026-05-01: previously had a hand-rolled VALID_ROLES with a duplicate
+  // "member" entry left over from the coordinator-collapse rename. Now
+  // delegated to the shared parseRoleParam helper which keeps the enum
+  // values in one place. Behaviour unchanged: invalid roles are silently
+  // ignored (not 400'd) so the test "?role=hacker → where.role undefined"
+  // still passes.
+  const role = parseRoleParam(roleParam);
+  if (role) userWhere.role = role;
   if (qParam) userWhere.name = { contains: qParam, mode: "insensitive" };
 
   const users = await prisma.user.findMany({
