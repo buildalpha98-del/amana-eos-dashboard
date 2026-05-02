@@ -27,7 +27,6 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { toast } from "@/hooks/useToast";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 /** Swim-lane definitions — order matters for rendering */
 const swimLanes = [
@@ -64,7 +63,6 @@ const swimLanes = [
 type SortKey = "name" | "state" | "updated";
 
 export default function ServicesPage() {
-  const v2 = useStaffV2Flag();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const [search, setSearch] = useState("");
@@ -211,7 +209,7 @@ export default function ServicesPage() {
 
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-7xl mx-auto space-y-6"
     >
       {/* Header */}

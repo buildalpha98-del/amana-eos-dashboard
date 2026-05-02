@@ -43,7 +43,6 @@ import { FilterPresets } from "@/components/ui/FilterPresets";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PullToRefreshIndicator } from "@/components/ui/PullToRefreshIndicator";
-import { useStaffV2Flag as useStaffV2FlagInner } from "@/lib/useStaffV2Flag";
 
 interface UserOption {
   id: string;
@@ -59,7 +58,6 @@ export default function TodosPage() {
 }
 
 function TodosPageContent() {
-  const v2 = useStaffV2FlagInner();
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -263,7 +261,7 @@ function TodosPageContent() {
 
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-7xl mx-auto stagger-children"
     >
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />

@@ -46,7 +46,6 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 /* xlsx (~800KB) is dynamically imported at point of use in parseFile() */
 
 /* ------------------------------------------------------------------ */
@@ -1263,7 +1262,6 @@ function TimesheetDetail({
 /* ------------------------------------------------------------------ */
 
 export default function TimesheetsPage() {
-  const v2 = useStaffV2Flag();
   const { data: session } = useSession();
   const role = (session?.user?.role as string) || "";
   const isAdmin = role === "owner" || role === "admin";
@@ -1389,7 +1387,7 @@ export default function TimesheetsPage() {
 
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-7xl mx-auto"
     >
       {/* Header */}

@@ -78,7 +78,6 @@ import { BannerManagementSection } from "@/components/settings/BannerManagementS
 import { NotificationLogTab } from "@/components/settings/NotificationLogTab";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Mail } from "lucide-react";
-import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 interface UserData {
   id: string;
@@ -2789,7 +2788,6 @@ function AiUsageDashboard() {
 // ---------------------------------------------------------------------------
 
 export function SettingsContent({ userRole }: { userRole: Role }) {
-  const v2 = useStaffV2Flag();
   const [showInvite, setShowInvite] = useState(false);
   const [showBulkInvite, setShowBulkInvite] = useState(false);
   const [showImportStaff, setShowImportStaff] = useState(false);
@@ -2810,7 +2808,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-4xl mx-auto space-y-8"
     >
       <PageHeader title="Settings" description="Organisation settings, integrations, and user management" />
