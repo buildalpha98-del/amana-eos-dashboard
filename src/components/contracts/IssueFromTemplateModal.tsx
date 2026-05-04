@@ -31,7 +31,14 @@ type ContractMetaState = {
   position: string;
 };
 
-export function IssueFromTemplateModal({ onClose }: { onClose: () => void }) {
+export function IssueFromTemplateModal({
+  onClose,
+  onSwitchToBlank,
+}: {
+  onClose: () => void;
+  /** When provided (i.e. rendered from NewContractModal), shows a "Use blank form" link */
+  onSwitchToBlank?: () => void;
+}) {
   const [step, setStep] = useState<Step>(1);
   const [templateId, setTemplateId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
@@ -205,14 +212,25 @@ export function IssueFromTemplateModal({ onClose }: { onClose: () => void }) {
             </h2>
             <p className="text-xs text-muted mt-0.5">{getStepLabel(step)}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-surface transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-muted" />
-          </button>
+          <div className="flex items-center gap-2">
+            {onSwitchToBlank && (
+              <button
+                type="button"
+                onClick={onSwitchToBlank}
+                className="text-xs text-muted hover:text-foreground transition-colors underline underline-offset-2"
+              >
+                Use blank form
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-surface transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-muted" />
+            </button>
+          </div>
         </header>
 
         {/* Body */}
