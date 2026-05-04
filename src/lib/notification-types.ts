@@ -15,6 +15,10 @@ export const NOTIFICATION_TYPES = {
   TIMESHEET_APPROVED: "timesheet_approved",
   // Roster & shift management (added in Sub-project 3b)
   ROSTER_PUBLISHED: "roster_published",
+  // 2026-05-04 (open-shift notifications): fired when an admin publishes
+  // a week that contains unassigned shifts — every active staff member
+  // at the service gets notified so they can race for the slot.
+  OPEN_SHIFT_POSTED: "open_shift_posted",
   SHIFT_SWAP_PROPOSED: "shift_swap_proposed",
   SHIFT_SWAP_ACCEPTED: "shift_swap_accepted",
   SHIFT_SWAP_APPROVED: "shift_swap_approved",
