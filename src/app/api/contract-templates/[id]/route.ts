@@ -4,11 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { manualFieldsSchema } from "@/lib/contract-templates/manual-fields-schema";
-
-const tipTapDocSchema = z.object({
-  type: z.literal("doc"),
-  content: z.array(z.any()).optional(),
-}).passthrough();
+import { tipTapDocSchema } from "@/lib/contract-templates/tiptap-doc-schema";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(200).optional(),

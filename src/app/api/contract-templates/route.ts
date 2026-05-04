@@ -4,17 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { manualFieldsSchema } from "@/lib/contract-templates/manual-fields-schema";
+import { tipTapDocSchema } from "@/lib/contract-templates/tiptap-doc-schema";
 
 const listQuerySchema = z.object({
   status: z.enum(["active", "disabled"]).optional(),
   search: z.string().optional(),
 });
-
-// Minimal structural validation of the TipTap doc — full schema would be too brittle as TipTap evolves
-const tipTapDocSchema = z.object({
-  type: z.literal("doc"),
-  content: z.array(z.any()).optional(),
-}).passthrough();
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),
