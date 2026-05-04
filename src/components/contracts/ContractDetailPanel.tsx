@@ -5,9 +5,12 @@ import {
   ArrowRightLeft,
   Ban,
   FileText,
+  Mail,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContractData } from "@/hooks/useContracts";
+import { useResendIssueEmail } from "@/hooks/useContractTemplates";
 import {
   CONTRACT_TYPE_LABELS,
   formatCurrency,
@@ -33,6 +36,66 @@ interface Props {
  * `onSupersede` / `onTerminate` callbacks so modals can be portaled
  * outside the row and survive re-renders of the list.
  */
+/**
+ * Action buttons row — extracted to its own component so it can call
+ * useResendIssueEmail() without contaminating the parent with mutation state.
+ */
+function ActionButtons({
+  contract,
+  canSupersede,
+  canTerminate,
+  canEdit,
+  onSupersede,
+  onTerminate,
+}: {
+  contract: ContractData;
+  canSupersede: boolean;
+  canTerminate: boolean;
+  canEdit: boolean;
+  onSupersede: (c: ContractData) => void;
+  onTerminate: (c: ContractData) => void;
+}) {
+  const resendMut = useResendIssueEmail();
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border">
+      {canSupersede && (
+        <button
+          onClick={() => onSupersede(contract)}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors"
+        >
+          <ArrowRightLeft className="w-4 h-4" />
+          Supersede
+        </button>
+      )}
+      {canTerminate && (
+        <button
+          onClick={() => onTerminate(contract)}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+        >
+          <Ban className="w-4 h-4" />
+          Terminate
+        </button>
+      )}
+      {/* Resend issue email — admin only, only for contracts with a PDF document */}
+      {canEdit && contract.documentUrl && (
+        <button
+          onClick={() => resendMut.mutate(contract.id)}
+          disabled={resendMut.isPending}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground/70 border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
+        >
+          {resendMut.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Mail className="w-4 h-4" />
+          )}
+          {resendMut.isPending ? "Sending…" : "Resend email"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function ContractDetailPanel({
   contract,
   allContracts,
@@ -232,27 +295,15 @@ export function ContractDetailPanel({
       )}
 
       {/* Action Buttons */}
-      {(canSupersede || canTerminate) && (
-        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border">
-          {canSupersede && (
-            <button
-              onClick={() => onSupersede(contract)}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors"
-            >
-              <ArrowRightLeft className="w-4 h-4" />
-              Supersede
-            </button>
-          )}
-          {canTerminate && (
-            <button
-              onClick={() => onTerminate(contract)}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <Ban className="w-4 h-4" />
-              Terminate
-            </button>
-          )}
-        </div>
+      {(canSupersede || canTerminate || (canEdit && contract.documentUrl)) && (
+        <ActionButtons
+          contract={contract}
+          canSupersede={canSupersede}
+          canTerminate={canTerminate}
+          canEdit={canEdit}
+          onSupersede={onSupersede}
+          onTerminate={onTerminate}
+        />
       )}
     </div>
   );
