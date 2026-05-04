@@ -4,6 +4,11 @@ import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("next-auth/react", () => ({
   useSession: () => ({
     data: { user: { id: "u-1", role: "owner" } },
@@ -49,6 +54,24 @@ vi.mock("@/hooks/useContracts", () => ({
   useAcknowledgeContract: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
 }));
 
+vi.mock("@/components/contracts/templates/TemplatesTable", () => ({
+  TemplatesTable: ({ onCreate }: { onCreate?: () => void }) =>
+    <div data-testid="templates-table"><button onClick={onCreate}>stub-templates-table</button></div>,
+}));
+
+vi.mock("@/components/contracts/templates/NewTemplateModal", () => ({
+  NewTemplateModal: ({ onClose }: { onClose: () => void }) =>
+    <div data-testid="new-template-modal"><button onClick={onClose}>stub-new-template-modal</button></div>,
+}));
+
+vi.mock("@/hooks/useContractTemplates", () => ({
+  useContractTemplates: () => ({ data: [], isLoading: false, error: null }),
+  useCreateContractTemplate: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+  useUpdateContractTemplate: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+  useCloneContractTemplate: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+  useDeleteContractTemplate: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+}));
+
 vi.mock("@tanstack/react-query", async () => {
   const actual = await vi.importActual<typeof import("@tanstack/react-query")>("@tanstack/react-query");
   return {
@@ -69,7 +92,7 @@ function wrap(ui: ReactNode) {
 }
 
 describe("contracts page smoke", () => {
-  it("renders list with two mocked contracts (pre-refactor invariant)", async () => {
+  it("renders issued contracts tab with two mocked contracts (default tab)", async () => {
     const { default: ContractsPage } = await import("@/app/(dashboard)/contracts/page");
     render(wrap(<ContractsPage />));
     // Names render twice (mobile + desktop layouts), so use getAllByText
@@ -79,5 +102,12 @@ describe("contracts page smoke", () => {
     expect(screen.getAllByText("Draft").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /new contract/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/search/i)).toBeInTheDocument();
+  });
+
+  it("renders both tab buttons for admin user", async () => {
+    const { default: ContractsPage } = await import("@/app/(dashboard)/contracts/page");
+    render(wrap(<ContractsPage />));
+    expect(screen.getByRole("button", { name: /issued contracts/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /templates/i })).toBeInTheDocument();
   });
 });
