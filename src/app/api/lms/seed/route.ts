@@ -87,10 +87,10 @@ const ALL_COURSES: CourseDef[] = [
       {
         title: "Roles & Responsibilities",
         description:
-          "Understand the Amana team structure: Area Manager, Coordinator, 2IC Educators, and Educators. Know your role, who you report to, and your core responsibilities.",
+          "Understand the Amana team structure: Area Manager, Director of Service, 2IC Educators, and Educators. Know your role, who you report to, and your core responsibilities.",
         type: "document",
         content:
-          "AMANA OSHC TEAM STRUCTURE:\n\n1. Area Manager — manages regions, ensures safety and compliance, reports to OSHC Director\n2. Coordinator (Centre Director) — experienced in childcare/OSHC, Educational Leader of the program\n3. 2IC Educators — second in charge at larger services, supports Coordinator, working towards becoming a Coordinator\n4. Educators — make up largest part of the team, priority is engaging with children, helps run the program\n\nCORE EDUCATOR RESPONSIBILITIES:\n- Build positive relationships with children, families, and colleagues\n- Implement the My Time Our Place (MTOP) framework\n- Assist with planning, delivering and evaluating educational experiences\n- Uphold child-safe standards and mandatory reporting requirements\n- Maintain confidentiality, professionalism and compliance",
+          "AMANA OSHC TEAM STRUCTURE:\n\n1. Area Manager — manages regions, ensures safety and compliance, reports to OSHC Director\n2. Director of Service — experienced in childcare/OSHC, Educational Leader of the program\n3. 2IC Educators — second in charge at larger services, supports the Director of Service, working towards becoming a Director of Service\n4. Educators — make up largest part of the team, priority is engaging with children, helps run the program\n\nCORE EDUCATOR RESPONSIBILITIES:\n- Build positive relationships with children, families, and colleagues\n- Implement the My Time Our Place (MTOP) framework\n- Assist with planning, delivering and evaluating educational experiences\n- Uphold child-safe standards and mandatory reporting requirements\n- Maintain confidentiality, professionalism and compliance",
         duration: 10,
         isRequired: true,
       },

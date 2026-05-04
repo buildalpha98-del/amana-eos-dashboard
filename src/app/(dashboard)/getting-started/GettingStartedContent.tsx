@@ -204,7 +204,7 @@ const CHECKLISTS: Record<RoleKey, ChecklistItem[]> = {
     },
   ],
 
-  // ── Member / Centre Director (14 items) ────────────────────
+  // ── Member / Director of Service (14 items) ────────────────
   member: [
     {
       key: "member_dashboard",

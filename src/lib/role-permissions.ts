@@ -232,7 +232,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/my-portal",
     "/queue",
     "/profile",
-    // ── EOS — Centre Directors participate in EOS ──────────────
+    // ── EOS — Directors of Service participate in EOS ─────────
     "/rocks",
     "/todos",
     "/issues",

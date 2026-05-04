@@ -88,8 +88,9 @@ export const GET = withApiAuth(async (req, session) => {
   //                — broadened 2026-04-29 from active-only because
   //                  newly-approved enrolments often sit at "pending" until
   //                  the admin marks the enrolment "processed", which meant
-  //                  Centre Directors saw zero children in their service's
-  //                  Children tab right after approving an enrolment.
+  //                  the Director of Service saw zero children in their
+  //                  service's Children tab right after approving an
+  //                  enrolment.
   //   "withdrawn" → kids no longer attending
   //   "all"       → no status filter
   //   otherwise   → exact match (e.g., "pending" or "active" alone)
