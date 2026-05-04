@@ -253,7 +253,7 @@ export function DashboardContent() {
     return <MarketingDashboard />;
   }
 
-  // member (Centre Director) gets the StaffDashboard which already
+  // member (Director of Service) gets the StaffDashboard which already
   // includes DirectorAnalyticsWidget — keep existing behavior
   if (role === "member") {
     return <StaffDashboard />;

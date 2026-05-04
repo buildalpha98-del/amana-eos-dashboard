@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyOpenShiftsPosted } from "@/lib/open-shift-notify";
+import { logger } from "@/lib/logger";
+import type { OpenShiftSummary } from "@/lib/email-templates";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -45,7 +48,14 @@ export const POST = withApiAuth(async (req, session) => {
         date: { gte: start, lt: end },
         status: "draft",
       },
-      select: { userId: true },
+      select: {
+        userId: true,
+        date: true,
+        sessionType: true,
+        shiftStart: true,
+        shiftEnd: true,
+        role: true,
+      },
     });
 
     const updated = await tx.rosterShift.updateMany({
@@ -77,11 +87,69 @@ export const POST = withApiAuth(async (req, session) => {
       });
     }
 
+    // Pull out the unassigned (open) shifts that we just published —
+    // these power the open-shift notification fan-out below. We grab
+    // the metadata while we still have the rows in memory.
+    const openShifts = draftShifts
+      .filter((s) => !s.userId)
+      .map((s) => ({
+        date: s.date,
+        sessionType: s.sessionType as OpenShiftSummary["sessionType"],
+        shiftStart: s.shiftStart,
+        shiftEnd: s.shiftEnd,
+        role: s.role,
+      }));
+
     return {
       publishedCount: updated.count,
       notificationsSent: distinctUserIds.length,
+      openShifts,
     };
   });
 
-  return NextResponse.json(result);
+  // Open-shift fan-out runs OUTSIDE the transaction. The publish has
+  // already committed; if the email infrastructure is degraded the
+  // worst case is a missed notification (the in-app bell might still
+  // succeed, see notifyOpenShiftsPosted internals).
+  let openShiftRecipients = 0;
+  if (result.openShifts.length > 0) {
+    try {
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+        select: { name: true },
+      });
+      if (service) {
+        const baseUrl =
+          process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+        const fan = await notifyOpenShiftsPosted(prisma, {
+          serviceId,
+          serviceName: service.name,
+          openShifts: result.openShifts.map((s, i) => ({
+            id: `pending-${i}`, // not persisted; just for logging
+            date: s.date,
+            sessionType: s.sessionType,
+            shiftStart: s.shiftStart,
+            shiftEnd: s.shiftEnd,
+            role: s.role,
+          })),
+          publishedById: session.user.id,
+          openShiftsUrl: `${baseUrl}/my-portal`,
+        });
+        openShiftRecipients = fan.recipientCount;
+      }
+    } catch (err) {
+      // Don't fail the publish call if the fan-out blows up.
+      logger.error("publish: open-shift notify fan-out failed", {
+        err: err instanceof Error ? err : new Error(String(err)),
+        serviceId,
+      });
+    }
+  }
+
+  return NextResponse.json({
+    publishedCount: result.publishedCount,
+    notificationsSent: result.notificationsSent,
+    openShiftsPosted: result.openShifts.length,
+    openShiftRecipients,
+  });
 });

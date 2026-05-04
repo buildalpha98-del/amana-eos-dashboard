@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Loader2 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
 import { ShiftSwapDialog } from "@/components/roster/ShiftSwapDialog";
+import { useReleaseShift } from "@/hooks/useOpenShifts";
+import { cn } from "@/lib/utils";
 
 interface MineShift extends ShiftChipShift {
   date: string; // ISO string from the API
@@ -59,6 +61,8 @@ export function MyUpcomingShiftsCard({ userId }: MyUpcomingShiftsCardProps) {
     shiftEnd: string;
   } | null>(null);
 
+  const release = useReleaseShift();
+
   return (
     <div
       className="bg-card rounded-xl border border-border p-6"
@@ -109,6 +113,13 @@ export function MyUpcomingShiftsCard({ userId }: MyUpcomingShiftsCardProps) {
               {s.service?.name ? (
                 <span className="text-xs text-muted">{s.service.name}</span>
               ) : null}
+              {!s.actualStart ? (
+                <ReleaseButton
+                  shiftId={s.id}
+                  onRelease={(shiftId) => release.mutate({ shiftId })}
+                  pending={release.isPending}
+                />
+              ) : null}
             </li>
           ))}
         </ul>
@@ -127,5 +138,56 @@ export function MyUpcomingShiftsCard({ userId }: MyUpcomingShiftsCardProps) {
         />
       )}
     </div>
+  );
+}
+
+// ── ReleaseButton ───────────────────────────────────────────────────
+//
+// Two-tap confirm: first click flips the label to "Tap to confirm" for
+// 5s, second click within the window posts the release. Same pattern
+// as KiosksPanel's revoke control — gives staff a moment to back out
+// without spawning a full dialog. Hidden when the shift has been
+// clocked in to (caller-side guard mirrors the API's 409).
+
+interface ReleaseButtonProps {
+  shiftId: string;
+  onRelease: (shiftId: string) => void;
+  pending: boolean;
+}
+
+function ReleaseButton({ shiftId, onRelease, pending }: ReleaseButtonProps) {
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    if (!confirming) return;
+    const t = setTimeout(() => setConfirming(false), 5_000);
+    return () => clearTimeout(t);
+  }, [confirming]);
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!confirming) {
+          setConfirming(true);
+          return;
+        }
+        setConfirming(false);
+        onRelease(shiftId);
+      }}
+      disabled={pending}
+      data-testid={`release-shift-${shiftId}`}
+      className={cn(
+        "ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium",
+        confirming
+          ? "bg-amber-100 text-amber-900 hover:bg-amber-200"
+          : "text-muted hover:text-foreground hover:bg-muted/30",
+        pending && "opacity-60 cursor-not-allowed",
+      )}
+    >
+      {pending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+      {confirming ? "Tap to confirm" : "Release"}
+    </button>
   );
 }

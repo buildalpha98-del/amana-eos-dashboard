@@ -2,19 +2,28 @@
  * GET /api/roster/cost-projection?serviceId=…&weekStart=YYYY-MM-DD
  *
  * Returns a wage-cost projection for the given service + week:
- *  - hours assigned per user
- *  - the user's `EmploymentContract.payRate` (most recent active)
- *  - cost (hours × rate) per user
+ *  - hours assigned per user (priced against the contract effective
+ *    on each shift's date — supports mid-week rate changes)
+ *  - the "primary" payRate (= the most-recent contract that priced
+ *    any of the user's shifts this week)
+ *  - cost (Σ hours × rate) per user, prorated when the contract
+ *    changed mid-week
  *  - totals + an "unpriced" bucket for shifts whose user has no
- *    active contract
+ *    contract overlapping that date
+ *  - `proratedHours` per user: hours that priced at a rate other than
+ *    the primary, surfaced so the UI can flag rows that crossed a
+ *    rate boundary.
  *
  * Service-scoping: org-wide roles see anything; member can read their
  * own service. We deliberately don't expose payRate cross-service —
  * that's wage-info confidentiality.
  *
  * 2026-05-02: introduced as the fifth Connecteam-style roster
- * deliverable. Pairs with `RosterCostBadge` in the per-service Weekly
- * Shifts grid.
+ * deliverable.
+ * 2026-05-04: extended to handle mid-week pay-rate proration. The
+ * route now loads `active` AND `superseded` contracts so a contract
+ * that ended Tuesday + a new contract that started Wednesday both
+ * contribute to the same week's projection.
  */
 
 import { NextResponse } from "next/server";
@@ -22,7 +31,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
-import { projectCost } from "@/lib/roster-cost";
+import { projectCost, type ContractWindow } from "@/lib/roster-cost";
 
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
@@ -45,37 +54,53 @@ export const GET = withApiAuth(async (req, session) => {
 
   const shifts = await prisma.rosterShift.findMany({
     where: { serviceId, date: { gte: start, lt: end } },
-    select: { userId: true, shiftStart: true, shiftEnd: true },
+    select: {
+      userId: true,
+      date: true,
+      shiftStart: true,
+      shiftEnd: true,
+    },
   });
 
   const userIds = Array.from(
     new Set(shifts.map((s) => s.userId).filter((id): id is string => !!id)),
   );
 
-  // Pull the active contract per user. If a user has multiple
-  // contracts (e.g. mid-week rate change) we take the most recently
-  // started one — the typical OSHC pattern of one stable contract per
-  // employee makes this safe; fancier mid-week proration is followup.
-  const contracts =
+  // Pull every contract whose window could overlap this week. We
+  // include `superseded` so a mid-week rate change is honoured: e.g.
+  // the user had contract A active until Tue (now superseded) and
+  // contract B starting Wed (active) — both need to price the same
+  // week. Drafts and terminated contracts contribute nothing
+  // financially, so we leave them out.
+  //
+  // Filter "any window touching [start, end)":
+  //   contract.startDate < end  AND  (endDate IS NULL OR endDate >= start)
+  const contracts: ContractWindow[] =
     userIds.length === 0
       ? []
-      : await prisma.employmentContract.findMany({
-          where: {
-            userId: { in: userIds },
-            // Only `active` contracts contribute to the projection.
-            // `contract_draft` is unsigned, `superseded` and
-            // `terminated` are historical.
-            status: "active",
-          },
-          select: { userId: true, payRate: true, startDate: true },
-          orderBy: { startDate: "desc" },
-        });
-  const payRateByUser = new Map<string, number>();
-  for (const c of contracts) {
-    if (!payRateByUser.has(c.userId)) payRateByUser.set(c.userId, c.payRate);
-  }
+      : (
+          await prisma.employmentContract.findMany({
+            where: {
+              userId: { in: userIds },
+              status: { in: ["active", "superseded"] },
+              startDate: { lt: end },
+              OR: [{ endDate: null }, { endDate: { gte: start } }],
+            },
+            select: {
+              userId: true,
+              payRate: true,
+              startDate: true,
+              endDate: true,
+            },
+          })
+        ).map((c) => ({
+          userId: c.userId,
+          payRate: c.payRate,
+          startDate: c.startDate,
+          endDate: c.endDate,
+        }));
 
-  const projection = projectCost(shifts, payRateByUser);
+  const projection = projectCost(shifts, contracts);
 
   return NextResponse.json(projection);
 });

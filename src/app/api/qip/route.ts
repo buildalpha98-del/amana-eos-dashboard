@@ -129,7 +129,8 @@ export const POST = withApiAuth(async (req, session) => {
     logger.error("QIP POST", { err });
     return NextResponse.json({ error: "Failed to create QIP" }, { status: 500 });
   }
-  // 2026-04-30: added "member" so Centre Directors can create their own
-  // QIP/SAT. Previously they got a 403 the moment they hit "Create QIP" —
-  // surfaced in the training session as "QIP action failure".
+  // 2026-04-30: added "member" so the Director of Service can create
+  // their own QIP/SAT. Previously they got a 403 the moment they hit
+  // "Create QIP" — surfaced in the training session as "QIP action
+  // failure".
 }, { roles: ["owner", "head_office", "admin", "member"] });

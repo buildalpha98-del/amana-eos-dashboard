@@ -63,6 +63,7 @@ import { ServiceIncidentsTab } from "@/components/services/ServiceIncidentsTab";
 import { ServiceObservationsTab } from "@/components/services/ServiceObservationsTab";
 import { ServiceMedicationTab } from "@/components/services/ServiceMedicationTab";
 import { ServiceRiskTab } from "@/components/services/ServiceRiskTab";
+import { ServiceCertExpiryCard } from "@/components/services/ServiceCertExpiryCard";
 import { ServiceRatiosTab } from "@/components/services/RatioWidget";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
@@ -575,6 +576,13 @@ export default function ServiceDetailPage() {
         )}
 
         {/* Compliance group */}
+        {activeGroup === "compliance" && (
+          // Always render the cert-expiry banner above the active
+          // compliance sub-tab. The card hides itself when there are
+          // no expiring/expired certs at this service, so it's quiet
+          // by default and only shouts when there's something to do.
+          <ServiceCertExpiryCard serviceId={service.id} />
+        )}
         {activeGroup === "compliance" && currentSubKey === "audits" && (
           <ServiceAuditsTab serviceId={service.id} />
         )}

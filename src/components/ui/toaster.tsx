@@ -41,7 +41,19 @@ export function Toaster() {
           </ToastPrimitive.Close>
         </ToastPrimitive.Root>
       ))}
-      <ToastPrimitive.Viewport aria-live="polite" aria-label="Notifications" className="fixed z-[100] flex max-h-screen w-full max-w-sm flex-col gap-2 bottom-20 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-4 sm:right-4 sm:left-auto sm:translate-x-0" />
+      {/*
+        Mobile: float the toast above any in-flight bulk-action bar.
+        Bulk-action bars (issues, todos, etc.) sit at `bottom-20` and
+        are typically 60-80px tall, so they occupy ~y=80-160 from the
+        bottom on mobile. Anchoring the toast at `bottom-44` (176px)
+        clears the bar AND the 64px mobile nav with a small visual
+        gap. Pages with no bulk-action bar visible show the toast
+        slightly higher than ideal, but that's a better tradeoff than
+        the toast covering the bulk-action buttons (z-100 on top of
+        z-30 — used to make them un-clickable). On `sm:` we keep the
+        original top-right placement.
+      */}
+      <ToastPrimitive.Viewport aria-live="polite" aria-label="Notifications" className="fixed z-[100] flex max-h-screen w-full max-w-sm flex-col gap-2 bottom-44 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-4 sm:right-4 sm:left-auto sm:translate-x-0" />
     </ToastPrimitive.Provider>
   );
 }
