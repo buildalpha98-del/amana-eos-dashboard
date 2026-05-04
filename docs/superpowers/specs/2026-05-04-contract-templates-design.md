@@ -119,6 +119,13 @@ template        ContractTemplate?  @relation("ContractFromTemplate", fields: [te
 templateValues  Json?              // snapshot of resolved values at issue time
 ```
 
+### Inverse relations added to `User`
+
+```prisma
+createdContractTemplates  ContractTemplate[]  @relation("TemplateCreator")
+updatedContractTemplates  ContractTemplate[]  @relation("TemplateUpdater")
+```
+
 `templateValues` stores **both** the auto-resolved tag dictionary and the manual-field values used to render the PDF. The rendered PDF is the legal snapshot; `templateValues` is the structured audit trail and lets us regenerate a contract from the same inputs if ever needed.
 
 ### Soft delete
@@ -151,6 +158,7 @@ Full-page route. Three columns on desktop; stacked on mobile.
 - Status pill (active / disabled) + toggle
 - "Preview" button → opens preview modal rendered against sample data
 - "Save" button (autosaves every 5s + on blur; Save button shows dirty state)
+- **Concurrency:** v1 uses last-write-wins. If two admins open the same template editor concurrently, the later save overwrites the earlier one. Acceptable because (a) editing is admin-only and rare, (b) the template store does not affect issued contracts. Add optimistic concurrency (`updatedAt` precondition + 409) if it ever causes a real conflict.
 
 **Main column — TipTap editor:**
 Toolbar buttons: paragraph / heading 1-3, bold, italic, underline, strikethrough, ordered list, bullet list, blockquote, table, alignment, link, page-break marker. Minimum viable formatting set; can grow later.
@@ -165,11 +173,11 @@ Catalog (v1):
 | Staff | `staff.firstName`, `staff.lastName`, `staff.fullName`, `staff.email`, `staff.phone`, `staff.address`, `staff.city`, `staff.state`, `staff.postcode` | `User` record |
 | Service | `service.name`, `service.address`, `service.entityName` | `Service` record (via `User.serviceId`) |
 | Contract | `contract.startDate`, `contract.endDate`, `contract.payRate`, `contract.hoursPerWeek`, `contract.position`, `contract.contractType`, `contract.awardLevel` | values entered on the issue form |
-| Manager | `manager.firstName`, `manager.lastName`, `manager.fullName`, `manager.title` | currently the assigned State Manager / Director of Service of the staff member's service; falls back to "Director" if unresolved |
+| Manager | `manager.firstName`, `manager.lastName`, `manager.fullName`, `manager.title` | the User referenced by `Service.managerId` for the staff member's service. If `managerId` is null, the tag resolves to empty string and the editor preview flags it as a non-blocking warning (does NOT block issue) — admin can override via a manual field if a particular template needs a hard requirement |
 | System | `today`, `letterDate` | `new Date()` at issue time |
 | Manual | (per-template, declared in Manual Fields panel) | issue form |
 
-Tags whose source resolves to `null` are flagged red in the editor preview and block issue (see Issue flow).
+**Auto-tag null behaviour:** tags from the **Staff** group that resolve to `null` (e.g. staff has no address on file) block issue and show a "Fix on staff profile →" deep link. Tags from the **Manager** group resolve to empty string with a non-blocking warning (not every service has an assigned manager). Tags from **Service**, **Contract**, and **System** groups always resolve.
 
 **Bottom column — Manual Fields panel:**
 Repeatable form rows: `key`, `label`, type dropdown (text / longtext / date / number), `required` toggle, `default` value. Each declared field appears under "Manual" in the merge-tag panel above so the author can drop it into the doc.
@@ -214,22 +222,26 @@ A single multi-step modal (existing modal styling, no full page navigation):
 
 `POST /api/contracts/issue-from-template`:
 
-1. `withApiAuth({ feature: "contracts.create" })`
+1. `withApiAuth({ roles: ["owner", "admin"], feature: "contracts.create", rateLimit: { max: 10, windowMs: 60_000 } })` — tighter rate limit than the default 60/min because PDF render is expensive
 2. Zod-validate body: `{ templateId, userId, contractMeta: { contractType, awardLevel, awardLevelCustom?, payRate, hoursPerWeek?, startDate, endDate? }, manualValues: Record<string, string> }`
-3. Load template (fail if `disabled`)
-4. Call `resolveTemplateData({ userId, contractMeta })` → returns auto-tag dict; throws on null required fields
-5. Call `renderTemplateHtml({ contentJson, autoData, manualValues })` → returns HTML + CSS string
+3. Load template (fail with 400 if `disabled`)
+4. Call `resolveTemplateData({ userId, contractMeta })` → returns auto-tag dict; throws `ApiError.badRequest` listing missing required fields if any null Staff-group tags
+5. Call `renderTemplateHtml({ contentJson, autoData, manualValues })` → returns HTML
 6. Call `renderContractPdf(html)` → returns PDF Buffer
 7. Upload PDF to Document storage at `contracts/issued/{cuid}.pdf`; receive `Document` record
-8. Create `EmploymentContract` row in a transaction:
-   - `status: "active"`, `templateId`, `templateValues: { auto, manual }`, `documentId`, `documentUrl`, plus all `contractMeta` fields
-9. Enqueue email via Resend (new template `contractIssuedEmail` in `email-templates.ts`) with PDF link to the staff member's portal
-10. `ActivityLog` entry: `action: "issue_from_template"`, `entityType: "EmploymentContract"`, `entityId: <newId>`, `details: { templateId, templateName }`
-11. Return the new contract row
+8. **Create `EmploymentContract` row + `ActivityLog` entry inside a single `prisma.$transaction([...])`** with `status: "active"`, `templateId`, `templateValues: { auto, manual }`, `documentId`, `documentUrl`, plus all `contractMeta` fields
+9. Enqueue email via Resend (new template `contractIssuedEmail` in `email-templates.ts`) with link to the staff member's portal — **outside** the transaction
+10. Return the new contract row
+
+**Partial-failure semantics (explicit):**
+- **Steps 4–6 fail** (resolution / render / Chromium) → no DB row, no orphan storage. Surface as `ApiError` with the specific failure cause; user can retry.
+- **Step 7 (storage upload) fails** → no DB row, no orphan storage (upload failed before persistence). Surface as 500.
+- **Step 8 (DB transaction) fails AFTER step 7 uploaded the PDF** → the storage object is now orphaned. Spec accepts this as a known small leak (failure rate of a Prisma `$transaction` once we're past Chromium is very low; cleanup is a sweep job we can add later if it becomes material). The DB row is the source of truth — if it doesn't exist, the contract was not issued.
+- **Step 9 (email) fails** → contract row is created and visible to admin in the dashboard immediately. Email failure is logged via `logger.error` and surfaced to the issuing admin via a non-blocking toast ("Contract created but email to staff failed — resend?"). A "Resend email" button on the contract row covers manual retry. Email failure must NOT roll back the contract row.
 
 ### Existing acknowledge flow
 
-Untouched. Staff opens `/parent/...` (or staff portal — existing) → sees the contract → clicks "I acknowledge" → `acknowledgedByStaff` and `acknowledgedAt` set on the same `EmploymentContract` row.
+Untouched. Staff opens `/my-portal` → sees the contract in the existing contracts list → clicks "I acknowledge" (existing button hits `POST /api/contracts/[id]/acknowledge`) → `acknowledgedByStaff` and `acknowledgedAt` set on the same `EmploymentContract` row. The email sent in step 9 deep-links to `/my-portal` (NOT `/parent/...` — the parent portal is for OSHC parents, separate system).
 
 ## PDF rendering pipeline
 
@@ -273,26 +285,33 @@ Reuses the existing `Document` table and storage backing (whatever `documentUrl`
 
 The `/api/contracts/issue-from-template` route gets `export const maxDuration = 30` (seconds). Cold start of Sparticuz Chromium is ~3s; rendering a 30-page PDF is ~2s; 30s gives comfortable margin for the largest realistic contract. All other routes stay on the default.
 
+**Bundle / deployment notes:**
+- `@sparticuz/chromium` is ~50MB compressed and must be excluded from the Next.js build trace. Add to `next.config.ts`: `serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"]` (Next 16's renamed equivalent of `serverComponentsExternalPackages`).
+- The PDF render module (`src/lib/pdf/render-contract.ts`) must be `import`ed only from server routes, never from client components or shared utility modules — otherwise the binary leaks into the client bundle.
+- Verify on first Vercel preview deploy that the route's Lambda size stays under Vercel's 250MB unzipped limit. If we hit the ceiling, options are (a) split the issue route to its own region or (b) move PDF rendering to an external service. Document either decision in this spec before merging.
+
 ## API surface
 
-| Method | Path | Auth | Purpose |
+| Method | Path | Wrapper options | Purpose |
 |---|---|---|---|
-| GET | `/api/contract-templates` | admin/owner | List templates (filter `status`, `search`) |
-| POST | `/api/contract-templates` | admin/owner | Create template |
-| GET | `/api/contract-templates/[id]` | admin/owner | Fetch one (full content) |
-| PATCH | `/api/contract-templates/[id]` | admin/owner | Partial update — `name`, `description`, `contentJson`, `manualFields`, `status` |
-| DELETE | `/api/contract-templates/[id]` | admin/owner | Hard-delete; 409 if any issued contract references it |
-| POST | `/api/contract-templates/[id]/clone` | admin/owner | Duplicate template (returns new id) |
-| POST | `/api/contract-templates/[id]/preview` | admin/owner | Render preview HTML against sample data; no PDF, no DB write |
-| POST | `/api/contracts/issue-from-template` | admin/owner | Full issue flow described above |
+| GET | `/api/contract-templates` | `{ roles: ["owner","admin"], feature: "contracts.view" }` | List templates (filter `status`, `search`) |
+| POST | `/api/contract-templates` | `{ roles: ["owner","admin"], feature: "contracts.create" }` | Create template |
+| GET | `/api/contract-templates/[id]` | `{ roles: ["owner","admin"], feature: "contracts.view" }` | Fetch one (full content) |
+| PATCH | `/api/contract-templates/[id]` | `{ roles: ["owner","admin"], feature: "contracts.edit" }` | Partial update — `name`, `description`, `contentJson`, `manualFields`, `status` |
+| DELETE | `/api/contract-templates/[id]` | `{ roles: ["owner","admin"], feature: "contracts.edit" }` | Hard-delete; 409 if any issued contract references it |
+| POST | `/api/contract-templates/[id]/clone` | `{ roles: ["owner","admin"], feature: "contracts.create" }` | Duplicate template (returns new id) |
+| POST | `/api/contract-templates/[id]/preview` | `{ roles: ["owner","admin"], feature: "contracts.view", rateLimit: { max: 20, windowMs: 60_000 } }` | Render preview HTML against sample data; no PDF, no DB write |
+| POST | `/api/contracts/issue-from-template` | `{ roles: ["owner","admin"], feature: "contracts.create", rateLimit: { max: 10, windowMs: 60_000 } }` | Full issue flow described above |
 
-All routes wrapped in `withApiAuth({ feature: "contracts.manage" })` (or `contracts.create` for the issue route — matches existing `POST /api/contracts`). Zod validation on every write. `parseJsonBody(req)` for safe parsing.
+All routes wrapped in `withApiAuth(handler, options)`. Existing `contracts.{view,create,edit}` feature keys (defined in `src/lib/role-permissions.ts`) are reused — **no new feature keys are added**. Zod validation on every write. `parseJsonBody(req)` for safe parsing.
 
 ## Permissions
 
 - **Templates CRUD:** admin + owner only. `head_office` ("State Manager") explicitly excluded — same model as the existing contracts page guard.
 - **Issue from template:** admin + owner only.
-- **Staff portal:** unchanged — staff sees their issued contracts (the rendered PDF + acknowledge button); never sees template content.
+- **Staff portal:** unchanged — staff sees their issued contracts at `/my-portal` (the rendered PDF + acknowledge button); never sees template content.
+- **Sidebar / nav:** the existing `/contracts` nav entry already gates on `contracts.view` and `ALL_NON_MARKETING` — no changes needed. The Templates **tab** within `/contracts` is rendered conditionally on `hasMinRole(role, "admin")`; non-admins land on the Issued tab and never see the Templates tab at all.
+- **"New Template" button:** rendered conditionally (`hasMinRole(role, "admin") && tab === "templates"`); not just disabled — completely hidden for non-admins.
 
 ## Activity logging
 
