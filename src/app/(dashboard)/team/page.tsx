@@ -21,10 +21,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Download } from "lucide-react";
-import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 export default function TeamPage() {
-  const v2 = useStaffV2Flag();
   const { data: session } = useSession();
   const { data: members, isLoading: teamLoading, error, refetch } = useTeam();
   const [viewMode, setViewMode] = useState<"chart" | "list">("chart");
@@ -44,7 +42,7 @@ export default function TeamPage() {
 
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-7xl mx-auto space-y-6"
     >
       <PageHeader
