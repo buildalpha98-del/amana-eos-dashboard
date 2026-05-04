@@ -76,6 +76,7 @@ import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 import { AdoptionDashboard } from "@/components/admin/AdoptionDashboard";
 import { BannerManagementSection } from "@/components/settings/BannerManagementSection";
 import { NotificationLogTab } from "@/components/settings/NotificationLogTab";
+import { KiosksPanel } from "@/components/settings/KiosksPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Mail } from "lucide-react";
 import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
@@ -2833,6 +2834,11 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
       {/* API Keys (owner only) */}
       {isOwner && <ApiKeysSection />}
+
+      {/* Time-clock kiosks (owner/head_office/admin) — 2026-05-04 (timeclock v1) */}
+      {(userRole === "owner" || userRole === "head_office" || userRole === "admin") && (
+        <KiosksPanel />
+      )}
 
       {/* Budget Tiers (owner/head_office) */}
       {isOwner && <BudgetTiersSection />}

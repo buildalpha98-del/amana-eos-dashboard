@@ -21,6 +21,25 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 
+/**
+ * GET /api/me/kiosk-pin — does the caller have a PIN set yet?
+ *
+ * Returns `{ pinSetAt: string | null }`. We deliberately don't return
+ * the hash or anything that would distinguish "PIN is X" from
+ * "PIN is Y" — `pinSetAt` is enough for the SetKioskPinCard to
+ * decide between "Set PIN" vs "Change PIN".
+ *
+ * 2026-05-04 (timeclock v1, sub-PR 4): added alongside the
+ * SetKioskPinCard widget on My Portal.
+ */
+export const GET = withApiAuth(async (_req, session) => {
+  const me = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { kioskPinSetAt: true },
+  });
+  return NextResponse.json({ pinSetAt: me?.kioskPinSetAt ?? null });
+});
+
 const bodySchema = z.object({
   pin: z.string().regex(/^\d{4}$/, "PIN must be exactly 4 digits"),
 });

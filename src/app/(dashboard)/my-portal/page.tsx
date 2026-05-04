@@ -43,6 +43,8 @@ import { toast } from "@/hooks/useToast";
 import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
+import { MyClockCard } from "@/components/my-portal/MyClockCard";
+import { SetKioskPinCard } from "@/components/my-portal/SetKioskPinCard";
 import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
 
 /* ------------------------------------------------------------------ */
@@ -679,6 +681,19 @@ export default function MyPortalPage() {
           <MyLeaveBalanceCard userId={session.user.id} />
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}
+      {/* front-desk tablet). Always visible — shows "Set" or "Change". */}
+      {/* ============================================================ */}
+      {session?.user?.id && <SetKioskPinCard />}
+
+      {/* ============================================================ */}
+      {/* 3b1. TIMECLOCK (PR #62 — primary clock-in/out widget)         */}
+      {/* Hidden when no shift is in the ±2h window. Lives ABOVE the    */}
+      {/* upcoming-shifts list so the active CTA dominates the page.    */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyClockCard userId={session.user.id} />}
 
       {/* ============================================================ */}
       {/* 3c. MY UPCOMING SHIFTS (next 7 days)                          */}
