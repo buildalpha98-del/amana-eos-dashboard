@@ -154,13 +154,41 @@ export function useDeleteContractTemplate() {
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 
+export type PreviewPayload = {
+  id: string;
+  /** Legacy: flat map of tag values (used by PreviewModal / sample preview) */
+  data?: Record<string, string>;
+  /** Real-user preview: resolve tags against an actual staff member */
+  userId?: string;
+  manualValues?: Record<string, string>;
+  contractMeta?: {
+    contractType: "ct_casual" | "ct_part_time" | "ct_permanent" | "ct_fixed_term";
+    awardLevel?: string | null;
+    awardLevelCustom?: string | null;
+    payRate?: number;
+    hoursPerWeek?: number | null;
+    startDate?: string;
+    endDate?: string | null;
+    position?: string;
+  };
+};
+
 export function usePreviewContractTemplate() {
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data?: Record<string, string> }) =>
-      mutateApi<PreviewResult>(`/api/contract-templates/${id}/preview`, {
+    mutationFn: ({ id, data, userId, manualValues, contractMeta }: PreviewPayload) => {
+      // Build the body understood by the preview API endpoint:
+      // - If userId + contractMeta are provided, send them for real-data resolution.
+      // - data (legacy flat map) is not understood by the endpoint; map it to manualValues.
+      const body: Record<string, unknown> = {};
+      if (userId) body.userId = userId;
+      if (contractMeta) body.contractMeta = contractMeta;
+      if (manualValues) body.manualValues = manualValues;
+      else if (data) body.manualValues = data;
+      return mutateApi<PreviewResult>(`/api/contract-templates/${id}/preview`, {
         method: "POST",
-        body: data ?? {},
-      }),
+        body,
+      });
+    },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
@@ -169,15 +197,26 @@ export function usePreviewContractTemplate() {
 
 // ── Issue from template ───────────────────────────────────────────────────────
 
+export type IssueFromTemplatePayload = {
+  templateId: string;
+  userId: string;
+  contractMeta: {
+    contractType: "ct_casual" | "ct_part_time" | "ct_permanent" | "ct_fixed_term";
+    awardLevel?: string | null;
+    awardLevelCustom?: string | null;
+    payRate: number;
+    hoursPerWeek?: number | null;
+    startDate: string;
+    endDate?: string | null;
+    position: string;
+  };
+  manualValues: Record<string, string>;
+};
+
 export function useIssueFromTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: {
-      templateId: string;
-      userId: string;
-      manualFieldValues?: Record<string, string>;
-      startDate?: string;
-    }) =>
+    mutationFn: (data: IssueFromTemplatePayload) =>
       mutateApi<{ emailFailed?: boolean; [key: string]: unknown }>(
         "/api/contracts/issue-from-template",
         { method: "POST", body: data }
