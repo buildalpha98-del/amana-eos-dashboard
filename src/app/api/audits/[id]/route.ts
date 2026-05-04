@@ -181,9 +181,9 @@ const { id } = await context!.params!;
 
   return NextResponse.json(updated);
 }, {
-  // Coordinators can complete audits assigned to their service. Member
-  // ("Centre Director") + admin tier always allowed. The
+  // Director of Service can complete audits assigned to their service.
+  // Member + admin tier always allowed. The
   // `ensureCoordCanTouchAudit` check inside the handler enforces the
-  // own-service constraint for coordinators.
+  // own-service constraint for member.
   roles: ["owner", "head_office", "admin", "member"],
 });

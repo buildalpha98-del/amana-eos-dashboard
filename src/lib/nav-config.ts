@@ -130,11 +130,11 @@ export const navItems: NavItem[] = [
   { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING },
   { href: "/performance", label: "Performance", icon: Trophy, section: "Operations", roles: ALL_NON_MARKETING },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ALL_NON_MARKETING },
-  // 2026-04-29: tightened from ALL_NON_MARKETING → admin-tier + coordinator
+  // 2026-04-29: tightened from ALL_NON_MARKETING → admin-tier + member
   // only. Audit-template management is a head office / area-coordinator
-  // configuration concern — Centre Directors (member) and on-shift staff
-  // shouldn't see it. Without this tightening the nav still showed it for
-  // member because /compliance prefix-matched /compliance/templates.
+  // configuration concern — Directors of Service (member) and on-shift
+  // staff shouldn't see it. Without this tightening the nav still showed
+  // it for member because /compliance prefix-matched /compliance/templates.
   { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ["head_office", "admin"] },
   { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance", roles: ALL_NON_MARKETING },
   // 2026-04-30: tightened from ALL_NON_MARKETING → ["head_office", "admin"].

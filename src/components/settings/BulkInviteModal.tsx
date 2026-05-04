@@ -318,7 +318,7 @@ export function BulkInviteModal({
           serviceId,
           status: "valid",
           statusMessage: roleRaw && !normalizeRole(roleRaw)
-            ? `Unknown role "${roleRaw}" — defaulting to Centre Director`
+            ? `Unknown role "${roleRaw}" — defaulting to Director of Service`
             : "",
         });
       }

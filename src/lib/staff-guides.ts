@@ -93,14 +93,14 @@ const staffGuide: GuideContent = {
 };
 
 // ---------------------------------------------------------------------------
-// Member / Centre Director Guide
+// Member / Director of Service Guide
 // ---------------------------------------------------------------------------
 
 const memberGuide: GuideContent = {
   role: "member",
-  displayName: "Centre Director",
+  displayName: "Director of Service",
   welcome:
-    "As a Centre Director, you manage your centre\u2019s operations, team, and EOS rhythm.",
+    "As a Director of Service, you manage your centre\u2019s operations, team, and EOS rhythm.",
   sections: [
     {
       title: "Your Morning Routine",
