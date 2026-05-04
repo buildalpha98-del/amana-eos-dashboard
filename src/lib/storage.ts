@@ -18,6 +18,14 @@ export async function uploadFile(
   filename: string,
   options?: { contentType?: string; folder?: string; access?: "public" | "private" },
 ): Promise<{ url: string; size: number }> {
+  // e2e/dev-only mock: skip Vercel Blob in Playwright CI to avoid requiring a
+  // real BLOB_READ_WRITE_TOKEN. Set MOCK_PDF=1 to also activate this guard
+  // (same env var — both mocks are gated together). Production unchanged.
+  if (process.env.MOCK_PDF === "1") {
+    const path = options?.folder ? `${options.folder}/${filename}` : filename;
+    return { url: `https://mock-blob.local/${path}`, size: file.byteLength };
+  }
+
   const path = options?.folder ? `${options.folder}/${filename}` : filename;
 
   const blob = await put(path, file, {

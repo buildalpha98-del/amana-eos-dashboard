@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useCreateContract } from "@/hooks/useContracts";
+import { useContractTemplates } from "@/hooks/useContractTemplates";
 import {
   ContractFormFields,
   EMPTY_CONTRACT_FORM,
@@ -10,7 +11,10 @@ import {
   isFormReady,
   type ContractFormValue,
 } from "./ContractFormFields";
+import { IssueFromTemplateModal } from "./IssueFromTemplateModal";
 import type { UserOption } from "./constants";
+
+type Mode = "template" | "blank";
 
 interface Props {
   users: UserOption[];
@@ -19,10 +23,18 @@ interface Props {
 }
 
 /**
- * Modal for creating a brand new contract. Owns its own form state and
- * submit handler via `useCreateContract()`.
+ * Modal for creating a new contract.
+ *
+ * If active templates exist, defaults to "From template" mode which renders
+ * IssueFromTemplateModal. Falls back to "Blank" for manual data entry.
+ * The mode can be toggled via the pill buttons at the top.
  */
 export function NewContractModal({ users, initialUserId, onClose }: Props) {
+  const { data: templates = [] } = useContractTemplates({ status: "active" });
+  const hasTemplates = templates.length > 0;
+
+  const [mode, setMode] = useState<Mode>(hasTemplates ? "template" : "blank");
+
   const [form, setForm] = useState<ContractFormValue>({
     ...EMPTY_CONTRACT_FORM,
     userId: initialUserId ?? "",
@@ -39,11 +51,22 @@ export function NewContractModal({ users, initialUserId, onClose }: Props) {
 
   const canSubmit = isFormReady(form) && !createContract.isPending;
 
+  // When "From template" mode is selected, render the full IssueFromTemplateModal
+  // as a self-contained replacement (it owns its own layout and footer).
+  if (mode === "template") {
+    return (
+      <IssueFromTemplateModal
+        onClose={onClose}
+        onSwitchToBlank={() => setMode("blank")}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-foreground">New Contract</h3>
           <button
             onClick={onClose}
@@ -53,6 +76,26 @@ export function NewContractModal({ users, initialUserId, onClose }: Props) {
             <X className="w-5 h-5 text-muted" />
           </button>
         </div>
+
+        {/* Mode toggle — only shown when templates exist */}
+        {hasTemplates && (
+          <div className="flex items-center gap-1 p-1 bg-surface rounded-lg mb-5">
+            <button
+              type="button"
+              onClick={() => setMode("template")}
+              className="flex-1 py-1.5 text-sm font-medium rounded-md transition-colors bg-card text-foreground shadow-sm"
+            >
+              From template
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("blank")}
+              className="flex-1 py-1.5 text-sm font-medium rounded-md transition-colors text-muted hover:text-foreground"
+            >
+              Blank
+            </button>
+          </div>
+        )}
 
         <ContractFormFields
           users={users}

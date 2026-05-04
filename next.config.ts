@@ -35,7 +35,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["jsdom", "mammoth"],
+  serverExternalPackages: ["jsdom", "mammoth", "@sparticuz/chromium", "puppeteer-core"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },

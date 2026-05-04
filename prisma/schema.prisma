@@ -405,6 +405,11 @@ enum ContractStatus {
   terminated
 }
 
+enum ContractTemplateStatus {
+  active
+  disabled
+}
+
 enum ContractType {
   ct_casual
   ct_part_time
@@ -600,8 +605,10 @@ model User {
   emergencyContacts EmergencyContact[]
   qualifications    StaffQualification[]
   pdRecords         ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
-  contracts         EmploymentContract[]            @relation("ContractEmployee")
-  leaveRequests     LeaveRequest[]                  @relation("LeaveRequester")
+  contracts                    EmploymentContract[]            @relation("ContractEmployee")
+  createdContractTemplates     ContractTemplate[]              @relation("TemplateCreator")
+  updatedContractTemplates     ContractTemplate[]              @relation("TemplateUpdater")
+  leaveRequests                LeaveRequest[]                  @relation("LeaveRequester")
   approvedLeaves    LeaveRequest[]                  @relation("LeaveApprover")
   leaveBalances     LeaveBalance[]
   timesheetEntries  TimesheetEntry[]                @relation("TimesheetStaff")
@@ -3678,12 +3685,35 @@ model EmploymentContract {
   previousContractId  String?
   previousContract    EmploymentContract?  @relation("ContractHistory", fields: [previousContractId], references: [id])
   supersededBy        EmploymentContract[] @relation("ContractHistory")
+  templateId          String?
+  template            ContractTemplate?    @relation("ContractFromTemplate", fields: [templateId], references: [id], onDelete: SetNull)
+  templateValues      Json?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
   @@index([userId])
   @@index([status])
   @@index([contractType])
+  @@index([templateId])
+}
+
+model ContractTemplate {
+  id              String                 @id @default(cuid())
+  name            String
+  description     String?                @db.Text
+  contentJson     Json
+  manualFields    Json
+  status          ContractTemplateStatus @default(active)
+  createdById     String
+  createdBy       User                   @relation("TemplateCreator", fields: [createdById], references: [id])
+  updatedById     String?
+  updatedBy       User?                  @relation("TemplateUpdater", fields: [updatedById], references: [id])
+  issuedContracts EmploymentContract[]   @relation("ContractFromTemplate")
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([status])
+  @@index([name])
 }
 
 // ============================================================

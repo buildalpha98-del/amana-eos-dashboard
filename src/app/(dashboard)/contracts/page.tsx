@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -24,27 +25,48 @@ import { SupersedeContractModal } from "@/components/contracts/SupersedeContract
 import { TerminateContractDialog } from "@/components/contracts/TerminateContractDialog";
 import type { UserOption } from "@/components/contracts/constants";
 import { fetchApi } from "@/lib/fetch-api";
+import { TemplatesTable } from "@/components/contracts/templates/TemplatesTable";
+import { NewTemplateModal } from "@/components/contracts/templates/NewTemplateModal";
+
+type ContractsTab = "issued" | "templates";
 
 export default function ContractsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const role = (session?.user?.role as Role) || undefined;
   const isAdmin = hasMinRole(role, "admin");
 
-  // Filters
+  // Tab state (URL-synced)
+  const urlTab = searchParams.get("tab") === "templates" ? "templates" : "issued";
+  const [activeTab, setActiveTab] = useState<ContractsTab>(urlTab);
+
+  function handleTabChange(tab: ContractsTab) {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "templates") {
+      params.set("tab", "templates");
+    } else {
+      params.delete("tab");
+    }
+    const qs = params.toString();
+    router.push(qs ? `/contracts?${qs}` : "/contracts");
+  }
+
+  // Issued tab — filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [contractTypeFilter, setContractTypeFilter] = useState("");
 
-  // Modal state
+  // Issued tab — modal state
   const [showCreate, setShowCreate] = useState(false);
-  const [supersedeTarget, setSupersedeTarget] = useState<ContractData | null>(
-    null
-  );
-  const [terminateTarget, setTerminateTarget] = useState<ContractData | null>(
-    null
-  );
+  const [supersedeTarget, setSupersedeTarget] = useState<ContractData | null>(null);
+  const [terminateTarget, setTerminateTarget] = useState<ContractData | null>(null);
 
-  // Data
+  // Templates tab — modal state
+  const [showNewTemplate, setShowNewTemplate] = useState(false);
+
+  // Issued tab — data
   const {
     data: contracts = [],
     isLoading,
@@ -98,7 +120,7 @@ export default function ContractsPage() {
     };
   }, [contracts]);
 
-  // Access guard
+  // Access guard (unchanged)
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -117,89 +139,143 @@ export default function ContractsPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <PageHeader
-        title="Contracts"
-        description="Manage employment contracts, versions and staff acknowledgements"
-        primaryAction={{
-          label: "New Contract",
-          icon: Plus,
-          onClick: () => setShowCreate(true),
-        }}
-      />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <p className="text-xs font-medium text-muted uppercase tracking-wider">
-              Active Contracts
-            </p>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{stats.active}</p>
-        </div>
-        <div className="bg-card rounded-xl border border-amber-200 p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-amber-500" />
-            <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">
-              Pending Ack
-            </p>
-          </div>
-          <p className="text-2xl font-bold text-amber-600">{stats.pendingAck}</p>
-        </div>
-        <div className="bg-card rounded-xl border border-red-200 p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-            <p className="text-xs font-medium text-red-600 uppercase tracking-wider">
-              Expiring Soon
-            </p>
-          </div>
-          <p className="text-2xl font-bold text-red-600">{stats.expiringSoon}</p>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-brand" />
-            <p className="text-xs font-medium text-muted uppercase tracking-wider">
-              Total Staff
-            </p>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{stats.totalStaff}</p>
-        </div>
+      {/* Tab switcher */}
+      <div className="flex items-center gap-1 mb-0 border-b border-border">
+        <button
+          type="button"
+          onClick={() => handleTabChange("issued")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "issued"
+              ? "border-brand text-brand"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Issued Contracts
+        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => handleTabChange("templates")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === "templates"
+                ? "border-brand text-brand"
+                : "border-transparent text-muted hover:text-foreground"
+            }`}
+          >
+            Templates
+          </button>
+        )}
       </div>
 
-      <ContractsTable
-        contracts={contracts}
-        search={search}
-        onSearchChange={setSearch}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        contractTypeFilter={contractTypeFilter}
-        onContractTypeFilterChange={setContractTypeFilter}
-        isLoading={isLoading}
-        error={error as Error | null}
-        onRetry={refetch}
-        onCreate={() => setShowCreate(true)}
-        onSupersede={(c) => setSupersedeTarget(c)}
-        onTerminate={(c) => setTerminateTarget(c)}
-        canEdit={isAdmin}
-      />
+      {/* ── Issued tab ── */}
+      {activeTab === "issued" && (
+        <>
+          <PageHeader
+            title="Contracts"
+            description="Manage employment contracts, versions and staff acknowledgements"
+            primaryAction={{
+              label: "New Contract",
+              icon: Plus,
+              onClick: () => setShowCreate(true),
+            }}
+          />
 
-      {/* Modals */}
-      {showCreate && (
-        <NewContractModal users={users} onClose={() => setShowCreate(false)} />
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="bg-card rounded-xl border border-border p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <p className="text-xs font-medium text-muted uppercase tracking-wider">
+                  Active Contracts
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stats.active}</p>
+            </div>
+            <div className="bg-card rounded-xl border border-amber-200 p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4 text-amber-500" />
+                <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">
+                  Pending Ack
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-amber-600">{stats.pendingAck}</p>
+            </div>
+            <div className="bg-card rounded-xl border border-red-200 p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+                <p className="text-xs font-medium text-red-600 uppercase tracking-wider">
+                  Expiring Soon
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-red-600">{stats.expiringSoon}</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-4 h-4 text-brand" />
+                <p className="text-xs font-medium text-muted uppercase tracking-wider">
+                  Total Staff
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stats.totalStaff}</p>
+            </div>
+          </div>
+
+          <ContractsTable
+            contracts={contracts}
+            search={search}
+            onSearchChange={setSearch}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            contractTypeFilter={contractTypeFilter}
+            onContractTypeFilterChange={setContractTypeFilter}
+            isLoading={isLoading}
+            error={error as Error | null}
+            onRetry={refetch}
+            onCreate={() => setShowCreate(true)}
+            onSupersede={(c) => setSupersedeTarget(c)}
+            onTerminate={(c) => setTerminateTarget(c)}
+            canEdit={isAdmin}
+          />
+
+          {/* Modals */}
+          {showCreate && (
+            <NewContractModal users={users} onClose={() => setShowCreate(false)} />
+          )}
+          {supersedeTarget && (
+            <SupersedeContractModal
+              users={users}
+              previousContract={supersedeTarget}
+              onClose={() => setSupersedeTarget(null)}
+            />
+          )}
+          {terminateTarget && (
+            <TerminateContractDialog
+              contract={terminateTarget}
+              onClose={() => setTerminateTarget(null)}
+            />
+          )}
+        </>
       )}
-      {supersedeTarget && (
-        <SupersedeContractModal
-          users={users}
-          previousContract={supersedeTarget}
-          onClose={() => setSupersedeTarget(null)}
-        />
-      )}
-      {terminateTarget && (
-        <TerminateContractDialog
-          contract={terminateTarget}
-          onClose={() => setTerminateTarget(null)}
-        />
+
+      {/* ── Templates tab ── */}
+      {activeTab === "templates" && isAdmin && (
+        <>
+          <PageHeader
+            title="Contract Templates"
+            description="Author and manage employment contract templates"
+            primaryAction={{
+              label: "New Template",
+              icon: Plus,
+              onClick: () => setShowNewTemplate(true),
+            }}
+          />
+
+          <TemplatesTable onCreate={() => setShowNewTemplate(true)} />
+
+          {showNewTemplate && (
+            <NewTemplateModal onClose={() => setShowNewTemplate(false)} />
+          )}
+        </>
       )}
     </div>
   );
