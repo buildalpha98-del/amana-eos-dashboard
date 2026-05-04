@@ -18,6 +18,13 @@ async function getBrowser(): Promise<Browser> {
 }
 
 export async function renderContractPdf(html: string): Promise<Buffer> {
+  // e2e/dev-only mock: skip Chromium in Playwright CI to avoid launching a
+  // nested browser. Set MOCK_PDF=1 in the webServer env (playwright.config.ts)
+  // or in the test runner command. Production behavior is unchanged.
+  if (process.env.MOCK_PDF === "1") {
+    return Buffer.from(`MOCK PDF for HTML of length ${html.length}`);
+  }
+
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {

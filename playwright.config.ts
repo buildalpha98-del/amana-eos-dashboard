@@ -53,5 +53,14 @@ export default defineConfig({
         url: "http://localhost:3000",
         reuseExistingServer: true,
         timeout: 120_000,
+        // e2e/dev-only: skip Chromium-based PDF rendering so the contract-issue
+        // route works without launching a nested browser during local dev tests.
+        // In CI the dev server is not started (webServer is undefined above) so
+        // the test runner must set MOCK_PDF=1 in the environment itself, e.g.:
+        //   MOCK_PDF=1 npm run test:e2e
+        env: {
+          ...process.env,
+          MOCK_PDF: "1",
+        },
       },
 });
