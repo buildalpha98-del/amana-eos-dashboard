@@ -340,7 +340,20 @@ Reads `User`, `Service`, `Service.manager`. Returns `{ resolved: Record<string,s
   ```
   - Fetch user with `service: { include: { manager: true } }`
   - Resolve every key in `MERGE_TAGS_BY_KEY`. Use the catalog's `blocking` field to decide what counts as missing.
-  - Format dates with `toLocaleDateString("en-AU", ...)`. Format pay rate as `$X.YY`. Map `contract.contractType` enum to friendly label using existing `CONTRACT_TYPE_LABELS` from `src/components/contracts/constants.ts`.
+  - Field mapping (verified against `prisma/schema.prisma`):
+    - `staff.firstName` / `staff.lastName` — split `User.name` on first space (we don't store names separately). `staff.fullName` = `User.name`.
+    - `staff.email` — `User.email`
+    - `staff.phone` — `User.phone`
+    - `staff.address` — `User.addressStreet`
+    - `staff.city` — `User.addressSuburb`
+    - `staff.state` — `User.addressState`
+    - `staff.postcode` — `User.addressPostcode`
+    - `service.name` — `Service.name`
+    - `service.address` — `[Service.address, Service.suburb, Service.state, Service.postcode].filter(Boolean).join(", ")` (Service has flat `address`/`suburb`/`state`/`postcode` fields, not address-prefixed)
+    - `service.entityName` — **hard-coded `"Amana OSHC Pty Ltd"`** (Service has no entityName column). Document this in a code comment. Move to a constant in `src/lib/contract-templates/constants.ts` so it's easy to change later.
+    - `manager.firstName/lastName/fullName` — split/use `Service.manager?.name`
+    - `manager.title` — **hard-coded `"Director"`** (User model has no `title` column). Document this in a code comment.
+  - Format dates with `toLocaleDateString("en-AU", ...)`. Format pay rate as `$X.YY`. Map `contract.contractType` enum to friendly label using existing `CONTRACT_TYPE_LABELS` from `src/components/contracts/constants.ts`. Map `contract.awardLevel` using `getAwardLabel` from the same file.
 - [ ] **Step 4: Run → passes.**
 - [ ] **Step 5: Commit.**
   ```bash
@@ -468,10 +481,16 @@ Walks the TipTap doc tree, replaces `mergeTag` nodes with values, returns HTML +
 
   const listQuerySchema = z.object({ status: z.enum(["active","disabled"]).optional(), search: z.string().optional() });
 
+  // Minimal structural validation of the TipTap doc — full schema would be too brittle as TipTap evolves
+  const tipTapDocSchema = z.object({
+    type: z.literal("doc"),
+    content: z.array(z.any()).optional(),
+  }).passthrough();
+
   const createSchema = z.object({
     name: z.string().min(1).max(200),
     description: z.string().max(2000).optional(),
-    contentJson: z.unknown(),                       // TipTap doc; structurally validated by the editor
+    contentJson: tipTapDocSchema,
     manualFields: manualFieldsSchema,
   });
 
@@ -553,7 +572,8 @@ Per the spec's "Server-side issue handler" section. Single most important route 
   - Template disabled → 400 with message
   - Required Staff-group tag missing → 400 listing missing fields
   - Happy path:
-    - Creates `EmploymentContract` with `status: "active"`, `templateId`, `templateValues: { auto, manual }`, `documentUrl` set
+    - Creates `EmploymentContract` with `status: "active"`, `templateId`, `templateValues: { auto, manual }`, `documentUrl` set, `documentId: null`
+    - **`templateValues` snapshot shape assertion:** the row's `templateValues` JSON has top-level keys `auto` and `manual`; `auto` contains every key from the resolved auto-tag dict; `manual` contains every key from the request's `manualValues`
     - Creates `ActivityLog` with `action: "issue_from_template"`, `entityType: "EmploymentContract"`, `details: { templateId, templateName }`
     - Both inside a single `prisma.$transaction` (assert by checking the call shape)
     - Calls `sendEmail` with `to: staff.email`, subject from `contractIssuedEmail`
@@ -563,12 +583,18 @@ Per the spec's "Server-side issue handler" section. Single most important route 
   - **Email failure** → contract STILL created (200/201 path), failure logged via `logger.error`, response includes `{ emailFailed: true }` so the UI can warn the admin
 - [ ] **Step 2:** Implementation skeleton:
   ```ts
+  // IMPORTANT: AwardLevel and ContractType enum values must mirror the
+  // canonical Prisma enums in prisma/schema.prisma (search for `enum AwardLevel`
+  // and `enum ContractType`). The MEMORY note "AwardLevel pay-grade
+  // 'coordinator' was intentionally left untouched" means `coordinator` IS
+  // still a valid value despite the role being dropped — do NOT remove it.
+  // Read the enum lines before writing this schema and copy the values verbatim.
   const issueSchema = z.object({
     templateId: z.string().min(1),
     userId: z.string().min(1),
     contractMeta: z.object({
-      contractType: z.enum(["ct_casual","ct_part_time","ct_permanent","ct_fixed_term"]),
-      awardLevel: z.enum(["es1","es2","es3","es4","cs1","cs2","cs3","cs4","director","coordinator","custom"]).nullish(),
+      contractType: z.enum(["ct_casual","ct_part_time","ct_permanent","ct_fixed_term"]), // mirror enum ContractType
+      awardLevel: z.enum(["es1","es2","es3","es4","cs1","cs2","cs3","cs4","director","coordinator","custom"]).nullish(), // mirror enum AwardLevel
       awardLevelCustom: z.string().nullish(),
       payRate: z.number().positive(),
       hoursPerWeek: z.number().positive().nullish(),
@@ -603,6 +629,13 @@ Per the spec's "Server-side issue handler" section. Single most important route 
     const pdf = await renderContractPdf(html);
     const { url } = await uploadFile(pdf, `contract-${data.userId}-${Date.now()}.pdf`, { contentType: "application/pdf", folder: "contracts/issued" });
 
+    // NOTE on documentId: we do NOT create a `Document` row for issued contracts.
+    // The Document model is for the dashboard's general document library
+    // (with centreId, tags, folderId, etc.) and creating a row per issued
+    // contract would pollute that library. The blob URL is the source of
+    // truth and is fetched directly. EmploymentContract.documentId remains
+    // null in v1; if the document library ever needs to surface contracts,
+    // we'll add that as a dedicated view rather than backfill rows.
     const contract = await prisma.$transaction(async (tx) => {
       const created = await tx.employmentContract.create({
         data: {
@@ -615,6 +648,7 @@ Per the spec's "Server-side issue handler" section. Single most important route 
           startDate, endDate,
           status: "active",
           documentUrl: url,
+          documentId: null,
           templateId: template.id,
           templateValues: { auto: resolved, manual: data.manualValues },
         },
@@ -735,18 +769,42 @@ Per the spec's "Server-side issue handler" section. Single most important route 
 - [ ] **Step 2:** Add a serializer test (round-trip JSON → HTML) under `src/__tests__/components/merge-tag-node.test.ts`.
 - [ ] **Step 3: Commit.**
 
-### Task 8.3: `TemplateEditor` (TipTap setup + autosave)
+### Task 8.3: `useTemplateAutosave` hook
+
+**Files:**
+- Create: `src/hooks/useTemplateAutosave.ts`
+
+Split out from `TemplateEditor` to keep the editor file focused on layout. Encapsulates the debounce + on-blur trigger + dirty/saving/saved state machine.
+
+- [ ] **Step 1:** Hook signature:
+  ```ts
+  export function useTemplateAutosave(args: {
+    templateId: string;
+    value: { name: string; description?: string; contentJson: TipTapDoc; manualFields: ManualField[]; status: "active"|"disabled" };
+    onError?: (e: Error) => void;
+  }): {
+    state: "idle" | "dirty" | "saving" | "saved" | "error";
+    lastSavedAt: Date | null;
+    triggerSaveNow: () => void; // for blur/explicit save
+  };
+  ```
+- [ ] **Step 2:** Internals: `useEffect` watches `value` deep-equality (use `JSON.stringify` for the JSON field; cheap enough for editor scale). On change → state `dirty`. After 5s debounce → call `useUpdateContractTemplate`'s mutation → state `saving` → `saved` (with `lastSavedAt`) or `error`.
+- [ ] **Step 3:** Commit.
+
+### Task 8.4: `TemplateEditor` (TipTap setup + layout)
 
 **Files:**
 - Create: `src/components/contracts/templates/TemplateEditor.tsx`
 
+This file should remain layout-focused (~250 lines max). All autosave logic lives in `useTemplateAutosave`.
+
 - [ ] **Step 1:** Setup TipTap with extensions: StarterKit, Table, TableRow, TableCell, TableHeader, Link, TextAlign, MergeTagNode. Show toolbar (paragraph, h1-3, bold, italic, underline, strike, lists, blockquote, table insert, alignment, link, page-break).
-- [ ] **Step 2:** Header bar: editable name input, status pill + toggle button, Preview button, dirty-state indicator.
-- [ ] **Step 3:** Autosave: debounced 5s + on blur. Show "Saving…" / "Saved 12s ago". Last-write-wins (no optimistic concurrency in v1).
+- [ ] **Step 2:** Header bar: editable name input, status pill + toggle button, Preview button, autosave-state pill (uses `useTemplateAutosave().state`).
+- [ ] **Step 3:** Wire `useTemplateAutosave` — pass current values; surface state to the header pill; call `triggerSaveNow` on input blur.
 - [ ] **Step 4:** Layout: editor takes most of width; right column is `MergeTagPanel`; below editor is `ManualFieldsPanel`. On mobile, stack panels below editor.
 - [ ] **Step 5: Commit.**
 
-### Task 8.4: `MergeTagPanel` (right-side picker)
+### Task 8.5: `MergeTagPanel` (right-side picker)
 
 **Files:**
 - Create: `src/components/contracts/templates/MergeTagPanel.tsx`
@@ -755,7 +813,7 @@ Per the spec's "Server-side issue handler" section. Single most important route 
 - [ ] **Step 2:** Search input at top filters by label.
 - [ ] **Step 3: Commit.**
 
-### Task 8.5: `ManualFieldsPanel` (declare per-template manual fields)
+### Task 8.6: `ManualFieldsPanel` (declare per-template manual fields)
 
 **Files:**
 - Create: `src/components/contracts/templates/ManualFieldsPanel.tsx`
@@ -765,7 +823,7 @@ Per the spec's "Server-side issue handler" section. Single most important route 
 - [ ] **Step 3:** Live validation against `manualFieldsSchema` (Zod) — show inline errors.
 - [ ] **Step 4: Commit.**
 
-### Task 8.6: `PreviewModal`
+### Task 8.7: `PreviewModal`
 
 **Files:**
 - Create: `src/components/contracts/templates/PreviewModal.tsx`
@@ -864,7 +922,7 @@ Mock the Chromium renderer at the route boundary (env-flag `MOCK_PDF=1` → serv
   - Issue the cloned template to a staff member — preview step shows resolved tags
   - Submit "Issue & Email" — contract appears on `/contracts` Issued tab; PDF downloads correctly
   - Log in as the staff member — see contract on `/my-portal`; acknowledge it
-- [ ] **Step 6:** Verify in Vercel preview deploy: the issue route doesn't time out and the Lambda size stays under 250MB. If not, follow the Bundle/deployment notes in the spec (split route to its own region or move PDF rendering external).
+- [ ] **Step 6:** Push the branch and **wait for Vercel preview deploy to succeed** (do NOT skip — this is the only real check that Sparticuz Chromium fits under the 250MB Lambda ceiling). On the preview URL, log in as admin → issue a contract → confirm the PDF downloads. If the deploy fails on size, the route MUST be remediated before merging — follow the spec's "Bundle / deployment notes" (region-pin or move PDF rendering external). Do not merge until preview verification passes.
 
 ### Task 11.3: PR
 
@@ -882,6 +940,5 @@ Mock the Chromium renderer at the route boundary (env-flag `MOCK_PDF=1` → serv
 
 ## Open items the executing engineer must resolve in-flight
 
-1. **Vercel Lambda size on first preview deploy** — if `@sparticuz/chromium` pushes the issue route over 250MB unzipped, follow spec's "Bundle / deployment notes" — first option is region-pin, second is external PDF service.
-2. **Staff profile route for "Fix on staff profile →" deep link in Step 2 of the issue modal** — `grep -rn "users/\[id\]" src/app/(dashboard)/` to find the canonical edit route.
-3. **Manager title field on User** — the spec assumes `manager.title` resolves to something. If `User` has no `title`/`jobTitle` column, fall back to a hard-coded `"Director"` or `""`. (Confirm via `grep -n "title\|jobTitle" prisma/schema.prisma | head -10`.)
+1. **Vercel Lambda size on first preview deploy** — addressed in Phase 11.2 Step 6 as a hard gate. If `@sparticuz/chromium` pushes the issue route over 250MB unzipped, follow spec's "Bundle / deployment notes" — first option is region-pin, second is external PDF service.
+2. **Staff profile route for "Fix on staff profile →" deep link in Step 2 of the issue modal** — `grep -rn "users/\[id\]" src/app/(dashboard)/` to find the canonical edit route. If none exists, link to `/users` (the list page) with a query string highlighting the row, or omit the deep link (just show "Fix on the staff profile" as plain text).
