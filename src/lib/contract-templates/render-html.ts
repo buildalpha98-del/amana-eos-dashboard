@@ -34,6 +34,14 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function sanitizeHref(raw: string): string {
+  const lower = raw.trim().toLowerCase();
+  if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("mailto:")) {
+    return raw;
+  }
+  return "#";
+}
+
 function renderNodes(nodes: TipTapNode[] | undefined, data: Record<string, string>, missing: string[]): string {
   if (!nodes) return "";
   return nodes.map((node) => renderNode(node, data, missing)).join("");
@@ -93,7 +101,7 @@ function renderNode(node: TipTapNode, data: Record<string, string>, missing: str
               inner = `<s>${inner}</s>`;
               break;
             case "link": {
-              const href = escapeHtml(String(mark.attrs?.href ?? ""));
+              const href = escapeHtml(sanitizeHref(String(mark.attrs?.href ?? "")));
               inner = `<a href="${href}">${inner}</a>`;
               break;
             }
