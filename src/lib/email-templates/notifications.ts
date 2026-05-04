@@ -568,3 +568,94 @@ export function notificationDigestEmail(
 
   return { subject, html };
 }
+
+// ─── Open Shift Posted ───────────────────────────────────────
+//
+// Fired when a coordinator publishes a week that contains one or more
+// unassigned shifts. We send ONE digest email per recipient summarising
+// every open shift in the week — that's kinder to staff inboxes than
+// one email per shift, and matches the way they'll see them in the
+// OpenShiftsCard.
+//
+// 2026-05-04: introduced as part of the open-shift v2 follow-up
+// (push/email notifications). Original ask from the Connecteam-style
+// roster spec — staff find out faster than the next time they open
+// My Portal.
+
+export interface OpenShiftSummary {
+  date: string; // YYYY-MM-DD
+  sessionType: "bsc" | "asc" | "vc";
+  shiftStart: string; // HH:mm
+  shiftEnd: string; // HH:mm
+  role: string | null;
+}
+
+const SESSION_LABEL: Record<string, string> = {
+  bsc: "BSC",
+  asc: "ASC",
+  vc: "VC",
+};
+
+function formatShiftDate(iso: string): string {
+  // Strict YYYY-MM-DD → e.g. "Mon, 5 May"
+  const d = new Date(iso + "T00:00:00Z");
+  return d.toLocaleDateString("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+export function openShiftPostedEmail(
+  name: string,
+  serviceName: string,
+  shifts: OpenShiftSummary[],
+  openShiftsUrl: string,
+) {
+  const count = shifts.length;
+  const subject =
+    count === 1
+      ? `New open shift at ${serviceName} — first to claim wins`
+      : `${count} new open shifts at ${serviceName} — first to claim wins`;
+
+  const rowsHtml = shifts
+    .map((s) => {
+      const session = SESSION_LABEL[s.sessionType] ?? s.sessionType.toUpperCase();
+      const roleSuffix = s.role ? ` · ${s.role}` : "";
+      return `
+        <tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#111827;font-size:14px;font-weight:600;white-space:nowrap;">
+            ${formatShiftDate(s.date)}
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:14px;">
+            <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background-color:#fef3c7;color:#92400e;">${session}</span>
+            <span style="margin-left:8px;color:#6b7280;">${s.shiftStart}–${s.shiftEnd}${roleSuffix}</span>
+          </td>
+        </tr>`;
+    })
+    .join("");
+
+  const introCopy =
+    count === 1
+      ? `An open shift was just posted at ${serviceName}. First to claim wins it.`
+      : `${count} open shifts were just posted at ${serviceName}. First to claim wins them.`;
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Open shift${count === 1 ? "" : "s"} available
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${name}, ${introCopy}
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      ${rowsHtml}
+    </table>
+    ${buttonHtml("Open My Portal", openShiftsUrl)}
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:11px;text-align:center;">
+      You're getting this because you're rostered at ${serviceName}.
+    </p>
+  `);
+
+  return { subject, html };
+}
