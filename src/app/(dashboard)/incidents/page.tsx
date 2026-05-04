@@ -196,6 +196,28 @@ function IncidentsPageContent() {
         ]}
       />
 
+      {/* 2026-05-04: deprecation banner. The cross-service triage role
+          this page used to play has moved to the leadership-dashboard
+          widget; per-service incident management lives on each service
+          detail's Compliance > Incidents tab. We keep this page around
+          for filtering / CSV export until those workflows are ported. */}
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 flex items-start gap-3">
+        <AlertTriangle className="w-5 h-5 text-amber-700 mt-0.5 flex-shrink-0" />
+        <div className="flex-1 min-w-0 text-sm">
+          <p className="font-semibold text-amber-900 mb-0.5">
+            This page is being phased out
+          </p>
+          <p className="text-amber-900/85 leading-relaxed">
+            For day-to-day triage, see the <strong>Recent Incidents</strong>{" "}
+            card on the <a className="underline hover:text-amber-950" href="/leadership">Leadership</a> dashboard. To
+            log or manage incidents at a specific service, open that
+            service&apos;s <strong>Compliance → Incidents</strong> tab.
+            This page will continue to host filters and CSV export until
+            those workflows move.
+          </p>
+        </div>
+      </div>
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {summaryLoading ? (
