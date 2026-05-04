@@ -512,6 +512,12 @@ model User {
   mfaBackupCodes String[] // Hashed one-time recovery codes
   mfaEnabledAt   DateTime? // Non-null = MFA is active
   lastLoginAt    DateTime? // Updated on each successful sign-in
+  // 2026-05-04 (timeclock v1): 4-digit PIN used at the kiosk to clock
+  // in/out. Staff sets it themselves in My Portal; admin can `reset`
+  // (clear the hash, never read it). `kioskPinSetAt` lets us flag
+  // "PIN required before you can use the kiosk" for first-time users.
+  kioskPinHash   String?
+  kioskPinSetAt  DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -730,6 +736,8 @@ model User {
   centreAvatarCheckInsCreated          CentreAvatarCoordinatorCheckIn[] @relation("CentreAvatarCheckInCreatedBy")
   centreAvatarSchoolLiaisonLogsCreated CentreAvatarSchoolLiaisonLog[]   @relation("CentreAvatarSchoolLiaisonCreatedBy")
   centreAvatarUpdateLogs               CentreAvatarUpdateLog[]          @relation("CentreAvatarUpdateLogUpdatedBy")
+  // 2026-05-04 (timeclock v1): kiosks the user has registered.
+  kiosksCreated                        Kiosk[]                          @relation("KioskCreator")
 
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
@@ -2060,6 +2068,8 @@ model Service {
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts        BookingForecast[]       @relation("ServiceBookings")
   rosterShifts            RosterShift[]           @relation("ServiceRosterShifts")
+  // 2026-05-04 (timeclock v1): kiosks registered to this service.
+  kiosks                  Kiosk[]                 @relation("ServiceKiosks")
   conversionOpportunities ConversionOpportunity[] @relation("ServiceConversions")
 
   // ── Compliance Audit Relations ─────────────────────────
@@ -4294,6 +4304,12 @@ model RosterShift {
   createdById       String?
   createdBy         User?              @relation("CreatedRosterShifts", fields: [createdById], references: [id], onDelete: SetNull)
   shiftSwapRequests ShiftSwapRequest[] @relation("ShiftSwapRequests")
+  // 2026-05-04 (timeclock v1): actual sign-in/out timestamps. Both null
+  // until the user clocks in. `actualEnd` stays null while clocked-in
+  // and gets set on clock-out. Variance against `shiftStart`/`shiftEnd`
+  // is rendered in the per-service Weekly Shifts grid.
+  actualStart       DateTime?
+  actualEnd         DateTime?
 
   @@unique([serviceId, date, staffName, shiftStart])
   @@index([serviceId])
@@ -4330,6 +4346,37 @@ model ShiftSwapRequest {
   @@index([targetId])
   @@index([status])
   @@index([shiftId])
+}
+
+/// Kiosk — a paired tablet at a centre's front desk that staff use to
+/// clock in/out. Auth is bearer-token (long random secret hashed at
+/// rest, issued once during register flow) + the staff's own
+/// `User.kioskPinHash`. Two layers so a stolen tablet alone can't
+/// impersonate staff.
+///
+/// 2026-05-04: introduced as part of the timeclock v1 spec
+/// (docs/superpowers/specs/2026-05-04-staff-timeclock-v1-design.md).
+model Kiosk {
+  id          String    @id @default(cuid())
+  serviceId   String
+  service     Service   @relation("ServiceKiosks", fields: [serviceId], references: [id], onDelete: Cascade)
+  label       String // "Front desk iPad"
+  /// bcrypt of the bearer token; the plaintext is shown to the admin
+  /// once at register time and never re-readable.
+  tokenHash   String
+  createdById String?
+  createdBy   User?     @relation("KioskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  /// Set when the admin revokes the kiosk; the auth helper rejects
+  /// any request whose token matches a row with this non-null.
+  revokedAt   DateTime?
+  /// Bumped each time the kiosk hits the API — surfaces "this iPad
+  /// hasn't talked to us in 3 days" to admins.
+  lastSeenAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([serviceId])
+  @@index([revokedAt])
 }
 
 // ── Conversion Tracking ──────────────────────────────────
