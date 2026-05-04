@@ -431,6 +431,10 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                                 sessionType: s.sessionType,
                                 role: s.role,
                                 status: s.status,
+                                // Variance badge fields (timeclock v1, sub-PR 5).
+                                date: s.date,
+                                actualStart: s.actualStart,
+                                actualEnd: s.actualEnd,
                               };
                               return (
                                 <ShiftChip
