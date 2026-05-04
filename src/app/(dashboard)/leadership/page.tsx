@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Crown, Users, Building2, AlertCircle, MessageSquare, Mountain } from "lucide-react";
 import { LeadershipRecentIncidentsCard } from "@/components/leadership/LeadershipRecentIncidentsCard";
+import { LeadershipCertExpiryCard } from "@/components/leadership/LeadershipCertExpiryCard";
 import { cn } from "@/lib/utils";
 
 const SentimentTrendChart = dynamic(
@@ -87,6 +88,13 @@ export default function LeadershipPage() {
                leadership triage surface (the page itself is still
                accessible for filtering / CSV export). */}
           <LeadershipRecentIncidentsCard />
+
+          {/* Section 1.6: Org-wide compliance cert expiry rollup —
+               quiet by default; lists every centre with at least one
+               expired/expiring cert sorted worst-first. Companion to
+               the per-service ServiceCertExpiryCard on each centre's
+               Compliance tab. */}
+          <LeadershipCertExpiryCard />
 
           {/* Section 2: Quarterly Rocks Rollup */}
           <section className="rounded-xl border border-border bg-card p-6">
