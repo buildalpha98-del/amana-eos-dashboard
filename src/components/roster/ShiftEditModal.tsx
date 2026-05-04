@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { useTeam } from "@/hooks/useTeam";
+import { useShiftTemplates } from "@/hooks/useShiftTemplates";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +70,24 @@ export function ShiftEditModal({
 
   // Load team — scope to this service, active staff only.
   const { data: team } = useTeam({ service: serviceId });
+
+  // Load shift templates — pre-fills sessionType / start / end / role
+  // on the create form. Skipped in edit mode (no point altering an
+  // existing shift through a template).
+  const { data: templatesResp } = useShiftTemplates(
+    mode === "create" ? serviceId : undefined,
+  );
+  const templates = templatesResp?.templates ?? [];
+
+  function applyTemplate(templateId: string) {
+    if (!templateId) return;
+    const t = templates.find((x) => x.id === templateId);
+    if (!t) return;
+    setSessionType(t.sessionType);
+    setShiftStart(t.shiftStart);
+    setShiftEnd(t.shiftEnd);
+    setRole(t.role ?? "");
+  }
   const activeAtService = useMemo(() => {
     if (!team) return [];
     return team.filter((m) => {
@@ -195,6 +214,37 @@ export function ShiftEditModal({
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3">
+          {mode === "create" && templates.length > 0 ? (
+            <div>
+              <label
+                htmlFor="shift-template"
+                className="block text-sm font-medium mb-1 flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                Use template (optional)
+              </label>
+              <select
+                id="shift-template"
+                onChange={(e) => {
+                  applyTemplate(e.target.value);
+                  // Reset back to placeholder so user can re-pick after
+                  // tweaking — otherwise selecting again is a no-op.
+                  e.target.value = "";
+                }}
+                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-background"
+                defaultValue=""
+              >
+                <option value="">Pick a saved pattern…</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label} · {t.shiftStart}–{t.shiftEnd}
+                    {t.role ? ` · ${t.role}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           <div>
             <label htmlFor="shift-user" className="block text-sm font-medium mb-1">
               Staff

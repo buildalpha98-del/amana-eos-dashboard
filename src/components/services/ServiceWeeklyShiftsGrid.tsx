@@ -18,6 +18,7 @@ import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
 import { RatioBadge } from "@/components/roster/RatioBadge";
 import { ShiftEditModal } from "@/components/roster/ShiftEditModal";
 import { ShiftSwapDialog } from "@/components/roster/ShiftSwapDialog";
+import { ShiftTemplatesPanel } from "@/components/roster/ShiftTemplatesPanel";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -190,6 +191,7 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   const [modalState, setModalState] = useState<ModalState>(null);
   const [publishing, setPublishing] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [swapDialogShift, setSwapDialogShift] =
     useState<{
       id: string;
@@ -307,6 +309,14 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
 
         {canEdit && (
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setTemplatesOpen(true)}
+              disabled={copying || publishing}
+            >
+              Templates
+            </Button>
             <Button
               size="sm"
               variant="secondary"
@@ -531,6 +541,14 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
             setSwapDialogShift(null);
             void refetch();
           }}
+        />
+      )}
+
+      {templatesOpen && (
+        <ShiftTemplatesPanel
+          open
+          onClose={() => setTemplatesOpen(false)}
+          serviceId={serviceId}
         />
       )}
     </div>

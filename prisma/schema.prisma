@@ -738,6 +738,8 @@ model User {
   centreAvatarUpdateLogs               CentreAvatarUpdateLog[]          @relation("CentreAvatarUpdateLogUpdatedBy")
   // 2026-05-04 (timeclock v1): kiosks the user has registered.
   kiosksCreated                        Kiosk[]                          @relation("KioskCreator")
+  // 2026-05-04 (shift templates v1): templates the user has authored.
+  shiftTemplatesCreated                ShiftTemplate[]                  @relation("ShiftTemplateCreator")
 
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
@@ -2070,6 +2072,8 @@ model Service {
   rosterShifts            RosterShift[]           @relation("ServiceRosterShifts")
   // 2026-05-04 (timeclock v1): kiosks registered to this service.
   kiosks                  Kiosk[]                 @relation("ServiceKiosks")
+  // 2026-05-04 (shift templates v1): saved shift patterns for this service.
+  shiftTemplates          ShiftTemplate[]         @relation("ServiceShiftTemplates")
   conversionOpportunities ConversionOpportunity[] @relation("ServiceConversions")
 
   // ── Compliance Audit Relations ─────────────────────────
@@ -4377,6 +4381,35 @@ model Kiosk {
 
   @@index([serviceId])
   @@index([revokedAt])
+}
+
+/// ShiftTemplate — saved shift pattern an admin uses to create new
+/// roster rows quickly. Connecteam-style: rather than re-typing
+/// "ASC educator 15:00–18:00" twenty times a week, save it once and
+/// pick it from a dropdown when adding a shift.
+///
+/// 2026-05-04: introduced as the smallest piece of the larger
+/// drag-to-create + templates spec. Templates ship now; drag-from-
+/// template-onto-grid is a follow-up.
+model ShiftTemplate {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceShiftTemplates", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Short admin-facing label, e.g. "ASC educator 3-6pm".
+  label       String
+  sessionType SessionType
+  /// "HH:mm" — same shape as RosterShift.
+  shiftStart  String
+  shiftEnd    String
+  /// Optional role hint that pre-fills RosterShift.role.
+  role        String?
+  createdById String?
+  createdBy   User?       @relation("ShiftTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([serviceId, label])
+  @@index([serviceId])
 }
 
 // ── Conversion Tracking ──────────────────────────────────
