@@ -62,3 +62,41 @@ export function useClaimShift() {
     },
   });
 }
+
+/**
+ * useReleaseShift — companion to useClaimShift. Drops a claimed shift
+ * back into the open-shift pool so another staff member can pick it up.
+ *
+ * 2026-05-04: closes the gap PR #53 left — once a shift was claimed,
+ * the only escape hatch was a swap request, which requires proposing
+ * a specific person. Release-back-to-pool is the same-day-sickness
+ * flow ("I claimed Mon 3-6pm but woke up sick — let someone else grab
+ * it").
+ */
+export function useReleaseShift() {
+  const qc = useQueryClient();
+  return useMutation<
+    { shift?: unknown; ok?: boolean; alreadyOpen?: boolean },
+    Error,
+    { shiftId: string }
+  >({
+    mutationFn: ({ shiftId }) =>
+      mutateApi(`/api/roster/shifts/${shiftId}/release`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["open-shifts"] });
+      qc.invalidateQueries({ queryKey: ["my-shifts"] });
+      qc.invalidateQueries({ queryKey: ["roster-shifts"] });
+      toast({
+        description: "Shift released — it's now open for someone else.",
+      });
+    },
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Couldn't release that shift",
+      });
+    },
+  });
+}
