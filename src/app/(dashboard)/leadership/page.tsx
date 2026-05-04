@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Crown, Users, Building2, AlertCircle, MessageSquare, Mountain } from "lucide-react";
+import { LeadershipRecentIncidentsCard } from "@/components/leadership/LeadershipRecentIncidentsCard";
 import { cn } from "@/lib/utils";
 
 const SentimentTrendChart = dynamic(
@@ -79,6 +80,13 @@ export default function LeadershipPage() {
               <Kpi icon={MessageSquare} value={data.openTicketCount} label="Open tickets" iconClass="bg-purple-100 text-purple-600" />
             </div>
           </section>
+
+          {/* Section 1.5: Recent incidents — quiet by default, only
+               renders when there are incidents in the lookback window.
+               Replaces the cross-service `/incidents` page as the main
+               leadership triage surface (the page itself is still
+               accessible for filtering / CSV export). */}
+          <LeadershipRecentIncidentsCard />
 
           {/* Section 2: Quarterly Rocks Rollup */}
           <section className="rounded-xl border border-border bg-card p-6">
