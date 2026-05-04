@@ -13,3 +13,4 @@ export * from "./email-templates/enrolment";
 export * from "./email-templates/reports";
 export * from "./email-templates/waitlist";
 export * from "./email-templates/parent-portal";
+export * from "./email-templates/contracts";

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { sendEmail } from "@/lib/email";
+import { contractIssuedEmail } from "@/lib/email-templates/contracts";
 
 export const POST = withApiAuth(
   async (_req, session, context) => {
@@ -30,9 +31,12 @@ export const POST = withApiAuth(
     }
 
     const portalUrl = `${process.env.NEXTAUTH_URL ?? ""}/my-portal?contract=${contract.id}`;
-    // TODO(phase 10): replace with contractIssuedEmail() from email-templates/contracts.ts
-    const subject = `Your new contract from Amana OSHC — please review`;
-    const html = `<p>Hi ${staff.name ?? "there"},</p><p>We've issued your <strong>${templateName}</strong>. Please review and acknowledge it in your portal: <a href="${portalUrl}">${portalUrl}</a></p><p>Or download the PDF directly: <a href="${contract.documentUrl}">${contract.documentUrl}</a></p>`;
+    const { subject, html } = contractIssuedEmail({
+      name: staff.name ?? "there",
+      contractName: templateName,
+      portalUrl,
+      pdfUrl: contract.documentUrl,
+    });
     await sendEmail({ to: staff.email, subject, html });
 
     await prisma.activityLog.create({

@@ -9,6 +9,7 @@ import { resolveTemplateData } from "@/lib/contract-templates/resolve-data";
 import { renderTemplateHtml, type TipTapDoc } from "@/lib/contract-templates/render-html";
 import { renderContractPdf } from "@/lib/pdf/render-contract";
 import { sendEmail } from "@/lib/email";
+import { contractIssuedEmail } from "@/lib/email-templates/contracts";
 
 // IMPORTANT: AwardLevel and ContractType enum values must mirror the
 // canonical Prisma enums in prisma/schema.prisma. AwardLevel pay-grade
@@ -122,9 +123,12 @@ export const POST = withApiAuth(
         select: { email: true, name: true },
       });
       const portalUrl = `${process.env.NEXTAUTH_URL ?? ""}/my-portal?contract=${contract.id}`;
-      // TODO(phase 10): replace with contractIssuedEmail() from email-templates/contracts.ts
-      const subject = `Your new contract from Amana OSHC — please review`;
-      const emailHtml = `<p>Hi ${staff.name ?? "there"},</p><p>We've issued your <strong>${template.name}</strong>. Please review and acknowledge it in your portal: <a href="${portalUrl}">${portalUrl}</a></p><p>Or download the PDF directly: <a href="${url}">${url}</a></p>`;
+      const { subject, html: emailHtml } = contractIssuedEmail({
+        name: staff.name ?? "there",
+        contractName: template.name,
+        portalUrl,
+        pdfUrl: url,
+      });
       await sendEmail({ to: staff.email, subject, html: emailHtml });
     } catch (err) {
       emailFailed = true;
