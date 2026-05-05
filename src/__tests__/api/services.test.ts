@@ -104,6 +104,32 @@ describe("GET /api/services", () => {
     const callArgs = prismaMock.service.findMany.mock.calls[0][0];
     expect(callArgs.include.manager).toBeDefined();
   });
+
+  it("marketing role sees ALL centres regardless of serviceId scope", async () => {
+    // Akram (marketing) has serviceId=NULL but needs every centre for
+    // selectors (campaigns, QR codes, coordinator todos). Centre/state
+    // filters must NOT be applied for marketing.
+    const { getCentreScope } = await import("@/lib/centre-scope");
+    const { getStateScope } = await import("@/lib/service-scope");
+    const centreSpy = vi.mocked(getCentreScope);
+    const stateSpy = vi.mocked(getStateScope);
+    mockSession({ id: "akram", name: "Akram", role: "marketing", serviceId: null });
+    prismaMock.service.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/services?status=active");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    // Neither scope helper should have been consulted.
+    expect(centreSpy).not.toHaveBeenCalled();
+    expect(stateSpy).not.toHaveBeenCalled();
+
+    const callArgs = prismaMock.service.findMany.mock.calls[0][0];
+    // Status filter still applied; no impossible-id filter from centre scope.
+    expect(callArgs.where.status).toBe("active");
+    expect(callArgs.where.id).toBeUndefined();
+    expect(callArgs.where.state).toBeUndefined();
+  });
 });
 
 describe("POST /api/services", () => {

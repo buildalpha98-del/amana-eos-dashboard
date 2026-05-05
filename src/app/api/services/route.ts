@@ -26,18 +26,26 @@ const createServiceSchema = z.object({
 
 // GET /api/services
 export const GET = withApiAuth(async (req, session) => {
-const { serviceIds } = await getCentreScope(session);
-  const stateScope = getStateScope(session);
+  const role = session?.user.role as string | undefined;
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
 
-  // Centre scoping: scoped roles only see their assigned/managed services
-  applyCentreFilter(where, serviceIds, "id");
-  // State Manager: only see services in their assigned state
-  if (stateScope) where.state = stateScope;
+  // Marketing operates across ALL centres — campaigns, activations, QR
+  // codes, coordinator-todo dispatch, and centre selectors all need the
+  // full list. Skip centre/state scoping for marketing. Other scoped roles
+  // (member, staff, coordinator) stay scoped to their assigned services.
+  // Note: this only relaxes the SERVICE LIST. PII-sensitive endpoints
+  // (children, incidents, issues) still call getCentreScope themselves
+  // and continue to filter marketing to nothing.
+  if (role !== "marketing") {
+    const { serviceIds } = await getCentreScope(session);
+    applyCentreFilter(where, serviceIds, "id");
+    const stateScope = getStateScope(session);
+    if (stateScope) where.state = stateScope;
+  }
 
   const pagination = parsePagination(searchParams);
 
