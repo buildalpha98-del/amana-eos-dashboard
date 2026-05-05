@@ -750,6 +750,7 @@ model User {
 
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
+  @@index([name])
 }
 
 model PasswordResetToken {
