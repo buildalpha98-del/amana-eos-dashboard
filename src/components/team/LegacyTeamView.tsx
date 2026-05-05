@@ -1,0 +1,210 @@
+"use client";
+
+/**
+ * LegacyTeamView — the original /team page content (Accountability
+ * Chart + Performance List + EOS stats), preserved during the Teams
+ * tab redesign rollout. Rendered when `useTeamsRedesignFlag()` is
+ * false. Removed by PR 8 (cleanup) once the new view is stable.
+ *
+ * Behaviour identical to the pre-redesign /team page.
+ */
+
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useTeam } from "@/hooks/useTeam";
+import { OrgChartView } from "@/components/team/OrgChartView";
+import { TeamListView } from "@/components/team/TeamListView";
+import { ActionRequiredWidget } from "@/components/team/ActionRequiredWidget";
+import {
+  Users,
+  LayoutGrid,
+  List,
+  Mountain,
+  CheckSquare,
+  AlertCircle,
+  Download,
+} from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
+
+export function LegacyTeamView() {
+  const v2 = useStaffV2Flag();
+  const { data: session } = useSession();
+  const { data: members, isLoading: teamLoading, error, refetch } = useTeam();
+  const [viewMode, setViewMode] = useState<"chart" | "list">("chart");
+
+  const totalRocks = members?.reduce((s, m) => s + m.activeRocks, 0) || 0;
+  const avgCompletion =
+    members && members.length > 0
+      ? Math.round(
+          members.reduce((s, m) => s + m.todoCompletionPct, 0) /
+            members.length,
+        )
+      : 0;
+  const totalIssues =
+    members?.reduce((s, m) => s + m.openIssues, 0) || 0;
+
+  return (
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-7xl mx-auto space-y-6"
+    >
+      <PageHeader
+        title={
+          viewMode === "chart" ? "Accountability Chart" : "Performance List"
+        }
+        description={
+          viewMode === "chart"
+            ? "Organisational structure and seat assignments"
+            : "Team performance metrics and individual stats"
+        }
+        secondaryActions={[
+          {
+            label: "Export CSV",
+            icon: Download,
+            onClick: () =>
+              exportToCsv(
+                `amana-team-${new Date().toISOString().slice(0, 10)}`,
+                members || [],
+                [
+                  { header: "ID", accessor: (m) => m.id },
+                  { header: "Name", accessor: (m) => m.name },
+                  { header: "Email", accessor: (m) => m.email },
+                  { header: "Role", accessor: (m) => m.role },
+                  { header: "Active Rocks", accessor: (m) => m.activeRocks },
+                  { header: "Todos (Total)", accessor: (m) => m.totalTodos },
+                  {
+                    header: "Todos (Completed)",
+                    accessor: (m) => m.completedTodos,
+                  },
+                  {
+                    header: "Todo Completion %",
+                    accessor: (m) => `${m.todoCompletionPct}%`,
+                  },
+                  { header: "Open Issues", accessor: (m) => m.openIssues },
+                  {
+                    header: "Managed Services",
+                    accessor: (m) => m.managedServices,
+                  },
+                ],
+              ),
+          },
+        ]}
+        toggles={[
+          {
+            options: [
+              {
+                icon: LayoutGrid,
+                label: "Accountability Chart",
+                value: "chart",
+              },
+              { icon: List, label: "Performance List", value: "list" },
+            ],
+            value: viewMode,
+            onChange: (v) => setViewMode(v as "chart" | "list"),
+          },
+        ]}
+      />
+
+      {session?.user?.role && (
+        <ActionRequiredWidget userRole={session.user.role} />
+      )}
+
+      {viewMode === "list" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-brand/10">
+                <Users className="w-5 h-5 text-brand" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted uppercase tracking-wide">
+                  Team Size
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {teamLoading ? "--" : members?.length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-brand/10">
+                <Mountain className="w-5 h-5 text-brand" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted uppercase tracking-wide">
+                  Active Rocks
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {teamLoading ? "--" : totalRocks}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-brand/10">
+                <CheckSquare className="w-5 h-5 text-brand" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted uppercase tracking-wide">
+                  Avg Todo Completion
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {teamLoading ? "--" : `${avgCompletion}%`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-brand/10">
+                <AlertCircle className="w-5 h-5 text-brand" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted uppercase tracking-wide">
+                  Open Issues
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {teamLoading ? "--" : totalIssues}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <ErrorState
+          title="Failed to load team"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      )}
+
+      {error ? null : viewMode === "chart" ? (
+        <OrgChartView />
+      ) : teamLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
+        </div>
+      ) : members && members.length > 0 ? (
+        <TeamListView members={members} />
+      ) : (
+        <EmptyState
+          icon={Users}
+          title="No team members"
+          description="Add users in Settings to populate the team list."
+          variant="inline"
+        />
+      )}
+    </div>
+  );
+}
