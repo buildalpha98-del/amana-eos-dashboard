@@ -98,8 +98,8 @@ export const GET = withApiAuth(
     });
 
     const milestoneMembers = members.map((m) => ({
-      contentTeamRole: m.contentTeamRole,
-      contentTeamStatus: m.contentTeamStatus,
+      role: m.contentTeamRole,
+      status: m.contentTeamStatus,
     }));
     const { resetStartDate, milestones } = resolveAllMilestones(milestoneMembers, now);
 

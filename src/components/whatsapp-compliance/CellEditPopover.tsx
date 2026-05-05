@@ -113,17 +113,36 @@ export function CellEditPopover({ centre, cell, onClose }: CellEditPopoverProps)
             </div>
           )}
 
-          <div>
-            <label className="text-xs font-medium text-muted block mb-1" htmlFor="cell-notes">Notes (optional)</label>
-            <textarea
-              id="cell-notes"
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-md border border-border bg-card text-sm p-2"
-              placeholder="Anything to note for this day…"
-            />
-          </div>
+          {!posted && reason === "other" && (
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-1" htmlFor="cell-other-reason">
+                What was the reason?
+              </label>
+              <textarea
+                id="cell-other-reason"
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full rounded-md border border-amber-300 bg-amber-50 text-sm p-2"
+                placeholder="Type the reason here…"
+                autoFocus
+              />
+            </div>
+          )}
+
+          {(posted || reason !== "other") && (
+            <div>
+              <label className="text-xs font-medium text-muted block mb-1" htmlFor="cell-notes">Notes (optional)</label>
+              <textarea
+                id="cell-notes"
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full rounded-md border border-border bg-card text-sm p-2"
+                placeholder="Anything to note for this day…"
+              />
+            </div>
+          )}
 
           {!posted && (
             <button

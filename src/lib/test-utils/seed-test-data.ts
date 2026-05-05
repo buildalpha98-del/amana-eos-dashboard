@@ -18,12 +18,21 @@ import type { Role } from "@prisma/client";
 
 const PASSWORD_HASH = hashSync("TestPassword123!", 10);
 
+// Post-coordinator-collapse (PR #37, 2026-04-30): coordinator role was
+// dropped and merged into `member`. The duplicate `member` entry below
+// was left in place so existing index references (coordinatorId,
+// memberId, staffId) didn't have to be renumbered. But it caused a
+// duplicate-key violation on `test-member@amana-test.local` whenever
+// seedTestData() was called in an environment where the unique-index
+// was enforced (caught by a 2026-05-04 scheduled e2e run).
+//
+// Deduped to one `member` entry; the index references below were
+// adjusted accordingly.
 const ROLES: Role[] = [
   "owner",
   "head_office",
   "admin",
   "marketing",
-  "member",
   "member",
   "staff",
 ];
@@ -133,9 +142,11 @@ export async function seedTestData() {
 
   const ownerId = users[0].id;
   const adminId = users[2].id;
+  // Post-collapse: coordinator and member are the same role. Both aliases
+  // point at the lone `member` user so existing references keep working.
   const coordinatorId = users[4].id;
-  const memberId = users[5].id;
-  const staffId = users[6].id;
+  const memberId = users[4].id;
+  const staffId = users[5].id;
 
   // ── 3. Rocks ─────────────────────────────────────────────
   const quarter = "Q1-2026";

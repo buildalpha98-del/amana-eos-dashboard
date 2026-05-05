@@ -216,6 +216,44 @@ export function useAddToOneOnOne() {
   });
 }
 
+export interface ComplianceWeekMeta {
+  weekStart: string;
+  weekNumber: number;
+  year: number;
+}
+
+export interface ComplianceServiceWeek {
+  posted: number;
+  notPosted: number;
+  notChecked: number;
+  excluded: number;
+  status: "green" | "amber" | "red";
+}
+
+export interface ComplianceServiceRow {
+  serviceId: string;
+  serviceName: string;
+  coordinatorName: string | null;
+  weeks: ComplianceServiceWeek[];
+  complianceRate: number;
+}
+
+export interface ComplianceHistoryResponse {
+  weeks: ComplianceWeekMeta[];
+  services: ComplianceServiceRow[];
+  target: number;
+  floor: number;
+}
+
+export function useComplianceHistory() {
+  return useQuery<ComplianceHistoryResponse>({
+    queryKey: ["whatsapp-compliance-history"],
+    queryFn: () => fetchApi<ComplianceHistoryResponse>("/api/marketing/whatsapp/compliance-history"),
+    retry: 2,
+    staleTime: 60_000,
+  });
+}
+
 export function useCoordinatorHistory(serviceId: string | null) {
   return useQuery<CoordinatorHistoryResponse>({
     queryKey: ["whatsapp-coordinator-history", serviceId],

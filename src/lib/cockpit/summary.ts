@@ -19,22 +19,6 @@ import { getFocusAvatarSlimForWeek } from "@/lib/avatar-focus-rotation";
 import { resolveAllMilestones, pickCurrentMilestone } from "@/lib/content-team-milestones";
 
 // CTA compliance heuristic — if caption matches any of these, we consider a CTA present.
-const CTA_PATTERNS = [
-  /https?:\/\//i,
-  /link in bio/i,
-  /bit\.ly/i,
-  /\/l\//i,
-  /dm us/i,
-  /enrol/i,
-  /book/i,
-  /sign up/i,
-  /register/i,
-];
-
-function hasCta(caption: string | null | undefined): boolean {
-  if (!caption) return false;
-  return CTA_PATTERNS.some((p) => p.test(caption));
-}
 
 export type CockpitSummary = {
   weekStart: string;
@@ -52,7 +36,6 @@ export type CockpitSummary = {
       feed: RagMetric;
       stories: RagMetric;
       reels: RagMetric;
-      ctaCompliance: { current: number; target: number; floor: number; status: RagStatus };
     };
     contentTeam: {
       hires: RagMetric;
@@ -69,6 +52,8 @@ export type CockpitSummary = {
         serviceName: string;
         count: number;
         status: RagStatus;
+        lastContact: string | null;
+        daysAgo: number | null;
       }>;
     };
     activations: {
@@ -134,7 +119,7 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
     null;
 
   const [
-    posts,
+    socialCounter,
     hires,
     briefTasks,
     claudeDrafts,
@@ -156,24 +141,17 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
     whatsappEscalations,
     priorReport,
     currentReport,
+    latestLiaisonLogs,
   ] = await Promise.all([
-    // Brand Social: this week's posts with format
-    prisma.marketingPost.findMany({
-      where: {
-        deleted: false,
-        status: { in: ["approved", "published"] },
-        scheduledDate: { gte: week.start, lte: week.end },
-        platform: { in: ["facebook", "instagram"] },
-      },
-      select: { id: true, format: true, content: true },
+    // Brand Social: manual weekly counters
+    prisma.socialCounter.findUnique({
+      where: { weekStart: week.start },
     }),
 
-    // Content Team hires
-    prisma.user.count({
+    // Content Team hires (standalone model)
+    prisma.contentTeamMember.count({
       where: {
-        contentTeamStatus: { in: ["hired", "onboarding", "active"] },
-        contentTeamRole: { not: null },
-        active: true,
+        status: { in: ["hired", "onboarding", "active"] },
       },
     }),
 
@@ -387,27 +365,24 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
       where: { weekStart: week.start },
       select: { id: true, status: true, draftedAt: true, sentAt: true },
     }),
+
+    // School liaison: latest log per service
+    prisma.schoolLiaisonLog.findMany({
+      orderBy: { loggedAt: "desc" },
+      distinct: ["serviceId"],
+      select: { serviceId: true, loggedAt: true },
+    }),
   ]);
 
   // ── Brand Social tile ───────────────────────────────────────
-  const feedCount = posts.filter((p) => p.format === "feed" || p.format === "carousel").length;
-  const storyCount = posts.filter((p) => p.format === "story").length;
-  const reelCount = posts.filter((p) => p.format === "reel").length;
-  const ctaEligible = posts.filter((p) => p.format === "feed" || p.format === "reel" || p.format === "carousel");
-  const ctaWithLink = ctaEligible.filter((p) => hasCta(p.content));
-  const ctaRate = ctaEligible.length === 0 ? 1 : ctaWithLink.length / ctaEligible.length;
+  const feedCount = socialCounter?.feed ?? 0;
+  const storyCount = socialCounter?.stories ?? 0;
+  const reelCount = socialCounter?.reels ?? 0;
 
   const brandSocial = {
     feed: buildRagMetric({ current: feedCount, target: 10, floor: 6 }),
     stories: buildRagMetric({ current: storyCount, target: 35, floor: 20 }),
     reels: buildRagMetric({ current: reelCount, target: 3, floor: 1 }),
-    ctaCompliance: {
-      current: Number(ctaRate.toFixed(2)),
-      target: 1.0,
-      floor: 0.95,
-      status:
-        ctaRate >= 1.0 ? ("green" as const) : ctaRate >= 0.95 ? ("amber" as const) : ("red" as const),
-    },
   };
 
   // ── Content Team tile ────────────────────────────────────────
@@ -418,28 +393,17 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
   ).length;
   const briefs24Rate = briefs24Total === 0 ? 1 : briefs24Under / briefs24Total;
 
-  // Resolve hiring milestones from content-team members.
-  const teamMembersForMilestones = await prisma.user.findMany({
-    where: { contentTeamRole: { not: null } },
-    select: { id: true, contentTeamRole: true, contentTeamStatus: true },
+  // Resolve hiring milestones from standalone ContentTeamMember records.
+  const teamMembersForMilestones = await prisma.contentTeamMember.findMany({
+    select: { id: true, role: true, status: true },
   });
-  const memberIds = teamMembersForMilestones.map((m) => m.id);
-  const oneWeekAgoMs = now.getTime() - 7 * DAY_MS;
-  const teamOutputCount = memberIds.length === 0
-    ? 0
-    : await prisma.marketingPost.count({
-        where: {
-          deleted: false,
-          assigneeId: { in: memberIds },
-          createdAt: { gte: new Date(oneWeekAgoMs) },
-        },
-      });
   const activeMembers = teamMembersForMilestones.filter(
-    (m) => m.contentTeamStatus === "onboarding" || m.contentTeamStatus === "active",
+    (m) => m.status === "onboarding" || m.status === "active",
   ).length;
+  const teamOutputCount = activeMembers;
   const milestoneInputs = teamMembersForMilestones.map((m) => ({
-    contentTeamRole: m.contentTeamRole,
-    contentTeamStatus: m.contentTeamStatus,
+    role: m.role,
+    status: m.status,
   }));
   const { milestones: resolvedMilestones } = resolveAllMilestones(milestoneInputs, now);
   const currentMilestone = pickCurrentMilestone(resolvedMilestones);
@@ -472,10 +436,23 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
   for (const sc of schoolCommsTerm) {
     placementsPerService.set(sc.serviceId, (placementsPerService.get(sc.serviceId) ?? 0) + 1);
   }
+  const lastLogByService = new Map<string, Date>();
+  for (const ll of latestLiaisonLogs) {
+    lastLogByService.set(ll.serviceId, ll.loggedAt);
+  }
   const perCentreSchool = services.map((s) => {
     const count = placementsPerService.get(s.id) ?? 0;
-    const status: RagStatus = count >= 2 ? "green" : count === 1 ? "amber" : "red";
-    return { serviceId: s.id, serviceName: s.name, count, status };
+    const lastLog = lastLogByService.get(s.id) ?? null;
+    const daysAgo = lastLog ? Math.floor((now.getTime() - lastLog.getTime()) / DAY_MS) : null;
+    const status: RagStatus = daysAgo === null ? "red" : daysAgo <= 14 ? "green" : daysAgo <= 30 ? "amber" : "red";
+    return {
+      serviceId: s.id,
+      serviceName: s.name,
+      count,
+      status,
+      lastContact: lastLog?.toISOString() ?? null,
+      daysAgo,
+    };
   });
   const schoolLiaison = {
     termPlacements: buildRagMetric({ current: schoolCommsTerm.length, target: 20, floor: 15 }),

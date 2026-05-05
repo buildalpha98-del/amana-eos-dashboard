@@ -17,10 +17,8 @@ vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(() => ({ limited: false })),
 }));
 
-import { GET as TEAM_GET } from "@/app/api/marketing/team/route";
-import { PATCH as TEAM_PATCH } from "@/app/api/marketing/team/[userId]/route";
-import { POST as TEAM_ADD } from "@/app/api/marketing/team/add/route";
-import { GET as CANDIDATES_GET } from "@/app/api/marketing/team/candidates/route";
+import { GET as LIST_GET, POST as LIST_POST } from "@/app/api/marketing/content-team/route";
+import { PATCH as MEMBER_PATCH, DELETE as MEMBER_DELETE } from "@/app/api/marketing/content-team/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
 beforeEach(() => {
@@ -30,202 +28,175 @@ beforeEach(() => {
   delete process.env.MARKETING_RESET_START_DATE;
 });
 
-describe("GET /api/marketing/team", () => {
+describe("GET /api/marketing/content-team", () => {
   it("401 unauth", async () => {
     mockNoSession();
-    const res = await TEAM_GET(createRequest("GET", "/api/marketing/team"));
+    const res = await LIST_GET(createRequest("GET", "/api/marketing/content-team"));
     expect(res.status).toBe(401);
   });
 
   it("403 staff role", async () => {
     mockSession({ id: "u", name: "Staff", role: "staff" });
-    const res = await TEAM_GET(createRequest("GET", "/api/marketing/team"));
+    const res = await LIST_GET(createRequest("GET", "/api/marketing/content-team"));
     expect(res.status).toBe(403);
   });
 
-  it("returns members with output counts and milestones", async () => {
+  it("returns members with milestones", async () => {
     mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findMany.mockResolvedValue([
+    prismaMock.contentTeamMember.findMany.mockResolvedValue([
       {
-        id: "u-editor",
+        id: "m-1",
         name: "Lina",
+        role: "video_editor",
+        status: "active",
+        phone: null,
         email: "lina@x.com",
-        active: true,
-        contentTeamRole: "video_editor",
-        contentTeamStatus: "active",
-        contentTeamStartedAt: new Date("2026-01-01"),
-        contentTeamPausedAt: null,
-        contentTeamPauseReason: null,
+        notes: null,
+        startedAt: new Date("2026-01-01"),
+        pausedAt: null,
+        pauseReason: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ]);
-    prismaMock.marketingPost.groupBy.mockImplementation(({ where }: any) => {
-      // Distinguish "this week" vs "last 4 weeks" by date filter
-      const days = where.createdAt.gte ? Math.round((Date.now() - where.createdAt.gte.getTime()) / 86400000) : 0;
-      if (days <= 8) return Promise.resolve([{ assigneeId: "u-editor", _count: { _all: 2 } }]);
-      return Promise.resolve([{ assigneeId: "u-editor", _count: { _all: 12 } }]);
-    });
-    prismaMock.marketingTask.groupBy.mockResolvedValue([
-      { assigneeId: "u-editor", _count: { _all: 3 } },
-    ]);
-    const res = await TEAM_GET(createRequest("GET", "/api/marketing/team"));
+    const res = await LIST_GET(createRequest("GET", "/api/marketing/content-team"));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.members).toHaveLength(1);
-    expect(data.members[0].outputThisWeek).toBe(2);
-    expect(data.members[0].outputLast4Weeks).toBe(12);
-    expect(data.members[0].avgWeeklyOutput).toBe(3);
-    expect(data.members[0].activeTaskCount).toBe(3);
-    expect(data.hiringMilestones.day60).toBeDefined();
-    expect(data.hiringMilestones.day90).toBeDefined();
-    expect(data.hiringMilestones.day120).toBeDefined();
+    expect(data.members[0].name).toBe("Lina");
+    expect(data.members[0].role).toBe("video_editor");
+    expect(data.milestones.day60).toBeDefined();
+    expect(data.milestones.day90).toBeDefined();
+    expect(data.milestones.day120).toBeDefined();
     expect(typeof data.resetStartDate).toBe("string");
   });
 });
 
-describe("PATCH /api/marketing/team/[userId]", () => {
-  it("401 unauth", async () => {
-    mockNoSession();
-    const res = await TEAM_PATCH(
-      createRequest("PATCH", "/api/marketing/team/u-1", { body: {} }),
-      { params: Promise.resolve({ userId: "u-1" }) },
-    );
-    expect(res.status).toBe(401);
-  });
-
-  it("404 missing user", async () => {
+describe("POST /api/marketing/content-team", () => {
+  it("400 missing name", async () => {
     mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findUnique.mockImplementation(({ where, select }: any) => {
-      if (select?.contentTeamRole) return Promise.resolve(null); // target lookup
-      return Promise.resolve({ active: true }); // session active check
-    });
-    const res = await TEAM_PATCH(
-      createRequest("PATCH", "/api/marketing/team/missing", { body: { contentTeamStatus: "active" } }),
-      { params: Promise.resolve({ userId: "missing" }) },
-    );
-    expect(res.status).toBe(404);
-  });
-
-  it("400 when status set but role missing", async () => {
-    mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findUnique.mockImplementation(({ select }: any) => {
-      if (select?.contentTeamRole) return Promise.resolve({ id: "u-1", contentTeamRole: null });
-      return Promise.resolve({ active: true });
-    });
-    const res = await TEAM_PATCH(
-      createRequest("PATCH", "/api/marketing/team/u-1", { body: { contentTeamStatus: "active" } }),
-      { params: Promise.resolve({ userId: "u-1" }) },
+    const res = await LIST_POST(
+      createRequest("POST", "/api/marketing/content-team", { body: { role: "video_editor" } }),
     );
     expect(res.status).toBe(400);
   });
 
-  it("happy path: change status from onboarding to active", async () => {
+  it("400 invalid role", async () => {
     mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findUnique.mockImplementation(({ select }: any) => {
-      if (select?.contentTeamRole) return Promise.resolve({ id: "u-1", contentTeamRole: "video_editor" });
-      return Promise.resolve({ active: true });
-    });
-    prismaMock.user.update.mockResolvedValue({
-      id: "u-1",
-      contentTeamRole: "video_editor",
-      contentTeamStatus: "active",
-      contentTeamStartedAt: null,
-      contentTeamPausedAt: null,
-      contentTeamPauseReason: null,
-    });
-    const res = await TEAM_PATCH(
-      createRequest("PATCH", "/api/marketing/team/u-1", { body: { contentTeamStatus: "active" } }),
-      { params: Promise.resolve({ userId: "u-1" }) },
-    );
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.contentTeamStatus).toBe("active");
-  });
-});
-
-describe("POST /api/marketing/team/add", () => {
-  it("400 invalid body", async () => {
-    mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    const res = await TEAM_ADD(
-      createRequest("POST", "/api/marketing/team/add", { body: { role: "video_editor" } as any }),
+    const res = await LIST_POST(
+      createRequest("POST", "/api/marketing/content-team", { body: { name: "Lina", role: "invalid" } }),
     );
     expect(res.status).toBe(400);
-  });
-
-  it("404 unknown user", async () => {
-    mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findUnique.mockImplementation(({ select }: any) => {
-      if (select?.contentTeamRole) return Promise.resolve(null);
-      return Promise.resolve({ active: true });
-    });
-    const res = await TEAM_ADD(
-      createRequest("POST", "/api/marketing/team/add", { body: { userId: "missing", role: "video_editor" } }),
-    );
-    expect(res.status).toBe(404);
-  });
-
-  it("409 already on team", async () => {
-    mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findUnique.mockImplementation(({ select }: any) => {
-      if (select?.contentTeamRole) return Promise.resolve({ id: "u-1", contentTeamRole: "video_editor", contentTeamStatus: "active" });
-      return Promise.resolve({ active: true });
-    });
-    const res = await TEAM_ADD(
-      createRequest("POST", "/api/marketing/team/add", { body: { userId: "u-1", role: "video_editor" } }),
-    );
-    expect(res.status).toBe(409);
   });
 
   it("201 happy path", async () => {
     mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findUnique.mockImplementation(({ select }: any) => {
-      if (select?.contentTeamRole) return Promise.resolve({ id: "u-1", contentTeamRole: null, contentTeamStatus: null });
-      return Promise.resolve({ active: true });
-    });
-    prismaMock.user.update.mockResolvedValue({
-      id: "u-1",
+    prismaMock.contentTeamMember.create.mockResolvedValue({
+      id: "m-1",
       name: "Lina",
-      contentTeamRole: "video_editor",
-      contentTeamStatus: "onboarding",
-      contentTeamStartedAt: new Date("2026-04-28"),
+      role: "video_editor",
+      status: "prospect",
+      phone: null,
+      email: null,
+      notes: null,
+      startedAt: null,
+      pausedAt: null,
+      pauseReason: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    const res = await TEAM_ADD(
-      createRequest("POST", "/api/marketing/team/add", { body: { userId: "u-1", role: "video_editor", startedAt: "2026-04-28" } }),
+    const res = await LIST_POST(
+      createRequest("POST", "/api/marketing/content-team", { body: { name: "Lina", role: "video_editor" } }),
     );
     expect(res.status).toBe(201);
     const data = await res.json();
-    expect(data.contentTeamStatus).toBe("onboarding");
-  });
-
-  it("readds a previously departed user", async () => {
-    mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findUnique.mockImplementation(({ select }: any) => {
-      if (select?.contentTeamRole) return Promise.resolve({ id: "u-1", contentTeamRole: "video_editor", contentTeamStatus: "departed" });
-      return Promise.resolve({ active: true });
-    });
-    prismaMock.user.update.mockResolvedValue({
-      id: "u-1",
-      name: "Lina",
-      contentTeamRole: "video_editor",
-      contentTeamStatus: "onboarding",
-      contentTeamStartedAt: new Date(),
-    });
-    const res = await TEAM_ADD(
-      createRequest("POST", "/api/marketing/team/add", { body: { userId: "u-1", role: "video_editor" } }),
-    );
-    expect(res.status).toBe(201);
+    expect(data.name).toBe("Lina");
+    expect(data.status).toBe("prospect");
   });
 });
 
-describe("GET /api/marketing/team/candidates", () => {
-  it("returns active users not currently on the team", async () => {
+describe("PATCH /api/marketing/content-team/[id]", () => {
+  it("401 unauth", async () => {
+    mockNoSession();
+    const res = await MEMBER_PATCH(
+      createRequest("PATCH", "/api/marketing/content-team/m-1", { body: {} }),
+      { params: Promise.resolve({ id: "m-1" }) },
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("404 missing member", async () => {
     mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.user.findMany.mockResolvedValue([
-      { id: "u-1", name: "Sara", email: "s@x.com", role: "staff" },
-      { id: "u-2", name: "Lina", email: "l@x.com", role: "marketing" },
-    ]);
-    const res = await CANDIDATES_GET(createRequest("GET", "/api/marketing/team/candidates"));
+    prismaMock.contentTeamMember.findUnique.mockResolvedValue(null);
+    const res = await MEMBER_PATCH(
+      createRequest("PATCH", "/api/marketing/content-team/missing", { body: { status: "active" } }),
+      { params: Promise.resolve({ id: "missing" }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("happy path: change status to active", async () => {
+    mockSession({ id: "akram", name: "Akram", role: "marketing" });
+    prismaMock.contentTeamMember.findUnique.mockResolvedValue({
+      id: "m-1",
+      name: "Lina",
+      role: "video_editor",
+      status: "onboarding",
+    });
+    prismaMock.contentTeamMember.update.mockResolvedValue({
+      id: "m-1",
+      name: "Lina",
+      role: "video_editor",
+      status: "active",
+      phone: null,
+      email: null,
+      notes: null,
+      startedAt: null,
+      pausedAt: null,
+      pauseReason: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const res = await MEMBER_PATCH(
+      createRequest("PATCH", "/api/marketing/content-team/m-1", { body: { status: "active" } }),
+      { params: Promise.resolve({ id: "m-1" }) },
+    );
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.candidates).toHaveLength(2);
+    expect(data.status).toBe("active");
+  });
+});
+
+describe("DELETE /api/marketing/content-team/[id]", () => {
+  it("401 unauth", async () => {
+    mockNoSession();
+    const res = await MEMBER_DELETE(
+      createRequest("DELETE", "/api/marketing/content-team/m-1"),
+      { params: Promise.resolve({ id: "m-1" }) },
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("404 missing member", async () => {
+    mockSession({ id: "akram", name: "Akram", role: "marketing" });
+    prismaMock.contentTeamMember.findUnique.mockResolvedValue(null);
+    const res = await MEMBER_DELETE(
+      createRequest("DELETE", "/api/marketing/content-team/missing"),
+      { params: Promise.resolve({ id: "missing" }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("happy path: deletes member", async () => {
+    mockSession({ id: "akram", name: "Akram", role: "marketing" });
+    prismaMock.contentTeamMember.findUnique.mockResolvedValue({ id: "m-1", name: "Lina" });
+    prismaMock.contentTeamMember.delete.mockResolvedValue({ id: "m-1" });
+    const res = await MEMBER_DELETE(
+      createRequest("DELETE", "/api/marketing/content-team/m-1"),
+      { params: Promise.resolve({ id: "m-1" }) },
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.deleted).toBe(true);
   });
 });

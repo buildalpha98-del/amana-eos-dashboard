@@ -735,6 +735,7 @@ model User {
   weeklyMarketingReportsDrafted  WeeklyMarketingReport[]   @relation("WeeklyReportDrafter")
   weeklyMarketingReportsReviewed WeeklyMarketingReport[]   @relation("WeeklyReportReviewer")
   weeklyMarketingReportsSent     WeeklyMarketingReport[]   @relation("WeeklyReportSender")
+  socialCountersUpdated          SocialCounter[]           @relation("SocialCounterUpdater")
 
   // ── Centre Avatars (Sprint 3) ─────────────────────
   centreAvatarInsightsCreated          CentreAvatarInsight[]            @relation("CentreAvatarInsightCreatedBy")
@@ -1659,6 +1660,21 @@ model SchoolComm {
   @@index([year, term])
 }
 
+model SchoolLiaisonLog {
+  id          String   @id @default(cuid())
+  serviceId   String
+  service     Service  @relation("ServiceSchoolLiaisonLogs", fields: [serviceId], references: [id], onDelete: Cascade)
+  contactName String
+  channel     String // phone, email, in_person, whatsapp, other
+  summary     String   @db.VarChar(1000)
+  loggedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([loggedAt])
+}
+
 model PhotoComplianceLog {
   id            String    @id @default(cuid())
   serviceId     String
@@ -2089,6 +2105,7 @@ model Service {
 
   // ── Marketing Operations Relations ─────────────────────
   schoolComms         SchoolComm[]         @relation("ServiceSchoolComms")
+  schoolLiaisonLogs   SchoolLiaisonLog[]   @relation("ServiceSchoolLiaisonLogs")
   photoComplianceLogs PhotoComplianceLog[] @relation("ServicePhotoCompliance")
   npsResponses        NpsSurveyResponse[]  @relation("ServiceNpsResponses")
   termCalendarEntries TermCalendarEntry[]  @relation("ServiceTermCalendar")
@@ -6321,4 +6338,34 @@ model VapiCall {
   @@index([status, callType])
   @@index([centreName, calledAt])
   @@index([urgency, status])
+}
+
+model ContentTeamMember {
+  id          String            @id @default(cuid())
+  name        String
+  role        ContentTeamRole
+  status      ContentTeamStatus @default(prospect)
+  phone       String?
+  email       String?
+  notes       String?           @db.Text
+  startedAt   DateTime?
+  pausedAt    DateTime?
+  pauseReason String?           @db.VarChar(500)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([status])
+  @@index([role])
+}
+
+model SocialCounter {
+  id        String   @id @default(cuid())
+  weekStart DateTime @unique @db.Date
+  feed      Int      @default(0)
+  stories   Int      @default(0)
+  reels     Int      @default(0)
+  updatedById String?
+  updatedBy   User?  @relation("SocialCounterUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

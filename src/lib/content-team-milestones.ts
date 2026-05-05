@@ -76,8 +76,8 @@ export interface ResolvedMilestone {
 }
 
 interface TeamMemberLite {
-  contentTeamRole: ContentTeamRole | null;
-  contentTeamStatus: ContentTeamStatus | null;
+  role: ContentTeamRole | null;
+  status: ContentTeamStatus | null;
 }
 
 export function resolveMilestone(
@@ -91,8 +91,8 @@ export function resolveMilestone(
 
   const hiredRoles = new Set<ContentTeamRole>();
   for (const m of members) {
-    if (m.contentTeamRole && m.contentTeamStatus && HIRED_STATUSES.includes(m.contentTeamStatus)) {
-      hiredRoles.add(m.contentTeamRole);
+    if (m.role && m.status && HIRED_STATUSES.includes(m.status)) {
+      hiredRoles.add(m.role);
     }
   }
   const missing = spec.requiredRoles.filter((r) => !hiredRoles.has(r));

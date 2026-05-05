@@ -5,6 +5,42 @@ import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import type { CockpitSummary } from "@/lib/cockpit/summary";
 
+interface SocialCounterData {
+  weekStart: string;
+  feed: number;
+  stories: number;
+  reels: number;
+}
+
+const SOCIAL_KEY = "social-counter";
+
+export function useSocialCounter() {
+  return useQuery<SocialCounterData>({
+    queryKey: [SOCIAL_KEY],
+    queryFn: () => fetchApi<SocialCounterData>("/api/marketing/social-counter"),
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
+export function useSocialCounterIncrement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { field: "feed" | "stories" | "reels"; delta: number }) =>
+      mutateApi<SocialCounterData>("/api/marketing/social-counter", {
+        method: "PATCH",
+        body: input,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [SOCIAL_KEY] });
+      qc.invalidateQueries({ queryKey: ["cockpit-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
 export function useCockpitSummary() {
   return useQuery<CockpitSummary>({
     queryKey: ["cockpit-summary"],
