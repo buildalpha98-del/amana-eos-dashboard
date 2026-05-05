@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Crown, Users, Building2, AlertCircle, MessageSquare, Mountain } from "lucide-react";
 import { LeadershipRecentIncidentsCard } from "@/components/leadership/LeadershipRecentIncidentsCard";
+import { PerformanceListCard } from "@/components/leadership/PerformanceListCard";
 import { cn } from "@/lib/utils";
 
 const SentimentTrendChart = dynamic(
@@ -159,7 +160,11 @@ export default function LeadershipPage() {
             )}
           </section>
 
-          {/* Section 4: Coordinator Leaderboard */}
+          {/* Section 4: Performance List — per-person EOS metrics
+               (re-homed from /team in PR 5 of the Teams redesign). */}
+          <PerformanceListCard />
+
+          {/* Section 5: Coordinator Leaderboard */}
           <section className="rounded-xl border border-border bg-card p-6 space-y-4">
             <LeaderboardContent embedded />
           </section>
