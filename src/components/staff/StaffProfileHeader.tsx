@@ -2,16 +2,15 @@
 
 /**
  * StaffProfileHeader — top section of the new long-scroll staff
- * profile (PR 3 of the Teams tab redesign). Shows avatar + identity
- * + ACTIVE/PENDING/DEACTIVATED badge, a "Quick actions" column, and
- * a Back-to-Team strip.
- *
- * Quick-action buttons are STUB BUTTONS in this PR — wiring happens
- * in PR 4 against `/api/employees/[id]/quick-action`.
+ * profile. Shows avatar + identity + ACTIVE/PENDING/DEACTIVATED
+ * badge, a "Quick actions" column wired to
+ * /api/employees/[id]/quick-action, and a Back-to-Team strip.
  *
  * 2026-05-04: introduced (spec PR #77).
+ * 2026-05-06: quick actions wired (PR 4).
  */
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -24,9 +23,12 @@ import {
   ListChecks,
   ShieldUser,
   UserX,
+  Loader2,
 } from "lucide-react";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
 import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
+import { useEmployeeQuickAction, type QuickActionType } from "@/hooks/useEmployeeQuickAction";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
 
@@ -77,6 +79,23 @@ export function StaffProfileHeader({
   const status = deriveStatus(user);
   const roleLabel =
     ROLE_DISPLAY_NAMES[user.role as Role] ?? user.role;
+
+  const quickAction = useEmployeeQuickAction(user.id);
+  const [pendingConfirm, setPendingConfirm] = useState<QuickActionType | null>(
+    null,
+  );
+
+  function runConfirm() {
+    if (!pendingConfirm) return;
+    const action = pendingConfirm;
+    setPendingConfirm(null);
+    quickAction.mutate(action);
+  }
+
+  const confirmCopy =
+    pendingConfirm === "toggle_admin" || pendingConfirm === "toggle_active"
+      ? CONFIRM_COPY[pendingConfirm](user)
+      : null;
 
   return (
     <div data-testid="staff-profile-header">
@@ -143,7 +162,7 @@ export function StaffProfileHeader({
           </div>
         </div>
 
-        {/* Quick actions column — stubbed for PR 3, wired in PR 4 */}
+        {/* Quick actions column */}
         {(isAdmin || isSelf || isOwner) && (
           <div
             className="rounded-lg border border-border bg-card p-4 lg:w-64 self-start"
@@ -158,6 +177,7 @@ export function StaffProfileHeader({
                   icon={<Pencil className="h-4 w-4" />}
                   label="Edit profile"
                   disabled
+                  title="Edit fields directly inside each section below"
                   data-action="edit"
                 />
               )}
@@ -165,7 +185,11 @@ export function StaffProfileHeader({
                 <QuickActionButton
                   icon={<Key className="h-4 w-4" />}
                   label="Reset password"
-                  disabled
+                  loading={
+                    quickAction.isPending &&
+                    quickAction.variables === "reset_password"
+                  }
+                  onClick={() => quickAction.mutate("reset_password")}
                   data-action="reset-password"
                 />
               )}
@@ -173,17 +197,25 @@ export function StaffProfileHeader({
                 <QuickActionButton
                   icon={<ListChecks className="h-4 w-4" />}
                   label="Trigger onboarding"
-                  disabled
+                  loading={
+                    quickAction.isPending &&
+                    quickAction.variables === "trigger_onboarding"
+                  }
+                  onClick={() => quickAction.mutate("trigger_onboarding")}
                   data-action="trigger-onboarding"
                 />
               )}
-              {isOwner && (
+              {isOwner && !isSelf && (
                 <QuickActionButton
                   icon={<ShieldUser className="h-4 w-4" />}
                   label={
                     user.role === "admin" ? "Remove admin" : "Make admin"
                   }
-                  disabled
+                  loading={
+                    quickAction.isPending &&
+                    quickAction.variables === "toggle_admin"
+                  }
+                  onClick={() => setPendingConfirm("toggle_admin")}
                   data-action="make-admin"
                 />
               )}
@@ -191,21 +223,77 @@ export function StaffProfileHeader({
                 <QuickActionButton
                   icon={<UserX className="h-4 w-4" />}
                   label={user.active ? "Deactivate" : "Reactivate"}
-                  variant="destructive"
-                  disabled
+                  variant={user.active ? "destructive" : "default"}
+                  loading={
+                    quickAction.isPending &&
+                    quickAction.variables === "toggle_active"
+                  }
+                  onClick={() => setPendingConfirm("toggle_active")}
                   data-action="deactivate"
                 />
               )}
             </div>
-            <p className="text-[10px] text-muted/70 mt-3 italic">
-              Coming in next release
-            </p>
           </div>
         )}
       </div>
+
+      {confirmCopy && (
+        <ConfirmDialog
+          open={pendingConfirm !== null}
+          onOpenChange={(o) => !o && setPendingConfirm(null)}
+          title={confirmCopy.title}
+          description={confirmCopy.description}
+          confirmLabel={confirmCopy.confirmLabel}
+          variant={confirmCopy.variant}
+          onConfirm={runConfirm}
+          loading={quickAction.isPending}
+        />
+      )}
     </div>
   );
 }
+
+const CONFIRM_COPY: Record<
+  Extract<QuickActionType, "toggle_admin" | "toggle_active">,
+  (user: StaffProfileHeaderProps["user"]) => {
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant: "danger" | "default";
+  }
+> = {
+  toggle_admin: (user) =>
+    user.role === "admin"
+      ? {
+          title: `Remove ${user.name} as admin?`,
+          description:
+            "They will lose admin permissions immediately. Their other access stays the same.",
+          confirmLabel: "Remove admin",
+          variant: "danger",
+        }
+      : {
+          title: `Make ${user.name} an admin?`,
+          description:
+            "They will gain full admin permissions across the dashboard immediately.",
+          confirmLabel: "Make admin",
+          variant: "default",
+        },
+  toggle_active: (user) =>
+    user.active
+      ? {
+          title: `Deactivate ${user.name}?`,
+          description:
+            "They will be unable to sign in. Their data and history are preserved — you can reactivate them later.",
+          confirmLabel: "Deactivate",
+          variant: "danger",
+        }
+      : {
+          title: `Reactivate ${user.name}?`,
+          description: "They will be able to sign in again immediately.",
+          confirmLabel: "Reactivate",
+          variant: "default",
+        },
+};
 
 // ── QuickActionButton ───────────────────────────────────────────────
 
@@ -213,7 +301,9 @@ interface QuickActionButtonProps {
   icon: React.ReactNode;
   label: string;
   disabled?: boolean;
+  loading?: boolean;
   variant?: "default" | "destructive";
+  title?: string;
   "data-action"?: string;
   onClick?: () => void;
 }
@@ -222,6 +312,7 @@ function QuickActionButton({
   icon,
   label,
   disabled,
+  loading,
   variant = "default",
   onClick,
   ...rest
@@ -230,7 +321,7 @@ function QuickActionButton({
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
       className={cn(
         "inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-left",
         "hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed",
@@ -238,7 +329,7 @@ function QuickActionButton({
       )}
       {...rest}
     >
-      {icon}
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : icon}
       <span>{label}</span>
     </button>
   );
