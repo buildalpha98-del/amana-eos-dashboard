@@ -50,6 +50,7 @@ import {
   Bug,
   Mail,
   QrCode,
+  Network,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -120,6 +121,8 @@ export const navItems: NavItem[] = [
   { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings", roles: EOS_SIDEBAR_ROLES },
   { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)", roles: EOS_SIDEBAR_ROLES },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings", roles: EOS_SIDEBAR_ROLES },
+  // Visible to ALL roles (everyone benefits from seeing org structure).
+  { href: "/accountability-chart", label: "Accountability Chart", icon: Network, section: "EOS", tooltip: "Who's accountable for what — the org structure" },
 
   // ── Operations — day-to-day running ───────────────────────
   { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING },
