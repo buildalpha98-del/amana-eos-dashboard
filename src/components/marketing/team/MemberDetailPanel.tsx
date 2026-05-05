@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
-import { usePatchMember, type TeamMember } from "@/hooks/useContentTeam";
+import { usePatchMember, useDeleteMember, type TeamMember } from "@/hooks/useContentTeam";
 import { toast } from "@/hooks/useToast";
 import type { ContentTeamRole, ContentTeamStatus } from "@prisma/client";
 
@@ -31,6 +31,11 @@ function fmtDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function weeksFromStart(startedAt: string | null): number {
+  if (!startedAt) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / (7 * 86_400_000)));
+}
+
 interface MemberDetailPanelProps {
   member: TeamMember | null;
   onClose: () => void;
@@ -38,11 +43,30 @@ interface MemberDetailPanelProps {
 
 export function MemberDetailPanel({ member, onClose }: MemberDetailPanelProps) {
   const patch = usePatchMember();
+  const del = useDeleteMember();
   const [editing, setEditing] = useState(false);
-  const [role, setRole] = useState<ContentTeamRole | "">(member?.contentTeamRole ?? "");
-  const [status, setStatus] = useState<ContentTeamStatus | "">(member?.contentTeamStatus ?? "");
-  const [startedAt, setStartedAt] = useState(member?.contentTeamStartedAt?.slice(0, 10) ?? "");
-  const [pauseReason, setPauseReason] = useState(member?.contentTeamPauseReason ?? "");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<ContentTeamRole | "">(member?.role ?? "");
+  const [status, setStatus] = useState<ContentTeamStatus | "">(member?.status ?? "");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [startedAt, setStartedAt] = useState("");
+  const [pauseReason, setPauseReason] = useState("");
+  const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (member) {
+      setName(member.name);
+      setRole(member.role);
+      setStatus(member.status);
+      setEmail(member.email ?? "");
+      setPhone(member.phone ?? "");
+      setStartedAt(member.startedAt?.slice(0, 10) ?? "");
+      setPauseReason(member.pauseReason ?? "");
+      setNotes(member.notes ?? "");
+      setEditing(false);
+    }
+  }, [member?.id]);
 
   if (!member) {
     return (
@@ -54,26 +78,33 @@ export function MemberDetailPanel({ member, onClose }: MemberDetailPanelProps) {
     );
   }
 
-  // Reset local state when a different member is opened.
-  if (member.id && (role || "") !== (member.contentTeamRole || "") && !editing) {
-    setRole(member.contentTeamRole ?? "");
-    setStatus(member.contentTeamStatus ?? "");
-    setStartedAt(member.contentTeamStartedAt?.slice(0, 10) ?? "");
-    setPauseReason(member.contentTeamPauseReason ?? "");
-  }
-
   async function onSave() {
     try {
       await patch.mutateAsync({
-        userId: member!.id,
-        contentTeamRole: (role || null) as ContentTeamRole | null,
-        contentTeamStatus: (status || null) as ContentTeamStatus | null,
-        contentTeamStartedAt: startedAt ? new Date(startedAt).toISOString() : null,
-        contentTeamPausedAt: status === "paused" ? new Date().toISOString() : null,
-        contentTeamPauseReason: status === "paused" ? pauseReason : null,
+        id: member!.id,
+        name: name.trim(),
+        role: (role || undefined) as ContentTeamRole | undefined,
+        status: (status || undefined) as ContentTeamStatus | undefined,
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        startedAt: startedAt || null,
+        pausedAt: status === "paused" ? new Date().toISOString() : null,
+        pauseReason: status === "paused" ? pauseReason : null,
+        notes: notes.trim() || null,
       });
       toast({ description: "Member updated" });
       setEditing(false);
+    } catch {
+      // hook toast
+    }
+  }
+
+  async function onDelete() {
+    if (!confirm(`Remove ${member!.name} from the content team?`)) return;
+    try {
+      await del.mutateAsync(member!.id);
+      toast({ description: "Member removed" });
+      onClose();
     } catch {
       // hook toast
     }
@@ -83,7 +114,7 @@ export function MemberDetailPanel({ member, onClose }: MemberDetailPanelProps) {
     <Sheet open={!!member} onOpenChange={(o) => !o && onClose()}>
       <SheetContent>
         <SheetTitle>{member.name}</SheetTitle>
-        <SheetDescription>{member.email}</SheetDescription>
+        <SheetDescription>{member.email ?? member.phone ?? member.role.replace(/_/g, " ")}</SheetDescription>
 
         <div className="mt-4 space-y-4">
           {!editing ? (
@@ -91,60 +122,83 @@ export function MemberDetailPanel({ member, onClose }: MemberDetailPanelProps) {
               <section className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <div className="text-xs text-muted">Role</div>
-                  <div className="font-medium capitalize">{member.contentTeamRole?.replace(/_/g, " ") ?? "—"}</div>
+                  <div className="font-medium capitalize">{member.role.replace(/_/g, " ")}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted">Status</div>
-                  <div className="font-medium capitalize">{member.contentTeamStatus ?? "—"}</div>
+                  <div className="font-medium capitalize">{member.status}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted">Started</div>
-                  <div className="font-medium">{fmtDate(member.contentTeamStartedAt)}</div>
+                  <div className="font-medium">{fmtDate(member.startedAt)}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted">Weeks with team</div>
-                  <div className="font-medium">{member.weeksWithTeam}</div>
+                  <div className="font-medium">{weeksFromStart(member.startedAt)}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted">Output (this week)</div>
-                  <div className="font-medium">{member.outputThisWeek} posts</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted">Avg / week (4w)</div>
-                  <div className="font-medium">{member.avgWeeklyOutput} posts</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted">Active tasks</div>
-                  <div className="font-medium">{member.activeTaskCount}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted">Paused</div>
-                  <div className="font-medium">{member.contentTeamPausedAt ? fmtDate(member.contentTeamPausedAt) : "—"}</div>
-                </div>
+                {member.email && (
+                  <div>
+                    <div className="text-xs text-muted">Email</div>
+                    <div className="font-medium">{member.email}</div>
+                  </div>
+                )}
+                {member.phone && (
+                  <div>
+                    <div className="text-xs text-muted">Phone</div>
+                    <div className="font-medium">{member.phone}</div>
+                  </div>
+                )}
+                {member.pausedAt && (
+                  <div>
+                    <div className="text-xs text-muted">Paused</div>
+                    <div className="font-medium">{fmtDate(member.pausedAt)}</div>
+                  </div>
+                )}
               </section>
-              {member.contentTeamPauseReason && (
+              {member.pauseReason && (
                 <section>
                   <div className="text-xs text-muted">Pause reason</div>
-                  <p className="text-sm">{member.contentTeamPauseReason}</p>
+                  <p className="text-sm">{member.pauseReason}</p>
                 </section>
               )}
-              <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>Edit</Button>
+              {member.notes && (
+                <section>
+                  <div className="text-xs text-muted">Notes</div>
+                  <p className="text-sm whitespace-pre-wrap">{member.notes}</p>
+                </section>
+              )}
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>Edit</Button>
+                <Button variant="destructive" size="sm" onClick={onDelete} loading={del.isPending}>Remove</Button>
+              </div>
             </>
           ) : (
             <div className="space-y-3">
               <div>
+                <label className="block text-xs font-medium text-muted mb-1">Name</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-muted mb-1">Role</label>
                 <select value={role} onChange={(e) => setRole(e.target.value as ContentTeamRole | "")} className="w-full rounded-md border border-border bg-card p-2 text-sm">
-                  <option value="">— Clear —</option>
                   {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted mb-1">Status</label>
                 <select value={status} onChange={(e) => setStatus(e.target.value as ContentTeamStatus | "")} className="w-full rounded-md border border-border bg-card p-2 text-sm">
-                  <option value="">— Clear —</option>
                   {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-muted mb-1">Email</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted mb-1">Phone</label>
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted mb-1">Started</label>
@@ -156,6 +210,10 @@ export function MemberDetailPanel({ member, onClose }: MemberDetailPanelProps) {
                   <textarea value={pauseReason} onChange={(e) => setPauseReason(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
                 </div>
               )}
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1">Notes</label>
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="w-full rounded-md border border-border bg-card p-2 text-sm" />
+              </div>
               <div className="flex items-center justify-end gap-2">
                 <Button variant="secondary" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
                 <Button variant="primary" size="sm" onClick={onSave} loading={patch.isPending}>Save</Button>

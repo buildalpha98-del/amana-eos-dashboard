@@ -6,18 +6,16 @@ import type { ContentTeamRole, ContentTeamStatus } from "@prisma/client";
 export interface TeamMember {
   id: string;
   name: string;
-  email: string;
-  active: boolean;
-  contentTeamRole: ContentTeamRole | null;
-  contentTeamStatus: ContentTeamStatus | null;
-  contentTeamStartedAt: string | null;
-  contentTeamPausedAt: string | null;
-  contentTeamPauseReason: string | null;
-  weeksWithTeam: number;
-  outputThisWeek: number;
-  outputLast4Weeks: number;
-  avgWeeklyOutput: number;
-  activeTaskCount: number;
+  role: ContentTeamRole;
+  status: ContentTeamStatus;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+  startedAt: string | null;
+  pausedAt: string | null;
+  pauseReason: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ResolvedMilestone {
@@ -34,20 +32,11 @@ export interface ResolvedMilestone {
 
 export interface TeamResponse {
   members: TeamMember[];
-  hiringMilestones: Record<"day60" | "day90" | "day120", ResolvedMilestone>;
+  milestones: Record<"day60" | "day90" | "day120", ResolvedMilestone>;
   resetStartDate: string;
-  outputSignal: string;
-}
-
-export interface TeamCandidate {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
 }
 
 const TEAM_KEY = "marketing-content-team";
-const CANDIDATES_KEY = "marketing-content-team-candidates";
 
 function destructive(err: Error) {
   toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -56,59 +45,61 @@ function destructive(err: Error) {
 export function useTeam() {
   return useQuery<TeamResponse>({
     queryKey: [TEAM_KEY],
-    queryFn: () => fetchApi<TeamResponse>("/api/marketing/team"),
+    queryFn: () => fetchApi<TeamResponse>("/api/marketing/content-team"),
     retry: 2,
     staleTime: 30_000,
   });
 }
 
-export function useTeamCandidates() {
-  return useQuery<{ candidates: TeamCandidate[] }>({
-    queryKey: [CANDIDATES_KEY],
-    queryFn: () => fetchApi<{ candidates: TeamCandidate[] }>("/api/marketing/team/candidates"),
-    retry: 2,
-    staleTime: 60_000,
+export interface CreateMemberInput {
+  name: string;
+  role: ContentTeamRole;
+  status?: ContentTeamStatus;
+  phone?: string;
+  email?: string;
+  notes?: string;
+  startedAt?: string;
+}
+
+export function useCreateMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateMemberInput) =>
+      mutateApi("/api/marketing/content-team", { method: "POST", body: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [TEAM_KEY] }),
+    onError: destructive,
   });
 }
 
 export interface PatchMemberInput {
-  userId: string;
-  contentTeamRole?: ContentTeamRole | null;
-  contentTeamStatus?: ContentTeamStatus | null;
-  contentTeamStartedAt?: string | null;
-  contentTeamPausedAt?: string | null;
-  contentTeamPauseReason?: string | null;
+  id: string;
+  name?: string;
+  role?: ContentTeamRole;
+  status?: ContentTeamStatus;
+  phone?: string | null;
+  email?: string | null;
+  notes?: string | null;
+  startedAt?: string | null;
+  pausedAt?: string | null;
+  pauseReason?: string | null;
 }
 
 export function usePatchMember() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, ...patch }: PatchMemberInput) =>
-      mutateApi(`/api/marketing/team/${userId}`, { method: "PATCH", body: patch }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [TEAM_KEY] });
-      qc.invalidateQueries({ queryKey: [CANDIDATES_KEY] });
-    },
+    mutationFn: ({ id, ...patch }: PatchMemberInput) =>
+      mutateApi(`/api/marketing/content-team/${id}`, { method: "PATCH", body: patch }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [TEAM_KEY] }),
     onError: destructive,
   });
 }
 
-export interface AddMemberInput {
-  userId: string;
-  role: ContentTeamRole;
-  startedAt?: string;
-  initialStatus?: ContentTeamStatus;
-}
-
-export function useAddMember() {
+export function useDeleteMember() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: AddMemberInput) =>
-      mutateApi("/api/marketing/team/add", { method: "POST", body: input }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [TEAM_KEY] });
-      qc.invalidateQueries({ queryKey: [CANDIDATES_KEY] });
-    },
+    mutationFn: (id: string) =>
+      mutateApi(`/api/marketing/content-team/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [TEAM_KEY] }),
     onError: destructive,
   });
 }

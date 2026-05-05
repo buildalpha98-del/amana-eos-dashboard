@@ -21,6 +21,11 @@ const STATUS_PILL: Record<string, string> = {
   departed: "bg-red-50 text-red-700 border-red-200",
 };
 
+function weeksFromStart(startedAt: string | null): number {
+  if (!startedAt) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / (7 * 86_400_000)));
+}
+
 export default function TeamContent() {
   const { data, isLoading, isError, error, refetch } = useTeam();
   const [addOpen, setAddOpen] = useState(false);
@@ -30,7 +35,7 @@ export default function TeamContent() {
     <div className="max-w-7xl mx-auto space-y-6">
       <PageHeader
         title="Content Team"
-        description="Hiring milestones, output, and role status. Recruitment continues in the Recruitment tab; this page tracks members post-hire."
+        description="Manage your content team — freelancers, contractors, and in-house creatives. No dashboard account required."
         primaryAction={{ label: "Add member", icon: Plus, onClick: () => setAddOpen(true) }}
       />
 
@@ -47,16 +52,15 @@ export default function TeamContent() {
 
       {data && (
         <>
-          <MilestoneCards milestones={data.hiringMilestones} resetStartDate={data.resetStartDate} />
+          <MilestoneCards milestones={data.milestones} resetStartDate={data.resetStartDate} />
 
           <section>
             <header className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold">Team members ({data.members.length})</h3>
-              <span className="text-xs text-muted">Output signal: assigned posts in MarketingPost</span>
             </header>
             {data.members.length === 0 ? (
               <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted">
-                No team members yet. Click &ldquo;Add member&rdquo; to tag an existing user.
+                No team members yet. Click &ldquo;Add member&rdquo; to get started.
               </p>
             ) : (
               <div className="rounded-xl border border-border bg-card overflow-x-auto">
@@ -67,8 +71,7 @@ export default function TeamContent() {
                       <th className="text-left p-3 font-medium">Role</th>
                       <th className="text-left p-3 font-medium">Status</th>
                       <th className="text-left p-3 font-medium">Weeks</th>
-                      <th className="text-left p-3 font-medium">Output (4w avg)</th>
-                      <th className="text-left p-3 font-medium">Active tasks</th>
+                      <th className="text-left p-3 font-medium">Contact</th>
                       <th className="text-right p-3 font-medium" />
                     </tr>
                   </thead>
@@ -77,26 +80,22 @@ export default function TeamContent() {
                       <tr key={m.id} className="border-t border-border hover:bg-surface/50 cursor-pointer" onClick={() => setSelected(m)}>
                         <td className="p-3">
                           <div className="font-medium text-foreground">{m.name}</div>
-                          <div className="text-xs text-muted">{m.email}</div>
+                          {m.notes && <div className="text-xs text-muted truncate max-w-[200px]">{m.notes}</div>}
                         </td>
                         <td className="p-3 text-foreground capitalize">
-                          {m.contentTeamRole?.replace(/_/g, " ") ?? "—"}
+                          {m.role.replace(/_/g, " ")}
                         </td>
                         <td className="p-3">
-                          {m.contentTeamStatus ? (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_PILL[m.contentTeamStatus]}`}>
-                              {m.contentTeamStatus}
-                            </span>
-                          ) : (
-                            <span className="text-muted text-xs">—</span>
-                          )}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_PILL[m.status] ?? ""}`}>
+                            {m.status}
+                          </span>
                         </td>
-                        <td className="p-3 text-foreground">{m.weeksWithTeam}</td>
-                        <td className="p-3 text-foreground">
-                          {m.avgWeeklyOutput}
-                          <span className="text-xs text-muted ml-1">/ wk</span>
+                        <td className="p-3 text-foreground">{weeksFromStart(m.startedAt)}</td>
+                        <td className="p-3 text-foreground text-xs">
+                          {m.email && <div>{m.email}</div>}
+                          {m.phone && <div className="text-muted">{m.phone}</div>}
+                          {!m.email && !m.phone && <span className="text-muted">—</span>}
                         </td>
-                        <td className="p-3 text-foreground">{m.activeTaskCount}</td>
                         <td className="p-3 text-right">
                           <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); setSelected(m); }}>View</Button>
                         </td>

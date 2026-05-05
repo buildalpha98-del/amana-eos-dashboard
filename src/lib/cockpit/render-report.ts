@@ -27,11 +27,6 @@ export function renderWeeklyReportMarkdown(snapshot: CockpitSummary): string {
   rows.push(line("Feed posts", t.brandSocial.feed));
   rows.push(line("Stories", t.brandSocial.stories));
   rows.push(line("Reels", t.brandSocial.reels));
-  rows.push(
-    `- ${ragIcon(t.brandSocial.ctaCompliance.status)} **CTA compliance** — ${Math.round(
-      t.brandSocial.ctaCompliance.current * 100,
-    )}%`,
-  );
   rows.push("");
 
   rows.push(`## Content Team`);
@@ -50,7 +45,8 @@ export function renderWeeklyReportMarkdown(snapshot: CockpitSummary): string {
   if (weakCentres.length > 0) {
     rows.push(`Centres needing attention:`);
     for (const c of weakCentres) {
-      rows.push(`- ${ragIcon(c.status)} ${c.serviceName} (${c.count} placements)`);
+      const ago = c.daysAgo === null ? "no contact" : `${c.daysAgo}d ago`;
+      rows.push(`- ${ragIcon(c.status)} ${c.serviceName} — last contact: ${ago}`);
     }
   }
   rows.push("");

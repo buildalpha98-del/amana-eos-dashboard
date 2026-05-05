@@ -38,9 +38,12 @@ function setupDefaults() {
   prismaMock.vendorBrief.findMany.mockResolvedValue([]);
   prismaMock.weeklyMarketingReport.findFirst.mockResolvedValue(null);
   prismaMock.weeklyMarketingReport.findUnique.mockResolvedValue(null);
-  // Sprint 7+8 — content team milestone resolution + team output count
-  prismaMock.user.findMany.mockResolvedValue([]);
+  prismaMock.socialCounter.findUnique.mockResolvedValue(null);
+  // Sprint 7+8 — content team milestone resolution (standalone model)
+  prismaMock.contentTeamMember.count.mockResolvedValue(0);
+  prismaMock.contentTeamMember.findMany.mockResolvedValue([]);
   prismaMock.marketingPost.count.mockResolvedValue(0);
+  prismaMock.schoolLiaisonLog.findMany.mockResolvedValue([]);
 }
 
 describe("GET /api/marketing/cockpit/summary", () => {
@@ -95,23 +98,25 @@ describe("GET /api/marketing/cockpit/summary", () => {
     expect(body.tiles.whatsapp.patternsFlagged).toBe(0);
   });
 
-  it("aggregates feed/story/reel counts from MarketingPost", async () => {
+  it("reads feed/story/reel counts from SocialCounter", async () => {
     mockSession({ id: "marketing-1", name: "Akram", role: "marketing" });
-    prismaMock.marketingPost.findMany.mockResolvedValue([
-      { id: "1", format: "feed", content: "Check link in bio" },
-      { id: "2", format: "feed", content: "No cta" },
-      { id: "3", format: "story", content: null },
-      { id: "4", format: "reel", content: "https://example.com" },
-    ]);
+    prismaMock.socialCounter.findUnique.mockResolvedValue({
+      id: "sc-1",
+      weekStart: new Date(),
+      feed: 7,
+      stories: 22,
+      reels: 2,
+      updatedById: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     const req = createRequest("GET", "/api/marketing/cockpit/summary");
     const res = await GET(req);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.tiles.brandSocial.feed.current).toBe(2);
-    expect(body.tiles.brandSocial.stories.current).toBe(1);
-    expect(body.tiles.brandSocial.reels.current).toBe(1);
-    // 2 of 3 CTA-eligible posts have a CTA (feed#1 + reel)
-    expect(body.tiles.brandSocial.ctaCompliance.current).toBeCloseTo(0.67, 1);
+    expect(body.tiles.brandSocial.feed.current).toBe(7);
+    expect(body.tiles.brandSocial.stories.current).toBe(22);
+    expect(body.tiles.brandSocial.reels.current).toBe(2);
   });
 });

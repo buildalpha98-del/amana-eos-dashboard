@@ -15,6 +15,7 @@ interface QuickEntryPanelProps {
 interface RowState {
   posted: boolean;
   notPostingReason?: WhatsAppNonPostReason;
+  notes?: string;
 }
 
 const REASON_OPTIONS: Array<{ value: WhatsAppNonPostReason; label: string }> = [
@@ -27,29 +28,21 @@ const REASON_OPTIONS: Array<{ value: WhatsAppNonPostReason; label: string }> = [
   { value: "other", label: "Other" },
 ];
 
-function dayLabelFor(date: Date): string {
-  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  return days[date.getUTCDay()];
-}
-
-function todayUtc(): Date {
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
-}
-
 function getQuickEntryDate(): { iso: string; label: string; isMonday: boolean } {
-  const today = todayUtc();
-  const day = today.getUTCDay();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = today.getDay();
   const back = day === 1 ? 3 : day === 0 ? 2 : day === 6 ? 1 : 1;
   const d = new Date(today.getTime() - back * 24 * 60 * 60 * 1000);
-  const iso = d.toISOString().slice(0, 10);
-  const dayName = dayLabelFor(d);
-  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const iso = `${yyyy}-${mm}-${dd}`;
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return {
     iso,
-    label: `${dayName} ${dd} ${months[d.getUTCMonth()]}`,
+    label: `${days[d.getDay()]} ${dd} ${months[d.getMonth()]}`,
     isMonday: day === 1,
   };
 }
@@ -105,7 +98,14 @@ export function QuickEntryPanel({ grid }: QuickEntryPanelProps) {
   const setReason = (serviceId: string, reason: WhatsAppNonPostReason) => {
     setState((prev) => ({
       ...prev,
-      [serviceId]: { posted: false, notPostingReason: reason },
+      [serviceId]: { ...prev[serviceId], posted: false, notPostingReason: reason },
+    }));
+  };
+
+  const setNotes = (serviceId: string, notes: string) => {
+    setState((prev) => ({
+      ...prev,
+      [serviceId]: { ...prev[serviceId], notes },
     }));
   };
 
@@ -116,6 +116,7 @@ export function QuickEntryPanel({ grid }: QuickEntryPanelProps) {
         serviceId: centre.id,
         posted: row.posted,
         notPostingReason: row.posted ? undefined : row.notPostingReason,
+        notes: row.notes?.trim() || undefined,
       };
     });
     try {
@@ -177,25 +178,37 @@ export function QuickEntryPanel({ grid }: QuickEntryPanelProps) {
                 </span>
               </label>
               {!row.posted && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {REASON_OPTIONS.map((opt) => {
-                    const active = row.notPostingReason === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setReason(centre.id, opt.value)}
-                        className={`px-2 py-0.5 rounded-full text-xs border transition-colors ${
-                          active
-                            ? "bg-brand text-white border-brand"
-                            : "bg-card text-muted border-border hover:text-foreground"
-                        }`}
-                        aria-pressed={active}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex flex-wrap gap-1">
+                    {REASON_OPTIONS.map((opt) => {
+                      const active = row.notPostingReason === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setReason(centre.id, opt.value)}
+                          className={`px-2 py-0.5 rounded-full text-xs border transition-colors ${
+                            active
+                              ? "bg-brand text-white border-brand"
+                              : "bg-card text-muted border-border hover:text-foreground"
+                          }`}
+                          aria-pressed={active}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {row.notPostingReason === "other" && (
+                    <input
+                      type="text"
+                      value={row.notes ?? ""}
+                      onChange={(e) => setNotes(centre.id, e.target.value)}
+                      placeholder="Type the reason…"
+                      className="w-full rounded-md border border-amber-300 bg-white text-xs p-1.5"
+                      autoFocus
+                    />
+                  )}
                 </div>
               )}
             </li>

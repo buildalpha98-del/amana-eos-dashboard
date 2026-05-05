@@ -153,7 +153,8 @@ export const GET = withApiAuth(
 );
 
 const createSchema = z.object({
-  campaignId: z.string().min(1),
+  campaignId: z.string().min(1).optional(),
+  title: z.string().min(1).optional(),
   serviceId: z.string().min(1),
   activationType: z.nativeEnum(ActivationType).optional(),
   scheduledFor: z.string().refine((d) => !Number.isNaN(Date.parse(d)), { message: "Invalid scheduledFor" }).optional(),
@@ -161,6 +162,8 @@ const createSchema = z.object({
   budget: z.number().nonnegative().optional(),
   notes: z.string().max(2000).optional(),
   coordinatorId: z.string().nullable().optional(),
+}).refine((d) => d.campaignId || d.title, {
+  message: "Either campaignId or title is required",
 });
 
 export const POST = withApiAuth(
@@ -169,20 +172,38 @@ export const POST = withApiAuth(
     const parsed = createSchema.safeParse(raw);
     if (!parsed.success) throw ApiError.badRequest("Validation failed", parsed.error.flatten());
 
-    const [campaign, service] = await Promise.all([
-      prisma.marketingCampaign.findUnique({ where: { id: parsed.data.campaignId }, select: { id: true, startDate: true } }),
-      prisma.service.findUnique({ where: { id: parsed.data.serviceId }, select: { id: true } }),
-    ]);
-    if (!campaign) throw ApiError.badRequest("Unknown campaignId");
+    const service = await prisma.service.findUnique({ where: { id: parsed.data.serviceId }, select: { id: true } });
     if (!service) throw ApiError.badRequest("Unknown serviceId");
 
-    const scheduled = parsed.data.scheduledFor ? new Date(parsed.data.scheduledFor) : campaign.startDate;
+    let campaignId = parsed.data.campaignId;
+    let campaignStartDate: Date | null = null;
+
+    if (campaignId) {
+      const campaign = await prisma.marketingCampaign.findUnique({ where: { id: campaignId }, select: { id: true, startDate: true } });
+      if (!campaign) throw ApiError.badRequest("Unknown campaignId");
+      campaignStartDate = campaign.startDate;
+    } else {
+      const scheduled = parsed.data.scheduledFor ? new Date(parsed.data.scheduledFor) : null;
+      const campaign = await prisma.marketingCampaign.create({
+        data: {
+          name: parsed.data.title!,
+          type: "activation",
+          status: "active",
+          startDate: scheduled,
+          endDate: scheduled,
+        },
+      });
+      campaignId = campaign.id;
+      campaignStartDate = campaign.startDate;
+    }
+
+    const scheduled = parsed.data.scheduledFor ? new Date(parsed.data.scheduledFor) : campaignStartDate;
     const term = scheduled ? getTermForDate(scheduled) : null;
 
     try {
       const created = await prisma.campaignActivationAssignment.create({
         data: {
-          campaignId: parsed.data.campaignId,
+          campaignId,
           serviceId: parsed.data.serviceId,
           activationType: parsed.data.activationType ?? null,
           scheduledFor: scheduled ?? null,

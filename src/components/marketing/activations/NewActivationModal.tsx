@@ -42,6 +42,9 @@ export function NewActivationModal({ open, onClose, initialServiceId, initialCam
   const create = useCreateActivation();
   const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
   const [services, setServices] = useState<ServiceOption[]>([]);
+
+  const [title, setTitle] = useState("");
+  const [linkCampaign, setLinkCampaign] = useState(!!initialCampaignId);
   const [campaignId, setCampaignId] = useState(initialCampaignId ?? "");
   const [serviceId, setServiceId] = useState(initialServiceId ?? "");
   const [activationType, setActivationType] = useState<ActivationType | "">("");
@@ -51,32 +54,46 @@ export function NewActivationModal({ open, onClose, initialServiceId, initialCam
 
   useEffect(() => {
     if (!open) return;
+    setTitle("");
+    setLinkCampaign(!!initialCampaignId);
     setCampaignId(initialCampaignId ?? "");
     setServiceId(initialServiceId ?? "");
-    Promise.all([
-      fetchApi<{ activations: unknown; unassignedCampaigns: CampaignOption[] }>("/api/marketing/activations").catch(() => null),
-      fetchApi<ServiceOption[]>("/api/services?status=active").catch(() => []),
-    ]).then(([actsResp, servs]) => {
-      // Pull all campaigns by combining unassigned + the campaign on each activation
-      // Simpler: hit the marketing campaigns endpoint if it exists; otherwise use unassigned only.
-      fetchApi<Array<{ id: string; name: string; type: string }>>("/api/marketing/campaigns").then((all) => {
-        setCampaigns(all.filter((c) => ["event", "launch", "activation"].includes(c.type)));
-      }).catch(() => {
-        setCampaigns(actsResp?.unassignedCampaigns ?? []);
-      });
-      setServices(Array.isArray(servs) ? servs : []);
-    });
+    setActivationType("");
+    setScheduledFor("");
+    setExpectedAttendance("");
+    setNotes("");
+
+    fetchApi<ServiceOption[]>("/api/services?status=active")
+      .then((servs) => setServices(Array.isArray(servs) ? servs : []))
+      .catch(() => setServices([]));
   }, [open, initialServiceId, initialCampaignId]);
+
+  useEffect(() => {
+    if (!linkCampaign || campaigns.length > 0) return;
+    fetchApi<Array<{ id: string; name: string; type: string }>>("/api/marketing/campaigns")
+      .then((all) => setCampaigns(all.filter((c) => ["event", "launch", "activation"].includes(c.type))))
+      .catch(() => setCampaigns([]));
+  }, [linkCampaign, campaigns.length]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!campaignId || !serviceId) {
-      toast({ variant: "destructive", description: "Campaign and centre are required" });
+
+    if (linkCampaign && !campaignId) {
+      toast({ variant: "destructive", description: "Select a campaign or uncheck the toggle" });
       return;
     }
+    if (!linkCampaign && !title.trim()) {
+      toast({ variant: "destructive", description: "Enter a title for this activation" });
+      return;
+    }
+    if (!serviceId) {
+      toast({ variant: "destructive", description: "Centre is required" });
+      return;
+    }
+
     try {
       await create.mutateAsync({
-        campaignId,
+        ...(linkCampaign ? { campaignId } : { title: title.trim() }),
         serviceId,
         activationType: activationType || undefined,
         scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
@@ -86,7 +103,7 @@ export function NewActivationModal({ open, onClose, initialServiceId, initialCam
       toast({ description: "Activation created" });
       onClose();
     } catch {
-      // hook toast
+      // hook toast handles error
     }
   }
 
@@ -95,24 +112,24 @@ export function NewActivationModal({ open, onClose, initialServiceId, initialCam
       <DialogContent>
         <DialogTitle>New activation</DialogTitle>
         <DialogDescription>
-          Pick a campaign + a centre. The activation starts in <em>concept</em> stage; advance it via the lifecycle stepper as work progresses.
+          Give it a name and pick a centre. It starts in <em>concept</em> stage.
         </DialogDescription>
 
         <form onSubmit={onSubmit} className="mt-4 space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-muted mb-1">Campaign *</label>
-            <select
-              value={campaignId}
-              onChange={(e) => setCampaignId(e.target.value)}
-              required
-              className="w-full rounded-md border border-border bg-card p-2 text-sm"
-            >
-              <option value="">— Select campaign —</option>
-              {campaigns.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
-              ))}
-            </select>
-          </div>
+          {!linkCampaign && (
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">Title *</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Bankstown Open Day"
+                autoFocus
+                className="w-full rounded-md border border-border bg-card p-2 text-sm"
+              />
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-medium text-muted mb-1">Centre *</label>
             <select
@@ -127,20 +144,21 @@ export function NewActivationModal({ open, onClose, initialServiceId, initialCam
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-muted mb-1">Type</label>
-            <select
-              value={activationType}
-              onChange={(e) => setActivationType(e.target.value as ActivationType | "")}
-              className="w-full rounded-md border border-border bg-card p-2 text-sm"
-            >
-              <option value="">—</option>
-              {ACTIVATION_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </div>
+
           <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">Type</label>
+              <select
+                value={activationType}
+                onChange={(e) => setActivationType(e.target.value as ActivationType | "")}
+                className="w-full rounded-md border border-border bg-card p-2 text-sm"
+              >
+                <option value="">—</option>
+                {ACTIVATION_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-xs font-medium text-muted mb-1">Scheduled date</label>
               <input
@@ -150,17 +168,19 @@ export function NewActivationModal({ open, onClose, initialServiceId, initialCam
                 className="w-full rounded-md border border-border bg-card p-2 text-sm"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-muted mb-1">Expected attendance</label>
-              <input
-                type="number"
-                min={0}
-                value={expectedAttendance}
-                onChange={(e) => setExpectedAttendance(e.target.value)}
-                className="w-full rounded-md border border-border bg-card p-2 text-sm"
-              />
-            </div>
           </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted mb-1">Expected attendance</label>
+            <input
+              type="number"
+              min={0}
+              value={expectedAttendance}
+              onChange={(e) => setExpectedAttendance(e.target.value)}
+              className="w-full rounded-md border border-border bg-card p-2 text-sm"
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-medium text-muted mb-1">Notes</label>
             <textarea
@@ -170,6 +190,34 @@ export function NewActivationModal({ open, onClose, initialServiceId, initialCam
               className="w-full rounded-md border border-border bg-card p-2 text-sm"
             />
           </div>
+
+          <div className="border-t border-border pt-3">
+            <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+              <input
+                type="checkbox"
+                checked={linkCampaign}
+                onChange={(e) => {
+                  setLinkCampaign(e.target.checked);
+                  if (!e.target.checked) setCampaignId("");
+                }}
+                className="rounded"
+              />
+              Link to existing campaign
+            </label>
+            {linkCampaign && (
+              <select
+                value={campaignId}
+                onChange={(e) => setCampaignId(e.target.value)}
+                className="mt-2 w-full rounded-md border border-border bg-card p-2 text-sm"
+              >
+                <option value="">— Select campaign —</option>
+                {campaigns.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
+                ))}
+              </select>
+            )}
+          </div>
+
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
             <Button type="submit" variant="primary" loading={create.isPending}>Create</Button>

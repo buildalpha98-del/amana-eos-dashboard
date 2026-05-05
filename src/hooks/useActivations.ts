@@ -122,7 +122,8 @@ export function useTermGrid(termYear?: number, termNumber?: number) {
 }
 
 export interface CreateActivationInput {
-  campaignId: string;
+  campaignId?: string;
+  title?: string;
   serviceId: string;
   activationType?: ActivationType;
   scheduledFor?: string;

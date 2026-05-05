@@ -51,3 +51,4 @@ next-env.d.ts
 
 # superpowers brainstorm server
 .superpowers/
+.firecrawl/

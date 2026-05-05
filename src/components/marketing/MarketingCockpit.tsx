@@ -7,6 +7,8 @@ import {
   FileText,
   Loader2,
   MessageCircle,
+  Minus,
+  Plus,
   Send,
   Sparkles,
   TrendingUp,
@@ -21,6 +23,7 @@ import {
   useReviewWeeklyReport,
   useSendWeeklyReport,
   useUpdatePriorities,
+  useSocialCounterIncrement,
   type WeeklyReportDetail,
 } from "@/hooks/useCockpit";
 import type { CockpitSummary } from "@/lib/cockpit/summary";
@@ -384,12 +387,47 @@ function TileCard({
 }
 
 function BrandSocialTile({ data }: { data: CockpitSummary["tiles"]["brandSocial"] }) {
+  const inc = useSocialCounterIncrement();
+  const bump = (field: "feed" | "stories" | "reels", delta: number) => inc.mutate({ field, delta });
+
   return (
     <TileCard title="Brand & Social" icon={Sparkles}>
-      <MetricRow label="Feed posts" {...data.feed} />
-      <MetricRow label="Stories" {...data.stories} />
-      <MetricRow label="Reels" {...data.reels} />
-      <MetricRow label="CTA compliance" {...data.ctaCompliance} unit="pct" />
+      {(["feed", "stories", "reels"] as const).map((field) => {
+        const metric = data[field];
+        const label = field === "feed" ? "Feed posts" : field === "stories" ? "Stories" : "Reels";
+        return (
+          <div key={field} className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-muted">
+              <RagDot status={metric.status} />
+              <span>{label}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => bump(field, -1)}
+                disabled={metric.current <= 0 || inc.isPending}
+                className="w-5 h-5 rounded border border-border flex items-center justify-center text-muted hover:text-foreground hover:bg-surface disabled:opacity-30"
+                aria-label={`Decrease ${label}`}
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className={`font-semibold min-w-[2ch] text-center ${RAG_TEXT_CLASSES[metric.status]}`}>
+                {metric.current}
+              </span>
+              <button
+                type="button"
+                onClick={() => bump(field, 1)}
+                disabled={inc.isPending}
+                className="w-5 h-5 rounded border border-border flex items-center justify-center text-muted hover:text-foreground hover:bg-surface disabled:opacity-30"
+                aria-label={`Increase ${label}`}
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+              <span className="text-muted font-normal text-xs">/ {metric.target}</span>
+            </div>
+          </div>
+        );
+      })}
     </TileCard>
   );
 }
@@ -409,13 +447,7 @@ function ContentTeamTile({ data }: { data: CockpitSummary["tiles"]["contentTeam"
       <TileCard title="Content Team" icon={Users}>
         <MetricRow label="Hires (current milestone)" {...data.hires} />
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted">Output last week</span>
-          <span className="font-semibold text-foreground">
-            {data.teamOutput} <span className="text-muted font-normal">posts</span>
-          </span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted">Active</span>
+          <span className="text-muted">Active members</span>
           <span className="font-semibold text-foreground">{data.activeMembers}</span>
         </div>
         {milestoneText && (
@@ -430,14 +462,19 @@ function SchoolLiaisonTile({ data }: { data: CockpitSummary["tiles"]["schoolLiai
   return (
     <TileCard title="School Liaison" icon={FileText}>
       <MetricRow label="Term placements" {...data.termPlacements} />
-      <div className="mt-2 grid grid-cols-5 gap-1">
+      <div className="mt-2 space-y-1">
         {data.perCentre.map((c) => (
           <div
             key={c.serviceId}
-            title={`${c.serviceName}: ${c.count}`}
-            className={`h-6 rounded ${RAG_DOT_CLASSES[c.status]}/20 border border-border flex items-center justify-center text-[10px] font-medium`}
+            className="flex items-center justify-between text-xs"
           >
-            {c.count}
+            <div className="flex items-center gap-1.5">
+              <span className={`inline-block w-2 h-2 rounded-full ${RAG_DOT_CLASSES[c.status]}`} />
+              <span className="text-foreground truncate max-w-[140px]">{c.serviceName}</span>
+            </div>
+            <span className="text-muted">
+              {c.daysAgo === null ? "no contact" : c.daysAgo === 0 ? "today" : `${c.daysAgo}d ago`}
+            </span>
           </div>
         ))}
       </div>

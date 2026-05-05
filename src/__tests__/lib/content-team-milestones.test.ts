@@ -55,8 +55,8 @@ describe("resolveMilestone — Day 60 (editor + designer)", () => {
 
   it("complete when both roles hired", () => {
     const members = [
-      { contentTeamRole: "video_editor" as const, contentTeamStatus: "active" as const },
-      { contentTeamRole: "designer" as const, contentTeamStatus: "onboarding" as const },
+      { role: "video_editor" as const, status: "active" as const },
+      { role: "designer" as const, status: "onboarding" as const },
     ];
     const r = resolveMilestone(day60, members, RESET, days(30));
     expect(r.status).toBe("complete");
@@ -66,8 +66,8 @@ describe("resolveMilestone — Day 60 (editor + designer)", () => {
 
   it("complete when hired but not yet started (status=hired counts)", () => {
     const members = [
-      { contentTeamRole: "video_editor" as const, contentTeamStatus: "hired" as const },
-      { contentTeamRole: "designer" as const, contentTeamStatus: "hired" as const },
+      { role: "video_editor" as const, status: "hired" as const },
+      { role: "designer" as const, status: "hired" as const },
     ];
     const r = resolveMilestone(day60, members, RESET, days(30));
     expect(r.status).toBe("complete");
@@ -75,7 +75,7 @@ describe("resolveMilestone — Day 60 (editor + designer)", () => {
 
   it("partial: editor hired, designer missing → still missing", () => {
     const members = [
-      { contentTeamRole: "video_editor" as const, contentTeamStatus: "active" as const },
+      { role: "video_editor" as const, status: "active" as const },
     ];
     const r = resolveMilestone(day60, members, RESET, days(30));
     expect(r.missingRoles).toEqual(["designer"]);
@@ -83,8 +83,8 @@ describe("resolveMilestone — Day 60 (editor + designer)", () => {
 
   it("departed/prospect/interview do NOT count as hired", () => {
     const members = [
-      { contentTeamRole: "video_editor" as const, contentTeamStatus: "departed" as const },
-      { contentTeamRole: "designer" as const, contentTeamStatus: "prospect" as const },
+      { role: "video_editor" as const, status: "departed" as const },
+      { role: "designer" as const, status: "prospect" as const },
     ];
     const r = resolveMilestone(day60, members, RESET, days(30));
     expect(r.missingRoles).toEqual(["video_editor", "designer"]);
@@ -108,10 +108,10 @@ describe("pickCurrentMilestone", () => {
   });
   it("returns last when all complete", () => {
     const members = [
-      { contentTeamRole: "video_editor" as const, contentTeamStatus: "active" as const },
-      { contentTeamRole: "designer" as const, contentTeamStatus: "active" as const },
-      { contentTeamRole: "copywriter" as const, contentTeamStatus: "active" as const },
-      { contentTeamRole: "community_manager" as const, contentTeamStatus: "active" as const },
+      { role: "video_editor" as const, status: "active" as const },
+      { role: "designer" as const, status: "active" as const },
+      { role: "copywriter" as const, status: "active" as const },
+      { role: "community_manager" as const, status: "active" as const },
     ];
     const r = resolveAllMilestones(members, days(150));
     const current = pickCurrentMilestone(r.milestones);
