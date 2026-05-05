@@ -144,6 +144,15 @@ describe("rolePageAccess", () => {
       expect(rolePageAccess[role]).toContain("/profile");
     }
   });
+
+  // PR 6 of the Teams redesign: accountability chart is the canonical
+  // EOS "who reports to whom" surface. Hiding it behind admin-tier
+  // would regress the EOS philosophy — every role gets to see it.
+  it("every role can access /accountability-chart", () => {
+    for (const role of ALL_ROLES) {
+      expect(rolePageAccess[role]).toContain("/accountability-chart");
+    }
+  });
 });
 
 // ── 3. canAccessPage ──────────────────────────────────────

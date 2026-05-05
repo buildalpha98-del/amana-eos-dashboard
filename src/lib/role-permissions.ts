@@ -97,6 +97,7 @@ export const allPages = [
   "/leave",
   "/contracts",
   "/team",
+  "/accountability-chart",
   "/settings",
   "/profile",
   "/crm",
@@ -219,6 +220,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/leave",
     "/settings",
     "/assistant",
+    "/accountability-chart",
   ],
   // 2026-04-30: `coordinator` enum value dropped — Service Coordinators are
   // now Directors of Service (`member`). The previous coordinator allowlist
@@ -237,6 +239,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/todos",
     "/issues",
     "/meetings",
+    "/accountability-chart",
     // ── Their centre — primary surface ─────────────────────────
     "/services",
     // /services/[id] inherits from /services via prefix match in
@@ -289,6 +292,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/compliance",
     "/policies",
     "/profile",
+    "/accountability-chart",
     "/children/[id]",
     "/staff/[id]",
     "/roster/me",
