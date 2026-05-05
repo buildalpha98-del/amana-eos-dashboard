@@ -5,11 +5,12 @@ import { isAdminRole } from "@/lib/role-permissions";
 import { logger } from "@/lib/logger";
 import { notFound, redirect } from "next/navigation";
 import {
-  StaffProfileTabs,
   type StaffProfileTabKey,
   type StaffProfileData,
 } from "@/components/staff/StaffProfileTabs";
+import { StaffProfilePageClient } from "@/components/staff/StaffProfilePageClient";
 import { getCertStatus } from "@/lib/cert-status";
+import { computeSnapshotStats } from "@/lib/staff/snapshot-stats";
 
 const VALID_TABS: ReadonlySet<StaffProfileTabKey> = new Set([
   "overview",
@@ -226,10 +227,37 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     },
   };
 
+  // Compute the long-scroll layout's snapshot panel content. The
+  // helper is pure — same input always yields the same output, no DB
+  // calls. Parent passes `latestContract.startDate` as the earliest
+  // contract start because the data load only fetches the most-recent
+  // active contract; if that's older than User.createdAt, tenure
+  // back-dates to it.
+  const snapshotStats = computeSnapshotStats({
+    user: { createdAt: targetUser.createdAt },
+    earliestContractStart: latestContract?.startDate ?? null,
+    nextShift: nextShift
+      ? {
+          date: new Date(nextShift.date),
+          shiftStart: nextShift.shiftStart,
+          shiftEnd: nextShift.shiftEnd,
+          sessionType: nextShift.sessionType,
+          service: targetUser.service
+            ? { name: targetUser.service.name }
+            : null,
+        }
+      : null,
+    certificates: certificates.map((c) => ({ expiryDate: c.expiryDate })),
+    activeRocks: Number(activeRocks) || 0,
+    openTodos: Number(openTodos) || 0,
+  });
+
   return (
-    <StaffProfileTabs
+    <StaffProfilePageClient
       data={data}
+      snapshotStats={snapshotStats}
       activeTab={tab}
+      viewerRole={viewerRole ?? ""}
       canEditPersonal={canEditPersonal}
       canEditEmployment={canEditEmployment}
       canManageCompliance={canManageCompliance}
