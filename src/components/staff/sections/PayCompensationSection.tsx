@@ -18,7 +18,7 @@
 
 import { LeaveTab } from "@/components/staff/tabs/LeaveTab";
 import { SectionShell } from "./SectionShell";
-import type { StaffProfileData } from "@/components/staff/StaffProfileTabs";
+import type { StaffProfileData } from "@/components/staff/types";
 import type { EmploymentContract } from "@prisma/client";
 
 type SubTab = "salary" | "hours" | "leave";

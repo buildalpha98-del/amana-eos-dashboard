@@ -13,7 +13,7 @@ import { ComplianceTab } from "@/components/staff/tabs/ComplianceTab";
 import { DocumentsTab } from "@/components/staff/tabs/DocumentsTab";
 import { ContractsTab } from "@/components/staff/tabs/ContractsTab";
 import { SectionShell } from "./SectionShell";
-import type { StaffProfileData } from "@/components/staff/StaffProfileTabs";
+import type { StaffProfileData } from "@/components/staff/types";
 
 type SubTab =
   | "certifications"

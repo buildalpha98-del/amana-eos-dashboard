@@ -17,10 +17,13 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-// Stub the client tab component since it renders DOM-only pieces (hooks)
-vi.mock("@/components/staff/StaffProfileTabs", () => ({
-  StaffProfileTabs: ({ activeTab }: { activeTab: string }) => {
-    return { type: "div", props: { "data-testid": "tabs", "data-active": activeTab } };
+// Stub the client layout — it renders client-only pieces (hooks)
+vi.mock("@/components/staff/StaffProfileLayout", () => ({
+  StaffProfileLayout: ({ backHref }: { backHref: string }) => {
+    return {
+      type: "div",
+      props: { "data-testid": "layout", "data-back-href": backHref },
+    };
   },
 }));
 
@@ -200,12 +203,10 @@ describe("StaffProfilePage (server component)", () => {
     mockSession({ id: "t1", name: "Target", role: "staff" });
     prismaMock.user.findUnique.mockResolvedValue(makeTargetUser({ id: "t1" }));
 
-    const result = (await StaffProfilePage({
+    const result = await StaffProfilePage({
       params: wrap({ id: "t1" }),
       searchParams: wrap({}),
-    })) as { props?: { activeTab?: string } };
-    // Mocked StaffProfileTabs returns a plain object; React will render it.
-    // We just assert it was called with activeTab default.
+    });
     expect(result).toBeTruthy();
   });
 
@@ -255,29 +256,39 @@ describe("StaffProfilePage (server component)", () => {
     expect(asString).toContain("Access denied");
   });
 
-  it("coerces invalid tab param to overview", async () => {
-    mockSession({ id: "t1", name: "Target", role: "staff" });
+  it("preserves /team list filter params in the back-href", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.user.findUnique.mockResolvedValue(makeTargetUser({ id: "t1" }));
 
-    const result = (await StaffProfilePage({
+    const result = await StaffProfilePage({
       params: wrap({ id: "t1" }),
-      searchParams: wrap({ tab: "not-a-tab" }),
-    })) as { props?: Record<string, unknown> };
-    // The mocked StaffProfileTabs receives activeTab as a prop — React stringifies
-    // the element so "activeTab":"overview" ends up in the serialized tree.
+      searchParams: wrap({ status: "active", service: "svc-1" }),
+    });
     const asString = JSON.stringify(result);
-    expect(asString).toContain('"activeTab":"overview"');
+    expect(asString).toContain('"backHref":"/team?status=active&service=svc-1"');
   });
 
-  it("passes through valid tab param", async () => {
-    mockSession({ id: "t1", name: "Target", role: "staff" });
+  it("strips the legacy tab param from the back-href", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.user.findUnique.mockResolvedValue(makeTargetUser({ id: "t1" }));
 
-    const result = (await StaffProfilePage({
+    const result = await StaffProfilePage({
       params: wrap({ id: "t1" }),
       searchParams: wrap({ tab: "compliance" }),
-    })) as { props?: Record<string, unknown> };
+    });
     const asString = JSON.stringify(result);
-    expect(asString).toContain('"activeTab":"compliance"');
+    expect(asString).toContain('"backHref":"/team"');
+  });
+
+  it("falls back to /team when no list params are present", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.user.findUnique.mockResolvedValue(makeTargetUser({ id: "t1" }));
+
+    const result = await StaffProfilePage({
+      params: wrap({ id: "t1" }),
+      searchParams: wrap({}),
+    });
+    const asString = JSON.stringify(result);
+    expect(asString).toContain('"backHref":"/team"');
   });
 });
