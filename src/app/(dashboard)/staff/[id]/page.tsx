@@ -4,24 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
 import { logger } from "@/lib/logger";
 import { notFound, redirect } from "next/navigation";
-import {
-  type StaffProfileTabKey,
-  type StaffProfileData,
-} from "@/components/staff/StaffProfileTabs";
-import { StaffProfilePageClient } from "@/components/staff/StaffProfilePageClient";
+import type { StaffProfileData } from "@/components/staff/types";
+import { StaffProfileLayout } from "@/components/staff/StaffProfileLayout";
 import { getCertStatus } from "@/lib/cert-status";
 import { computeSnapshotStats } from "@/lib/staff/snapshot-stats";
-
-const VALID_TABS: ReadonlySet<StaffProfileTabKey> = new Set([
-  "overview",
-  "personal",
-  "employment",
-  "leave",
-  "timesheet",
-  "compliance",
-  "documents",
-  "contracts",
-]);
 
 export async function canAccessProfile(
   viewerId: string,
@@ -40,22 +26,38 @@ export async function canAccessProfile(
   return false;
 }
 
-function coerceTab(value: string | undefined): StaffProfileTabKey {
-  if (value && VALID_TABS.has(value as StaffProfileTabKey)) {
-    return value as StaffProfileTabKey;
-  }
-  return "overview";
-}
-
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/**
+ * Build the /team back-link, preserving any list-state search params
+ * (status, service, role, q, page, sort) that the EmployeeRow link
+ * carried over when the user clicked through. Strips the legacy
+ * `tab` param which has no meaning in the new long-scroll layout.
+ */
+function buildBackHref(
+  sp: Record<string, string | string[] | undefined>,
+): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    if (key === "tab") continue;
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const v of value) params.append(key, v);
+    } else {
+      params.set(key, value);
+    }
+  }
+  const qs = params.toString();
+  return qs ? `/team?${qs}` : "/team";
 }
 
 export default async function StaffProfilePage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const sp = (await searchParams) ?? {};
-  const tab = coerceTab(sp.tab);
+  const backHref = buildBackHref(sp);
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -253,16 +255,16 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
   });
 
   return (
-    <StaffProfilePageClient
+    <StaffProfileLayout
       data={data}
       snapshotStats={snapshotStats}
-      activeTab={tab}
       viewerRole={viewerRole ?? ""}
+      isSelf={isSelf}
+      isAdmin={isAdmin}
       canEditPersonal={canEditPersonal}
       canEditEmployment={canEditEmployment}
       canManageCompliance={canManageCompliance}
-      isSelf={isSelf}
-      isAdmin={isAdmin}
+      backHref={backHref}
     />
   );
 }

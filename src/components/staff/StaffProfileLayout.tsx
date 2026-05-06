@@ -1,15 +1,13 @@
 "use client";
 
 /**
- * StaffProfileLayout — top-level shell for the new long-scroll EH-
- * style staff profile (PR 3 of the Teams tab redesign). Composes
- * header + sticky pills + 4 section cards + right-gutter snapshot.
- *
- * Replaces `StaffProfileTabs` for users on the
- * `useTeamsRedesignFlag()`. Old layout stays in place during rollout
- * via `StaffProfilePageClient`.
+ * StaffProfileLayout — top-level shell for the long-scroll staff
+ * profile. Composes header + sticky pills + 4 section cards +
+ * right-gutter snapshot.
  *
  * 2026-05-04: introduced (spec PR #77).
+ * 2026-05-06: legacy StaffProfileTabs deleted (PR 8). This is now
+ * the only profile layout — no flag, no fallback.
  */
 
 import { StaffProfileHeader } from "./StaffProfileHeader";
@@ -31,7 +29,7 @@ import { EmploymentRecordsSection } from "./sections/EmploymentRecordsSection";
 import { PayCompensationSection } from "./sections/PayCompensationSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { PerformanceSection } from "./sections/PerformanceSection";
-import type { StaffProfileData } from "./StaffProfileTabs";
+import type { StaffProfileData } from "./types";
 import type { SnapshotStats } from "@/lib/staff/snapshot-stats";
 
 export interface StaffProfileLayoutProps {

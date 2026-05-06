@@ -14,7 +14,7 @@ import type { EmergencyContact } from "@prisma/client";
 import { EmploymentTab } from "@/components/staff/tabs/EmploymentTab";
 import { PersonalTab } from "@/components/staff/tabs/PersonalTab";
 import { SectionShell } from "./SectionShell";
-import type { StaffProfileData } from "@/components/staff/StaffProfileTabs";
+import type { StaffProfileData } from "@/components/staff/types";
 
 type SubTab = "employment" | "personal" | "emergency";
 

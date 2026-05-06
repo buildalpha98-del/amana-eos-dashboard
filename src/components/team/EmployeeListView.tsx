@@ -1,11 +1,13 @@
 "use client";
 
 /**
- * EmployeeListView — top-level shell for the new Teams tab. Owns the
+ * EmployeeListView — top-level shell for the Teams tab. Owns the
  * URL ↔ filter-state translation and composes search, filters, table,
- * pagination. Conditionally rendered behind `useTeamsRedesignFlag()`.
+ * pagination.
  *
  * 2026-05-04: introduced for the Teams tab redesign (spec PR #77).
+ * 2026-05-06: legacy fallback removed (PR 8) — this is the only
+ * /team layout now.
  */
 
 import { useMemo, useState } from "react";
