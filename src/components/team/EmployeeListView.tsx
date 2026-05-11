@@ -12,12 +12,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Download, Users } from "lucide-react";
+import { Plus, Download, Users, Mail } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BulkInviteModal } from "@/components/settings/BulkInviteModal";
+import { useBulkResendInvite } from "@/hooks/useEmployeeResendInvite";
 import { exportToCsv } from "@/lib/csv-export";
 import { isAdminRole } from "@/lib/role-permissions";
 import { useEmployeesList, type EmployeesListParams } from "@/hooks/useEmployeesList";
@@ -28,6 +29,7 @@ import type { Role } from "@prisma/client";
 
 export interface EmployeeListViewProps {
   viewerRole: string;
+  viewerId: string;
   services: Array<{ id: string; name: string }>;
 }
 
@@ -61,7 +63,7 @@ type ReadonlyURLSearchParams = {
   toString(): string;
 };
 
-export function EmployeeListView({ viewerRole, services }: EmployeeListViewProps) {
+export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeListViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -101,6 +103,8 @@ export function EmployeeListView({ viewerRole, services }: EmployeeListViewProps
   const employees = data?.employees ?? [];
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
+  const pendingCount = data?.pendingCount ?? 0;
+  const bulkResend = useBulkResendInvite();
   const hasFilters =
     !!filters.q ||
     !!filters.status ||
@@ -145,6 +149,13 @@ export function EmployeeListView({ viewerRole, services }: EmployeeListViewProps
             : undefined
         }
         secondaryActions={[
+          {
+            label: `Resend all pending (${pendingCount})`,
+            icon: Mail,
+            onClick: () => bulkResend.mutate(),
+            loading: bulkResend.isPending,
+            hidden: !isAdmin || pendingCount === 0,
+          },
           {
             label: "Export CSV",
             icon: Download,
@@ -237,6 +248,7 @@ export function EmployeeListView({ viewerRole, services }: EmployeeListViewProps
                     key={e.id}
                     employee={e}
                     viewerRole={viewerRole}
+                    viewerId={viewerId}
                     listSearchString={listSearchString}
                   />
                 ))}

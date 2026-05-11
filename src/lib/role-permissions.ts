@@ -40,12 +40,17 @@ export function parseRole(value: unknown): Role | null {
 // service-leader scope. The `coordinator` enum value is dropped in this
 // PR (migration 20260430140000_drop_coordinator_role); its surfaces fold
 // into `member` since the two roles were operationally indistinguishable.
+//
+// 2026-05-06: `member` display → "OSHC Educator" per second-round
+// training feedback. Maps cleanly to the AU childcare cert tier (the
+// Diploma-qualified service-lead educator). `staff` remains "Educator"
+// for entry-level / Cert III roles. Permission scopes are unchanged.
 export const ROLE_DISPLAY_NAMES: Record<Role, string> = {
   owner: "Owner",
   head_office: "State Manager",
   admin: "Admin",
   marketing: "Marketing",
-  member: "Director of Service",
+  member: "OSHC Educator",
   staff: "Educator",
 };
 

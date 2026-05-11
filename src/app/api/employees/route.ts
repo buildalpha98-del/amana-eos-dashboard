@@ -13,7 +13,11 @@
  *   page       - 1-indexed (default 1)
  *   pageSize   - 1..200 (default 50)
  *
- * Returns: { employees, total, page, pageSize, totalPages }
+ * Returns: { employees, total, page, pageSize, totalPages, pendingCount }
+ *   pendingCount is the count of admin-visible users with
+ *   `active && !lastLoginAt`, scoped the same way as the list. Drives
+ *   the "Resend all pending (N)" button in the page header. Always 0
+ *   for non-admin-tier viewers (member/staff/marketing).
  *
  * 2026-05-04: introduced for the Teams tab redesign (spec PR #77).
  */
@@ -100,7 +104,21 @@ export const GET = withApiAuth(async (req, session) => {
   // `address`, etc. so those fields can't accidentally leak via a future
   // formatter change. `formatEmployeeRow` is the SECOND line (strips
   // email + phone for marketing role).
-  const [users, total] = await Promise.all([
+  // pendingCount drives the admin-only "Resend all pending (N)" button
+  // in the page header. Only compute it for admin-tier viewers so we
+  // don't pay for a per-page count on every member/staff load.
+  const isAdminTier = ["owner", "head_office", "admin"].includes(role);
+  const pendingWhere = isAdminTier
+    ? {
+        active: true,
+        lastLoginAt: null,
+        ...(scopedServiceIds !== null
+          ? { serviceId: { in: scopedServiceIds } }
+          : {}),
+      }
+    : null;
+
+  const [users, total, pendingCount] = await Promise.all([
     prisma.user.findMany({
       where,
       orderBy,
@@ -119,6 +137,7 @@ export const GET = withApiAuth(async (req, session) => {
       },
     }),
     prisma.user.count({ where }),
+    pendingWhere ? prisma.user.count({ where: pendingWhere }) : Promise.resolve(0),
   ]);
 
   const employees = users.map((u) =>
@@ -144,5 +163,6 @@ export const GET = withApiAuth(async (req, session) => {
     page: params.page,
     pageSize: params.pageSize,
     totalPages: Math.max(1, Math.ceil(total / params.pageSize)),
+    pendingCount,
   });
 });

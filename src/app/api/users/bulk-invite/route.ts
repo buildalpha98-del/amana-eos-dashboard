@@ -14,7 +14,9 @@ const bulkUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   role: z
     .enum(["owner", "head_office", "admin", "marketing", "member", "staff"])
-    .default("member"),
+    // Default to "staff" (Educator) per training feedback — admin
+    // promotes individuals to OSHC Educator (`member`) after vetting.
+    .default("staff"),
   serviceIds: z.array(z.string()).optional(),
 });
 

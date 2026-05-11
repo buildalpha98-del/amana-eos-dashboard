@@ -76,10 +76,13 @@ const ROLE_ALIASES: Record<string, Role> = {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Role column is optional and defaults to "staff" (Educator); the CSV
+// can omit it entirely. Showing one row of each so a first-time
+// uploader sees both shapes.
 const CSV_TEMPLATE = `name,email,role,centre
-Jane Smith,jane@example.com,member,Bankstown
-John Doe,john@example.com,staff,Liverpool
-Sarah Khan,sarah@example.com,coordinator,`;
+Jane Smith,jane@example.com,staff,Bankstown
+John Doe,john@example.com,member,Liverpool
+Sarah Khan,sarah@example.com,,Liverpool`;
 
 // ---------------------------------------------------------------------------
 // CSV Parsing
@@ -222,7 +225,7 @@ export function BulkInviteModal({
           parsed.push({
             name: name || "(missing)",
             email: email || "(missing)",
-            role: "member",
+            role: "staff",
             centre,
             serviceId: null,
             status: "error",
@@ -236,7 +239,7 @@ export function BulkInviteModal({
           parsed.push({
             name,
             email,
-            role: "member",
+            role: "staff",
             centre,
             serviceId: null,
             status: "error",
@@ -250,7 +253,7 @@ export function BulkInviteModal({
           parsed.push({
             name,
             email,
-            role: "member",
+            role: "staff",
             centre,
             serviceId: null,
             status: "warning",
@@ -264,7 +267,7 @@ export function BulkInviteModal({
           parsed.push({
             name,
             email,
-            role: "member",
+            role: "staff",
             centre,
             serviceId: null,
             status: "warning",
@@ -276,7 +279,7 @@ export function BulkInviteModal({
         seenEmails.add(email);
 
         // Parse role
-        const role = normalizeRole(roleRaw) || "member";
+        const role = normalizeRole(roleRaw) || "staff";
 
         // Match centre to service
         let serviceId: string | null = null;
@@ -311,7 +314,7 @@ export function BulkInviteModal({
           serviceId,
           status: "valid",
           statusMessage: roleRaw && !normalizeRole(roleRaw)
-            ? `Unknown role "${roleRaw}" — defaulting to Director of Service`
+            ? `Unknown role "${roleRaw}" — defaulting to Educator`
             : "",
         });
       }

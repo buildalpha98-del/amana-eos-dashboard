@@ -98,9 +98,9 @@ const staffGuide: GuideContent = {
 
 const memberGuide: GuideContent = {
   role: "member",
-  displayName: "Director of Service",
+  displayName: "OSHC Educator",
   welcome:
-    "As a Director of Service, you manage your centre\u2019s operations, team, and EOS rhythm.",
+    "As an OSHC Educator, you manage your centre\u2019s operations, team, and EOS rhythm.",
   sections: [
     {
       title: "Your Morning Routine",

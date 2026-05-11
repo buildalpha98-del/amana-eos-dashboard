@@ -41,6 +41,9 @@ export interface EmployeesListResponse {
   page: number;
   pageSize: number;
   totalPages: number;
+  /** Count of pending users visible to the admin viewer (always 0
+   *  for non-admin tiers — drives the bulk-resend button). */
+  pendingCount: number;
 }
 
 function buildUrl(p: EmployeesListParams): string {

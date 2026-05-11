@@ -89,7 +89,7 @@ describe("EmployeeListView", () => {
   it("renders skeleton when loading", () => {
     mockedFetch.mockReturnValue(new Promise(() => {})); // never resolves
     renderWithQuery(
-      <EmployeeListView viewerRole="admin" services={SERVICES} />,
+      <EmployeeListView viewerRole="admin" viewerId="viewer-1" services={SERVICES} />,
     );
     // Skeleton rows have role row but no actual employee rows
     expect(screen.getByText("Team")).toBeInTheDocument();
@@ -102,9 +102,10 @@ describe("EmployeeListView", () => {
       page: 1,
       pageSize: 50,
       totalPages: 1,
+        pendingCount: 0,
     });
     renderWithQuery(
-      <EmployeeListView viewerRole="admin" services={SERVICES} />,
+      <EmployeeListView viewerRole="admin" viewerId="viewer-1" services={SERVICES} />,
     );
     expect(await screen.findByText("Alice Adams")).toBeInTheDocument();
   });
@@ -123,9 +124,10 @@ describe("EmployeeListView", () => {
       page: 1,
       pageSize: 50,
       totalPages: 1,
+        pendingCount: 0,
     });
     renderWithQuery(
-      <EmployeeListView viewerRole="admin" services={SERVICES} />,
+      <EmployeeListView viewerRole="admin" viewerId="viewer-1" services={SERVICES} />,
     );
     expect(await screen.findByText(/No matches|No employees yet/)).toBeInTheDocument();
   });
@@ -137,9 +139,10 @@ describe("EmployeeListView", () => {
       page: 1,
       pageSize: 50,
       totalPages: 1,
+        pendingCount: 0,
     });
     renderWithQuery(
-      <EmployeeListView viewerRole="member" services={SERVICES} />,
+      <EmployeeListView viewerRole="member" viewerId="viewer-1" services={SERVICES} />,
     );
     await screen.findByText("Alice Adams");
     expect(screen.queryByRole("button", { name: /Invite Employees/i })).toBeNull();
@@ -153,9 +156,10 @@ describe("EmployeeListView", () => {
       page: 1,
       pageSize: 50,
       totalPages: 1,
+        pendingCount: 0,
     });
     renderWithQuery(
-      <EmployeeListView viewerRole="admin" services={SERVICES} />,
+      <EmployeeListView viewerRole="admin" viewerId="viewer-1" services={SERVICES} />,
     );
     await screen.findByText("Alice Adams");
     expect(

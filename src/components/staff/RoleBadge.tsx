@@ -8,7 +8,7 @@ const ROLE_STYLES: Record<Role, { label: string; className: string }> = {
   head_office: { label: "State Manager", className: "bg-slate-700 text-white" },
   admin: { label: "Admin", className: "bg-blue-600 text-white" },
   marketing: { label: "Marketing", className: "bg-purple-500 text-white" },
-  member: { label: "Director of Service", className: "bg-emerald-500 text-white" },
+  member: { label: "OSHC Educator", className: "bg-emerald-500 text-white" },
   staff: { label: "Educator", className: "bg-neutral-500 text-white" },
 };
 
