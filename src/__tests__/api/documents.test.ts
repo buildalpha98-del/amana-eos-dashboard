@@ -214,6 +214,52 @@ describe("POST /api/documents", () => {
     expect(createCall.data.allServices).toBe(true);
     expect(createCall.data.centreId).toBeNull();
   });
+
+  // Bug 3 (team-bug-bash): admin-uploaded HR docs need to surface on
+  // the staff profile, so we accept an optional assignedToId FK that
+  // the staff/[id] page query reads alongside uploadedById.
+  it("persists assignedToId when provided so HR docs link to the staff member", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.document.create.mockResolvedValue({
+      id: "d-new",
+      title: "Contract",
+      assignedToId: "nadia-1",
+    });
+
+    await POST(
+      createRequest("POST", "/api/documents", {
+        body: {
+          title: "Contract",
+          fileName: "contract.pdf",
+          fileUrl: "https://blob/contract.pdf",
+          category: "hr",
+          assignedToId: "nadia-1",
+        },
+      }),
+    );
+
+    const createCall = prismaMock.document.create.mock.calls[0][0];
+    expect(createCall.data.assignedToId).toBe("nadia-1");
+    expect(createCall.data.uploadedById).toBe("admin-1");
+  });
+
+  it("defaults assignedToId to null when omitted (back-compat)", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.document.create.mockResolvedValue({ id: "d-new" });
+
+    await POST(
+      createRequest("POST", "/api/documents", {
+        body: {
+          title: "Org doc",
+          fileName: "x.pdf",
+          fileUrl: "https://blob/x.pdf",
+        },
+      }),
+    );
+
+    const createCall = prismaMock.document.create.mock.calls[0][0];
+    expect(createCall.data.assignedToId).toBeNull();
+  });
 });
 
 describe("PATCH /api/documents/[id]", () => {

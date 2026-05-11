@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
+import { ROLES } from "@/lib/role-enum";
 import type { Role } from "@prisma/client";
 
 // ---------------------------------------------------------------------------
@@ -54,15 +55,7 @@ interface BulkInviteModalProps {
 // Constants
 // ---------------------------------------------------------------------------
 
-const VALID_ROLES: Role[] = [
-  "owner",
-  "head_office",
-  "admin",
-  "marketing",
-  "member",
-  "member",
-  "staff",
-];
+const VALID_ROLES: readonly Role[] = ROLES;
 
 const ROLE_ALIASES: Record<string, Role> = {
   owner: "owner",

@@ -13,15 +13,7 @@ const bulkUserSchema = z.object({
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   name: z.string().min(1, "Name is required"),
   role: z
-    .enum([
-      "owner",
-      "head_office",
-      "admin",
-      "marketing",
-      "member",
-      "member",
-      "staff",
-    ])
+    .enum(["owner", "head_office", "admin", "marketing", "member", "staff"])
     .default("member"),
   serviceIds: z.array(z.string()).optional(),
 });

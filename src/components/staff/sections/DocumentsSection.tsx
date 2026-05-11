@@ -67,7 +67,13 @@ export function DocumentsSection({
           );
         }
         if (active === "documents") {
-          return <DocumentsTab documents={data.documents} />;
+          return (
+            <DocumentsTab
+              documents={data.documents}
+              targetUserId={data.targetUser.id}
+              isAdmin={isAdmin}
+            />
+          );
         }
         if (active === "contracts" && isAdmin) {
           return <ContractsTab userId={data.targetUser.id} canEdit={isAdmin} />;

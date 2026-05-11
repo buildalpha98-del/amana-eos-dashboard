@@ -143,3 +143,74 @@ describe("validateFileContent", () => {
     expect(validateFileContent(buffer, "image/png")).toBe(false);
   });
 });
+
+/**
+ * HEIC/HEIF support (PR: team-bug-bash).
+ *
+ * HEIC files are wrapped in the ISO Base Media File Format. Layout:
+ *   bytes 0-3: 4-byte big-endian size (variable, ignored here)
+ *   bytes 4-7: "ftyp" (66 74 79 70)
+ *   bytes 8-11: brand — "heic", "heix", "mif1", "msf1", "heim", "heis"
+ *
+ * iPhones default to HEIC; even though the avatar <input accept=...>
+ * filters them out and iOS auto-converts to JPEG in many cases, some
+ * Android phones and recent iOS configurations still upload raw HEIC.
+ * Pre-fix the validator rejected these with "File content does not
+ * match declared type", which the user paraphrased as "failed to
+ * fetch data" in the training feedback.
+ */
+function heicBuffer(brand: string): ArrayBuffer {
+  const bytes = [
+    0x00, 0x00, 0x00, 0x20, // size (32 bytes — arbitrary, doesn't matter)
+    0x66, 0x74, 0x79, 0x70, // "ftyp"
+    ...brand.split("").map((c) => c.charCodeAt(0)),
+    0x00, 0x00, 0x00, 0x00, // minor version
+  ];
+  return new Uint8Array(bytes).buffer;
+}
+
+describe("detectFileType — HEIC/HEIF", () => {
+  it("detects heic brand", () => {
+    expect(detectFileType(heicBuffer("heic"))).toBe("image/heic");
+  });
+
+  it("detects heix brand", () => {
+    expect(detectFileType(heicBuffer("heix"))).toBe("image/heic");
+  });
+
+  it("detects mif1 brand (Apple multi-image)", () => {
+    expect(detectFileType(heicBuffer("mif1"))).toBe("image/heic");
+  });
+
+  it("detects msf1 brand (multi-image sequence)", () => {
+    expect(detectFileType(heicBuffer("msf1"))).toBe("image/heic");
+  });
+
+  it("detects heim brand", () => {
+    expect(detectFileType(heicBuffer("heim"))).toBe("image/heic");
+  });
+
+  it("does not falsely match non-ftyp buffers", () => {
+    // Bytes 4-7 are NOT 'ftyp'
+    const buffer = new Uint8Array([
+      0x00, 0x00, 0x00, 0x20,
+      0x6d, 0x6f, 0x6f, 0x76, // "moov"
+      0x68, 0x65, 0x69, 0x63,
+    ]).buffer;
+    expect(detectFileType(buffer)).toBeNull();
+  });
+});
+
+describe("validateFileContent — HEIC/HEIF", () => {
+  it("accepts heic content declared as image/heic", () => {
+    expect(validateFileContent(heicBuffer("heic"), "image/heic")).toBe(true);
+  });
+
+  it("accepts heic content declared as image/heif (Apple uses both)", () => {
+    expect(validateFileContent(heicBuffer("heic"), "image/heif")).toBe(true);
+  });
+
+  it("rejects heic content declared as image/jpeg", () => {
+    expect(validateFileContent(heicBuffer("heic"), "image/jpeg")).toBe(false);
+  });
+});

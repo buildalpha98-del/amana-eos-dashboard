@@ -51,14 +51,46 @@ export default function ProfilePage() {
   const isAdmin = session?.user?.role === "owner" || session?.user?.role === "admin";
 
   // ---- Avatar upload ----
+  // Must stay in sync with /api/users/[id]/avatar/route.ts.
+  const AVATAR_MAX_BYTES = 4 * 1024 * 1024; // 4 MB
+  const AVATAR_ALLOWED_MIMES = new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/heic",
+    "image/heif",
+  ]);
+
   const avatarUpload = useMutation({
     mutationFn: async (file: File) => {
+      // Pre-upload validation gives a clean toast instead of letting an
+      // oversized / wrong-type file blow up as `TypeError: Failed to
+      // fetch` from the platform dropping the connection mid-stream.
+      if (!AVATAR_ALLOWED_MIMES.has(file.type)) {
+        throw new Error("Photo must be a JPEG, PNG, WebP, GIF or HEIC.");
+      }
+      if (file.size > AVATAR_MAX_BYTES) {
+        throw new Error("Photo must be under 4MB. Try a smaller file.");
+      }
+
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/users/${userId}/avatar`, {
-        method: "POST",
-        body: formData,
-      });
+      let res: Response;
+      try {
+        res = await fetch(`/api/users/${userId}/avatar`, {
+          method: "POST",
+          body: formData,
+        });
+      } catch {
+        // fetch() rejects with TypeError on network drops (offline,
+        // platform body-size truncation, etc.); give a useful message
+        // instead of the opaque "Failed to fetch".
+        throw new Error(
+          "Couldn't reach the server. Check your connection and try again.",
+        );
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to upload avatar");
@@ -339,7 +371,7 @@ export default function ProfilePage() {
               )}
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                 className="hidden"
                 onChange={handleAvatarChange}
                 disabled={avatarUpload.isPending}

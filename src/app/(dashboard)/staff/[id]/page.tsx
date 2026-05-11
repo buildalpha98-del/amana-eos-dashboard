@@ -143,7 +143,12 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
       orderBy: { expiryDate: "asc" },
     }),
     prisma.document.findMany({
-      where: { uploadedById: id, deleted: false },
+      // Documents either uploaded BY this staff member, or uploaded
+      // by an admin and explicitly assigned TO them (e.g. HR docs).
+      where: {
+        deleted: false,
+        OR: [{ uploadedById: id }, { assignedToId: id }],
+      },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),

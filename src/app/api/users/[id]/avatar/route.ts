@@ -5,8 +5,28 @@ import { withApiAuth } from "@/lib/server-auth";
 import { validateFileContent } from "@/lib/file-validation";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+// Keep under Vercel's serverless body-size limit (~4.5 MB) so a
+// rejected upload returns a clean 413 here instead of a
+// `TypeError: Failed to fetch` from the platform dropping the
+// connection mid-stream. The client-side check in the profile page
+// mirrors this so users see a clean toast before the upload starts.
+const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+const ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+]);
+
+// Some phone browsers send `image/jpg` (no `e`); normalise to the
+// canonical `image/jpeg` before lookup so the upload doesn't fall
+// through to the type-rejection branch.
+function normaliseMime(mime: string): string {
+  if (mime === "image/jpg") return "image/jpeg";
+  return mime;
+}
 
 /**
  * Resolve whether the viewer may manage the target user's avatar.
@@ -56,23 +76,24 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  if (!ALLOWED_TYPES.has(file.type)) {
+  const mime = normaliseMime(file.type);
+  if (!ALLOWED_TYPES.has(mime)) {
     return NextResponse.json(
-      { error: "File must be a JPEG, PNG, WebP, or GIF image." },
+      { error: "File must be a JPEG, PNG, WebP, GIF or HEIC image." },
       { status: 400 }
     );
   }
 
   if (file.size > MAX_SIZE) {
     return NextResponse.json(
-      { error: "File size must be under 5MB." },
-      { status: 400 }
+      { error: "File size must be under 4MB." },
+      { status: 413 }
     );
   }
 
   // Validate file content matches declared MIME type
   const arrayBuf = await file.arrayBuffer();
-  if (!validateFileContent(arrayBuf, file.type)) {
+  if (!validateFileContent(arrayBuf, mime)) {
     return NextResponse.json(
       { error: "File content does not match declared type" },
       { status: 400 },
@@ -83,16 +104,18 @@ const { id } = await context!.params!;
   const buffer = Buffer.from(arrayBuf);
 
   // Determine extension from MIME type
-  const ext = file.type === "image/png" ? ".png"
-    : file.type === "image/webp" ? ".webp"
-    : file.type === "image/gif" ? ".gif"
+  const ext =
+    mime === "image/png" ? ".png"
+    : mime === "image/webp" ? ".webp"
+    : mime === "image/gif" ? ".gif"
+    : mime === "image/heic" || mime === "image/heif" ? ".heic"
     : ".jpg";
 
   const filename = `avatar-${id}-${Date.now()}${ext}`;
 
   // Upload to Vercel Blob
   const { url } = await uploadFile(buffer, filename, {
-    contentType: file.type,
+    contentType: mime,
     folder: "avatars",
   });
 
