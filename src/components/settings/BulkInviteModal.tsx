@@ -555,7 +555,7 @@ export function BulkInviteModal({
                   <div className="flex items-center gap-2">
                     <span className="text-muted">-</span>
                     <span className="text-foreground/80">
-                      <strong>role</strong> — member, staff, coordinator, etc.
+                      <strong>role</strong> — member, staff, admin, etc.
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

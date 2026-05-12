@@ -12,7 +12,7 @@ import { parseJsonBody } from "@/lib/api-error";
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   role: z.enum(["owner", "head_office", "admin", "marketing", "member", "staff"], {
-    error: "Invalid role. Must be one of: owner, head_office, admin, marketing, coordinator, member, staff",
+    error: "Invalid role. Must be one of: owner, head_office, admin, marketing, member, staff",
   }).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),

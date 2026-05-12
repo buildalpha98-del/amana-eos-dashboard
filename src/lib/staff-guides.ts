@@ -167,71 +167,62 @@ const memberGuide: GuideContent = {
 };
 
 // ---------------------------------------------------------------------------
-// Coordinator / Service Coordinator Guide
-// ---------------------------------------------------------------------------
-
-const coordinatorGuide: GuideContent = {
-  role: "member",
-  displayName: "Service Coordinator",
-  welcome:
-    "You oversee multiple centres \u2014 the dashboard helps you stay across everything.",
-  sections: [
-    {
-      title: "Multi-Centre Management",
-      icon: "\ud83c\udf10",
-      steps: [
-        { text: "Use the Centre Switcher dropdown to move between centres" },
-        { text: "Compare centre performance via the Performance page" },
-        { text: "Use the Queue system for cross-centre tasks and reports" },
-      ],
-    },
-    {
-      title: "Daily Operations",
-      icon: "\ud83d\udcca",
-      steps: [
-        { text: "Monitor attendance across all your centres" },
-        { text: "Check ratio monitoring and flag shift gaps" },
-        { text: "Review incident reports and follow up on action items" },
-      ],
-    },
-    {
-      title: "EOS Rhythm",
-      icon: "\ud83c\udfaf",
-      steps: [
-        { text: "Review scorecards weekly for each centre" },
-        { text: "Track rock progress across centres quarterly" },
-        { text: "Prepare for L10 meetings with cross-centre data" },
-      ],
-    },
-    {
-      title: "Compliance Oversight",
-      icon: "\ud83d\udee1\ufe0f",
-      steps: [
-        { text: "Track certificate expiry across your team" },
-        { text: "Schedule and review audits for each centre" },
-        { text: "Monitor policy compliance rates" },
-      ],
-    },
-    {
-      title: "People",
-      icon: "\ud83d\udc65",
-      steps: [
-        { text: "Use the Staff Directory to find and connect with team members" },
-        { text: "Monitor onboarding progress for new starters" },
-        { text: "Manage leave requests and approve timesheets" },
-      ],
-    },
-    {
-      title: "Quick Tips",
-      icon: "\ud83d\udca1",
-      steps: quickTipsCoordinator,
-    },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Admin Guide
 // ---------------------------------------------------------------------------
+//
+// Sections used to be spread from a separate `coordinatorGuide` that
+// existed pre-collapse. Post coordinator -> member collapse (2026-04-30)
+// the `coordinator` role no longer exists, so the multi-centre content
+// is inlined here directly. The `member` (Director of Service) role
+// runs a SINGLE centre and uses `memberGuide` above \u2014 the multi-centre
+// view belongs to admin/head_office.
+const multiCentreSections = [
+  {
+    title: "Multi-Centre Management",
+    icon: "\ud83c\udf10",
+    steps: [
+      { text: "Use the Centre Switcher dropdown to move between centres" },
+      { text: "Compare centre performance via the Performance page" },
+      { text: "Use the Queue system for cross-centre tasks and reports" },
+    ],
+  },
+  {
+    title: "Daily Operations",
+    icon: "\ud83d\udcca",
+    steps: [
+      { text: "Monitor attendance across all your centres" },
+      { text: "Check ratio monitoring and flag shift gaps" },
+      { text: "Review incident reports and follow up on action items" },
+    ],
+  },
+  {
+    title: "EOS Rhythm",
+    icon: "\ud83c\udfaf",
+    steps: [
+      { text: "Review scorecards weekly for each centre" },
+      { text: "Track rock progress across centres quarterly" },
+      { text: "Prepare for L10 meetings with cross-centre data" },
+    ],
+  },
+  {
+    title: "Compliance Oversight",
+    icon: "\ud83d\udee1\ufe0f",
+    steps: [
+      { text: "Track certificate expiry across your team" },
+      { text: "Schedule and review audits for each centre" },
+      { text: "Monitor policy compliance rates" },
+    ],
+  },
+  {
+    title: "People",
+    icon: "\ud83d\udc65",
+    steps: [
+      { text: "Use the Staff Directory to find and connect with team members" },
+      { text: "Monitor onboarding progress for new starters" },
+      { text: "Manage leave requests and approve timesheets" },
+    ],
+  },
+];
 
 const adminGuide: GuideContent = {
   role: "admin",
@@ -239,8 +230,7 @@ const adminGuide: GuideContent = {
   welcome:
     "As an Admin, you have broad access to manage operations, people, and system configuration.",
   sections: [
-    // Include coordinator sections
-    ...coordinatorGuide.sections.filter((s) => s.title !== "Quick Tips"),
+    ...multiCentreSections,
     {
       title: "System Administration",
       icon: "\u2699\ufe0f",
@@ -464,7 +454,6 @@ const ownerGuide: GuideContent = {
 export const staffGuides: Record<string, GuideContent> = {
   staff: staffGuide,
   member: memberGuide,
-  coordinator: coordinatorGuide,
   admin: adminGuide,
   head_office: headOfficeGuide,
   marketing: marketingGuide,

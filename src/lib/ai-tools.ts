@@ -70,7 +70,7 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
       properties: {
         role: {
           type: "string",
-          description: "Filter by role (e.g. 'staff', 'admin', 'coordinator'). Omit for all.",
+          description: "Filter by role (e.g. 'staff', 'admin', 'member'). Omit for all.",
         },
       },
       required: [],
