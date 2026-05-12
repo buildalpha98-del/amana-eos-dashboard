@@ -3,10 +3,17 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { useScorecard } from "@/hooks/useScorecard";
 import type { MeasurableData } from "@/hooks/useScorecard";
+import {
+  useScorecardsList,
+  useScorecardDetail,
+} from "@/hooks/useScorecards";
+import { canManageScorecard } from "@/lib/scorecard-permissions";
 import { ScorecardGrid } from "@/components/scorecard/ScorecardGrid";
 import { ScorecardRollupView } from "@/components/scorecard/ScorecardRollupView";
+import { ScorecardSelector } from "@/components/scorecard/ScorecardSelector";
+import { CreateScorecardDialog } from "@/components/scorecard/CreateScorecardDialog";
+import { ManageMembersDialog } from "@/components/scorecard/ManageMembersDialog";
 import { AddMeasurableModal } from "@/components/scorecard/AddMeasurableModal";
 import { DeleteMeasurableDialog } from "@/components/scorecard/DeleteMeasurableDialog";
 import { exportToCSV } from "@/lib/csv-export";
@@ -23,16 +30,56 @@ import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 export default function ScorecardPage() {
   const v2 = useStaffV2Flag();
-  const { data: scorecard, isLoading, error, refetch } = useScorecard();
+  const { data: session } = useSession();
+  const viewerRole = session?.user?.role as string | undefined;
+  const viewerId = session?.user?.id;
+  const isAdmin = isAdminRole(viewerRole);
+
+  // Bucket O Stage 3: multi-scorecard list + selection. The user's
+  // explicit selection lives in state; we derive the effective id by
+  // falling back to the first accessible scorecard. URL persistence
+  // is a future polish.
+  const scorecardsList = useScorecardsList();
+  const accessibleScorecards = useMemo(
+    () => scorecardsList.data?.scorecards ?? [],
+    [scorecardsList.data],
+  );
+  const [explicitScorecardId, setExplicitScorecardId] = useState<string | null>(
+    null,
+  );
+  const selectedScorecardId =
+    explicitScorecardId &&
+    accessibleScorecards.some((s) => s.id === explicitScorecardId)
+      ? explicitScorecardId
+      : accessibleScorecards[0]?.id ?? null;
+
+  const selectedSummary = accessibleScorecards.find(
+    (s) => s.id === selectedScorecardId,
+  );
+  const {
+    data: scorecard,
+    isLoading,
+    error,
+    refetch,
+  } = useScorecardDetail(selectedScorecardId);
+
   const [showAddMeasurable, setShowAddMeasurable] = useState(false);
   const [editingMeasurable, setEditingMeasurable] = useState<MeasurableData | null>(null);
   const [deletingMeasurable, setDeletingMeasurable] = useState<MeasurableData | null>(null);
+  const [showCreateScorecard, setShowCreateScorecard] = useState(false);
+  const [showManageMembers, setShowManageMembers] = useState(false);
   const [groupBy, setGroupBy] = useState<"person" | "service">("person");
   const [aiNarrative, setAiNarrative] = useState("");
   const [tab, setTab] = useState<"all" | "leadership" | "rollup">("all");
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
-  const isAdmin = isAdminRole(session?.user?.role as string | undefined);
+
+  const canManageSelected =
+    !!selectedSummary &&
+    !!viewerId &&
+    canManageScorecard(
+      { id: viewerId, role: viewerRole ?? null },
+      { ownerId: selectedSummary.ownerId },
+    );
 
   const deleteMeasurable = useMutation({
     mutationFn: async (id: string) => {
@@ -112,9 +159,52 @@ export default function ScorecardPage() {
       {...(v2 ? { "data-v2": "staff" } : {})}
       className="max-w-full mx-auto"
     >
+      {/* Selector row — multi-scorecard list, create + manage members.
+          Sits above the page header so it's the first thing a viewer
+          interacts with when there's more than one scorecard. */}
+      {accessibleScorecards.length > 0 ? (
+        <div className="mb-4">
+          <ScorecardSelector
+            scorecards={accessibleScorecards}
+            selectedId={selectedScorecardId}
+            onSelect={setExplicitScorecardId}
+            onCreate={isAdmin ? () => setShowCreateScorecard(true) : undefined}
+            onManageMembers={
+              canManageSelected ? () => setShowManageMembers(true) : undefined
+            }
+            canCreate={isAdmin}
+            canManageSelected={canManageSelected}
+          />
+        </div>
+      ) : null}
+
+      {/* Banner shown to the owner when the selected scorecard has
+          zero members — per the design doc, the orphan scorecard
+          left over from the migration gets this prompt. */}
+      {selectedSummary &&
+      selectedSummary._count.members === 0 &&
+      canManageSelected ? (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-2">
+          <Users className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium">No members yet</p>
+            <p className="text-amber-800">
+              Invite people into <span className="font-medium">{selectedSummary.title}</span> so they can see it and be assigned as measurable owners.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowManageMembers(true)}
+            className="rounded-md border border-amber-300 bg-card px-2.5 py-1 text-xs text-amber-900 hover:bg-amber-100"
+          >
+            Invite members
+          </button>
+        </div>
+      ) : null}
+
       {/* Header */}
       <PageHeader
-        title="Scorecard"
+        title={selectedSummary?.title ?? "Scorecard"}
         description="Track your weekly measurables — trailing 13 weeks"
         helpTooltipId="scorecard-heading"
         helpTooltipContent="Track your centre's key measurables weekly. Green = on track, red = off track. Update numbers each week before your L10 meeting."
@@ -265,7 +355,25 @@ export default function ScorecardPage() {
           setEditingMeasurable(null);
         }}
         editingMeasurable={editingMeasurable}
+        scorecardId={selectedScorecardId ?? undefined}
+        scorecardOwner={selectedSummary?.owner}
       />
+
+      <CreateScorecardDialog
+        open={showCreateScorecard}
+        onClose={() => setShowCreateScorecard(false)}
+        onCreated={(id) => setExplicitScorecardId(id)}
+      />
+
+      {selectedSummary ? (
+        <ManageMembersDialog
+          open={showManageMembers}
+          onClose={() => setShowManageMembers(false)}
+          scorecardId={selectedSummary.id}
+          scorecardTitle={selectedSummary.title}
+          ownerId={selectedSummary.ownerId}
+        />
+      ) : null}
 
       <DeleteMeasurableDialog
         measurable={deletingMeasurable}
