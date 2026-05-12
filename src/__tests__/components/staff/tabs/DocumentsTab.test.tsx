@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
+
+// DocumentsTab calls useRouter() for router.refresh() after a new
+// upload; under jsdom there's no AppRouterProvider so we stub it.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), back: vi.fn() }),
+}));
+
 import { DocumentsTab } from "@/components/staff/tabs/DocumentsTab";
 
 function makeDoc(overrides: Record<string, unknown> = {}) {

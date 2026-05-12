@@ -213,7 +213,7 @@ function QuickActionButtons() {
 
 // ─── Role Helpers ────────────────────────────────────────────
 
-type DashboardRole = "owner" | "head_office" | "admin" | "member" | "member" | "staff" | "marketing";
+type DashboardRole = "owner" | "head_office" | "admin" | "member" | "staff" | "marketing";
 
 function getDashboardRole(role: string): DashboardRole {
   if (["owner", "head_office", "admin", "member", "staff", "marketing"].includes(role)) {

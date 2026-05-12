@@ -539,6 +539,7 @@ model User {
   ownedProjects                 Project[]                      @relation("ProjectOwner")
   createdMeetings               Meeting[]                      @relation("MeetingCreator")
   uploadedDocuments             Document[]                     @relation("DocumentUploader")
+  assignedDocuments             Document[]                     @relation("DocumentAssignee")
   uploadedAttachments           Attachment[]                   @relation("AttachmentUploader")
   assignedTickets               SupportTicket[]                @relation("TicketAssignee")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
@@ -2502,6 +2503,12 @@ model Document {
   centre       Service?         @relation("ServiceDocuments", fields: [centreId], references: [id], onDelete: SetNull)
   uploadedById String?
   uploadedBy   User?            @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  // Staff member this document is *about* (e.g. their employment
+  // contract or working-with-children check). Distinct from
+  // `uploadedById` (the actor) so admin-uploaded HR docs surface on
+  // the staff profile. Nullable for org-wide / service-wide docs.
+  assignedToId String?
+  assignedTo   User?            @relation("DocumentAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   version      Int              @default(1)
   allServices  Boolean          @default(false)
   tags         String[]
@@ -2518,6 +2525,7 @@ model Document {
   @@index([category])
   @@index([centreId])
   @@index([uploadedById])
+  @@index([assignedToId])
   @@index([folderId])
   @@index([allServices])
 }

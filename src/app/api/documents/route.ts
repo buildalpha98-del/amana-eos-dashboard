@@ -17,6 +17,10 @@ const createDocumentSchema = z.object({
   allServices: z.boolean().optional().default(false),
   folderId: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),
+  // Optional FK to a staff member this document is *about* (e.g.
+  // their employment contract). Distinct from uploadedById (the
+  // actor) so admin-uploaded HR docs appear on the staff profile.
+  assignedToId: z.string().optional().nullable(),
 });
 
 export const GET = withApiAuth(async (req, session) => {
@@ -133,6 +137,7 @@ const body = await parseJsonBody(req);
     centreId: parsed.data.allServices ? null : parsed.data.centreId ?? null,
     tags: parsed.data.tags || [],
     uploadedById: session!.user.id,
+    assignedToId: parsed.data.assignedToId ?? null,
   };
 
   const document = await prisma.document.create({

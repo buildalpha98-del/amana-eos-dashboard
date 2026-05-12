@@ -52,8 +52,34 @@ export function detectFileType(buffer: ArrayBuffer): string | null {
     }
   }
 
+  // HEIC/HEIF: ISO Base Media File Format.
+  //   bytes 4-7  = "ftyp"
+  //   bytes 8-11 = brand ("heic", "heix", "mif1", "msf1", "heim", "heis")
+  // iPhones default to HEIC for photos; staff uploading from a phone can
+  // bypass <input accept=...> filters and hit the server with raw HEIC,
+  // surfacing as a generic upload failure pre-fix.
+  if (
+    bytes.length >= 12 &&
+    bytes[4] === 0x66 && // f
+    bytes[5] === 0x74 && // t
+    bytes[6] === 0x79 && // y
+    bytes[7] === 0x70 // p
+  ) {
+    const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+    if (HEIC_BRANDS.has(brand)) return "image/heic";
+  }
+
   return null; // Unknown
 }
+
+const HEIC_BRANDS = new Set([
+  "heic", // single image
+  "heix", // extended
+  "mif1", // multi-image (Apple, Google)
+  "msf1", // multi-image sequence
+  "heim", // multi-image
+  "heis", // image sequence
+]);
 
 /**
  * Map of MIME types that are zip-based Office formats.
@@ -79,6 +105,9 @@ export function validateFileContent(buffer: ArrayBuffer, declaredMime: string): 
 
   // ZIP-based Office formats
   if (detected === "application/zip" && ZIP_BASED_MIMES.has(declaredMime)) return true;
+
+  // HEIC/HEIF: Apple uses both MIME types for the same container format.
+  if (detected === "image/heic" && declaredMime === "image/heif") return true;
 
   return false;
 }
