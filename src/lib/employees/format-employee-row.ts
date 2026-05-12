@@ -25,6 +25,7 @@ export interface EmployeeRowInput {
   role: string;
   active: boolean;
   lastLoginAt: Date | null;
+  tags: string[];
   service: { id: string; name: string } | null;
 }
 
@@ -37,6 +38,7 @@ export interface EmployeeRow {
   avatar: string | null;
   phone: string | null; // null when stripped (marketing viewer)
   role: string;
+  tags: string[];
   service: { id: string; name: string } | null;
   status: EmployeeStatus;
 }
@@ -58,6 +60,7 @@ export function formatEmployeeRow(
     avatar: input.avatar,
     phone: stripped ? null : input.phone,
     role: input.role,
+    tags: input.tags ?? [],
     service: input.service,
     status: deriveStatus(input),
   };

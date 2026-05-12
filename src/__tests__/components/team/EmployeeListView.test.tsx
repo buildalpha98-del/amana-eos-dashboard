@@ -35,6 +35,7 @@ const ALICE = {
   role: "staff",
   service: { id: "svc-1", name: "Mawson Lakes" },
   status: "active" as const,
+  tags: [] as string[],
 };
 
 function renderWithQuery(node: React.ReactNode) {
@@ -58,6 +59,7 @@ describe("parseFiltersFromUrl", () => {
       status: null,
       serviceIds: [],
       roles: [],
+      tags: [],
       sort: "name",
       page: 1,
     });

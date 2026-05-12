@@ -46,6 +46,7 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     role: "staff",
     active: true,
     lastLoginAt: new Date("2026-04-01"),
+    tags: [] as string[],
     service: { id: "svc-1", name: "Mawson Lakes" },
     ...overrides,
   };
@@ -157,6 +158,30 @@ describe("GET /api/employees", () => {
     const res = await GET(createRequest("GET", "/api/employees"));
     const body = await res.json();
     expect(body.pendingCount).toBe(0);
+  });
+
+  it("filters by tag with AND semantics (hasEvery) and normalises input case", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.count.mockResolvedValue(0);
+    await GET(createRequest("GET", "/api/employees?tag=NSW,Lead"));
+    const where = prismaMock.user.findMany.mock.calls[0][0].where;
+    expect(where.tags).toEqual({ hasEvery: ["nsw", "lead"] });
+  });
+
+  it("silently drops tag values that fail normalisation", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.count.mockResolvedValue(0);
+    // Reject emoji + accent + empty; keep "nsw" and "lead".
+    await GET(
+      createRequest(
+        "GET",
+        "/api/employees?tag=nsw,%F0%9F%9A%80,Caf%C3%A9,,lead",
+      ),
+    );
+    const where = prismaMock.user.findMany.mock.calls[0][0].where;
+    expect(where.tags).toEqual({ hasEvery: ["nsw", "lead"] });
   });
 
   it("returns 400 on invalid sort", async () => {

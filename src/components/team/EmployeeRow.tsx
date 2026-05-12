@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
+import { StaffTagPills } from "@/components/staff/StaffTagPills";
 import { cn } from "@/lib/utils";
 import { RowActionMenu, type RowActionItem } from "./RowActionMenu";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -190,7 +191,12 @@ export function EmployeeRow({
         data-testid={`employee-row-${employee.id}`}
       >
         <td className="px-4 py-3">{nameCell}</td>
-        <td className="px-4 py-3 text-sm text-foreground/80">{roleLabel}</td>
+        <td className="px-4 py-3 text-sm text-foreground/80">
+          <div className="space-y-1">
+            <div>{roleLabel}</div>
+            <StaffTagPills tags={employee.tags} max={3} />
+          </div>
+        </td>
         <td className="px-4 py-3 text-sm text-foreground/80">
           {employee.service?.name ?? "—"}
         </td>

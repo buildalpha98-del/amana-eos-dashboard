@@ -16,6 +16,7 @@ import { Search, X, Filter as FilterIcon, Check } from "lucide-react";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
 import { cn } from "@/lib/utils";
 import { ROLES } from "@/lib/role-enum";
+import { useEmployeeTags } from "@/hooks/useEmployeeTags";
 import type { Role } from "@prisma/client";
 
 export interface EmployeeFiltersValue {
@@ -23,6 +24,7 @@ export interface EmployeeFiltersValue {
   status: "active" | "pending" | "deactivated" | null;
   serviceIds: string[];
   roles: string[];
+  tags: string[];
 }
 
 export interface EmployeeFiltersProps {
@@ -82,10 +84,17 @@ export function EmployeeFilters({
     !!value.q ||
     !!value.status ||
     value.serviceIds.length > 0 ||
-    value.roles.length > 0;
+    value.roles.length > 0 ||
+    value.tags.length > 0;
+
+  // Distinct tags org-wide, scoped to the viewer; cached 5 min.
+  // Skip the fetch entirely when there are no tags in the system —
+  // empty response is fine, no chip renders.
+  const tagsQuery = useEmployeeTags();
+  const knownTags = tagsQuery.data?.tags ?? [];
 
   function clearAll() {
-    onChange({ q: "", status: null, serviceIds: [], roles: [] });
+    onChange({ q: "", status: null, serviceIds: [], roles: [], tags: [] });
   }
 
   return (
@@ -141,6 +150,18 @@ export function EmployeeFilters({
           selected={value.roles}
           onChange={(ids) => emit({ roles: ids })}
         />
+
+        {/* Tag — hidden when the org has no tags yet so the chip
+            doesn't render an empty dropdown. */}
+        {knownTags.length > 0 ? (
+          <FilterMenu
+            label="Tag"
+            icon={<FilterIcon className="h-4 w-4" />}
+            options={knownTags.map((t) => ({ id: t, label: t }))}
+            selected={value.tags}
+            onChange={(ids) => emit({ tags: ids })}
+          />
+        ) : null}
       </div>
 
       {/* Active-filters strip */}
@@ -187,6 +208,15 @@ export function EmployeeFilters({
               label={ROLE_DISPLAY_NAMES[r as Role] ?? r}
               onClear={() =>
                 emit({ roles: value.roles.filter((x) => x !== r) })
+              }
+            />
+          ))}
+          {value.tags.map((t) => (
+            <FilterChip
+              key={`tag-${t}`}
+              label={`Tag: ${t}`}
+              onClear={() =>
+                emit({ tags: value.tags.filter((x) => x !== t) })
               }
             />
           ))}

@@ -50,6 +50,7 @@ export function parseFiltersFromUrl(
         : null,
     serviceIds: get("s")?.split(",").filter(Boolean) ?? [],
     roles: get("r")?.split(",").filter(Boolean) ?? [],
+    tags: get("tag")?.split(",").filter(Boolean) ?? [],
     sort: (validSorts.has(sortRaw)
       ? sortRaw
       : "name") as EmployeesListParams["sort"],
@@ -78,6 +79,7 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
     status: filters.status ?? undefined,
     serviceIds: filters.serviceIds.length ? filters.serviceIds : undefined,
     roles: filters.roles.length ? filters.roles : undefined,
+    tags: filters.tags.length ? filters.tags : undefined,
     sort: filters.sort,
     page: filters.page,
     pageSize: 50,
@@ -90,6 +92,7 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
     if (merged.status) sp.set("status", merged.status);
     if (merged.serviceIds.length) sp.set("s", merged.serviceIds.join(","));
     if (merged.roles.length) sp.set("r", merged.roles.join(","));
+    if (merged.tags.length) sp.set("tag", merged.tags.join(","));
     if (merged.sort && merged.sort !== "name") sp.set("sort", merged.sort);
     if (merged.page && merged.page !== 1) sp.set("page", String(merged.page));
     const qs = sp.toString();
@@ -109,7 +112,8 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
     !!filters.q ||
     !!filters.status ||
     filters.serviceIds.length > 0 ||
-    filters.roles.length > 0;
+    filters.roles.length > 0 ||
+    filters.tags.length > 0;
 
   function handleExportCsv() {
     if (!data) return;
@@ -123,6 +127,7 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
         { header: "Role", accessor: (e) => e.role },
         { header: "Service", accessor: (e) => e.service?.name ?? "" },
         { header: "Status", accessor: (e) => e.status },
+        { header: "Tags", accessor: (e) => e.tags.join(", ") },
       ],
     );
   }
@@ -171,6 +176,7 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
           status: filters.status,
           serviceIds: filters.serviceIds,
           roles: filters.roles,
+          tags: filters.tags,
         }}
         onChange={(next) => pushUrl({ ...next, page: 1 })}
         services={services}

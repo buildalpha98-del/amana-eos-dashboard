@@ -1,7 +1,24 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
+import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// EmployeeFilters now calls useEmployeeTags() for the Tag chip
+// dropdown; mock the fetch so the hook returns immediately with no
+// tags (so the chip stays hidden in these existing tests).
+vi.mock("@/lib/fetch-api", () => ({
+  fetchApi: vi.fn(() => Promise.resolve({ tags: [] })),
+}));
+
 import { EmployeeFilters, type EmployeeFiltersValue } from "@/components/team/EmployeeFilters";
+
+function renderWithQuery(node: React.ReactNode) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(<QueryClientProvider client={qc}>{node}</QueryClientProvider>);
+}
 
 const SERVICES = [
   { id: "svc-1", name: "Mawson Lakes" },
@@ -13,6 +30,7 @@ const EMPTY: EmployeeFiltersValue = {
   status: null,
   serviceIds: [],
   roles: [],
+          tags: [],
 };
 
 beforeEach(() => {
@@ -26,8 +44,7 @@ afterEach(() => {
 describe("EmployeeFilters", () => {
   it("renders search input + status/service/role triggers", () => {
     const onChange = vi.fn();
-    render(
-      <EmployeeFilters
+    renderWithQuery(      <EmployeeFilters
         value={EMPTY}
         onChange={onChange}
         services={SERVICES}
@@ -42,8 +59,7 @@ describe("EmployeeFilters", () => {
 
   it("debounces search input ~300ms before firing onChange", () => {
     const onChange = vi.fn();
-    render(
-      <EmployeeFilters
+    renderWithQuery(      <EmployeeFilters
         value={EMPTY}
         onChange={onChange}
         services={SERVICES}
@@ -62,8 +78,7 @@ describe("EmployeeFilters", () => {
 
   it("clicking a status option fires onChange with that status (single-select)", () => {
     const onChange = vi.fn();
-    render(
-      <EmployeeFilters
+    renderWithQuery(      <EmployeeFilters
         value={EMPTY}
         onChange={onChange}
         services={SERVICES}
@@ -77,13 +92,20 @@ describe("EmployeeFilters", () => {
 
   it("clicking service options accumulates multi-select selections", () => {
     const onChange = vi.fn();
+    // Use a single QueryClient across the initial render + rerender
+    // so the rerender call doesn't unmount the QueryClientProvider.
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     const { rerender } = render(
-      <EmployeeFilters
-        value={EMPTY}
-        onChange={onChange}
-        services={SERVICES}
-        viewerRole="admin"
-      />,
+      <QueryClientProvider client={qc}>
+        <EmployeeFilters
+          value={EMPTY}
+          onChange={onChange}
+          services={SERVICES}
+          viewerRole="admin"
+        />
+      </QueryClientProvider>,
     );
     fireEvent.click(screen.getByRole("button", { name: /Service filter/i }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mawson Lakes" }));
@@ -96,12 +118,14 @@ describe("EmployeeFilters", () => {
     // (multi-select doesn't auto-close), so the next menuitem click
     // accumulates onto the existing selection.
     rerender(
-      <EmployeeFilters
-        value={{ ...EMPTY, serviceIds: ["svc-1"] }}
-        onChange={onChange}
-        services={SERVICES}
-        viewerRole="admin"
-      />,
+      <QueryClientProvider client={qc}>
+        <EmployeeFilters
+          value={{ ...EMPTY, serviceIds: ["svc-1"] }}
+          onChange={onChange}
+          services={SERVICES}
+          viewerRole="admin"
+        />
+      </QueryClientProvider>,
     );
     fireEvent.click(screen.getByRole("menuitem", { name: "Port Adelaide" }));
     expect(onChange).toHaveBeenLastCalledWith({
@@ -112,8 +136,7 @@ describe("EmployeeFilters", () => {
 
   it("hides Deactivated status option for non-admin viewers", () => {
     const onChange = vi.fn();
-    render(
-      <EmployeeFilters
+    renderWithQuery(      <EmployeeFilters
         value={EMPTY}
         onChange={onChange}
         services={SERVICES}
@@ -129,13 +152,13 @@ describe("EmployeeFilters", () => {
 
   it("renders active-filters strip with chips that clear individual filters", () => {
     const onChange = vi.fn();
-    render(
-      <EmployeeFilters
+    renderWithQuery(      <EmployeeFilters
         value={{
           q: "ali",
           status: "active",
           serviceIds: ["svc-1"],
           roles: ["staff"],
+          tags: [],
         }}
         onChange={onChange}
         services={SERVICES}
@@ -154,18 +177,19 @@ describe("EmployeeFilters", () => {
       status: "active",
       serviceIds: ["svc-1"],
       roles: ["staff"],
+          tags: [],
     });
   });
 
   it("Clear all button resets all filters", () => {
     const onChange = vi.fn();
-    render(
-      <EmployeeFilters
+    renderWithQuery(      <EmployeeFilters
         value={{
           q: "ali",
           status: "active",
           serviceIds: ["svc-1"],
           roles: ["staff"],
+          tags: [],
         }}
         onChange={onChange}
         services={SERVICES}
@@ -178,6 +202,7 @@ describe("EmployeeFilters", () => {
       status: null,
       serviceIds: [],
       roles: [],
+          tags: [],
     });
   });
 });
