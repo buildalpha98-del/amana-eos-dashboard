@@ -91,7 +91,14 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
     return lookup;
   }, [measurables]);
 
-  // Create measurable mutation
+  // Create measurable mutation.
+  //
+  // Post-Bucket-O Stage 2 (PR #95): the generic /api/measurables POST no
+  // longer accepts serviceId — measurables are tied to a Scorecard, not
+  // a Service. The dedicated /api/services/[id]/scorecard POST handler
+  // wraps measurable creation against an auto-managed per-service
+  // scorecard so this UI keeps working without leaking the org-wide
+  // /scorecard picker into the service tab.
   const createMeasurable = useMutation({
     mutationFn: async (data: {
       title: string;
@@ -100,9 +107,8 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
       goalDirection: string;
       unit?: string;
       frequency: string;
-      serviceId: string;
     }) => {
-      const res = await fetch("/api/measurables", {
+      const res = await fetch(`/api/services/${serviceId}/scorecard`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -410,12 +416,9 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
           isPending={createMeasurable.isPending}
           onClose={() => setShowAddModal(false)}
           onSubmit={(data) => {
-            createMeasurable.mutate(
-              { ...data, serviceId },
-              {
-                onSuccess: () => setShowAddModal(false),
-              }
-            );
+            createMeasurable.mutate(data, {
+              onSuccess: () => setShowAddModal(false),
+            });
           }}
         />
       )}
