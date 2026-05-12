@@ -14,7 +14,7 @@ export function TodoReviewSection({
   if (!todos || todos.length === 0) {
     return (
       <div className="text-center py-12 text-muted text-sm">
-        No to-dos for this week.
+        No to-dos from last week to review.
       </div>
     );
   }

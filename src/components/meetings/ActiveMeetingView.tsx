@@ -18,7 +18,13 @@ import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
 import { useIssues, useUpdateIssue, useCreateIssue } from "@/hooks/useIssues";
 import type { MeetingData } from "@/hooks/useMeetings";
 import { useServices } from "@/hooks/useServices";
-import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
+import {
+  cn,
+  formatDateAU,
+  getWeekStart,
+  getPreviousWeekStart,
+  getCurrentQuarter,
+} from "@/lib/utils";
 import { fetchApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -70,7 +76,12 @@ export function ActiveMeetingView({
   // Data hooks
   const { data: scorecard } = useScorecard();
   const { data: allRocks } = useRocks(getCurrentQuarter());
-  const weekStart = getWeekStart();
+  // L10 To-Do Review pulls LAST week's todos, not this week's — these
+  // are the commitments people made AT last week's meeting and need to
+  // be marked done / not-done at this one. New todos created during
+  // this meeting (handleCreateTodoFromIssue below) still get this
+  // week's `weekOf` so they show up at next week's review.
+  const weekStart = getPreviousWeekStart();
   const { data: allTodos } = useTodos({ weekOf: weekStart.toISOString() });
   const { data: allIDSIssuesRaw } = useIssues({ status: "open,in_discussion" });
   const { data: services } = useServices("active");

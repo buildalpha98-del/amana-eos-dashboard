@@ -28,3 +28,15 @@ export function getWeekStart(date: Date = new Date()): Date {
   d.setHours(0, 0, 0, 0);
   return d;
 }
+
+/**
+ * The Monday 00:00 of the week BEFORE `date`'s week. Used by the L10
+ * meeting's To-Do Review section, which reviews last week's commitments
+ * (not this week's — last week is what people committed to AT last
+ * week's meeting and should be marked done/not-done at this one).
+ */
+export function getPreviousWeekStart(date: Date = new Date()): Date {
+  const current = getWeekStart(date);
+  current.setDate(current.getDate() - 7);
+  return current;
+}
