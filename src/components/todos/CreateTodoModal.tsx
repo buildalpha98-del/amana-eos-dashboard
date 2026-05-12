@@ -1,16 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTodoSchema, type CreateTodoInput } from "@/lib/schemas/todo";
 import { useCreateTodo } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
-import { Lock, Unlock } from "lucide-react";
+import { Lock, Unlock, Sparkles, Check, X as XIcon } from "lucide-react";
+import { toast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { FormField } from "@/components/ui/form/FormField";
 import { FormInput } from "@/components/ui/form/FormInput";
 import { FormSelect } from "@/components/ui/form/FormSelect";
 import { FormTextarea } from "@/components/ui/form/FormTextarea";
+import { AiButton } from "@/components/ui/AiButton";
+import {
+  parseAiDraft,
+  type AiDraftSuggestion,
+} from "@/lib/todos/parse-ai-draft";
 
 interface UserOption {
   id: string;
@@ -61,6 +68,30 @@ export function CreateTodoModal({
   });
 
   const isPrivate = watch("isPrivate");
+  const description = watch("description") ?? "";
+
+  // AI Draft state — the suggestion the user can apply or discard.
+  // Lives inside the modal (no redirect to Admin) per the Bucket M spec.
+  const [aiDraft, setAiDraft] = useState<AiDraftSuggestion | null>(null);
+
+  function handleAiResult(raw: string) {
+    const parsed = parseAiDraft(raw);
+    if (!parsed) {
+      toast({
+        variant: "destructive",
+        description: "AI returned an unexpected format. Try again.",
+      });
+      return;
+    }
+    setAiDraft(parsed);
+  }
+
+  function applyAiDraft() {
+    if (!aiDraft) return;
+    setValue("title", aiDraft.title, { shouldValidate: true });
+    setValue("description", aiDraft.description, { shouldValidate: true });
+    setAiDraft(null);
+  }
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -130,6 +161,67 @@ export function CreateTodoModal({
               rows={2}
               placeholder="Add details..."
             />
+            {/* AI Draft trigger — only active once the user has typed a
+                description. Clicking generates a polished title +
+                description, shown in the panel below before applying. */}
+            <div className="mt-2 flex justify-end">
+              <AiButton
+                templateSlug="todos/draft-from-description"
+                variables={{ description }}
+                onResult={handleAiResult}
+                disabled={description.trim().length === 0}
+                label="Create AI Draft"
+                size="sm"
+                section="todo-create"
+              />
+            </div>
+            {aiDraft ? (
+              <div
+                className="mt-3 rounded-lg border border-purple-200 bg-purple-50/50 p-3 space-y-2"
+                data-testid="todo-ai-draft-panel"
+              >
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-800">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  AI Draft suggestion
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-purple-700/80">
+                    Title
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    {aiDraft.title}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-purple-700/80">
+                    Description
+                  </p>
+                  <p className="text-sm text-foreground/90 whitespace-pre-wrap">
+                    {aiDraft.description}
+                  </p>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={applyAiDraft}
+                    className="inline-flex items-center gap-1 rounded-md bg-purple-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-purple-700"
+                    data-testid="todo-ai-draft-apply"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    Use this
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiDraft(null)}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 text-xs text-foreground/80 hover:bg-surface"
+                    data-testid="todo-ai-draft-discard"
+                  >
+                    <XIcon className="h-3.5 w-3.5" />
+                    Discard
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
