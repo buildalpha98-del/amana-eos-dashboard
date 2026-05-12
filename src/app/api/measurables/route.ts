@@ -26,11 +26,15 @@ const body = await parseJsonBody(req);
     );
   }
 
-  // Find or create default scorecard
+  // Find or create default scorecard.
+  // Stage-2 of the scorecard overhaul will replace this implicit-default
+  // path with explicit scorecard selection in the request body. For
+  // Stage 1 we keep the legacy behaviour but record the creating user
+  // as owner so the new NOT NULL ownerId column is satisfied.
   let scorecard = await prisma.scorecard.findFirst();
   if (!scorecard) {
     scorecard = await prisma.scorecard.create({
-      data: { title: "Weekly Leadership Scorecard" },
+      data: { title: "Weekly Leadership Scorecard", ownerId: session!.user.id },
     });
   }
 

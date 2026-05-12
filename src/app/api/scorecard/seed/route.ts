@@ -77,8 +77,14 @@ export const POST = withApiAuth(async (req, session) => {
     });
 
     if (!scorecard) {
+      // Stage 1 of the scorecard overhaul: the seed-creator becomes
+      // the scorecard's owner. This route is owner-tier so session
+      // user is always present.
       scorecard = await prisma.scorecard.create({
-        data: { title: "Weekly Leadership Scorecard" },
+        data: {
+          title: "Weekly Leadership Scorecard",
+          ownerId: session!.user.id,
+        },
       });
     }
 
