@@ -19,6 +19,7 @@ export interface EmployeesListParams {
   status?: "active" | "pending" | "deactivated";
   serviceIds?: string[];
   roles?: string[];
+  tags?: string[];
   sort?: "name" | "role" | "service" | "status";
   page?: number;
   pageSize?: number;
@@ -31,6 +32,7 @@ export interface EmployeeListItem {
   avatar: string | null;
   phone: string | null;
   role: string;
+  tags: string[];
   service: { id: string; name: string } | null;
   status: "active" | "pending" | "deactivated";
 }
@@ -52,6 +54,7 @@ function buildUrl(p: EmployeesListParams): string {
   if (p.status) sp.set("status", p.status);
   if (p.serviceIds?.length) sp.set("s", p.serviceIds.join(","));
   if (p.roles?.length) sp.set("r", p.roles.join(","));
+  if (p.tags?.length) sp.set("tag", p.tags.join(","));
   sp.set("page", String(p.page ?? 1));
   sp.set("pageSize", String(p.pageSize ?? 50));
   sp.set("sort", p.sort ?? "name");
@@ -66,6 +69,7 @@ export function useEmployeesList(params: EmployeesListParams) {
       params.status ?? "",
       params.serviceIds?.join(",") ?? "",
       params.roles?.join(",") ?? "",
+      params.tags?.join(",") ?? "",
       params.sort ?? "name",
       params.page ?? 1,
       params.pageSize ?? 50,

@@ -81,6 +81,7 @@ export function StaffProfileLayout({
                     name: data.targetUser.service.name,
                   }
                 : null,
+              tags: data.targetUser.tags ?? [],
             }}
             tenure={snapshotStats.tenure}
             viewerRole={viewerRole}

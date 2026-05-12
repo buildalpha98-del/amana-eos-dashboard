@@ -14,6 +14,7 @@ function makeInput(overrides: Partial<EmployeeRowInput> = {}): EmployeeRowInput 
     role: "staff",
     active: true,
     lastLoginAt: new Date("2026-04-01"),
+    tags: [],
     service: { id: "svc-1", name: "Mawson Lakes" },
     ...overrides,
   };

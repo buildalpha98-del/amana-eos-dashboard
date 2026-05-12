@@ -5,6 +5,7 @@ import { encrypt } from "@/lib/encryption";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { normaliseTagList } from "@/lib/staff-tags";
 const profileUpdateSchema = z.object({
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
@@ -37,6 +38,10 @@ const profileUpdateSchema = z.object({
   bankBSB: z.string().optional(),
   bankAccountNumber: z.string().optional(),
   xeroEmployeeId: z.string().optional(),
+  // Free-form admin tags. Normalised + deduped server-side, see
+  // /lib/staff-tags. Capped at MAX_TAGS_PER_USER; over-cap entries
+  // are silently dropped past the limit rather than 400-ing.
+  tags: z.array(z.string()).max(50).optional(),
 });
 
 // Fields staff can update on their own profile
@@ -97,6 +102,7 @@ const { id } = await context!.params!;
       bankBSB: true,
       bankAccountNumber: true,
       xeroEmployeeId: true,
+      tags: true,
       createdAt: true,
       updatedAt: true,
       emergencyContacts: {
@@ -165,6 +171,14 @@ const { id } = await context!.params!;
       continue;
     }
 
+    // Normalise + dedupe tags before writing. Caller can pass any
+    // case / whitespace; storage is always lowercased + hyphenated.
+    if (key === "tags") {
+      const { tags } = normaliseTagList(value as string[]);
+      data.tags = tags;
+      continue;
+    }
+
     // Convert date strings to Date objects
     if (
       ["dateOfBirth", "visaExpiry", "startDate", "probationEndDate"].includes(
@@ -206,6 +220,7 @@ const { id } = await context!.params!;
       bankBSB: true,
       bankAccountNumber: true,
       xeroEmployeeId: true,
+      tags: true,
       updatedAt: true,
     },
   });

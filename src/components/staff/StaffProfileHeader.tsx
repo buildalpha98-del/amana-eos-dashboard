@@ -26,6 +26,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
+import { StaffTagEditor } from "@/components/staff/StaffTagEditor";
 import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
 import { useEmployeeQuickAction, type QuickActionType } from "@/hooks/useEmployeeQuickAction";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -44,6 +45,7 @@ export interface StaffProfileHeaderProps {
     lastLoginAt: Date | null;
     address?: string | null;
     service?: { id: string; name: string } | null;
+    tags?: string[];
   };
   tenure: string;
   /** Viewer's role — controls which quick actions render. */
@@ -126,14 +128,21 @@ export function StaffProfileHeader({
               {user.service?.name ? ` · ${user.service.name}` : ""}
               {tenure ? ` · ${tenure}` : ""}
             </p>
-            <span
-              className={cn(
-                "mt-2 inline-flex items-center rounded-full border px-2 py-0 text-[10px] font-bold uppercase tracking-wide",
-                STATUS_TONE[status],
-              )}
-            >
-              {status}
-            </span>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2 py-0 text-[10px] font-bold uppercase tracking-wide",
+                  STATUS_TONE[status],
+                )}
+              >
+                {status}
+              </span>
+              <StaffTagEditor
+                userId={user.id}
+                tags={user.tags ?? []}
+                canEdit={isAdmin}
+              />
+            </div>
 
             <dl className="mt-3 space-y-1 text-sm text-foreground/80">
               {user.email ? (

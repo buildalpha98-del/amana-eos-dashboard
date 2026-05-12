@@ -21,12 +21,15 @@
 
 import type { Prisma } from "@prisma/client";
 import { isRole } from "@/lib/role-enum";
+import { normaliseTag } from "@/lib/staff-tags";
 
 export interface ListQueryParams {
   q?: string;
   status?: string; // "active" | "pending" | "deactivated"
   s?: string; // comma-separated serviceIds
   r?: string; // comma-separated roles
+  /** Comma-separated tag values. Multiple tags = AND (must have all). */
+  tag?: string;
 }
 
 export interface BuildListWhereInput {
@@ -93,6 +96,17 @@ export function buildListWhere(
     .filter(isRole);
   if (requestedRoles.length > 0) {
     where.role = { in: requestedRoles };
+  }
+
+  // Tag filter — normalise each requested tag and require ALL of them
+  // on the user (`hasEvery`). AND semantics mirror the existing
+  // multi-select role/service chips ("matches X AND Y", not "matches
+  // X OR Y"). Tags that fail normalisation are dropped silently.
+  const requestedTags = (params.tag?.split(",") ?? [])
+    .map((t) => normaliseTag(t))
+    .filter((t): t is string => t !== null);
+  if (requestedTags.length > 0) {
+    where.tags = { hasEvery: requestedTags };
   }
 
   return where;

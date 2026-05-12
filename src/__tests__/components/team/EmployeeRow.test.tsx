@@ -27,6 +27,7 @@ const ALICE = {
   role: "staff",
   service: { id: "svc-1", name: "Mawson Lakes" },
   status: "active" as const,
+  tags: [] as string[],
 };
 
 function renderRow(props: React.ComponentProps<typeof EmployeeRow>) {

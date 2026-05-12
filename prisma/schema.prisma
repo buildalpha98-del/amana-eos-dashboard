@@ -512,6 +512,12 @@ model User {
   serviceId      String?
   service        Service?  @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
   state          String? // Australian state for State Manager scoping (VIC, NSW, QLD, etc.)
+  // 2026-05-12: free-form admin-managed tags for /team filtering and
+  // org-specific grouping (e.g. "nsw", "lead-trainer", "weekend-only").
+  // Always lowercased + trimmed at write time so "NSW" and "nsw" are
+  // the same tag. Default empty array so existing rows don't need a
+  // backfill. Max 20 per user enforced at the API layer.
+  tags           String[]  @default([])
   tokenVersion   Int       @default(0) // Bump to invalidate all existing sessions
   mfaSecret      String? // Encrypted TOTP secret (null = MFA not enrolled)
   mfaBackupCodes String[] // Hashed one-time recovery codes
