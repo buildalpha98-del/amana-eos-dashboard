@@ -2023,6 +2023,32 @@ Rules:
 - Maximum 15 items`,
     },
     {
+      // Used in CreateTodoModal: user types a short description, clicks
+      // "Create AI Draft", and the modal renders a suggested title +
+      // polished description they can apply with one click.
+      slug: "todos/draft-from-description",
+      name: "Draft To-Do from Short Description",
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 512,
+      variables: JSON.stringify(["description"]),
+      promptTemplate: `You're helping an Amana OSHC team member turn a rough To-Do idea into a polished, actionable item for the dashboard.
+
+Their short description:
+{{description}}
+
+Return a JSON object with exactly these keys (no prose, no markdown fences):
+{
+  "title": string (≤60 chars, starts with a verb, specific and actionable),
+  "description": string (2-4 sentences expanding the rough idea into clear next steps — who, what, why; do NOT invent dates, assignees, or stakeholder names that weren't in the input)
+}
+
+Rules:
+- Title is a single line, action-oriented (e.g. "Confirm Bonnyrigg roof inspection time" not "Roof inspection")
+- Description grounds the title in concrete steps the assignee can act on
+- Don't pad with corporate filler — short and useful beats long and vague
+- If the input is too short or vague to expand meaningfully, return a title that mirrors the input and a description that acknowledges what's missing`,
+    },
+    {
       slug: "compliance/risk-report",
       name: "Compliance Risk Report",
       model: "claude-sonnet-4-20250514",
