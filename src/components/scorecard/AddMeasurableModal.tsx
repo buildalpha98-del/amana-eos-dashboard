@@ -4,26 +4,41 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { fetchApi } from "@/lib/fetch-api";
 import type { MeasurableData } from "@/hooks/useScorecard";
+import {
+  useScorecardMembers,
+  type ScorecardSummary,
+} from "@/hooks/useScorecards";
 
 interface UserOption {
   id: string;
   name: string;
+  email?: string;
+  avatar?: string | null;
 }
 
-interface ServiceOption {
-  id: string;
-  name: string;
-}
-
+/**
+ * Stage 3 of Bucket O. The modal:
+ *   - takes a `scorecardId` (required for create)
+ *   - drops the "Select Centre" field (scope is the scorecard now)
+ *   - restricts the owner picker to scorecard owner + members
+ *     (rejects "tried to set owner to someone not in this scorecard")
+ */
 export function AddMeasurableModal({
   open,
   onClose,
   editingMeasurable,
+  scorecardId,
+  scorecardOwner,
 }: {
   open: boolean;
   onClose: () => void;
   editingMeasurable?: MeasurableData | null;
+  /** Target scorecard for new measurables — required for create. */
+  scorecardId?: string;
+  /** Used to include the scorecard's own owner in the picker. */
+  scorecardOwner?: ScorecardSummary["owner"];
 }) {
   const queryClient = useQueryClient();
   const isEditMode = !!editingMeasurable;
@@ -34,7 +49,6 @@ export function AddMeasurableModal({
   const [goalValue, setGoalValue] = useState("");
   const [goalDirection, setGoalDirection] = useState<"above" | "below" | "exact">("above");
   const [unit, setUnit] = useState("");
-  const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState("");
 
   // Pre-fill form when editing
@@ -46,7 +60,6 @@ export function AddMeasurableModal({
       setGoalValue(String(editingMeasurable.goalValue));
       setGoalDirection(editingMeasurable.goalDirection);
       setUnit(editingMeasurable.unit || "");
-      setServiceId(editingMeasurable.serviceId || "");
     } else {
       setTitle("");
       setDescription("");
@@ -54,7 +67,6 @@ export function AddMeasurableModal({
       setGoalValue("");
       setGoalDirection("above");
       setUnit("");
-      setServiceId("");
     }
     setError("");
   }, [editingMeasurable, open]);
@@ -64,10 +76,10 @@ export function AddMeasurableModal({
       title: string;
       description?: string;
       ownerId: string;
+      scorecardId: string;
       goalValue: number;
       goalDirection: string;
       unit?: string;
-      serviceId?: string;
     }) => {
       const res = await fetch("/api/measurables", {
         method: "POST",
@@ -82,6 +94,7 @@ export function AddMeasurableModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+      queryClient.invalidateQueries({ queryKey: ["scorecard-detail"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -97,7 +110,6 @@ export function AddMeasurableModal({
       goalValue?: number;
       goalDirection?: string;
       unit?: string | null;
-      serviceId?: string | null;
     }) => {
       const { id, ...body } = data;
       const res = await fetch(`/api/measurables/${id}`, {
@@ -113,30 +125,46 @@ export function AddMeasurableModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+      queryClient.invalidateQueries({ queryKey: ["scorecard-detail"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
-  const { data: users } = useQuery<UserOption[]>({
+  // Scorecard members — restrict the owner picker to people who can
+  // actually own a measurable in this scorecard. Owner is implicitly
+  // a participant and is added below.
+  const members = useScorecardMembers(open ? scorecardId ?? null : null);
+  const allUsers = useQuery<UserOption[]>({
     queryKey: ["users-list"],
-    queryFn: async () => {
-      const res = await fetch("/api/users");
-      if (!res.ok) return [];
-      return res.json();
-    },
+    queryFn: () => fetchApi<UserOption[]>("/api/users"),
+    enabled: open,
   });
 
-  const { data: services } = useQuery<ServiceOption[]>({
-    queryKey: ["services-list"],
-    queryFn: async () => {
-      const res = await fetch("/api/services");
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name }));
-    },
-  });
+  // Build the owner picker list: scorecard owner first, then members.
+  // Falls back to the full user list if scorecardId isn't set (e.g.
+  // legacy callers that haven't migrated yet).
+  const ownerCandidates: UserOption[] = scorecardId
+    ? [
+        ...(scorecardOwner
+          ? [
+              {
+                id: scorecardOwner.id,
+                name: `${scorecardOwner.name} (owner)`,
+                email: scorecardOwner.email,
+                avatar: scorecardOwner.avatar,
+              },
+            ]
+          : []),
+        ...(members.data?.members ?? []).map((m) => ({
+          id: m.user.id,
+          name: m.user.name,
+          email: m.user.email,
+          avatar: m.user.avatar,
+        })),
+      ]
+    : allUsers.data ?? [];
 
   if (!open) return null;
 
@@ -165,7 +193,6 @@ export function AddMeasurableModal({
           goalValue: numGoal,
           goalDirection,
           unit: unit || null,
-          serviceId: serviceId || null,
         },
         {
           onSuccess: () => onClose(),
@@ -173,15 +200,19 @@ export function AddMeasurableModal({
         }
       );
     } else {
+      if (!scorecardId) {
+        setError("Select a scorecard first");
+        return;
+      }
       createMeasurable.mutate(
         {
           title,
           description: description || undefined,
           ownerId,
+          scorecardId,
           goalValue: numGoal,
           goalDirection,
           unit: unit || undefined,
-          serviceId: serviceId || undefined,
         },
         {
           onSuccess: () => {
@@ -190,7 +221,6 @@ export function AddMeasurableModal({
             setOwnerId("");
             setGoalValue("");
             setUnit("");
-            setServiceId("");
             onClose();
           },
           onError: (err: Error) => setError(err.message),
@@ -267,33 +297,26 @@ export function AddMeasurableModal({
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              data-testid="measurable-owner-picker"
             >
-              <option value="">Select person...</option>
-              {users?.map((u) => (
+              <option value="">
+                {scorecardId && ownerCandidates.length === 0
+                  ? "No members yet — invite someone first"
+                  : "Select person…"}
+              </option>
+              {ownerCandidates.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
                 </option>
               ))}
             </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground/80 mb-1">
-              Centre{" "}
-              <span className="text-muted font-normal">(optional)</span>
-            </label>
-            <select
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-            >
-              <option value="">All centres (global)</option>
-              {services?.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            {scorecardId ? (
+              <p className="mt-1 text-xs text-muted">
+                Only scorecard members can own a measurable. Invite a
+                person from the scorecard&apos;s Members button to add
+                them here.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-3 gap-3">
