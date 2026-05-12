@@ -145,31 +145,6 @@ export function useCreateActivation() {
   });
 }
 
-export interface PatchActivationInput {
-  id: string;
-  activationType?: ActivationType | null;
-  scheduledFor?: string | null;
-  expectedAttendance?: number | null;
-  actualAttendance?: number | null;
-  enquiriesGenerated?: number | null;
-  budget?: number | null;
-  notes?: string | null;
-  coordinatorId?: string | null;
-}
-
-export function usePatchActivation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, ...patch }: PatchActivationInput) =>
-      mutateApi(`/api/marketing/activations/${id}`, { method: "PATCH", body: patch }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [ACT_KEY] });
-      qc.invalidateQueries({ queryKey: [GRID_KEY] });
-    },
-    onError: destructive,
-  });
-}
-
 export interface TransitionInput {
   id: string;
   toStage: ActivationLifecycleStage;
@@ -194,19 +169,3 @@ export function useTransitionActivation() {
   });
 }
 
-// Legacy Sprint 6 hook (still used by the previous mark-delivered button).
-export function useMarkDelivered() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, undo }: { id: string; undo?: boolean }) =>
-      mutateApi(`/api/marketing/activations/${id}/mark-delivered`, {
-        method: "POST",
-        body: { undo: undo ?? false },
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [ACT_KEY] });
-      qc.invalidateQueries({ queryKey: [GRID_KEY] });
-    },
-    onError: destructive,
-  });
-}

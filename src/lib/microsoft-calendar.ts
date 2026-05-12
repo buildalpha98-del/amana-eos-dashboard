@@ -162,7 +162,7 @@ export async function refreshAccessToken(userId: string): Promise<string | null>
 // ── Graph Client ─────────────────────────────────────────
 
 /** Get an authenticated Graph client for a user */
-export async function getGraphClient(userId: string): Promise<Client | null> {
+async function getGraphClient(userId: string): Promise<Client | null> {
   const integration = await prisma.calendarIntegration.findUnique({
     where: { userId },
   });

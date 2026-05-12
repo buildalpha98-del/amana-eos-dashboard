@@ -204,7 +204,7 @@ function isReverseSection(sectionName: string | null, text: string): boolean {
 /* Main parser                                                         */
 /* ------------------------------------------------------------------ */
 
-export function parseAuditDocument(text: string): ParsedAuditResult {
+function parseAuditDocument(text: string): ParsedAuditResult {
   const { format: detectedFormat, hasReverseYesNo } = detectFormat(text);
 
   const lines = text.split("\n");
@@ -503,7 +503,7 @@ function cellText(el: Element): string {
 /**
  * Parse a mammoth-generated HTML string and extract audit items from tables.
  */
-export async function parseAuditHtml(html: string): Promise<ParsedAuditResult> {
+async function parseAuditHtml(html: string): Promise<ParsedAuditResult> {
   const JSDOM = await getJSDOM();
   const dom = new JSDOM(html);
   const doc = dom.window.document;

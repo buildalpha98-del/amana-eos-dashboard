@@ -202,19 +202,6 @@ export function notifyOverdueTodos(data: {
   });
 }
 
-/** Project milestone completed */
-export function notifyProjectMilestone(project: {
-  name: string;
-  milestone: string;
-  url: string;
-}) {
-  return sendTeamsNotification({
-    title: "✅ Project Milestone",
-    body: `**${project.name}**: milestone **${project.milestone}** completed.`,
-    actions: [{ type: "Action.OpenUrl" as const, title: "View Project", url: project.url }],
-  });
-}
-
 // ── Automation-wired notifications ──────────────────────
 
 /** Rock auto-flagged as off-track by escalation cron */

@@ -203,14 +203,6 @@ export const navItems: NavItem[] = [
 ];
 
 /**
- * Derive page title map from navItems for TopBar usage.
- * Additional entries (like /crm/templates) can be spread in by the consumer.
- */
-export const pageTitlesFromNav: Record<string, string> = Object.fromEntries(
-  navItems.map((item) => [item.href, item.label])
-);
-
-/**
  * Filter nav items by role: must pass `canAccessPage` AND (if tagged) the
  * `hasFeature` gate AND (if tagged) the `roles` allowlist. Keeps role logic
  * in one place so Sidebar stays declarative.

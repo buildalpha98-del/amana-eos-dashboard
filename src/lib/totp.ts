@@ -21,7 +21,7 @@ function getEncryptionKey(): Buffer {
 
 // ── Encrypt / Decrypt secrets ────────────────────────────────
 
-export function encryptSecret(plaintext: string): string {
+function encryptSecret(plaintext: string): string {
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGO, key, iv);

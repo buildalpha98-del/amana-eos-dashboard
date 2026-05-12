@@ -395,11 +395,5 @@ export function useTimesheetsSummary(
 
 // ── Backward-compatible aliases ────────────────────────────────
 
-/** @deprecated Use TimesheetEntryData instead */
-export type TimesheetEntry = TimesheetEntryData;
-
 /** @deprecated Use useAddTimesheetEntries instead */
 export const useAddTimesheetEntry = useAddTimesheetEntries;
-
-/** @deprecated Use useTimesheetsSummary instead */
-export const useTimesheetSummary = useTimesheetsSummary;

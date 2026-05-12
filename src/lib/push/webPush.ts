@@ -72,9 +72,6 @@ export async function sendPush(
   );
 }
 
-/** @deprecated Use `sendPush` — kept for callers that still reference the old name. */
-export const sendPushNotification = sendPush;
-
 interface SubRow {
   id: string;
   endpoint: string;
