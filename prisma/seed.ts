@@ -115,11 +115,14 @@ async function main() {
   // the Vercel build. Now we only create the seed scorecard +
   // measurables when the table is empty; existing deployments
   // (which already have a scorecard) skip this block entirely.
-  // Reported by user 2026-05-12 — fixed in PR addressing Bucket K.
+  // Reported by user 2026-05-12 — fixed in PR #91 (Bucket K).
+  //
+  // 2026-05-12 Stage 1 (Bucket O): seeded scorecard now records its
+  // owner — the admin user established above.
   const existingScorecardCount = await prisma.scorecard.count();
   if (existingScorecardCount === 0) {
     const scorecard = await prisma.scorecard.create({
-      data: { title: "Weekly Leadership Scorecard" },
+      data: { title: "Weekly Leadership Scorecard", ownerId: admin.id },
     });
 
     const measurables = [

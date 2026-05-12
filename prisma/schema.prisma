@@ -538,6 +538,8 @@ model User {
   raisedIssues                  Issue[]                        @relation("IssueRaiser")
   ownedIssues                   Issue[]                        @relation("IssueOwner")
   ownedMeasurables              Measurable[]                   @relation("MeasurableOwner")
+  ownedScorecards               Scorecard[]                    @relation("ScorecardOwner")
+  scorecardMemberships          ScorecardMember[]              @relation("ScorecardMembership")
   measurableEntries             MeasurableEntry[]              @relation("EntryCreator")
   activityLogs                  ActivityLog[]
   vtoUpdates                    VisionTractionOrganiser[]      @relation("VTOUpdater")
@@ -957,10 +959,37 @@ model Issue {
 model Scorecard {
   id        String   @id @default(cuid())
   title     String
+  // 2026-05-12 (Bucket O Stage 1): scorecards are now first-class
+  // entities with an owner + invited members. Existing rows backfilled
+  // to the first owner-role user. New scorecards record their creator
+  // as owner; the owner controls renaming + membership.
+  ownerId   String
+  owner     User     @relation("ScorecardOwner", fields: [ownerId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   measurables Measurable[]
+  members     ScorecardMember[]
+
+  @@index([ownerId])
+}
+
+/// Per-scorecard membership. Members can view the scorecard and own
+/// measurables within it. The scorecard's `owner` is implicitly also
+/// a member but not stored here — permission checks add the owner
+/// in code. ON DELETE CASCADE on both FKs so deleting a scorecard or
+/// user cleans up memberships.
+model ScorecardMember {
+  id          String    @id @default(cuid())
+  scorecardId String
+  scorecard   Scorecard @relation(fields: [scorecardId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation("ScorecardMembership", fields: [userId], references: [id], onDelete: Cascade)
+  addedAt     DateTime  @default(now())
+
+  @@unique([scorecardId, userId])
+  @@index([userId])
+  @@index([scorecardId])
 }
 
 model Measurable {

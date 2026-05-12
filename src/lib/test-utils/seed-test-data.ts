@@ -267,8 +267,10 @@ export async function seedTestData() {
   );
 
   // ── 6. Measurables ──────────────────────────────────────
+  // Stage 1 of the scorecard overhaul: every scorecard has an owner.
+  // Test fixture reuses the first user (typically the test owner).
   const scorecard = await prisma.scorecard.create({
-    data: { title: "Test Scorecard" },
+    data: { title: "Test Scorecard", ownerId },
   });
 
   const measurables = await Promise.all([
