@@ -56,7 +56,7 @@ export interface ScoreInputEOS {
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-export const PILLAR_WEIGHTS = {
+const PILLAR_WEIGHTS = {
   financial: 0.3,
   operational: 0.25,
   compliance: 0.2,
@@ -82,7 +82,7 @@ export const PILLAR_KEYS = [
 
 // ─── Utilities ──────────────────────────────────────────────────────────────
 
-export function clampedLinear(
+function clampedLinear(
   value: number,
   min: number,
   max: number
@@ -99,7 +99,7 @@ export function getScoreStatus(
   return "red";
 }
 
-export function getTrend(
+function getTrend(
   current: number,
   previous: number | null
 ): "improving" | "declining" | "stable" {
@@ -118,7 +118,7 @@ function averageAvailable(scores: (number | null)[]): number {
 
 // ─── Pillar Computations ────────────────────────────────────────────────────
 
-export function computeFinancialPillar(
+function computeFinancialPillar(
   f: ScoreInputFinancials | null
 ): PillarScore {
   if (!f) return { score: 0, breakdown: {} };
@@ -157,7 +157,7 @@ export function computeFinancialPillar(
   };
 }
 
-export function computeOperationalPillar(
+function computeOperationalPillar(
   m: ScoreInputMetrics | null,
   eos: ScoreInputEOS
 ): PillarScore {
@@ -204,7 +204,7 @@ export function computeOperationalPillar(
   };
 }
 
-export function computeCompliancePillar(
+function computeCompliancePillar(
   m: ScoreInputMetrics | null
 ): PillarScore {
   if (!m) return { score: 0, breakdown: {} };
@@ -257,7 +257,7 @@ export function computeCompliancePillar(
   };
 }
 
-export function computeSatisfactionPillar(
+function computeSatisfactionPillar(
   m: ScoreInputMetrics | null,
   eos: ScoreInputEOS
 ): PillarScore {
@@ -300,7 +300,7 @@ export function computeSatisfactionPillar(
   };
 }
 
-export function computeTeamCulturePillar(
+function computeTeamCulturePillar(
   m: ScoreInputMetrics | null,
   eos: ScoreInputEOS
 ): PillarScore {

@@ -13,8 +13,6 @@ import { logger } from "@/lib/logger";
 import {
   bookingConfirmedEmail,
   bookingCancelledEmail,
-  newStatementEmail,
-  newMessageReplyEmail,
   newChildPostEmail,
 } from "@/lib/email-templates/parent-notifications";
 
@@ -139,66 +137,6 @@ export async function notifyBookingCancelled(bookingId: string) {
     );
   } catch (err) {
     logger.error("Failed to send booking cancelled notification", { bookingId, err });
-  }
-}
-
-// ── New Statement ───────────────────────────────────────
-
-export async function notifyNewStatement(statementId: string) {
-  try {
-    const statement = await prisma.statement.findUnique({
-      where: { id: statementId },
-      include: {
-        contact: { select: { email: true, firstName: true } },
-      },
-    });
-    if (!statement) return;
-
-    const template = newStatementEmail({
-      parentName: statement.contact.firstName ?? "Parent",
-      periodStart: statement.periodStart.toISOString(),
-      periodEnd: statement.periodEnd.toISOString(),
-      totalFees: statement.totalFees,
-      totalCcs: statement.totalCcs,
-      gapFee: statement.gapFee,
-    });
-
-    await sendEmail({ to: statement.contact.email, ...template });
-  } catch (err) {
-    logger.error("Failed to send new statement notification", { statementId, err });
-  }
-}
-
-// ── New Message Reply (staff → parent) ──────────────────
-
-export async function notifyMessageReply(ticketId: string, messageBody: string, staffName: string) {
-  try {
-    const ticket = await prisma.supportTicket.findUnique({
-      where: { id: ticketId },
-      include: {
-        parentContact: { select: { email: true, firstName: true } },
-      },
-    });
-    if (!ticket?.parentContact) return;
-
-    const template = newMessageReplyEmail({
-      parentName: ticket.parentContact.firstName ?? "Parent",
-      subject: ticket.subject ?? "Your conversation",
-      staffName,
-      previewText: messageBody,
-      ticketId: ticket.id,
-    });
-
-    await sendEmail({ to: ticket.parentContact.email, ...template });
-    await createInAppNotification({
-      parentEmail: ticket.parentContact.email,
-      type: "message",
-      title: `Reply: ${ticket.subject ?? "Conversation"}`,
-      body: `${staffName} replied to your message.`,
-      link: `/parent/messages/${ticket.id}`,
-    });
-  } catch (err) {
-    logger.error("Failed to send message reply notification", { ticketId, err });
   }
 }
 

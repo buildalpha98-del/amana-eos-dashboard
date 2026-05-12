@@ -80,7 +80,7 @@ export function getMondayUtc(date: Date = new Date(), tz: string = SERVICE_TZ): 
  * Midnight UTC of today in the service timezone, suitable for comparing
  * Prisma `@db.Date` columns (which are stored as UTC midnight of the local day).
  */
-export function getTodayUtcFromServiceTz(
+function getTodayUtcFromServiceTz(
   date: Date = new Date(),
   tz: string = SERVICE_TZ,
 ): Date {

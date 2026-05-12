@@ -50,7 +50,7 @@ export type TaskType = "communication" | "research" | "document" | "admin";
 // ---------------------------------------------------------------------------
 // Classifier — determines what kind of draft to generate
 // ---------------------------------------------------------------------------
-export function classifyTask(title: string, description?: string | null): TaskType {
+function classifyTask(title: string, description?: string | null): TaskType {
   const text = `${title} ${description || ""}`.toLowerCase();
 
   if (/email|write to|contact|send|draft|letter|notify|inform|message|announce/.test(text)) {
@@ -68,7 +68,7 @@ export function classifyTask(title: string, description?: string | null): TaskTy
 // ---------------------------------------------------------------------------
 // Prompt builder — turns task context into an LLM prompt
 // ---------------------------------------------------------------------------
-export function buildPrompt(ctx: TaskContext, taskType: TaskType): string {
+function buildPrompt(ctx: TaskContext, taskType: TaskType): string {
   let prompt = `Task: ${ctx.title}`;
   if (ctx.description) prompt += `\nDetails: ${ctx.description}`;
   if (ctx.serviceName) prompt += `\nCentre: ${ctx.serviceName} (${ctx.serviceCode || "unknown code"})`;

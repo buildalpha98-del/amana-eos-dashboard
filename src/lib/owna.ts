@@ -229,24 +229,6 @@ export interface OwnaBookingRecord {
   capacity: number;
 }
 
-export interface OwnaRosterShift {
-  date: string;
-  sessionType: "BSC" | "ASC" | "VC";
-  staffName: string;
-  shiftStart: string;
-  shiftEnd: string;
-  role?: string;
-}
-
-export interface OwnaCCSRecord {
-  date: string;
-  sessionType: "BSC" | "ASC" | "VC";
-  totalFees: number;
-  ccsAmount: number;
-  gapFee: number;
-  status: "paid" | "pending" | "rejected";
-}
-
 export class OwnaApiError extends Error {
   constructor(
     message: string,
@@ -452,53 +434,6 @@ export class OwnaClient {
     );
   }
 
-  // ── Legacy methods (kept for backward compat with existing cron) ──
-
-  /** @deprecated Use getAttendance(centreId, ...) instead */
-  async getLegacyAttendance(
-    _serviceCode: string,
-    _dateFrom: string,
-    _dateTo: string,
-  ): Promise<OwnaBookingRecord[]> {
-    logger.warn("OWNA getLegacyAttendance is deprecated — use getAttendance()");
-    return [];
-  }
-
-  /** @deprecated Use getCasualBookings(centreId, ...) instead */
-  async getBookings(
-    _serviceCode: string,
-    _dateFrom: string,
-    _dateTo: string,
-  ): Promise<OwnaBookingRecord[]> {
-    logger.warn("OWNA getBookings is deprecated — use getCasualBookings()");
-    return [];
-  }
-
-  /** @deprecated No longer available via public API */
-  async getEnrolments(_serviceCode: string): Promise<OwnaChild[]> {
-    logger.warn("OWNA getEnrolments is deprecated — use getChildren()");
-    return [];
-  }
-
-  /** @deprecated Use getStaff(centreId) instead */
-  async getRoster(
-    _serviceCode: string,
-    _dateFrom: string,
-    _dateTo: string,
-  ): Promise<OwnaRosterShift[]> {
-    logger.warn("OWNA getRoster is deprecated — use getStaff()");
-    return [];
-  }
-
-  /** @deprecated Not yet available on public API */
-  async getCCSData(
-    _serviceCode: string,
-    _dateFrom: string,
-    _dateTo: string,
-  ): Promise<OwnaCCSRecord[]> {
-    logger.warn("OWNA getCCSData — not yet available on public API");
-    return [];
-  }
 }
 
 // ── Singleton accessor ───────────────────────────────────────

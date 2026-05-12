@@ -92,7 +92,7 @@ export interface NetworkSummary {
 
 // ── Core Analysis ─────────────────────────────────────────────
 
-export async function analyseStaffingForDay(
+async function analyseStaffingForDay(
   serviceId: string,
   date: Date,
 ): Promise<DayAnalysis> {
