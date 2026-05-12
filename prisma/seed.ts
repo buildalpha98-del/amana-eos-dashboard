@@ -109,11 +109,16 @@ async function main() {
 
   console.log("Replaced V/TO with goals");
 
-  // Scorecard — delete + replace
-  await prisma.measurableEntry.deleteMany();
-  await prisma.measurable.deleteMany();
-  await prisma.scorecard.deleteMany();
-  const scorecard = await prisma.scorecard.create({
+  // Scorecard — first-run only. The old "delete + replace" pattern
+  // was wiping ALL user-entered weekly measurables (MeasurableEntry)
+  // on every deploy because `npx tsx prisma/seed.ts` runs as part of
+  // the Vercel build. Now we only create the seed scorecard +
+  // measurables when the table is empty; existing deployments
+  // (which already have a scorecard) skip this block entirely.
+  // Reported by user 2026-05-12 — fixed in PR addressing Bucket K.
+  const existingScorecardCount = await prisma.scorecard.count();
+  if (existingScorecardCount === 0) {
+    const scorecard = await prisma.scorecard.create({
       data: { title: "Weekly Leadership Scorecard" },
     });
 
@@ -137,7 +142,12 @@ async function main() {
         },
       });
     }
-  console.log("Replaced Scorecard with measurables");
+    console.log("Created initial Scorecard + measurables (first-run seed)");
+  } else {
+    console.log(
+      `Skipping Scorecard seed — ${existingScorecardCount} scorecard(s) already exist`,
+    );
+  }
 
   // ============================================================
   // Seed Sample Services (OSHC Centres)
