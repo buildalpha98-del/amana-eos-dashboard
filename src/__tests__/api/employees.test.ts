@@ -128,6 +128,37 @@ describe("GET /api/employees", () => {
     expect(findManyCall.where.serviceId).toEqual({ in: ["svc-1"] });
   });
 
+  it("returns pendingCount for admin viewers (drives the bulk-resend button)", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    // Three separate user.count calls now: list total + pendingCount.
+    // mockImplementation routes by `where` shape.
+    prismaMock.user.count.mockImplementation(async (args: unknown) => {
+      const a = args as { where?: { lastLoginAt?: null | undefined } };
+      if (a?.where?.lastLoginAt === null) return 7; // pending
+      return 12; // total
+    });
+    const res = await GET(createRequest("GET", "/api/employees"));
+    const body = await res.json();
+    expect(body.total).toBe(12);
+    expect(body.pendingCount).toBe(7);
+  });
+
+  it("pendingCount is 0 for non-admin viewers (member)", async () => {
+    mockSession({
+      id: "m-1",
+      name: "Member",
+      role: "member",
+      serviceId: "svc-1",
+    });
+    mockedGetCentreScope.mockResolvedValue({ serviceIds: ["svc-1"] });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.count.mockResolvedValue(3);
+    const res = await GET(createRequest("GET", "/api/employees"));
+    const body = await res.json();
+    expect(body.pendingCount).toBe(0);
+  });
+
   it("returns 400 on invalid sort", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     const res = await GET(

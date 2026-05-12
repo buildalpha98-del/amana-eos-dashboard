@@ -36,13 +36,15 @@ describe("ROLE_DISPLAY_NAMES", () => {
   });
 
   // 2026-04-30: coordinator collapsed into member (Director of Service);
-  // "Centre Director" label retired. The 7-role display table is now 6.
+  //             "Centre Director" label retired. 7-role display table → 6.
+  // 2026-05-06: member display → "OSHC Educator" per second-round
+  //             training feedback (Diploma-tier service lead).
   it("has correct display names", () => {
     expect(ROLE_DISPLAY_NAMES.owner).toBe("Owner");
     expect(ROLE_DISPLAY_NAMES.head_office).toBe("State Manager");
     expect(ROLE_DISPLAY_NAMES.admin).toBe("Admin");
     expect(ROLE_DISPLAY_NAMES.marketing).toBe("Marketing");
-    expect(ROLE_DISPLAY_NAMES.member).toBe("Director of Service");
+    expect(ROLE_DISPLAY_NAMES.member).toBe("OSHC Educator");
     expect(ROLE_DISPLAY_NAMES.staff).toBe("Educator");
   });
 });

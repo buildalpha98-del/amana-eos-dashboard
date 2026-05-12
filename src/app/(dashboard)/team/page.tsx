@@ -13,6 +13,7 @@ export default function TeamPage() {
   return (
     <EmployeeListView
       viewerRole={session.user.role ?? ""}
+      viewerId={session.user.id}
       services={services?.map((s) => ({ id: s.id, name: s.name })) ?? []}
     />
   );
