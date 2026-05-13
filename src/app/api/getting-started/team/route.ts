@@ -8,7 +8,6 @@ import { withApiAuth } from "@/lib/server-auth";
 const CHECKLIST_COUNTS: Record<string, number> = {
   staff: 12,
   member: 14,
-  coordinator: 14,
   admin: 15,
   marketing: 12,
   head_office: 14,

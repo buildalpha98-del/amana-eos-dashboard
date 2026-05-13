@@ -3,8 +3,8 @@ import type { Session } from "next-auth";
 /**
  * Returns the serviceId to scope queries by, or null if the user has full access.
  *
- * Post-4b widening: every non-admin role (coordinator / marketing / member / staff)
- * with a populated session.user.serviceId is scoped to that service. Owner /
+ * Post-4b widening: every non-admin role (marketing / member / staff) with
+ * a populated session.user.serviceId is scoped to that service. Owner /
  * head_office / admin retain cross-service access (admin uses getStateScope
  * separately for state-level filtering).
  *

@@ -36,7 +36,7 @@ const ALL_ON: NotificationPrefs = {
  * Returns sensible default notification preferences based on user role.
  *
  * - owner / head_office / admin: all notifications enabled
- * - member / coordinator: all except leaveUpdates defaults to true
+ * - member: all except leaveUpdates defaults to true
  * - staff: core work notifications, no rock updates
  * - marketing: work notifications, no compliance or rock updates
  */

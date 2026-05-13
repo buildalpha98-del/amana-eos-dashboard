@@ -24,8 +24,8 @@ interface TourStepDef {
   description: string;
   icon: LucideIcon;
   iconColor: string;
-  /** If true, only shown to coordinator+ roles */
-  coordinatorOnly?: boolean;
+  /** If true, only shown to leader-tier roles (member and above) */
+  leaderOnly?: boolean;
 }
 
 const ALL_STEPS: TourStepDef[] = [
@@ -49,7 +49,7 @@ const ALL_STEPS: TourStepDef[] = [
       "Use the dropdown in the header to quickly jump between your centres. You can filter data by service so you only see what's relevant to you.",
     icon: Building2,
     iconColor: "text-violet-500",
-    coordinatorOnly: true,
+    leaderOnly: true,
   },
   {
     title: "Quick Actions",
@@ -81,12 +81,9 @@ const ALL_STEPS: TourStepDef[] = [
   },
 ];
 
-const COORDINATOR_PLUS_ROLES = [
-  "member",
-  "admin",
-  "head_office",
-  "owner",
-];
+// Post coordinator-collapse: "leader-tier" = member and above. Director
+// of Service (member) handles centre-level switching just like admins do.
+const LEADER_ROLES = ["member", "admin", "head_office", "owner"];
 
 // ---------------------------------------------------------------------------
 // Storage key
@@ -110,11 +107,9 @@ export function WelcomeTour({ onComplete }: WelcomeTourProps) {
 
   // Build steps filtered by role
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? "";
-  const isCoordinatorPlus = COORDINATOR_PLUS_ROLES.includes(userRole);
+  const isLeader = LEADER_ROLES.includes(userRole);
 
-  const steps = ALL_STEPS.filter(
-    (s) => !s.coordinatorOnly || isCoordinatorPlus,
-  );
+  const steps = ALL_STEPS.filter((s) => !s.leaderOnly || isLeader);
 
   const step = steps[currentStep];
   const isFirst = currentStep === 0;

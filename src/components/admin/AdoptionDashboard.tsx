@@ -44,7 +44,6 @@ const ROLE_LABELS: Record<string, string> = {
   head_office: "Head Office",
   admin: "Admin",
   marketing: "Marketing",
-  coordinator: "Coordinator",
   member: "Member",
   staff: "Staff",
 };
