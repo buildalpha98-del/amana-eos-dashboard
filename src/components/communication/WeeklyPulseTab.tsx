@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   User,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getWeekStart } from "@/lib/utils";
 import {
   usePulses,
   useSubmitPulse,
@@ -23,15 +23,6 @@ import { isAdminRole } from "@/lib/role-permissions";
 import { PulseAdminView } from "./PulseAdminView";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function getMonday(date: Date): string {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
 
 function formatWeekLabel(isoDate: string): string {
   const d = new Date(isoDate);
@@ -69,7 +60,7 @@ export function WeeklyPulseTab() {
   const weekOf = useMemo(() => {
     const now = new Date();
     now.setDate(now.getDate() + weekOffset * 7);
-    return getMonday(now);
+    return getWeekStart(now).toISOString();
   }, [weekOffset]);
 
   // ── My Pulse state ──────────────────────────────────────────────────────

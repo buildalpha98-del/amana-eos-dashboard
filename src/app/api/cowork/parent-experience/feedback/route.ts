@@ -7,13 +7,11 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+// 2026-05-13 (junk sweep #3): the previous local copy of getWeekStart
+// computed `diff` but never called `d.setDate(diff)` — so it returned
+// the original date at midnight rather than the Monday of that week.
+// Migrating to the canonical helper from `@/lib/utils` fixes the bug.
+import { getWeekStart } from "@/lib/utils";
 
 // GET /api/cowork/parent-experience/feedback — per-centre weekly averages for Cowork report
 export const GET = withApiHandler(async (req) => {

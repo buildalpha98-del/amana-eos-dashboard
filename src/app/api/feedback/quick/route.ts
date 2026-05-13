@@ -8,6 +8,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { getWeekStart } from "@/lib/utils";
 const feedbackSchema = z.object({
   serviceId: z.string().min(1),
   score: z.number().int().min(1).max(5),
@@ -15,15 +16,6 @@ const feedbackSchema = z.object({
   parentName: z.string().max(200).optional().nullable(),
   parentEmail: z.string().email().optional().nullable(),
 });
-
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 function hashIp(ip: string): string {
   return createHash("sha256").update(ip + (process.env.CRON_SECRET || "salt")).digest("hex").slice(0, 16);

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PrintActions } from "../../_components/PrintActions";
+import { getWeekStart } from "@/lib/utils";
 
 /**
  * Print view: weekly program, split into Before / After School Care.
@@ -40,15 +41,6 @@ function sessionForTime(startTime: string): Session {
   return hour < 12 ? "bsc" : "asc";
 }
 
-function getMondayOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 function formatWeekLabel(monday: Date): string {
   const friday = new Date(monday);
   friday.setDate(monday.getDate() + 4);
@@ -76,7 +68,7 @@ export default async function ProgramPrintPage({
 
   const weekStart = weekStartParam
     ? new Date(weekStartParam)
-    : getMondayOfWeek(new Date());
+    : getWeekStart(new Date());
   weekStart.setHours(0, 0, 0, 0);
 
   const [service, activities] = await Promise.all([

@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { getWeekStart } from "@/lib/utils";
 
 // ── Brand constants ─────────────────────────────────────────
 const BRAND_COLOR = "#004E64";
@@ -19,16 +20,6 @@ function getCurrentQuarter(): string {
   const year = now.getFullYear();
   const q = month < 3 ? 1 : month < 6 ? 2 : month < 9 ? 3 : 4;
   return `Q${q} ${year}`;
-}
-
-function getMondayOfCurrentWeek(): Date {
-  const now = new Date();
-  const day = now.getDay(); // 0=Sun, 1=Mon, ...
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setDate(monday.getDate() + diff);
-  monday.setHours(0, 0, 0, 0);
-  return monday;
 }
 
 // ── Email template ──────────────────────────────────────────
@@ -250,7 +241,7 @@ export const GET = withApiHandler(async (req) => {
   try {
     const now = new Date();
     const currentQuarter = getCurrentQuarter();
-    const weekOf = getMondayOfCurrentWeek();
+    const weekOf = getWeekStart();
 
     // Get eligible users
     const users = await prisma.user.findMany({

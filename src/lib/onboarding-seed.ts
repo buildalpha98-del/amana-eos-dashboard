@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { getWeekStart } from "@/lib/utils";
 
 /**
  * Owner user ID (Jayden) — all onboarding todos are assigned "from" this user.
@@ -20,15 +21,6 @@ async function getOwnerUserId(): Promise<string> {
     select: { id: true },
   });
   return fallback?.id ?? JAYDEN_USER_ID;
-}
-
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
 }
 
 const ONBOARDING_TODOS = [
@@ -99,7 +91,7 @@ export async function seedOnboardingPackage(
     const now = new Date();
     const dueDate = new Date(now);
     dueDate.setDate(dueDate.getDate() + 7);
-    const weekOf = getMonday(dueDate);
+    const weekOf = getWeekStart(dueDate);
 
     // Check if user already has onboarding todos (prevent duplicates)
     const existing = await prisma.todo.findFirst({

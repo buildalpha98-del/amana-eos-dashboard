@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
+import { getWeekStart } from "@/lib/utils";
 
 /**
  * Weekly cron — analyses financial + attendance trends across all services.
@@ -231,15 +232,6 @@ function groupByWeek(data: Array<{ date: Date; value: number }>): number[] {
   return Object.keys(weekMap)
     .sort()
     .map((key) => avg(weekMap[key]));
-}
-
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
 }
 
 function avg(nums: number[]): number {
