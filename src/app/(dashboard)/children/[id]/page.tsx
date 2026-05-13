@@ -1,8 +1,7 @@
-import { notFound, redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
+import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { ChildProfileTabs, type ChildProfileTabKey } from "@/components/child/ChildProfileTabs";
 
@@ -32,10 +31,7 @@ export default async function ChildDetailPage({ params, searchParams }: PageProp
   const sp = (await searchParams) ?? {};
   const tab = coerceTab(sp.tab);
 
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const session = await requirePageSession();
 
   const child = await prisma.child.findUnique({
     where: { id },

@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import type { Role } from "@prisma/client";
@@ -228,4 +229,44 @@ export function withApiAuth(
       if (timeoutId) clearTimeout(timeoutId);
     }
   };
+}
+
+// ---------------------------------------------------------------------------
+// requirePageSession — server-component analogue of withApiAuth
+// ---------------------------------------------------------------------------
+
+/**
+ * Page-level auth gate for server components. Replaces the
+ * `getServerSession(authOptions) + if (!session) redirect("/login")`
+ * boilerplate that was being copy-pasted across 14 page files (settings,
+ * dashboard, reports, etc).
+ *
+ * Behaviour:
+ *   - Loads the NextAuth session via `getServerSession(authOptions)`.
+ *   - If no session OR no `session.user.id`, redirects to `/login`
+ *     and never returns.
+ *   - On success, returns a fully-typed `Session` you can hand to
+ *     client components or use to render role-aware UI server-side.
+ *
+ * NOT a substitute for `withApiAuth`:
+ *   - Does not rate-limit (pages aren't a meaningful rate-limit
+ *     surface — the API routes they call are).
+ *   - Does not check `User.active` against the DB (pages render too
+ *     frequently for the 60s cache to amortise — the API layer is the
+ *     right place for that gate).
+ *   - Does not log auth rejections (the `redirect("/login")` response
+ *     is already visible in access logs; structured auth-event
+ *     logging is reserved for API routes).
+ *
+ * Optionally pass `redirectTo` to send the user somewhere other than
+ * `/login` (e.g. an internal "/no-access" page for shadow accounts).
+ */
+export async function requirePageSession(
+  options: { redirectTo?: string } = {},
+): Promise<Session> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    redirect(options.redirectTo ?? "/login");
+  }
+  return session;
 }

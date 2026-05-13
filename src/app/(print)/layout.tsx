@@ -1,6 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requirePageSession } from "@/lib/server-auth";
 
 /**
  * Print route group — no sidebar, no top bar, no PWA chrome.
@@ -17,8 +15,7 @@ export default async function PrintLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  await requirePageSession();
 
   return (
     <div className="min-h-screen bg-white text-black">
