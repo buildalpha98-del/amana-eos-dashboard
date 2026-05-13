@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/Button";
 import { ServiceWeeklyShiftsGrid } from "./ServiceWeeklyShiftsGrid";
-import { cn } from "@/lib/utils";
+import { cn, getWeekStart } from "@/lib/utils";
 
 interface ServiceWeeklyRosterTabProps {
   serviceId: string;
@@ -28,15 +28,6 @@ const SESSION_LABELS: Record<string, string> = {
 };
 
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-
-function getMondayOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 function formatWeekRange(monday: Date): string {
   const friday = new Date(monday);
@@ -69,7 +60,7 @@ export function ServiceWeeklyRosterTab({ serviceId, serviceName }: ServiceWeekly
   const [sessionType, setSessionType] = useState("asc");
 
   const monday = useMemo(() => {
-    const m = getMondayOfWeek(new Date());
+    const m = getWeekStart(new Date());
     m.setDate(m.getDate() + weekOffset * 7);
     return m;
   }, [weekOffset]);

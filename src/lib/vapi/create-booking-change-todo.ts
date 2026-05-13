@@ -7,15 +7,7 @@
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { resolveServiceId } from "@/lib/vapi/centre-resolver";
-
-function startOfWeek(d: Date): Date {
-  const day = d.getDay();
-  const diff = day === 0 ? 6 : day - 1; // Monday
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - diff);
-  monday.setHours(0, 0, 0, 0);
-  return monday;
-}
+import { getWeekStart } from "@/lib/utils";
 
 function computeDueDate(urgency: string, effectiveDate: string | undefined): Date {
   const now = new Date();
@@ -97,7 +89,7 @@ export async function createBookingChangeTodo(callId: string): Promise<string | 
         assigneeId: service?.managerId ?? null,
         serviceId,
         dueDate,
-        weekOf: startOfWeek(new Date()),
+        weekOf: getWeekStart(new Date()),
         status: "pending",
       },
     });

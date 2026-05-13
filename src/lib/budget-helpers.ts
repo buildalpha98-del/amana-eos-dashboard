@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getWeekStart } from "@/lib/utils";
 
 /**
  * Recalculate FinancialPeriod.suppliesCosts for a given service + week.
@@ -114,11 +115,3 @@ export async function getMonthlyBudget(serviceId: string): Promise<{
   };
 }
 
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}

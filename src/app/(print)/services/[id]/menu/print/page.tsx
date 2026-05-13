@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PrintActions } from "../../_components/PrintActions";
+import { getWeekStart } from "@/lib/utils";
 
 /**
  * Print view: weekly menu — 5-day rows × 3-slot columns.
@@ -32,15 +33,6 @@ const SLOT_LABELS: Record<Slot, string> = {
   afternoon_tea: "Afternoon Tea",
 };
 
-function getMondayOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 function formatWeekLabel(monday: Date): string {
   const friday = new Date(monday);
   friday.setDate(monday.getDate() + 4);
@@ -68,7 +60,7 @@ export default async function MenuPrintPage({
 
   const weekStart = weekStartParam
     ? new Date(weekStartParam)
-    : getMondayOfWeek(new Date());
+    : getWeekStart(new Date());
   weekStart.setHours(0, 0, 0, 0);
 
   const [service, menuWeek] = await Promise.all([

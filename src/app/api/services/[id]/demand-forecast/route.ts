@@ -5,6 +5,7 @@ import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { Prisma } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { getWeekStart } from "@/lib/utils";
 
 /**
  * GET /api/services/[id]/demand-forecast
@@ -237,12 +238,3 @@ const { id: serviceId } = await context!.params!;
   }
 }, { roles: ["owner", "head_office", "admin"] });
 
-/** Get the Monday of the week for a given date */
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
