@@ -1,4 +1,5 @@
 import type jsPDF from "jspdf";
+import { BRAND, drawLogo } from "@/lib/pdf/branding";
 
 interface ActionItem {
   id: string;
@@ -29,21 +30,15 @@ export async function generateReportPdf(options: ReportPdfOptions): Promise<jsPD
   let y = margin;
 
   // ── Header Bar ──
-  doc.setFillColor(0, 78, 100); // Midnight Green
+  doc.setFillColor(...BRAND.green.rgb);
   doc.rect(0, 0, pageWidth, 35, "F");
 
   // Logo text
-  doc.setTextColor(254, 206, 0); // Jonquil
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Amana", margin, 15);
-  const amanaWidth = doc.getTextWidth("Amana");
-  doc.setTextColor(255, 255, 255);
-  doc.text(" OSHC.", margin + amanaWidth, 15);
+  drawLogo(doc, { x: margin, y: 15, fontSize: 18 });
 
   // Report type badge
   doc.setFontSize(10);
-  doc.setTextColor(255, 242, 191); // Lemon Chiffon
+  doc.setTextColor(...BRAND.cream.rgb);
   doc.text(
     `${options.seat.toUpperCase()} | ${options.reportType.replace(/-/g, " ").toUpperCase()}`,
     margin,
@@ -67,7 +62,7 @@ export async function generateReportPdf(options: ReportPdfOptions): Promise<jsPD
   y = 45;
 
   // ── Title ──
-  doc.setTextColor(0, 78, 100);
+  doc.setTextColor(...BRAND.green.rgb);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   const titleLines = doc.splitTextToSize(options.title, contentWidth);
@@ -88,7 +83,7 @@ export async function generateReportPdf(options: ReportPdfOptions): Promise<jsPD
   }
 
   // ── Divider ──
-  doc.setDrawColor(254, 206, 0); // Jonquil
+  doc.setDrawColor(...BRAND.yellow.rgb);
   doc.setLineWidth(1);
   doc.line(margin, y, pageWidth - margin, y);
   y += 8;
@@ -133,7 +128,7 @@ export async function generateReportPdf(options: ReportPdfOptions): Promise<jsPD
       const x = margin + i * colWidth;
       doc.roundedRect(x + 1, y - 4, colWidth - 2, 18, 2, 2, "F");
 
-      doc.setTextColor(0, 78, 100);
+      doc.setTextColor(...BRAND.green.rgb);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       const displayValue = Array.isArray(value)
@@ -155,7 +150,7 @@ export async function generateReportPdf(options: ReportPdfOptions): Promise<jsPD
 
   // ── Action Items ──
   if (options.actionItems.length) {
-    doc.setTextColor(0, 78, 100);
+    doc.setTextColor(...BRAND.green.rgb);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("Action Items", margin, y);
@@ -208,9 +203,9 @@ export async function generateReportPdf(options: ReportPdfOptions): Promise<jsPD
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFillColor(0, 78, 100);
+    doc.setFillColor(...BRAND.green.rgb);
     doc.rect(0, 287, pageWidth, 10, "F");
-    doc.setTextColor(255, 242, 191);
+    doc.setTextColor(...BRAND.cream.rgb);
     doc.setFontSize(7);
     doc.text(
       "Amana OSHC  |  Beyond The Bell  |  1300 200 262  |  amanaoshc.com.au",
