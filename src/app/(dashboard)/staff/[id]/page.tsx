@@ -1,9 +1,8 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
+import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { StaffProfileData } from "@/components/staff/types";
 import { StaffProfileLayout } from "@/components/staff/StaffProfileLayout";
 import { getCertStatus } from "@/lib/cert-status";
@@ -59,10 +58,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
   const sp = (await searchParams) ?? {};
   const backHref = buildBackHref(sp);
 
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const session = await requirePageSession();
 
   const targetUser = await prisma.user.findUnique({
     where: { id },

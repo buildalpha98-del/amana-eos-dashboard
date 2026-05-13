@@ -1,9 +1,7 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
+import { requirePageSession } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MyWeekShifts } from "@/components/roster/MyWeekShifts";
 
@@ -69,10 +67,7 @@ interface PageProps {
 }
 
 export default async function RosterMePage({ searchParams }: PageProps) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const session = await requirePageSession();
 
   const sp = (await searchParams) ?? {};
   const viewerRole = session.user.role ?? null;
