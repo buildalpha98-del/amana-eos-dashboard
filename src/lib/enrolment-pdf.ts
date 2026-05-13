@@ -1,5 +1,6 @@
 import type jsPDF from "jspdf";
 import { parseJsonField, primaryParentSchema } from "@/lib/schemas/json-fields";
+import { BRAND, drawLogo, createPdfBuilder } from "@/lib/pdf/branding";
 
 interface EnrolmentSubmission {
   id: string;
@@ -26,54 +27,22 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
   const doc = new JsPDF("p", "mm", "a4");
   const pw = doc.internal.pageSize.getWidth();
   const margin = 18;
-  const cw = pw - margin * 2;
-  let y = margin;
 
-  function checkPage(needed = 20) {
-    if (y + needed > 275) {
-      doc.addPage();
-      y = margin;
-    }
-  }
-
-  function heading(text: string) {
-    checkPage(15);
-    doc.setFillColor(0, 78, 100);
-    doc.rect(margin, y, cw, 8, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(text, margin + 3, y + 5.5);
-    y += 12;
-  }
-
-  function row(label: string, value: string | boolean | null | undefined) {
-    if (value === null || value === undefined || value === "") return;
-    checkPage(6);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(80, 80, 80);
-    doc.text(label, margin, y);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(30, 30, 30);
-    const display = typeof value === "boolean" ? (value ? "Yes" : "No") : String(value);
-    const lines = doc.splitTextToSize(display, cw - 55);
-    doc.text(lines, margin + 55, y);
-    y += Math.max(lines.length * 4.5, 5);
-  }
+  const b = createPdfBuilder(doc, { margin });
+  // Aliases keep the body code (200+ lines below) unchanged from the
+  // inline-helpers version while the implementation now lives in the
+  // shared module.
+  const heading = (text: string) => b.heading(text);
+  const row = (label: string, value: string | boolean | null | undefined) =>
+    b.row(label, value);
+  const checkPage = (needed?: number) => b.checkPage(needed);
 
   // ── Header ──
-  doc.setFillColor(0, 78, 100);
+  doc.setFillColor(...BRAND.green.rgb);
   doc.rect(0, 0, pw, 30, "F");
-  doc.setTextColor(254, 206, 0);
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("Amana", margin, 13);
-  const amW = doc.getTextWidth("Amana");
-  doc.setTextColor(255, 255, 255);
-  doc.text(" OSHC.", margin + amW, 13);
+  drawLogo(doc, { x: margin, y: 13, fontSize: 16 });
   doc.setFontSize(10);
-  doc.setTextColor(255, 242, 191);
+  doc.setTextColor(...BRAND.cream.rgb);
   doc.text("ENROLMENT PACK", margin, 22);
   doc.setFontSize(8);
   doc.text(
@@ -87,7 +56,7 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
     22,
     { align: "right" }
   );
-  y = 38;
+  b.y = 38;
 
   // ── Children ──
   const children = (submission.children || []) as Record<string, unknown>[];
@@ -112,9 +81,9 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
       checkPage(10);
       doc.setFontSize(9);
       doc.setFont("helvetica", "bolditalic");
-      doc.setTextColor(0, 78, 100);
-      doc.text("Medical Information", margin, y);
-      y += 5;
+      doc.setTextColor(...BRAND.green.rgb);
+      doc.text("Medical Information", margin, b.y);
+      b.y += 5;
       row("Doctor", `${med.doctorName} — ${med.doctorPractice}`);
       row("Doctor Phone", med.doctorPhone as string);
       row("Medicare", med.medicareNumber as string);
@@ -141,9 +110,9 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
       checkPage(10);
       doc.setFontSize(9);
       doc.setFont("helvetica", "bolditalic");
-      doc.setTextColor(0, 78, 100);
-      doc.text("Booking Preferences", margin, y);
-      y += 5;
+      doc.setTextColor(...BRAND.green.rgb);
+      doc.text("Booking Preferences", margin, b.y);
+      b.y += 5;
       const sessions = bp.sessionTypes as string[] | undefined;
       const days = bp.days as Record<string, string[]> | undefined;
       const SESSION_LABELS: Record<string, string> = { bsc: "Before School Care", asc: "After School Care", vc: "Vacation Care" };
@@ -202,9 +171,9 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
     checkPage(8);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bolditalic");
-    doc.setTextColor(0, 78, 100);
-    doc.text("Authorised Pickup", margin, y);
-    y += 5;
+    doc.setTextColor(...BRAND.green.rgb);
+    doc.text("Authorised Pickup", margin, b.y);
+    b.y += 5;
     pickup.forEach((p) => row(p.name as string, `${p.relationship}${p.phone ? ` — ${p.phone}` : ""}`));
   }
 
@@ -236,20 +205,20 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
 
   // ── Footer ──
   checkPage(15);
-  y += 5;
-  doc.setDrawColor(254, 206, 0);
+  b.y += 5;
+  doc.setDrawColor(...BRAND.yellow.rgb);
   doc.setLineWidth(0.5);
-  doc.line(margin, y, pw - margin, y);
-  y += 6;
+  doc.line(margin, b.y, pw - margin, b.y);
+  b.y += 6;
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
   doc.text(
     "This document contains confidential information. Delete after processing in OWNA.",
     margin,
-    y
+    b.y
   );
-  y += 4;
-  doc.text(`Submission ID: ${submission.id}`, margin, y);
+  b.y += 4;
+  doc.text(`Submission ID: ${submission.id}`, margin, b.y);
 
   return doc;
 }

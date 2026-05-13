@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { logger } from "@/lib/logger";
+import { BRAND, drawLogo } from "@/lib/pdf/branding";
 
 const SESSION_LABELS: Record<string, string> = {
   bsc: "Before School Care",
@@ -48,24 +49,18 @@ export async function generateStatementPdf(statementId: string): Promise<string>
   let y = 0;
 
   // ── Header bar ──
-  doc.setFillColor(0, 78, 100); // #004E64
+  doc.setFillColor(...BRAND.green.rgb);
   doc.rect(0, 0, pw, 32, "F");
 
-  doc.setFillColor(254, 206, 0); // #FECE00
+  doc.setFillColor(...BRAND.yellow.rgb);
   doc.rect(0, 32, pw, 2, "F");
 
   // Logo text
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(254, 206, 0);
-  doc.text("Amana", margin, 15);
-  const amW = doc.getTextWidth("Amana");
-  doc.setTextColor(255, 255, 255);
-  doc.text(" OSHC.", margin + amW, 15);
+  drawLogo(doc, { x: margin, y: 15, fontSize: 18 });
 
   // Title
   doc.setFontSize(11);
-  doc.setTextColor(255, 242, 191);
+  doc.setTextColor(...BRAND.cream.rgb);
   doc.text("STATEMENT OF ACCOUNT", margin, 25);
 
   y = 42;
@@ -119,7 +114,7 @@ export async function generateStatementPdf(statementId: string): Promise<string>
       { content: fmtCurrency(statement.gapFee), styles: { fontStyle: "bold" as const } },
     ]],
     headStyles: {
-      fillColor: [0, 78, 100],
+      fillColor: [...BRAND.green.rgb],
       textColor: [255, 255, 255],
       fontStyle: "bold",
       fontSize: 8,
@@ -182,7 +177,7 @@ export async function generateStatementPdf(statementId: string): Promise<string>
     y = margin;
   }
 
-  doc.setDrawColor(254, 206, 0);
+  doc.setDrawColor(...BRAND.yellow.rgb);
   doc.setLineWidth(0.5);
   doc.line(margin, y, pw - margin, y);
   y += 6;
