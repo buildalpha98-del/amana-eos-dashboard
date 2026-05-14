@@ -89,6 +89,17 @@ enum ServiceStatus {
   closed
 }
 
+enum ServiceAccessLevel {
+  view_only
+  contributor
+  admin
+}
+
+enum ServiceMembershipStatus {
+  active
+  inactive
+}
+
 enum SessionType {
   bsc
   asc
@@ -758,6 +769,11 @@ model User {
   kiosksCreated                        Kiosk[]                          @relation("KioskCreator")
   // 2026-05-04 (shift templates v1): templates the user has authored.
   shiftTemplatesCreated                ShiftTemplate[]                  @relation("ShiftTemplateCreator")
+
+  // 2026-05-14 (service-staff v1): additional service memberships layered on
+  // top of User.serviceId (which stays as the primary/home service). Lets a
+  // single staff member be at multiple centres with per-service role+access.
+  serviceMemberships                   UserServiceMembership[]          @relation("UserMemberships")
 
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
@@ -2220,8 +2236,37 @@ model Service {
   vendorBriefs             VendorBrief[]             @relation("ServiceVendorBriefs")
   whatsappCoordinatorPosts WhatsAppCoordinatorPost[] @relation("ServiceWhatsAppPosts")
 
+  // 2026-05-14 (service-staff v1): additional staff memberships layered on
+  // top of staffMembers (which is the User.serviceId one-to-many). Lets a
+  // single staff member be at multiple centres with per-service role+access.
+  serviceMemberships UserServiceMembership[] @relation("ServiceMemberships")
+
   @@index([status])
   @@index([managerId])
+}
+
+/// 2026-05-14: Per-service additional memberships layered on top of
+/// User.serviceId (which models the staff member's primary/home service).
+/// A user can be primary at one centre AND have UserServiceMembership rows
+/// for any other centres they work at. Removing a membership is soft —
+/// flip status=inactive and set endDate — so audit history survives.
+model UserServiceMembership {
+  id            String                  @id @default(cuid())
+  userId        String
+  user          User                    @relation("UserMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service                 @relation("ServiceMemberships", fields: [serviceId], references: [id], onDelete: Cascade)
+  roleAtService String // free-text label: "Educator", "Room Leader", "Director", ...
+  accessLevel   ServiceAccessLevel      @default(contributor)
+  startDate     DateTime                @db.Date
+  endDate       DateTime?               @db.Date
+  status        ServiceMembershipStatus @default(active)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@unique([userId, serviceId])
+  @@index([serviceId, status])
+  @@index([userId, status])
 }
 
 enum ServiceEventType {

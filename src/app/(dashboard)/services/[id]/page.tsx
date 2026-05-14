@@ -39,6 +39,7 @@ import {
   Eye,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
+import { ServiceStaffTab } from "@/components/services/ServiceStaffTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
 import { ServiceRocksTab } from "@/components/services/ServiceRocksTab";
 import { ServiceTodosTab } from "@/components/services/ServiceTodosTab";
@@ -122,6 +123,15 @@ const tabGroups: TabGroup[] = [
     key: "overview",
     label: "Overview",
     icon: Building2,
+    subTabs: [],
+  },
+  // 2026-05-14: Staff tab — primary users (User.serviceId === this service)
+  // + additional UserServiceMembership rows in one unified list. Admin-tier
+  // and Director-of-own-service can manage additional memberships here.
+  {
+    key: "staff",
+    label: "Staff",
+    icon: Users,
     subTabs: [],
   },
   {
@@ -507,6 +517,9 @@ export default function ServiceDetailPage() {
         {activeGroup === "overview" && (
           <ServiceOverviewTab service={service} users={users || []} />
         )}
+
+        {/* Staff group (no subtabs) — assignments management */}
+        {activeGroup === "staff" && <ServiceStaffTab serviceId={service.id} />}
 
         {/* Daily Ops group */}
         {activeGroup === "daily" && currentSubKey === "attendance" && (
