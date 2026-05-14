@@ -21,6 +21,7 @@ import {
   ShieldUser,
   UserX,
   Mail,
+  Building2,
 } from "lucide-react";
 import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
@@ -34,6 +35,7 @@ import {
 } from "@/hooks/useEmployeeQuickAction";
 import { useEmployeeResendInvite } from "@/hooks/useEmployeeResendInvite";
 import type { EmployeeListItem } from "@/hooks/useEmployeesList";
+import { AssignToServiceDialog } from "./AssignToServiceDialog";
 
 const STATUS_TONE: Record<EmployeeListItem["status"], string> = {
   active: "bg-emerald-100 text-emerald-800 border-emerald-300",
@@ -78,6 +80,7 @@ export function EmployeeRow({
   const [pendingConfirm, setPendingConfirm] = useState<QuickActionType | null>(
     null,
   );
+  const [assignOpen, setAssignOpen] = useState(false);
 
   // Build the items list. Order: edit → reset → resend → onboarding →
   // admin toggle → deactivate. Marketing viewers get no menu at all
@@ -117,6 +120,14 @@ export function EmployeeRow({
         label: "Trigger onboarding",
         icon: <ListChecks className="h-3.5 w-3.5" />,
         onSelect: () => quickAction.mutate("trigger_onboarding"),
+      });
+    }
+    if (isAdmin) {
+      items.push({
+        key: "assign_service",
+        label: "Assign to service…",
+        icon: <Building2 className="h-3.5 w-3.5" />,
+        onSelect: () => setAssignOpen(true),
       });
     }
     if (isOwner && !isSelf) {
@@ -224,6 +235,13 @@ export function EmployeeRow({
           variant={confirmCopy.variant}
           onConfirm={runConfirm}
           loading={quickAction.isPending}
+        />
+      ) : null}
+      {assignOpen ? (
+        <AssignToServiceDialog
+          userId={employee.id}
+          userName={employee.name}
+          onClose={() => setAssignOpen(false)}
         />
       ) : null}
     </>
