@@ -195,6 +195,7 @@ export const navItems: NavItem[] = [
   { href: "/automations", label: "Automations", icon: Activity, section: "Admin", tooltip: "Monitor the health and cadence of all automated tasks", roles: ALL_NON_MARKETING },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText, section: "Admin", tooltip: "Security audit trail — who did what and when", roles: ALL_NON_MARKETING },
   { href: "/admin/feedback", label: "Feedback Inbox", icon: Bug, section: "Admin", tooltip: "Triage staff-submitted bug reports, feature requests, and questions", roles: ALL_NON_MARKETING },
+  { href: "/feedback", label: "Parent Feedback", icon: MessageCircle, section: "Admin", tooltip: "Triage parent SMS replies and survey responses (Amana Way stage 7)", roles: ALL_NON_MARKETING },
   { href: "/admin/ai-drafts", label: "AI Drafts", icon: Bot, section: "Admin", tooltip: "Review and bulk-triage all AI-generated task drafts across the organisation", roles: ALL_NON_MARKETING },
   { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Admin", tooltip: "Child Care Subsidy cost estimator", roles: ALL_NON_MARKETING },
   { href: "/tools/the-amana-way", label: "The Amana Way", icon: BookOpenCheck, section: "Admin", tooltip: "Interactive educator induction handbook" },

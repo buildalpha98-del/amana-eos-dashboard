@@ -27,6 +27,26 @@ import {
 import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
+import { sendSms } from "@/lib/sms";
+
+/**
+ * Templates that should also fan out as an SMS in parallel with the
+ * email send. Amana Way stage 7 — the "morning after" touch is a
+ * personal text, not just an inbox notification. Limited to a tiny set
+ * for now; expanding it means more steps need a corresponding SMS
+ * body builder below.
+ */
+const SMS_AUGMENTED_TEMPLATES = new Set<string>(["day1_checkin"]);
+
+function buildSmsBody(templateKey: string, firstName: string, centreName: string): string | null {
+  if (templateKey === "day1_checkin") {
+    return (
+      `Hi ${firstName}! 👋 We hope ${centreName} felt like home yesterday. ` +
+      `If anything came up, just reply to this text — a real human reads them. — Team Amana`
+    );
+  }
+  return null;
+}
 
 // LEGACY: Hardcoded template map for ParentNurtureStep records.
 // The new SequenceStepExecution system uses emailTemplateId from the DB instead.
@@ -98,7 +118,15 @@ export const POST = withApiHandler(async (req) => {
       status: "sending",
     },
     include: {
-      contact: { select: { email: true, firstName: true, subscribed: true } },
+      contact: {
+        select: {
+          email: true,
+          firstName: true,
+          subscribed: true,
+          mobile: true,
+          smsOptIn: true,
+        },
+      },
       service: { select: { name: true, code: true, address: true, suburb: true, state: true, orientationVideoUrl: true } },
     },
     orderBy: { scheduledFor: "asc" },
@@ -184,6 +212,41 @@ export const POST = withApiHandler(async (req) => {
         status: "sent",
       },
     });
+
+    // ── Optional SMS fan-out for select templates (Amana Way stage 7) ──
+    if (
+      SMS_AUGMENTED_TEMPLATES.has(step.templateKey) &&
+      step.contact.smsOptIn &&
+      step.contact.mobile
+    ) {
+      const smsBody = buildSmsBody(step.templateKey, firstName, centreName);
+      if (smsBody) {
+        try {
+          const smsResult = await sendSms({
+            to: { number: step.contact.mobile, contactId: step.contactId },
+            body: smsBody,
+          });
+          await prisma.deliveryLog.create({
+            data: {
+              channel: "sms",
+              serviceCode: step.service.code,
+              messageType: "nurture_sequence",
+              externalId: smsResult.ok ? smsResult.messageIds[0] ?? null : null,
+              recipientCount: 1,
+              status: smsResult.ok ? "sent" : "failed",
+              errorMessage: smsResult.ok ? null : smsResult.reason,
+            },
+          });
+        } catch (smsErr) {
+          // SMS is an augment, not a replacement — never fail the step on SMS error.
+          logger.warn("nurture-send: SMS fan-out failed", {
+            stepId: step.id,
+            templateKey: step.templateKey,
+            err: smsErr,
+          });
+        }
+      }
+    }
 
     return "sent";
   }

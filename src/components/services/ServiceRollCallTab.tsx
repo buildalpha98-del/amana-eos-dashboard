@@ -15,8 +15,20 @@ import {
   StickyNote,
   Loader2,
   Plus,
+  Camera,
+  Check,
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
-import { useRollCall, useUpdateRollCall, type RollCallEntry } from "@/hooks/useRollCall";
+import {
+  useRollCall,
+  useUpdateRollCall,
+  useSendFirstDayPhoto,
+  uploadFirstDayPhoto,
+  type RollCallEntry,
+} from "@/hooks/useRollCall";
+import { toast } from "@/hooks/useToast";
 import { useChildren } from "@/hooks/useChildren";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -267,6 +279,9 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
                   entry={entry}
                   onAction={handleAction}
                   isPending={updateRollCall.isPending}
+                  serviceId={serviceId}
+                  date={date}
+                  sessionType={sessionType}
                 />
               ))}
             </div>
@@ -435,6 +450,15 @@ function AddChildDialog({
   );
 }
 
+function AboutMeLine({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="text-foreground">
+      <span className="font-semibold">{label}:</span>{" "}
+      <span className="text-muted">{value}</span>
+    </p>
+  );
+}
+
 // ── Summary Card ─────────────────────────────────────────
 
 function SummaryCard({
@@ -467,16 +491,68 @@ function RollCallRow({
   entry,
   onAction,
   isPending,
+  serviceId,
+  date,
+  sessionType,
 }: {
   entry: RollCallEntry;
   onAction: (childId: string, action: "sign_in" | "sign_out" | "mark_absent" | "undo", extra?: { absenceReason?: string; notes?: string }) => void;
   isPending: boolean;
+  serviceId: string;
+  date: string;
+  sessionType: string;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showAbsentDialog, setShowAbsentDialog] = useState(false);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [absenceReason, setAbsenceReason] = useState("");
   const [note, setNote] = useState("");
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [isPhotoUploading, setIsPhotoUploading] = useState(false);
+  const sendFirstDayPhoto = useSendFirstDayPhoto();
+  const photoAlreadySent = Boolean(entry.firstDayPhotoSentAt);
+  const [showAboutMe, setShowAboutMe] = useState(false);
+  const aboutMe = entry.child.allAboutMe;
+  const hasAboutMe =
+    !!aboutMe &&
+    [
+      aboutMe.nickname,
+      aboutMe.favouriteFood,
+      aboutMe.favouriteToys,
+      aboutMe.favouriteSubjects,
+      aboutMe.hobbies,
+      aboutMe.fears,
+      aboutMe.calmingTechniques,
+      aboutMe.additionalNotes,
+    ].some((v) => v && v.trim().length > 0);
+
+  async function handlePhotoFile(file: File) {
+    if (!entry.attendanceId) {
+      toast({
+        variant: "destructive",
+        description: "Sign the child in first — the attendance record gets created on sign-in.",
+      });
+      return;
+    }
+    setIsPhotoUploading(true);
+    try {
+      const photoUrl = await uploadFirstDayPhoto(file);
+      sendFirstDayPhoto.mutate({
+        attendanceId: entry.attendanceId,
+        photoUrl,
+        serviceId,
+        date,
+        sessionType,
+      });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Could not upload photo",
+      });
+    } finally {
+      setIsPhotoUploading(false);
+    }
+  }
 
   const hasMedFlags =
     entry.child.medicalConditions.length > 0 ||
@@ -533,6 +609,24 @@ function RollCallRow({
           )}
           {entry.status === "absent" && entry.absenceReason && (
             <p className="text-xs text-muted mt-1">Reason: {entry.absenceReason}</p>
+          )}
+          {hasAboutMe && (
+            <button
+              type="button"
+              onClick={() => setShowAboutMe((s) => !s)}
+              className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:underline"
+            >
+              {showAboutMe ? (
+                <ChevronDown className="w-3 h-3" />
+              ) : (
+                <ChevronRight className="w-3 h-3" />
+              )}
+              <Sparkles className="w-3 h-3" />
+              All About Me
+              {aboutMe?.nickname && (
+                <span className="text-muted font-normal">· "{aboutMe.nickname}"</span>
+              )}
+            </button>
           )}
         </div>
 
@@ -618,12 +712,72 @@ function RollCallRow({
                     <StickyNote className="w-3.5 h-3.5" />
                     Add Note
                   </button>
+                  {entry.status === "present" && entry.attendanceId && (
+                    photoAlreadySent ? (
+                      <div className="w-full px-3 py-2.5 text-left text-sm text-green-600 flex items-center gap-2 min-h-[44px]">
+                        <Check className="w-3.5 h-3.5" />
+                        Photo sent
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          photoInputRef.current?.click();
+                          setShowMenu(false);
+                        }}
+                        disabled={isPhotoUploading || sendFirstDayPhoto.isPending}
+                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px] disabled:opacity-50"
+                      >
+                        {isPhotoUploading || sendFirstDayPhoto.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Camera className="w-3.5 h-3.5" />
+                        )}
+                        First-day photo SMS
+                      </button>
+                    )
+                  )}
                 </div>
               </>
             )}
           </div>
         </div>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void handlePhotoFile(file);
+          }}
+        />
       </div>
+      {showAboutMe && aboutMe && (
+        <div className="bg-[color:var(--color-brand-soft)] border border-border rounded-xl p-3 -mt-1 mb-1 text-xs space-y-1.5">
+          {aboutMe.nickname && (
+            <AboutMeLine label="Goes by" value={aboutMe.nickname} />
+          )}
+          {aboutMe.favouriteFood && (
+            <AboutMeLine label="Loves" value={aboutMe.favouriteFood} />
+          )}
+          {aboutMe.favouriteToys && (
+            <AboutMeLine label="Plays with" value={aboutMe.favouriteToys} />
+          )}
+          {aboutMe.favouriteSubjects && (
+            <AboutMeLine label="Favourite subjects" value={aboutMe.favouriteSubjects} />
+          )}
+          {aboutMe.hobbies && <AboutMeLine label="Hobbies" value={aboutMe.hobbies} />}
+          {aboutMe.fears && <AboutMeLine label="Steer clear of" value={aboutMe.fears} />}
+          {aboutMe.calmingTechniques && (
+            <AboutMeLine label="What helps when upset" value={aboutMe.calmingTechniques} />
+          )}
+          {aboutMe.additionalNotes && (
+            <AboutMeLine label="Notes" value={aboutMe.additionalNotes} />
+          )}
+        </div>
+      )}
 
       {/* Mark Absent Dialog */}
       {showAbsentDialog && (

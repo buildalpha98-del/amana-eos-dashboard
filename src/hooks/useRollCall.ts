@@ -7,6 +7,19 @@ import { offlineQueue } from "@/lib/offline-queue";
 
 // ── Types ────────────────────────────────────────────────
 
+export interface RollCallAllAboutMe {
+  nickname: string | null;
+  favouriteFood: string | null;
+  favouriteToys: string | null;
+  favouriteSubjects: string | null;
+  hobbies: string | null;
+  fears: string | null;
+  calmingTechniques: string | null;
+  additionalNotes: string | null;
+  submittedAt: string | null;
+  updatedAt: string;
+}
+
 export interface RollCallChild {
   id: string;
   firstName: string;
@@ -27,10 +40,18 @@ export interface RollCallChild {
     details?: string;
     courtOrderUrl?: string;
   } | null;
+  /// All About Me — parent-submitted profile (nickname, favourites, calming
+  /// techniques). Surfaced on the roll-call card so educators can greet
+  /// the child personally on their first day. Stage 5 of the Amana Way.
+  allAboutMe: RollCallAllAboutMe | null;
 }
 
 export interface RollCallEntry {
   childId: string;
+  /// Underlying AttendanceRecord id — null until the child has been signed
+  /// in (the record gets created on first action). Required for routes
+  /// that act on the record (e.g. first-day-photo SMS).
+  attendanceId: string | null;
   child: RollCallChild;
   bookingType: string;
   status: "booked" | "present" | "absent";
@@ -40,6 +61,8 @@ export interface RollCallEntry {
   signedOutBy: { id: string; name: string } | null;
   absenceReason: string | null;
   notes: string | null;
+  firstDayPhotoSentAt: string | null;
+  firstDayPhotoUrl: string | null;
 }
 
 export interface RollCallSummary {
@@ -183,4 +206,65 @@ export function useUpdateRollCall() {
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
     },
   });
+}
+
+interface SendFirstDayPhotoPayload {
+  attendanceId: string;
+  photoUrl: string;
+  serviceId: string;
+  date: string;
+  sessionType: string;
+}
+
+/**
+ * Sends the first-day welcome photo SMS to the child's primary parent.
+ * Uses the existing /api/upload/image flow first to host the file, then
+ * POSTs the resulting blob URL to /api/attendance/[id]/first-day-photo.
+ */
+export function useSendFirstDayPhoto() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: SendFirstDayPhotoPayload) => {
+      return await mutateApi<{ ok: true; sentTo: string }>(
+        `/api/attendance/${encodeURIComponent(payload.attendanceId)}/first-day-photo`,
+        { method: "POST", body: { photoUrl: payload.photoUrl } },
+      );
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to send first-day photo",
+      });
+    },
+    onSuccess: (_data, variables) => {
+      toast({ description: "First-day photo SMS sent to parent" });
+      queryClient.invalidateQueries({
+        queryKey: ["roll-call", variables.serviceId, variables.date, variables.sessionType],
+      });
+    },
+  });
+}
+
+/**
+ * Uploads a File to /api/upload/image and returns the public blob URL.
+ * Kept as a plain async helper (not a hook) — the photo upload + SMS
+ * dispatch run as a single user action, so toast / error handling lives
+ * in `useSendFirstDayPhoto`.
+ */
+export async function uploadFirstDayPhoto(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/upload/image", { method: "POST", body: form });
+  if (!res.ok) {
+    let serverError = "";
+    try {
+      const json = (await res.json()) as { error?: string };
+      serverError = json.error ?? "";
+    } catch { /* ignore */ }
+    throw new Error(serverError || `Photo upload failed (HTTP ${res.status})`);
+  }
+  const json = (await res.json()) as { url?: string };
+  if (!json.url) throw new Error("Upload succeeded but server returned no URL");
+  return json.url;
 }

@@ -68,6 +68,20 @@ export const GET = withApiAuth(async (req, session) => {
           dietary: true,
           yearLevel: true,
           custodyArrangements: true,
+          allAboutMe: {
+            select: {
+              nickname: true,
+              favouriteFood: true,
+              favouriteToys: true,
+              favouriteSubjects: true,
+              hobbies: true,
+              fears: true,
+              calmingTechniques: true,
+              additionalNotes: true,
+              submittedAt: true,
+              updatedAt: true,
+            },
+          },
         },
       },
     },
@@ -92,6 +106,7 @@ export const GET = withApiAuth(async (req, session) => {
     const record = recordMap.get(b.childId);
     return {
       childId: b.childId,
+      attendanceId: record?.id ?? null,
       child: b.child,
       bookingType: b.type,
       status: record?.status ?? "booked",
@@ -101,6 +116,8 @@ export const GET = withApiAuth(async (req, session) => {
       signedOutBy: record?.signedOutBy ?? null,
       absenceReason: record?.absenceReason ?? null,
       notes: record?.notes ?? null,
+      firstDayPhotoSentAt: record?.firstDayPhotoSentAt ?? null,
+      firstDayPhotoUrl: record?.firstDayPhotoUrl ?? null,
     };
   });
 
@@ -115,11 +132,26 @@ export const GET = withApiAuth(async (req, session) => {
           medicalConditions: true, dietaryRequirements: true, anaphylaxisActionPlan: true,
           medicationDetails: true, medical: true, dietary: true, yearLevel: true,
           custodyArrangements: true,
+          allAboutMe: {
+            select: {
+              nickname: true,
+              favouriteFood: true,
+              favouriteToys: true,
+              favouriteSubjects: true,
+              hobbies: true,
+              fears: true,
+              calmingTechniques: true,
+              additionalNotes: true,
+              submittedAt: true,
+              updatedAt: true,
+            },
+          },
         },
       });
       if (child) {
         rollCall.push({
           childId: record.childId,
+          attendanceId: record.id,
           child,
           bookingType: "casual",
           status: record.status,
@@ -129,6 +161,8 @@ export const GET = withApiAuth(async (req, session) => {
           signedOutBy: record.signedOutBy,
           absenceReason: record.absenceReason,
           notes: record.notes,
+          firstDayPhotoSentAt: record.firstDayPhotoSentAt,
+          firstDayPhotoUrl: record.firstDayPhotoUrl,
         });
       }
     }
