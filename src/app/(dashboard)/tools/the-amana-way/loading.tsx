@@ -1,19 +1,19 @@
-import { Skeleton } from "@/components/ui/Skeleton";
-
 export default function Loading() {
   return (
-    <div className="p-6 md:p-10 space-y-6">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-4 w-72" />
-      <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="bg-card rounded-xl border border-border p-5 space-y-3">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-3/4" />
-          </div>
-        ))}
-      </div>
+    <div
+      className="-mx-4 -mt-4 -mb-20 md:-mx-8 md:-mt-8 md:-mb-8 h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] overflow-hidden flex flex-col"
+      style={{ background: "#FDFAF5" }}
+    >
+      <div style={{ background: "#1A4F5C", height: 76, flexShrink: 0 }} />
+      <div
+        style={{
+          background: "#FFFFFF",
+          borderBottom: "1px solid #EDE8DF",
+          height: 56,
+          flexShrink: 0,
+        }}
+      />
+      <div style={{ flex: 1 }} />
     </div>
   );
 }

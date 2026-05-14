@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 104" width="104" height="104">
+  <!-- Placeholder for Iqra Circle; replace with branded artwork -->
+  <rect width="104" height="104" rx="14" fill="#FFF2BF"/>
+  <path d="M30 32c0-2 2-4 4-4h36c2 0 4 2 4 4v40c0 2-2 4-4 4H34c-2 0-4-2-4-4z" fill="#FDFAF5" stroke="#004E64" stroke-width="3"/>
+  <line x1="52" y1="28" x2="52" y2="76" stroke="#004E64" stroke-width="2"/>
+  <text x="52" y="58" font-family="Georgia, serif" font-size="14" font-weight="700" fill="#004E64" text-anchor="middle">Iqra</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 104" width="104" height="104">
+  <!-- Placeholder for Holiday Quest; replace with branded artwork -->
+  <rect width="104" height="104" rx="14" fill="#FEF3DC"/>
+  <path d="M28 70c8-22 16-30 24-30s16 8 24 30z" fill="#F5A623" stroke="#7A4F00" stroke-width="3"/>
+  <circle cx="74" cy="34" r="6" fill="#7A4F00"/>
+  <line x1="74" y1="40" x2="74" y2="60" stroke="#7A4F00" stroke-width="3"/>
+  <path d="M74 42 L88 38 L74 50 Z" fill="#7A4F00"/>
+  <text x="52" y="98" font-family="Georgia, serif" font-size="9" font-weight="700" fill="#7A4F00" text-anchor="middle">QUEST</text>
+</svg>
