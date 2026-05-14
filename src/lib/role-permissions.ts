@@ -143,6 +143,7 @@ export const allPages = [
   "/audit-log",
   "/admin/feedback",
   "/admin/ai-drafts",
+  "/feedback",
   // Support — accessible to all roles
   "/guides",
   "/help",

@@ -138,7 +138,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     for (const row of parentRows) {
       const avatarId =
         (row.serviceId && avatarByServiceId.get(row.serviceId)) ||
-        avatarByServiceCode.get(row.serviceCode);
+        (row.serviceCode && avatarByServiceCode.get(row.serviceCode));
       if (!avatarId) {
         skippedNoAvatar += 1;
         continue;

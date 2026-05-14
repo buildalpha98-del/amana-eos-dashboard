@@ -570,6 +570,7 @@ model User {
   signedInRecords               AttendanceRecord[]             @relation("SignInRecorder")
   signedOutRecords              AttendanceRecord[]             @relation("SignOutRecorder")
   budgetItemsCreated            BudgetItem[]                   @relation("BudgetItemCreator")
+  feedbackReviewed              ParentFeedback[]               @relation("FeedbackReviewer")
   programActivitiesCreated      ProgramActivity[]              @relation("ProgramCreator")
   menuWeeksCreated              MenuWeek[]                     @relation("MenuCreator")
   activityTemplatesCreated      ActivityTemplate[]             @relation("ActivityTemplateCreator")
@@ -3367,6 +3368,10 @@ model AttendanceRecord {
   signedOutBy   User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
   absenceReason String?
   notes         String?     @db.Text
+  // ── First-day photo SMS (Amana Way stage 5) ──
+  firstDayPhotoUrl    String?
+  firstDayPhotoSentAt DateTime?
+  firstDayPhotoSentTo String? // recipient mobile in E.164 — audit trail
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -4203,6 +4208,7 @@ model CentreContact {
   onboardingProgress    Json? // { profile, medical, documents, pickups, installed }
   parentPostLikes       ParentPostLike[]       @relation("ParentPostLikes")
   parentPostComments    ParentPostComment[]    @relation("ParentPostComments")
+  feedback              ParentFeedback[]       @relation("ContactFeedback")
 
   @@unique([email, serviceId])
   @@index([serviceId])
@@ -5533,8 +5539,16 @@ model ParentFeedback {
   id             String   @id @default(cuid())
   serviceId      String?
   service        Service? @relation("ServiceParentFeedback", fields: [serviceId], references: [id], onDelete: Cascade)
-  serviceCode    String
-  surveyType     String // quarterly_survey, nps, complaint, compliment, suggestion, exit_survey
+  serviceCode    String?
+  // ── Inbound feedback channel (SMS reply, NPS form, manual entry) ──
+  source         String?  // sms_reply | nps_form | email_reply | manual
+  channel        String?  // sms | email | web
+  fromNumber     String?  // E.164 mobile if SMS reply
+  contactId      String?
+  contact        CentreContact? @relation("ContactFeedback", fields: [contactId], references: [id], onDelete: SetNull)
+  childId        String?
+  child          Child?   @relation("ChildFeedback", fields: [childId], references: [id], onDelete: SetNull)
+  surveyType     String?  // quarterly_survey, nps, complaint, compliment, suggestion, exit_survey, sms_reply
   parentName     String?
   parentEmail    String?
   childName      String?
@@ -5547,6 +5561,9 @@ model ParentFeedback {
   actionRequired Boolean  @default(false)
   actionTaken    String?  @db.Text
   status         String   @default("new") // new, reviewed, actioned, closed
+  reviewedById   String?
+  reviewedBy     User?    @relation("FeedbackReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime?
   submittedAt    DateTime @default(now())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -5554,6 +5571,10 @@ model ParentFeedback {
   @@index([serviceCode])
   @@index([surveyType])
   @@index([status])
+  @@index([serviceId, status])
+  @@index([source])
+  @@index([contactId])
+  @@index([childId])
 }
 
 // ============================================================
@@ -5757,6 +5778,8 @@ model Child {
   // ── NQS relations ─────────────────────────────────
   observations LearningObservation[]      @relation("ChildObservations")
   medications  MedicationAdministration[] @relation("ChildMedications")
+  allAboutMe   AllAboutMe?                @relation("ChildAllAboutMe")
+  feedbackItems ParentFeedback[]          @relation("ChildFeedback")
 
   @@index([enrolmentId])
   @@index([serviceId])
@@ -5765,6 +5788,31 @@ model Child {
   @@index([serviceId, ccsStatus])
   @@index([serviceId, room])
   @@index([serviceId, nextImmunisationDue])
+}
+
+// ── All About Me (Amana Way stage 5 — Reassurance) ───────────
+//
+// Parent-portal form filled before first session. Surfaces to staff
+// on the child's roll-call card so they can greet the child with
+// the right context (nickname, favourite foods, calming techniques).
+
+model AllAboutMe {
+  id                String   @id @default(cuid())
+  childId           String   @unique
+  child             Child    @relation("ChildAllAboutMe", fields: [childId], references: [id], onDelete: Cascade)
+  nickname          String?
+  favouriteFood     String?
+  favouriteToys     String?
+  favouriteSubjects String?
+  hobbies           String?
+  fears             String?
+  calmingTechniques String?  @db.Text
+  additionalNotes   String?  @db.Text
+  submittedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([childId])
 }
 
 // ── Sequences (Parent Nurture + CRM Outreach) ───────────────
