@@ -1,13 +1,23 @@
-"use client";
+import { prisma } from "@/lib/prisma";
+import { requirePageSession } from "@/lib/server-auth";
+import { HandbookContentClient } from "./HandbookContentClient";
 
-import AmanaHandbookPanel from "@/components/shared/AmanaHandbookPanel";
+const SINGLETON_ID = "singleton";
 
-export default function HandbookPage() {
+export default async function HandbookPage() {
+  const session = await requirePageSession();
+  const role = session.user.role ?? null;
+  const canEdit = role === "owner" || role === "admin";
+
+  const row = await prisma.amanaHandbookContent.findUnique({
+    where: { id: SINGLETON_ID },
+  });
+  const initialOverrides = ((row?.data ?? {}) as Record<string, string>) || {};
+
   return (
-    <div
-      className="-mx-4 -mt-4 -mb-20 md:-mx-8 md:-mt-8 md:-mb-8 h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] overflow-hidden"
-    >
-      <AmanaHandbookPanel />
-    </div>
+    <HandbookContentClient
+      initialOverrides={initialOverrides}
+      canEdit={canEdit}
+    />
   );
 }
