@@ -1,6 +1,29 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import {
+  EditableText,
+  EditableList,
+  EditableImage,
+} from "@/components/content-editing/Editable";
+
+// Helper: wrap a string in <EditableText> using the panel's editId convention.
+// Falls back to plain text when no editPrefix is passed (e.g. search-result
+// previews) so the wrappers don't leak chrome outside the main render path.
+function T({ editPrefix, field, value, as, style }) {
+  if (!editPrefix) {
+    const Tag = as || "span";
+    return <Tag style={style}>{value}</Tag>;
+  }
+  return (
+    <EditableText
+      id={`${editPrefix}.${field}`}
+      defaultValue={value}
+      as={as}
+      style={style}
+    />
+  );
+}
 
 // ─── COLOURS (matching Amana Way panel) ──────────────────────────────────────
 const C = {
@@ -613,7 +636,7 @@ const SECTIONS = [
 
 // ─── COMPONENT RENDERERS ──────────────────────────────────────────────────────
 
-function CalloutBlock({ variant, label, text }) {
+function CalloutBlock({ variant, label, text, editPrefix }) {
   const styles = {
     gold:  { bg: C.goldLight, border: C.gold, labelColor: C.tealDark },
     teal:  { bg: C.tealPale,  border: C.teal, labelColor: C.teal },
@@ -624,22 +647,42 @@ function CalloutBlock({ variant, label, text }) {
   const s = styles[variant] || styles.teal;
   return (
     <div style={{ background: s.bg, border: `1.5px solid ${s.border}`, borderRadius: 8, padding: "14px 16px", marginBottom: 12 }}>
-      {label && <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: s.labelColor, marginBottom: 6 }}>{label}</div>}
-      <div style={{ fontSize: 14, color: C.textPrimary, lineHeight: 1.6 }}>{text}</div>
+      {label && (
+        <T
+          editPrefix={editPrefix}
+          field="label"
+          value={label}
+          as="div"
+          style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: s.labelColor, marginBottom: 6 }}
+        />
+      )}
+      <T
+        editPrefix={editPrefix}
+        field="text"
+        value={text}
+        as="div"
+        style={{ fontSize: 14, color: C.textPrimary, lineHeight: 1.6 }}
+      />
     </div>
   );
 }
 
-function SectionHeader({ text }) {
+function SectionHeader({ text, editPrefix }) {
   return (
-    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.teal, borderBottom: `1.5px solid ${C.border}`, paddingBottom: 6, marginTop: 18, marginBottom: 10 }}>{text}</div>
+    <T
+      editPrefix={editPrefix}
+      field="text"
+      value={text}
+      as="div"
+      style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.teal, borderBottom: `1.5px solid ${C.border}`, paddingBottom: 6, marginTop: 18, marginBottom: 10 }}
+    />
   );
 }
 
-function ListBlock({ items, numbered }) {
-  return (
+function ListBlock({ items, numbered, editPrefix }) {
+  const render = (its) => (
     <ul style={{ listStyle: "none", padding: 0, margin: "0 0 12px" }}>
-      {items.map((item, i) => (
+      {its.map((item, i) => (
         <li key={i} style={{ display: "flex", gap: 10, padding: "5px 0", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.textPrimary, lineHeight: 1.5 }}>
           <span style={{ color: C.gold, fontWeight: 700, minWidth: 20, flexShrink: 0 }}>{numbered ? `${i+1}.` : "›"}</span>
           <span>{item}</span>
@@ -647,16 +690,20 @@ function ListBlock({ items, numbered }) {
       ))}
     </ul>
   );
+  if (!editPrefix) return render(items);
+  return <EditableList id={`${editPrefix}.items`} defaultItems={items} render={render} />;
 }
 
-function TableBlock({ headers, rows }) {
+function TableBlock({ headers, rows, editPrefix }) {
   return (
     <div style={{ overflowX: "auto", marginBottom: 12 }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr>
             {headers.map((h, i) => (
-              <th key={i} style={{ background: C.teal, color: C.white, padding: "8px 12px", textAlign: "left", fontWeight: 600, fontSize: 12 }}>{h}</th>
+              <th key={i} style={{ background: C.teal, color: C.white, padding: "8px 12px", textAlign: "left", fontWeight: 600, fontSize: 12 }}>
+                <T editPrefix={editPrefix} field={`headers.${i}`} value={h} />
+              </th>
             ))}
           </tr>
         </thead>
@@ -664,7 +711,9 @@ function TableBlock({ headers, rows }) {
           {rows.map((row, i) => (
             <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.tealPale }}>
               {row.map((cell, j) => (
-                <td key={j} style={{ padding: "8px 12px", color: C.textPrimary, borderBottom: `1px solid ${C.border}` }}>{cell}</td>
+                <td key={j} style={{ padding: "8px 12px", color: C.textPrimary, borderBottom: `1px solid ${C.border}` }}>
+                  <T editPrefix={editPrefix} field={`rows.${i}.${j}`} value={cell} />
+                </td>
               ))}
             </tr>
           ))}
@@ -674,15 +723,15 @@ function TableBlock({ headers, rows }) {
   );
 }
 
-function PillarsBlock({ items }) {
+function PillarsBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px" }}>
           <span style={{ fontSize: 24, flexShrink: 0 }}>{item.icon}</span>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 3 }}>{item.title}</div>
-            <div style={{ fontSize: 13, color: C.textMid, lineHeight: 1.5 }}>{item.text}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.title`} value={item.title} as="div" style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 3 }} />
+            <T editPrefix={editPrefix} field={`items.${i}.text`} value={item.text} as="div" style={{ fontSize: 13, color: C.textMid, lineHeight: 1.5 }} />
           </div>
         </div>
       ))}
@@ -690,44 +739,57 @@ function PillarsBlock({ items }) {
   );
 }
 
-function TrioBlock({ items }) {
+function TrioBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 14, textAlign: "center" }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>{item.icon}</div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: C.teal, marginBottom: 5 }}>{item.title}</div>
-          <div style={{ fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>{item.text}</div>
+          <T editPrefix={editPrefix} field={`items.${i}.title`} value={item.title} as="div" style={{ fontWeight: 700, fontSize: 13, color: C.teal, marginBottom: 5 }} />
+          <T editPrefix={editPrefix} field={`items.${i}.text`} value={item.text} as="div" style={{ fontSize: 12, color: C.textMid, lineHeight: 1.5 }} />
         </div>
       ))}
     </div>
   );
 }
 
-function RolesBlock({ items }) {
+function RolesBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ borderLeft: `4px solid ${item.color}`, background: C.white, borderRadius: "0 8px 8px 0", padding: "12px 14px", border: `1px solid ${C.border}`, borderLeft: `4px solid ${item.color}` }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: item.color, marginBottom: 6 }}>{item.role}</div>
-          {item.responsibilities.map((r, j) => (
-            <div key={j} style={{ fontSize: 13, color: C.textMid, marginBottom: 2 }}>• {r}</div>
-          ))}
-        </div>
-      ))}
+      {items.map((item, i) => {
+        const respPrefix = editPrefix ? `${editPrefix}.items.${i}.responsibilities` : null;
+        return (
+          <div key={i} style={{ borderLeft: `4px solid ${item.color}`, background: C.white, borderRadius: "0 8px 8px 0", padding: "12px 14px", border: `1px solid ${C.border}`, borderLeft: `4px solid ${item.color}` }}>
+            <T editPrefix={editPrefix} field={`items.${i}.role`} value={item.role} as="div" style={{ fontWeight: 700, fontSize: 13, color: item.color, marginBottom: 6 }} />
+            {respPrefix ? (
+              <EditableList
+                id={respPrefix}
+                defaultItems={item.responsibilities}
+                render={(rs) => rs.map((r, j) => (
+                  <div key={j} style={{ fontSize: 13, color: C.textMid, marginBottom: 2 }}>• {r}</div>
+                ))}
+              />
+            ) : (
+              item.responsibilities.map((r, j) => (
+                <div key={j} style={{ fontSize: 13, color: C.textMid, marginBottom: 2 }}>• {r}</div>
+              ))
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function FocusAreasBlock({ items }) {
+function FocusAreasBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px" }}>
           <div style={{ width: 28, height: 28, background: C.teal, color: C.white, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{item.num}</div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 2 }}>{item.title}</div>
-            <div style={{ fontSize: 13, color: C.textMid, lineHeight: 1.5 }}>{item.text}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.title`} value={item.title} as="div" style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 2 }} />
+            <T editPrefix={editPrefix} field={`items.${i}.text`} value={item.text} as="div" style={{ fontSize: 13, color: C.textMid, lineHeight: 1.5 }} />
           </div>
         </div>
       ))}
@@ -735,33 +797,44 @@ function FocusAreasBlock({ items }) {
   );
 }
 
-function TagsBlock({ items }) {
+function TagsBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
       {items.map((tag, i) => (
-        <span key={i} style={{ background: C.goldLight, border: `1px solid ${C.gold}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 600, color: C.tealDark }}>{tag}</span>
+        <span key={i} style={{ background: C.goldLight, border: `1px solid ${C.gold}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 600, color: C.tealDark }}>
+          <T editPrefix={editPrefix} field={`items.${i}`} value={tag} />
+        </span>
       ))}
     </div>
   );
 }
 
-function ClubsBlock({ items }) {
+function ClubsBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 12 }}>
       {items.map((club, i) => (
         <div key={i} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
           {club.img ? (
-            <img
-              src={club.img}
-              alt={club.name}
-              style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }}
-            />
+            editPrefix ? (
+              <EditableImage
+                id={`${editPrefix}.items.${i}.img`}
+                defaultSrc={club.img}
+                alt={club.name}
+                style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }}
+              />
+            ) : (
+              <img
+                src={club.img}
+                alt={club.name}
+                style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }}
+              />
+            )
           ) : (
             <span style={{ fontSize: 22, flexShrink: 0 }}>{club.emoji}</span>
           )}
           <div>
-            <div style={{ fontWeight: 600, fontSize: 12, color: C.teal, marginBottom: 4 }}>{club.name}</div>
-            <div style={{ fontSize: 12, color: C.textMid, lineHeight: 1.4 }}>{club.desc}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.name`} value={club.name} as="div" style={{ fontWeight: 600, fontSize: 12, color: C.teal, marginBottom: 4 }} />
+            <T editPrefix={editPrefix} field={`items.${i}.desc`} value={club.desc} as="div" style={{ fontSize: 12, color: C.textMid, lineHeight: 1.4 }} />
           </div>
         </div>
       ))}
@@ -769,52 +842,80 @@ function ClubsBlock({ items }) {
   );
 }
 
-function ServicesBlock({ items }) {
+function ServicesBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 12 }}>
-      {items.map((svc, i) => (
-        <div key={i} style={{ background: C.tealPale, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>{svc.icon}</div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: C.teal, marginBottom: 8 }}>{svc.title}</div>
-          {svc.times.map((t, j) => (
-            <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>{t}</div>
-          ))}
-        </div>
-      ))}
+      {items.map((svc, i) => {
+        const timesPrefix = editPrefix ? `${editPrefix}.items.${i}.times` : null;
+        return (
+          <div key={i} style={{ background: C.tealPale, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 16, textAlign: "center" }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>{svc.icon}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.title`} value={svc.title} as="div" style={{ fontWeight: 700, fontSize: 13, color: C.teal, marginBottom: 8 }} />
+            {timesPrefix ? (
+              <EditableList
+                id={timesPrefix}
+                defaultItems={svc.times}
+                render={(ts) => ts.map((t, j) => (
+                  <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>{t}</div>
+                ))}
+              />
+            ) : (
+              svc.times.map((t, j) => (
+                <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>{t}</div>
+              ))
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function TimelineBlock({ items }) {
+function TimelineBlock({ items, editPrefix }) {
   return (
     <div style={{ position: "relative", marginBottom: 12 }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ display: "flex", gap: 14, marginBottom: 14 }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-            <div style={{ background: item.color, color: C.white, borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", minWidth: 60, textAlign: "center" }}>{item.time}</div>
-            {i < items.length - 1 && <div style={{ width: 2, flex: 1, background: C.border, minHeight: 20, marginTop: 4 }} />}
+      {items.map((item, i) => {
+        const stepsPrefix = editPrefix ? `${editPrefix}.items.${i}.steps` : null;
+        return (
+          <div key={i} style={{ display: "flex", gap: 14, marginBottom: 14 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+              <div style={{ background: item.color, color: C.white, borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", minWidth: 60, textAlign: "center" }}>
+                <T editPrefix={editPrefix} field={`items.${i}.time`} value={item.time} />
+              </div>
+              {i < items.length - 1 && <div style={{ width: 2, flex: 1, background: C.border, minHeight: 20, marginTop: 4 }} />}
+            </div>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", flex: 1 }}>
+              <T editPrefix={editPrefix} field={`items.${i}.title`} value={item.title} as="div" style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 6 }} />
+              {stepsPrefix ? (
+                <EditableList
+                  id={stepsPrefix}
+                  defaultItems={item.steps}
+                  render={(ss) => ss.map((step, j) => (
+                    <div key={j} style={{ fontSize: 13, color: C.textMid, marginBottom: 3 }}>• {step}</div>
+                  ))}
+                />
+              ) : (
+                item.steps.map((step, j) => (
+                  <div key={j} style={{ fontSize: 13, color: C.textMid, marginBottom: 3 }}>• {step}</div>
+                ))
+              )}
+            </div>
           </div>
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 6 }}>{item.title}</div>
-            {item.steps.map((step, j) => (
-              <div key={j} style={{ fontSize: 13, color: C.textMid, marginBottom: 3 }}>• {step}</div>
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function OWNAGuideBlock({ items }) {
+function OWNAGuideBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", display: "flex", gap: 12, alignItems: "flex-start" }}>
           <span style={{ background: C.teal, color: C.white, borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>OWNA</span>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 3 }}>{item.action}</div>
-            <div style={{ fontSize: 12, color: C.textMid, fontFamily: "monospace", background: C.tealPale, borderRadius: 4, padding: "2px 6px", display: "inline-block" }}>{item.path}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.action`} value={item.action} as="div" style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 3 }} />
+            <T editPrefix={editPrefix} field={`items.${i}.path`} value={item.path} as="div" style={{ fontSize: 12, color: C.textMid, fontFamily: "monospace", background: C.tealPale, borderRadius: 4, padding: "2px 6px", display: "inline-block" }} />
           </div>
         </div>
       ))}
@@ -822,36 +923,53 @@ function OWNAGuideBlock({ items }) {
   );
 }
 
-function ChecklistBlock({ title, items }) {
+function ChecklistBlock({ title, items, editPrefix }) {
   const [checked, setChecked] = useState({});
   const toggle = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
+  const render = (its) => its.map((item, i) => (
+    <div key={i} onClick={() => toggle(i)} style={{ display: "flex", gap: 10, alignItems: "center", padding: "5px 0", cursor: "pointer" }}>
+      <div style={{ width: 18, height: 18, border: `2px solid ${C.green}`, borderRadius: 4, background: checked[i] ? C.green : C.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {checked[i] && <span style={{ color: C.white, fontSize: 12, fontWeight: 700 }}>✓</span>}
+      </div>
+      <span style={{ fontSize: 13, color: checked[i] ? C.textMuted : C.textPrimary, textDecoration: checked[i] ? "line-through" : "none" }}>{item}</span>
+    </div>
+  ));
   return (
     <div style={{ background: C.greenLight, border: `1.5px solid ${C.green}`, borderRadius: 8, padding: "14px 16px", marginBottom: 12 }}>
-      {title && <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.green, marginBottom: 10 }}>{title}</div>}
-      {items.map((item, i) => (
-        <div key={i} onClick={() => toggle(i)} style={{ display: "flex", gap: 10, alignItems: "center", padding: "5px 0", cursor: "pointer" }}>
-          <div style={{ width: 18, height: 18, border: `2px solid ${C.green}`, borderRadius: 4, background: checked[i] ? C.green : C.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            {checked[i] && <span style={{ color: C.white, fontSize: 12, fontWeight: 700 }}>✓</span>}
-          </div>
-          <span style={{ fontSize: 13, color: checked[i] ? C.textMuted : C.textPrimary, textDecoration: checked[i] ? "line-through" : "none" }}>{item}</span>
-        </div>
-      ))}
+      {title && (
+        <T
+          editPrefix={editPrefix}
+          field="title"
+          value={title}
+          as="div"
+          style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.green, marginBottom: 10 }}
+        />
+      )}
+      {editPrefix ? (
+        <EditableList id={`${editPrefix}.items`} defaultItems={items} render={render} />
+      ) : (
+        render(items)
+      )}
     </div>
   );
 }
 
-function TrainingBlock({ items }) {
+function TrainingBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: C.teal, marginBottom: 3 }}>{item.code}</div>
-            <div style={{ fontWeight: 600, fontSize: 13, color: C.textPrimary, marginBottom: 4 }}>{item.title}</div>
-            <div style={{ fontSize: 12, color: C.textMuted }}>{item.delivery} · {item.who}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.code`} value={item.code} as="div" style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: C.teal, marginBottom: 3 }} />
+            <T editPrefix={editPrefix} field={`items.${i}.title`} value={item.title} as="div" style={{ fontWeight: 600, fontSize: 13, color: C.textPrimary, marginBottom: 4 }} />
+            <div style={{ fontSize: 12, color: C.textMuted }}>
+              <T editPrefix={editPrefix} field={`items.${i}.delivery`} value={item.delivery} />
+              {" · "}
+              <T editPrefix={editPrefix} field={`items.${i}.who`} value={item.who} />
+            </div>
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: C.teal }}>{item.price}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.price`} value={item.price} as="div" style={{ fontWeight: 700, fontSize: 14, color: C.teal }} />
             {item.covered && <div style={{ fontSize: 11, color: C.green, fontWeight: 600 }}>50% covered ✓</div>}
           </div>
         </div>
@@ -860,15 +978,15 @@ function TrainingBlock({ items }) {
   );
 }
 
-function ClearBlock({ items }) {
+function ClearBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px" }}>
           <div style={{ width: 36, height: 36, background: C.teal, color: C.white, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 18, flexShrink: 0 }}>{item.letter}</div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: C.teal }}>{item.word}</div>
-            <div style={{ fontSize: 13, color: C.textMid }}>{item.desc}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.word`} value={item.word} as="div" style={{ fontWeight: 700, fontSize: 13, color: C.teal }} />
+            <T editPrefix={editPrefix} field={`items.${i}.desc`} value={item.desc} as="div" style={{ fontSize: 13, color: C.textMid }} />
           </div>
         </div>
       ))}
@@ -876,45 +994,58 @@ function ClearBlock({ items }) {
   );
 }
 
-function RatiosBlock({ items }) {
+function RatiosBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.teal, fontFamily: "Georgia, serif" }}>{item.ratio}</div>
-          <div style={{ fontSize: 12, color: C.textMid, marginTop: 4 }}>{item.label}</div>
+          <T editPrefix={editPrefix} field={`items.${i}.ratio`} value={item.ratio} as="div" style={{ fontSize: 22, fontWeight: 900, color: C.teal, fontFamily: "Georgia, serif" }} />
+          <T editPrefix={editPrefix} field={`items.${i}.label`} value={item.label} as="div" style={{ fontSize: 12, color: C.textMid, marginTop: 4 }} />
         </div>
       ))}
     </div>
   );
 }
 
-function MTOPBlock({ items }) {
+function MTOPBlock({ items, editPrefix }) {
   const colors = [C.teal, "#2E7D32", "#5C6BC0", "#E65100", "#C62828"];
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 12 }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ background: C.white, border: `1.5px solid ${colors[i]}`, borderRadius: 10, padding: 14 }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: colors[i], fontFamily: "Georgia, serif", marginBottom: 6 }}>{item.num}</div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: C.teal, marginBottom: 8, lineHeight: 1.4 }}>{item.title}</div>
-          {item.points.map((p, j) => (
-            <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 4, lineHeight: 1.4 }}>• {p}</div>
-          ))}
-        </div>
-      ))}
+      {items.map((item, i) => {
+        const pointsPrefix = editPrefix ? `${editPrefix}.items.${i}.points` : null;
+        return (
+          <div key={i} style={{ background: C.white, border: `1.5px solid ${colors[i]}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: colors[i], fontFamily: "Georgia, serif", marginBottom: 6 }}>{item.num}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.title`} value={item.title} as="div" style={{ fontWeight: 700, fontSize: 13, color: C.teal, marginBottom: 8, lineHeight: 1.4 }} />
+            {pointsPrefix ? (
+              <EditableList
+                id={pointsPrefix}
+                defaultItems={item.points}
+                render={(ps) => ps.map((p, j) => (
+                  <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 4, lineHeight: 1.4 }}>• {p}</div>
+                ))}
+              />
+            ) : (
+              item.points.map((p, j) => (
+                <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 4, lineHeight: 1.4 }}>• {p}</div>
+              ))
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function StandardsBlock({ items }) {
+function StandardsBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: "flex", gap: 12, background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", alignItems: "flex-start" }}>
           <div style={{ background: C.teal, color: C.white, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>Std {item.num}</div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 2 }}>{item.title}</div>
-            <div style={{ fontSize: 13, color: C.textMid, lineHeight: 1.5 }}>{item.text}</div>
+            <T editPrefix={editPrefix} field={`items.${i}.title`} value={item.title} as="div" style={{ fontWeight: 600, fontSize: 13, color: C.teal, marginBottom: 2 }} />
+            <T editPrefix={editPrefix} field={`items.${i}.text`} value={item.text} as="div" style={{ fontSize: 13, color: C.textMid, lineHeight: 1.5 }} />
           </div>
         </div>
       ))}
@@ -922,80 +1053,101 @@ function StandardsBlock({ items }) {
   );
 }
 
-function AbuseTypesBlock({ items }) {
+function AbuseTypesBlock({ items, editPrefix }) {
   const [open, setOpen] = useState(null);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ background: C.white, border: `1.5px solid ${item.color}`, borderRadius: 8, overflow: "hidden" }}>
-          <div onClick={() => setOpen(open === i ? null : i)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", cursor: "pointer", background: open === i ? item.color + "15" : C.white }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: item.color }}>{item.type}</div>
-            <span style={{ fontSize: 16, color: item.color }}>{open === i ? "−" : "+"}</span>
-          </div>
-          {open === i && (
-            <div style={{ padding: "0 14px 14px", borderTop: `1px solid ${item.color}30` }}>
-              <p style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.6, margin: "10px 0" }}>{item.definition}</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: item.color, marginBottom: 6 }}>Behavioural Indicators</div>
-                  {item.behavioural.map((b, j) => <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>• {b}</div>)}
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: item.color, marginBottom: 6 }}>Physical Indicators</div>
-                  {item.physical.map((p, j) => <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>• {p}</div>)}
+      {items.map((item, i) => {
+        const behPrefix = editPrefix ? `${editPrefix}.items.${i}.behavioural` : null;
+        const phyPrefix = editPrefix ? `${editPrefix}.items.${i}.physical` : null;
+        return (
+          <div key={i} style={{ background: C.white, border: `1.5px solid ${item.color}`, borderRadius: 8, overflow: "hidden" }}>
+            <div onClick={() => setOpen(open === i ? null : i)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", cursor: "pointer", background: open === i ? item.color + "15" : C.white }}>
+              <T editPrefix={editPrefix} field={`items.${i}.type`} value={item.type} as="div" style={{ fontWeight: 700, fontSize: 13, color: item.color }} />
+              <span style={{ fontSize: 16, color: item.color }}>{open === i ? "−" : "+"}</span>
+            </div>
+            {open === i && (
+              <div style={{ padding: "0 14px 14px", borderTop: `1px solid ${item.color}30` }}>
+                <T editPrefix={editPrefix} field={`items.${i}.definition`} value={item.definition} as="p" style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.6, margin: "10px 0" }} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: item.color, marginBottom: 6 }}>Behavioural Indicators</div>
+                    {behPrefix ? (
+                      <EditableList id={behPrefix} defaultItems={item.behavioural} render={(bs) => bs.map((b, j) => (
+                        <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>• {b}</div>
+                      ))} />
+                    ) : (
+                      item.behavioural.map((b, j) => <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>• {b}</div>)
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: item.color, marginBottom: 6 }}>Physical Indicators</div>
+                    {phyPrefix ? (
+                      <EditableList id={phyPrefix} defaultItems={item.physical} render={(ps) => ps.map((p, j) => (
+                        <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>• {p}</div>
+                      ))} />
+                    ) : (
+                      item.physical.map((p, j) => <div key={j} style={{ fontSize: 12, color: C.textMid, marginBottom: 3 }}>• {p}</div>)
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function ContactsBlock({ items }) {
+function ContactsBlock({ items, editPrefix }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ background: C.redLight, border: `1.5px solid ${C.red}`, borderRadius: 10, padding: 14, textAlign: "center" }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: C.red }}>{item.state}</div>
-          <div style={{ fontSize: 12, color: C.textMid, margin: "4px 0" }}>{item.org}</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: C.teal, fontFamily: "Georgia, serif" }}>{item.phone}</div>
+          <T editPrefix={editPrefix} field={`items.${i}.state`} value={item.state} as="div" style={{ fontWeight: 700, fontSize: 16, color: C.red }} />
+          <T editPrefix={editPrefix} field={`items.${i}.org`} value={item.org} as="div" style={{ fontSize: 12, color: C.textMid, margin: "4px 0" }} />
+          <T editPrefix={editPrefix} field={`items.${i}.phone`} value={item.phone} as="div" style={{ fontWeight: 700, fontSize: 16, color: C.teal, fontFamily: "Georgia, serif" }} />
         </div>
       ))}
     </div>
   );
 }
 
-function PayrollCard({ items }) {
+function PayrollCard({ items, editPrefix }) {
   return (
     <div style={{ background: C.goldLight, border: `2px solid ${C.gold}`, borderRadius: 10, padding: 20, marginBottom: 12 }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
-          <span style={{ fontSize: 13, color: C.textMid, fontWeight: 600 }}>{item.label}</span>
-          <span style={{ fontSize: 13, color: C.tealDark, fontWeight: 700 }}>{item.value}</span>
+          <T editPrefix={editPrefix} field={`items.${i}.label`} value={item.label} as="span" style={{ fontSize: 13, color: C.textMid, fontWeight: 600 }} />
+          <T editPrefix={editPrefix} field={`items.${i}.value`} value={item.value} as="span" style={{ fontSize: 13, color: C.tealDark, fontWeight: 700 }} />
         </div>
       ))}
     </div>
   );
 }
 
-function PolicyChecklistBlock({ items }) {
+function PolicyChecklistBlock({ items, editPrefix }) {
   const [checked, setChecked] = useState({});
   const toggle = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
   const allChecked = items.every((_, i) => checked[i]);
+  const render = (its) => its.map((item, i) => (
+    <div key={i} onClick={() => toggle(i)} style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 6px", cursor: "pointer", borderRadius: 4, background: checked[i] ? C.greenLight : "transparent" }}>
+      <div style={{ width: 16, height: 16, border: `2px solid ${checked[i] ? C.green : C.border}`, borderRadius: 3, background: checked[i] ? C.green : C.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {checked[i] && <span style={{ color: C.white, fontSize: 10, fontWeight: 700 }}>✓</span>}
+      </div>
+      <span style={{ fontSize: 12, color: checked[i] ? C.green : C.textMid, textDecoration: checked[i] ? "line-through" : "none" }}>{item}</span>
+    </div>
+  ));
   return (
     <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.teal, marginBottom: 10 }}>I acknowledge that I have read and understood the following policies:</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-        {items.map((item, i) => (
-          <div key={i} onClick={() => toggle(i)} style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 6px", cursor: "pointer", borderRadius: 4, background: checked[i] ? C.greenLight : "transparent" }}>
-            <div style={{ width: 16, height: 16, border: `2px solid ${checked[i] ? C.green : C.border}`, borderRadius: 3, background: checked[i] ? C.green : C.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {checked[i] && <span style={{ color: C.white, fontSize: 10, fontWeight: 700 }}>✓</span>}
-            </div>
-            <span style={{ fontSize: 12, color: checked[i] ? C.green : C.textMid, textDecoration: checked[i] ? "line-through" : "none" }}>{item}</span>
-          </div>
-        ))}
+        {editPrefix ? (
+          <EditableList id={`${editPrefix}.items`} defaultItems={items} render={render} />
+        ) : (
+          render(items)
+        )}
       </div>
       {allChecked && (
         <div style={{ marginTop: 12, background: C.greenLight, border: `1px solid ${C.green}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.green, fontWeight: 600, textAlign: "center" }}>
@@ -1006,19 +1158,24 @@ function PolicyChecklistBlock({ items }) {
   );
 }
 
-function DeclarationsBlock({ items }) {
+function DeclarationsBlock({ items, editPrefix }) {
   const [checked, setChecked] = useState({});
   const toggle = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
+  const render = (its) => its.map((item, i) => (
+    <div key={i} onClick={() => toggle(i)} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
+      <div style={{ width: 20, height: 20, border: `2px solid ${checked[i] ? C.green : C.border}`, borderRadius: 4, background: checked[i] ? C.green : C.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+        {checked[i] && <span style={{ color: C.white, fontSize: 12, fontWeight: 700 }}>✓</span>}
+      </div>
+      <span style={{ fontSize: 14, color: C.textPrimary, lineHeight: 1.5 }}>{item}</span>
+    </div>
+  ));
   return (
     <div style={{ marginBottom: 12 }}>
-      {items.map((item, i) => (
-        <div key={i} onClick={() => toggle(i)} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
-          <div style={{ width: 20, height: 20, border: `2px solid ${checked[i] ? C.green : C.border}`, borderRadius: 4, background: checked[i] ? C.green : C.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-            {checked[i] && <span style={{ color: C.white, fontSize: 12, fontWeight: 700 }}>✓</span>}
-          </div>
-          <span style={{ fontSize: 14, color: C.textPrimary, lineHeight: 1.5 }}>{item}</span>
-        </div>
-      ))}
+      {editPrefix ? (
+        <EditableList id={`${editPrefix}.items`} defaultItems={items} render={render} />
+      ) : (
+        render(items)
+      )}
     </div>
   );
 }
@@ -1059,63 +1216,83 @@ function SignOffForm() {
   );
 }
 
-function PolicyIntro({ text }) {
+function PolicyIntro({ text, editPrefix }) {
   return (
-    <div style={{ fontSize: 14, color: C.textMid, fontStyle: "italic", background: C.tealPale, borderLeft: `3px solid ${C.teal}`, borderRadius: "0 6px 6px 0", padding: "10px 14px", marginBottom: 12, lineHeight: 1.6 }}>{text}</div>
+    <T
+      editPrefix={editPrefix}
+      field="text"
+      value={text}
+      as="div"
+      style={{ fontSize: 14, color: C.textMid, fontStyle: "italic", background: C.tealPale, borderLeft: `3px solid ${C.teal}`, borderRadius: "0 6px 6px 0", padding: "10px 14px", marginBottom: 12, lineHeight: 1.6 }}
+    />
   );
 }
 
-function AckIntro({ text }) {
+function AckIntro({ text, editPrefix }) {
   return (
-    <div style={{ fontSize: 14, color: C.textPrimary, lineHeight: 1.7, marginBottom: 14 }}>{text}</div>
+    <T
+      editPrefix={editPrefix}
+      field="text"
+      value={text}
+      as="div"
+      style={{ fontSize: 14, color: C.textPrimary, lineHeight: 1.7, marginBottom: 14 }}
+    />
   );
 }
 
-function renderContent(block, idx) {
+function renderContent(block, idx, editPrefix) {
+  const blockPrefix = editPrefix ? `${editPrefix}.${idx}` : undefined;
   switch (block.type) {
-    case "callout":         return <CalloutBlock key={idx} {...block} />;
-    case "section-header":  return <SectionHeader key={idx} text={block.text} />;
-    case "list":            return <ListBlock key={idx} items={block.items} numbered={block.numbered} />;
-    case "table":           return <TableBlock key={idx} headers={block.headers} rows={block.rows} />;
-    case "pillars":         return <PillarsBlock key={idx} items={block.items} />;
-    case "trio":            return <TrioBlock key={idx} items={block.items} />;
-    case "roles":           return <RolesBlock key={idx} items={block.items} />;
-    case "focus-areas":     return <FocusAreasBlock key={idx} items={block.items} />;
-    case "tags":            return <TagsBlock key={idx} items={block.items} />;
-    case "clubs":           return <ClubsBlock key={idx} items={block.items} />;
-    case "services":        return <ServicesBlock key={idx} items={block.items} />;
-    case "timeline":        return <TimelineBlock key={idx} items={block.items} />;
-    case "owna-guide":      return <OWNAGuideBlock key={idx} items={block.items} />;
-    case "checklist":       return <ChecklistBlock key={idx} title={block.title} items={block.items} />;
-    case "training":        return <TrainingBlock key={idx} items={block.items} />;
-    case "clear":           return <ClearBlock key={idx} items={block.items} />;
-    case "ratios":          return <RatiosBlock key={idx} items={block.items} />;
-    case "mtop":            return <MTOPBlock key={idx} items={block.items} />;
-    case "standards":       return <StandardsBlock key={idx} items={block.items} />;
-    case "abuse-types":     return <AbuseTypesBlock key={idx} items={block.items} />;
-    case "contacts":        return <ContactsBlock key={idx} items={block.items} />;
-    case "payroll-card":    return <PayrollCard key={idx} items={block.items} />;
-    case "policy-checklist":return <PolicyChecklistBlock key={idx} items={block.items} />;
-    case "declarations":    return <DeclarationsBlock key={idx} items={block.items} />;
+    case "callout":         return <CalloutBlock key={idx} {...block} editPrefix={blockPrefix} />;
+    case "section-header":  return <SectionHeader key={idx} text={block.text} editPrefix={blockPrefix} />;
+    case "list":            return <ListBlock key={idx} items={block.items} numbered={block.numbered} editPrefix={blockPrefix} />;
+    case "table":           return <TableBlock key={idx} headers={block.headers} rows={block.rows} editPrefix={blockPrefix} />;
+    case "pillars":         return <PillarsBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "trio":            return <TrioBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "roles":           return <RolesBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "focus-areas":     return <FocusAreasBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "tags":            return <TagsBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "clubs":           return <ClubsBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "services":        return <ServicesBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "timeline":        return <TimelineBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "owna-guide":      return <OWNAGuideBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "checklist":       return <ChecklistBlock key={idx} title={block.title} items={block.items} editPrefix={blockPrefix} />;
+    case "training":        return <TrainingBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "clear":           return <ClearBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "ratios":          return <RatiosBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "mtop":            return <MTOPBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "standards":       return <StandardsBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "abuse-types":     return <AbuseTypesBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "contacts":        return <ContactsBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "payroll-card":    return <PayrollCard key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "policy-checklist":return <PolicyChecklistBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
+    case "declarations":    return <DeclarationsBlock key={idx} items={block.items} editPrefix={blockPrefix} />;
     case "sign-off-form":   return <SignOffForm key={idx} />;
-    case "policy-intro":    return <PolicyIntro key={idx} text={block.text} />;
-    case "ack-intro":       return <AckIntro key={idx} text={block.text} />;
+    case "policy-intro":    return <PolicyIntro key={idx} text={block.text} editPrefix={blockPrefix} />;
+    case "ack-intro":       return <AckIntro key={idx} text={block.text} editPrefix={blockPrefix} />;
     default:                return null;
   }
 }
 
 // ─── ACCORDION ────────────────────────────────────────────────────────────────
-function Accordion({ subsection, accentColor }) {
+function Accordion({ subsection, accentColor, editPrefix }) {
   const [open, setOpen] = useState(false);
+  const contentPrefix = editPrefix ? `${editPrefix}.content` : undefined;
   return (
     <div style={{ marginBottom: 10, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", background: C.white }}>
       <div onClick={() => setOpen(!open)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", cursor: "pointer", background: open ? accentColor + "12" : C.white, borderBottom: open ? `1px solid ${accentColor}30` : "none", transition: "background 0.15s" }}>
-        <span style={{ fontWeight: 600, fontSize: 14, color: open ? accentColor : C.textPrimary }}>{subsection.title}</span>
+        <T
+          editPrefix={editPrefix}
+          field="title"
+          value={subsection.title}
+          as="span"
+          style={{ fontWeight: 600, fontSize: 14, color: open ? accentColor : C.textPrimary }}
+        />
         <span style={{ fontSize: 18, color: accentColor, fontWeight: 300 }}>{open ? "−" : "+"}</span>
       </div>
       {open && (
         <div style={{ padding: "16px 18px" }}>
-          {subsection.content.map((block, i) => renderContent(block, i))}
+          {subsection.content.map((block, i) => renderContent(block, i, contentPrefix))}
         </div>
       )}
     </div>
@@ -1177,8 +1354,9 @@ export default function AmanaHandbookPanel() {
         {!isSearching && (
           <div style={{ display: "flex", gap: 4, overflowX: "auto" }}>
             {SECTIONS.map(sec => (
-              <button key={sec.id} onClick={() => setActiveSection(sec.id)} style={{ background: activeSection === sec.id ? C.gold : "rgba(255,255,255,0.1)", color: activeSection === sec.id ? C.tealDark : "rgba(255,255,255,0.75)", border: "none", borderRadius: "8px 8px 0 0", padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
-                {sec.icon} {sec.label}
+              <button key={sec.id} onClick={() => setActiveSection(sec.id)} style={{ background: activeSection === sec.id ? C.gold : "rgba(255,255,255,0.1)", border: "none", borderRadius: "8px 8px 0 0", padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", color: activeSection === sec.id ? C.tealDark : "rgba(255,255,255,0.75)" }}>
+                {sec.icon}{" "}
+                <T editPrefix={`handbook.sections.${sec.id}`} field="label" value={sec.label} />
               </button>
             ))}
           </div>
@@ -1204,10 +1382,21 @@ export default function AmanaHandbookPanel() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
                 <div style={{ width: 4, height: 24, background: section.color, borderRadius: 2 }} />
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.tealDark, fontFamily: "Georgia, serif" }}>{section.label}</h2>
+                <T
+                  editPrefix={`handbook.sections.${section.id}`}
+                  field="label"
+                  value={section.label}
+                  as="h2"
+                  style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.tealDark, fontFamily: "Georgia, serif" }}
+                />
               </div>
               {section.subsections.map((sub, i) => (
-                <Accordion key={i} subsection={sub} accentColor={section.color} />
+                <Accordion
+                  key={i}
+                  subsection={sub}
+                  accentColor={section.color}
+                  editPrefix={`handbook.sections.${section.id}.subs.${i}`}
+                />
               ))}
             </div>
           )
