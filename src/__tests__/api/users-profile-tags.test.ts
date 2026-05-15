@@ -105,3 +105,65 @@ describe("PATCH /api/users/[id]/profile — tags", () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe("PATCH /api/users/[id]/profile — staff self-edit allowlist", () => {
+  it("allows staff to update their own personal + employment fields", async () => {
+    // 2026-05-15: STAFF_SELF_FIELDS expanded to include dateOfBirth,
+    // startDate, employmentType, probationEndDate so self-edit on
+    // /staff/[id] covers both PersonalTab and EmploymentTab.
+    mockSession({ id: "t-1", name: "Self", role: "staff" });
+    const res = await PATCH(
+      createRequest("PATCH", "/api/users/t-1/profile", {
+        body: {
+          phone: "0400 000 000",
+          dateOfBirth: "1990-01-01",
+          startDate: "2024-01-15",
+          employmentType: "permanent",
+          probationEndDate: "2024-07-15",
+        },
+      }),
+      ctx("t-1") as never,
+    );
+    expect(res.status).toBe(200);
+    const updateCall = prismaMock.user.update.mock.calls[0][0];
+    expect(updateCall.data.phone).toBe("0400 000 000");
+    expect(updateCall.data.employmentType).toBe("permanent");
+    // Dates should be converted to Date instances
+    expect(updateCall.data.dateOfBirth).toBeInstanceOf(Date);
+    expect(updateCall.data.startDate).toBeInstanceOf(Date);
+    expect(updateCall.data.probationEndDate).toBeInstanceOf(Date);
+  });
+
+  it("still rejects staff trying to self-edit admin-only fields (xeroEmployeeId)", async () => {
+    mockSession({ id: "t-1", name: "Self", role: "staff" });
+    const res = await PATCH(
+      createRequest("PATCH", "/api/users/t-1/profile", {
+        body: { xeroEmployeeId: "XERO-123" },
+      }),
+      ctx("t-1") as never,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("still rejects staff editing someone else's employment fields", async () => {
+    mockSession({ id: "other-1", name: "Other", role: "staff" });
+    const res = await PATCH(
+      createRequest("PATCH", "/api/users/t-1/profile", {
+        body: { employmentType: "permanent" },
+      }),
+      ctx("t-1") as never,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("admin can update any field on any user (smoke)", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    const res = await PATCH(
+      createRequest("PATCH", "/api/users/t-1/profile", {
+        body: { employmentType: "casual", xeroEmployeeId: "X-9" },
+      }),
+      ctx("t-1") as never,
+    );
+    expect(res.status).toBe(200);
+  });
+});

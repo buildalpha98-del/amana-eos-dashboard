@@ -617,20 +617,20 @@ model User {
   xeroEmployeeId    String?
 
   // ── HR Relations ─────────────────────────────────────────────
-  emergencyContacts EmergencyContact[]
-  qualifications    StaffQualification[]
-  pdRecords         ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
-  contracts                    EmploymentContract[]            @relation("ContractEmployee")
-  createdContractTemplates     ContractTemplate[]              @relation("TemplateCreator")
-  updatedContractTemplates     ContractTemplate[]              @relation("TemplateUpdater")
-  leaveRequests                LeaveRequest[]                  @relation("LeaveRequester")
-  approvedLeaves    LeaveRequest[]                  @relation("LeaveApprover")
-  leaveBalances     LeaveBalance[]
-  timesheetEntries  TimesheetEntry[]                @relation("TimesheetStaff")
-  policyDocVersionUploads PolicyDocumentVersion[]   @relation("PolicyDocVersionUploader")
-  policyDocAcks     PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
-  offboardings      StaffOffboarding[]              @relation("OffboardingUser")
-  apiKeys           ApiKey[]                        @relation("ApiKeyCreator")
+  emergencyContacts        EmergencyContact[]
+  qualifications           StaffQualification[]
+  pdRecords                ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
+  contracts                EmploymentContract[]            @relation("ContractEmployee")
+  createdContractTemplates ContractTemplate[]              @relation("TemplateCreator")
+  updatedContractTemplates ContractTemplate[]              @relation("TemplateUpdater")
+  leaveRequests            LeaveRequest[]                  @relation("LeaveRequester")
+  approvedLeaves           LeaveRequest[]                  @relation("LeaveApprover")
+  leaveBalances            LeaveBalance[]
+  timesheetEntries         TimesheetEntry[]                @relation("TimesheetStaff")
+  policyDocVersionUploads  PolicyDocumentVersion[]         @relation("PolicyDocVersionUploader")
+  policyDocAcks            PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
+  offboardings             StaffOffboarding[]              @relation("OffboardingUser")
+  apiKeys                  ApiKey[]                        @relation("ApiKeyCreator")
 
   // ── CRM Relations ───────────────────────────────────────────
   assignedLeads           Lead[]                         @relation("LeadAssignee")
@@ -752,6 +752,7 @@ model User {
   weeklyMarketingReportsReviewed WeeklyMarketingReport[]   @relation("WeeklyReportReviewer")
   weeklyMarketingReportsSent     WeeklyMarketingReport[]   @relation("WeeklyReportSender")
   socialCountersUpdated          SocialCounter[]           @relation("SocialCounterUpdater")
+  amanaWayContentEdits           AmanaWayContent[]         @relation("AmanaWayContentUpdater")
 
   // ── Centre Avatars (Sprint 3) ─────────────────────
   centreAvatarInsightsCreated          CentreAvatarInsight[]            @relation("CentreAvatarInsightCreatedBy")
@@ -768,7 +769,7 @@ model User {
   // 2026-05-14 (service-staff v1): additional service memberships layered on
   // top of User.serviceId (which stays as the primary/home service). Lets a
   // single staff member be at multiple centres with per-service role+access.
-  serviceMemberships                   UserServiceMembership[]          @relation("UserMemberships")
+  serviceMemberships UserServiceMembership[] @relation("UserMemberships")
 
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
@@ -3392,28 +3393,28 @@ model DailyAttendance {
 }
 
 model AttendanceRecord {
-  id            String      @id @default(cuid())
-  childId       String
-  child         Child       @relation("ChildAttendance", fields: [childId], references: [id], onDelete: Cascade)
-  serviceId     String
-  service       Service     @relation("ServiceIndividualAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
-  date          DateTime    @db.Date
-  sessionType   SessionType
-  status        String      @default("booked") // booked, present, absent
-  signInTime    DateTime?
-  signOutTime   DateTime?
-  signedInById  String?
-  signedOutById String?
-  signedInBy    User?       @relation("SignInRecorder", fields: [signedInById], references: [id], onDelete: SetNull)
-  signedOutBy   User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
-  absenceReason String?
-  notes         String?     @db.Text
+  id                  String      @id @default(cuid())
+  childId             String
+  child               Child       @relation("ChildAttendance", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId           String
+  service             Service     @relation("ServiceIndividualAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
+  date                DateTime    @db.Date
+  sessionType         SessionType
+  status              String      @default("booked") // booked, present, absent
+  signInTime          DateTime?
+  signOutTime         DateTime?
+  signedInById        String?
+  signedOutById       String?
+  signedInBy          User?       @relation("SignInRecorder", fields: [signedInById], references: [id], onDelete: SetNull)
+  signedOutBy         User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
+  absenceReason       String?
+  notes               String?     @db.Text
   // ── First-day photo SMS (Amana Way stage 5) ──
   firstDayPhotoUrl    String?
   firstDayPhotoSentAt DateTime?
   firstDayPhotoSentTo String? // recipient mobile in E.164 — audit trail
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
   @@index([serviceId, date, sessionType])
@@ -5593,37 +5594,37 @@ model FinanceReport {
 // ============================================================
 
 model ParentFeedback {
-  id             String   @id @default(cuid())
+  id             String         @id @default(cuid())
   serviceId      String?
-  service        Service? @relation("ServiceParentFeedback", fields: [serviceId], references: [id], onDelete: Cascade)
+  service        Service?       @relation("ServiceParentFeedback", fields: [serviceId], references: [id], onDelete: Cascade)
   serviceCode    String?
   // ── Inbound feedback channel (SMS reply, NPS form, manual entry) ──
-  source         String?  // sms_reply | nps_form | email_reply | manual
-  channel        String?  // sms | email | web
-  fromNumber     String?  // E.164 mobile if SMS reply
+  source         String? // sms_reply | nps_form | email_reply | manual
+  channel        String? // sms | email | web
+  fromNumber     String? // E.164 mobile if SMS reply
   contactId      String?
   contact        CentreContact? @relation("ContactFeedback", fields: [contactId], references: [id], onDelete: SetNull)
   childId        String?
-  child          Child?   @relation("ChildFeedback", fields: [childId], references: [id], onDelete: SetNull)
-  surveyType     String?  // quarterly_survey, nps, complaint, compliment, suggestion, exit_survey, sms_reply
+  child          Child?         @relation("ChildFeedback", fields: [childId], references: [id], onDelete: SetNull)
+  surveyType     String? // quarterly_survey, nps, complaint, compliment, suggestion, exit_survey, sms_reply
   parentName     String?
   parentEmail    String?
   childName      String?
   overallRating  Int? // 1-5 scale
   npsScore       Int? // 0-10 NPS scale
   responses      Json? // Flexible JSON for survey question/answer pairs
-  comments       String?  @db.Text
+  comments       String?        @db.Text
   sentiment      String? // positive, neutral, negative
   category       String? // safety, programming, communication, food, staff, facilities, booking, other
-  actionRequired Boolean  @default(false)
-  actionTaken    String?  @db.Text
-  status         String   @default("new") // new, reviewed, actioned, closed
+  actionRequired Boolean        @default(false)
+  actionTaken    String?        @db.Text
+  status         String         @default("new") // new, reviewed, actioned, closed
   reviewedById   String?
-  reviewedBy     User?    @relation("FeedbackReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedBy     User?          @relation("FeedbackReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   reviewedAt     DateTime?
-  submittedAt    DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  submittedAt    DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@index([serviceCode])
   @@index([surveyType])
@@ -5833,10 +5834,10 @@ model Child {
   statementLineItems StatementLineItem[]  @relation("ChildStatementLines")
 
   // ── NQS relations ─────────────────────────────────
-  observations LearningObservation[]      @relation("ChildObservations")
-  medications  MedicationAdministration[] @relation("ChildMedications")
-  allAboutMe   AllAboutMe?                @relation("ChildAllAboutMe")
-  feedbackItems ParentFeedback[]          @relation("ChildFeedback")
+  observations  LearningObservation[]      @relation("ChildObservations")
+  medications   MedicationAdministration[] @relation("ChildMedications")
+  allAboutMe    AllAboutMe?                @relation("ChildAllAboutMe")
+  feedbackItems ParentFeedback[]           @relation("ChildFeedback")
 
   @@index([enrolmentId])
   @@index([serviceId])
@@ -5854,20 +5855,20 @@ model Child {
 // the right context (nickname, favourite foods, calming techniques).
 
 model AllAboutMe {
-  id                String   @id @default(cuid())
-  childId           String   @unique
-  child             Child    @relation("ChildAllAboutMe", fields: [childId], references: [id], onDelete: Cascade)
+  id                String    @id @default(cuid())
+  childId           String    @unique
+  child             Child     @relation("ChildAllAboutMe", fields: [childId], references: [id], onDelete: Cascade)
   nickname          String?
   favouriteFood     String?
   favouriteToys     String?
   favouriteSubjects String?
   hobbies           String?
   fears             String?
-  calmingTechniques String?  @db.Text
-  additionalNotes   String?  @db.Text
+  calmingTechniques String?   @db.Text
+  additionalNotes   String?   @db.Text
   submittedAt       DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([childId])
 }
@@ -6507,13 +6508,27 @@ model ContentTeamMember {
 }
 
 model SocialCounter {
-  id        String   @id @default(cuid())
-  weekStart DateTime @unique @db.Date
-  feed      Int      @default(0)
-  stories   Int      @default(0)
-  reels     Int      @default(0)
+  id          String   @id @default(cuid())
+  weekStart   DateTime @unique @db.Date
+  feed        Int      @default(0)
+  stories     Int      @default(0)
+  reels       Int      @default(0)
   updatedById String?
-  updatedBy   User?  @relation("SocialCounterUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedBy   User?    @relation("SocialCounterUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// AmanaWayContent — owner/admin-editable overrides for the
+// in-app Amana Way handbook (`/tools/the-amana-way`). Singleton
+// row keyed by id "singleton". `data` is a Record<string,string>
+// of content-key → override text. Reads merge the override on
+// top of the panel's defaults; missing keys fall through.
+model AmanaWayContent {
+  id          String   @id @default("singleton")
+  data        Json     @default("{}")
+  updatedById String?
+  updatedBy   User?    @relation("AmanaWayContentUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

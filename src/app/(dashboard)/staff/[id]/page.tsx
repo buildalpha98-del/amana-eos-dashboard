@@ -93,7 +93,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
   const isSelf = session.user.id === targetUser.id;
   const isAdmin = isAdminRole(viewerRole);
   const canEditPersonal = isSelf || isAdmin;
-  const canEditEmployment = isAdmin;
+  const canEditEmployment = isSelf || isAdmin;
   const canManageCompliance = isAdmin;
 
   // Fetch all profile data in parallel
