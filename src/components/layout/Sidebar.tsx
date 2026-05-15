@@ -18,6 +18,7 @@ import { navItems, filterNavItems } from "@/lib/nav-config";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useBookingRequestCount } from "@/hooks/useBookingRequests";
 import { useUnreadMessageCount } from "@/hooks/useMessaging";
+import { useMyPendingPoliciesCount } from "@/hooks/usePolicies";
 import type { Role } from "@prisma/client";
 
 interface SidebarProps {
@@ -31,6 +32,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite } = useSidebar();
   const { data: bookingRequestCount } = useBookingRequestCount();
   const { data: unreadMessageCount } = useUnreadMessageCount();
+  const { data: pendingPoliciesCount } = useMyPendingPoliciesCount();
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -262,6 +264,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                               {item.href === "/messaging" && unreadMessageCount != null && unreadMessageCount > 0 && (
                                 <span className="ml-auto flex-shrink-0 rounded-full bg-[#FECE00] px-1.5 py-0.5 text-[10px] font-bold text-[#004E64] leading-none min-w-[18px] text-center">
                                   {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                                </span>
+                              )}
+                              {item.href === "/policies" && pendingPoliciesCount?.count != null && pendingPoliciesCount.count > 0 && (
+                                <span
+                                  aria-label={`${pendingPoliciesCount.count} acknowledgements required`}
+                                  className="ml-auto flex-shrink-0 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none min-w-[18px] text-center"
+                                >
+                                  {pendingPoliciesCount.count > 99 ? "99+" : pendingPoliciesCount.count}
                                 </span>
                               )}
                             </>
