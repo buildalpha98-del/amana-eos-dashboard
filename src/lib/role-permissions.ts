@@ -135,6 +135,7 @@ export const allPages = [
   // Tools
   "/tools/ccs-calculator",
   "/tools/the-amana-way",
+    "/tools/handbook",
     "/tools/amana-way-one-pager",
     "/tools/employee-handbook",
   // Admin
@@ -213,6 +214,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/roster/swaps",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
+    "/tools/handbook",
     "/tools/amana-way-one-pager",
     "/tools/employee-handbook",
     "/guides",
@@ -266,6 +268,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/knowledge",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
+    "/tools/handbook",
     "/tools/amana-way-one-pager",
     "/tools/employee-handbook",
     "/guides",
@@ -307,6 +310,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/contracts",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
+    "/tools/handbook",
     "/tools/amana-way-one-pager",
     "/tools/employee-handbook",
     "/guides",

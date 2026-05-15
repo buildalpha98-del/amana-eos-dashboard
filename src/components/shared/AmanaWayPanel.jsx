@@ -5,6 +5,7 @@
 // component stays drop-in replaceable.
 
 import { useState } from "react";
+import { E, EImg, useEditableString } from "./amana-content/editable";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ASSETS  (small SVGs inlined; large ones served from /amana-assets/)
@@ -121,11 +122,13 @@ function Divider() {
   return <div style={{ borderTop: `1px solid ${C.border}`, margin: "24px 0" }} />;
 }
 
-function ScriptRow({ label, text }) {
+function ScriptRow({ label, text, editKey }) {
+  const labelNode = editKey ? <E k={`${editKey}.label`}>{label}</E> : label;
+  const textNode  = editKey ? <E k={`${editKey}.text`}>{text}</E>   : text;
   return (
     <div style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 10, marginBottom: 10 }}>
-      <div style={{ fontSize: 10, color: C.textMuted, letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 13.5, color: C.teal, fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.65 }}>"{text}"</div>
+      <div style={{ fontSize: 10, color: C.textMuted, letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 4 }}>{labelNode}</div>
+      <div style={{ fontSize: 13.5, color: C.teal, fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.65 }}>&ldquo;{textNode}&rdquo;</div>
     </div>
   );
 }
@@ -184,46 +187,63 @@ function HomeChapter({ onNavigate }) {
         <div style={{ position: "absolute", right: -30, top: -30, width: 160, height: 160, borderRadius: "50%", background: "rgba(245,166,35,0.12)", pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
           <div style={{ width: 56, height: 56, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <img src={LOGO_SRC} alt="Amana OSHC" style={{ width: 56, height: 56, objectFit: "contain" }} />
+            <EImg k="way.hero.logo" default={LOGO_SRC} alt="Amana OSHC" style={{ width: 56, height: 56, objectFit: "contain" }} />
           </div>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: C.white, fontFamily: "Georgia, serif" }}>The Amana Way</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", textTransform: "uppercase", fontStyle: "italic", marginTop: 2 }}>2025 / 2026 · Australia-wide</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: C.white, fontFamily: "Georgia, serif" }}>
+              <E k="way.hero.title">The Amana Way</E>
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", textTransform: "uppercase", fontStyle: "italic", marginTop: 2 }}>
+              <E k="way.hero.subtitle">2025 / 2026 · Australia-wide</E>
+            </div>
           </div>
         </div>
         <p style={{ fontSize: 14, color: "rgba(255,255,255,0.82)", lineHeight: 1.75, fontFamily: "Georgia, serif", maxWidth: 520, margin: "0 0 16px" }}>
-          Welcome to Amana OSHC — a place where excellence, care and character guide everything we do. This handbook is your complete guide to working The Amana Way.
+          <E k="way.hero.body">Welcome to Amana OSHC — a place where excellence, care and character guide everything we do. This handbook is your complete guide to working The Amana Way.</E>
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["Ihsan · Excellence", "Amanah · Trust", "Adab · Good Character"].map(t => (
-            <div key={t} style={{ background: "rgba(255,255,255,0.12)", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "rgba(255,255,255,0.8)", fontFamily: "Georgia, serif" }}>{t}</div>
+          {["Ihsan · Excellence", "Amanah · Trust", "Adab · Good Character"].map((t, i) => (
+            <div key={i} style={{ background: "rgba(255,255,255,0.12)", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "rgba(255,255,255,0.8)", fontFamily: "Georgia, serif" }}>
+              <E k={`way.hero.pill.${i}`}>{t}</E>
+            </div>
           ))}
         </div>
       </div>
 
       {/* Welcome */}
-      <Section title="Welcome Message" icon="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
-        <P>Welcome to Amana OSHC. As part of our team, you play a vital role in creating a safe, joyful and meaningful after-school experience for every child in our care.</P>
-        <P>Our mission is simple: deliver world-class, compassionate and creative programs so children leave feeling stronger, brighter and more whole. Our vision is to be the most inspiring after-school experience in Australia — a place where every child discovers hidden strengths and grows in confidence.</P>
-        <P>We lead with Ihsan — excellence in intention and action. Our values of Integrity, Hospitality, Service, Aspiration and Nurture guide how we care for children and families. Internally, we uphold Fun, Reputation, Ihsan and being Doers — stepping in, helping out and showing initiative.</P>
-        <Callout>Welcome to the team — and welcome to The Amana Way.</Callout>
-        <div style={{ fontSize: 12, color: C.textMuted, textAlign: "right", fontStyle: "italic", fontFamily: "Georgia, serif", marginTop: 8 }}>— Jayden Kowaider, CEO of Amana OSHC</div>
+      <Section title={<E k="way.welcome.title">Welcome Message</E>} icon="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+        <P><E k="way.welcome.p1">Welcome to Amana OSHC. As part of our team, you play a vital role in creating a safe, joyful and meaningful after-school experience for every child in our care.</E></P>
+        <P><E k="way.welcome.p2">Our mission is simple: deliver world-class, compassionate and creative programs so children leave feeling stronger, brighter and more whole. Our vision is to be the most inspiring after-school experience in Australia — a place where every child discovers hidden strengths and grows in confidence.</E></P>
+        <P><E k="way.welcome.p3">We lead with Ihsan — excellence in intention and action. Our values of Integrity, Hospitality, Service, Aspiration and Nurture guide how we care for children and families. Internally, we uphold Fun, Reputation, Ihsan and being Doers — stepping in, helping out and showing initiative.</E></P>
+        <Callout><E k="way.welcome.callout">Welcome to the team — and welcome to The Amana Way.</E></Callout>
+        <div style={{ fontSize: 12, color: C.textMuted, textAlign: "right", fontStyle: "italic", fontFamily: "Georgia, serif", marginTop: 8 }}>
+          <E k="way.welcome.signature">— Jayden Kowaider, CEO of Amana OSHC</E>
+        </div>
       </Section>
 
       {/* Company background */}
-      <Section title="Company Background" icon="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z">
-        <P>Amana OSHC was founded to provide families and schools with a safe, high-quality and values-driven before and after school care service. Built on the principles of Amanah (trust) and Ihsan (excellence), our work is shaped by compassion, professionalism and a deep commitment to children's wellbeing.</P>
-        <P>We partner with schools to deliver programs that are engaging, culturally aware and aligned with the National Quality Framework. Our educators create environments where children feel safe, supported and inspired to learn through play, connection and exploration.</P>
+      <Section title={<E k="way.background.title">Company Background</E>} icon="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z">
+        <P><E k="way.background.p1">Amana OSHC was founded to provide families and schools with a safe, high-quality and values-driven before and after school care service. Built on the principles of Amanah (trust) and Ihsan (excellence), our work is shaped by compassion, professionalism and a deep commitment to children's wellbeing.</E></P>
+        <P><E k="way.background.p2">We partner with schools to deliver programs that are engaging, culturally aware and aligned with the National Quality Framework. Our educators create environments where children feel safe, supported and inspired to learn through play, connection and exploration.</E></P>
         <Grid cols={3} gap={10}>
           {[
             ["Before & After School Care","Structured routines and enriching activities during school term."],
             ["Holiday Programs","Excursions, incursions and themed, play-based learning."],
             ["Pupil-Free Day Care","Full-day supervision aligned to school needs during the term."],
-          ].map(([t, d]) => (
-            <Card key={t}><div style={{ fontSize: 13, fontWeight: 700, color: C.teal, fontFamily: "Georgia, serif", marginBottom: 5 }}>{t}</div><div style={{ fontSize: 12.5, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.65 }}>{d}</div></Card>
+          ].map(([t, d], i) => (
+            <Card key={i}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, fontFamily: "Georgia, serif", marginBottom: 5 }}>
+                <E k={`way.background.service.${i}.title`}>{t}</E>
+              </div>
+              <div style={{ fontSize: 12.5, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.65 }}>
+                <E k={`way.background.service.${i}.desc`}>{d}</E>
+              </div>
+            </Card>
           ))}
         </Grid>
-        <P style={{ marginTop: 14 }}>Across every service, we uphold high safety, compliance and child-protection standards while ensuring our programs remain fun, meaningful and inclusive. Amana OSHC continues to grow with a clear mission: to leave every child stronger, brighter and more whole.</P>
+        <P style={{ marginTop: 14 }}>
+          <E k="way.background.p3">Across every service, we uphold high safety, compliance and child-protection standards while ensuring our programs remain fun, meaningful and inclusive. Amana OSHC continues to grow with a clear mission: to leave every child stronger, brighter and more whole.</E>
+        </P>
       </Section>
 
       {/* Table of contents */}
@@ -252,22 +272,30 @@ function HomeChapter({ onNavigate }) {
 function FoundationChapter() {
   return (
     <div>
-      <Section title="Acknowledgement of Country" icon="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z">
-        <P>Our services are held on the lands of various Traditional Owners and we wish to acknowledge them as Traditional Owners. We also pay our respects to their Elders, past and present, and Aboriginal Elders of other communities.</P>
+      <Section title={<E k="way.foundation.acknowledgement.title">Acknowledgement of Country</E>} icon="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z">
+        <P><E k="way.foundation.acknowledgement.body">Our services are held on the lands of various Traditional Owners and we wish to acknowledge them as Traditional Owners. We also pay our respects to their Elders, past and present, and Aboriginal Elders of other communities.</E></P>
       </Section>
-      <Section title="Vision & Mission" icon="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
+      <Section title={<E k="way.foundation.vision-mission.title">Vision & Mission</E>} icon="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
         <Grid cols={2} gap={12}>
           <div style={{ background: C.teal, borderRadius: 10, padding: "18px 20px" }}>
-            <div style={{ fontSize: 10, color: C.gold, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 8 }}>Our Vision</div>
-            <p style={{ fontSize: 14, color: C.white, lineHeight: 1.75, fontFamily: "Georgia, serif", margin: 0 }}>The world's most inspiring afterschool experience — where every child unlocks hidden strengths, nurtures their spirit, and grows into who they were meant to be.</p>
+            <div style={{ fontSize: 10, color: C.gold, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 8 }}>
+              <E k="way.foundation.vision.label">Our Vision</E>
+            </div>
+            <p style={{ fontSize: 14, color: C.white, lineHeight: 1.75, fontFamily: "Georgia, serif", margin: 0 }}>
+              <E k="way.foundation.vision.body">The world&apos;s most inspiring afterschool experience — where every child unlocks hidden strengths, nurtures their spirit, and grows into who they were meant to be.</E>
+            </p>
           </div>
           <div style={{ background: C.goldPale, borderRadius: 10, padding: "18px 20px", border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 10, color: C.teal, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 8 }}>Our Mission</div>
-            <p style={{ fontSize: 14, color: C.textSecondary, lineHeight: 1.75, fontFamily: "Georgia, serif", margin: 0 }}>To deliver world-class and safe after school care rooted in compassion, creativity and character-building — so every child leaves feeling stronger, brighter and more whole.</p>
+            <div style={{ fontSize: 10, color: C.teal, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 8 }}>
+              <E k="way.foundation.mission.label">Our Mission</E>
+            </div>
+            <p style={{ fontSize: 14, color: C.textSecondary, lineHeight: 1.75, fontFamily: "Georgia, serif", margin: 0 }}>
+              <E k="way.foundation.mission.body">To deliver world-class and safe after school care rooted in compassion, creativity and character-building — so every child leaves feeling stronger, brighter and more whole.</E>
+            </p>
           </div>
         </Grid>
       </Section>
-      <Section title="Our Values — IHSAN" icon="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z">
+      <Section title={<E k="way.foundation.values.title">Our Values — IHSAN</E>} icon="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
             ["I","Integrity","Honour commitments, maintain transparent fees, submit accurate incident reporting."],
@@ -275,55 +303,81 @@ function FoundationChapter() {
             ["S","Service","Go the extra step — offer homework help, share developmental feedback, anticipate needs."],
             ["A","Aspiration","Continuous improvement, professional development, and an innovation mindset."],
             ["N","Nurture","Safe ratios, proactive behaviour guidance, and genuine emotional coaching for every child."],
-          ].map(([i, v, d]) => <ValueCard key={i} initial={i} value={v} desc={d} />)}
+          ].map(([i, v, d], idx) => (
+            <ValueCard
+              key={idx}
+              initial={<E k={`way.foundation.values.${idx}.initial`}>{i}</E>}
+              value={<E k={`way.foundation.values.${idx}.value`}>{v}</E>}
+              desc={<E k={`way.foundation.values.${idx}.desc`}>{d}</E>}
+            />
+          ))}
         </div>
       </Section>
-      <Section title="Additional Principles" icon="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138">
-        <P>In addition to IHSAN, everyone in the organisation contributes to these principles:</P>
+      <Section title={<E k="way.foundation.principles.title">Additional Principles</E>} icon="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138">
+        <P><E k="way.foundation.principles.intro">In addition to IHSAN, everyone in the organisation contributes to these principles:</E></P>
         <Grid cols={3} gap={10}>
           {[
             ["Fun","#E6F1FB","#0C447C",["Do children and families feel joy here?","Would I enjoy this space if I were a child or parent?","Are children excited to join the program each day?"]],
             ["Doer","#E1F5EE","#085041",["Am I stepping up or stepping back?","Did I take initiative today without waiting to be asked?","Am I helping the team, or adding to their workload?"]],
             ["Reputation","#FAEEDA","#633806",["What impression do we leave behind?","What do families see, hear and feel when they arrive?","Would a parent confidently recommend us based on today?"]],
-          ].map(([name, bg, color, qs]) => (
-            <Card key={name}>
-              <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 10 }}>{name}</div>
-              {qs.map((q, i) => <div key={i} style={{ fontSize: 12, color: C.textSecondary, lineHeight: 1.65, marginBottom: 4, fontFamily: "Georgia, serif" }}>· {q}</div>)}
+          ].map(([name, bg, color, qs], idx) => (
+            <Card key={idx}>
+              <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 10 }}>
+                <E k={`way.foundation.principles.${idx}.name`}>{name}</E>
+              </div>
+              {qs.map((q, i) => (
+                <div key={i} style={{ fontSize: 12, color: C.textSecondary, lineHeight: 1.65, marginBottom: 4, fontFamily: "Georgia, serif" }}>
+                  · <E k={`way.foundation.principles.${idx}.q.${i}`}>{q}</E>
+                </div>
+              ))}
             </Card>
           ))}
         </Grid>
       </Section>
-      <Section title="Philosophy" icon="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z">
-        <P>At Amana OSHC, we are committed to providing a safe, inclusive, and nurturing environment that supports the holistic development of each child. We place the rights and best interests of the child at the heart of our practice.</P>
+      <Section title={<E k="way.foundation.philosophy.title">Philosophy</E>} icon="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z">
+        <P><E k="way.foundation.philosophy.intro">At Amana OSHC, we are committed to providing a safe, inclusive, and nurturing environment that supports the holistic development of each child. We place the rights and best interests of the child at the heart of our practice.</E></P>
         {[
           ["Children are capable and confident learners","We view each child as a competent and successful learner filled with curiosity and unique strengths. Our play-based curriculum encourages children to explore, inquire, and grow in ways that foster independence, creativity, and resilience."],
           ["Equity, inclusion, and diversity are fundamental","We embrace the principles of equity and inclusion, ensuring that every child feels valued and respected regardless of their background, abilities, or family circumstances."],
           ["Australia's Aboriginal and Torres Strait Islander cultures are honoured","We deeply value Australia's First Nations cultures and acknowledge the Traditional Custodians of the land. We embed Aboriginal and Torres Strait Islander perspectives into our daily practices and curriculum."],
           ["Families are key partners in their child's development","We foster strong, collaborative relationships with parents and caregivers, inviting their contribution to the development and ongoing evaluation of our programs."],
           ["Best practice in education and care","Our educators provide high-quality care that reflects best practices, with a commitment to ongoing professional development, reflective practices, and continuous improvement."],
-        ].map(([t, d]) => <div key={t} style={{ marginBottom: 14 }}><H3>{t}</H3><P>{d}</P></div>)}
+        ].map(([t, d], idx) => (
+          <div key={idx} style={{ marginBottom: 14 }}>
+            <H3><E k={`way.foundation.philosophy.${idx}.title`}>{t}</E></H3>
+            <P><E k={`way.foundation.philosophy.${idx}.body`}>{d}</E></P>
+          </div>
+        ))}
       </Section>
-      <Section title="Above the Line & Below the Line" icon="M5 12h14M12 5l7 7-7 7">
-        <P>The Above the Line / Below the Line model is a simple awareness tool. It helps us recognise our own mindset and shift when needed to show up intentionally and model the reflective, resilient behaviour that brings out the best in our teams.</P>
+      <Section title={<E k="way.foundation.line.title">Above the Line & Below the Line</E>} icon="M5 12h14M12 5l7 7-7 7">
+        <P><E k="way.foundation.line.intro">The Above the Line / Below the Line model is a simple awareness tool. It helps us recognise our own mindset and shift when needed to show up intentionally and model the reflective, resilient behaviour that brings out the best in our teams.</E></P>
         <div style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${C.border}`, marginBottom: 12 }}>
           <div style={{ background: C.tealLight, padding: "14px 16px" }}>
-            <div style={{ fontSize: 10, color: C.white, letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 8 }}>Above the line — cause thinking</div>
+            <div style={{ fontSize: 10, color: C.white, letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 8 }}>
+              <E k="way.foundation.line.above.label">Above the line — cause thinking</E>
+            </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {["Responsibility","Accountability","Options","Possibilities","Solutions"].map(w => (
-                <span key={w} style={{ background: "rgba(255,255,255,0.15)", borderRadius: 20, padding: "4px 10px", fontSize: 12, color: C.white, fontFamily: "Georgia, serif" }}>{w}</span>
+              {["Responsibility","Accountability","Options","Possibilities","Solutions"].map((w, i) => (
+                <span key={i} style={{ background: "rgba(255,255,255,0.15)", borderRadius: 20, padding: "4px 10px", fontSize: 12, color: C.white, fontFamily: "Georgia, serif" }}>
+                  <E k={`way.foundation.line.above.${i}`}>{w}</E>
+                </span>
               ))}
             </div>
           </div>
           <div style={{ background: C.creamDark, padding: "14px 16px", borderTop: `2px solid ${C.gold}` }}>
-            <div style={{ fontSize: 10, color: "#633806", letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 8 }}>Below the line — effect thinking</div>
+            <div style={{ fontSize: 10, color: "#633806", letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 8 }}>
+              <E k="way.foundation.line.below.label">Below the line — effect thinking</E>
+            </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {["Excuses","Frustration","Blame","Problems","Negativity"].map(w => (
-                <span key={w} style={{ background: "rgba(183,75,0,0.1)", borderRadius: 20, padding: "4px 10px", fontSize: 12, color: "#633806", fontFamily: "Georgia, serif" }}>{w}</span>
+              {["Excuses","Frustration","Blame","Problems","Negativity"].map((w, i) => (
+                <span key={i} style={{ background: "rgba(183,75,0,0.1)", borderRadius: 20, padding: "4px 10px", fontSize: 12, color: "#633806", fontFamily: "Georgia, serif" }}>
+                  <E k={`way.foundation.line.below.${i}`}>{w}</E>
+                </span>
               ))}
             </div>
           </div>
         </div>
-        <Callout>Neither state is inherently wrong, but recognising your state and shifting when needed helps you show up intentionally, manage reactions under pressure, and build trust.</Callout>
+        <Callout><E k="way.foundation.line.callout">Neither state is inherently wrong, but recognising your state and shifting when needed helps you show up intentionally, manage reactions under pressure, and build trust.</E></Callout>
       </Section>
     </div>
   );
@@ -346,32 +400,45 @@ function WhatWeDoChapter() {
   ];
   return (
     <div>
-      <Section title="Types of Care" icon="M12 6v6l4 2M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z">
-        <P>We offer four different types of care for families at our services.</P>
+      <Section title={<E k="way.whatwedo.types.title">Types of Care</E>} icon="M12 6v6l4 2M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z">
+        <P><E k="way.whatwedo.types.intro">We offer four different types of care for families at our services.</E></P>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
             ["Before & After School Care","6:45 am – 9:00 am (BSC) · 3:10 pm – 6:30 pm (ASC) · During school term","M12 6v6l4 2M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"],
             ["Holiday Programs","Full day of care · Excursion days, Incursion days, In-House days","M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"],
             ["Pupil-Free Day Care","Full day of care during the school term","M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"],
-          ].map(([t, d, icon]) => (
-            <Card key={t} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+          ].map(([t, d, icon], idx) => (
+            <Card key={idx} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
               <div style={{ width: 36, height: 36, background: C.tealPale, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Svg path={icon} size={18} stroke={C.teal} /></div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, fontFamily: "Georgia, serif", marginBottom: 4 }}>{t}</div>
-                <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif" }}>{d}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, fontFamily: "Georgia, serif", marginBottom: 4 }}>
+                  <E k={`way.whatwedo.types.${idx}.title`}>{t}</E>
+                </div>
+                <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif" }}>
+                  <E k={`way.whatwedo.types.${idx}.desc`}>{d}</E>
+                </div>
               </div>
             </Card>
           ))}
         </div>
       </Section>
-      <Section title="Our Club Names" icon="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z">
+      <Section title={<E k="way.whatwedo.clubs.title">Our Club Names</E>} icon="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z">
         <Grid cols={2} gap={10}>
-          {clubs.map(([name, desc, bg, color, logo]) => (
-            <Card key={name} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <img src={logo} alt={name} style={{ width: 52, height: 52, objectFit: "contain", flexShrink: 0, borderRadius: 6 }} />
+          {clubs.map(([name, desc, bg, color, logo], idx) => (
+            <Card key={idx} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <EImg
+                k={`way.whatwedo.clubs.${idx}.logo`}
+                default={logo}
+                alt={name}
+                style={{ width: 52, height: 52, objectFit: "contain", flexShrink: 0, borderRadius: 6 }}
+              />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 3 }}>{name}</div>
-                <div style={{ fontSize: 12.5, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.6 }}>{desc}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 3 }}>
+                  <E k={`way.whatwedo.clubs.${idx}.name`}>{name}</E>
+                </div>
+                <div style={{ fontSize: 12.5, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.6 }}>
+                  <E k={`way.whatwedo.clubs.${idx}.desc`}>{desc}</E>
+                </div>
               </div>
             </Card>
           ))}
@@ -388,30 +455,45 @@ function WhatWeDoChapter() {
 function OurPeopleChapter() {
   return (
     <div>
-      <Section title="Roles & Responsibilities" icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z">
+      <Section title={<E k="way.people.roles.title">Roles & Responsibilities</E>} icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z">
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
             ["Area Manager","Manages current regions · Ensures safety & compliance is met · Reports to OSHC Director","#1A4F5C","#FFFFFF"],
             ["Coordinator / Centre Director","Experience in childcare or OSHC · Educational Leader of the program · Reports to Area Manager","#2A6B7C","#FFFFFF"],
             ["2IC Educator","Second in Charge · Supports Coordinator with administration · Working towards becoming a Coordinator","#E1F5EE","#085041"],
             ["Educator","Makes up the largest part of the team · Priority is engaging with children · Helps to run the program",C.creamDark,C.textPrimary],
-          ].map(([role, desc, bg, color]) => (
-            <div key={role} style={{ background: bg, borderRadius: 10, padding: "14px 18px" }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 4 }}>{role}</div>
-              <div style={{ fontSize: 12.5, color: bg === "#1A4F5C" || bg === "#2A6B7C" ? "rgba(255,255,255,0.72)" : C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.65 }}>{desc}</div>
+          ].map(([role, desc, bg, color], idx) => (
+            <div key={idx} style={{ background: bg, borderRadius: 10, padding: "14px 18px" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 4 }}>
+                <E k={`way.people.roles.${idx}.name`}>{role}</E>
+              </div>
+              <div style={{ fontSize: 12.5, color: bg === "#1A4F5C" || bg === "#2A6B7C" ? "rgba(255,255,255,0.72)" : C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.65 }}>
+                <E k={`way.people.roles.${idx}.desc`}>{desc}</E>
+              </div>
             </div>
           ))}
         </div>
       </Section>
-      <Section title="The Role of an Amana OSHC Educator" icon="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z">
-        <H3>Purpose</H3>
-        <Ul items={["Support children's wellbeing, learning and development through high-quality, play-based programs.", "Work collaboratively under the direction of the OSHC Coordinator / Educational Leader to deliver safe, inclusive and engaging care."]} />
-        <H3>Core Responsibilities</H3>
-        <Ul items={["Build positive, respectful relationships with children, families, and colleagues.","Implement the My Time Our Place (MTOP) framework in daily practice.","Assist with planning, delivering and evaluating educational and leisure experiences.","Uphold child-safe standards and mandatory reporting requirements.","Maintain confidentiality, professionalism and compliance with all Amana OSHC policies, National Law & Regulations, NQS and WHS Acts."]} />
-        <H3>Key Qualities</H3>
-        <Ul items={["Nurturing, observant, culturally aware, proactive and reflective in practice."]} />
+      <Section title={<E k="way.people.educator.title">The Role of an Amana OSHC Educator</E>} icon="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z">
+        <H3><E k="way.people.educator.purpose.h">Purpose</E></H3>
+        <Ul items={[
+          <E key="0" k="way.people.educator.purpose.0">Support children&apos;s wellbeing, learning and development through high-quality, play-based programs.</E>,
+          <E key="1" k="way.people.educator.purpose.1">Work collaboratively under the direction of the OSHC Coordinator / Educational Leader to deliver safe, inclusive and engaging care.</E>,
+        ]} />
+        <H3><E k="way.people.educator.core.h">Core Responsibilities</E></H3>
+        <Ul items={[
+          <E key="0" k="way.people.educator.core.0">Build positive, respectful relationships with children, families, and colleagues.</E>,
+          <E key="1" k="way.people.educator.core.1">Implement the My Time Our Place (MTOP) framework in daily practice.</E>,
+          <E key="2" k="way.people.educator.core.2">Assist with planning, delivering and evaluating educational and leisure experiences.</E>,
+          <E key="3" k="way.people.educator.core.3">Uphold child-safe standards and mandatory reporting requirements.</E>,
+          <E key="4" k="way.people.educator.core.4">Maintain confidentiality, professionalism and compliance with all Amana OSHC policies, National Law &amp; Regulations, NQS and WHS Acts.</E>,
+        ]} />
+        <H3><E k="way.people.educator.qualities.h">Key Qualities</E></H3>
+        <Ul items={[
+          <E key="0" k="way.people.educator.qualities.0">Nurturing, observant, culturally aware, proactive and reflective in practice.</E>,
+        ]} />
       </Section>
-      <Section title="Key Focus Areas & Expectations" icon="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2">
+      <Section title={<E k="way.people.focus.title">Key Focus Areas & Expectations</E>} icon="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2">
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
             ["1. Educational Program & Practice","Create inspiring play-based environments that extend children's learning, document progress, and reflect on outcomes.","#E6F1FB","#0C447C"],
@@ -419,45 +501,86 @@ function OurPeopleChapter() {
             ["3. Physical Environment","Maintain safe, stimulating and sustainable indoor/outdoor areas. Report hazards and equipment issues promptly.","#EAF3DE","#27500A"],
             ["4. Professional Conduct & Teamwork","Model ethical behaviour, follow the ECA Code of Ethics, participate in meetings, and contribute to continuous improvement (SAT/QIP).","#EEEDFE","#3C3489"],
             ["5. Relationships & Community","Promote inclusion, cultural safety and partnerships with families and local communities to strengthen children's sense of belonging.","#FAEEDA","#633806"],
-          ].map(([t, d, bg, color]) => (
-            <Card key={t} style={{ display: "flex", gap: 12 }}>
+          ].map(([t, d, bg, color], idx) => (
+            <Card key={idx} style={{ display: "flex", gap: 12 }}>
               <div style={{ width: 4, borderRadius: 4, background: bg, flexShrink: 0, minHeight: 40, border: `1px solid ${color}30` }} />
-              <div><div style={{ fontSize: 13.5, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 4 }}>{t}</div><div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.7 }}>{d}</div></div>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 4 }}>
+                  <E k={`way.people.focus.${idx}.title`}>{t}</E>
+                </div>
+                <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.7 }}>
+                  <E k={`way.people.focus.${idx}.desc`}>{d}</E>
+                </div>
+              </div>
             </Card>
           ))}
         </div>
       </Section>
-      <Section title="Your First Day — Things to Remember" icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z">
-        <H3>Prior to your first shift</H3>
-        <Ul items={["Read the service-specific guidebook for your campus","Know where the school is and where the service is located within it","Research parking and public transport options","Save the service phone number to your phone","Log into OWNA and have your PIN code ready to sign in on the service iPad","Email or print your staff records to present to the area manager","Have your full uniform ready to go"]} />
+      <Section title={<E k="way.people.firstday.title">Your First Day — Things to Remember</E>} icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z">
+        <H3><E k="way.people.firstday.prior.h">Prior to your first shift</E></H3>
+        <Ul items={[
+          <E key="0" k="way.people.firstday.prior.0">Read the service-specific guidebook for your campus</E>,
+          <E key="1" k="way.people.firstday.prior.1">Know where the school is and where the service is located within it</E>,
+          <E key="2" k="way.people.firstday.prior.2">Research parking and public transport options</E>,
+          <E key="3" k="way.people.firstday.prior.3">Save the service phone number to your phone</E>,
+          <E key="4" k="way.people.firstday.prior.4">Log into OWNA and have your PIN code ready to sign in on the service iPad</E>,
+          <E key="5" k="way.people.firstday.prior.5">Email or print your staff records to present to the area manager</E>,
+          <E key="6" k="way.people.firstday.prior.6">Have your full uniform ready to go</E>,
+        ]} />
         <Grid cols={3} gap={10} style={{ marginTop: 16 }}>
           {[
             ["Before Your Shift",["Arrive on time, uniform neat, devices away","Greet your team with warmth","Review supervision zones, menu, and plan","Ask: 'What can I help set up?'","Enter the room with positive energy"]],
             ["During Your Shift",["Stay present, engaged, and proactive","Speak kindly and calmly to all","Keep the environment safe and inviting","Support your team without being asked","Maintain the Amana tone in all interactions"]],
             ["Towards End of Shift",["Support pack-down and leave spaces spotless","Complete reflections, posts and checklists","Leave the service better than you found it","Thank your team before you go"]],
-          ].map(([heading, items]) => (
-            <Card key={heading}>
-              <div style={{ fontSize: 10, color: C.teal, letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 10 }}>{heading}</div>
+          ].map(([heading, items], idx) => (
+            <Card key={idx}>
+              <div style={{ fontSize: 10, color: C.teal, letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 10 }}>
+                <E k={`way.people.firstday.shift.${idx}.heading`}>{heading}</E>
+              </div>
               {items.map((item, i) => (
                 <div key={i} style={{ display: "flex", gap: 7, marginBottom: 5 }}>
                   <span style={{ color: C.gold, fontWeight: 700, flexShrink: 0, fontSize: 12 }}>✓</span>
-                  <span style={{ fontSize: 12, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.6 }}>{item}</span>
+                  <span style={{ fontSize: 12, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.6 }}>
+                    <E k={`way.people.firstday.shift.${idx}.${i}`}>{item}</E>
+                  </span>
                 </div>
               ))}
             </Card>
           ))}
         </Grid>
       </Section>
-      <Section title="Staff Uniform" icon="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.86H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.86l.58-3.57a2 2 0 0 0-1.34-2.23z">
+      <Section title={<E k="way.people.uniform.title">Staff Uniform</E>} icon="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.86H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.86l.58-3.57a2 2 0 0 0-1.34-2.23z">
         <Grid cols={2} gap={12}>
-          <div><H3>Provided to new team members</H3><Ul items={["1× T-Shirt","1× Zip-Up Jacket","1× Bucket Hat (must be worn in Terms 1 & 4)","1× Lanyard and ID tag"]} /></div>
-          <div><H3>Acceptable work attire</H3><Ul items={["¾ or full-length trousers or pants","Leggings/activewear must be thick (not see-through when stretched)","Skirts/shorts must be below knee length","Closed-toe shoes appropriate for high-energy activities"]} /></div>
+          <div>
+            <H3><E k="way.people.uniform.provided.h">Provided to new team members</E></H3>
+            <Ul items={[
+              <E key="0" k="way.people.uniform.provided.0">1× T-Shirt</E>,
+              <E key="1" k="way.people.uniform.provided.1">1× Zip-Up Jacket</E>,
+              <E key="2" k="way.people.uniform.provided.2">1× Bucket Hat (must be worn in Terms 1 &amp; 4)</E>,
+              <E key="3" k="way.people.uniform.provided.3">1× Lanyard and ID tag</E>,
+            ]} />
+          </div>
+          <div>
+            <H3><E k="way.people.uniform.attire.h">Acceptable work attire</E></H3>
+            <Ul items={[
+              <E key="0" k="way.people.uniform.attire.0">¾ or full-length trousers or pants</E>,
+              <E key="1" k="way.people.uniform.attire.1">Leggings/activewear must be thick (not see-through when stretched)</E>,
+              <E key="2" k="way.people.uniform.attire.2">Skirts/shorts must be below knee length</E>,
+              <E key="3" k="way.people.uniform.attire.3">Closed-toe shoes appropriate for high-energy activities</E>,
+            ]} />
+          </div>
         </Grid>
       </Section>
-      <Section title="Mandatory Qualifications" icon="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138">
-        <Ul items={[["Working With Children Check (WWCC)"," — must be current at all times"],["HLTAID012"," — First Aid in an Educational Care Setting (renew every 3 years) · $115"],["HLTAID009"," — CPR (renew every 12 months) · $45"],["CHCPRT025"," — Identify and Report Children and Young People at Risk · $119"],["SITXFSA005"," — Use Hygienic Practices for Food Safety · $35"]]} />
-        <P>Responsible Person / 2IC or above additionally require SITXFSA006 ($99) or the SITSS00069 Food Safety Supervisor bundle ($119).</P>
-        <Callout>Amana OSHC covers 50% of course costs for all listed qualifications. Questions: operations@amanaoshc.com.au or 0418 675 700.</Callout>
+      <Section title={<E k="way.people.quals.title">Mandatory Qualifications</E>} icon="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138">
+        <Ul items={[
+          [<E key="a0" k="way.people.quals.0.name">Working With Children Check (WWCC)</E>, <E key="b0" k="way.people.quals.0.body">{" — must be current at all times"}</E>],
+          [<E key="a1" k="way.people.quals.1.name">HLTAID012</E>, <E key="b1" k="way.people.quals.1.body">{" — First Aid in an Educational Care Setting (renew every 3 years) · $115"}</E>],
+          [<E key="a2" k="way.people.quals.2.name">HLTAID009</E>, <E key="b2" k="way.people.quals.2.body">{" — CPR (renew every 12 months) · $45"}</E>],
+          [<E key="a3" k="way.people.quals.3.name">CHCPRT025</E>, <E key="b3" k="way.people.quals.3.body">{" — Identify and Report Children and Young People at Risk · $119"}</E>],
+          [<E key="a4" k="way.people.quals.4.name">SITXFSA005</E>, <E key="b4" k="way.people.quals.4.body">{" — Use Hygienic Practices for Food Safety · $35"}</E>],
+        ]} />
+        <P><E k="way.people.quals.note">Responsible Person / 2IC or above additionally require SITXFSA006 ($99) or the SITSS00069 Food Safety Supervisor bundle ($119).</E></P>
+        <Callout><E k="way.people.quals.callout">Amana OSHC covers 50% of course costs for all listed qualifications. Questions: operations@amanaoshc.com.au or 0418 675 700.</E></Callout>
       </Section>
     </div>
   );
@@ -470,62 +593,72 @@ function OurPeopleChapter() {
 function CultureChapter() {
   return (
     <div>
-      <Section title="The Amana Way Cultural Framework" icon="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z">
-        <P>At Amana OSHC, we lead with warmth, professionalism and Ihsan — striving for excellence in every interaction. Our culture is shaped by trust (Amanah), good manners (Adab), and a genuine commitment to uplifting every child and family who walks through our doors.</P>
-        <H3>Our Tone: Warm, Calm, Respectful</H3>
-        <P>At all times, our communication should be warm (smiling, welcoming, open body language), calm (measured tone, steady pace, confident presence), and respectful (polite phrasing, active listening, dignified responses). We do not rush, raise our voices, or ignore families or children — even in busy moments.</P>
-        <H3>Ihsan · Amanah · Adab</H3>
+      <Section title={<E k="way.culture.framework.title">The Amana Way Cultural Framework</E>} icon="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z">
+        <P><E k="way.culture.framework.intro">At Amana OSHC, we lead with warmth, professionalism and Ihsan — striving for excellence in every interaction. Our culture is shaped by trust (Amanah), good manners (Adab), and a genuine commitment to uplifting every child and family who walks through our doors.</E></P>
+        <H3><E k="way.culture.tone.h">Our Tone: Warm, Calm, Respectful</E></H3>
+        <P><E k="way.culture.tone.body">At all times, our communication should be warm (smiling, welcoming, open body language), calm (measured tone, steady pace, confident presence), and respectful (polite phrasing, active listening, dignified responses). We do not rush, raise our voices, or ignore families or children — even in busy moments.</E></P>
+        <H3><E k="way.culture.iaa.h">Ihsan · Amanah · Adab</E></H3>
         <Grid cols={3} gap={10}>
-          {[["Ihsan","Excellence","Give your best effort, even in small tasks. Do things beautifully, with intention."],["Amanah","Trust","Children are entrusted to our care — we safeguard their wellbeing, dignity and safety at all times."],["Adab","Good Character","Speak kindly, act with humility, show patience, and handle challenges with grace."]].map(([w, tr, d]) => (
-            <Card key={w}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: C.teal, fontFamily: "Georgia, serif" }}>{w}</div>
-              <div style={{ fontSize: 11, color: C.gold, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 7 }}>{tr}</div>
-              <div style={{ fontSize: 12.5, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.65 }}>{d}</div>
+          {[["Ihsan","Excellence","Give your best effort, even in small tasks. Do things beautifully, with intention."],["Amanah","Trust","Children are entrusted to our care — we safeguard their wellbeing, dignity and safety at all times."],["Adab","Good Character","Speak kindly, act with humility, show patience, and handle challenges with grace."]].map(([w, tr, d], idx) => (
+            <Card key={idx}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.teal, fontFamily: "Georgia, serif" }}>
+                <E k={`way.culture.iaa.${idx}.word`}>{w}</E>
+              </div>
+              <div style={{ fontSize: 11, color: C.gold, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 7 }}>
+                <E k={`way.culture.iaa.${idx}.translation`}>{tr}</E>
+              </div>
+              <div style={{ fontSize: 12.5, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.65 }}>
+                <E k={`way.culture.iaa.${idx}.desc`}>{d}</E>
+              </div>
             </Card>
           ))}
         </Grid>
-        <Callout>This is not religious instruction — it is a cultural tone of sincerity, compassion and responsibility.</Callout>
+        <Callout><E k="way.culture.iaa.callout">This is not religious instruction — it is a cultural tone of sincerity, compassion and responsibility.</E></Callout>
       </Section>
-      <Section title="How We Speak to Children" icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z">
-        <P>We guide, not command. We connect, not correct.</P>
+      <Section title={<E k="way.culture.speak.title">How We Speak to Children</E>} icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z">
+        <P><E k="way.culture.speak.intro">We guide, not command. We connect, not correct.</E></P>
         <Grid cols={2} gap={10}>
-          {[["Encouraging",'"You\'ve worked really hard on that — well done."'],["Inclusive",'"What would you like to try next?"'],["Regulating",'"Let\'s take a breath together and figure this out."'],["Empowering",'"You have great ideas — show me what you\'re thinking."']].map(([label, ex]) => (
-            <Card key={label}>
-              <div style={{ fontSize: 10, color: C.teal, letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 6 }}>{label}</div>
-              <div style={{ fontSize: 13, color: C.teal, fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.6 }}>{ex}</div>
+          {[["Encouraging",'"You\'ve worked really hard on that — well done."'],["Inclusive",'"What would you like to try next?"'],["Regulating",'"Let\'s take a breath together and figure this out."'],["Empowering",'"You have great ideas — show me what you\'re thinking."']].map(([label, ex], idx) => (
+            <Card key={idx}>
+              <div style={{ fontSize: 10, color: C.teal, letterSpacing: "0.07em", textTransform: "uppercase", fontFamily: "Georgia, serif", marginBottom: 6 }}>
+                <E k={`way.culture.speak.${idx}.label`}>{label}</E>
+              </div>
+              <div style={{ fontSize: 13, color: C.teal, fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.6 }}>
+                <E k={`way.culture.speak.${idx}.example`}>{ex}</E>
+              </div>
             </Card>
           ))}
         </Grid>
-        <Callout>We never shame, blame or speak sharply. Our tone reflects adab — good manners modelled through action.</Callout>
+        <Callout><E k="way.culture.speak.callout">We never shame, blame or speak sharply. Our tone reflects adab — good manners modelled through action.</E></Callout>
       </Section>
-      <Section title="Communication Scripts" icon="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5l-3 3v-3z">
-        <H3>Greetings</H3>
-        <ScriptRow label="Parent drop-off (morning)" text="Assalamu Alaikum! We're glad to have [child] with us this morning." />
-        <ScriptRow label="Parent pick-up (afternoon)" text="Welcome back! Let me share a quick highlight from their session." />
-        <ScriptRow label="Greeting visitors / school staff" text="Assalamu Alaikum, thank you for dropping by — how can we help you?" />
-        <H3>Daily Conversations</H3>
-        <ScriptRow label="Talking about a child's day" text="They really enjoyed [activity] — their confidence is growing." />
-        <ScriptRow label="If a parent is rushed" text="No stress at all — we've got you. Take your time." />
-        <ScriptRow label="If a parent feels guilty leaving" text="You're doing amazing. They're safe and thriving here, alhamdulillah." />
-        <H3>Behaviour & Wellbeing</H3>
-        <ScriptRow label="Positive behaviour update" text="Mashallah, [child] showed beautiful patience and manners today." />
-        <ScriptRow label="Low-level behaviour discussion" text="Just a small note for today — nothing serious, alhamdulillah." />
-        <ScriptRow label="Larger behaviour conversation" text="Inshallah, with consistency from both sides, they'll settle." />
-        <H3>Incidents & First Aid</H3>
-        <ScriptRow label="Minor injury" text="All good, alhamdulillah — just a small bump. We gave first aid straight away." />
-        <ScriptRow label="Head knock protocol" text="Just letting you know they had a small head knock. They are stable, alhamdulillah, but we always inform parents as a precaution." />
-        <ScriptRow label="If a child becomes unwell" text="They started feeling unwell so we kept them comfortable and monitored them." />
-        <H3>Late Pick-Up & Policy</H3>
-        <ScriptRow label="If a parent is late" text="No worries, we kept [child] settled and safe." />
-        <ScriptRow label="If no notice was given" text="We hope everything is okay. Just a gentle reminder to call next time, inshallah." />
-        <H3>Phone Scripts</H3>
-        <ScriptRow label="Answering the phone" text="Assalamu Alaikum, Amana OSHC, how can we help you today?" />
-        <ScriptRow label="Voicemail" text="Assalamu Alaikum, you've reached Amana OSHC. Please leave your name, your child's name, and how we can assist. We'll call back shortly, inshallah." />
-        <H3>Sensitive Moments</H3>
-        <ScriptRow label="If a parent is upset" text="We hear you, and we're here to help, inshallah." />
-        <ScriptRow label="If a miscommunication occurs" text="Thank you for your patience — let's clear it up together." />
-        <ScriptRow label="Authorised pick-up" text="For safety, we can only release children to authorised contacts — thank you for understanding." />
-        <ScriptRow label="Saying goodbye" text="Have a peaceful evening, inshallah." />
+      <Section title={<E k="way.culture.scripts.title">Communication Scripts</E>} icon="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5l-3 3v-3z">
+        <H3><E k="way.culture.scripts.greet.h">Greetings</E></H3>
+        <ScriptRow editKey="way.culture.scripts.greet.parent-drop" label="Parent drop-off (morning)" text="Assalamu Alaikum! We're glad to have [child] with us this morning." />
+        <ScriptRow editKey="way.culture.scripts.greet.parent-pickup" label="Parent pick-up (afternoon)" text="Welcome back! Let me share a quick highlight from their session." />
+        <ScriptRow editKey="way.culture.scripts.greet.visitor" label="Greeting visitors / school staff" text="Assalamu Alaikum, thank you for dropping by — how can we help you?" />
+        <H3><E k="way.culture.scripts.daily.h">Daily Conversations</E></H3>
+        <ScriptRow editKey="way.culture.scripts.daily.child-day" label="Talking about a child's day" text="They really enjoyed [activity] — their confidence is growing." />
+        <ScriptRow editKey="way.culture.scripts.daily.rushed" label="If a parent is rushed" text="No stress at all — we've got you. Take your time." />
+        <ScriptRow editKey="way.culture.scripts.daily.guilty" label="If a parent feels guilty leaving" text="You're doing amazing. They're safe and thriving here, alhamdulillah." />
+        <H3><E k="way.culture.scripts.behaviour.h">Behaviour &amp; Wellbeing</E></H3>
+        <ScriptRow editKey="way.culture.scripts.behaviour.positive" label="Positive behaviour update" text="Mashallah, [child] showed beautiful patience and manners today." />
+        <ScriptRow editKey="way.culture.scripts.behaviour.low" label="Low-level behaviour discussion" text="Just a small note for today — nothing serious, alhamdulillah." />
+        <ScriptRow editKey="way.culture.scripts.behaviour.large" label="Larger behaviour conversation" text="Inshallah, with consistency from both sides, they'll settle." />
+        <H3><E k="way.culture.scripts.incidents.h">Incidents &amp; First Aid</E></H3>
+        <ScriptRow editKey="way.culture.scripts.incidents.minor" label="Minor injury" text="All good, alhamdulillah — just a small bump. We gave first aid straight away." />
+        <ScriptRow editKey="way.culture.scripts.incidents.head" label="Head knock protocol" text="Just letting you know they had a small head knock. They are stable, alhamdulillah, but we always inform parents as a precaution." />
+        <ScriptRow editKey="way.culture.scripts.incidents.unwell" label="If a child becomes unwell" text="They started feeling unwell so we kept them comfortable and monitored them." />
+        <H3><E k="way.culture.scripts.late.h">Late Pick-Up &amp; Policy</E></H3>
+        <ScriptRow editKey="way.culture.scripts.late.late" label="If a parent is late" text="No worries, we kept [child] settled and safe." />
+        <ScriptRow editKey="way.culture.scripts.late.no-notice" label="If no notice was given" text="We hope everything is okay. Just a gentle reminder to call next time, inshallah." />
+        <H3><E k="way.culture.scripts.phone.h">Phone Scripts</E></H3>
+        <ScriptRow editKey="way.culture.scripts.phone.answer" label="Answering the phone" text="Assalamu Alaikum, Amana OSHC, how can we help you today?" />
+        <ScriptRow editKey="way.culture.scripts.phone.voicemail" label="Voicemail" text="Assalamu Alaikum, you've reached Amana OSHC. Please leave your name, your child's name, and how we can assist. We'll call back shortly, inshallah." />
+        <H3><E k="way.culture.scripts.sensitive.h">Sensitive Moments</E></H3>
+        <ScriptRow editKey="way.culture.scripts.sensitive.upset" label="If a parent is upset" text="We hear you, and we're here to help, inshallah." />
+        <ScriptRow editKey="way.culture.scripts.sensitive.misc" label="If a miscommunication occurs" text="Thank you for your patience — let's clear it up together." />
+        <ScriptRow editKey="way.culture.scripts.sensitive.pickup" label="Authorised pick-up" text="For safety, we can only release children to authorised contacts — thank you for understanding." />
+        <ScriptRow editKey="way.culture.scripts.sensitive.bye" label="Saying goodbye" text="Have a peaceful evening, inshallah." />
       </Section>
     </div>
   );
@@ -547,53 +680,92 @@ function OperationsChapter() {
   ];
   return (
     <div>
-      <Section title="MTOP Framework" icon="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM12 6v6l4 2">
-        <P>My Time, Our Place (MTOP) is the national framework for school-age care in Australia. Every activity, post, and reflection at Amana OSHC must link to one or more MTOP outcomes.</P>
+      <Section title={<E k="way.ops.mtop.title">MTOP Framework</E>} icon="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM12 6v6l4 2">
+        <P><E k="way.ops.mtop.intro">My Time, Our Place (MTOP) is the national framework for school-age care in Australia. Every activity, post, and reflection at Amana OSHC must link to one or more MTOP outcomes.</E></P>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {[["01","Identity","Children have a strong sense of identity. They feel safe, secure, and supported. They develop autonomy, resilience and knowledgeable self-identities.","#E6F1FB","#0C447C"],["02","Community","Children are connected with and contribute to their world. They develop belonging, fairness, social responsibility, and respect for the environment.","#E1F5EE","#085041"],["03","Wellbeing","Children have a strong sense of wellbeing. They grow in social and emotional wellbeing and take responsibility for their own health.","#EAF3DE","#27500A"],["04","Learning","Children are confident and involved learners. They develop curiosity, cooperation, creativity, commitment, enthusiasm, persistence and imagination.","#EEEDFE","#3C3489"],["05","Communication","Children are effective communicators. They interact verbally and non-verbally with others for a range of purposes and use a range of communication technologies.","#FAEEDA","#633806"]].map(([num, outcome, desc, bg, color]) => (
-            <Card key={num} style={{ display: "flex", gap: 14 }}>
+          {[["01","Identity","Children have a strong sense of identity. They feel safe, secure, and supported. They develop autonomy, resilience and knowledgeable self-identities.","#E6F1FB","#0C447C"],["02","Community","Children are connected with and contribute to their world. They develop belonging, fairness, social responsibility, and respect for the environment.","#E1F5EE","#085041"],["03","Wellbeing","Children have a strong sense of wellbeing. They grow in social and emotional wellbeing and take responsibility for their own health.","#EAF3DE","#27500A"],["04","Learning","Children are confident and involved learners. They develop curiosity, cooperation, creativity, commitment, enthusiasm, persistence and imagination.","#EEEDFE","#3C3489"],["05","Communication","Children are effective communicators. They interact verbally and non-verbally with others for a range of purposes and use a range of communication technologies.","#FAEEDA","#633806"]].map(([num, outcome, desc, bg, color], idx) => (
+            <Card key={idx} style={{ display: "flex", gap: 14 }}>
               <div style={{ width: 36, height: 36, borderRadius: 8, background: bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color, fontFamily: "Georgia, serif" }}>{num}</span>
               </div>
               <div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 3 }}>{outcome}</div>
-                <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.7 }}>{desc}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color, fontFamily: "Georgia, serif", marginBottom: 3 }}>
+                  <E k={`way.ops.mtop.${idx}.outcome`}>{outcome}</E>
+                </div>
+                <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.7 }}>
+                  <E k={`way.ops.mtop.${idx}.desc`}>{desc}</E>
+                </div>
               </div>
             </Card>
           ))}
         </div>
-        <Callout>When creating OWNA posts: change EYLF to MTOP in the framework dropdown. When writing reflections: link the day's activities to one or more of the five outcomes above.</Callout>
+        <Callout><E k="way.ops.mtop.callout">When creating OWNA posts: change EYLF to MTOP in the framework dropdown. When writing reflections: link the day&apos;s activities to one or more of the five outcomes above.</E></Callout>
       </Section>
-      <Section title="Educator Daily Routine" icon="M12 6v6l4 2M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z">
+      <Section title={<E k="way.ops.routine.title">Educator Daily Routine</E>} icon="M12 6v6l4 2M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {routine.map(([time, title, steps, owna]) => (
-            <Card key={time}>
+          {routine.map(([time, title, steps, owna], idx) => (
+            <Card key={idx}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <div style={{ background: C.goldPale, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: C.teal, fontFamily: "Georgia, serif", whiteSpace: "nowrap" }}>{time}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, fontFamily: "Georgia, serif" }}>{title}</div>
+                <div style={{ background: C.goldPale, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: C.teal, fontFamily: "Georgia, serif", whiteSpace: "nowrap" }}>
+                  <E k={`way.ops.routine.${idx}.time`}>{time}</E>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, fontFamily: "Georgia, serif" }}>
+                  <E k={`way.ops.routine.${idx}.title`}>{title}</E>
+                </div>
               </div>
-              <Ul items={steps} />
-              <div style={{ marginTop: 8, fontSize: 11.5, color: C.teal, fontStyle: "italic", fontFamily: "Georgia, serif" }}>{owna}</div>
+              <Ul items={steps.map((step, j) => (
+                <E key={j} k={`way.ops.routine.${idx}.step.${j}`}>{step}</E>
+              ))} />
+              <div style={{ marginTop: 8, fontSize: 11.5, color: C.teal, fontStyle: "italic", fontFamily: "Georgia, serif" }}>
+                <E k={`way.ops.routine.${idx}.owna`}>{owna}</E>
+              </div>
             </Card>
           ))}
         </div>
       </Section>
-      <Section title="Food Ordering — Woolworths at Work" icon="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0">
-        <Ul items={[["Access Budget Tool:"," SharePoint → Documents → Operations → Centre Budget Tools → your service"],"Check student attendances in OWNA: Attendances → Weekly Attendances","Input the attendances into the budget tool, accounting for casual bookings",["Log into"," atwork.woolworths.com.au"],"Select a delivery date with a minimum two-hour window within centre operating hours","Select 'Menu Plan & Order' from toolbar and select meals within budget","Review cart, add shopper notes if needed, then place the order","If order is under $99, choose pick-up instead (minimum order $50)"]} />
-        <Callout>After ordering, add the total to your budget spreadsheet for that week. When using an external supplier, upload receipts to SharePoint: Documents → Operations → Supplier Receipts → your service.</Callout>
+      <Section title={<E k="way.ops.food.title">Food Ordering — Woolworths at Work</E>} icon="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0">
+        <Ul items={[
+          [<E key="a0" k="way.ops.food.0.name">Access Budget Tool:</E>, <E key="b0" k="way.ops.food.0.body">{" SharePoint → Documents → Operations → Centre Budget Tools → your service"}</E>],
+          <E key="1" k="way.ops.food.1">Check student attendances in OWNA: Attendances → Weekly Attendances</E>,
+          <E key="2" k="way.ops.food.2">Input the attendances into the budget tool, accounting for casual bookings</E>,
+          [<E key="a3" k="way.ops.food.3.name">Log into</E>, <E key="b3" k="way.ops.food.3.body">{" atwork.woolworths.com.au"}</E>],
+          <E key="4" k="way.ops.food.4">Select a delivery date with a minimum two-hour window within centre operating hours</E>,
+          <E key="5" k="way.ops.food.5">Select &apos;Menu Plan &amp; Order&apos; from toolbar and select meals within budget</E>,
+          <E key="6" k="way.ops.food.6">Review cart, add shopper notes if needed, then place the order</E>,
+          <E key="7" k="way.ops.food.7">If order is under $99, choose pick-up instead (minimum order $50)</E>,
+        ]} />
+        <Callout><E k="way.ops.food.callout">After ordering, add the total to your budget spreadsheet for that week. When using an external supplier, upload receipts to SharePoint: Documents → Operations → Supplier Receipts → your service.</E></Callout>
       </Section>
-      <Section title="Completing & Uploading Audits" icon="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2">
-        <H3>Complete an audit</H3>
-        <Ul items={["Log into OWNA → Service → Calendar → select the audit","Copy the link in the description box and paste into a new tab","Complete the audit, add the centre name and date to the title","File → Download → PDF Document"]} />
-        <H3>Upload to SharePoint</H3>
-        <Ul items={["Documents → Operations → Audits → choose your service","Select 'Create or Upload' → File Upload → select the completed audit","Open the document to confirm the correct audit has been uploaded"]} />
+      <Section title={<E k="way.ops.audits.title">Completing & Uploading Audits</E>} icon="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2">
+        <H3><E k="way.ops.audits.complete.h">Complete an audit</E></H3>
+        <Ul items={[
+          <E key="0" k="way.ops.audits.complete.0">Log into OWNA → Service → Calendar → select the audit</E>,
+          <E key="1" k="way.ops.audits.complete.1">Copy the link in the description box and paste into a new tab</E>,
+          <E key="2" k="way.ops.audits.complete.2">Complete the audit, add the centre name and date to the title</E>,
+          <E key="3" k="way.ops.audits.complete.3">File → Download → PDF Document</E>,
+        ]} />
+        <H3><E k="way.ops.audits.upload.h">Upload to SharePoint</E></H3>
+        <Ul items={[
+          <E key="0" k="way.ops.audits.upload.0">Documents → Operations → Audits → choose your service</E>,
+          <E key="1" k="way.ops.audits.upload.1">Select &apos;Create or Upload&apos; → File Upload → select the completed audit</E>,
+          <E key="2" k="way.ops.audits.upload.2">Open the document to confirm the correct audit has been uploaded</E>,
+        ]} />
       </Section>
-      <Section title="Rostering & Cancelling Shifts" icon="M18 20V10M12 20V4M6 20v-6">
-        <H3>Rostering in OWNA</H3>
-        <Ul items={["OWNA → Staff → Roster → Settings → add shift start and finish times → 'Add Shift Time'","Select 'Build Roster' → choose + for the relevant room → select staff member and shift time → Save changes","To duplicate the roster: use the 'Duplicate Roster' button at top right"]} />
-        <Callout>Target ratio: 1:13. The OWNA roster shows the bookings-to-hours ratio live. If additional staff are needed, contact your state manager for approval before rostering above ratio.</Callout>
-        <H3>Cancelling a Shift</H3>
-        <Ul items={[["Before School Care shifts:"," Notify by 2:30 PM the day before"],["After School Care shifts:"," Notify by 10:00 AM on the day of the shift"],["Holiday Program shifts:"," Notify by 2:30 PM the day before"],["Educators & 2ICs:"," Contact the Coordinator of the service your shift is rostered at"]]} />
+      <Section title={<E k="way.ops.roster.title">Rostering & Cancelling Shifts</E>} icon="M18 20V10M12 20V4M6 20v-6">
+        <H3><E k="way.ops.roster.in.h">Rostering in OWNA</E></H3>
+        <Ul items={[
+          <E key="0" k="way.ops.roster.in.0">OWNA → Staff → Roster → Settings → add shift start and finish times → &apos;Add Shift Time&apos;</E>,
+          <E key="1" k="way.ops.roster.in.1">Select &apos;Build Roster&apos; → choose + for the relevant room → select staff member and shift time → Save changes</E>,
+          <E key="2" k="way.ops.roster.in.2">To duplicate the roster: use the &apos;Duplicate Roster&apos; button at top right</E>,
+        ]} />
+        <Callout><E k="way.ops.roster.callout">Target ratio: 1:13. The OWNA roster shows the bookings-to-hours ratio live. If additional staff are needed, contact your state manager for approval before rostering above ratio.</E></Callout>
+        <H3><E k="way.ops.roster.cancel.h">Cancelling a Shift</E></H3>
+        <Ul items={[
+          [<E key="a0" k="way.ops.roster.cancel.0.name">Before School Care shifts:</E>, <E key="b0" k="way.ops.roster.cancel.0.body">{" Notify by 2:30 PM the day before"}</E>],
+          [<E key="a1" k="way.ops.roster.cancel.1.name">After School Care shifts:</E>, <E key="b1" k="way.ops.roster.cancel.1.body">{" Notify by 10:00 AM on the day of the shift"}</E>],
+          [<E key="a2" k="way.ops.roster.cancel.2.name">Holiday Program shifts:</E>, <E key="b2" k="way.ops.roster.cancel.2.body">{" Notify by 2:30 PM the day before"}</E>],
+          [<E key="a3" k="way.ops.roster.cancel.3.name">Educators & 2ICs:</E>, <E key="b3" k="way.ops.roster.cancel.3.body">{" Contact the Coordinator of the service your shift is rostered at"}</E>],
+        ]} />
       </Section>
     </div>
   );
@@ -604,51 +776,55 @@ function OperationsChapter() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function PoliciesChapter() {
+  // Wrap policy bullet items uniformly: pass a policy slug and the bullets.
+  const wrapBullets = (slug, items) =>
+    items.map((b, i) => <E key={i} k={`way.policies.${slug}.b.${i}`}>{b}</E>);
+
   return (
     <div>
-      <Section title="Behaviour Guidance Policy" icon="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
-        <P>At Amana OSHC, we believe every child has the right to feel safe, respected, and supported in developing positive behaviour and self-regulation skills.</P>
-        <Ul items={["Model positive, respectful, and calm behaviour at all times — in tone and in action","Use positive guidance techniques: redirection, choice-making, and reflective conversation","Avoid any form of corporal punishment, isolation, or humiliation — strictly prohibited by Amana OSHC policy and by law","Observe and document challenging behaviour using OWNA, ensuring accurate and timely reporting on the same day","Work collaboratively with families and allied professionals to develop Behaviour Guidance Plans","Supervise children actively to prevent conflicts and provide timely support during disputes"]} />
-        <Callout>Each child's behaviour is an opportunity for teaching and connection, not punishment. Your tone, body language, and response set the emotional tone — remain calm and respectful.</Callout>
+      <Section title={<E k="way.policies.behaviour.title">Behaviour Guidance Policy</E>} icon="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+        <P><E k="way.policies.behaviour.intro">At Amana OSHC, we believe every child has the right to feel safe, respected, and supported in developing positive behaviour and self-regulation skills.</E></P>
+        <Ul items={wrapBullets("behaviour", ["Model positive, respectful, and calm behaviour at all times — in tone and in action","Use positive guidance techniques: redirection, choice-making, and reflective conversation","Avoid any form of corporal punishment, isolation, or humiliation — strictly prohibited by Amana OSHC policy and by law","Observe and document challenging behaviour using OWNA, ensuring accurate and timely reporting on the same day","Work collaboratively with families and allied professionals to develop Behaviour Guidance Plans","Supervise children actively to prevent conflicts and provide timely support during disputes"])} />
+        <Callout><E k="way.policies.behaviour.callout">Each child&apos;s behaviour is an opportunity for teaching and connection, not punishment. Your tone, body language, and response set the emotional tone — remain calm and respectful.</E></Callout>
       </Section>
-      <Section title="Code of Conduct Policy" icon="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17 11l2 2 4-4">
-        <Ul items={["Always act in a professional, respectful, and lawful manner while representing Amana OSHC","Maintain appropriate boundaries with children and families — avoid personal relationships outside work settings","Use positive communication at all times — avoid gossip, sarcasm, or language that could harm relationships","Respect confidentiality — do not share private or sensitive information with unauthorised individuals","Be punctual, reliable, and committed to teamwork","Address conflicts or grievances through proper channels, maintaining professionalism and discretion"]} />
-        <Callout color="red">Strictly prohibited: Any form of child abuse, neglect, grooming, or corporal punishment · bullying, harassment, discrimination · unauthorised photography or use of personal devices · alcohol, vaping, or illicit substances on premises · accepting gifts or personal benefit · conduct that brings the Service into disrepute.</Callout>
+      <Section title={<E k="way.policies.conduct.title">Code of Conduct Policy</E>} icon="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17 11l2 2 4-4">
+        <Ul items={wrapBullets("conduct", ["Always act in a professional, respectful, and lawful manner while representing Amana OSHC","Maintain appropriate boundaries with children and families — avoid personal relationships outside work settings","Use positive communication at all times — avoid gossip, sarcasm, or language that could harm relationships","Respect confidentiality — do not share private or sensitive information with unauthorised individuals","Be punctual, reliable, and committed to teamwork","Address conflicts or grievances through proper channels, maintaining professionalism and discretion"])} />
+        <Callout color="red"><E k="way.policies.conduct.callout">Strictly prohibited: Any form of child abuse, neglect, grooming, or corporal punishment · bullying, harassment, discrimination · unauthorised photography or use of personal devices · alcohol, vaping, or illicit substances on premises · accepting gifts or personal benefit · conduct that brings the Service into disrepute.</E></Callout>
       </Section>
-      <Section title="Complaints Policy" icon="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z">
-        <Ul items={["Handle all concerns or complaints calmly, professionally, and without bias","Record and report all complaints using the appropriate documentation and follow service procedures","Notify the Nominated Supervisor immediately if a complaint involves a serious incident, breach, or child safety concern","Understand that notifiable complaints must be reported to the Regulatory Authority within 24 hours","Maintain strict confidentiality — never discuss complaints with unauthorised individuals"]} />
-        <Callout>All complaints — no matter how small — must be acknowledged and documented. View complaints as opportunities to learn, not as personal criticism.</Callout>
+      <Section title={<E k="way.policies.complaints.title">Complaints Policy</E>} icon="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z">
+        <Ul items={wrapBullets("complaints", ["Handle all concerns or complaints calmly, professionally, and without bias","Record and report all complaints using the appropriate documentation and follow service procedures","Notify the Nominated Supervisor immediately if a complaint involves a serious incident, breach, or child safety concern","Understand that notifiable complaints must be reported to the Regulatory Authority within 24 hours","Maintain strict confidentiality — never discuss complaints with unauthorised individuals"])} />
+        <Callout><E k="way.policies.complaints.callout">All complaints — no matter how small — must be acknowledged and documented. View complaints as opportunities to learn, not as personal criticism.</E></Callout>
       </Section>
-      <Section title="Privacy & Confidentiality Policy" icon="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z">
-        <Ul items={["Do not discuss or share a child's information, behaviour, or family details with unauthorised persons","Keep digital and paper records secure — lock filing cabinets, password-protect devices, log out when not in use","Obtain parental consent before taking photos, videos, or collecting personal details for displays","Report any data breach or loss of confidential information to management immediately","Dispose of records securely when authorised, following Amana OSHC's record retention procedures"]} />
+      <Section title={<E k="way.policies.privacy.title">Privacy & Confidentiality Policy</E>} icon="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z">
+        <Ul items={wrapBullets("privacy", ["Do not discuss or share a child's information, behaviour, or family details with unauthorised persons","Keep digital and paper records secure — lock filing cabinets, password-protect devices, log out when not in use","Obtain parental consent before taking photos, videos, or collecting personal details for displays","Report any data breach or loss of confidential information to management immediately","Dispose of records securely when authorised, following Amana OSHC's record retention procedures"])} />
       </Section>
-      <Section title="Safe Use of Digital Technologies Policy" icon="M12 18h.01M8 21h8a2 2 0 0 0 2-2v-1a7 7 0 0 0-14 0v1a2 2 0 0 0 2 2z">
-        <Callout color="red">NO USE OF PERSONAL DEVICES — must be stored away at the start of every shift.</Callout>
-        <Ul items={["Use only approved Amana OSHC devices and platforms (OWNA, service email) for all communication and documentation","Never store or share children's photos, videos, or information on personal phones or social media","Obtain written parental consent before capturing or using any image or recording of a child","Keep passwords secure and log out of all systems after use","Report any suspected cyber-security breach, loss, or misuse of information to management immediately"]} />
+      <Section title={<E k="way.policies.digital.title">Safe Use of Digital Technologies Policy</E>} icon="M12 18h.01M8 21h8a2 2 0 0 0 2-2v-1a7 7 0 0 0-14 0v1a2 2 0 0 0 2 2z">
+        <Callout color="red"><E k="way.policies.digital.callout-top">NO USE OF PERSONAL DEVICES — must be stored away at the start of every shift.</E></Callout>
+        <Ul items={wrapBullets("digital", ["Use only approved Amana OSHC devices and platforms (OWNA, service email) for all communication and documentation","Never store or share children's photos, videos, or information on personal phones or social media","Obtain written parental consent before capturing or using any image or recording of a child","Keep passwords secure and log out of all systems after use","Report any suspected cyber-security breach, loss, or misuse of information to management immediately"])} />
       </Section>
-      <Section title="Emergency & Evacuation Policy" icon="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01">
-        <P>Emergency drills are held every three months and are a legal and safety requirement — treat each rehearsal as if it were a real event.</P>
-        <Ul items={["Know and understand the Emergency and Evacuation Plan, including all exit routes and assembly points","Remain calm and provide clear, reassuring instructions to children during any emergency or drill","Keep all exits and evacuation routes clear of obstacles at all times","Ensure emergency kits and first aid supplies are accessible, stocked, and ready for use","Account for every child using attendance records and conduct roll calls once safely assembled","Complete and file an Emergency Drill Record following each rehearsal or real event"]} />
-        <Callout>Stay calm — children will mirror your response. Always check attendance sheets to ensure no child is left behind.</Callout>
+      <Section title={<E k="way.policies.emergency.title">Emergency & Evacuation Policy</E>} icon="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01">
+        <P><E k="way.policies.emergency.intro">Emergency drills are held every three months and are a legal and safety requirement — treat each rehearsal as if it were a real event.</E></P>
+        <Ul items={wrapBullets("emergency", ["Know and understand the Emergency and Evacuation Plan, including all exit routes and assembly points","Remain calm and provide clear, reassuring instructions to children during any emergency or drill","Keep all exits and evacuation routes clear of obstacles at all times","Ensure emergency kits and first aid supplies are accessible, stocked, and ready for use","Account for every child using attendance records and conduct roll calls once safely assembled","Complete and file an Emergency Drill Record following each rehearsal or real event"])} />
+        <Callout><E k="way.policies.emergency.callout">Stay calm — children will mirror your response. Always check attendance sheets to ensure no child is left behind.</E></Callout>
       </Section>
-      <Section title="Administration of First Aid Policy" icon="M22 12h-4l-3 9L9 3l-3 9H2">
-        <Ul items={["Hold a current and approved first aid qualification including CPR, asthma, and anaphylaxis management","Know the location of all first aid kits and ensure they are checked regularly for expiry and stock levels","Complete an Incident, Injury, Trauma and Illness Record immediately after administering first aid","Notify the Nominated Supervisor of all incidents and ensure parents are informed as soon as possible","Follow all infection control procedures, including wearing gloves and using clean supplies","Never administer medication unless authorised by the Nominated Supervisor and documented correctly"]} />
-        <Callout>Only trained educators may administer first aid. Always report and document injuries — no matter how minor. Parents must always be notified following first aid treatment.</Callout>
+      <Section title={<E k="way.policies.firstaid.title">Administration of First Aid Policy</E>} icon="M22 12h-4l-3 9L9 3l-3 9H2">
+        <Ul items={wrapBullets("firstaid", ["Hold a current and approved first aid qualification including CPR, asthma, and anaphylaxis management","Know the location of all first aid kits and ensure they are checked regularly for expiry and stock levels","Complete an Incident, Injury, Trauma and Illness Record immediately after administering first aid","Notify the Nominated Supervisor of all incidents and ensure parents are informed as soon as possible","Follow all infection control procedures, including wearing gloves and using clean supplies","Never administer medication unless authorised by the Nominated Supervisor and documented correctly"])} />
+        <Callout><E k="way.policies.firstaid.callout">Only trained educators may administer first aid. Always report and document injuries — no matter how minor. Parents must always be notified following first aid treatment.</E></Callout>
       </Section>
-      <Section title="Sick Leave Policy" icon="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6">
-        <Ul items={["Do not attend work if experiencing fever, vomiting, diarrhoea, flu-like illness, or any infectious condition","Inform the Nominated Supervisor or Director as soon as possible if unable to attend work","Provide a medical certificate when requested, especially for extended absences","Adhere to exclusion periods for contagious illnesses as directed by health authorities","Keep immunisations up to date — provide an Immunisation History Statement at commencement"]} />
-        <Callout>Coming to work while sick puts children, families, and colleagues at risk. Your health is part of our duty of care.</Callout>
+      <Section title={<E k="way.policies.sick.title">Sick Leave Policy</E>} icon="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6">
+        <Ul items={wrapBullets("sick", ["Do not attend work if experiencing fever, vomiting, diarrhoea, flu-like illness, or any infectious condition","Inform the Nominated Supervisor or Director as soon as possible if unable to attend work","Provide a medical certificate when requested, especially for extended absences","Adhere to exclusion periods for contagious illnesses as directed by health authorities","Keep immunisations up to date — provide an Immunisation History Statement at commencement"])} />
+        <Callout><E k="way.policies.sick.callout">Coming to work while sick puts children, families, and colleagues at risk. Your health is part of our duty of care.</E></Callout>
       </Section>
-      <Section title="Work Health & Safety (WHS) Policy" icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944">
-        <Ul items={["Take reasonable care for your own health and safety and that of others","Follow all safe work procedures and instructions provided by management","Identify and report hazards, near misses, and unsafe conditions immediately to the Nominated Supervisor","Participate in regular WHS training, safety meetings, and emergency drills","Use personal protective equipment (PPE) correctly when required","Keep work areas clean, tidy, and free of trip hazards or clutter","Follow correct manual handling techniques and request assistance for heavy lifting"]} />
+      <Section title={<E k="way.policies.whs.title">Work Health & Safety (WHS) Policy</E>} icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944">
+        <Ul items={wrapBullets("whs", ["Take reasonable care for your own health and safety and that of others","Follow all safe work procedures and instructions provided by management","Identify and report hazards, near misses, and unsafe conditions immediately to the Nominated Supervisor","Participate in regular WHS training, safety meetings, and emergency drills","Use personal protective equipment (PPE) correctly when required","Keep work areas clean, tidy, and free of trip hazards or clutter","Follow correct manual handling techniques and request assistance for heavy lifting"])} />
       </Section>
-      <Section title="Delivery & Collection of Children Policy" icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z">
-        <Ul items={["Verify that each child is signed in and out by a parent or authorised nominee each day via OWNA or the service iPad","Never release a child to an individual who is not listed as an authorised person on the enrolment form","Confirm written authorisation from parents or guardians for any alternative pickup arrangements","Remain with children at all times during transition periods — no child is to be left unsupervised","Follow the Late Collection Procedure if a child has not been collected by closing time","Record and report any incidents involving collection issues or unauthorised attempts to remove a child"]} />
-        <Callout>Child safety during arrival and collection is a non-negotiable legal duty. Always confirm identity and authorisation before releasing a child.</Callout>
+      <Section title={<E k="way.policies.collection.title">Delivery & Collection of Children Policy</E>} icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z">
+        <Ul items={wrapBullets("collection", ["Verify that each child is signed in and out by a parent or authorised nominee each day via OWNA or the service iPad","Never release a child to an individual who is not listed as an authorised person on the enrolment form","Confirm written authorisation from parents or guardians for any alternative pickup arrangements","Remain with children at all times during transition periods — no child is to be left unsupervised","Follow the Late Collection Procedure if a child has not been collected by closing time","Record and report any incidents involving collection issues or unauthorised attempts to remove a child"])} />
+        <Callout><E k="way.policies.collection.callout">Child safety during arrival and collection is a non-negotiable legal duty. Always confirm identity and authorisation before releasing a child.</E></Callout>
       </Section>
-      <Section title="Safe Arrival of Children Policy" icon="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z">
-        <Ul items={["Be present and ready to greet children as they arrive, ensuring a warm and safe start to each session","Check the attendance list and verify each child's presence in OWNA or the service iPad system","Follow up unexplained absences immediately — contact the school or parent if a child expected has not arrived","Escort children safely from classrooms or designated collection points to the OSHC service","Maintain active supervision during all transitions to prevent incidents or confusion"]} />
-        <Callout>Arrival and collection are high-risk supervision times. Never assume a child is safe elsewhere — always check attendance and follow up immediately.</Callout>
+      <Section title={<E k="way.policies.arrival.title">Safe Arrival of Children Policy</E>} icon="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z">
+        <Ul items={wrapBullets("arrival", ["Be present and ready to greet children as they arrive, ensuring a warm and safe start to each session","Check the attendance list and verify each child's presence in OWNA or the service iPad system","Follow up unexplained absences immediately — contact the school or parent if a child expected has not arrived","Escort children safely from classrooms or designated collection points to the OSHC service","Maintain active supervision during all transitions to prevent incidents or confusion"])} />
+        <Callout><E k="way.policies.arrival.callout">Arrival and collection are high-risk supervision times. Never assume a child is safe elsewhere — always check attendance and follow up immediately.</E></Callout>
       </Section>
     </div>
   );
@@ -659,101 +835,125 @@ function PoliciesChapter() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ChildSafetyChapter() {
+  const wrapBullets = (slug, items) =>
+    items.map((b, i) => <E key={i} k={`way.safety.${slug}.b.${i}`}>{b}</E>);
+
   return (
     <div>
-      <Section title="Child Safe Standards" icon="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z">
-        <P>The Child Safe Standards ensure that policies are implemented into daily practice and children's safety is everyone's priority. In complying with the Child Safe Standards, our services must promote the cultural safety of all children including Aboriginal and Torres Strait Islander children, and the safety of children with a disability.</P>
+      <Section title={<E k="way.safety.standards.title">Child Safe Standards</E>} icon="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z">
+        <P><E k="way.safety.standards.intro">The Child Safe Standards ensure that policies are implemented into daily practice and children&apos;s safety is everyone&apos;s priority. In complying with the Child Safe Standards, our services must promote the cultural safety of all children including Aboriginal and Torres Strait Islander children, and the safety of children with a disability.</E></P>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {[["1","Strategies to embed an organisational culture of child safety, including through effective leadership arrangements."],["2","A child safe policy or statement of commitment to child safety."],["3","A code of conduct that establishes clear expectations for appropriate behaviour with children."],["4","Screening, supervision, training and other human resource practices that reduce the risk of child abuse."],["5","Processes for responding to and reporting suspected child abuse."],["6","Strategies to identify and reduce or remove the risk of child abuse."],["7","Strategies to promote the participation and empowerment of children."]].map(([std, desc]) => (
-            <div key={std} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", display: "flex", gap: 12 }}>
+          {[["1","Strategies to embed an organisational culture of child safety, including through effective leadership arrangements."],["2","A child safe policy or statement of commitment to child safety."],["3","A code of conduct that establishes clear expectations for appropriate behaviour with children."],["4","Screening, supervision, training and other human resource practices that reduce the risk of child abuse."],["5","Processes for responding to and reporting suspected child abuse."],["6","Strategies to identify and reduce or remove the risk of child abuse."],["7","Strategies to promote the participation and empowerment of children."]].map(([std, desc], idx) => (
+            <div key={idx} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", display: "flex", gap: 12 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "Georgia, serif", flexShrink: 0, paddingTop: 1 }}>Standard {std}</span>
-              <span style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.7 }}>{desc}</span>
+              <span style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.7 }}>
+                <E k={`way.safety.standards.${idx}.desc`}>{desc}</E>
+              </span>
             </div>
           ))}
         </div>
       </Section>
 
-      <Section title="Supervision — CLEAR Framework" icon="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
-        <P>Amana OSHC has a duty of care to all children attending the service. Our educators actively practice a high level of supervision at all times.</P>
+      <Section title={<E k="way.safety.clear.title">Supervision — CLEAR Framework</E>} icon="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+        <P><E k="way.safety.clear.intro">Amana OSHC has a duty of care to all children attending the service. Our educators actively practice a high level of supervision at all times.</E></P>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-          {[["C","Count","Headcounts every 30 minutes.","#E6F1FB","#0C447C"],["L","Line of Sight","Ensure you have an unobstructed view of all children.","#E1F5EE","#085041"],["E","Engage","Actively listen to and participate with children.","#EAF3DE","#27500A"],["A","Awareness","Constantly scan the environment for risks.","#FAEEDA","#633806"],["R","Response","Be ready to act immediately in any situation.","#FCEBEB","#791F1F"]].map(([letter, word, desc, bg, color]) => (
-            <Card key={letter} style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          {[["C","Count","Headcounts every 30 minutes.","#E6F1FB","#0C447C"],["L","Line of Sight","Ensure you have an unobstructed view of all children.","#E1F5EE","#085041"],["E","Engage","Actively listen to and participate with children.","#EAF3DE","#27500A"],["A","Awareness","Constantly scan the environment for risks.","#FAEEDA","#633806"],["R","Response","Be ready to act immediately in any situation.","#FCEBEB","#791F1F"]].map(([letter, word, desc, bg, color], idx) => (
+            <Card key={idx} style={{ display: "flex", gap: 14, alignItems: "center" }}>
               <div style={{ width: 40, height: 40, borderRadius: 8, background: bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color, fontFamily: "Georgia, serif" }}>{letter}</span>
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color, fontFamily: "Georgia, serif" }}>{word}</div>
-                <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif" }}>{desc}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color, fontFamily: "Georgia, serif" }}>
+                  <E k={`way.safety.clear.${idx}.word`}>{word}</E>
+                </div>
+                <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif" }}>
+                  <E k={`way.safety.clear.${idx}.desc`}>{desc}</E>
+                </div>
               </div>
             </Card>
           ))}
         </div>
-        <H3>Supervision Ratios</H3>
+        <H3><E k="way.safety.ratios.h">Supervision Ratios</E></H3>
         <RatioTable />
-        <H3>Supervision Scenarios</H3>
-        {[["If you lose line of sight — treat as an immediate safety risk",["Stop your current task immediately","Scan the entire area and call the child's name calmly","Alert the Coordinator or nearest educator","Check all high-risk areas first (toilets, gates, exits, behind structures)","If found: reassure the child and document what happened","If NOT found within 2 minutes: escalate as a missing child incident"]],["How to supervise the bathroom area",["Position yourself outside the bathroom with full visibility of entry/exit","Keep the door ajar (if appropriate for age and gender)","Count children entering and leaving","Check in verbally: \"Is everyone okay in there?\"","Never enter the bathroom unless another staff member is aware and a child needs assistance","Goal: private for children, but never unsupervised"]],["What to do if you find yourself alone with a child",["Move immediately to a more public, visible area","Notify another educator or the Coordinator immediately","Keep interactions professional, calm and neutral","Document the situation if it occurred due to staffing gaps or late pickups","Golden rule: always stay within line of sight of other staff"]],["If ratios drop unexpectedly",["Keep all children in a central, visible area","Notify the Coordinator immediately","Adjust zones — no child should be left unsupervised","Avoid high-risk activities until ratios are restored"]]].map(([heading, items]) => (
-          <Card key={heading} style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: "#633806", fontFamily: "Georgia, serif", marginBottom: 8 }}>{heading}</div>
-            <Ul items={items} />
+        <H3><E k="way.safety.scenarios.h">Supervision Scenarios</E></H3>
+        {[["If you lose line of sight — treat as an immediate safety risk",["Stop your current task immediately","Scan the entire area and call the child's name calmly","Alert the Coordinator or nearest educator","Check all high-risk areas first (toilets, gates, exits, behind structures)","If found: reassure the child and document what happened","If NOT found within 2 minutes: escalate as a missing child incident"]],["How to supervise the bathroom area",["Position yourself outside the bathroom with full visibility of entry/exit","Keep the door ajar (if appropriate for age and gender)","Count children entering and leaving","Check in verbally: \"Is everyone okay in there?\"","Never enter the bathroom unless another staff member is aware and a child needs assistance","Goal: private for children, but never unsupervised"]],["What to do if you find yourself alone with a child",["Move immediately to a more public, visible area","Notify another educator or the Coordinator immediately","Keep interactions professional, calm and neutral","Document the situation if it occurred due to staffing gaps or late pickups","Golden rule: always stay within line of sight of other staff"]],["If ratios drop unexpectedly",["Keep all children in a central, visible area","Notify the Coordinator immediately","Adjust zones — no child should be left unsupervised","Avoid high-risk activities until ratios are restored"]]].map(([heading, items], idx) => (
+          <Card key={idx} style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: "#633806", fontFamily: "Georgia, serif", marginBottom: 8 }}>
+              <E k={`way.safety.scenarios.${idx}.heading`}>{heading}</E>
+            </div>
+            <Ul items={items.map((it, j) => <E key={j} k={`way.safety.scenarios.${idx}.b.${j}`}>{it}</E>)} />
           </Card>
         ))}
       </Section>
 
-      <Section title="Child Protection & Mandatory Reporting" icon="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01">
-        <P>Every Amana OSHC employee has a responsibility to protect the health, safety, welfare and wellbeing of children. Children and educators have the right to feel safe, secure and nurtured in an environment that is free of physical, sexual, psychological, and emotional abuse including neglect.</P>
-        <Callout color="red">Every educator is legally responsible for child safety — it cannot be delegated. If you suspect, witness, or hear of harm, you must report. You do not need proof. Failure to report can result in heavy fines, civil suit, and jail time.</Callout>
-        <H3>Educator Responsibilities</H3>
-        <Ul items={["Recognise and respond appropriately to the vulnerabilities, risks and needs of children and young people","Immediately notify the Nominated Supervisor or Director of Service if you suspect harm or risk of harm","Record what you see, hear, or are told using factual, neutral language — no judgement","Never investigate allegations yourself — follow the reporting procedure","Maintain strict confidentiality — never promise secrecy to a child","Participate in ongoing training and reflective discussions to strengthen child safety practices"]} />
-        <Callout>Who to contact: NSW Child Protection Hotline: 132 111 · VIC Child Protection Crisis Line: 131 278 · WA Central Intake Team: 1800 273 889. A poster with state-specific contact details is displayed in every service.</Callout>
+      <Section title={<E k="way.safety.protection.title">Child Protection & Mandatory Reporting</E>} icon="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01">
+        <P><E k="way.safety.protection.intro">Every Amana OSHC employee has a responsibility to protect the health, safety, welfare and wellbeing of children. Children and educators have the right to feel safe, secure and nurtured in an environment that is free of physical, sexual, psychological, and emotional abuse including neglect.</E></P>
+        <Callout color="red"><E k="way.safety.protection.callout-legal">Every educator is legally responsible for child safety — it cannot be delegated. If you suspect, witness, or hear of harm, you must report. You do not need proof. Failure to report can result in heavy fines, civil suit, and jail time.</E></Callout>
+        <H3><E k="way.safety.protection.resp.h">Educator Responsibilities</E></H3>
+        <Ul items={wrapBullets("protection.resp", ["Recognise and respond appropriately to the vulnerabilities, risks and needs of children and young people","Immediately notify the Nominated Supervisor or Director of Service if you suspect harm or risk of harm","Record what you see, hear, or are told using factual, neutral language — no judgement","Never investigate allegations yourself — follow the reporting procedure","Maintain strict confidentiality — never promise secrecy to a child","Participate in ongoing training and reflective discussions to strengthen child safety practices"])} />
+        <Callout><E k="way.safety.protection.contacts">Who to contact: NSW Child Protection Hotline: 132 111 · VIC Child Protection Crisis Line: 131 278 · WA Central Intake Team: 1800 273 889. A poster with state-specific contact details is displayed in every service.</E></Callout>
         <Divider />
-        <H3>Types of Child Abuse — Indicators</H3>
-        <AbuseBlock title="Physical Child Abuse"
-          behavioural={["Unusual fear of physical contact with adults","Disclosure of an injury inflicted by someone else","Wearing clothes unsuitable for weather conditions (to hide injuries)","Wariness or fear of a parent, carer or guardian","Reluctance to go home","Drug or alcohol misuse, suicidal thoughts or self-harm"]}
-          physical={["Bruises or welts on facial areas and other areas of the body","Burns showing the shape of the object used to make them (e.g. iron, cigarette)","Fractures inconsistent with explanation or child's age and development","Cuts and grazes to the mouth, lips, gums, eye area, ears and external genitalia","Multiple injuries, old and new"]} />
-        <AbuseBlock title="Child Sexual Abuse"
-          behavioural={["Disclosure of sexual abuse (directly or indirectly)","Persistent and age-inappropriate sexual activity","Drawings or descriptions in stories that are sexually explicit","Fear of home, specific places or particular adults","Poor/deteriorating relationships with adults and peers","Depression, self-harm, drug or alcohol abuse, or attempted suicide"]}
-          physical={["Injury to the genital or rectal area (bruising, bleeding, inflammation)","Injury to areas such as breasts, buttocks or upper thighs","Presence of foreign bodies in the vagina and/or rectum","Sexually-transmitted diseases","Pregnancy, especially in very young adolescents"]} />
-        <AbuseBlock title="Emotional Child Abuse"
-          behavioural={["Extremely demanding, aggressive and attention-seeking behaviour","Low tolerance or frustration","Poor self-image and low self-esteem","Unexplained mood swings, depression, self-harm","Behaviours not age-appropriate (overly adult or overly infantile)","Poor social and interpersonal skills"]}
-          physical={["Language delay, stuttering or selectively being mute","Delays in emotional, mental or physical development"]} />
-        <AbuseBlock title="Neglect"
-          behavioural={["Being left with older children or persons who cannot reasonably provide adequate care","Gorging when food is available or inability to eat when extremely hungry","Appearing withdrawn, listless, pale and weak","Aggressive behaviour, irritability","Indiscriminate acts of affection and excessive friendliness towards strangers","Poor, irregular or non-attendance at the service"]}
-          physical={["Appearing consistently dirty and unwashed","Being consistently inappropriately dressed for weather conditions","Being at risk of injury or harm due to consistent lack of adequate supervision","Having unattended health problems and lack of routine and medical care","Having inadequate shelter and unsafe or unsanitary conditions"]} />
+        <H3><E k="way.safety.protection.types.h">Types of Child Abuse — Indicators</E></H3>
+        <AbuseBlock title={<E k="way.safety.abuse.physical.title">Physical Child Abuse</E>}
+          behavioural={[<E key="0" k="way.safety.abuse.physical.b.0">Unusual fear of physical contact with adults</E>,<E key="1" k="way.safety.abuse.physical.b.1">Disclosure of an injury inflicted by someone else</E>,<E key="2" k="way.safety.abuse.physical.b.2">Wearing clothes unsuitable for weather conditions (to hide injuries)</E>,<E key="3" k="way.safety.abuse.physical.b.3">Wariness or fear of a parent, carer or guardian</E>,<E key="4" k="way.safety.abuse.physical.b.4">Reluctance to go home</E>,<E key="5" k="way.safety.abuse.physical.b.5">Drug or alcohol misuse, suicidal thoughts or self-harm</E>]}
+          physical={[<E key="0" k="way.safety.abuse.physical.p.0">Bruises or welts on facial areas and other areas of the body</E>,<E key="1" k="way.safety.abuse.physical.p.1">Burns showing the shape of the object used to make them (e.g. iron, cigarette)</E>,<E key="2" k="way.safety.abuse.physical.p.2">Fractures inconsistent with explanation or child&apos;s age and development</E>,<E key="3" k="way.safety.abuse.physical.p.3">Cuts and grazes to the mouth, lips, gums, eye area, ears and external genitalia</E>,<E key="4" k="way.safety.abuse.physical.p.4">Multiple injuries, old and new</E>]} />
+        <AbuseBlock title={<E k="way.safety.abuse.sexual.title">Child Sexual Abuse</E>}
+          behavioural={[<E key="0" k="way.safety.abuse.sexual.b.0">Disclosure of sexual abuse (directly or indirectly)</E>,<E key="1" k="way.safety.abuse.sexual.b.1">Persistent and age-inappropriate sexual activity</E>,<E key="2" k="way.safety.abuse.sexual.b.2">Drawings or descriptions in stories that are sexually explicit</E>,<E key="3" k="way.safety.abuse.sexual.b.3">Fear of home, specific places or particular adults</E>,<E key="4" k="way.safety.abuse.sexual.b.4">Poor/deteriorating relationships with adults and peers</E>,<E key="5" k="way.safety.abuse.sexual.b.5">Depression, self-harm, drug or alcohol abuse, or attempted suicide</E>]}
+          physical={[<E key="0" k="way.safety.abuse.sexual.p.0">Injury to the genital or rectal area (bruising, bleeding, inflammation)</E>,<E key="1" k="way.safety.abuse.sexual.p.1">Injury to areas such as breasts, buttocks or upper thighs</E>,<E key="2" k="way.safety.abuse.sexual.p.2">Presence of foreign bodies in the vagina and/or rectum</E>,<E key="3" k="way.safety.abuse.sexual.p.3">Sexually-transmitted diseases</E>,<E key="4" k="way.safety.abuse.sexual.p.4">Pregnancy, especially in very young adolescents</E>]} />
+        <AbuseBlock title={<E k="way.safety.abuse.emotional.title">Emotional Child Abuse</E>}
+          behavioural={[<E key="0" k="way.safety.abuse.emotional.b.0">Extremely demanding, aggressive and attention-seeking behaviour</E>,<E key="1" k="way.safety.abuse.emotional.b.1">Low tolerance or frustration</E>,<E key="2" k="way.safety.abuse.emotional.b.2">Poor self-image and low self-esteem</E>,<E key="3" k="way.safety.abuse.emotional.b.3">Unexplained mood swings, depression, self-harm</E>,<E key="4" k="way.safety.abuse.emotional.b.4">Behaviours not age-appropriate (overly adult or overly infantile)</E>,<E key="5" k="way.safety.abuse.emotional.b.5">Poor social and interpersonal skills</E>]}
+          physical={[<E key="0" k="way.safety.abuse.emotional.p.0">Language delay, stuttering or selectively being mute</E>,<E key="1" k="way.safety.abuse.emotional.p.1">Delays in emotional, mental or physical development</E>]} />
+        <AbuseBlock title={<E k="way.safety.abuse.neglect.title">Neglect</E>}
+          behavioural={[<E key="0" k="way.safety.abuse.neglect.b.0">Being left with older children or persons who cannot reasonably provide adequate care</E>,<E key="1" k="way.safety.abuse.neglect.b.1">Gorging when food is available or inability to eat when extremely hungry</E>,<E key="2" k="way.safety.abuse.neglect.b.2">Appearing withdrawn, listless, pale and weak</E>,<E key="3" k="way.safety.abuse.neglect.b.3">Aggressive behaviour, irritability</E>,<E key="4" k="way.safety.abuse.neglect.b.4">Indiscriminate acts of affection and excessive friendliness towards strangers</E>,<E key="5" k="way.safety.abuse.neglect.b.5">Poor, irregular or non-attendance at the service</E>]}
+          physical={[<E key="0" k="way.safety.abuse.neglect.p.0">Appearing consistently dirty and unwashed</E>,<E key="1" k="way.safety.abuse.neglect.p.1">Being consistently inappropriately dressed for weather conditions</E>,<E key="2" k="way.safety.abuse.neglect.p.2">Being at risk of injury or harm due to consistent lack of adequate supervision</E>,<E key="3" k="way.safety.abuse.neglect.p.3">Having unattended health problems and lack of routine and medical care</E>,<E key="4" k="way.safety.abuse.neglect.p.4">Having inadequate shelter and unsafe or unsanitary conditions</E>]} />
       </Section>
 
-      <Section title="Late / Non-Arrival of Children" icon="M12 6v6l4 2M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z">
+      <Section title={<E k="way.safety.latearrival.title">Late / Non-Arrival of Children</E>} icon="M12 6v6l4 2M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z">
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-          {[["3:15","Safe arrival window once the bell has gone","#E1F5EE","#085041"],["3:25","Make PA announcement and/or contact school office. Call and text parent to confirm attendance","#FAEEDA","#633806"],["3:30","Continue to contact parent and emergency contacts. Contact Area Manager","#FCEBEB","#A32D2D"],["3:40","Call Emergency 000","#FCEBEB","#791F1F"]].map(([time, action, bg, color]) => (
-            <Card key={time} style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          {[["3:15","Safe arrival window once the bell has gone","#E1F5EE","#085041"],["3:25","Make PA announcement and/or contact school office. Call and text parent to confirm attendance","#FAEEDA","#633806"],["3:30","Continue to contact parent and emergency contacts. Contact Area Manager","#FCEBEB","#A32D2D"],["3:40","Call Emergency 000","#FCEBEB","#791F1F"]].map(([time, action, bg, color], idx) => (
+            <Card key={idx} style={{ display: "flex", gap: 14, alignItems: "center" }}>
               <div style={{ width: 44, height: 44, borderRadius: 8, background: bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color, fontFamily: "Georgia, serif" }}>{time}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color, fontFamily: "Georgia, serif" }}>
+                  <E k={`way.safety.latearrival.${idx}.time`}>{time}</E>
+                </span>
               </div>
-              <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.65 }}>{action}</div>
+              <div style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Georgia, serif", lineHeight: 1.65 }}>
+                <E k={`way.safety.latearrival.${idx}.action`}>{action}</E>
+              </div>
             </Card>
           ))}
         </div>
-        <Callout>Authorisation to collect: Only release children to persons listed on the enrolment form. Emergency contacts must produce photo ID and be over 18. Take a photocopy of the ID and add to the child's enrolment file. You must have prior communication with the parent before releasing a child to an emergency contact.</Callout>
+        <Callout><E k="way.safety.latearrival.callout">Authorisation to collect: Only release children to persons listed on the enrolment form. Emergency contacts must produce photo ID and be over 18. Take a photocopy of the ID and add to the child&apos;s enrolment file. You must have prior communication with the parent before releasing a child to an emergency contact.</E></Callout>
       </Section>
 
-      <Section title="Medical Conditions & Medication" icon="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
-        <H3>Required Documents Before a Child with a Medical Condition Attends</H3>
+      <Section title={<E k="way.safety.medical.title">Medical Conditions & Medication</E>} icon="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+        <H3><E k="way.safety.medical.docs.h">Required Documents Before a Child with a Medical Condition Attends</E></H3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, fontFamily: "Georgia, serif", marginBottom: 16, borderRadius: 8, overflow: "hidden" }}>
           <thead><tr style={{ background: C.teal }}><th style={{ padding: "8px 12px", textAlign: "left", color: C.white }}>Medical Condition</th><th style={{ padding: "8px 12px", textAlign: "left", color: C.gold }}>Documentation Required</th></tr></thead>
-          <tbody>{[["Anaphylaxis","Anaphylaxis Plan, Risk Minimisation Plan"],["Asthma (with plan)","Asthma Plan signed by doctor, Risk Minimisation Plan"],["Asthma (no plan)","Health Management Plan with current photo, Risk Minimisation Plan"],["Allergies","Green Allergy Form, Risk Minimisation Plan for Allergies"],["Diabetes","Doctor's plan, Risk Minimisation Plan for Diabetes"],["Epilepsy","Doctor's plan, Risk Minimisation Plan for Epilepsy"],["Autism / ADHD","Child profile form with specific information and strategies"]].map(([c, d], i) => (<tr key={c} style={{ background: i % 2 === 0 ? C.white : C.cream }}><td style={{ padding: "8px 12px", color: C.textSecondary, fontWeight: 600 }}>{c}</td><td style={{ padding: "8px 12px", color: C.textSecondary }}>{d}</td></tr>))}</tbody>
+          <tbody>{[["Anaphylaxis","Anaphylaxis Plan, Risk Minimisation Plan"],["Asthma (with plan)","Asthma Plan signed by doctor, Risk Minimisation Plan"],["Asthma (no plan)","Health Management Plan with current photo, Risk Minimisation Plan"],["Allergies","Green Allergy Form, Risk Minimisation Plan for Allergies"],["Diabetes","Doctor's plan, Risk Minimisation Plan for Diabetes"],["Epilepsy","Doctor's plan, Risk Minimisation Plan for Epilepsy"],["Autism / ADHD","Child profile form with specific information and strategies"]].map(([c, d], i) => (
+            <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.cream }}>
+              <td style={{ padding: "8px 12px", color: C.textSecondary, fontWeight: 600 }}>
+                <E k={`way.safety.medical.docs.${i}.condition`}>{c}</E>
+              </td>
+              <td style={{ padding: "8px 12px", color: C.textSecondary }}>
+                <E k={`way.safety.medical.docs.${i}.req`}>{d}</E>
+              </td>
+            </tr>
+          ))}</tbody>
         </table>
-        <H3>Medication Rules</H3>
-        <Ul items={["Stored out of reach of children or in a locked cupboard — never in a school bag","Must be in original container, in date, with child's full name and prescribed dosage","Two educators must be present when administering — both sign the authorisation form","Children are not to self-medicate while in attendance","Parent must acknowledge and sign on collection","Expired medications must be returned to the parent immediately"]} />
-        <Callout color="red">The Coordinator can refuse care if medical documentation and medication have not been provided. At no point should there be children with medical conditions at the service without a current action plan, risk minimisation plan and medication.</Callout>
+        <H3><E k="way.safety.medical.rules.h">Medication Rules</E></H3>
+        <Ul items={wrapBullets("medical.rules", ["Stored out of reach of children or in a locked cupboard — never in a school bag","Must be in original container, in date, with child's full name and prescribed dosage","Two educators must be present when administering — both sign the authorisation form","Children are not to self-medicate while in attendance","Parent must acknowledge and sign on collection","Expired medications must be returned to the parent immediately"])} />
+        <Callout color="red"><E k="way.safety.medical.callout">The Coordinator can refuse care if medical documentation and medication have not been provided. At no point should there be children with medical conditions at the service without a current action plan, risk minimisation plan and medication.</E></Callout>
       </Section>
 
-      <Section title="Incidents, Injuries & Reportable Events" icon="M22 12h-4l-3 9L9 3l-3 9H2">
-        <H3>Managing Minor Incidents</H3>
-        <Ul items={["Any first aid administered (cuts, bruising, abrasions) → complete an incident report in OWNA","Upon parent arrival, educator must inform the parent and have them sign the report (can be signed via OWNA)","Head injuries MUST be reported to the Area Manager and parent must be informed immediately regardless of severity","If an incident or injury occurs at Before School Care, inform the school when releasing the child"]} />
-        <H3>Reportable Incidents (must be reported to ACECQA)</H3>
-        <Ul items={["When an emergency service attends the service","If a child seeks medical attention for a service-related injury","Broken or fractured bones · Head injury requiring medical attention","Child cannot be accounted for more than 5 minutes · Child walks off premises","Non-arrival / missing child","Asthma attack or anaphylaxis where an EpiPen was administered","The death of a child"]} />
-        <Callout color="red">In a serious incident: Call 000 → Contact Area Manager immediately → Contact parents immediately → Area Manager must notify ACECQA within 24 hours → Area Manager informs school Principal.</Callout>
-        <H3>Create Incident Report in OWNA</H3>
-        <Ul items={["Child profile → ellipsis icon → Create Incident Report","Upload photos/attachments · Tag the child · Complete all fields","Collect required signatures: person completing, a witness, the Responsible Person on duty or director","Remove the Draft tag when ready to publish (parents will receive a notification)","Press the save/publish icon in the top right corner"]} />
+      <Section title={<E k="way.safety.incidents.title">Incidents, Injuries & Reportable Events</E>} icon="M22 12h-4l-3 9L9 3l-3 9H2">
+        <H3><E k="way.safety.incidents.minor.h">Managing Minor Incidents</E></H3>
+        <Ul items={wrapBullets("incidents.minor", ["Any first aid administered (cuts, bruising, abrasions) → complete an incident report in OWNA","Upon parent arrival, educator must inform the parent and have them sign the report (can be signed via OWNA)","Head injuries MUST be reported to the Area Manager and parent must be informed immediately regardless of severity","If an incident or injury occurs at Before School Care, inform the school when releasing the child"])} />
+        <H3><E k="way.safety.incidents.reportable.h">Reportable Incidents (must be reported to ACECQA)</E></H3>
+        <Ul items={wrapBullets("incidents.reportable", ["When an emergency service attends the service","If a child seeks medical attention for a service-related injury","Broken or fractured bones · Head injury requiring medical attention","Child cannot be accounted for more than 5 minutes · Child walks off premises","Non-arrival / missing child","Asthma attack or anaphylaxis where an EpiPen was administered","The death of a child"])} />
+        <Callout color="red"><E k="way.safety.incidents.callout">In a serious incident: Call 000 → Contact Area Manager immediately → Contact parents immediately → Area Manager must notify ACECQA within 24 hours → Area Manager informs school Principal.</E></Callout>
+        <H3><E k="way.safety.incidents.create.h">Create Incident Report in OWNA</E></H3>
+        <Ul items={wrapBullets("incidents.create", ["Child profile → ellipsis icon → Create Incident Report","Upload photos/attachments · Tag the child · Complete all fields","Collect required signatures: person completing, a witness, the Responsible Person on duty or director","Remove the Draft tag when ready to publish (parents will receive a notification)","Press the save/publish icon in the top right corner"])} />
       </Section>
     </div>
   );
@@ -795,11 +995,15 @@ export default function AmanaWayPanel() {
       {/* Header */}
       <div style={{ background: C.teal, padding: "14px 20px", flexShrink: 0, display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <img src={LOGO_SRC} alt="Amana OSHC" style={{ width: 48, height: 48, objectFit: "contain" }} />
+          <EImg k="way.header.logo" default={LOGO_SRC} alt="Amana OSHC" style={{ width: 48, height: 48, objectFit: "contain" }} />
         </div>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.white, letterSpacing: "0.01em" }}>The Amana Way</div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", letterSpacing: "0.07em", textTransform: "uppercase", fontStyle: "italic" }}>Staff Handbook · Australia-wide</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.white, letterSpacing: "0.01em" }}>
+            <E k="way.header.title">The Amana Way</E>
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", letterSpacing: "0.07em", textTransform: "uppercase", fontStyle: "italic" }}>
+            <E k="way.header.subtitle">Staff Handbook · Australia-wide</E>
+          </div>
         </div>
       </div>
 

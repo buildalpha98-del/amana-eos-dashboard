@@ -757,6 +757,7 @@ model User {
   weeklyMarketingReportsReviewed WeeklyMarketingReport[]   @relation("WeeklyReportReviewer")
   weeklyMarketingReportsSent     WeeklyMarketingReport[]   @relation("WeeklyReportSender")
   socialCountersUpdated          SocialCounter[]           @relation("SocialCounterUpdater")
+  amanaContentEdited             AmanaContent[]            @relation("AmanaContentUpdater")
 
   // ── Centre Avatars (Sprint 3) ─────────────────────
   centreAvatarInsightsCreated          CentreAvatarInsight[]            @relation("CentreAvatarInsightCreatedBy")
@@ -6504,4 +6505,19 @@ model SocialCounter {
   updatedBy   User?  @relation("SocialCounterUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// 2026-05-15: editable content overrides for The Amana Way + Educators
+// Handbook tools. `key` is the panel slug ("amana-way" or "amana-handbook")
+// and `data` is a flat Record<string,string> of override values keyed by
+// the `<E k="...">` wrapper key. Missing keys fall back to the hardcoded
+// defaults inside the panel JSX, so an empty table yields the original
+// rendering for every role.
+model AmanaContent {
+  key         String   @id
+  data        Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("AmanaContentUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
 }
