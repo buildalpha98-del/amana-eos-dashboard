@@ -1,167 +1,133 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { parseJsonBody } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+import type { PolicyDocumentCategory } from "@prisma/client";
+
+const POLICY_CATEGORIES = ["policy", "procedure", "other"] as const;
+const ADMIN_ROLES = ["owner", "head_office", "admin"] as const;
+
 const updatePolicySchema = z.object({
-  title: z.string().min(1).optional(),
-  description: z.string().nullable().optional(),
-  category: z.string().nullable().optional(),
-  documentUrl: z.string().url().nullable().optional(),
-  documentId: z.string().nullable().optional(),
-  status: z.enum(["draft", "published", "archived"]).optional(),
-  requiresReack: z.boolean().optional(),
-  content: z.string().optional(), // track if content changed
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  category: z.enum(POLICY_CATEGORIES).optional(),
 });
 
-// GET /api/policies/[id] — policy detail + acknowledgement stats
+// GET /api/policies/[id] — single document with full version history and
+// acknowledgement stats for the current version. Available to any signed-in
+// user. The blob URL is never exposed; only versionNumber + fileName + size.
 export const GET = withApiAuth(async (req, session, context) => {
-const { id } = await context!.params!;
+  const { id } = await context!.params!;
 
-  const policy = await prisma.policy.findUnique({
-    where: { id, deleted: false },
+  const doc = await prisma.policyDocument.findUnique({
+    where: { id },
     include: {
-      acknowledgements: {
+      currentVersion: {
         select: {
           id: true,
-          userId: true,
-          policyVersion: true,
-          acknowledgedAt: true,
-          user: { select: { id: true, name: true, email: true, avatar: true } },
+          versionNumber: true,
+          fileName: true,
+          fileSize: true,
+          uploadedAt: true,
+          uploadedBy: { select: { id: true, name: true } },
         },
+      },
+      versions: {
+        select: {
+          id: true,
+          versionNumber: true,
+          fileName: true,
+          fileSize: true,
+          uploadedAt: true,
+          uploadedBy: { select: { id: true, name: true } },
+        },
+        orderBy: { versionNumber: "desc" },
       },
     },
   });
 
-  if (!policy) {
-    return NextResponse.json({ error: "Policy not found" }, { status: 404 });
+  if (!doc) throw ApiError.notFound("Policy not found");
+
+  // Has the caller acknowledged the current version?
+  let myAcknowledgedAt: Date | null = null;
+  if (doc.currentVersionId) {
+    const ack = await prisma.policyDocumentAcknowledgement.findUnique({
+      where: {
+        versionId_userId: {
+          versionId: doc.currentVersionId,
+          userId: session.user.id,
+        },
+      },
+      select: { acknowledgedAt: true },
+    });
+    myAcknowledgedAt = ack?.acknowledgedAt ?? null;
   }
 
-  // Calculate acknowledgement stats
-  const totalStaff = await prisma.user.count({
-    where: { active: true },
-  });
-
-  // Count users who acknowledged at the current version
-  const acknowledgedCount = await prisma.policyAcknowledgement.count({
-    where: {
-      policyId: id,
-      policyVersion: policy.version,
-    },
-  });
-
-  const pendingCount = totalStaff - acknowledgedCount;
-
   return NextResponse.json({
-    ...policy,
-    stats: {
-      totalStaff,
-      acknowledgedCount,
-      pendingCount,
-    },
+    ...doc,
+    myAcknowledgedAt,
   });
 });
 
-// PATCH /api/policies/[id] — update policy (owner/admin only)
-export const PATCH = withApiAuth(async (req, session, context) => {
-const { id } = await context!.params!;
+// PATCH /api/policies/[id] — update title/description/category only.
+// Uploading a new PDF is a separate route (/[id]/versions); editing metadata
+// does NOT bump the version or invalidate existing acknowledgements.
+export const PATCH = withApiAuth(
+  async (req, session, context) => {
+    const { id } = await context!.params!;
 
-  const existing = await prisma.policy.findUnique({
-    where: { id, deleted: false },
-  });
+    const existing = await prisma.policyDocument.findUnique({
+      where: { id },
+      select: { id: true, title: true },
+    });
+    if (!existing) throw ApiError.notFound("Policy not found");
 
-  if (!existing) {
-    return NextResponse.json({ error: "Policy not found" }, { status: 404 });
-  }
-
-  const body = await parseJsonBody(req);
-  const parsed = updatePolicySchema.safeParse(body);
-
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0].message },
-      { status: 400 }
-    );
-  }
-
-  const data: Record<string, unknown> = {};
-
-  if (parsed.data.title !== undefined) data.title = parsed.data.title;
-  if (parsed.data.category !== undefined) data.category = parsed.data.category;
-  if (parsed.data.documentUrl !== undefined)
-    data.documentUrl = parsed.data.documentUrl;
-  if (parsed.data.documentId !== undefined)
-    data.documentId = parsed.data.documentId;
-  if (parsed.data.requiresReack !== undefined)
-    data.requiresReack = parsed.data.requiresReack;
-
-  // If content or description changed, increment version
-  const contentChanged =
-    parsed.data.description !== undefined &&
-    parsed.data.description !== existing.description;
-
-  if (parsed.data.description !== undefined)
-    data.description = parsed.data.description;
-
-  if (contentChanged || parsed.data.content !== undefined) {
-    data.version = existing.version + 1;
-  }
-
-  // Handle status transitions
-  if (parsed.data.status !== undefined) {
-    data.status = parsed.data.status;
-    if (parsed.data.status === "published" && !existing.publishedAt) {
-      data.publishedAt = new Date();
+    const body = await parseJsonBody(req);
+    const parsed = updatePolicySchema.safeParse(body);
+    if (!parsed.success) {
+      throw ApiError.badRequest(parsed.error.issues[0].message);
     }
-  }
 
-  const policy = await prisma.policy.update({
-    where: { id },
-    data,
-  });
+    const data: {
+      title?: string;
+      description?: string | null;
+      category?: PolicyDocumentCategory;
+    } = {};
+    if (parsed.data.title !== undefined) data.title = parsed.data.title;
+    if (parsed.data.description !== undefined) data.description = parsed.data.description;
+    if (parsed.data.category !== undefined) data.category = parsed.data.category;
 
-  await prisma.activityLog.create({
-    data: {
-      userId: session!.user.id,
-      action: "update",
-      entityType: "Policy",
-      entityId: id,
-      details: {
-        fields: Object.keys(data),
-        versionBumped: !!data.version,
+    if (Object.keys(data).length === 0) {
+      throw ApiError.badRequest("No fields to update");
+    }
+
+    if (data.title && data.title !== existing.title) {
+      const titleClash = await prisma.policyDocument.findUnique({
+        where: { title: data.title },
+        select: { id: true },
+      });
+      if (titleClash && titleClash.id !== id) {
+        throw ApiError.conflict("A policy with that title already exists");
+      }
+    }
+
+    const updated = await prisma.policyDocument.update({
+      where: { id },
+      data,
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: session.user.id,
+        action: "update",
+        entityType: "PolicyDocument",
+        entityId: id,
+        details: { fields: Object.keys(data) },
       },
-    },
-  });
+    });
 
-  return NextResponse.json(policy);
-}, { roles: ["owner", "head_office", "admin"] });
-
-// DELETE /api/policies/[id] — soft delete (owner/admin only)
-export const DELETE = withApiAuth(async (req, session, context) => {
-const { id } = await context!.params!;
-
-  const existing = await prisma.policy.findUnique({
-    where: { id, deleted: false },
-  });
-
-  if (!existing) {
-    return NextResponse.json({ error: "Policy not found" }, { status: 404 });
-  }
-
-  await prisma.policy.update({
-    where: { id },
-    data: { deleted: true },
-  });
-
-  await prisma.activityLog.create({
-    data: {
-      userId: session!.user.id,
-      action: "delete",
-      entityType: "Policy",
-      entityId: id,
-      details: { title: existing.title },
-    },
-  });
-
-  return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+    return NextResponse.json(updated);
+  },
+  { roles: [...ADMIN_ROLES] },
+);

@@ -114,25 +114,23 @@ const userId = session!.user.id;
       orderBy: { startDate: "desc" },
     }),
 
-    // 5. All published policies (to cross-reference with acks)
-    prisma.policy.findMany({
-      where: { status: "published", deleted: false },
+    // 5. Active policy documents with their current version
+    prisma.policyDocument.findMany({
+      where: { isArchived: false, currentVersionId: { not: null } },
       select: {
         id: true,
         title: true,
         category: true,
-        version: true,
-        publishedAt: true,
+        currentVersion: {
+          select: { id: true, versionNumber: true, uploadedAt: true },
+        },
       },
     }),
 
-    // 6. User's policy acknowledgements
-    prisma.policyAcknowledgement.findMany({
+    // 6. Versions the caller has acknowledged (only need version ids)
+    prisma.policyDocumentAcknowledgement.findMany({
       where: { userId },
-      select: {
-        policyId: true,
-        policyVersion: true,
-      },
+      select: { versionId: true },
     }),
 
     // 7. Onboarding progress (most recent active)
@@ -217,27 +215,16 @@ const userId = session!.user.id;
     }),
   ]);
 
-  // Build ack lookup: policyId -> max acknowledged version
-  const ackMap = new Map<string, number>();
-  for (const ack of userPolicyAcks) {
-    const current = ackMap.get(ack.policyId) ?? 0;
-    if (ack.policyVersion > current) {
-      ackMap.set(ack.policyId, ack.policyVersion);
-    }
-  }
-
-  // Pending policies: published but user hasn't acked at current version
+  // Pending policies: current version exists and the caller has not acked it.
+  const ackedVersionIds = new Set(userPolicyAcks.map((a) => a.versionId));
   const pendingPolicies = publishedPolicies
-    .filter((p) => {
-      const ackedVersion = ackMap.get(p.id) ?? 0;
-      return ackedVersion < p.version;
-    })
+    .filter((p) => p.currentVersion && !ackedVersionIds.has(p.currentVersion.id))
     .map((p) => ({
       id: p.id,
       title: p.title,
       category: p.category,
-      version: p.version,
-      publishedAt: p.publishedAt,
+      version: p.currentVersion!.versionNumber,
+      publishedAt: p.currentVersion!.uploadedAt,
     }));
 
   // Onboarding progress summary

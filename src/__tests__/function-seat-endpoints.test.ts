@@ -217,46 +217,6 @@ describe("POST /api/cowork/hr/qualifications", () => {
 });
 
 // ══════════════════════════════════════════════════════════════
-// A3: HR Policies
-// ══════════════════════════════════════════════════════════════
-describe("POST /api/cowork/hr/policies", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("creates new policy", async () => {
-    (prisma.policy.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
-      null
-    );
-    (prisma.policy.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: "pol-1",
-      title: "WHS Policy",
-      version: 1,
-    });
-
-    const { POST } = await import("@/app/api/cowork/hr/policies/route");
-    const res = await POST(
-      makeReq("http://localhost/api/cowork/hr/policies", "POST", {
-        action: "create_policy",
-        title: "WHS Policy",
-        category: "safety",
-      })
-    );
-    expect(res.status).toBe(201);
-    const data = await res.json();
-    expect(data.policyId).toBe("pol-1");
-  });
-
-  it("returns 400 for invalid action", async () => {
-    const { POST } = await import("@/app/api/cowork/hr/policies/route");
-    const res = await POST(
-      makeReq("http://localhost/api/cowork/hr/policies", "POST", {
-        action: "invalid",
-      })
-    );
-    expect(res.status).toBe(400);
-  });
-});
-
-// ══════════════════════════════════════════════════════════════
 // A4: HR Timesheets
 // ══════════════════════════════════════════════════════════════
 describe("POST /api/cowork/hr/timesheets", () => {

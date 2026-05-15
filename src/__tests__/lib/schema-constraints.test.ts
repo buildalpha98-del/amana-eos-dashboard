@@ -60,9 +60,19 @@ describe("Prisma schema — unique constraints", () => {
     expect(block).toMatch(/name\s+String\s+@unique/);
   });
 
-  it("Policy.title has @unique", () => {
-    const block = getModelBlock("Policy");
+  it("PolicyDocument.title has @unique", () => {
+    const block = getModelBlock("PolicyDocument");
     expect(block).toMatch(/title\s+String\s+@unique/);
+  });
+
+  it("PolicyDocumentVersion has @@unique([documentId, versionNumber])", () => {
+    const block = getModelBlock("PolicyDocumentVersion");
+    expect(block).toMatch(/@@unique\(\[documentId, versionNumber\]\)/);
+  });
+
+  it("PolicyDocumentAcknowledgement has @@unique([versionId, userId])", () => {
+    const block = getModelBlock("PolicyDocumentAcknowledgement");
+    expect(block).toMatch(/@@unique\(\[versionId, userId\]\)/);
   });
 
   it("CrmEmailTemplate.name has @unique", () => {

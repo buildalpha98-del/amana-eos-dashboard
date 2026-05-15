@@ -44,12 +44,19 @@ function validateMagicBytes(buffer: Buffer, ext: string): boolean {
   });
 }
 
-type UploadType = "programs" | "resources" | "attachments";
+type UploadType = "programs" | "resources" | "attachments" | "policies";
 
 interface UploadResult {
   fileUrl: string;
   fileName: string;
   fileSize: number;
+}
+
+interface SaveBufferOptions {
+  /** When set, restricts uploads to this list of extensions (in addition to ALLOWED_EXTENSIONS). */
+  allowedExtensions?: ReadonlyArray<string>;
+  /** When set, the declared MIME (from a multipart header) must equal this value. */
+  requiredMimeType?: string;
 }
 
 // Extension → MIME type for Vercel Blob contentType
@@ -74,16 +81,16 @@ const EXT_MIME: Record<string, string> = {
 };
 
 /**
- * Decode a base64-encoded file and upload it to Vercel Blob storage.
- * Returns the public blob URL.
+ * Validate and upload a raw byte buffer to Vercel Blob storage.
+ * Returns the stored blob URL (server-side use only — never expose
+ * to the client for documents that need authenticated access).
  */
-export async function saveBase64File(
-  base64Data: string,
+export async function saveUploadedBuffer(
+  buffer: Buffer,
   filename: string,
-  type: UploadType
+  type: UploadType,
+  options?: SaveBufferOptions & { mimeType?: string }
 ): Promise<UploadResult> {
-  const buffer = Buffer.from(base64Data, "base64");
-
   if (buffer.length > MAX_FILE_SIZE) {
     throw new Error(
       `File exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit: ${filename}`
@@ -92,9 +99,26 @@ export async function saveBase64File(
 
   // Validate file extension
   const ext = path.extname(filename).toLowerCase() || "";
+
+  const allowedExtensions = options?.allowedExtensions ?? null;
+  if (allowedExtensions && !allowedExtensions.includes(ext)) {
+    throw new Error(
+      `File type "${ext || "unknown"}" is not allowed. Accepted: ${allowedExtensions.join(", ")}`
+    );
+  }
+
   if (!ALLOWED_EXTENSIONS.has(ext)) {
     throw new Error(
       `File type "${ext || "unknown"}" is not allowed. Accepted: ${[...ALLOWED_EXTENSIONS].join(", ")}`
+    );
+  }
+
+  // When a MIME type was declared by the caller (e.g. multipart Content-Type),
+  // enforce it against an explicit allow-list. This catches a client that
+  // uploads `.pdf` content with a falsified content-type header.
+  if (options?.requiredMimeType && options.mimeType && options.requiredMimeType !== options.mimeType) {
+    throw new Error(
+      `Unexpected MIME type "${options.mimeType}". Required: ${options.requiredMimeType}`
     );
   }
 
@@ -114,7 +138,7 @@ export async function saveBase64File(
 
   // Upload to Vercel Blob
   const { url } = await uploadFile(buffer, uniqueName, {
-    contentType: EXT_MIME[ext] ?? "application/octet-stream",
+    contentType: EXT_MIME[ext] ?? options?.mimeType ?? "application/octet-stream",
     folder: type,
   });
 
@@ -123,4 +147,17 @@ export async function saveBase64File(
     fileName: filename,
     fileSize: buffer.length,
   };
+}
+
+/**
+ * Decode a base64-encoded file and upload it to Vercel Blob storage.
+ * Returns the public blob URL.
+ */
+export async function saveBase64File(
+  base64Data: string,
+  filename: string,
+  type: UploadType
+): Promise<UploadResult> {
+  const buffer = Buffer.from(base64Data, "base64");
+  return saveUploadedBuffer(buffer, filename, type);
 }

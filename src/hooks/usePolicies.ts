@@ -3,77 +3,66 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
-import type { PolicyStatus } from "@prisma/client";
+import type { PolicyDocumentCategory } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-export interface PolicyData {
+export interface PolicyVersionSummary {
+  id: string;
+  versionNumber: number;
+  fileName: string;
+  fileSize: number;
+  uploadedAt: string;
+  uploadedBy: { id: string; name: string } | null;
+}
+
+export interface PolicyDocumentListItem {
   id: string;
   title: string;
   description: string | null;
-  version: number;
-  status: PolicyStatus;
-  category: string | null;
-  documentUrl: string | null;
-  documentId: string | null;
-  publishedAt: string | null;
-  requiresReack: boolean;
+  category: PolicyDocumentCategory;
+  isArchived: boolean;
   createdAt: string;
   updatedAt: string;
-  _count: { acknowledgements: number };
+  currentVersion: PolicyVersionSummary | null;
+  myAcknowledgedAt: string | null;
 }
 
-export interface PolicyAckUser {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string | null;
+export interface PolicyDocumentDetail extends PolicyDocumentListItem {
+  currentVersionId: string | null;
+  versions: PolicyVersionSummary[];
 }
 
-export interface PolicyAck {
+export interface PolicyAcknowledgementRow {
   id: string;
   userId: string;
-  policyVersion: number;
+  userName: string;
+  userEmail: string;
+  userAvatar: string | null;
+  versionId: string;
+  versionNumber: number;
   acknowledgedAt: string;
-  user: PolicyAckUser;
 }
 
-export interface PolicyDetail extends Omit<PolicyData, "_count"> {
-  acknowledgements: PolicyAck[];
-  stats: {
-    totalStaff: number;
-    acknowledgedCount: number;
-    pendingCount: number;
-  };
-}
-
-export interface PolicyCompliance {
-  id: string;
-  title: string;
-  version: number;
-  category: string | null;
-  publishedAt: string | null;
+export interface PolicyAcknowledgementsReport {
+  documentId: string;
+  currentVersionNumber: number | null;
   totalStaff: number;
-  acknowledgedCount: number;
-  pendingCount: number;
-  complianceRate: number;
+  currentVersionAcked: number;
+  acknowledgements: PolicyAcknowledgementRow[];
 }
 
 // ── Policies List ────────────────────────────────────────────────────────────
 
-export function usePolicies(filters?: {
-  status?: string;
-  category?: string;
-}) {
+export function usePolicies(filters?: { category?: PolicyDocumentCategory; includeArchived?: boolean }) {
   const params = new URLSearchParams();
-  if (filters?.status) params.set("status", filters.status);
   if (filters?.category) params.set("category", filters.category);
-
+  if (filters?.includeArchived) params.set("includeArchived", "true");
   const query = params.toString();
 
-  return useQuery<PolicyData[]>({
-    queryKey: ["policies", filters],
-    queryFn: () => fetchApi<PolicyData[]>(`/api/policies${query ? `?${query}` : ""}`),
+  return useQuery<PolicyDocumentListItem[]>({
+    queryKey: ["policies", filters?.category, filters?.includeArchived],
+    queryFn: () => fetchApi<PolicyDocumentListItem[]>(`/api/policies${query ? `?${query}` : ""}`),
     staleTime: 30_000,
     retry: 2,
   });
@@ -81,17 +70,44 @@ export function usePolicies(filters?: {
 
 // ── Policy Detail ────────────────────────────────────────────────────────────
 
-export function usePolicy(id: string) {
-  return useQuery<PolicyDetail>({
+export function usePolicy(id: string | undefined) {
+  return useQuery<PolicyDocumentDetail>({
     queryKey: ["policy", id],
-    queryFn: () => fetchApi<PolicyDetail>(`/api/policies/${id}`),
+    queryFn: () => fetchApi<PolicyDocumentDetail>(`/api/policies/${id}`),
     enabled: !!id,
     staleTime: 30_000,
     retry: 2,
   });
 }
 
-// ── Create Policy ────────────────────────────────────────────────────────────
+// ── Acknowledgement Report ───────────────────────────────────────────────────
+
+export function usePolicyAcknowledgements(id: string | undefined) {
+  return useQuery<PolicyAcknowledgementsReport>({
+    queryKey: ["policy-acks", id],
+    queryFn: () => fetchApi<PolicyAcknowledgementsReport>(`/api/policies/${id}/acknowledgements`),
+    enabled: !!id,
+    staleTime: 30_000,
+    retry: 2,
+  });
+}
+
+// ── Create Policy (multipart upload) ─────────────────────────────────────────
+
+async function postMultipart<T>(url: string, form: FormData): Promise<T> {
+  const res = await fetch(url, { method: "POST", body: form });
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.error) message = body.error;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+  return res.json() as Promise<T>;
+}
 
 export function useCreatePolicy() {
   const queryClient = useQueryClient();
@@ -99,20 +115,21 @@ export function useCreatePolicy() {
     mutationFn: async (data: {
       title: string;
       description?: string;
-      category?: string;
-      documentUrl?: string;
-      documentId?: string;
-      status?: PolicyStatus;
-      requiresReack?: boolean;
+      category: PolicyDocumentCategory;
+      file: File;
     }) => {
-      return mutateApi<PolicyData>("/api/policies", {
-        method: "POST",
-        body: data,
-      });
+      const form = new FormData();
+      form.append("title", data.title);
+      if (data.description) form.append("description", data.description);
+      form.append("category", data.category);
+      form.append("file", data.file);
+      return postMultipart<PolicyDocumentDetail>("/api/policies", form);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
-      toast({ description: "Policy created" });
+      queryClient.invalidateQueries({ queryKey: ["my-pending-policies"] });
+      queryClient.invalidateQueries({ queryKey: ["my-pending-policies-count"] });
+      toast({ description: "Policy uploaded" });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -120,7 +137,33 @@ export function useCreatePolicy() {
   });
 }
 
-// ── Update Policy ────────────────────────────────────────────────────────────
+// ── Upload New Version ───────────────────────────────────────────────────────
+
+export function useUploadPolicyVersion(documentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return postMultipart<PolicyVersionSummary>(`/api/policies/${documentId}/versions`, form);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["policies"] });
+      queryClient.invalidateQueries({ queryKey: ["policy", documentId] });
+      queryClient.invalidateQueries({ queryKey: ["policy-acks", documentId] });
+      queryClient.invalidateQueries({ queryKey: ["my-pending-policies"] });
+      queryClient.invalidateQueries({ queryKey: ["my-pending-policies-count"] });
+      toast({
+        description: "New version uploaded. All staff will be required to re-acknowledge.",
+      });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+// ── Update Policy Details ────────────────────────────────────────────────────
 
 export function useUpdatePolicy() {
   const queryClient = useQueryClient();
@@ -132,22 +175,15 @@ export function useUpdatePolicy() {
       id: string;
       title?: string;
       description?: string | null;
-      category?: string | null;
-      documentUrl?: string | null;
-      documentId?: string | null;
-      status?: PolicyStatus;
-      requiresReack?: boolean;
-      content?: string;
-    }) => {
-      return mutateApi<PolicyData>(`/api/policies/${id}`, {
+      category?: PolicyDocumentCategory;
+    }) =>
+      mutateApi<PolicyDocumentListItem>(`/api/policies/${id}`, {
         method: "PATCH",
         body: data,
-      });
-    },
-    onSuccess: () => {
+      }),
+    onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
-      queryClient.invalidateQueries({ queryKey: ["policy"] });
-      queryClient.invalidateQueries({ queryKey: ["policies-compliance"] });
+      queryClient.invalidateQueries({ queryKey: ["policy", vars.id] });
       toast({ description: "Policy updated" });
     },
     onError: (err: Error) => {
@@ -156,18 +192,21 @@ export function useUpdatePolicy() {
   });
 }
 
-// ── Delete Policy ────────────────────────────────────────────────────────────
+// ── Archive / Unarchive ──────────────────────────────────────────────────────
 
-export function useDeletePolicy() {
+export function useArchivePolicy() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      return mutateApi(`/api/policies/${id}`, { method: "DELETE" });
-    },
+    mutationFn: async ({ id, isArchived = true }: { id: string; isArchived?: boolean }) =>
+      mutateApi<{ id: string; isArchived: boolean }>(`/api/policies/${id}/archive`, {
+        method: "PATCH",
+        body: { isArchived },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
-      queryClient.invalidateQueries({ queryKey: ["policies-compliance"] });
-      toast({ description: "Policy deleted" });
+      queryClient.invalidateQueries({ queryKey: ["my-pending-policies"] });
+      queryClient.invalidateQueries({ queryKey: ["my-pending-policies-count"] });
+      toast({ description: "Policy archived" });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -180,18 +219,16 @@ export function useDeletePolicy() {
 export function useAcknowledgePolicy() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (policyId: string) => {
-      return mutateApi(`/api/policies/${policyId}/acknowledge`, {
-        method: "POST",
-      });
-    },
+    mutationFn: async (documentId: string) =>
+      mutateApi<{ id: string; acknowledgedAt: string }>(
+        `/api/policies/${documentId}/acknowledge`,
+        { method: "POST" },
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
       queryClient.invalidateQueries({ queryKey: ["policy"] });
-      queryClient.invalidateQueries({ queryKey: ["policies-compliance"] });
       queryClient.invalidateQueries({ queryKey: ["my-pending-policies"] });
-      queryClient.invalidateQueries({ queryKey: ["policy-heat-map"] });
-      toast({ description: "Policy acknowledged" });
+      queryClient.invalidateQueries({ queryKey: ["my-pending-policies-count"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -199,67 +236,21 @@ export function useAcknowledgePolicy() {
   });
 }
 
-// ── Compliance Dashboard ─────────────────────────────────────────────────────
-
-export function usePolicyCompliance() {
-  return useQuery<PolicyCompliance[]>({
-    queryKey: ["policies-compliance"],
-    queryFn: () => fetchApi<PolicyCompliance[]>("/api/policies/compliance"),
-    staleTime: 60_000,
-    retry: 2,
-  });
-}
-
-// ── My Pending Policies ──────────────────────────────────────────────────────
+// ── My Pending Policies + Count ──────────────────────────────────────────────
 
 export function useMyPendingPolicies() {
-  return useQuery<PolicyData[]>({
+  return useQuery<PolicyDocumentListItem[]>({
     queryKey: ["my-pending-policies"],
-    queryFn: () => fetchApi<PolicyData[]>("/api/policies/my-pending"),
+    queryFn: () => fetchApi<PolicyDocumentListItem[]>("/api/policies/my-pending"),
     staleTime: 30_000,
     retry: 2,
   });
 }
 
-// ── Policy Heat-Map ──────────────────────────────────────────────────────────
-
-export interface PolicyHeatMapAck {
-  policyId: string;
-  policyVersion: number;
-  acknowledgedAt: string;
-}
-
-export interface PolicyHeatMapRow {
-  userId: string;
-  userName: string;
-  serviceName: string;
-  serviceCode: string;
-  acknowledgements: PolicyHeatMapAck[];
-}
-
-export interface PolicyHeatMapPolicy {
-  id: string;
-  title: string;
-  version: number;
-  category: string | null;
-  publishedAt: string | null;
-}
-
-export interface PolicyHeatMapData {
-  rows: PolicyHeatMapRow[];
-  policies: PolicyHeatMapPolicy[];
-  summary: {
-    totalStaff: number;
-    fullyAcknowledged: number;
-    partial: number;
-    none: number;
-  };
-}
-
-export function usePolicyHeatMap() {
-  return useQuery<PolicyHeatMapData>({
-    queryKey: ["policy-heat-map"],
-    queryFn: () => fetchApi<PolicyHeatMapData>("/api/policies/heat-map"),
+export function useMyPendingPoliciesCount() {
+  return useQuery<{ count: number }>({
+    queryKey: ["my-pending-policies-count"],
+    queryFn: () => fetchApi<{ count: number }>("/api/policies/my-pending/count"),
     staleTime: 60_000,
     retry: 2,
   });

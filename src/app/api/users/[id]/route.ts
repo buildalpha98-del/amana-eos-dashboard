@@ -195,7 +195,7 @@ const { id } = await context!.params!;
       await tx.staffQualification.deleteMany({ where: { userId: id } });
       await tx.leaveBalance.deleteMany({ where: { userId: id } });
       await tx.timesheetEntry.deleteMany({ where: { userId: id } });
-      await tx.policyAcknowledgement.deleteMany({ where: { userId: id } });
+      await tx.policyDocumentAcknowledgement.deleteMany({ where: { userId: id } });
 
       // Onboarding / LMS
       await tx.staffOnboarding.deleteMany({ where: { userId: id } });

@@ -139,7 +139,7 @@ export const navItems: NavItem[] = [
   // staff shouldn't see it. Without this tightening the nav still showed
   // it for member because /compliance prefix-matched /compliance/templates.
   { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ["head_office", "admin"] },
-  { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance", roles: ALL_NON_MARKETING },
+  { href: "/policies", label: "Policies & Procedures", icon: Shield, section: "Operations", tooltip: "Versioned PDF library with per-version acknowledgement", roles: ALL_NON_MARKETING },
   // 2026-04-30: tightened from ALL_NON_MARKETING → ["head_office", "admin"].
   // Director of Service (member) and Educator (staff) now log incidents from
   // inside the service detail page (service-scoped). The cross-service

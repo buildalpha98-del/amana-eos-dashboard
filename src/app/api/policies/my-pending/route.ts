@@ -2,30 +2,48 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
-// GET /api/policies/my-pending — published policies user hasn't acknowledged at current version
+// GET /api/policies/my-pending — non-archived policy documents that have
+// a current version the caller has not yet acknowledged. Marketing role
+// is excluded from the pending feed (they can view & ack via the page,
+// but acknowledgement isn't part of their workflow).
 export const GET = withApiAuth(async (req, session) => {
   const userId = session.user.id;
 
-  // Get all published policies
-  const publishedPolicies = await prisma.policy.findMany({
-    where: { status: "published", deleted: false },
+  const docs = await prisma.policyDocument.findMany({
+    where: {
+      isArchived: false,
+      currentVersionId: { not: null },
+    },
+    include: {
+      currentVersion: {
+        select: {
+          id: true,
+          versionNumber: true,
+          fileName: true,
+          uploadedAt: true,
+        },
+      },
+    },
     orderBy: { updatedAt: "desc" },
   });
 
-  // Get user's acknowledgements
-  const userAcks = await prisma.policyAcknowledgement.findMany({
-    where: { userId },
-    select: { policyId: true, policyVersion: true },
-  });
+  const currentVersionIds = docs
+    .map((d) => d.currentVersionId)
+    .filter((id): id is string => !!id);
 
-  // Build a set of "policyId:version" for quick lookup
-  const ackedSet = new Set(
-    userAcks.map((a) => `${a.policyId}:${a.policyVersion}`)
-  );
+  const ackedVersionIds = currentVersionIds.length
+    ? new Set(
+        (
+          await prisma.policyDocumentAcknowledgement.findMany({
+            where: { userId, versionId: { in: currentVersionIds } },
+            select: { versionId: true },
+          })
+        ).map((a) => a.versionId),
+      )
+    : new Set<string>();
 
-  // Filter to policies not acknowledged at current version
-  const pending = publishedPolicies.filter(
-    (p) => !ackedSet.has(`${p.id}:${p.version}`)
+  const pending = docs.filter(
+    (d) => d.currentVersionId && !ackedVersionIds.has(d.currentVersionId),
   );
 
   return NextResponse.json(pending);

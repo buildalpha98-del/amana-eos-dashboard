@@ -52,10 +52,15 @@ export const GET = withApiAuth(async (req, session) => {
     }),
     // 6. Qualification records count
     prisma.staffQualification.count(),
-    // 7. Published policies with ack counts
-    prisma.policy.findMany({
-      where: { deleted: false, status: "published" },
-      select: { id: true, _count: { select: { acknowledgements: true } } },
+    // 7. Active policy documents (with a current version uploaded)
+    prisma.policyDocument.findMany({
+      where: { isArchived: false, currentVersionId: { not: null } },
+      select: {
+        id: true,
+        currentVersion: {
+          select: { _count: { select: { acknowledgements: true } } },
+        },
+      },
     }),
     // 8. Latest centre metrics per service
     prisma.centreMetrics.findMany({
