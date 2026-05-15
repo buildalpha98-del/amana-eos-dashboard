@@ -7,6 +7,7 @@ import {
   PILLAR_KEYS,
 } from "@/lib/health-score";
 import { generateRecommendations } from "@/lib/health-score-recommendations";
+import { getOrgSettings } from "@/lib/org-settings";
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -182,7 +183,14 @@ async function computeOnTheFly(serviceId: string) {
   };
 
   const previousScore = previousHealthScore?.overallScore ?? null;
-  const result = computeHealthScore(metrics, financials, eos, previousScore);
+  const orgSettings = await getOrgSettings();
+  const result = computeHealthScore(
+    metrics,
+    financials,
+    eos,
+    previousScore,
+    orgSettings.healthScore,
+  );
 
   return { result, metrics, financials, eos };
 }

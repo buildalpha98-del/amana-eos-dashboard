@@ -104,6 +104,7 @@ export const allPages = [
   "/team",
   "/accountability-chart",
   "/settings",
+  "/settings/organisation",
   "/profile",
   "/crm",
   "/crm/templates",

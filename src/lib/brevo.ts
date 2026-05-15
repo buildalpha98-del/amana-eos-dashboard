@@ -6,10 +6,20 @@
  */
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
-const BREVO_SENDER_EMAIL =
-  process.env.BREVO_SENDER_EMAIL || "admin@amanaoshc.com.au";
-const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "Amana OSHC";
 const BREVO_API = "https://api.brevo.com/v3";
+
+// 2026-05-16: sender identity moved to OrgSettings.config so owner/admin
+// can rebrand without a deploy. Env vars still feed the code defaults
+// inside getOrgSettings() — see src/lib/org-settings.ts.
+import { getOrgSettings } from "@/lib/org-settings";
+
+async function getSender(): Promise<{ email: string; name: string }> {
+  const settings = await getOrgSettings();
+  return {
+    email: settings.email.senderEmail,
+    name: settings.email.senderName,
+  };
+}
 
 export function isBrevoConfigured(): boolean {
   return !!BREVO_API_KEY;
@@ -51,7 +61,7 @@ export async function sendTransactionalEmail(
   params: TransactionalParams,
 ): Promise<{ messageId: string }> {
   const payload: Record<string, unknown> = {
-    sender: { email: BREVO_SENDER_EMAIL, name: BREVO_SENDER_NAME },
+    sender: await getSender(),
     to: params.to,
     subject: params.subject,
     htmlContent: params.htmlContent,
@@ -131,7 +141,7 @@ export async function sendCampaignEmail(
   const campaignPayload: Record<string, unknown> = {
     name: `Newsletter ${new Date().toISOString().split("T")[0]}`,
     subject: params.subject,
-    sender: { email: BREVO_SENDER_EMAIL, name: BREVO_SENDER_NAME },
+    sender: await getSender(),
     htmlContent: params.htmlContent,
     recipients: { listIds: [listId] },
   };

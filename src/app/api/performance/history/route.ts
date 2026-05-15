@@ -7,12 +7,14 @@ import {
   type ScoreInputEOS,
 } from "@/lib/health-score";
 import { withApiAuth } from "@/lib/server-auth";
+import { getOrgSettings } from "@/lib/org-settings";
 
 // GET /api/performance/history — returns last 6 months of scores per centre
 export const GET = withApiAuth(async (req, session) => {
   const months = parseInt(new URL(req.url).searchParams.get("months") || "6", 10);
   const since = new Date();
   since.setMonth(since.getMonth() - months);
+  const orgSettings = await getOrgSettings();
 
   // Attempt to load persisted HealthScore records
   const healthScores = await prisma.healthScore.findMany({
@@ -240,7 +242,13 @@ export const GET = withApiAuth(async (req, session) => {
           }
         : null;
 
-      const result = computeHealthScore(metricsInput, financialsInput, emptyEOS, previousScore);
+      const result = computeHealthScore(
+        metricsInput,
+        financialsInput,
+        emptyEOS,
+        previousScore,
+        orgSettings.healthScore,
+      );
       previousScore = result.overallScore;
 
       points.push({

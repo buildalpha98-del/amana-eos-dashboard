@@ -9,9 +9,11 @@ import {
   type ScoreInputEOS,
 } from "@/lib/health-score";
 import { withApiAuth } from "@/lib/server-auth";
+import { getOrgSettings } from "@/lib/org-settings";
 
 export const GET = withApiAuth(async (req, session) => {
 const stateScope = getStateScope(session);
+const orgSettings = await getOrgSettings();
 
   // Get all active services with their latest metrics and financials
   const services = await prisma.service.findMany({
@@ -131,7 +133,13 @@ const stateScope = getStateScope(session);
         ticketsResolved: 0,
       };
 
-      const result = computeHealthScore(metricsInput, financialsInput, emptyEOS, null);
+      const result = computeHealthScore(
+        metricsInput,
+        financialsInput,
+        emptyEOS,
+        null,
+        orgSettings.healthScore,
+      );
       score = result.overallScore;
       trend = "stable";
       pillars = {

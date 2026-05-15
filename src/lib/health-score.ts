@@ -56,13 +56,36 @@ export interface ScoreInputEOS {
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-const PILLAR_WEIGHTS = {
+// Code defaults — used when no override is passed in. These mirror the
+// org-settings defaults in src/lib/org-settings.ts. Owner/admin can
+// override via /settings/organisation, with the merged values then
+// flowing in through `computeHealthScore({ healthScore })`.
+export const DEFAULT_PILLAR_WEIGHTS = {
   financial: 0.3,
   operational: 0.25,
   compliance: 0.2,
   satisfaction: 0.15,
   teamCulture: 0.1,
 } as const;
+
+export const DEFAULT_SCORE_THRESHOLDS = {
+  green: 75,
+  amber: 50,
+} as const;
+
+export interface HealthScoreConfig {
+  pillarWeights: {
+    financial: number;
+    operational: number;
+    compliance: number;
+    satisfaction: number;
+    teamCulture: number;
+  };
+  thresholds: {
+    green: number;
+    amber: number;
+  };
+}
 
 export const PILLAR_LABELS: Record<string, string> = {
   financial: "Financial Performance",
@@ -92,10 +115,11 @@ function clampedLinear(
 }
 
 export function getScoreStatus(
-  score: number
+  score: number,
+  thresholds: { green: number; amber: number } = DEFAULT_SCORE_THRESHOLDS,
 ): "green" | "amber" | "red" {
-  if (score >= 75) return "green";
-  if (score >= 50) return "amber";
+  if (score >= thresholds.green) return "green";
+  if (score >= thresholds.amber) return "amber";
   return "red";
 }
 
@@ -337,7 +361,11 @@ export function computeHealthScore(
   metrics: ScoreInputMetrics | null,
   financials: ScoreInputFinancials | null,
   eos: ScoreInputEOS,
-  previousOverallScore: number | null
+  previousOverallScore: number | null,
+  config: HealthScoreConfig = {
+    pillarWeights: DEFAULT_PILLAR_WEIGHTS,
+    thresholds: DEFAULT_SCORE_THRESHOLDS,
+  },
 ): HealthScoreResult {
   const pillars = {
     financial: computeFinancialPillar(financials),
@@ -347,18 +375,19 @@ export function computeHealthScore(
     teamCulture: computeTeamCulturePillar(metrics, eos),
   };
 
+  const w = config.pillarWeights;
   const overallScore = Math.round(
-    pillars.financial.score * PILLAR_WEIGHTS.financial +
-      pillars.operational.score * PILLAR_WEIGHTS.operational +
-      pillars.compliance.score * PILLAR_WEIGHTS.compliance +
-      pillars.satisfaction.score * PILLAR_WEIGHTS.satisfaction +
-      pillars.teamCulture.score * PILLAR_WEIGHTS.teamCulture
+    pillars.financial.score * w.financial +
+      pillars.operational.score * w.operational +
+      pillars.compliance.score * w.compliance +
+      pillars.satisfaction.score * w.satisfaction +
+      pillars.teamCulture.score * w.teamCulture,
   );
 
   return {
     overallScore: Math.max(0, Math.min(100, overallScore)),
     trend: getTrend(overallScore, previousOverallScore),
-    status: getScoreStatus(overallScore),
+    status: getScoreStatus(overallScore, config.thresholds),
     pillars,
   };
 }
