@@ -14,6 +14,7 @@ import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
 import { PWAInstallPrompt } from "@/components/shared/PWAInstallPrompt";
 import { OnboardingTourWrapper } from "@/components/shared/OnboardingTourWrapper";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
+import { RoleLabelsProvider } from "@/contexts/RoleLabelsContext";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
@@ -41,11 +42,13 @@ export default function DashboardLayout({
 }) {
   return (
     <ThemeProvider>
-      <SidebarProvider>
-        <QuickAddProvider>
-          <DashboardLayoutInner>{children}</DashboardLayoutInner>
-        </QuickAddProvider>
-      </SidebarProvider>
+      <RoleLabelsProvider>
+        <SidebarProvider>
+          <QuickAddProvider>
+            <DashboardLayoutInner>{children}</DashboardLayoutInner>
+          </QuickAddProvider>
+        </SidebarProvider>
+      </RoleLabelsProvider>
     </ThemeProvider>
   );
 }

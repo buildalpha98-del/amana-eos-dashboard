@@ -52,6 +52,7 @@ import {
   ROLE_DISPLAY_NAMES,
   type PermissionRow,
 } from "@/lib/role-permissions";
+import { useRoleLabels } from "@/contexts/RoleLabelsContext";
 import {
   useXeroStatus,
   useXeroConnect,
@@ -90,6 +91,9 @@ interface UserData {
   createdAt: string;
 }
 
+// InviteUserModal uses the runtime role labels for both its role-picker
+// options and the "<role>s are scoped to their assigned service" hint
+// below the service/state dropdowns.
 function InviteUserModal({
   open,
   onClose,
@@ -108,6 +112,7 @@ function InviteUserModal({
   const [state, setState] = useState("");
   const [error, setError] = useState("");
 
+  const roleLabels = useRoleLabels();
   // Fetch services for the service picker
   const { data: services } = useQuery<{ id: string; name: string; code: string }[]>({
     queryKey: ["services-list"],
@@ -239,13 +244,12 @@ function InviteUserModal({
               onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member") setServiceId(""); if (e.target.value !== "admin") setState(""); }}
               className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
-              <option value="staff">{ROLE_DISPLAY_NAMES.staff}</option>
-              <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
-              <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
-              <option value="marketing">{ROLE_DISPLAY_NAMES.marketing}</option>
-              <option value="admin">{ROLE_DISPLAY_NAMES.admin}</option>
-              {currentUserRole === "owner" && <option value="head_office">{ROLE_DISPLAY_NAMES.head_office}</option>}
-              {currentUserRole === "owner" && <option value="owner">{ROLE_DISPLAY_NAMES.owner}</option>}
+              <option value="staff">{roleLabels.staff}</option>
+              <option value="member">{roleLabels.member}</option>
+              <option value="marketing">{roleLabels.marketing}</option>
+              <option value="admin">{roleLabels.admin}</option>
+              {currentUserRole === "owner" && <option value="head_office">{roleLabels.head_office}</option>}
+              {currentUserRole === "owner" && <option value="owner">{roleLabels.owner}</option>}
             </select>
           </div>
 
@@ -268,7 +272,7 @@ function InviteUserModal({
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted">
-                {role === "staff" ? ROLE_DISPLAY_NAMES.staff + "s" : ROLE_DISPLAY_NAMES.member + "s"} are scoped to their assigned service
+                {role === "staff" ? roleLabels.staff + "s" : roleLabels.member + "s"} are scoped to their assigned service
               </p>
             </div>
           )}
@@ -292,7 +296,7 @@ function InviteUserModal({
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted">
-                {ROLE_DISPLAY_NAMES.admin}s are scoped to services within their assigned state
+                {roleLabels.admin}s are scoped to services within their assigned state
               </p>
             </div>
           )}
@@ -342,6 +346,7 @@ function UserRow({
   canManageUsers: boolean;
 }) {
   const queryClient = useQueryClient();
+  const roleLabels = useRoleLabels();
   const [showMenu, setShowMenu] = useState(false);
   const [showResetPw, setShowResetPw] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -456,7 +461,7 @@ function UserRow({
       <td className="py-3 px-4">
         <span className="inline-flex items-center gap-1.5 text-xs font-medium capitalize">
           <RoleIcon role={user.role} />
-          {ROLE_DISPLAY_NAMES[user.role] ?? user.role}
+          {roleLabels[user.role] ?? user.role}
         </span>
       </td>
       <td className="py-3 px-4">
@@ -493,38 +498,38 @@ function UserRow({
                     onClick={() => updateRole.mutate("staff")}
                     className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
-                    Set as {ROLE_DISPLAY_NAMES.staff}
+                    Set as {roleLabels.staff}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("member")}
                     className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
-                    Set as {ROLE_DISPLAY_NAMES.member}
+                    Set as {roleLabels.member}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("member")}
                     className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
-                    Set as {ROLE_DISPLAY_NAMES.member}
+                    Set as {roleLabels.member}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("marketing")}
                     className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
-                    Set as {ROLE_DISPLAY_NAMES.marketing}
+                    Set as {roleLabels.marketing}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("admin")}
                     className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
-                    Set as {ROLE_DISPLAY_NAMES.admin}
+                    Set as {roleLabels.admin}
                   </button>
                   {isOwner && (
                     <button
                       onClick={() => updateRole.mutate("head_office")}
                       className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                     >
-                      Set as {ROLE_DISPLAY_NAMES.head_office}
+                      Set as {roleLabels.head_office}
                     </button>
                   )}
                   {isOwner && (
@@ -532,7 +537,7 @@ function UserRow({
                       onClick={() => updateRole.mutate("owner")}
                       className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                     >
-                      Set as {ROLE_DISPLAY_NAMES.owner}
+                      Set as {roleLabels.owner}
                     </button>
                   )}
                   <hr className="my-1" />
@@ -1767,6 +1772,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
 // ——— Permissions Overview (owner only) ———
 
 function PermissionsPanel() {
+  const roleLabels = useRoleLabels();
   // Group rows by section
   const sections: { name: string; rows: PermissionRow[] }[] = [];
   let currentSection = "";
@@ -1799,25 +1805,22 @@ function PermissionsPanel() {
                 Permission
               </th>
               <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                {ROLE_DISPLAY_NAMES.owner}
+                {roleLabels.owner}
               </th>
               <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                {ROLE_DISPLAY_NAMES.head_office}
+                {roleLabels.head_office}
               </th>
               <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                {ROLE_DISPLAY_NAMES.admin}
+                {roleLabels.admin}
               </th>
               <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                {ROLE_DISPLAY_NAMES.marketing}
+                {roleLabels.marketing}
               </th>
               <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                {ROLE_DISPLAY_NAMES.member}
+                {roleLabels.member}
               </th>
               <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                {ROLE_DISPLAY_NAMES.member}
-              </th>
-              <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                {ROLE_DISPLAY_NAMES.staff}
+                {roleLabels.staff}
               </th>
             </tr>
           </thead>

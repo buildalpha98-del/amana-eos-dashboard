@@ -34,25 +34,24 @@ export function parseRole(value: unknown): Role | null {
 // 0. Role display names (human-readable labels for the UI)
 // ---------------------------------------------------------------------------
 
-/** Maps database role values → user-facing display names */
-// 2026-04-30: terminology refresh per training-session feedback —
-// "Centre Director" → "Director of Service" so the title reflects the
-// service-leader scope. The `coordinator` enum value is dropped in this
-// PR (migration 20260430140000_drop_coordinator_role); its surfaces fold
-// into `member` since the two roles were operationally indistinguishable.
-//
-// 2026-05-06: `member` display → "OSHC Educator" per second-round
-// training feedback. Maps cleanly to the AU childcare cert tier (the
-// Diploma-qualified service-lead educator). `staff` remains "Educator"
-// for entry-level / Cert III roles. Permission scopes are unchanged.
-export const ROLE_DISPLAY_NAMES: Record<Role, string> = {
-  owner: "Owner",
-  head_office: "State Manager",
-  admin: "Admin",
-  marketing: "Marketing",
-  member: "OSHC Educator",
-  staff: "Educator",
-};
+/** Maps database role values → user-facing display names.
+ *
+ * 2026-05-16: this static map is now the FALLBACK only — runtime labels
+ * live in OrgSettings.config.roleLabels and are editable from
+ * /settings/organisation. Client surfaces should prefer `useRoleLabel()`
+ * (from `@/contexts/RoleLabelsContext`) so they see admin overrides;
+ * server-side code can call `getRoleLabel(role, settings.roleLabels)`
+ * from `@/lib/org-settings-shared`. This export stays so the old call
+ * sites keep compiling, and the value still equals the defaults.
+ *
+ * Historical notes on the defaults below:
+ *   - 2026-04-30: "Centre Director" → "Director of Service" (then dropped
+ *     when the coordinator role collapsed into `member`).
+ *   - 2026-05-06: `member` → "OSHC Educator" (Diploma-qualified service
+ *     lead); `staff` stays "Educator" (Cert III entry-level).
+ */
+import { ROLE_LABEL_DEFAULTS } from "@/lib/org-settings-shared";
+export const ROLE_DISPLAY_NAMES: Record<Role, string> = ROLE_LABEL_DEFAULTS;
 
 /** Inverse lookup: display name → role key */
 export function roleFromDisplayName(displayName: string): Role | undefined {
