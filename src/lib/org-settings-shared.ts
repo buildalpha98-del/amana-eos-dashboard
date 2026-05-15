@@ -12,6 +12,7 @@
  */
 
 import { z } from "zod";
+import type { Role } from "@prisma/client";
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,15 @@ const thresholdsSchema = z
     message: "Green threshold must be greater than amber",
   });
 
+const roleLabelsSchema = z.object({
+  owner: z.string().min(1).max(60),
+  head_office: z.string().min(1).max(60),
+  admin: z.string().min(1).max(60),
+  marketing: z.string().min(1).max(60),
+  member: z.string().min(1).max(60),
+  staff: z.string().min(1).max(60),
+});
+
 export const orgSettingsConfigSchema = z.object({
   email: z.object({
     senderEmail: z.string().email(),
@@ -61,9 +71,32 @@ export const orgSettingsConfigSchema = z.object({
     pillarWeights: pillarWeightsSchema,
     thresholds: thresholdsSchema,
   }),
+  // 2026-05-16: user-facing role display names. Renamed twice in recent
+  // history (coordinator collapse, member → OSHC Educator) — each rename
+  // previously needed a code push. Now editable in /settings/organisation.
+  // The DB rows still reference the Prisma `Role` enum (owner, head_office,
+  // admin, marketing, member, staff); the label is purely cosmetic.
+  roleLabels: roleLabelsSchema,
 });
 
 export type OrgSettingsConfig = z.infer<typeof orgSettingsConfigSchema>;
+
+export type RoleLabels = OrgSettingsConfig["roleLabels"];
+
+/** Static fallback used by `useRoleLabel()` when no provider is mounted. */
+export const ROLE_LABEL_DEFAULTS: RoleLabels = {
+  owner: "Owner",
+  head_office: "State Manager",
+  admin: "Admin",
+  marketing: "Marketing",
+  member: "OSHC Educator",
+  staff: "Educator",
+};
+
+/** Server-safe label getter. Pass the merged `OrgSettingsConfig.roleLabels`. */
+export function getRoleLabel(role: Role, labels: RoleLabels = ROLE_LABEL_DEFAULTS): string {
+  return labels[role] ?? ROLE_LABEL_DEFAULTS[role] ?? role;
+}
 
 // ─── Code defaults ──────────────────────────────────────────────────────────
 // These mirror the constants that used to be hardcoded in brevo.ts,
@@ -93,6 +126,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
       amber: 50,
     },
   },
+  roleLabels: ROLE_LABEL_DEFAULTS,
 };
 
 // ─── Merger ─────────────────────────────────────────────────────────────────
@@ -130,6 +164,13 @@ export function mergeOrgSettings(
   const hsT = (hs.thresholds && typeof hs.thresholds === "object"
     ? hs.thresholds
     : {}) as Record<string, unknown>;
+  const rl = (safe.roleLabels && typeof safe.roleLabels === "object"
+    ? safe.roleLabels
+    : {}) as Record<string, unknown>;
+  const pickLabel = (key: keyof RoleLabels): string =>
+    typeof rl[key] === "string" && (rl[key] as string).length > 0
+      ? (rl[key] as string)
+      : defaults.roleLabels[key];
 
   return {
     email: {
@@ -182,6 +223,14 @@ export function mergeOrgSettings(
             ? (hsT.amber as number)
             : defaults.healthScore.thresholds.amber,
       },
+    },
+    roleLabels: {
+      owner: pickLabel("owner"),
+      head_office: pickLabel("head_office"),
+      admin: pickLabel("admin"),
+      marketing: pickLabel("marketing"),
+      member: pickLabel("member"),
+      staff: pickLabel("staff"),
     },
   };
 }

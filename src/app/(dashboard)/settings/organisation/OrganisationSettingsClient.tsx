@@ -24,8 +24,28 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import {
   ORG_SETTINGS_DEFAULTS,
+  ROLE_LABEL_DEFAULTS,
   type OrgSettingsConfig,
+  type RoleLabels,
 } from "@/lib/org-settings-shared";
+
+const ROLE_KEYS: (keyof RoleLabels)[] = [
+  "owner",
+  "head_office",
+  "admin",
+  "marketing",
+  "member",
+  "staff",
+];
+
+const ROLE_HINTS: Record<keyof RoleLabels, string> = {
+  owner: "Permission tier — full access to everything",
+  head_office: "Region / state-wide manager",
+  admin: "Org-wide operations admin",
+  marketing: "Marketing team scope",
+  member: "Service-level lead (legacy: Director of Service)",
+  staff: "On-shift educator",
+};
 
 interface Props {
   initialConfig: OrgSettingsConfig;
@@ -60,7 +80,11 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
   const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(
     config.email.senderEmail,
   );
-  const canSave = weightsValid && thresholdsValid && ratioValid && emailValid;
+  const labelsValid = ROLE_KEYS.every(
+    (k) => config.roleLabels[k].trim().length > 0,
+  );
+  const canSave =
+    weightsValid && thresholdsValid && ratioValid && emailValid && labelsValid;
 
   async function handleSave() {
     setSaving(true);
@@ -110,6 +134,35 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
           Save changes
         </Button>
       </div>
+
+      {/* Role labels */}
+      <Section
+        title="Role display names"
+        description="What each role is called across the dashboard UI — sidebars, badges, dropdowns, page headers. Permission scopes are tied to the underlying role keys (Owner, head_office, admin, etc.) — only the label is editable. New labels propagate within a few seconds of saving."
+        onReset={() => setConfig((c) => ({ ...c, roleLabels: ROLE_LABEL_DEFAULTS }))}
+      >
+        {ROLE_KEYS.map((key) => (
+          <Field
+            key={key}
+            label={ROLE_HINTS[key]}
+            valid={config.roleLabels[key].trim().length > 0}
+            error="Cannot be blank"
+            hint={key}
+          >
+            <input
+              type="text"
+              value={config.roleLabels[key]}
+              onChange={(e) =>
+                setConfig((c) => ({
+                  ...c,
+                  roleLabels: { ...c.roleLabels, [key]: e.target.value },
+                }))
+              }
+              className="w-56 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+            />
+          </Field>
+        ))}
+      </Section>
 
       {/* Email */}
       <Section
