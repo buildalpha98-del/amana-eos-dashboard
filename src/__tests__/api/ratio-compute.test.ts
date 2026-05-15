@@ -6,10 +6,11 @@ import {
   resolveMinRatio,
   type SessionTypeKey,
 } from "@/lib/ratio-compute";
+import { _clearOrgSettingsCache } from "@/lib/org-settings";
 
 describe("resolveMinRatio", () => {
   it("returns the federal default when settings are null", () => {
-    expect(resolveMinRatio(null, "bsc")).toBe("1:15");
+    expect(resolveMinRatio(null, "bsc", "1:15")).toBe("1:15");
   });
 
   it("pulls per-session overrides from settings Json", () => {
@@ -18,18 +19,23 @@ describe("resolveMinRatio", () => {
       asc: { ratio: "1:15" },
       vc: { ratio: "1:11" },
     };
-    expect(resolveMinRatio(settings, "bsc")).toBe("1:10");
-    expect(resolveMinRatio(settings, "vc")).toBe("1:11");
+    expect(resolveMinRatio(settings, "bsc", "1:15")).toBe("1:10");
+    expect(resolveMinRatio(settings, "vc", "1:15")).toBe("1:11");
   });
 
   it("ignores malformed ratio strings", () => {
-    expect(resolveMinRatio({ bsc: { ratio: "bogus" } }, "bsc")).toBe("1:15");
+    expect(resolveMinRatio({ bsc: { ratio: "bogus" } }, "bsc", "1:15")).toBe("1:15");
   });
 });
 
 describe("computeLiveRatios", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _clearOrgSettingsCache();
+    // OrgSettings.findUnique is called by getOrgSettings inside
+    // computeLiveRatios. Returning null pushes it through to code
+    // defaults, which is what every test in this file expects.
+    prismaMock.orgSettings.findUnique.mockResolvedValue(null);
   });
 
   it("returns empty list when service not found", async () => {

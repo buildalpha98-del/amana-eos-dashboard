@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getOrgSettings } from "@/lib/org-settings";
 
 export type SessionTypeKey = "bsc" | "asc" | "vc";
 
@@ -16,15 +17,15 @@ export interface RatioLive {
   capturedAt: Date;
 }
 
-const FEDERAL_DEFAULT_MIN_RATIO = "1:15";
-
 /**
  * Pull the per-session minimum ratio from Service.ratioSettings Json, falling
- * back to the federal OSHC default (1 educator : 15 children).
+ * back to the org-wide federal default (OrgSettings.config.ratios; code
+ * default = "1:15", the federal OSHC ratio).
  */
 export function resolveMinRatio(
   settings: unknown,
   sessionType: SessionTypeKey,
+  federalDefault: string,
 ): string {
   if (
     settings &&
@@ -37,7 +38,7 @@ export function resolveMinRatio(
       return entry.ratio;
     }
   }
-  return FEDERAL_DEFAULT_MIN_RATIO;
+  return federalDefault;
 }
 
 /** Parse "1:15" → { staff: 1, children: 15 }. */
@@ -74,12 +75,16 @@ export async function computeLiveRatios(
   serviceId: string,
   now: Date = new Date(),
 ): Promise<RatioLive[]> {
-  const service = await prisma.service.findUnique({
-    where: { id: serviceId },
-    select: { id: true, ratioSettings: true },
-  });
+  const [service, orgSettings] = await Promise.all([
+    prisma.service.findUnique({
+      where: { id: serviceId },
+      select: { id: true, ratioSettings: true },
+    }),
+    getOrgSettings(),
+  ]);
   if (!service) return [];
 
+  const federalDefault = orgSettings.ratios.federalDefaultMinRatio;
   const dayStart = dayStartLocal(now);
   const hhmm = hhmmNow(now);
 
@@ -129,7 +134,7 @@ export async function computeLiveRatios(
 
     const childCount = attendance.filter((a) => a.sessionType === st).length;
 
-    const minRatio = resolveMinRatio(service.ratioSettings, st);
+    const minRatio = resolveMinRatio(service.ratioSettings, st, federalDefault);
     const { staff, children } = parseRatio(minRatio);
     // The policy is `staff : children` — so actual children-per-staff must
     // not exceed `children / staff`. Convert educatorCount to "equivalent

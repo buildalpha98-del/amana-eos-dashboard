@@ -8,6 +8,7 @@ import {
 } from "@/lib/health-score";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { getOrgSettings } from "@/lib/org-settings";
 
 export const POST = withApiHandler(async (request) => {
   // ── Auth: cron secret ──────────────────────────
@@ -186,7 +187,14 @@ export const POST = withApiHandler(async (request) => {
       const previousScore = previousHealthScore?.overallScore ?? null;
 
       // ── Compute ───────────────────────────────────────────
-      const result = computeHealthScore(metrics, financials, eos, previousScore);
+      const orgSettings = await getOrgSettings();
+      const result = computeHealthScore(
+        metrics,
+        financials,
+        eos,
+        previousScore,
+        orgSettings.healthScore,
+      );
 
       // ── Upsert into HealthScore table ─────────────────────
       await prisma.healthScore.upsert({

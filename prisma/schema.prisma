@@ -754,6 +754,7 @@ model User {
   socialCountersUpdated          SocialCounter[]           @relation("SocialCounterUpdater")
   amanaWayContentEdits           AmanaWayContent[]         @relation("AmanaWayContentUpdater")
   amanaHandbookContentEdits      AmanaHandbookContent[]    @relation("AmanaHandbookContentUpdater")
+  orgSettingsEdited              OrgSettings[]             @relation("OrgSettingsUpdater")
 
   // ── Centre Avatars (Sprint 3) ─────────────────────
   centreAvatarInsightsCreated          CentreAvatarInsight[]            @relation("CentreAvatarInsightCreatedBy")
@@ -3027,6 +3028,14 @@ model OrgSettings {
   accentColor         String   @default("#FECE00")
   purchaseBudgetTiers Json? // Array of { minWeeklyChildren: number, monthlyBudget: number }
   roleVideos          Json? // Record<RoleKey, string> — video embed URLs per role for Getting Started page
+  // 2026-05-16: owner/admin-editable runtime config — Brevo sender,
+  // federal default ratio, Health Score pillar weights + thresholds.
+  // Validated by Zod schema in src/lib/org-settings.ts; missing keys fall
+  // back to code defaults in getOrgSettings(), so an empty `config` JSON
+  // yields identical behaviour to pre-refactor.
+  config              Json?
+  updatedById         String?
+  updatedBy           User?    @relation("OrgSettingsUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
   updatedAt           DateTime @updatedAt
 }
 
@@ -6547,3 +6556,4 @@ model AmanaHandbookContent {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+

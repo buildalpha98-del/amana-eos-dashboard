@@ -14,6 +14,7 @@ import {
   type ScoreInputEOS,
 } from "@/lib/health-score";
 import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
+import { getOrgSettings } from "@/lib/org-settings";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -130,6 +131,7 @@ export async function aggregateDashboard(session: Session): Promise<DashboardDat
   const now = new Date();
   const { serviceIds } = await getCentreScope(session);
   const stateScope = getStateScope(session);
+  const orgSettings = await getOrgSettings();
 
   // Build service where clause with centre scoping
   const serviceWhere: Record<string, unknown> = {
@@ -162,7 +164,7 @@ export async function aggregateDashboard(session: Session): Promise<DashboardDat
     persistedScores.map((hs) => [hs.serviceId, hs])
   );
 
-  const centreHealth = buildCentreHealth(services, scoreMap);
+  const centreHealth = buildCentreHealth(services, scoreMap, orgSettings.healthScore);
 
   const networkAvgScore =
     centreHealth.length > 0
@@ -218,7 +220,14 @@ export async function aggregateDashboard(session: Session): Promise<DashboardDat
 // ---------------------------------------------------------------------------
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function buildCentreHealth(services: any[], scoreMap: Map<string, any>): CentreHealthItem[] {
+function buildCentreHealth(
+  services: any[],
+  scoreMap: Map<string, any>,
+  healthScore: {
+    pillarWeights: { financial: number; operational: number; compliance: number; satisfaction: number; teamCulture: number };
+    thresholds: { green: number; amber: number };
+  },
+): CentreHealthItem[] {
   return services.map((s) => {
     const m = s.metrics[0] ?? null;
     const f = s.financials[0] ?? null;
@@ -231,7 +240,7 @@ function buildCentreHealth(services: any[], scoreMap: Map<string, any>): CentreH
 
     if (persisted) {
       score = Math.round(persisted.overallScore);
-      status = getScoreStatus(score);
+      status = getScoreStatus(score, healthScore.thresholds);
       trend = persisted.trend as "improving" | "declining" | "stable";
       pillars = {
         financial: Math.round(persisted.financialScore),
@@ -277,7 +286,13 @@ function buildCentreHealth(services: any[], scoreMap: Map<string, any>): CentreH
         ticketsResolved: 0,
       };
 
-      const result = computeHealthScore(metricsInput, financialsInput, emptyEOS, null);
+      const result = computeHealthScore(
+        metricsInput,
+        financialsInput,
+        emptyEOS,
+        null,
+        healthScore,
+      );
       score = result.overallScore;
       status = result.status;
       trend = "stable";

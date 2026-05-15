@@ -185,6 +185,7 @@ export const navItems: NavItem[] = [
   { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ["admin"] },
   { href: "/reports", label: "Reports", icon: BarChart3, section: "Operations", tooltip: "Attendance, booking, revenue, enrolment, and medical reports", roles: ALL_NON_MARKETING },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
+  { href: "/settings/organisation", label: "Org Settings", icon: Settings, section: "Admin", tooltip: "Runtime configuration — email sender, ratios, health score weights", roles: ["admin"] },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
   { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections", roles: ALL_NON_MARKETING },
   { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring", roles: ALL_NON_MARKETING },
