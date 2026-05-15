@@ -44,9 +44,15 @@ const profileUpdateSchema = z.object({
   tags: z.array(z.string()).max(50).optional(),
 });
 
-// Fields staff can update on their own profile
+// Fields staff can update on their own profile.
+// Includes the Personal-details fields surfaced on /staff/[id]
+// (phone, DOB, address) and the Employment-details fields a staff
+// member can self-correct (start date, employment type, probation
+// end date). Sensitive identifiers (TFN, xero ID, visa, tags) and
+// admin-only assignments (role, serviceId) remain admin-only.
 const STAFF_SELF_FIELDS = new Set([
   "phone",
+  "dateOfBirth",
   "addressStreet",
   "addressSuburb",
   "addressState",
@@ -58,6 +64,9 @@ const STAFF_SELF_FIELDS = new Set([
   "bankAccountName",
   "bankBSB",
   "bankAccountNumber",
+  "startDate",
+  "employmentType",
+  "probationEndDate",
 ]);
 
 // GET /api/users/[id]/profile
@@ -179,14 +188,25 @@ const { id } = await context!.params!;
       continue;
     }
 
-    // Convert date strings to Date objects
+    // Convert date strings to Date objects. Empty string (form was
+    // cleared) maps to null so callers can unset a date by sending "".
     if (
       ["dateOfBirth", "visaExpiry", "startDate", "probationEndDate"].includes(
         key
-      ) &&
-      value
+      )
     ) {
-      data[key] = new Date(value as string);
+      if (value === "" || value === null) {
+        data[key] = null;
+      } else if (value) {
+        const dt = new Date(value as string);
+        if (Number.isNaN(dt.getTime())) {
+          return NextResponse.json(
+            { error: `Invalid ${key}` },
+            { status: 400 },
+          );
+        }
+        data[key] = dt;
+      }
       continue;
     }
 
