@@ -37,8 +37,10 @@ import {
   Users,
   Sunrise,
   Eye,
+  FileText,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
+import { ServiceContentTab } from "@/components/services/ServiceContentTab";
 import { ServiceStaffTab } from "@/components/services/ServiceStaffTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
 import { ServiceRocksTab } from "@/components/services/ServiceRocksTab";
@@ -123,7 +125,14 @@ const tabGroups: TabGroup[] = [
     key: "overview",
     label: "Overview",
     icon: Building2,
-    subTabs: [],
+    subTabs: [
+      { key: "summary", label: "Summary", icon: Building2 },
+      // 2026-05-16: editable per-service About / hero / key contacts /
+      // daily routine / food provider / parent onboarding. Owner / admin
+      // / head_office can edit any service; Director of Service can edit
+      // their own. Other roles see read-only.
+      { key: "content", label: "Content", icon: FileText },
+    ],
   },
   // 2026-05-14: Staff tab — primary users (User.serviceId === this service)
   // + additional UserServiceMembership rows in one unified list. Admin-tier
@@ -513,9 +522,12 @@ export default function ServiceDetailPage() {
           <ServiceTodayTab serviceId={service.id} serviceName={service.name} />
         )}
 
-        {/* Overview group (no subtabs) */}
-        {activeGroup === "overview" && (
+        {/* Overview group — Summary (default) | Content */}
+        {activeGroup === "overview" && currentSubKey !== "content" && (
           <ServiceOverviewTab service={service} users={users || []} />
+        )}
+        {activeGroup === "overview" && currentSubKey === "content" && (
+          <ServiceContentTab serviceId={service.id} />
         )}
 
         {/* Staff group (no subtabs) — assignments management */}
