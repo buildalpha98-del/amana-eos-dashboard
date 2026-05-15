@@ -131,12 +131,14 @@ const userId = session!.user.id;
         },
       }),
 
-      // 6. Pending policy acknowledgements
-      prisma.policy.count({
+      // 6. Pending policy acknowledgements (documents whose current version
+      // the user has not yet acknowledged).
+      prisma.policyDocument.count({
         where: {
-          status: "published",
-          NOT: {
-            acknowledgements: { some: { userId } },
+          isArchived: false,
+          currentVersionId: { not: null },
+          currentVersion: {
+            acknowledgements: { none: { userId } },
           },
         },
       }),

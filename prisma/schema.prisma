@@ -403,12 +403,6 @@ enum QualificationType {
   other
 }
 
-enum PolicyStatus {
-  draft
-  published
-  archived
-}
-
 enum ContractStatus {
   contract_draft
   active
@@ -633,7 +627,8 @@ model User {
   approvedLeaves    LeaveRequest[]                  @relation("LeaveApprover")
   leaveBalances     LeaveBalance[]
   timesheetEntries  TimesheetEntry[]                @relation("TimesheetStaff")
-  policyAcks        PolicyAcknowledgement[]         @relation("PolicyAcknowledger")
+  policyDocVersionUploads PolicyDocumentVersion[]   @relation("PolicyDocVersionUploader")
+  policyDocAcks     PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
   offboardings      StaffOffboarding[]              @relation("OffboardingUser")
   apiKeys           ApiKey[]                        @relation("ApiKeyCreator")
 
@@ -3732,42 +3727,59 @@ model ProfessionalDevelopmentRecord {
 }
 
 // ============================================================
-// Phase 2: Policy Acknowledgement
+// Phase 2: Policies & Procedures (versioned PDF library)
 // ============================================================
 
-model Policy {
-  id            String       @id @default(cuid())
-  title         String       @unique // policy names must be unique
-  description   String?      @db.Text
-  version       Int          @default(1)
-  status        PolicyStatus @default(draft)
-  category      String?
-  documentUrl   String?
-  documentId    String?
-  publishedAt   DateTime?
-  requiresReack Boolean      @default(true)
-  deleted       Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
-  acknowledgements PolicyAcknowledgement[]
-
-  @@index([status])
-  @@index([category])
+enum PolicyDocumentCategory {
+  policy
+  procedure
+  other
 }
 
-model PolicyAcknowledgement {
-  id             String   @id @default(cuid())
-  policyId       String
-  policy         Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User     @relation("PolicyAcknowledger", fields: [userId], references: [id], onDelete: Cascade)
-  policyVersion  Int
-  acknowledgedAt DateTime @default(now())
-  createdAt      DateTime @default(now())
+model PolicyDocument {
+  id               String                  @id @default(cuid())
+  title            String                  @unique
+  description      String?                 @db.Text
+  category         PolicyDocumentCategory  @default(policy)
+  currentVersionId String?                 @unique
+  currentVersion   PolicyDocumentVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  versions         PolicyDocumentVersion[] @relation("DocumentVersions")
+  isArchived       Boolean                 @default(false)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 
-  @@unique([policyId, userId, policyVersion])
-  @@index([policyId])
+  @@index([category])
+  @@index([isArchived])
+}
+
+model PolicyDocumentVersion {
+  id               String                          @id @default(cuid())
+  documentId       String
+  document         PolicyDocument                  @relation("DocumentVersions", fields: [documentId], references: [id], onDelete: Cascade)
+  versionNumber    Int
+  fileUrl          String
+  fileName         String
+  fileSize         Int
+  uploadedById     String?
+  uploadedBy       User?                           @relation("PolicyDocVersionUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedAt       DateTime                        @default(now())
+  acknowledgements PolicyDocumentAcknowledgement[]
+  currentOf        PolicyDocument?                 @relation("CurrentVersion")
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+}
+
+model PolicyDocumentAcknowledgement {
+  id             String                @id @default(cuid())
+  versionId      String
+  version        PolicyDocumentVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                  @relation("PolicyDocAcknowledger", fields: [userId], references: [id], onDelete: Cascade)
+  acknowledgedAt DateTime              @default(now())
+
+  @@unique([versionId, userId])
+  @@index([versionId])
   @@index([userId])
 }
 

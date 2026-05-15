@@ -244,13 +244,17 @@ function buildAdminSummaryHtml(
 // ── Main compliance check ───────────────────────────────────
 
 export async function checkPolicyCompliance(): Promise<ComplianceResult> {
-  // 1. Get all published policies
-  const policies = await prisma.policy.findMany({
-    where: { status: "published", deleted: false },
-    select: { id: true, title: true, version: true },
+  // 1. Get all active policy documents (non-archived, with a current PDF version)
+  const documents = await prisma.policyDocument.findMany({
+    where: { isArchived: false, currentVersionId: { not: null } },
+    select: {
+      id: true,
+      title: true,
+      currentVersion: { select: { id: true, versionNumber: true } },
+    },
   });
 
-  if (policies.length === 0) {
+  if (documents.length === 0) {
     return {
       policies: 0,
       users: 0,
@@ -260,24 +264,31 @@ export async function checkPolicyCompliance(): Promise<ComplianceResult> {
     };
   }
 
+  // Index by current-version id (only documents with a version count toward compliance)
+  type DocRow = (typeof documents)[number] & { currentVersion: NonNullable<(typeof documents)[number]["currentVersion"]> };
+  const byVersionId = new Map<string, DocRow>();
+  for (const d of documents) {
+    if (d.currentVersion) byVersionId.set(d.currentVersion.id, d as DocRow);
+  }
+
   // 2. Get all active users
   const users = await prisma.user.findMany({
     where: { active: true },
     select: { id: true, name: true, email: true, role: true },
   });
 
-  // 3. Batch-fetch all acknowledgements for published policies
-  const acknowledgements = await prisma.policyAcknowledgement.findMany({
+  // 3. Batch-fetch acknowledgements for these current-versions
+  const acknowledgements = await prisma.policyDocumentAcknowledgement.findMany({
     where: {
-      policyId: { in: policies.map((p) => p.id) },
+      versionId: { in: Array.from(byVersionId.keys()) },
       userId: { in: users.map((u) => u.id) },
     },
-    select: { policyId: true, userId: true, policyVersion: true },
+    select: { versionId: true, userId: true },
   });
 
-  // Build a set of "policyId:userId:version" for fast lookup
+  // Fast lookup: "versionId:userId" → acknowledged
   const ackSet = new Set(
-    acknowledgements.map((a) => `${a.policyId}:${a.userId}:${a.policyVersion}`),
+    acknowledgements.map((a) => `${a.versionId}:${a.userId}`),
   );
 
   // 4. Build map of users -> unacknowledged policies
@@ -287,17 +298,16 @@ export async function checkPolicyCompliance(): Promise<ComplianceResult> {
   >();
 
   let totalAcknowledged = 0;
-  const totalRequired = policies.length * users.length;
+  const totalRequired = byVersionId.size * users.length;
 
   for (const user of users) {
     const pending: { title: string; version: number }[] = [];
 
-    for (const policy of policies) {
-      const key = `${policy.id}:${user.id}:${policy.version}`;
-      if (ackSet.has(key)) {
+    for (const [versionId, doc] of byVersionId) {
+      if (ackSet.has(`${versionId}:${user.id}`)) {
         totalAcknowledged++;
       } else {
-        pending.push({ title: policy.title, version: policy.version });
+        pending.push({ title: doc.title, version: doc.currentVersion.versionNumber });
       }
     }
 
@@ -354,7 +364,7 @@ export async function checkPolicyCompliance(): Promise<ComplianceResult> {
     try {
       const html = buildAdminSummaryHtml(
         admin.name.split(" ")[0],
-        policies.length,
+        documents.length,
         users.length,
         complianceRate,
         topOffenders,
@@ -375,7 +385,7 @@ export async function checkPolicyCompliance(): Promise<ComplianceResult> {
   }
 
   return {
-    policies: policies.length,
+    policies: documents.length,
     users: users.length,
     complianceRate,
     usersWithPending: userPendingMap.size,
