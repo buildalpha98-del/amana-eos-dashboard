@@ -2095,6 +2095,16 @@ model Service {
   /// (resolved by the ratio API route — `@default` isn't supported for Json).
   ratioSettings Json?
 
+  /// Per-service editable content (admin or Director of Service for this
+  /// service). Shape validated by Zod in src/lib/service-content-shared.ts.
+  /// Holds About / Welcome narrative, hero image URL, key contacts (Director
+  /// + BSC/ASC coordinators), daily routine notes, food provider, parent
+  /// onboarding text. Missing keys fall back to the panel's defaults so the
+  /// view is identical for services that haven't customised yet.
+  ///
+  /// 2026-05-16: introduced as part of the per-service-content rollout.
+  content Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
