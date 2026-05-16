@@ -176,6 +176,28 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
       { name: "enrolUrl", description: "Pre-filled enrolment URL" },
     ],
   },
+  {
+    key: "parentPortal.magicLink",
+    category: "Auth",
+    label: "Parent portal magic link",
+    description: "Sent to parents to log in to the parent portal (15-min single-use link).",
+    variables: [
+      { name: "name", description: "Parent's first name" },
+      { name: "loginUrl", description: "Magic link URL (15 min TTL)" },
+    ],
+  },
+  {
+    key: "contracts.issued",
+    category: "Notifications",
+    label: "Contract issued",
+    description: "Sent to staff when a new contract is issued for their acknowledgement.",
+    variables: [
+      { name: "name", description: "Staff member's first name" },
+      { name: "contractName", description: "Contract template name" },
+      { name: "portalUrl", description: "URL to the staff portal contract view" },
+      { name: "pdfUrl", description: "Direct PDF download URL" },
+    ],
+  },
 ];
 
 export function getEmailTemplateManifestEntry(
