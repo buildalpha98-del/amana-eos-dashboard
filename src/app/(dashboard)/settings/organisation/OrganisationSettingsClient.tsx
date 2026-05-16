@@ -86,13 +86,22 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
   const onboardingValid =
     config.onboardingWelcome.title.trim().length > 0 &&
     config.onboardingWelcome.body.trim().length > 0;
+  const welcomePackValid =
+    config.welcomePack.welcomeIntro.trim().length > 0 &&
+    config.welcomePack.ratesIntro.trim().length > 0 &&
+    config.welcomePack.enrolSteps.trim().length > 0 &&
+    config.welcomePack.programmes.length > 0 &&
+    config.welcomePack.programmes.every(
+      (p) => p.name.trim().length > 0 && p.desc.trim().length > 0,
+    );
   const canSave =
     weightsValid &&
     thresholdsValid &&
     ratioValid &&
     emailValid &&
     labelsValid &&
-    onboardingValid;
+    onboardingValid &&
+    welcomePackValid;
 
   async function handleSave() {
     setSaving(true);
@@ -142,6 +151,190 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
           Save changes
         </Button>
       </div>
+
+      {/* Welcome pack PDF (parent-facing) */}
+      <Section
+        title="Welcome Pack PDF (parent-facing)"
+        description="The PDF that's emailed to new-enquiry parents. Programme descriptions, pricing intro, enrolment steps, contact details, and footer line — all editable here. Templates support {{parentName}}, {{childName}}, {{childRef}} (' and Sara' or blank), and {{centreName}} placeholders rendered at PDF-generation time."
+        onReset={() =>
+          setConfig((c) => ({
+            ...c,
+            welcomePack: ORG_SETTINGS_DEFAULTS.welcomePack,
+          }))
+        }
+      >
+        <Field label="Welcome paragraph" valid={config.welcomePack.welcomeIntro.trim().length > 0} error="Cannot be blank">
+          <textarea
+            rows={5}
+            value={config.welcomePack.welcomeIntro}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                welcomePack: { ...c.welcomePack, welcomeIntro: e.target.value },
+              }))
+            }
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 resize-y"
+          />
+        </Field>
+        <Field label="Session rates intro" valid={config.welcomePack.ratesIntro.trim().length > 0} error="Cannot be blank">
+          <textarea
+            rows={4}
+            value={config.welcomePack.ratesIntro}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                welcomePack: { ...c.welcomePack, ratesIntro: e.target.value },
+              }))
+            }
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 resize-y"
+          />
+        </Field>
+        <Field label="How to enrol" valid={config.welcomePack.enrolSteps.trim().length > 0} error="Cannot be blank">
+          <textarea
+            rows={6}
+            value={config.welcomePack.enrolSteps}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                welcomePack: { ...c.welcomePack, enrolSteps: e.target.value },
+              }))
+            }
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 resize-y"
+          />
+        </Field>
+        <Field label="Contact phone" valid={true}>
+          <input
+            type="text"
+            value={config.welcomePack.contactPhone}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                welcomePack: { ...c.welcomePack, contactPhone: e.target.value },
+              }))
+            }
+            className="w-48 rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </Field>
+        <Field label="Contact email" valid={true}>
+          <input
+            type="email"
+            value={config.welcomePack.contactEmail}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                welcomePack: { ...c.welcomePack, contactEmail: e.target.value },
+              }))
+            }
+            className="w-72 rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </Field>
+        <Field label="Contact website" valid={true}>
+          <input
+            type="text"
+            value={config.welcomePack.contactWebsite}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                welcomePack: { ...c.welcomePack, contactWebsite: e.target.value },
+              }))
+            }
+            className="w-72 rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </Field>
+        <Field label="Footer line" valid={true}>
+          <input
+            type="text"
+            value={config.welcomePack.footerLine}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                welcomePack: { ...c.welcomePack, footerLine: e.target.value },
+              }))
+            }
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </Field>
+        <div className="space-y-2 pt-3 border-t border-border">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-foreground">Programmes</div>
+            <button
+              type="button"
+              onClick={() =>
+                setConfig((c) => ({
+                  ...c,
+                  welcomePack: {
+                    ...c.welcomePack,
+                    programmes: [
+                      ...c.welcomePack.programmes,
+                      { name: "", desc: "" },
+                    ],
+                  },
+                }))
+              }
+              className="text-xs underline text-brand hover:text-brand-hover"
+            >
+              + Add programme
+            </button>
+          </div>
+          {config.welcomePack.programmes.map((p, i) => (
+            <div key={i} className="grid grid-cols-1 gap-2 p-3 rounded-md border border-border bg-surface/50">
+              <div className="flex items-center justify-between gap-2">
+                <input
+                  type="text"
+                  value={p.name}
+                  placeholder="Programme name"
+                  onChange={(e) =>
+                    setConfig((c) => ({
+                      ...c,
+                      welcomePack: {
+                        ...c.welcomePack,
+                        programmes: c.welcomePack.programmes.map((pp, idx) =>
+                          idx === i ? { ...pp, name: e.target.value } : pp,
+                        ),
+                      },
+                    }))
+                  }
+                  className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/40"
+                />
+                {config.welcomePack.programmes.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setConfig((c) => ({
+                        ...c,
+                        welcomePack: {
+                          ...c.welcomePack,
+                          programmes: c.welcomePack.programmes.filter((_, idx) => idx !== i),
+                        },
+                      }))
+                    }
+                    className="text-xs underline text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={p.desc}
+                rows={2}
+                placeholder="Description shown to parents"
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    welcomePack: {
+                      ...c.welcomePack,
+                      programmes: c.welcomePack.programmes.map((pp, idx) =>
+                        idx === i ? { ...pp, desc: e.target.value } : pp,
+                      ),
+                    },
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 resize-y"
+              />
+            </div>
+          ))}
+        </div>
+      </Section>
 
       {/* Onboarding welcome announcement */}
       <Section
