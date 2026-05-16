@@ -12,7 +12,26 @@
  */
 
 import { z } from "zod";
-import type { Role } from "@prisma/client";
+
+// 2026-05-16: This file is imported transitively by src/middleware.ts (via
+// src/lib/role-permissions.ts → ROLE_DISPLAY_NAMES = ROLE_LABEL_DEFAULTS).
+// Middleware runs in the Edge runtime, where ANY transitive reference to
+// "@prisma/client" — even an `import type` — can drag the Prisma binary
+// into the Edge bundle and produce "PrismaClient is unable to run in this
+// browser environment, running in `unknown`" at request time.
+//
+// Inlining the Role union here removes the @prisma/client dependency
+// entirely. The literal union has to be kept in sync with the `Role` enum
+// in prisma/schema.prisma — they're checked structurally everywhere else
+// the union is used, so a drift would surface as a type error in the next
+// build.
+type Role =
+  | "owner"
+  | "head_office"
+  | "admin"
+  | "marketing"
+  | "member"
+  | "staff";
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
