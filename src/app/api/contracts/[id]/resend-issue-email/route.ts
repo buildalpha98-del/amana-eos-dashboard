@@ -31,7 +31,7 @@ export const POST = withApiAuth(
     }
 
     const portalUrl = `${process.env.NEXTAUTH_URL ?? ""}/my-portal?contract=${contract.id}`;
-    const { subject, html } = contractIssuedEmail({
+    const { subject, html } = await contractIssuedEmail({
       name: staff.name ?? "there",
       contractName: templateName,
       portalUrl,

@@ -118,7 +118,7 @@ export const POST = withApiHandler(async (req) => {
   // Send email
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const loginUrl = `${baseUrl}/api/parent/auth/verify?token=${token}`;
-  const { subject, html } = parentMagicLinkEmail(displayName, loginUrl);
+  const { subject, html } = await parentMagicLinkEmail(displayName, loginUrl);
 
   try {
     await sendEmail({ to: emailLower, subject, html });
