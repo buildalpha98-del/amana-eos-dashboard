@@ -18,6 +18,7 @@ import {
 } from "@/components/parent/ui";
 import { TimelineWidget } from "@/components/parent/TimelineWidget";
 import { InstallBanner } from "@/components/parent/InstallBanner";
+import { CentreInfoCard } from "@/components/parent/CentreInfoCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -220,6 +221,9 @@ export default function ParentHomeV2() {
 
       {/* ─── Timeline from centre (read-only for now; Chunk 7 adds engagement) ─── */}
       <TimelineWidget />
+
+      {/* ─── About your centre (Director-edited per-service content) ─── */}
+      <CentreInfoCard />
     </div>
   );
 }
