@@ -91,6 +91,14 @@ const checklistOverridesSchema = z.object({
   staff: z.record(z.string(), checklistOverrideEntrySchema),
 });
 
+// 2026-05-16: onboarding welcome announcement seed override. The original
+// hardcoded copy referenced specific exec names ("Reach out to Jayden or
+// Daniel anytime") — needed a code push every time the team changed.
+const onboardingWelcomeSchema = z.object({
+  title: z.string().min(1).max(200),
+  body: z.string().min(1).max(10_000),
+});
+
 export const orgSettingsConfigSchema = z.object({
   email: z.object({
     senderEmail: z.string().email(),
@@ -114,6 +122,9 @@ export const orgSettingsConfigSchema = z.object({
   // 2026-05-16: per-item Getting Started checklist overrides (title +
   // description per item key, per role).
   checklistOverrides: checklistOverridesSchema,
+  // 2026-05-16: announcement seeded on user creation — defaults match the
+  // current hardcoded copy in src/lib/onboarding-seed.ts.
+  onboardingWelcome: onboardingWelcomeSchema,
 });
 
 export type OrgSettingsConfig = z.infer<typeof orgSettingsConfigSchema>;
@@ -179,6 +190,22 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     marketing: {},
     member: {},
     staff: {},
+  },
+  onboardingWelcome: {
+    title: "Welcome to the Amana Dashboard",
+    body: `Hi team 👋
+
+Welcome to the Amana Dashboard — your new central hub for tasks, communication, compliance, and everything you need to run your centre smoothly.
+
+**Your first week:**
+- You'll find a few onboarding tasks in your To-Dos — work through them at your own pace
+- Check back here for updates and announcements from head office
+- If something looks confusing, check the Getting Started guide in the sidebar
+
+**Need help?**
+Reach out to the leadership team anytime — we're here to make sure this works for you, not the other way around.
+
+Let's make this a great rollout! 🚀`,
   },
 };
 
@@ -290,6 +317,30 @@ export function mergeOrgSettings(
       safe.checklistOverrides,
       defaults.checklistOverrides,
     ),
+    onboardingWelcome: mergeOnboardingWelcome(
+      safe.onboardingWelcome,
+      defaults.onboardingWelcome,
+    ),
+  };
+}
+
+function mergeOnboardingWelcome(
+  partial: unknown,
+  defaults: OrgSettingsConfig["onboardingWelcome"],
+): OrgSettingsConfig["onboardingWelcome"] {
+  const safe = (partial && typeof partial === "object" ? partial : {}) as Record<
+    string,
+    unknown
+  >;
+  return {
+    title:
+      typeof safe.title === "string" && safe.title.length > 0
+        ? (safe.title as string)
+        : defaults.title,
+    body:
+      typeof safe.body === "string" && safe.body.length > 0
+        ? (safe.body as string)
+        : defaults.body,
   };
 }
 
