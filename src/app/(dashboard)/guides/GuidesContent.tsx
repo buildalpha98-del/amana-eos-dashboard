@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Printer, Link2, Check, ChevronDown } from "lucide-react";
@@ -8,6 +8,10 @@ import { staffGuides, guideRoleKeys } from "@/lib/staff-guides";
 import { ROLE_DISPLAY_NAMES, ADMIN_ROLES } from "@/lib/role-permissions";
 import { QuickStartGuide } from "@/components/guides/QuickStartGuide";
 import type { Role } from "@prisma/client";
+import {
+  mergeOrgSettings,
+  type OrgSettingsConfig,
+} from "@/lib/org-settings-shared";
 
 const ADMIN_ROLE_SET = new Set<string>(ADMIN_ROLES);
 
@@ -28,7 +32,34 @@ export function GuidesContent() {
         ? userRole
         : userRole;
 
-  const guide = staffGuides[activeRole] ?? staffGuides.staff;
+  const baseGuide = staffGuides[activeRole] ?? staffGuides.staff;
+
+  // 2026-05-16: overlay the admin-editable welcome message from
+  // OrgSettings.config.roleGuides. Fetched client-side; falls through to
+  // baseGuide.welcome until the request resolves so there's no flash.
+  const [overrideWelcome, setOverrideWelcome] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/org-settings/config", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { config?: unknown } | null) => {
+        if (cancelled || !body) return;
+        const merged: OrgSettingsConfig = mergeOrgSettings(body.config);
+        const entry = merged.roleGuides[activeRole as keyof OrgSettingsConfig["roleGuides"]];
+        const w = entry?.welcomeMessage?.trim();
+        setOverrideWelcome(w && w.length > 0 ? w : null);
+      })
+      .catch(() => {
+        /* keep code default */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRole]);
+
+  const guide = overrideWelcome
+    ? { ...baseGuide, welcome: overrideWelcome }
+    : baseGuide;
 
   const [copied, setCopied] = useState(false);
 

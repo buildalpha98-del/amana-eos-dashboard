@@ -53,6 +53,7 @@ import type { LucideIcon } from "lucide-react";
 import { TeamOnboardingTracker } from "@/components/getting-started/TeamOnboardingTracker";
 import { WelcomeTour, TOUR_STORAGE_KEY } from "@/components/onboarding/WelcomeTour";
 import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
+import type { OrgSettingsConfig } from "@/lib/org-settings-shared";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -920,7 +921,38 @@ export function GettingStartedContent() {
   const roleDisplayName = getRoleDisplayName(role);
   const isAdmin = isAdminRole(role);
 
-  const checklist = getChecklist(role);
+  const baseChecklist = getChecklist(role);
+
+  // 2026-05-16: apply admin-editable title/description overrides on top of
+  // the hardcoded items. href/icon/category stay code-driven for safety
+  // (admin shouldn't be able to redirect items to non-existent routes).
+  // Fetched via the same /api/org-settings/config endpoint that powers
+  // role labels and role-guide welcome messages.
+  const { data: orgConfig } = useQuery<{ config: OrgSettingsConfig }>({
+    queryKey: ["org-settings-config"],
+    queryFn: async () => {
+      const res = await fetch("/api/org-settings/config");
+      if (!res.ok) throw new Error("Failed to load org settings");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+  const overrides =
+    orgConfig?.config?.checklistOverrides?.[
+      role as keyof OrgSettingsConfig["checklistOverrides"]
+    ] ?? {};
+  const checklist: ChecklistItem[] = baseChecklist.map((item) => {
+    const o = overrides[item.key];
+    if (!o) return item;
+    return {
+      ...item,
+      title: typeof o.title === "string" && o.title.length > 0 ? o.title : item.title,
+      description:
+        typeof o.description === "string" && o.description.length > 0
+          ? o.description
+          : item.description,
+    };
+  });
   const grouped = groupByCategory(checklist);
 
   // ── Collapsed state per category ───────────────────────────

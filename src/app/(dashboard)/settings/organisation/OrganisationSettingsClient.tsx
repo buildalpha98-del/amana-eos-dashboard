@@ -135,6 +135,50 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
         </Button>
       </div>
 
+      {/* Role guide welcome messages */}
+      <Section
+        title="Role guide welcome messages"
+        description="Greeting shown at the top of /guides for each role. Use this to keep names + cadence references fresh (e.g. seasonal welcomes). Blank = falls back to the code default."
+        onReset={() =>
+          setConfig((c) => ({
+            ...c,
+            roleGuides: {
+              owner: { welcomeMessage: "" },
+              head_office: { welcomeMessage: "" },
+              admin: { welcomeMessage: "" },
+              marketing: { welcomeMessage: "" },
+              member: { welcomeMessage: "" },
+              staff: { welcomeMessage: "" },
+            },
+          }))
+        }
+      >
+        {ROLE_KEYS.map((key) => (
+          <Field
+            key={key}
+            label={config.roleLabels[key]}
+            valid={true}
+            hint={key}
+          >
+            <textarea
+              value={config.roleGuides[key].welcomeMessage}
+              onChange={(e) =>
+                setConfig((c) => ({
+                  ...c,
+                  roleGuides: {
+                    ...c.roleGuides,
+                    [key]: { welcomeMessage: e.target.value },
+                  },
+                }))
+              }
+              rows={2}
+              placeholder="Defaults to the code-shipped welcome — leave blank to use it."
+              className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 resize-y"
+            />
+          </Field>
+        ))}
+      </Section>
+
       {/* Role labels */}
       <Section
         title="Role display names"
