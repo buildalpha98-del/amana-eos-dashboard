@@ -413,7 +413,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   // Send confirmation email to parent (fire and forget)
   if (primaryParent.email) {
-    const { subject, html } = enrolmentConfirmationEmail(
+    const { subject, html } = await enrolmentConfirmationEmail(
       primaryParent.firstName,
       childNames,
     );

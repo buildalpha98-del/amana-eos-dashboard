@@ -26,7 +26,7 @@ export const POST = withApiAuth(async (req, session) => {
   const enrolUrl = `${baseUrl}/enrol/${enquiryId}`;
 
   const firstName = (parentName || "").split(" ")[0] || "there";
-  const { subject, html } = enrolmentLinkEmail(firstName, enrolUrl);
+  const { subject, html } = await enrolmentLinkEmail(firstName, enrolUrl);
 
   await sendEmail({
     from: FROM_EMAIL,

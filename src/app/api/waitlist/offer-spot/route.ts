@@ -69,7 +69,7 @@ export const POST = withApiAuth(async (req: NextRequest) => {
     const enrolUrl = `${baseUrl}/enrol?prefill=${next.id}`;
     const serviceName = next.service?.name ?? "our service";
 
-    const { subject, html } = spotAvailableEmail(
+    const { subject, html } = await spotAvailableEmail(
       next.parentName,
       serviceName,
       enrolUrl,

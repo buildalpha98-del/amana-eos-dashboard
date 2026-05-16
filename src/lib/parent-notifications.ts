@@ -57,7 +57,7 @@ export async function notifyBookingConfirmed(bookingId: string) {
     const name = parent?.firstName as string | undefined;
     if (!email) return;
 
-    const template = bookingConfirmedEmail({
+    const template = await bookingConfirmedEmail({
       parentName: name ?? "Parent",
       childName: booking.child.firstName,
       date: booking.date.toISOString(),
@@ -111,7 +111,7 @@ export async function notifyBookingCancelled(bookingId: string) {
     const name = parent?.firstName as string | undefined;
     if (!email) return;
 
-    const template = bookingCancelledEmail({
+    const template = await bookingCancelledEmail({
       parentName: name ?? "Parent",
       childName: booking.child.firstName,
       date: booking.date.toISOString(),
@@ -180,7 +180,7 @@ export async function notifyParentNewPost(
     const typeLabel = postType === "announcement" ? "Announcement" : postType === "reminder" ? "Reminder" : "Observation";
 
     for (const [email, { name, childNames }] of parentMap) {
-      const template = newChildPostEmail({
+      const template = await newChildPostEmail({
         parentName: name,
         childNames,
         postTitle,

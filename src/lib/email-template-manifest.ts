@@ -53,6 +53,129 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
       { name: "resetUrl", description: "Single-use reset URL (1h TTL)" },
     ],
   },
+  // ── Waitlist ─────────────────────────────────────────────
+  {
+    key: "waitlist.confirmation",
+    category: "Waitlist",
+    label: "Waitlist confirmation",
+    description:
+      "Sent when a family joins the waitlist. Confirms their position.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "serviceName", description: "Centre name" },
+      { name: "position", description: "Their position number on the waitlist" },
+    ],
+  },
+  {
+    key: "waitlist.spotAvailable",
+    category: "Waitlist",
+    label: "Waitlist spot available",
+    description:
+      "Sent when a spot opens up. Gives the family 48 hours to enrol.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "serviceName", description: "Centre name" },
+      { name: "enrolUrl", description: "Enrolment completion URL" },
+    ],
+  },
+  {
+    key: "waitlist.spotExpired",
+    category: "Waitlist",
+    label: "Waitlist spot offered to next family",
+    description:
+      "Sent when a family's 48h window expires and the spot moves to the next on the list.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "serviceName", description: "Centre name" },
+    ],
+  },
+  // ── Parent portal notifications ──────────────────────────
+  {
+    key: "parent.bookingConfirmed",
+    category: "Parent",
+    label: "Booking confirmed",
+    description:
+      "Confirmation sent when a parent's booking is locked in by the centre.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "childName", description: "Child's first name" },
+      { name: "formattedDate", description: "Long-form date string (e.g. \"Tuesday, 5 May 2026\")" },
+      { name: "sessionLabel", description: "Long session label (e.g. \"Before School Care\")" },
+      { name: "serviceName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "parent.bookingCancelled",
+    category: "Parent",
+    label: "Booking cancelled by centre",
+    description: "Sent when a centre cancels an upcoming booking.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "childName", description: "Child's first name" },
+      { name: "sessionShort", description: "Short session label (BSC / ASC / VC)" },
+      { name: "formattedDate", description: "Long-form date string" },
+      { name: "serviceName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "parent.newStatement",
+    category: "Parent",
+    label: "New statement available",
+    description: "Periodic statement notification with totals and gap fee.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "period", description: "Period range (e.g. \"1 May – 14 May\")" },
+      { name: "totalFeesFormatted", description: "Total fees with $ prefix" },
+      { name: "totalCcsFormatted", description: "CCS amount with $ prefix" },
+      { name: "gapFeeFormatted", description: "Gap fee with $ prefix" },
+    ],
+  },
+  {
+    key: "parent.newMessageReply",
+    category: "Parent",
+    label: "New message reply",
+    description: "Sent when staff replies to a parent's conversation.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "conversationSubject", description: "Original conversation subject" },
+      { name: "staffName", description: "Replying staff member's name" },
+      { name: "previewText", description: "First 200 chars of the reply" },
+    ],
+  },
+  {
+    key: "parent.newChildPost",
+    category: "Parent",
+    label: "New child post (observation / announcement)",
+    description: "Sent when centre posts an observation, reminder, or announcement about a child.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "childList", description: "Child name(s), joined with \" & \"" },
+      { name: "postTitle", description: "Post title / headline" },
+      { name: "postType", description: "Title-cased post type (Observation / Reminder / Announcement)" },
+      { name: "postTypeLower", description: "Same as postType but lowercase" },
+    ],
+  },
+  // ── Enrolment ────────────────────────────────────────────
+  {
+    key: "enrolment.confirmation",
+    category: "Notifications",
+    label: "Enrolment received confirmation",
+    description: "Sent to parents after they submit the enrolment form.",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "childNames", description: "Comma-joined list of children being enrolled" },
+    ],
+  },
+  {
+    key: "enrolment.link",
+    category: "Notifications",
+    label: "Enrolment form link",
+    description: "Sent to families to invite them to complete the enrolment form (pre-fill link).",
+    variables: [
+      { name: "parentName", description: "Parent's first name" },
+      { name: "enrolUrl", description: "Pre-filled enrolment URL" },
+    ],
+  },
 ];
 
 export function getEmailTemplateManifestEntry(
