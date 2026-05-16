@@ -754,6 +754,7 @@ model User {
   socialCountersUpdated          SocialCounter[]           @relation("SocialCounterUpdater")
   amanaWayContentEdits           AmanaWayContent[]         @relation("AmanaWayContentUpdater")
   amanaHandbookContentEdits      AmanaHandbookContent[]    @relation("AmanaHandbookContentUpdater")
+  emailTemplateOverridesEdited   EmailTemplateOverride[]   @relation("EmailTemplateUpdater")
   orgSettingsEdited              OrgSettings[]             @relation("OrgSettingsUpdater")
 
   // ── Centre Avatars (Sprint 3) ─────────────────────
@@ -6563,6 +6564,22 @@ model AmanaHandbookContent {
   data        Json     @default("{}")
   updatedById String?
   updatedBy   User?    @relation("AmanaHandbookContentUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 2026-05-17: per-template subject + body override for the ~52 transactional
+// email templates in src/lib/email-templates/. Each template function looks
+// up its `key` in this table (cached) and uses the override when present;
+// otherwise falls back to the hardcoded copy. Variables interpolate via
+// `{{name}}` placeholders. Editable from /settings/email-templates by
+// owner / admin.
+model EmailTemplateOverride {
+  key         String   @id
+  subject     String
+  body        String   @db.Text
+  updatedById String?
+  updatedBy   User?    @relation("EmailTemplateUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

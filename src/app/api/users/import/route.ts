@@ -189,7 +189,7 @@ const formData = await req.formData();
       // Send welcome email
       if (resend) {
         try {
-          const { subject, html } = welcomeEmail(user.name, user.tempPassword, loginUrl);
+          const { subject, html } = await welcomeEmail(user.name, user.tempPassword, loginUrl);
           await resend.emails.send({ from: FROM_EMAIL, to: user.email, subject, html });
         } catch {
           warnings.push(`Welcome email failed for ${user.email}`);

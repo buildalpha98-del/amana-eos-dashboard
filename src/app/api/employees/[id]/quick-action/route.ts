@@ -107,7 +107,7 @@ async function handleResetPassword(
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
-  const { subject, html } = passwordResetEmail(
+  const { subject, html } = await passwordResetEmail(
     target.name.split(" ")[0],
     resetUrl,
   );
