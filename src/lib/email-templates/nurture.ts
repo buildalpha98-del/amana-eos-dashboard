@@ -18,17 +18,20 @@
  */
 
 import { parentEmailLayout, buttonHtml } from "./base";
+import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 // ─── Parent Nurture: Welcome ────────────────────────────────
 
-export function nurtureWelcomeEmail(firstName: string, centreName: string) {
-  const subject = `You've taken the first step! Welcome to ${centreName}`;
-  const html = parentEmailLayout(`
+export async function nurtureWelcomeEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.welcome",
+    defaultSubject: "You've taken the first step! Welcome to {{centreName}}",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      Hello ${firstName}! We're glad you found us.
+      Hello {{firstName}}! We're glad you found us.
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Thank you for enquiring about ${centreName}. Finding the right before and after school
+      Thank you for enquiring about {{centreName}}. Finding the right before and after school
       care is a big decision, and we want to make it as easy as possible for you.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -57,22 +60,26 @@ export function nurtureWelcomeEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Looking forward to meeting your family,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Parent Nurture: CCS Assist (info_sent +24h) ───────────
 
-export function nurtureCcsAssistEmail(firstName: string, centreName: string) {
-  const subject = `Most families pay less than you'd think — here's how`;
-  const html = parentEmailLayout(`
+export async function nurtureCcsAssistEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.ccsAssist",
+    defaultSubject: "Most families pay less than you'd think — here's how",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       The fee you see isn't the fee you pay
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       One of the best-kept secrets about OSHC? The Australian Government's
@@ -94,7 +101,7 @@ export function nurtureCcsAssistEmail(firstName: string, centreName: string) {
       </tr>
     </table>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Not sure where to start? Our team at ${centreName} helps families navigate CCS every week.
+      Not sure where to start? Our team at {{centreName}} helps families navigate CCS every week.
       We can even give you a quick estimate of what you'd actually pay out of pocket.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -103,10 +110,12 @@ export function nurtureCcsAssistEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Here to help,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Parent Nurture: How to Enrol (info_sent +48h) ──────────
