@@ -24,12 +24,22 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Role } from "@prisma/client";
 import {
   ROLE_LABEL_DEFAULTS,
   mergeOrgSettings,
   type RoleLabels,
 } from "@/lib/org-settings-shared";
+
+// Inlined to avoid pulling @prisma/client into the client bundle. Kept in
+// sync structurally with prisma/schema.prisma's Role enum — a drift would
+// surface at the consumer call sites where the union is compared.
+type Role =
+  | "owner"
+  | "head_office"
+  | "admin"
+  | "marketing"
+  | "member"
+  | "staff";
 
 const Ctx = createContext<RoleLabels>(ROLE_LABEL_DEFAULTS);
 
