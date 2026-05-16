@@ -33,18 +33,20 @@ async function loadAll(): Promise<Map<string, OverrideRow>> {
   const now = Date.now();
   if (cache && cache.expiresAt > now) return cache.value;
 
-  let rows: Array<{ key: string; subject: string; body: string }> = [];
+  let rows: Array<{ key: string; subject: string; body: string }> | undefined =
+    undefined;
   try {
     rows = await prisma.emailTemplateOverride.findMany({
       select: { key: true, subject: true, body: true },
     });
   } catch {
-    // DB unreachable — return empty so callers fall through to defaults.
-    return new Map();
+    // DB unreachable — fall through to empty map / defaults below.
   }
 
   const map = new Map<string, OverrideRow>();
-  for (const r of rows) map.set(r.key, { subject: r.subject, body: r.body });
+  if (Array.isArray(rows)) {
+    for (const r of rows) map.set(r.key, { subject: r.subject, body: r.body });
+  }
   cache = { value: map, expiresAt: now + CACHE_TTL_MS };
   return map;
 }

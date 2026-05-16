@@ -116,7 +116,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
               select: { name: true },
             });
             const serviceName = service?.name ?? "our service";
-            const { subject, html } = waitlistConfirmationEmail(
+            const { subject, html } = await waitlistConfirmationEmail(
               existing.parentName,
               serviceName,
               newPosition,

@@ -1,22 +1,28 @@
 /**
  * Enrolment-related email templates.
+ *
+ * 2026-05-17: enrolmentConfirmationEmail + enrolmentLinkEmail are admin-
+ * overridable via EmailTemplateOverride. schoolEnrolmentNotificationEmail
+ * stays hardcoded — its per-child medical table is generated dynamically
+ * and not really admin-editable text.
  */
 
 import { parentEmailLayout, buttonHtml } from "./base";
+import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 // ─── Enrolment Confirmation ─────────────────────────────────
 
-export function enrolmentConfirmationEmail(parentName: string, childNames: string) {
-  const subject = "Enrolment Received — Amana OSHC";
-  const html = parentEmailLayout(`
+const ENROLMENT_CONFIRMATION_DEFAULT_SUBJECT = "Enrolment Received — Amana OSHC";
+
+const ENROLMENT_CONFIRMATION_DEFAULT_BODY = `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Enrolment Submitted Successfully
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${parentName},
+      Hi {{parentName}},
     </p>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Thank you for completing the enrolment form for <strong>${childNames}</strong>.
+      Thank you for completing the enrolment form for <strong>{{childNames}}</strong>.
       Our team will review your submission and be in touch within 1-2 business days
       to confirm your enrolment details.
     </p>
@@ -27,9 +33,16 @@ export function enrolmentConfirmationEmail(parentName: string, childNames: strin
       Warm regards,<br/>
       <strong>The Amana OSHC Team</strong>
     </p>
-  `);
+  `;
 
-  return { subject, html };
+export async function enrolmentConfirmationEmail(parentName: string, childNames: string) {
+  return applyEmailTemplateOverride({
+    key: "enrolment.confirmation",
+    defaultSubject: ENROLMENT_CONFIRMATION_DEFAULT_SUBJECT,
+    defaultBody: ENROLMENT_CONFIRMATION_DEFAULT_BODY,
+    vars: { parentName, childNames },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── School Enrolment Notification ─────────────────────────
@@ -178,21 +191,21 @@ export function schoolEnrolmentNotificationEmail(opts: {
 
 // ─── Enrolment Link Email ─────────────────────────────────
 
-export function enrolmentLinkEmail(parentName: string, enrolUrl: string) {
-  const subject = "Complete Your Enrolment — Amana OSHC";
-  const html = parentEmailLayout(`
+const ENROLMENT_LINK_DEFAULT_SUBJECT = "Complete Your Enrolment — Amana OSHC";
+
+const ENROLMENT_LINK_DEFAULT_BODY = `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Complete Your Enrolment
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${parentName},
+      Hi {{parentName}},
     </p>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
       We're excited to welcome your family to Amana OSHC! Please click the button
       below to complete the enrolment form. Some of your details have been pre-filled
       to save you time.
     </p>
-    ${buttonHtml("Complete Enrolment", enrolUrl)}
+    {{enrolButton}}
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
       The form takes approximately 10-15 minutes to complete. You can save your
       progress and return at any time.
@@ -201,7 +214,18 @@ export function enrolmentLinkEmail(parentName: string, enrolUrl: string) {
       Warm regards,<br/>
       <strong>The Amana OSHC Team</strong>
     </p>
-  `);
+  `;
 
-  return { subject, html };
+export async function enrolmentLinkEmail(parentName: string, enrolUrl: string) {
+  return applyEmailTemplateOverride({
+    key: "enrolment.link",
+    defaultSubject: ENROLMENT_LINK_DEFAULT_SUBJECT,
+    defaultBody: ENROLMENT_LINK_DEFAULT_BODY,
+    vars: {
+      parentName,
+      enrolUrl,
+      enrolButton: buttonHtml("Complete Enrolment", enrolUrl),
+    },
+    wrap: parentEmailLayout,
+  });
 }
