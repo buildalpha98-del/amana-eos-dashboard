@@ -28,8 +28,14 @@ describe("Nurture email templates", () => {
   const firstName = "Sarah";
   const centreName = "Auburn BSC";
 
-  /** All templates that take (firstName, centreName) — must be in TEMPLATE_MAP */
-  const standardTemplates: Record<string, (fn: string, cn: string) => { subject: string; html: string }> = {
+  /** All templates that take (firstName, centreName) — must be in TEMPLATE_MAP.
+   *  Some are sync (legacy), some are async (admin-editable via
+   *  EmailTemplateOverride). The test handles both by awaiting. */
+  type TemplateResult = { subject: string; html: string };
+  const standardTemplates: Record<
+    string,
+    (fn: string, cn: string) => TemplateResult | Promise<TemplateResult>
+  > = {
     welcome: nurtureWelcomeEmail,
     how_to_enrol: nurtureHowToEnrolEmail,
     what_to_bring: nurtureWhatToBringEmail,
@@ -54,32 +60,32 @@ describe("Nurture email templates", () => {
   describe.each(Object.entries(standardTemplates))(
     "template: %s",
     (key, templateFn) => {
-      it("returns subject and html", () => {
-        const result = templateFn(firstName, centreName);
+      it("returns subject and html", async () => {
+        const result = await templateFn(firstName, centreName);
         expect(result).toHaveProperty("subject");
         expect(result).toHaveProperty("html");
         expect(result.subject.length).toBeGreaterThan(0);
         expect(result.html.length).toBeGreaterThan(0);
       });
 
-      it("includes firstName in html", () => {
-        const result = templateFn(firstName, centreName);
+      it("includes firstName in html", async () => {
+        const result = await templateFn(firstName, centreName);
         expect(result.html).toContain(firstName);
       });
 
-      it("includes centreName in html", () => {
-        const result = templateFn(firstName, centreName);
+      it("includes centreName in html", async () => {
+        const result = await templateFn(firstName, centreName);
         expect(result.html).toContain(centreName);
       });
 
-      it("uses parentEmailLayout (no EOS Dashboard branding)", () => {
-        const result = templateFn(firstName, centreName);
+      it("uses parentEmailLayout (no EOS Dashboard branding)", async () => {
+        const result = await templateFn(firstName, centreName);
         expect(result.html).not.toContain("EOS Dashboard");
         expect(result.html).not.toContain("Leadership Team Portal");
       });
 
-      it("has valid HTML structure", () => {
-        const result = templateFn(firstName, centreName);
+      it("has valid HTML structure", async () => {
+        const result = await templateFn(firstName, centreName);
         expect(result.html).toContain("<!DOCTYPE html>");
         expect(result.html).toContain("</html>");
         expect(result.html).toContain("Amana OSHC");
@@ -139,7 +145,7 @@ describe("Nurture email templates", () => {
 
     it.each(schedulerTemplateKeys)(
       "templateKey '%s' has a matching template function",
-      (key) => {
+      async (key) => {
         if (key === "session_reminder") {
           // Special case in cron — uses nurtureSessionReminderEmail directly
           const result = nurtureSessionReminderEmail(firstName, centreName);
@@ -148,7 +154,7 @@ describe("Nurture email templates", () => {
         }
         const fn = standardTemplates[key];
         expect(fn).toBeDefined();
-        const result = fn(firstName, centreName);
+        const result = await fn(firstName, centreName);
         expect(result.html.length).toBeGreaterThan(0);
       },
     );

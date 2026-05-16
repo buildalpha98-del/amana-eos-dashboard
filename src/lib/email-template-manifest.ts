@@ -256,6 +256,30 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
       { name: "assignerName", description: "Person who assigned the issue" },
     ],
   },
+  // ── Nurture sequences (parent-facing marketing flow) ─────
+  // The full nurture sequence has ~21 templates; each call site dispatches via
+  // TEMPLATE_MAP in /api/cron/nurture-send. This PR migrates two of them to
+  // the override layer as a foundation; more can be migrated incrementally.
+  {
+    key: "nurture.welcome",
+    category: "Nurture",
+    label: "Nurture step 1 — welcome",
+    description: "First marketing email after a parent submits an enquiry.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.ccsAssist",
+    category: "Nurture",
+    label: "Nurture step 2 — CCS assistance",
+    description: "Sent 24h after the welcome explaining Child Care Subsidy eligibility.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
 ];
 
 export function getEmailTemplateManifestEntry(

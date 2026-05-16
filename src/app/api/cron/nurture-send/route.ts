@@ -51,7 +51,15 @@ function buildSmsBody(templateKey: string, firstName: string, centreName: string
 // LEGACY: Hardcoded template map for ParentNurtureStep records.
 // The new SequenceStepExecution system uses emailTemplateId from the DB instead.
 // Safe to remove once no pending legacy ParentNurtureStep records remain.
-const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { subject: string; html: string }> = {
+const TEMPLATE_MAP: Record<
+  string,
+  (
+    firstName: string,
+    centreName: string,
+  ) =>
+    | { subject: string; html: string }
+    | Promise<{ subject: string; html: string }>
+> = {
   welcome: nurtureWelcomeEmail,
   how_to_enrol: nurtureHowToEnrolEmail,
   what_to_bring: nurtureWhatToBringEmail,
@@ -186,7 +194,7 @@ export const POST = withApiHandler(async (req) => {
         });
         return "failed";
       }
-      ({ subject, html } = templateFn(firstName, centreName));
+      ({ subject, html } = await templateFn(firstName, centreName));
     }
 
     const result = await resend!.emails.send({
@@ -417,7 +425,7 @@ async function processSequenceExecutions(
         const name = isParent
           ? exec.enrolment.contact?.firstName || "Parent"
           : exec.enrolment.lead?.contactName || "there";
-        ({ subject, html } = templateFn(name, exec.enrolment.sequence.name));
+        ({ subject, html } = await templateFn(name, exec.enrolment.sequence.name));
       }
     }
 
