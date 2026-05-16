@@ -6,6 +6,16 @@
 
 import type jsPDF from "jspdf";
 import { BRAND, drawLogo, createPdfBuilder } from "@/lib/pdf/branding";
+import { getOrgSettings } from "@/lib/org-settings";
+
+function interpolate(
+  template: string,
+  vars: Record<string, string>,
+): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+    Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : "",
+  );
+}
 
 interface WelcomePackData {
   parentName: string;
@@ -32,6 +42,20 @@ function fmt(amount: number | null | undefined): string {
 }
 
 export async function generateWelcomePackPdf(data: WelcomePackData): Promise<jsPDF> {
+  // 2026-05-16: copy moved to admin-editable OrgSettings.config.welcomePack.
+  // Defaults are baked into ORG_SETTINGS_DEFAULTS so this still works in a
+  // fresh DB. Placeholders supported: {{parentName}}, {{childName}},
+  // {{childRef}} (" and Sara" when childName present; "" otherwise),
+  // {{centreName}}.
+  const orgSettings = await getOrgSettings();
+  const wp = orgSettings.welcomePack;
+  const vars: Record<string, string> = {
+    parentName: data.parentName,
+    childName: data.childName ?? "",
+    childRef: data.childName ? ` and ${data.childName}` : "",
+    centreName: data.centre.name,
+  };
+
   const { default: JsPDF } = await import("jspdf");
   const doc = new JsPDF("p", "mm", "a4");
   const pw = doc.internal.pageSize.getWidth();
@@ -55,10 +79,7 @@ export async function generateWelcomePackPdf(data: WelcomePackData): Promise<jsP
 
   // ── Welcome ──
   b.heading("Welcome to Amana OSHC");
-  const childRef = data.childName ? ` and ${data.childName}` : "";
-  b.paragraph(
-    `Dear ${data.parentName}${childRef},\n\nThank you for your interest in Amana OSHC at ${data.centre.name}. We are delighted to share this welcome pack with you. Amana OSHC provides government-subsidised before and after school care rooted in Islamic values. We focus on the intellectual, physical, and spiritual growth of every child. Our tagline is "Beyond The Bell".`
-  );
+  b.paragraph(interpolate(wp.welcomeIntro, vars));
 
   // ── Centre Details ──
   b.heading("Your Centre");
@@ -71,17 +92,7 @@ export async function generateWelcomePackPdf(data: WelcomePackData): Promise<jsP
 
   // ── Our Programmes ──
   b.heading("Our Programmes");
-  const programmes = [
-    { name: "Rise and Shine Club", desc: "Before School Care (BSC) — 6:45am to school start. A calm, structured morning to fuel your child for the day." },
-    { name: "Amana Afternoons", desc: "After School Care (ASC) — school end to 6:30pm. Structured programme with rotating activities." },
-    { name: "Homework Heroes", desc: "Dedicated homework support time with educators to help your child stay on top of schoolwork." },
-    { name: "Little Champions Club", desc: "Sports, team games, and physical activity sessions to keep children active and healthy." },
-    { name: "Imagination Station", desc: "Arts, crafts, and STEM projects that spark creativity and problem-solving skills." },
-    { name: "Iqra Circle", desc: "Quran recitation and Islamic studies in a nurturing, inclusive environment." },
-    { name: "Fuel Up with Amana", desc: "Cooking and nutrition workshops where children learn healthy eating habits." },
-    { name: "Holiday Quest", desc: "Full-day vacation care during school holidays with excursions, cooking, sports, and themed activities." },
-  ];
-  for (const p of programmes) {
+  for (const p of wp.programmes) {
     b.checkPage(12);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
@@ -101,21 +112,17 @@ export async function generateWelcomePackPdf(data: WelcomePackData): Promise<jsP
   b.row("Amana Afternoons (ASC)", `${fmt(data.centre.ascDailyRate)} per session (regular)  |  ${fmt(data.centre.ascCasualRate)} casual`);
   b.row("Holiday Quest", `${fmt(data.centre.vcDailyRate)} per session (approx.)`);
   b.y += 3;
-  b.paragraph(
-    "Most families are eligible for the Child Care Subsidy (CCS) through Centrelink, which can significantly reduce your out-of-pocket cost. Some families pay as little as $4 to $8 per session depending on their household income and activity level. Once enrolled, our team can help you estimate your cost."
-  );
+  b.paragraph(wp.ratesIntro);
 
   // ── How to Enrol ──
   b.heading("How to Enrol");
-  b.paragraph(
-    "1. Visit amanaoshc.com.au and click 'Enrol Now' on the homepage.\n2. Complete the online enrolment form — it takes about 10 minutes.\n3. Set up your Child Care Subsidy (CCS) via myGov and link it to Amana OSHC.\n4. Our team will confirm your child's placement and start date.\n\nIf you need help at any stage, call us on 1300 200 262 or email contact@amanaoshc.com.au."
-  );
+  b.paragraph(wp.enrolSteps);
 
   // ── Contact ──
   b.heading("Get in Touch");
-  b.row("Phone", "1300 200 262");
-  b.row("Email", "contact@amanaoshc.com.au");
-  b.row("Website", "amanaoshc.com.au");
+  if (wp.contactPhone) b.row("Phone", wp.contactPhone);
+  if (wp.contactEmail) b.row("Email", wp.contactEmail);
+  if (wp.contactWebsite) b.row("Website", wp.contactWebsite);
 
   // ── Footer ──
   const ph = doc.internal.pageSize.getHeight();
@@ -123,7 +130,7 @@ export async function generateWelcomePackPdf(data: WelcomePackData): Promise<jsP
   doc.rect(0, ph - 15, pw, 15, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(7);
-  doc.text("Amana OSHC — Beyond The Bell  |  amanaoshc.com.au  |  1300 200 262", pw / 2, ph - 7, { align: "center" });
+  doc.text(wp.footerLine, pw / 2, ph - 7, { align: "center" });
 
   return doc;
 }

@@ -118,6 +118,26 @@ const onboardingWelcomeSchema = z.object({
   body: z.string().min(1).max(10_000),
 });
 
+// 2026-05-16: parent-facing welcome pack PDF. Programmes + narrative
+// blocks used to be hardcoded in src/lib/welcome-pack-pdf.ts. Per the
+// audit they update frequently (pricing pitches, programme descriptions
+// drift over the year). Templates support {{parentName}}, {{childName}},
+// {{centreName}} placeholders rendered at PDF-generation time.
+const welcomePackProgrammeSchema = z.object({
+  name: z.string().min(1).max(120),
+  desc: z.string().min(1).max(500),
+});
+const welcomePackSchema = z.object({
+  welcomeIntro: z.string().min(1).max(4_000),
+  ratesIntro: z.string().min(1).max(2_000),
+  enrolSteps: z.string().min(1).max(4_000),
+  contactPhone: z.string().max(60),
+  contactEmail: z.string().max(120),
+  contactWebsite: z.string().max(120),
+  footerLine: z.string().max(240),
+  programmes: z.array(welcomePackProgrammeSchema).min(1).max(20),
+});
+
 export const orgSettingsConfigSchema = z.object({
   email: z.object({
     senderEmail: z.string().email(),
@@ -144,6 +164,8 @@ export const orgSettingsConfigSchema = z.object({
   // 2026-05-16: announcement seeded on user creation — defaults match the
   // current hardcoded copy in src/lib/onboarding-seed.ts.
   onboardingWelcome: onboardingWelcomeSchema,
+  // 2026-05-16: parent-facing Welcome Pack PDF.
+  welcomePack: welcomePackSchema,
 });
 
 export type OrgSettingsConfig = z.infer<typeof orgSettingsConfigSchema>;
@@ -209,6 +231,28 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     marketing: {},
     member: {},
     staff: {},
+  },
+  welcomePack: {
+    welcomeIntro:
+      "Dear {{parentName}}{{childRef}},\n\nThank you for your interest in Amana OSHC at {{centreName}}. We are delighted to share this welcome pack with you. Amana OSHC provides government-subsidised before and after school care rooted in Islamic values. We focus on the intellectual, physical, and spiritual growth of every child. Our tagline is \"Beyond The Bell\".",
+    ratesIntro:
+      "Most families are eligible for the Child Care Subsidy (CCS) through Centrelink, which can significantly reduce your out-of-pocket cost. Some families pay as little as $4 to $8 per session depending on their household income and activity level. Once enrolled, our team can help you estimate your cost.",
+    enrolSteps:
+      "1. Visit amanaoshc.com.au and click 'Enrol Now' on the homepage.\n2. Complete the online enrolment form — it takes about 10 minutes.\n3. Set up your Child Care Subsidy (CCS) via myGov and link it to Amana OSHC.\n4. Our team will confirm your child's placement and start date.\n\nIf you need help at any stage, call us on 1300 200 262 or email contact@amanaoshc.com.au.",
+    contactPhone: "1300 200 262",
+    contactEmail: "contact@amanaoshc.com.au",
+    contactWebsite: "amanaoshc.com.au",
+    footerLine: "Amana OSHC — Beyond The Bell  |  amanaoshc.com.au  |  1300 200 262",
+    programmes: [
+      { name: "Rise and Shine Club", desc: "Before School Care (BSC) — 6:45am to school start. A calm, structured morning to fuel your child for the day." },
+      { name: "Amana Afternoons", desc: "After School Care (ASC) — school end to 6:30pm. Structured programme with rotating activities." },
+      { name: "Homework Heroes", desc: "Dedicated homework support time with educators to help your child stay on top of schoolwork." },
+      { name: "Little Champions Club", desc: "Sports, team games, and physical activity sessions to keep children active and healthy." },
+      { name: "Imagination Station", desc: "Arts, crafts, and STEM projects that spark creativity and problem-solving skills." },
+      { name: "Iqra Circle", desc: "Quran recitation and Islamic studies in a nurturing, inclusive environment." },
+      { name: "Fuel Up with Amana", desc: "Cooking and nutrition workshops where children learn healthy eating habits." },
+      { name: "Holiday Quest", desc: "Full-day vacation care during school holidays with excursions, cooking, sports, and themed activities." },
+    ],
   },
   onboardingWelcome: {
     title: "Welcome to the Amana Dashboard",
@@ -340,6 +384,42 @@ export function mergeOrgSettings(
       safe.onboardingWelcome,
       defaults.onboardingWelcome,
     ),
+    welcomePack: mergeWelcomePack(safe.welcomePack, defaults.welcomePack),
+  };
+}
+
+function mergeWelcomePack(
+  partial: unknown,
+  defaults: OrgSettingsConfig["welcomePack"],
+): OrgSettingsConfig["welcomePack"] {
+  const safe = (partial && typeof partial === "object" ? partial : {}) as Record<
+    string,
+    unknown
+  >;
+  const str = (k: keyof OrgSettingsConfig["welcomePack"]) =>
+    typeof safe[k] === "string" && (safe[k] as string).length > 0
+      ? (safe[k] as string)
+      : (defaults[k] as string);
+  const progRaw = Array.isArray(safe.programmes) ? safe.programmes : [];
+  const programmes = progRaw
+    .filter((p) => p && typeof p === "object")
+    .map((p) => {
+      const obj = p as Record<string, unknown>;
+      return {
+        name: typeof obj.name === "string" ? obj.name : "",
+        desc: typeof obj.desc === "string" ? obj.desc : "",
+      };
+    })
+    .filter((p) => p.name.length > 0 || p.desc.length > 0);
+  return {
+    welcomeIntro: str("welcomeIntro"),
+    ratesIntro: str("ratesIntro"),
+    enrolSteps: str("enrolSteps"),
+    contactPhone: str("contactPhone"),
+    contactEmail: str("contactEmail"),
+    contactWebsite: str("contactWebsite"),
+    footerLine: str("footerLine"),
+    programmes: programmes.length > 0 ? programmes : defaults.programmes,
   };
 }
 
