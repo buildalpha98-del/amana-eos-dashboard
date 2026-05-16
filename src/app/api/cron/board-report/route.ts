@@ -45,7 +45,7 @@ export const GET = withApiHandler(async (req) => {
     if (resend) {
       for (const admin of admins) {
         try {
-          const { subject, html } = boardReportDraftNotificationEmail(
+          const { subject, html } = await boardReportDraftNotificationEmail(
             admin.name,
             targetMonth,
             targetYear,
