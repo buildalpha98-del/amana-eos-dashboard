@@ -1,8 +1,14 @@
 /**
  * Notification and digest email templates.
+ *
+ * 2026-05-17: Simple single-assignment templates (todo / rock / issue) are
+ * admin-overridable via EmailTemplateOverride. The compliance / digest
+ * templates with dynamic table generation stay hardcoded — admin can't
+ * edit a row-by-row layout via inline HTML.
  */
 
 import { baseLayout, buttonHtml, BRAND_COLOR } from "./base";
+import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 // ─── To-Do Reminder ──────────────────────────────────────────
 
@@ -91,107 +97,131 @@ export function ticketNotificationEmail(
 
 // ─── To-Do Assignment ────────────────────────────────────────
 
-export function todoAssignedEmail(
-  assigneeName: string,
-  todoTitle: string,
-  assignerName: string,
-  dashboardUrl: string
-) {
-  const subject = "You've been assigned a to-do — Amana OSHC";
-
-  const html = baseLayout(`
+const TODO_ASSIGNED_DEFAULT_SUBJECT = "You've been assigned a to-do — Amana OSHC";
+const TODO_ASSIGNED_DEFAULT_BODY = `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       New To-Do Assigned
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${assigneeName},
+      Hi {{assigneeName}},
     </p>
     <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
-      <strong>${assignerName}</strong> has assigned you a new to-do:
+      <strong>{{assignerName}}</strong> has assigned you a new to-do:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr>
         <td style="padding:16px;background-color:#f9fafb;">
           <p style="margin:0;color:#111827;font-size:15px;font-weight:600;">
-            ${todoTitle}
+            {{todoTitle}}
           </p>
         </td>
       </tr>
     </table>
-    ${buttonHtml("View To-Dos", dashboardUrl)}
-  `);
+    {{viewButton}}
+  `;
 
-  return { subject, html };
+export async function todoAssignedEmail(
+  assigneeName: string,
+  todoTitle: string,
+  assignerName: string,
+  dashboardUrl: string,
+) {
+  return applyEmailTemplateOverride({
+    key: "notifications.todoAssigned",
+    defaultSubject: TODO_ASSIGNED_DEFAULT_SUBJECT,
+    defaultBody: TODO_ASSIGNED_DEFAULT_BODY,
+    vars: {
+      assigneeName,
+      todoTitle,
+      assignerName,
+      viewButton: buttonHtml("View To-Dos", dashboardUrl),
+    },
+    wrap: baseLayout,
+  });
 }
 
 // ─── Rock Assignment ─────────────────────────────────────────
 
-export function rockAssignedEmail(
+export async function rockAssignedEmail(
   assigneeName: string,
   rockTitle: string,
   assignerName: string,
-  dashboardUrl: string
+  dashboardUrl: string,
 ) {
-  const subject = "You've been assigned a rock — Amana OSHC";
-
-  const html = baseLayout(`
+  return applyEmailTemplateOverride({
+    key: "notifications.rockAssigned",
+    defaultSubject: "You've been assigned a rock — Amana OSHC",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       New Rock Assigned
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${assigneeName},
+      Hi {{assigneeName}},
     </p>
     <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
-      <strong>${assignerName}</strong> has assigned you a new rock:
+      <strong>{{assignerName}}</strong> has assigned you a new rock:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr>
         <td style="padding:16px;background-color:#f9fafb;">
           <p style="margin:0;color:#111827;font-size:15px;font-weight:600;">
-            ${rockTitle}
+            {{rockTitle}}
           </p>
         </td>
       </tr>
     </table>
-    ${buttonHtml("View Rocks", dashboardUrl)}
-  `);
-
-  return { subject, html };
+    {{viewButton}}
+  `,
+    vars: {
+      assigneeName,
+      rockTitle,
+      assignerName,
+      viewButton: buttonHtml("View Rocks", dashboardUrl),
+    },
+    wrap: baseLayout,
+  });
 }
 
 // ─── Issue Assignment ────────────────────────────────────────
 
-export function issueAssignedEmail(
+export async function issueAssignedEmail(
   assigneeName: string,
   issueTitle: string,
   assignerName: string,
-  dashboardUrl: string
+  dashboardUrl: string,
 ) {
-  const subject = "An issue has been assigned to you — Amana OSHC";
-
-  const html = baseLayout(`
+  return applyEmailTemplateOverride({
+    key: "notifications.issueAssigned",
+    defaultSubject: "An issue has been assigned to you — Amana OSHC",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Issue Assigned to You
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${assigneeName},
+      Hi {{assigneeName}},
     </p>
     <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
-      <strong>${assignerName}</strong> has assigned you an issue:
+      <strong>{{assignerName}}</strong> has assigned you an issue:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr>
         <td style="padding:16px;background-color:#f9fafb;">
           <p style="margin:0;color:#111827;font-size:15px;font-weight:600;">
-            ${issueTitle}
+            {{issueTitle}}
           </p>
         </td>
       </tr>
     </table>
-    ${buttonHtml("View Issues", dashboardUrl)}
-  `);
-
-  return { subject, html };
+    {{viewButton}}
+  `,
+    vars: {
+      assigneeName,
+      issueTitle,
+      assignerName,
+      viewButton: buttonHtml("View Issues", dashboardUrl),
+    },
+    wrap: baseLayout,
+  });
 }
 
 // ─── Compliance Expiry Alert ─────────────────────────────────

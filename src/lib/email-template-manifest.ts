@@ -222,6 +222,40 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
       { name: "portalUrl", description: "URL to the survey form" },
     ],
   },
+  // ── Notifications (assignment) ───────────────────────────
+  {
+    key: "notifications.todoAssigned",
+    category: "Notifications",
+    label: "To-do assigned",
+    description: "Sent when a to-do is assigned to a staff member.",
+    variables: [
+      { name: "assigneeName", description: "Person who received the to-do" },
+      { name: "todoTitle", description: "To-do title" },
+      { name: "assignerName", description: "Person who assigned the to-do" },
+    ],
+  },
+  {
+    key: "notifications.rockAssigned",
+    category: "Notifications",
+    label: "Rock assigned",
+    description: "Sent when a quarterly rock is assigned to a staff member.",
+    variables: [
+      { name: "assigneeName", description: "Person who received the rock" },
+      { name: "rockTitle", description: "Rock title" },
+      { name: "assignerName", description: "Person who assigned the rock" },
+    ],
+  },
+  {
+    key: "notifications.issueAssigned",
+    category: "Notifications",
+    label: "Issue assigned",
+    description: "Sent when an issue is assigned to a staff member for resolution.",
+    variables: [
+      { name: "assigneeName", description: "Person who received the issue" },
+      { name: "issueTitle", description: "Issue title" },
+      { name: "assignerName", description: "Person who assigned the issue" },
+    ],
+  },
 ];
 
 export function getEmailTemplateManifestEntry(

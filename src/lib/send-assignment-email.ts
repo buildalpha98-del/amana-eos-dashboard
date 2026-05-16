@@ -49,7 +49,7 @@ export function sendAssignmentEmail(params: {
     switch (params.type) {
       case "todo": {
         const dashboardUrl = `${baseUrl}/todos`;
-        template = todoAssignedEmail(
+        template = await todoAssignedEmail(
           assigneeName,
           params.entityTitle,
           assignerName,
@@ -59,7 +59,7 @@ export function sendAssignmentEmail(params: {
       }
       case "rock": {
         const dashboardUrl = `${baseUrl}/rocks`;
-        template = rockAssignedEmail(
+        template = await rockAssignedEmail(
           assigneeName,
           params.entityTitle,
           assignerName,
@@ -69,7 +69,7 @@ export function sendAssignmentEmail(params: {
       }
       case "issue": {
         const dashboardUrl = `${baseUrl}/issues`;
-        template = issueAssignedEmail(
+        template = await issueAssignedEmail(
           assigneeName,
           params.entityTitle,
           assignerName,
