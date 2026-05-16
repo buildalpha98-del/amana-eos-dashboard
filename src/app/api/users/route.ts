@@ -162,7 +162,7 @@ export const POST = withApiAuth(async (req, session) => {
   // Send welcome email with temporary password
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const loginUrl = `${baseUrl}/login`;
-  const { subject, html } = welcomeEmail(name.split(" ")[0], password, loginUrl);
+  const { subject, html } = await welcomeEmail(name.split(" ")[0], password, loginUrl);
 
   const resend = getResend();
   if (resend) {

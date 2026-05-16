@@ -104,6 +104,7 @@ export const allPages = [
   "/accountability-chart",
   "/settings",
   "/settings/organisation",
+  "/settings/email-templates",
   "/profile",
   "/crm",
   "/crm/templates",

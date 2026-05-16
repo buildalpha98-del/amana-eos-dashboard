@@ -65,7 +65,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
   // Send the email
-  const { subject, html } = passwordResetEmail(
+  const { subject, html } = await passwordResetEmail(
     user.name.split(" ")[0],
     resetUrl
   );

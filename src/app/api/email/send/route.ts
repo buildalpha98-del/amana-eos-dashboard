@@ -73,7 +73,7 @@ export const POST = withApiAuth(async (req, session) => {
         tempPassword: string;
         loginUrl: string;
       };
-      emailContent = welcomeEmail(name, tempPassword, loginUrl);
+      emailContent = await welcomeEmail(name, tempPassword, loginUrl);
       to = email;
       break;
     }
