@@ -83,8 +83,16 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
   const labelsValid = ROLE_KEYS.every(
     (k) => config.roleLabels[k].trim().length > 0,
   );
+  const onboardingValid =
+    config.onboardingWelcome.title.trim().length > 0 &&
+    config.onboardingWelcome.body.trim().length > 0;
   const canSave =
-    weightsValid && thresholdsValid && ratioValid && emailValid && labelsValid;
+    weightsValid &&
+    thresholdsValid &&
+    ratioValid &&
+    emailValid &&
+    labelsValid &&
+    onboardingValid;
 
   async function handleSave() {
     setSaving(true);
@@ -134,6 +142,62 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
           Save changes
         </Button>
       </div>
+
+      {/* Onboarding welcome announcement */}
+      <Section
+        title="Onboarding welcome announcement"
+        description="The announcement seeded the first time a new user logs in. Used to be hardcoded with specific exec names — keep it fresh as the team changes. Existing welcome announcements aren't retroactively rewritten; only newly-onboarded users see the latest copy."
+        onReset={() =>
+          setConfig((c) => ({
+            ...c,
+            onboardingWelcome: ORG_SETTINGS_DEFAULTS.onboardingWelcome,
+          }))
+        }
+      >
+        <Field
+          label="Title"
+          valid={config.onboardingWelcome.title.trim().length > 0}
+          error="Cannot be blank"
+        >
+          <input
+            type="text"
+            value={config.onboardingWelcome.title}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                onboardingWelcome: {
+                  ...c.onboardingWelcome,
+                  title: e.target.value,
+                },
+              }))
+            }
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </Field>
+        <Field
+          label="Body"
+          valid={config.onboardingWelcome.body.trim().length > 0}
+          error="Cannot be blank"
+        >
+          <textarea
+            value={config.onboardingWelcome.body}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                onboardingWelcome: {
+                  ...c.onboardingWelcome,
+                  body: e.target.value,
+                },
+              }))
+            }
+            rows={10}
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 font-mono resize-y"
+          />
+        </Field>
+        <div className="text-xs text-muted">
+          Markdown is supported on the rendering side (bold, lists, etc.).
+        </div>
+      </Section>
 
       {/* Role guide welcome messages */}
       <Section

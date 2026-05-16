@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { getWeekStart } from "@/lib/utils";
+import { getOrgSettings } from "@/lib/org-settings";
 
 /**
  * Owner user ID (Jayden) — all onboarding todos are assigned "from" this user.
@@ -61,22 +62,11 @@ const ONBOARDING_TODOS = [
   },
 ];
 
-const WELCOME_ANNOUNCEMENT = {
-  title: "Welcome to the Amana Dashboard",
-  body: `Hi team 👋
-
-Welcome to the Amana Dashboard — your new central hub for tasks, communication, compliance, and everything you need to run your centre smoothly.
-
-**Your first week:**
-- You'll find a few onboarding tasks in your To-Dos — work through them at your own pace
-- Check back here for updates and announcements from head office
-- If something looks confusing, check the Getting Started guide in the sidebar
-
-**Need help?**
-Reach out to Jayden or Daniel anytime — we're here to make sure this works for you, not the other way around.
-
-Let's make this a great rollout! 🚀`,
-};
+// 2026-05-16: the welcome announcement that used to live as a constant
+// here has moved to OrgSettings.config.onboardingWelcome (default value
+// is defined in src/lib/org-settings-shared.ts so non-server code can
+// reference the same default). Owner/admin can edit it from
+// /settings/organisation without a deploy.
 
 /**
  * Seeds onboarding todos and a welcome announcement for a newly created user.
@@ -88,6 +78,12 @@ export async function seedOnboardingPackage(
 ): Promise<void> {
   try {
     const ownerId = await getOwnerUserId();
+    // 2026-05-16: pull the admin-editable welcome announcement seed from
+    // OrgSettings.config.onboardingWelcome (falls back to the previous
+    // hardcoded copy if no override is set). Lets owner/admin keep the
+    // "Need help? Reach out to..." line fresh as the team evolves.
+    const orgSettings = await getOrgSettings();
+    const welcome = orgSettings.onboardingWelcome;
     const now = new Date();
     const dueDate = new Date(now);
     dueDate.setDate(dueDate.getDate() + 7);
@@ -120,7 +116,7 @@ export async function seedOnboardingPackage(
     // Create welcome announcement (if none exists for this user recently)
     const recentAnnouncement = await prisma.announcement.findFirst({
       where: {
-        title: WELCOME_ANNOUNCEMENT.title,
+        title: welcome.title,
         createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
       },
     });
@@ -128,8 +124,8 @@ export async function seedOnboardingPackage(
     if (!recentAnnouncement) {
       await prisma.announcement.create({
         data: {
-          title: WELCOME_ANNOUNCEMENT.title,
-          body: WELCOME_ANNOUNCEMENT.body,
+          title: welcome.title,
+          body: welcome.body,
           authorId: ownerId,
           audience: "custom",
           priority: "normal",
