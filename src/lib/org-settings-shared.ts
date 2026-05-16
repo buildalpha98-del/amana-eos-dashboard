@@ -59,6 +59,38 @@ const roleLabelsSchema = z.object({
   staff: z.string().min(1).max(60),
 });
 
+// 2026-05-16: per-role guide overrides — welcome message only for v1.
+// The deep structured sections / steps editor is a follow-up. This handles
+// the highest-frequency edit (stale hardcoded names in welcome copy, e.g.
+// "Welcome from Jayden & Daniel") without needing a tree editor.
+const roleGuidesSchema = z.object({
+  owner: z.object({ welcomeMessage: z.string().max(2_000) }),
+  head_office: z.object({ welcomeMessage: z.string().max(2_000) }),
+  admin: z.object({ welcomeMessage: z.string().max(2_000) }),
+  marketing: z.object({ welcomeMessage: z.string().max(2_000) }),
+  member: z.object({ welcomeMessage: z.string().max(2_000) }),
+  staff: z.object({ welcomeMessage: z.string().max(2_000) }),
+});
+
+// 2026-05-16: per-item override map for the Getting Started checklist.
+// Keyed by ChecklistItem.key (e.g. "staff_profile"). Each entry may
+// override `title` and/or `description`. `href`, `icon`, `category` stay
+// code-driven — admin shouldn't be able to point an item at a non-existent
+// route. Empty / missing keys fall back to the hardcoded CHECKLISTS map.
+const checklistOverrideEntrySchema = z.object({
+  title: z.string().max(200).optional(),
+  description: z.string().max(800).optional(),
+});
+
+const checklistOverridesSchema = z.object({
+  owner: z.record(z.string(), checklistOverrideEntrySchema),
+  head_office: z.record(z.string(), checklistOverrideEntrySchema),
+  admin: z.record(z.string(), checklistOverrideEntrySchema),
+  marketing: z.record(z.string(), checklistOverrideEntrySchema),
+  member: z.record(z.string(), checklistOverrideEntrySchema),
+  staff: z.record(z.string(), checklistOverrideEntrySchema),
+});
+
 export const orgSettingsConfigSchema = z.object({
   email: z.object({
     senderEmail: z.string().email(),
@@ -77,6 +109,11 @@ export const orgSettingsConfigSchema = z.object({
   // The DB rows still reference the Prisma `Role` enum (owner, head_office,
   // admin, marketing, member, staff); the label is purely cosmetic.
   roleLabels: roleLabelsSchema,
+  // 2026-05-16: per-role guide overrides (welcome message only for v1).
+  roleGuides: roleGuidesSchema,
+  // 2026-05-16: per-item Getting Started checklist overrides (title +
+  // description per item key, per role).
+  checklistOverrides: checklistOverridesSchema,
 });
 
 export type OrgSettingsConfig = z.infer<typeof orgSettingsConfigSchema>;
@@ -127,6 +164,22 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     },
   },
   roleLabels: ROLE_LABEL_DEFAULTS,
+  roleGuides: {
+    owner: { welcomeMessage: "" },
+    head_office: { welcomeMessage: "" },
+    admin: { welcomeMessage: "" },
+    marketing: { welcomeMessage: "" },
+    member: { welcomeMessage: "" },
+    staff: { welcomeMessage: "" },
+  },
+  checklistOverrides: {
+    owner: {},
+    head_office: {},
+    admin: {},
+    marketing: {},
+    member: {},
+    staff: {},
+  },
 };
 
 // ─── Merger ─────────────────────────────────────────────────────────────────
@@ -232,5 +285,76 @@ export function mergeOrgSettings(
       member: pickLabel("member"),
       staff: pickLabel("staff"),
     },
+    roleGuides: mergeRoleGuides(safe.roleGuides, defaults.roleGuides),
+    checklistOverrides: mergeChecklistOverrides(
+      safe.checklistOverrides,
+      defaults.checklistOverrides,
+    ),
+  };
+}
+
+function mergeRoleGuides(
+  partial: unknown,
+  defaults: OrgSettingsConfig["roleGuides"],
+): OrgSettingsConfig["roleGuides"] {
+  const safe = (partial && typeof partial === "object" ? partial : {}) as Record<
+    string,
+    unknown
+  >;
+  const pick = (k: keyof OrgSettingsConfig["roleGuides"]) => {
+    const entry = (safe[k] && typeof safe[k] === "object" ? safe[k] : {}) as Record<
+      string,
+      unknown
+    >;
+    return {
+      welcomeMessage:
+        typeof entry.welcomeMessage === "string"
+          ? (entry.welcomeMessage as string)
+          : defaults[k].welcomeMessage,
+    };
+  };
+  return {
+    owner: pick("owner"),
+    head_office: pick("head_office"),
+    admin: pick("admin"),
+    marketing: pick("marketing"),
+    member: pick("member"),
+    staff: pick("staff"),
+  };
+}
+
+function mergeChecklistOverrides(
+  partial: unknown,
+  defaults: OrgSettingsConfig["checklistOverrides"],
+): OrgSettingsConfig["checklistOverrides"] {
+  const safe = (partial && typeof partial === "object" ? partial : {}) as Record<
+    string,
+    unknown
+  >;
+  const pickRole = (
+    k: keyof OrgSettingsConfig["checklistOverrides"],
+  ): OrgSettingsConfig["checklistOverrides"][typeof k] => {
+    const entry = (safe[k] && typeof safe[k] === "object" ? safe[k] : {}) as Record<
+      string,
+      unknown
+    >;
+    const out: OrgSettingsConfig["checklistOverrides"][typeof k] = {};
+    for (const [itemKey, raw] of Object.entries(entry)) {
+      if (!raw || typeof raw !== "object") continue;
+      const r = raw as Record<string, unknown>;
+      const cleaned: { title?: string; description?: string } = {};
+      if (typeof r.title === "string") cleaned.title = r.title;
+      if (typeof r.description === "string") cleaned.description = r.description;
+      if (Object.keys(cleaned).length > 0) out[itemKey] = cleaned;
+    }
+    return Object.keys(out).length > 0 ? out : defaults[k];
+  };
+  return {
+    owner: pickRole("owner"),
+    head_office: pickRole("head_office"),
+    admin: pickRole("admin"),
+    marketing: pickRole("marketing"),
+    member: pickRole("member"),
+    staff: pickRole("staff"),
   };
 }
