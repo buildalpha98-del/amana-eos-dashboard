@@ -8,6 +8,7 @@ import {
   type EmailBlock,
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
+import { getEmailBranding } from "@/lib/email-branding";
 
 import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
@@ -47,6 +48,15 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
+  const branding = await getEmailBranding();
+  const layoutOpts = {
+    headerText: branding.name,
+    footerText: branding.name,
+    headerColor: branding.primaryColor,
+    footerUrl: branding.websiteUrl,
+    footerUrlLabel: branding.websiteUrlLabel,
+  };
+
   const body = parsed.data;
   const vars: Record<string, string> = {
     ...SAMPLE_VARIABLES,
@@ -69,19 +79,21 @@ export const POST = withApiAuth(async (req, session) => {
     if (template.blocks) {
       html = renderBlocksToHtml(template.blocks as unknown as EmailBlock[], vars);
     } else if (template.htmlContent) {
-      html = interpolateVariables(marketingLayout(template.htmlContent), vars);
+      html = interpolateVariables(marketingLayout(template.htmlContent, layoutOpts), vars);
     } else {
       html = marketingLayout(
         '<p style="color:#9ca3af;">This template has no content.</p>',
+        layoutOpts,
       );
     }
   } else if (body.blocks && body.blocks.length > 0) {
     html = renderBlocksToHtml(body.blocks as unknown as EmailBlock[], vars);
   } else if (body.htmlContent) {
-    html = interpolateVariables(marketingLayout(body.htmlContent), vars);
+    html = interpolateVariables(marketingLayout(body.htmlContent, layoutOpts), vars);
   } else {
     html = marketingLayout(
       '<p style="color:#9ca3af;">No content to preview.</p>',
+      layoutOpts,
     );
   }
 

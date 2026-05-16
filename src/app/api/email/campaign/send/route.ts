@@ -13,6 +13,7 @@ import {
   type EmailBlock,
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
+import { getEmailBranding } from "@/lib/email-branding";
 
 import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
@@ -79,6 +80,14 @@ if (!isBrevoConfigured()) {
   // ── Resolve HTML content ──────────────────────────────────────
   let html: string;
   const vars = body.variables ?? {};
+  const branding = await getEmailBranding();
+  const layoutOpts = {
+    headerText: branding.name,
+    footerText: branding.name,
+    headerColor: branding.primaryColor,
+    footerUrl: branding.websiteUrl,
+    footerUrlLabel: branding.websiteUrlLabel,
+  };
 
   if (body.templateId) {
     const template = await prisma.emailTemplate.findUnique({
@@ -93,7 +102,7 @@ if (!isBrevoConfigured()) {
     if (template.blocks) {
       html = renderBlocksToHtml(template.blocks as unknown as EmailBlock[], vars);
     } else if (template.htmlContent) {
-      html = interpolateVariables(marketingLayout(template.htmlContent), vars);
+      html = interpolateVariables(marketingLayout(template.htmlContent, layoutOpts), vars);
     } else {
       return NextResponse.json(
         { error: "Template has no content" },
@@ -103,7 +112,7 @@ if (!isBrevoConfigured()) {
   } else if (body.blocks && body.blocks.length > 0) {
     html = renderBlocksToHtml(body.blocks as unknown as EmailBlock[], vars);
   } else if (body.htmlContent) {
-    html = interpolateVariables(marketingLayout(body.htmlContent), vars);
+    html = interpolateVariables(marketingLayout(body.htmlContent, layoutOpts), vars);
   } else {
     return NextResponse.json(
       { error: "No content provided" },

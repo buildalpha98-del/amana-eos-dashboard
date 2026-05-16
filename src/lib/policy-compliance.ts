@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { getEmailBranding, type EmailBranding } from "@/lib/email-branding";
 
-// ── Brand constants ─────────────────────────────────────────
-const BRAND_COLOR = "#004E64";
+// ── Constants ───────────────────────────────────────────────
 const DASHBOARD_URL =
   process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
 
@@ -22,7 +22,9 @@ export interface ComplianceResult {
 function buildUserReminderHtml(
   userName: string,
   pendingPolicies: { title: string; version: number }[],
+  branding: EmailBranding,
 ): string {
+  const { primaryColor, name: brandName } = branding;
   const policyRows = pendingPolicies
     .map(
       (p) =>
@@ -51,9 +53,9 @@ function buildUserReminderHtml(
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
-            <td style="background-color:${BRAND_COLOR};padding:24px 32px;text-align:center;">
+            <td style="background-color:${primaryColor};padding:24px 32px;text-align:center;">
               <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">
-                Amana OSHC
+                ${brandName}
               </h1>
               <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;">
                 Policy Compliance Reminder
@@ -83,7 +85,7 @@ function buildUserReminderHtml(
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <a href="${DASHBOARD_URL}/policies" style="display:inline-block;padding:12px 32px;background-color:${BRAND_COLOR};color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
+                    <a href="${DASHBOARD_URL}/policies" style="display:inline-block;padding:12px 32px;background-color:${primaryColor};color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
                       View Policies
                     </a>
                   </td>
@@ -95,7 +97,7 @@ function buildUserReminderHtml(
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                Amana OSHC &mdash; EOS Dashboard<br/>
+                ${brandName} &mdash; EOS Dashboard<br/>
                 Sent weekly on Mondays to ensure policy compliance across the organisation.
               </p>
             </td>
@@ -114,7 +116,9 @@ function buildAdminSummaryHtml(
   totalUsers: number,
   complianceRate: number,
   topOffenders: { name: string; pending: number }[],
+  branding: EmailBranding,
 ): string {
+  const { primaryColor, name: brandName } = branding;
   const offenderRows =
     topOffenders.length > 0
       ? topOffenders
@@ -149,9 +153,9 @@ function buildAdminSummaryHtml(
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
-            <td style="background-color:${BRAND_COLOR};padding:24px 32px;text-align:center;">
+            <td style="background-color:${primaryColor};padding:24px 32px;text-align:center;">
               <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">
-                Amana OSHC
+                ${brandName}
               </h1>
               <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;">
                 Policy Compliance Summary
@@ -216,7 +220,7 @@ function buildAdminSummaryHtml(
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <a href="${DASHBOARD_URL}/policies" style="display:inline-block;padding:12px 32px;background-color:${BRAND_COLOR};color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
+                    <a href="${DASHBOARD_URL}/policies" style="display:inline-block;padding:12px 32px;background-color:${primaryColor};color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
                       View Policies
                     </a>
                   </td>
@@ -228,7 +232,7 @@ function buildAdminSummaryHtml(
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                Amana OSHC &mdash; EOS Dashboard<br/>
+                ${brandName} &mdash; EOS Dashboard<br/>
                 Admin compliance summary sent weekly on Mondays.
               </p>
             </td>
@@ -244,6 +248,10 @@ function buildAdminSummaryHtml(
 // ── Main compliance check ───────────────────────────────────
 
 export async function checkPolicyCompliance(): Promise<ComplianceResult> {
+  // Load the org-wide branding once per cron run — used by every email
+  // template below. Cached for 60 s so the bulk loop reads it once.
+  const branding = await getEmailBranding();
+
   // 1. Get all active policy documents (non-archived, with a current PDF version)
   const documents = await prisma.policyDocument.findMany({
     where: { isArchived: false, currentVersionId: { not: null } },
@@ -333,6 +341,7 @@ export async function checkPolicyCompliance(): Promise<ComplianceResult> {
       const html = buildUserReminderHtml(
         userData.name.split(" ")[0],
         userData.pending,
+        branding,
       );
 
       await sendEmail({
@@ -368,6 +377,7 @@ export async function checkPolicyCompliance(): Promise<ComplianceResult> {
         users.length,
         complianceRate,
         topOffenders,
+        branding,
       );
 
       await sendEmail({
