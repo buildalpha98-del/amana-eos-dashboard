@@ -28,6 +28,10 @@ import {
   type OrgSettingsConfig,
   type RoleLabels,
 } from "@/lib/org-settings-shared";
+import {
+  CHECKLISTS,
+  type RoleKey as ChecklistRoleKey,
+} from "@/lib/getting-started-checklists";
 
 const ROLE_KEYS: (keyof RoleLabels)[] = [
   "owner",
@@ -392,6 +396,9 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
         </div>
       </Section>
 
+      {/* Getting Started checklist overrides */}
+      <ChecklistOverridesSection config={config} setConfig={setConfig} />
+
       {/* Role guide welcome messages */}
       <Section
         title="Role guide welcome messages"
@@ -675,5 +682,159 @@ function Field({
         <span className="text-xs text-red-600 font-medium">{error}</span>
       )}
     </label>
+  );
+}
+
+/**
+ * ChecklistOverridesSection — Getting Started checklist editor.
+ *
+ * One role expanded at a time; each item shows the code-shipped default
+ * title + description as placeholders, with override inputs above.
+ * Saving persists per-key `{ title?, description? }` to
+ * OrgSettings.config.checklistOverrides[role]. Blank overrides fall back
+ * to the canonical defaults.
+ *
+ * `href`, `icon`, and `category` stay code-driven (admin can't redirect
+ * an item at a non-existent route or arbitrary icon).
+ *
+ * 2026-05-17.
+ */
+function ChecklistOverridesSection({
+  config,
+  setConfig,
+}: {
+  config: OrgSettingsConfig;
+  setConfig: React.Dispatch<React.SetStateAction<OrgSettingsConfig>>;
+}) {
+  const [activeRole, setActiveRole] = useState<ChecklistRoleKey>("staff");
+  const roleEntries: Array<[ChecklistRoleKey, string]> = [
+    ["staff", config.roleLabels.staff],
+    ["member", config.roleLabels.member],
+    ["marketing", config.roleLabels.marketing],
+    ["admin", config.roleLabels.admin],
+    ["head_office", config.roleLabels.head_office],
+    ["owner", config.roleLabels.owner],
+  ];
+
+  const items = CHECKLISTS[activeRole] ?? [];
+  const overridesForRole = config.checklistOverrides[activeRole] ?? {};
+
+  function setOverride(
+    key: string,
+    field: "title" | "description",
+    value: string,
+  ) {
+    setConfig((c) => {
+      const existing = { ...(c.checklistOverrides[activeRole] ?? {}) };
+      const item = { ...(existing[key] ?? {}) };
+      if (value.trim().length === 0) {
+        delete item[field];
+      } else {
+        item[field] = value;
+      }
+      if (Object.keys(item).length === 0) {
+        delete existing[key];
+      } else {
+        existing[key] = item;
+      }
+      return {
+        ...c,
+        checklistOverrides: {
+          ...c.checklistOverrides,
+          [activeRole]: existing,
+        },
+      };
+    });
+  }
+
+  const overrideCount = (role: ChecklistRoleKey) =>
+    Object.keys(config.checklistOverrides[role] ?? {}).length;
+
+  return (
+    <Section
+      title="Getting Started checklist overrides"
+      description="Override the title or description shown to each role on /getting-started. Blank inputs fall back to the code default below. `href`, icon, and category stay code-driven — admin can't redirect items at non-existent routes."
+      onReset={() =>
+        setConfig((c) => ({
+          ...c,
+          checklistOverrides: ORG_SETTINGS_DEFAULTS.checklistOverrides,
+        }))
+      }
+    >
+      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
+        {roleEntries.map(([role, label]) => {
+          const isActive = activeRole === role;
+          const count = overrideCount(role);
+          return (
+            <button
+              key={role}
+              type="button"
+              onClick={() => setActiveRole(role)}
+              className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                isActive
+                  ? "border-brand bg-brand/10 text-brand font-semibold"
+                  : "border-border bg-card text-muted hover:bg-surface"
+              }`}
+            >
+              {label}
+              {count > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full bg-brand text-white text-[10px] font-semibold">
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="space-y-3 pt-2">
+        {items.length === 0 && (
+          <p className="text-sm text-muted italic">
+            No checklist items defined for this role yet.
+          </p>
+        )}
+        {items.map((item) => {
+          const override = overridesForRole[item.key] ?? {};
+          const hasOverride =
+            (override.title && override.title.length > 0) ||
+            (override.description && override.description.length > 0);
+          return (
+            <div
+              key={item.key}
+              className={`rounded-md border p-3 space-y-2 ${
+                hasOverride
+                  ? "border-brand/60 bg-brand/5"
+                  : "border-border bg-surface/40"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <code className="text-xs text-muted font-mono">{item.key}</code>
+                <span className="text-[10px] uppercase tracking-wider text-muted">
+                  {item.category}
+                </span>
+              </div>
+              <input
+                type="text"
+                value={override.title ?? ""}
+                placeholder={item.title}
+                onChange={(e) =>
+                  setOverride(item.key, "title", e.target.value)
+                }
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+              <textarea
+                rows={2}
+                value={override.description ?? ""}
+                placeholder={item.description}
+                onChange={(e) =>
+                  setOverride(item.key, "description", e.target.value)
+                }
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 resize-y"
+              />
+            </div>
+          );
+        })}
+      </div>
+    </Section>
   );
 }
