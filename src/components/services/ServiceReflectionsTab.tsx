@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/Dialog";
 import { AiButton } from "@/components/ui/AiButton";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const QA_OPTIONS: readonly { value: number; label: string }[] = [
   { value: 1, label: "QA1 · Educational program" },
@@ -70,7 +71,7 @@ export function ServiceReflectionsTab({ serviceId }: { serviceId: string }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const role = session?.user?.role;
-  const isAdminLike = role === "owner" || role === "head_office" || role === "admin";
+  const isAdminLike = isAdminRole(role);
 
   const filters = useMemo(
     () => ({

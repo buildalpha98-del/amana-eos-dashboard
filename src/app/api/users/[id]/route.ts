@@ -8,6 +8,7 @@ import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
@@ -51,7 +52,7 @@ const { id } = await context!.params!;
   // Guard: only owners can modify other admins, head_office, or owners
   if (
     session!.user.role !== "owner" &&
-    (user.role === "owner" || user.role === "head_office" || user.role === "admin") &&
+    isAdminRole(user.role) &&
     user.id !== session!.user.id
   ) {
     return NextResponse.json(

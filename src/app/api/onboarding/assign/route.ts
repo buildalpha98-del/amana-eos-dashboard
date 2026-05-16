@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
 const assignSchema = z.object({
   userId: z.string().min(1),
   packId: z.string().min(1),
@@ -29,7 +30,7 @@ export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
   const role = session!.user.role as string;
-  const isAdminLike = role === "owner" || role === "head_office" || role === "admin";
+  const isAdminLike = isAdminRole(role);
 
   const targetUserId = isAdminLike ? userId : session!.user.id;
 
