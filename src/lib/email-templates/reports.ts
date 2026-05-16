@@ -3,6 +3,7 @@
  */
 
 import { baseLayout, buttonHtml, BRAND_COLOR } from "./base";
+import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 // ─── Weekly Report ──────────────────────────────────────────
 
@@ -95,33 +96,49 @@ export function weeklyReportEmail(name: string, data: WeeklyReportData) {
 
 // ─── Board Report: Draft Notification ───────────────────────
 
-export function boardReportDraftNotificationEmail(
+// Admin-overridable (key: reports.boardReportDraft). Template variables
+// substituted at send time: {{name}}, {{monthName}}, {{year}}, {{reportUrl}},
+// {{reviewButton}}.
+const BOARD_REPORT_DRAFT_DEFAULT_SUBJECT =
+  "{{monthName}} {{year}} Board Report Draft Ready — Amana OSHC";
+
+const BOARD_REPORT_DRAFT_DEFAULT_BODY = `
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Board Report Draft Ready
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi {{name}}, the <strong>{{monthName}} {{year}}</strong> board report has been automatically generated
+      and is ready for your review.
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Please review the data, edit the narrative sections as needed, and send to the board when ready.
+    </p>
+    {{reviewButton}}
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+      This report was auto-generated on the 2nd of the month using data from the previous month.
+    </p>
+  `;
+
+export async function boardReportDraftNotificationEmail(
   name: string,
   month: number,
   year: number,
   reportUrl: string,
 ) {
   const monthName = new Date(year, month - 1).toLocaleDateString("en-AU", { month: "long" });
-  const subject = `${monthName} ${year} Board Report Draft Ready — Amana OSHC`;
-
-  const html = baseLayout(`
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      Board Report Draft Ready
-    </h2>
-    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${name}, the <strong>${monthName} ${year}</strong> board report has been automatically generated
-      and is ready for your review.
-    </p>
-    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Please review the data, edit the narrative sections as needed, and send to the board when ready.
-    </p>
-    ${buttonHtml("Review Report", reportUrl)}
-    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
-      This report was auto-generated on the 2nd of the month using data from the previous month.
-    </p>
-  `);
-
-  return { subject, html };
+  return applyEmailTemplateOverride({
+    key: "reports.boardReportDraft",
+    defaultSubject: BOARD_REPORT_DRAFT_DEFAULT_SUBJECT,
+    defaultBody: BOARD_REPORT_DRAFT_DEFAULT_BODY,
+    vars: {
+      name,
+      monthName,
+      year: String(year),
+      reportUrl,
+      reviewButton: buttonHtml("Review Report", reportUrl),
+    },
+    wrap: baseLayout,
+  });
 }
 
 // ─── Board Report: Send to Board ────────────────────────────
@@ -572,25 +589,17 @@ export function holidayQuestProgrammeEmail(
 
 // ─── Staff Pulse Survey Notification ──────────────────────────
 
-export function pulseSurveyEmail(
-  name: string,
-  periodMonth: string,
-  portalUrl: string,
-) {
-  const [year, month] = periodMonth.split("-");
-  const monthName = new Date(Number(year), Number(month) - 1).toLocaleString(
-    "en-AU",
-    { month: "long", year: "numeric" },
-  );
+// Admin-overridable (key: reports.pulseSurvey). Variables: {{name}},
+// {{monthName}}, {{portalUrl}}, {{completeButton}}.
+const PULSE_SURVEY_DEFAULT_SUBJECT =
+  "Your monthly pulse survey is ready — {{monthName}}";
 
-  const subject = `Your monthly pulse survey is ready — ${monthName}`;
-
-  const html = baseLayout(`
+const PULSE_SURVEY_DEFAULT_BODY = `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Monthly Pulse Survey
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${name}, your pulse survey for <strong>${monthName}</strong> is ready.
+      Hi {{name}}, your pulse survey for <strong>{{monthName}}</strong> is ready.
       It takes less than a minute to complete and helps us understand how you're going.
     </p>
 
@@ -605,14 +614,36 @@ export function pulseSurveyEmail(
       </tr>
     </table>
 
-    ${buttonHtml("Complete Survey", portalUrl)}
+    {{completeButton}}
 
     <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
       The survey covers happiness, support, scheduling satisfaction, and whether you'd recommend us as an employer.
     </p>
-  `);
+  `;
 
-  return { subject, html };
+export async function pulseSurveyEmail(
+  name: string,
+  periodMonth: string,
+  portalUrl: string,
+) {
+  const [year, month] = periodMonth.split("-");
+  const monthName = new Date(Number(year), Number(month) - 1).toLocaleString(
+    "en-AU",
+    { month: "long", year: "numeric" },
+  );
+
+  return applyEmailTemplateOverride({
+    key: "reports.pulseSurvey",
+    defaultSubject: PULSE_SURVEY_DEFAULT_SUBJECT,
+    defaultBody: PULSE_SURVEY_DEFAULT_BODY,
+    vars: {
+      name,
+      monthName,
+      portalUrl,
+      completeButton: buttonHtml("Complete Survey", portalUrl),
+    },
+    wrap: baseLayout,
+  });
 }
 
 // ─── Weekly Marketing Report (Sprint 2 — Marketing Cockpit) ──

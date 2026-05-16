@@ -198,6 +198,30 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
       { name: "pdfUrl", description: "Direct PDF download URL" },
     ],
   },
+  // ── Reports ──────────────────────────────────────────────
+  {
+    key: "reports.boardReportDraft",
+    category: "Notifications",
+    label: "Board report draft notification",
+    description: "Sent to admins on the 2nd of the month when the auto-generated board report draft is ready.",
+    variables: [
+      { name: "name", description: "Admin's first name" },
+      { name: "monthName", description: "Long month name (e.g. April)" },
+      { name: "year", description: "Year (e.g. 2026)" },
+      { name: "reportUrl", description: "URL to the report review page" },
+    ],
+  },
+  {
+    key: "reports.pulseSurvey",
+    category: "Notifications",
+    label: "Monthly staff pulse survey invite",
+    description: "Sent to staff at the start of each month inviting them to complete the pulse survey.",
+    variables: [
+      { name: "name", description: "Staff first name" },
+      { name: "monthName", description: "Long month + year (e.g. April 2026)" },
+      { name: "portalUrl", description: "URL to the survey form" },
+    ],
+  },
 ];
 
 export function getEmailTemplateManifestEntry(

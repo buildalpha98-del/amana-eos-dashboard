@@ -75,7 +75,7 @@ export const GET = withApiHandler(async (req) => {
       if (resend) {
         try {
           const firstName = staff.name.split(" ")[0];
-          const { subject, html } = pulseSurveyEmail(
+          const { subject, html } = await pulseSurveyEmail(
             firstName,
             periodMonth,
             `${dashboardUrl}/my-portal`,
