@@ -10,6 +10,7 @@ import { CertActionBar } from "@/components/compliance/CertActionBar";
 import { useComplianceMatrix, type MatrixRow, type MatrixCertEntry } from "@/hooks/useComplianceMatrix";
 import { useComplianceCerts, type ComplianceCertData } from "@/hooks/useCompliance";
 import { ComplianceMatrixCell } from "@/components/compliance/ComplianceMatrixCell";
+import { isAdminRole } from "@/lib/role-permissions";
 
 const CERT_TYPE_LABELS: Record<string, string> = {
   wwcc: "WWCC",
@@ -40,7 +41,7 @@ export function ComplianceMatrix({ serviceId, initialSelected = null }: Complian
   const { data: session } = useSession();
   const role = (session?.user?.role as string) || "";
   const currentUserId = (session?.user as { id?: string })?.id ?? "";
-  const canDelete = role === "owner" || role === "head_office" || role === "admin";
+  const canDelete = isAdminRole(role);
 
   const [selected, setSelected] = useState<SelectedCell | null>(initialSelected);
 
