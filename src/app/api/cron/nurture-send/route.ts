@@ -357,6 +357,15 @@ async function processSequenceExecutions(
 
   // Pre-import email layout module once to avoid repeated dynamic imports
   const { renderBlocksToHtml, marketingLayout } = await import("@/lib/email-marketing-layout");
+  const { getEmailBranding } = await import("@/lib/email-branding");
+  const branding = await getEmailBranding();
+  const layoutOpts = {
+    headerText: branding.name,
+    footerText: branding.name,
+    headerColor: branding.primaryColor,
+    footerUrl: branding.websiteUrl,
+    footerUrlLabel: branding.websiteUrlLabel,
+  };
 
   /** Process a single SequenceStepExecution */
   async function processSequenceExec(exec: (typeof pending)[number]): Promise<"sent" | "skipped"> {
@@ -395,7 +404,7 @@ async function processSequenceExecutions(
       html = renderBlocksToHtml(blocks, { firstName: name, parentName: name, contactName: name, schoolName: exec.enrolment.lead?.schoolName || "", centreName: "" });
       subject = exec.step.emailTemplate.subject || exec.step.name;
     } else if (exec.step.emailTemplate?.htmlContent) {
-      html = marketingLayout(exec.step.emailTemplate.htmlContent);
+      html = marketingLayout(exec.step.emailTemplate.htmlContent, layoutOpts);
       subject = exec.step.emailTemplate.subject || exec.step.name;
     } else {
       // Fall back to hardcoded template
@@ -403,7 +412,7 @@ async function processSequenceExecutions(
       if (!templateFn) {
         // For CRM steps without templates, generate a basic email
         subject = exec.step.name;
-        html = marketingLayout(`<p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">${exec.step.name} — this email template has not been configured yet.</p>`);
+        html = marketingLayout(`<p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">${exec.step.name} — this email template has not been configured yet.</p>`, layoutOpts);
       } else {
         const name = isParent
           ? exec.enrolment.contact?.firstName || "Parent"
