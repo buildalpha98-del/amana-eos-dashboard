@@ -120,17 +120,19 @@ export async function nurtureCcsAssistEmail(firstName: string, centreName: strin
 
 // ─── Parent Nurture: How to Enrol (info_sent +48h) ──────────
 
-export function nurtureHowToEnrolEmail(firstName: string, centreName: string) {
+export async function nurtureHowToEnrolEmail(firstName: string, centreName: string) {
   const enrolUrl = process.env.NEXTAUTH_URL
     ? `${process.env.NEXTAUTH_URL}/enrol`
     : "https://amanaoshc.company/enrol";
-  const subject = `3 steps, 10 minutes — here's how to secure your child's spot`;
-  const html = parentEmailLayout(`
+  return applyEmailTemplateOverride({
+    key: "nurture.howToEnrol",
+    defaultSubject: "3 steps, 10 minutes — here's how to secure your child's spot",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Enrolling is easier than you think
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       We've designed our enrolment form to be as painless as possible. Most families
@@ -169,7 +171,7 @@ export function nurtureHowToEnrolEmail(firstName: string, centreName: string) {
         </td>
       </tr>
     </table>
-    ${buttonHtml("Start Your Enrolment", enrolUrl)}
+    {{startButton}}
     <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">
       Don't worry if you can't finish in one go — your progress is automatically saved
       and you can come back anytime.
@@ -180,25 +182,34 @@ export function nurtureHowToEnrolEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: {
+      firstName,
+      centreName,
+      enrolUrl,
+      startButton: buttonHtml("Start Your Enrolment", enrolUrl),
+    },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Parent Nurture: Nudge 1 (info_sent +3d) ───────────────
 
-export function nurtureNudge1Email(firstName: string, centreName: string) {
-  const subject = `Quick question, ${firstName} — anything we can help with?`;
-  const html = parentEmailLayout(`
+export async function nurtureNudge1Email(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.nudge1",
+    defaultSubject: "Quick question, {{firstName}} — anything we can help with?",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Just checking in
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We sent through some info about ${centreName} a few days ago and wanted to make
+      We sent through some info about {{centreName}} a few days ago and wanted to make
       sure it all made sense. Choosing OSHC can throw up a lot of questions — here are
       the ones we hear most:
     </p>
@@ -220,26 +231,30 @@ export function nurtureNudge1Email(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Talk soon,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Parent Nurture: Nudge 2 (nurturing +5d) ───────────────
 
-export function nurtureNudge2Email(firstName: string, centreName: string) {
-  const subject = `A peek inside a day at ${centreName}`;
-  const html = parentEmailLayout(`
+export async function nurtureNudge2Email(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.nudge2",
+    defaultSubject: "A peek inside a day at {{centreName}}",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       What actually happens at OSHC?
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       We know that "Out of School Hours Care" can sound a bit abstract. So here's what a
-      typical afternoon actually looks like at ${centreName}:
+      typical afternoon actually looks like at {{centreName}}:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
       <tr>
@@ -280,22 +295,26 @@ export function nurtureNudge2Email(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Warmly,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Parent Nurture: Final Nudge (nurturing +12d) ──────────
 
-export function nurtureFinalNudgeEmail(firstName: string, centreName: string) {
-  const subject = `No pressure — we'll be here when you're ready`;
-  const html = parentEmailLayout(`
+export async function nurtureFinalNudgeEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.finalNudge",
+    defaultSubject: "No pressure — we'll be here when you're ready",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Just a quick note from us
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       We know life gets busy, and choosing care for your child is something you want to
@@ -303,7 +322,7 @@ export function nurtureFinalNudgeEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       But if you ever want to revisit things — whether it's next week, next term, or next
-      year — our door at ${centreName} is always open. You can:
+      year — our door at {{centreName}} is always open. You can:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
       <tr>
@@ -321,10 +340,12 @@ export function nurtureFinalNudgeEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Take care,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Parent Nurture: Form Support (form_started +4h) ────────
