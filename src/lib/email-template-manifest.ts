@@ -280,6 +280,48 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
       { name: "centreName", description: "Centre name" },
     ],
   },
+  {
+    key: "nurture.howToEnrol",
+    category: "Nurture",
+    label: "Nurture step 3 — How to enrol",
+    description: "Sent 48h after info_sent. Walks parents through the 3-step enrolment form.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+      { name: "enrolUrl", description: "Enrolment form URL" },
+      { name: "startButton", description: "Pre-rendered CTA button HTML" },
+    ],
+  },
+  {
+    key: "nurture.nudge1",
+    category: "Nurture",
+    label: "Nurture nudge 1 (info_sent +3d)",
+    description: "Gentle re-engagement. Lists common questions and invites a reply.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.nudge2",
+    category: "Nurture",
+    label: "Nurture nudge 2 (nurturing +5d)",
+    description: "Walks the parent through what a typical OSHC afternoon looks like.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.finalNudge",
+    category: "Nurture",
+    label: "Nurture final nudge (nurturing +12d)",
+    description: "Last email in the enquiry-stage flow. Soft sign-off, invites return whenever they're ready.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
 ];
 
 export function getEmailTemplateManifestEntry(

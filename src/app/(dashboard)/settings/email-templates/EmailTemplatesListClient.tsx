@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, RotateCcw } from "lucide-react";
+import { Pencil, RotateCcw, Layers } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import type { EmailTemplateManifestEntry } from "@/lib/email-template-manifest";
 
@@ -31,7 +31,18 @@ export function EmailTemplatesListClient({ rows }: { rows: Row[] }) {
           key={category}
           className="rounded-lg border border-border bg-card p-5 space-y-3"
         >
-          <h2 className="text-lg font-semibold text-foreground">{category}</h2>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold text-foreground">{category}</h2>
+            {items.length >= 3 && (
+              <Link
+                href={`/settings/email-templates/bulk/${encodeURIComponent(category)}`}
+                className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand-hover font-medium"
+              >
+                <Layers className="h-3 w-3" />
+                Bulk edit {items.length}
+              </Link>
+            )}
+          </div>
           <div className="divide-y divide-border">
             {items.map((item) => (
               <Link
