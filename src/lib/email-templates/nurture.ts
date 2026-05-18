@@ -350,17 +350,19 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
 
 // ─── Parent Nurture: Form Support (form_started +4h) ────────
 
-export function nurtureFormSupportEmail(firstName: string, centreName: string) {
-  const subject = `Stuck on the form? We can finish it together in 5 minutes`;
-  const html = parentEmailLayout(`
+export async function nurtureFormSupportEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.formSupport",
+    defaultSubject: "Stuck on the form? We can finish it together in 5 minutes",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       We noticed you started enrolling — nice!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      You've started the enrolment form for ${centreName} (great move!). If you got
+      You've started the enrolment form for {{centreName}} (great move!). If you got
       interrupted or hit a tricky question, don't worry — your progress has been saved.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
@@ -387,29 +389,33 @@ export function nurtureFormSupportEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Form Abandonment Follow-up (form_started +3d) ──────────
 // Second nudge for families who started but haven't completed after 3 days
 
-export function nurtureFormAbandonmentEmail(firstName: string, centreName: string) {
+export async function nurtureFormAbandonmentEmail(firstName: string, centreName: string) {
   const enrolUrl = process.env.NEXTAUTH_URL
     ? `${process.env.NEXTAUTH_URL}/enrol`
     : "https://amanaoshc.company/enrol";
-  const subject = `Your enrolment is 80% done — let's finish it together`;
-  const html = parentEmailLayout(`
+  return applyEmailTemplateOverride({
+    key: "nurture.formAbandonment",
+    defaultSubject: "Your enrolment is 80% done — let's finish it together",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       You're so close!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      A few days ago you started enrolling your child at ${centreName}, and your
+      A few days ago you started enrolling your child at {{centreName}}, and your
       progress has been saved. We know forms aren't anyone's idea of fun, so we wanted
       to make sure nothing is holding you up.
     </p>
@@ -430,17 +436,24 @@ export function nurtureFormAbandonmentEmail(firstName: string, centreName: strin
         </td>
       </tr>
     </table>
-    ${buttonHtml("Continue Your Enrolment", enrolUrl)}
+    {{continueButton}}
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Or if you'd rather do it together, reply with a time that suits you and we'll
       call to walk through it. Most families finish in under 5 minutes with us on the line.
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: {
+      firstName,
+      centreName,
+      enrolUrl,
+      continueButton: buttonHtml("Continue Your Enrolment", enrolUrl),
+    },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── First Session Reminder (day before) ─────────────────────
@@ -523,18 +536,20 @@ export function nurtureSessionReminderEmail(
 
 // ─── What to Bring (first_session day 0) ─────────────────────
 
-export function nurtureWhatToBringEmail(firstName: string, centreName: string) {
-  const subject = `The ultimate OSHC bag checklist (save this one!)`;
-  const html = parentEmailLayout(`
+export async function nurtureWhatToBringEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.whatToBring",
+    defaultSubject: "The ultimate OSHC bag checklist (save this one!)",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Your OSHC packing list
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Here's a handy checklist you can stick on the fridge or save to your phone.
-      These are the things that make your child's day at ${centreName} run smoothly:
+      These are the things that make your child's day at {{centreName}} run smoothly:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
       <tr>
@@ -571,25 +586,29 @@ export function nurtureWhatToBringEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Happy packing,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Day 1 Check-in (first_session +1d) ──────────────────────
 
-export function nurtureDay1CheckinEmail(firstName: string, centreName: string) {
-  const subject = `How did it go? We want to hear all about day one!`;
-  const html = parentEmailLayout(`
+export async function nurtureDay1CheckinEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.day1Checkin",
+    defaultSubject: "How did it go? We want to hear all about day one!",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Day one is done!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Your child just had their first day at ${centreName} — that's a big milestone for
+      Your child just had their first day at {{centreName}} — that's a big milestone for
       the whole family! We hope it went smoothly (and that you got a moment to breathe too).
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
@@ -612,22 +631,26 @@ export function nurtureDay1CheckinEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Proud of your little one,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Day 3 Check-in (first_session +3d) ──────────────────────
 
-export function nurtureDay3CheckinEmail(firstName: string, centreName: string) {
-  const subject = `Getting into the groove at ${centreName}`;
-  const html = parentEmailLayout(`
+export async function nurtureDay3CheckinEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.day3Checkin",
+    defaultSubject: "Getting into the groove at {{centreName}}",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Quick check-in from us
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       A few days in and your child is starting to find their rhythm at ${centreName}.
@@ -644,25 +667,29 @@ export function nurtureDay3CheckinEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Here for you,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── App Setup (first_session +5d) ───────────────────────────
 
-export function nurtureAppSetupEmail(firstName: string, centreName: string) {
-  const subject = `Your secret weapon for staying in the loop`;
-  const html = parentEmailLayout(`
+export async function nurtureAppSetupEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.appSetup",
+    defaultSubject: "Your secret weapon for staying in the loop",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Have you set up the parent app yet?
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Now that your child is settling into ${centreName}, there's one more thing that'll
+      Now that your child is settling into {{centreName}}, there's one more thing that'll
       make your life easier: the <strong>OWNA parent app</strong>. Think of it as your
       direct line to the centre, right in your pocket.
     </p>
@@ -701,25 +728,29 @@ export function nurtureAppSetupEmail(firstName: string, centreName: string) {
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Stay connected,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── First Week Guide (first_session +7d) ────────────────────
 
-export function nurtureFirstWeekEmail(firstName: string, centreName: string) {
-  const subject = `One week down! Here's what's coming up`;
-  const html = parentEmailLayout(`
+export async function nurtureFirstWeekEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.firstWeek",
+    defaultSubject: "One week down! Here's what's coming up",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       You survived week one!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      A whole week at ${centreName} — congratulations to you AND your child! By now the
+      A whole week at {{centreName}} — congratulations to you AND your child! By now the
       morning routine is probably starting to feel a little more natural. Here's what to
       expect as you settle into the groove:
     </p>
@@ -757,29 +788,33 @@ export function nurtureFirstWeekEmail(firstName: string, centreName: string) {
       </tr>
     </table>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      You're officially part of the ${centreName} family now. We're so glad you're here.
+      You're officially part of the {{centreName}} family now. We're so glad you're here.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Warm regards,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Week 2 Feedback (first_session +14d) ────────────────────
 
-export function nurtureWeek2FeedbackEmail(firstName: string, centreName: string) {
-  const subject = `Two weeks in — we'd love a quick word from you`;
-  const html = parentEmailLayout(`
+export async function nurtureWeek2FeedbackEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.week2Feedback",
+    defaultSubject: "Two weeks in — we'd love a quick word from you",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       How's everything going?
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      It's been two weeks since your child joined ${centreName}, and we'd genuinely love
+      It's been two weeks since your child joined {{centreName}}, and we'd genuinely love
       to know how you're finding things. Your feedback — good or bad — helps us get better
       for every family.
     </p>
@@ -804,26 +839,30 @@ export function nurtureWeek2FeedbackEmail(firstName: string, centreName: string)
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Thank you for trusting us with your family,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── NPS Survey (first_session +30d) ─────────────────────────
 
-export function nurtureNpsSurveyEmail(firstName: string, centreName: string) {
+export async function nurtureNpsSurveyEmail(firstName: string, centreName: string) {
   const surveyUrl = process.env.NPS_SURVEY_URL || "https://amanaoshc.company/survey/nps";
-  const subject = `One question, 10 seconds — would you recommend us?`;
-  const html = parentEmailLayout(`
+  return applyEmailTemplateOverride({
+    key: "nurture.npsSurvey",
+    defaultSubject: "One question, 10 seconds — would you recommend us?",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       A month already!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      It's been a month since your child started at ${centreName}. Time flies when kids
+      It's been a month since your child started at {{centreName}}. Time flies when kids
       are having fun (and parents get their afternoons back!).
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -842,31 +881,40 @@ export function nurtureNpsSurveyEmail(firstName: string, centreName: string) {
         </td>
       </tr>
     </table>
-    ${buttonHtml("Share Your Rating", surveyUrl)}
+    {{ratingButton}}
     <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">
-      Anonymous. 10 seconds. Helps us improve for every family at ${centreName}.
+      Anonymous. 10 seconds. Helps us improve for every family at {{centreName}}.
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Thank you for being part of our community,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: {
+      firstName,
+      centreName,
+      surveyUrl,
+      ratingButton: buttonHtml("Share Your Rating", surveyUrl),
+    },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Referral (first_session +45d) ───────────────────────────
 
-export function nurtureMonth1ReferralEmail(firstName: string, centreName: string) {
-  const subject = `Know another family? We'll thank you with $50`;
-  const html = parentEmailLayout(`
+export async function nurtureMonth1ReferralEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "nurture.month1Referral",
+    defaultSubject: "Know another family? We'll thank you with $50",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Share the love (and earn a reward)
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Your child has been part of the ${centreName} family for over a month now, and
+      Your child has been part of the {{centreName}} family for over a month now, and
       we hope you've been happy with the experience. If so, we'd love your help
       spreading the word!
     </p>
@@ -877,7 +925,7 @@ export function nurtureMonth1ReferralEmail(firstName: string, centreName: string
             $50 Referral Reward
           </p>
           <p style="margin:0;color:#ffffff;font-size:14px;line-height:1.6;">
-            For every family you refer who enrols at ${centreName},<br/>
+            For every family you refer who enrols at {{centreName}},<br/>
             you'll receive a <strong>$50 credit</strong> on your account.
           </p>
         </td>
@@ -894,10 +942,12 @@ export function nurtureMonth1ReferralEmail(firstName: string, centreName: string
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       With gratitude,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Exit Survey Email ──────────────────────────────────────────
@@ -948,17 +998,19 @@ export function nurtureExitSurveyEmail(
 // ─── Casual Booking Re-engagement ────────────────────────────
 // Triggered when a casual family hasn't booked in 14+ days
 
-export function retentionCasualReengageEmail(firstName: string, centreName: string) {
-  const subject = `We've missed seeing your family at ${centreName}!`;
-  const html = parentEmailLayout(`
+export async function retentionCasualReengageEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "retention.casualReengage",
+    defaultSubject: "We've missed seeing your family at {{centreName}}!",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       It's been a while!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We noticed it's been a couple of weeks since your child visited ${centreName},
+      We noticed it's been a couple of weeks since your child visited {{centreName}},
       and we just wanted to say — we miss them! Our educators have been asking about
       your little one.
     </p>
@@ -987,10 +1039,12 @@ export function retentionCasualReengageEmail(firstName: string, centreName: stri
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Hope to see you soon,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Term Transition / New Term Welcome ──────────────────────
@@ -1047,17 +1101,19 @@ export function retentionTermTransitionEmail(
 // ─── Withdrawal Intercept ────────────────────────────────────
 // Sent when a family begins the withdrawal/cancellation process
 
-export function retentionWithdrawalInterceptEmail(firstName: string, centreName: string) {
-  const subject = `Before you go — can we chat, ${firstName}?`;
-  const html = parentEmailLayout(`
+export async function retentionWithdrawalInterceptEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "retention.withdrawalIntercept",
+    defaultSubject: "Before you go — can we chat, {{firstName}}?",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       We heard you might be leaving
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We noticed you've started the process of leaving ${centreName}, and we wanted
+      We noticed you've started the process of leaving {{centreName}}, and we wanted
       to reach out personally. We completely understand that circumstances change, but
       before things are finalised, we'd love a chance to chat.
     </p>
@@ -1090,27 +1146,31 @@ export function retentionWithdrawalInterceptEmail(firstName: string, centreName:
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       With care,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }
 
 // ─── Booking Day Change Reminder ─────────────────────────────
 // Sent when recurring days are approaching and families may want to adjust
 
-export function retentionDayChangeReminderEmail(firstName: string, centreName: string) {
-  const subject = `Quick check — are your booking days still right?`;
-  const html = parentEmailLayout(`
+export async function retentionDayChangeReminderEmail(firstName: string, centreName: string) {
+  return applyEmailTemplateOverride({
+    key: "retention.dayChangeReminder",
+    defaultSubject: "Quick check — are your booking days still right?",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Time for a booking check-up
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi ${firstName},
+      Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Life changes, and so do schedules! We just wanted to check whether your current
-      booking days at ${centreName} are still working for your family.
+      booking days at {{centreName}} are still working for your family.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
       <tr>
@@ -1133,8 +1193,10 @@ export function retentionDayChangeReminderEmail(firstName: string, centreName: s
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
-      <strong>The ${centreName} Team</strong>
+      <strong>The {{centreName}} Team</strong>
     </p>
-  `);
-  return { subject, html };
+  `,
+    vars: { firstName, centreName },
+    wrap: parentEmailLayout,
+  });
 }

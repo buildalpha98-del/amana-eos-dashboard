@@ -21,7 +21,13 @@ export interface EmailTemplateManifestEntry {
   /** Stable identifier; namespaced by domain module (e.g. "auth.welcomeEmail"). */
   key: string;
   /** Module bucket — drives the grouping on the editor list page. */
-  category: "Auth" | "Waitlist" | "Notifications" | "Parent" | "Nurture";
+  category:
+    | "Auth"
+    | "Waitlist"
+    | "Notifications"
+    | "Parent"
+    | "Nurture"
+    | "Retention";
   /** Human label for the editor list. */
   label: string;
   /** One-line description of when this template is sent. */
@@ -257,9 +263,10 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
     ],
   },
   // ── Nurture sequences (parent-facing marketing flow) ─────
-  // The full nurture sequence has ~21 templates; each call site dispatches via
-  // TEMPLATE_MAP in /api/cron/nurture-send. This PR migrates two of them to
-  // the override layer as a foundation; more can be migrated incrementally.
+  // Dispatched via TEMPLATE_MAP in /api/cron/nurture-send. A handful of
+  // templates with conditional blocks (session reminder, exit survey, term
+  // transition) remain hardcoded for now — listed here are the ones that
+  // route through applyEmailTemplateOverride().
   {
     key: "nurture.welcome",
     category: "Nurture",
@@ -317,6 +324,141 @@ export const EMAIL_TEMPLATE_MANIFEST: EmailTemplateManifestEntry[] = [
     category: "Nurture",
     label: "Nurture final nudge (nurturing +12d)",
     description: "Last email in the enquiry-stage flow. Soft sign-off, invites return whenever they're ready.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.formSupport",
+    category: "Nurture",
+    label: "Nurture form support (form_started +4h)",
+    description: "Sent shortly after a parent starts the enrolment form. Offers help if they get stuck.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.formAbandonment",
+    category: "Nurture",
+    label: "Nurture form abandonment (form_started +3d)",
+    description: "Sent when an enrolment form has been started but not finished. Lists common blockers and a continue CTA.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+      { name: "enrolUrl", description: "Pre-filled enrolment URL" },
+      { name: "continueButton", description: "Pre-rendered \"Continue Your Enrolment\" CTA button HTML" },
+    ],
+  },
+  {
+    key: "nurture.whatToBring",
+    category: "Nurture",
+    label: "Nurture what-to-bring (first_session 0d)",
+    description: "Sent the morning of the first session. Quick packing checklist + drop-off tips.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.day1Checkin",
+    category: "Nurture",
+    label: "Nurture day-1 check-in (first_session +1d)",
+    description: "Sent the day after the first session asking how things went and offering a chat if needed.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.day3Checkin",
+    category: "Nurture",
+    label: "Nurture day-3 check-in (first_session +3d)",
+    description: "Mid-week check-in normalising settling-in struggles and inviting questions.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.appSetup",
+    category: "Nurture",
+    label: "Nurture app setup (first_session +5d)",
+    description: "Walks the parent through downloading OWNA and linking their child's profile.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.firstWeek",
+    category: "Nurture",
+    label: "Nurture first-week recap (first_session +7d)",
+    description: "End-of-first-week recap with a few highlights from the centre's typical week.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.week2Feedback",
+    category: "Nurture",
+    label: "Nurture week-2 feedback (first_session +14d)",
+    description: "Asks for quick feedback after two weeks. Door is open for any concerns.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "nurture.npsSurvey",
+    category: "Nurture",
+    label: "Nurture NPS survey (first_session +30d)",
+    description: "30-day anonymous rating prompt with a single-tap CTA.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+      { name: "surveyUrl", description: "Anonymous rating form URL" },
+      { name: "ratingButton", description: "Pre-rendered \"Share Your Rating\" CTA button HTML" },
+    ],
+  },
+  {
+    key: "nurture.month1Referral",
+    category: "Nurture",
+    label: "Nurture month-1 referral ask (first_session +45d)",
+    description: "Soft referral ask after the first settled month, with a clear invite to refer friends.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  // ── Retention (existing-family lifecycle) ────────────────
+  {
+    key: "retention.casualReengage",
+    category: "Retention",
+    label: "Retention casual re-engage (no bookings 30d)",
+    description: "Sent to casual families who haven't booked in 30+ days. Soft re-engagement.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "retention.withdrawalIntercept",
+    category: "Retention",
+    label: "Retention withdrawal intercept",
+    description: "Sent when a family signals they're leaving. Offers a chat before things finalise.",
+    variables: [
+      { name: "firstName", description: "Parent's first name" },
+      { name: "centreName", description: "Centre name" },
+    ],
+  },
+  {
+    key: "retention.dayChangeReminder",
+    category: "Retention",
+    label: "Retention booking-day check-in",
+    description: "Periodic prompt asking if current booking days still suit the family.",
     variables: [
       { name: "firstName", description: "Parent's first name" },
       { name: "centreName", description: "Centre name" },
