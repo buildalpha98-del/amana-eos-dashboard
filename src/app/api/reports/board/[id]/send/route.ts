@@ -58,7 +58,7 @@ const { id } = await context!.params!;
   let emailsSent = 0;
   for (const recipient of recipients) {
     try {
-      const { subject, html } = boardReportEmail(recipient.split("@")[0], {
+      const { subject, html } = await boardReportEmail(recipient.split("@")[0], {
         month: monthName,
         year: report.year,
         totalRevenue: reportData.financial.totalRevenue,
