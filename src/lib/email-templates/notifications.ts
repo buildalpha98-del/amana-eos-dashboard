@@ -283,16 +283,18 @@ export function complianceAlertEmail(
   return { subject, html };
 }
 
-export function complianceAdminSummaryEmail(counts: {
+export async function complianceAdminSummaryEmail(counts: {
   expired: number;
   due7d: number;
   due14d: number;
   due30d: number;
   total: number;
 }) {
-  const subject = `Compliance Summary: ${counts.total} certificates need attention — Amana OSHC`;
-
-  const html = baseLayout(`
+  const dashboardUrl = `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/compliance`;
+  return applyEmailTemplateOverride({
+    key: "notifications.complianceAdminSummary",
+    defaultSubject: "Compliance Summary: {{total}} certificates need attention — Amana OSHC",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Daily Compliance Summary
     </h2>
@@ -302,29 +304,37 @@ export function complianceAdminSummaryEmail(counts: {
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr>
         <td style="padding:16px;background-color:#fef2f2;border-bottom:1px solid #fecaca;">
-          <span style="font-size:24px;font-weight:700;color:#dc2626;">${counts.expired}</span>
+          <span style="font-size:24px;font-weight:700;color:#dc2626;">{{expired}}</span>
           <span style="color:#dc2626;font-size:13px;margin-left:8px;">Expired</span>
         </td>
         <td style="padding:16px;background-color:#fffbeb;border-bottom:1px solid #fde68a;">
-          <span style="font-size:24px;font-weight:700;color:#f59e0b;">${counts.due7d}</span>
+          <span style="font-size:24px;font-weight:700;color:#f59e0b;">{{due7d}}</span>
           <span style="color:#f59e0b;font-size:13px;margin-left:8px;">Within 7 days</span>
         </td>
       </tr>
       <tr>
         <td style="padding:16px;background-color:#fff7ed;">
-          <span style="font-size:24px;font-weight:700;color:#f97316;">${counts.due14d}</span>
+          <span style="font-size:24px;font-weight:700;color:#f97316;">{{due14d}}</span>
           <span style="color:#f97316;font-size:13px;margin-left:8px;">Within 14 days</span>
         </td>
         <td style="padding:16px;background-color:#f9fafb;">
-          <span style="font-size:24px;font-weight:700;color:#6b7280;">${counts.due30d}</span>
+          <span style="font-size:24px;font-weight:700;color:#6b7280;">{{due30d}}</span>
           <span style="color:#6b7280;font-size:13px;margin-left:8px;">Within 30 days</span>
         </td>
       </tr>
     </table>
-    ${buttonHtml("View Compliance Dashboard", `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/compliance`)}
-  `);
-
-  return { subject, html };
+    {{viewButton}}
+  `,
+    vars: {
+      expired: String(counts.expired),
+      due7d: String(counts.due7d),
+      due14d: String(counts.due14d),
+      due30d: String(counts.due30d),
+      total: String(counts.total),
+      viewButton: buttonHtml("View Compliance Dashboard", dashboardUrl),
+    },
+    wrap: baseLayout,
+  });
 }
 
 // ─── Daily Digest ───────────────────────────────────────────

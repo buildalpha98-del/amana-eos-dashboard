@@ -98,7 +98,7 @@ export async function checkCertExpiry(): Promise<CertExpiryResult> {
   const errors: string[] = [];
 
   if (admins.length > 0) {
-    const { subject, html } = complianceAdminSummaryEmail({
+    const { subject, html } = await complianceAdminSummaryEmail({
       expired: expiredCount,
       due7d: criticalCount,
       due14d: warningCount,

@@ -143,7 +143,7 @@ export async function boardReportDraftNotificationEmail(
 
 // ─── Board Report: Send to Board ────────────────────────────
 
-export function boardReportEmail(
+export async function boardReportEmail(
   name: string,
   data: {
     month: string;
@@ -159,42 +159,44 @@ export function boardReportEmail(
     dashboardUrl: string;
   },
 ) {
-  const subject = `${data.month} ${data.year} Board Report — Amana OSHC`;
-
-  const html = baseLayout(`
+  const formattedRevenue = `$${data.totalRevenue.toLocaleString("en-AU", { minimumFractionDigits: 0 })}`;
+  return applyEmailTemplateOverride({
+    key: "reports.boardReport",
+    defaultSubject: "{{month}} {{year}} Board Report — Amana OSHC",
+    defaultBody: `
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Monthly Board Report
     </h2>
     <p style="margin:0 0 4px;color:${BRAND_COLOR};font-size:14px;font-weight:600;">
-      ${data.month} ${data.year}
+      {{month}} {{year}}
     </p>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${name}, please find the monthly board report summary below.
+      Hi {{name}}, please find the monthly board report summary below.
     </p>
 
     <!-- KPI Cards -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr>
         <td style="padding:16px;text-align:center;background-color:#f0fdf4;width:33%;">
-          <div style="font-size:22px;font-weight:700;color:#10b981;">$${data.totalRevenue.toLocaleString("en-AU", { minimumFractionDigits: 0 })}</div>
+          <div style="font-size:22px;font-weight:700;color:#10b981;">{{formattedRevenue}}</div>
           <div style="font-size:11px;color:#059669;text-transform:uppercase;margin-top:4px;">Revenue</div>
         </td>
         <td style="padding:16px;text-align:center;background-color:#eff6ff;width:33%;">
-          <div style="font-size:22px;font-weight:700;color:#3b82f6;">${Math.round(data.avgMargin)}%</div>
+          <div style="font-size:22px;font-weight:700;color:#3b82f6;">{{avgMargin}}%</div>
           <div style="font-size:11px;color:#2563eb;text-transform:uppercase;margin-top:4px;">Margin</div>
         </td>
         <td style="padding:16px;text-align:center;background-color:#f5f3ff;width:34%;">
-          <div style="font-size:22px;font-weight:700;color:#8b5cf6;">${data.avgOccupancy}%</div>
+          <div style="font-size:22px;font-weight:700;color:#8b5cf6;">{{avgOccupancy}}%</div>
           <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;margin-top:4px;">Occupancy</div>
         </td>
       </tr>
       <tr>
         <td style="padding:12px;text-align:center;background-color:#fffbeb;width:33%;">
-          <div style="font-size:18px;font-weight:700;color:#f59e0b;">${data.activeStaff}</div>
+          <div style="font-size:18px;font-weight:700;color:#f59e0b;">{{activeStaff}}</div>
           <div style="font-size:11px;color:#d97706;text-transform:uppercase;margin-top:2px;">Staff</div>
         </td>
         <td colspan="2" style="padding:12px;text-align:center;background-color:#f9fafb;width:67%;">
-          <div style="font-size:18px;font-weight:700;color:${BRAND_COLOR};">${data.rocksOnTrack}/${data.rocksTotal}</div>
+          <div style="font-size:18px;font-weight:700;color:${BRAND_COLOR};">{{rocksOnTrack}}/{{rocksTotal}}</div>
           <div style="font-size:11px;color:#6b7280;text-transform:uppercase;margin-top:2px;">Rocks On Track</div>
         </td>
       </tr>
@@ -206,19 +208,32 @@ export function boardReportEmail(
         <td style="padding:16px;background-color:#f9fafb;">
           <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">Executive Summary</p>
           <p style="margin:0;color:#374151;font-size:13px;line-height:1.7;">
-            ${data.executiveSummary}
+            {{executiveSummary}}
           </p>
         </td>
       </tr>
     </table>
 
-    ${buttonHtml("View Full Report", data.dashboardUrl)}
+    {{viewReportButton}}
     <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
       View the complete report with detailed breakdowns on the dashboard.
     </p>
-  `);
-
-  return { subject, html };
+  `,
+    vars: {
+      name,
+      month: data.month,
+      year: String(data.year),
+      formattedRevenue,
+      avgMargin: String(Math.round(data.avgMargin)),
+      avgOccupancy: String(data.avgOccupancy),
+      activeStaff: String(data.activeStaff),
+      rocksOnTrack: String(data.rocksOnTrack),
+      rocksTotal: String(data.rocksTotal),
+      executiveSummary: data.executiveSummary,
+      viewReportButton: buttonHtml("View Full Report", data.dashboardUrl),
+    },
+    wrap: baseLayout,
+  });
 }
 
 // ─── Staffing Alert ─────────────────────────────────────────
