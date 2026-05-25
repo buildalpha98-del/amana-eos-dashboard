@@ -50,6 +50,49 @@ function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goal
   );
 }
 
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .filter(Boolean)
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function OwnerCell({
+  owner,
+}: {
+  owner: { name?: string | null; avatar?: string | null } | null | undefined;
+}) {
+  const name = owner?.name ?? "Unassigned";
+  return (
+    <div className="inline-flex items-center gap-1.5 max-w-full">
+      {owner?.avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={owner.avatar}
+          alt=""
+          className="w-6 h-6 rounded-full object-cover shrink-0"
+        />
+      ) : (
+        <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+          <span className="text-[10px] font-medium text-brand">
+            {getInitials(owner?.name)}
+          </span>
+        </div>
+      )}
+      <span
+        className="text-xs text-foreground truncate"
+        title={name}
+      >
+        {name}
+      </span>
+    </div>
+  );
+}
+
 function getTrailing13Weeks(): Date[] {
   const weeks: Date[] = [];
   const current = getWeekStart();
@@ -97,19 +140,27 @@ export function ScorecardGrid({
   const reorderMutation = useMutation({
     mutationFn: (orderedIds: string[]) =>
       mutateApi("/api/measurables/reorder", { method: "PUT", body: { orderedIds } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["scorecard"] }),
-    onError: () => {
+    onSettled: () => {
+      // Settle both the legacy singleton query and the per-id detail
+      // query — the page reads via useScorecardDetail.
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+      queryClient.invalidateQueries({ queryKey: ["scorecard-detail"] });
     },
   });
 
-  // Group measurables by owner or service
-  const grouped = useMemo(() => {
+  // Build the row groups. Person mode renders as one flat virtual
+  // group (no divider) — owner identity lives in the per-row Owner
+  // column instead. Service mode keeps its dividers since service is
+  // an orthogonal dimension to owner.
+  type RowGroup = {
+    key: string;
+    /** When null, no divider row is rendered (flat layout). */
+    label: string | null;
+    measurables: typeof scorecard.measurables;
+  };
+  const grouped = useMemo<RowGroup[]>(() => {
     if (groupBy === "service") {
-      const groups: Record<
-        string,
-        { key: string; label: string; icon: "service"; measurables: typeof scorecard.measurables }
-      > = {};
+      const groups: Record<string, RowGroup> = {};
 
       for (const m of scorecard.measurables) {
         const serviceKey = m.service?.id || "unassigned";
@@ -118,7 +169,6 @@ export function ScorecardGrid({
           groups[serviceKey] = {
             key: serviceKey,
             label: serviceName,
-            icon: "service",
             measurables: [],
           };
         }
@@ -126,31 +176,22 @@ export function ScorecardGrid({
       }
 
       return Object.values(groups).sort((a, b) =>
-        a.label.localeCompare(b.label)
+        (a.label ?? "").localeCompare(b.label ?? ""),
       );
     }
 
-    // Default: group by person
-    const groups: Record<
-      string,
-      { key: string; label: string; icon: "person"; measurables: typeof scorecard.measurables }
-    > = {};
-
-    for (const m of scorecard.measurables) {
-      if (!groups[m.ownerId]) {
-        groups[m.ownerId] = {
-          key: m.owner?.id ?? m.ownerId,
-          label: m.owner?.name ?? "Unassigned",
-          icon: "person",
-          measurables: [],
-        };
-      }
-      groups[m.ownerId].measurables.push(m);
-    }
-
-    return Object.values(groups).sort((a, b) =>
-      a.label.localeCompare(b.label)
-    );
+    // Person mode: flat list, no group headers. The Owner column
+    // surfaces owner identity inline on each row, so a divider would
+    // just be redundant noise. API order is preserved (sortOrder →
+    // ownerId → title), which keeps drag-reorder intact and naturally
+    // co-locates rows owned by the same person.
+    return [
+      {
+        key: "all",
+        label: null,
+        measurables: scorecard.measurables,
+      },
+    ];
   }, [scorecard.measurables, groupBy]);
 
   // Build entry lookup: measurableId -> weekIso -> entry
@@ -243,6 +284,9 @@ export function ScorecardGrid({
               <th className="px-2 py-3 text-center text-xs font-semibold text-muted uppercase tracking-wider w-[60px]">
                 <span className="inline-flex items-center gap-1">Goal <HelpTooltip id="scorecard-goal" content="The target number you're aiming for each week." /></span>
               </th>
+              <th className="px-2 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider w-[140px]">
+                Owner
+              </th>
               <th className="px-2 py-3 text-center text-xs font-semibold text-brand uppercase tracking-wider w-[70px] bg-brand/5">
                 13wk Avg
               </th>
@@ -259,35 +303,26 @@ export function ScorecardGrid({
           <tbody>
             {grouped.map((group) => (
               <Fragment key={group.key}>
-                {/* Group divider */}
-                <tr>
-                  <td
-                    colSpan={weeks.length + 3}
-                    className="sticky left-0 z-10 bg-surface/50 px-4 py-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      {group.icon === "service" ? (
+                {/* Group divider — only when grouping is active (service mode).
+                    Person mode flattens to a single virtual group with
+                    label=null, so the Owner column carries the identity. */}
+                {group.label !== null && (
+                  <tr>
+                    <td
+                      colSpan={weeks.length + 4}
+                      className="sticky left-0 z-10 bg-surface/50 px-4 py-2"
+                    >
+                      <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
                           <Building2 className="w-3 h-3 text-amber-700" />
                         </div>
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center">
-                          <span className="text-[10px] font-medium text-brand">
-                            {group.label
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
-                              .slice(0, 2)}
-                          </span>
-                        </div>
-                      )}
-                      <span className="text-xs font-semibold text-muted">
-                        {group.label}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
+                        <span className="text-xs font-semibold text-muted">
+                          {group.label}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
 
                 {/* Measurable rows */}
                 {group.measurables.map((m) => {
@@ -396,6 +431,11 @@ export function ScorecardGrid({
                           ? `${m.goalValue}%`
                           : m.goalValue.toLocaleString()}
                       </span>
+                    </td>
+
+                    {/* Owner */}
+                    <td className="px-2 py-2">
+                      <OwnerCell owner={m.owner} />
                     </td>
 
                     {/* 13-week Average */}

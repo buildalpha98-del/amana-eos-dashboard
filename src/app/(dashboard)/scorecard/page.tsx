@@ -92,6 +92,7 @@ export default function ScorecardPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+      queryClient.invalidateQueries({ queryKey: ["scorecard-detail"] });
       setDeletingMeasurable(null);
     },
     onError: (err: Error) => {
