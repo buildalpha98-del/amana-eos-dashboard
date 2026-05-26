@@ -623,6 +623,7 @@ model User {
   contracts                EmploymentContract[]            @relation("ContractEmployee")
   createdContractTemplates ContractTemplate[]              @relation("TemplateCreator")
   updatedContractTemplates ContractTemplate[]              @relation("TemplateUpdater")
+  createdContractCustomTags ContractCustomTag[]            @relation("ContractCustomTagCreator")
   leaveRequests            LeaveRequest[]                  @relation("LeaveRequester")
   approvedLeaves           LeaveRequest[]                  @relation("LeaveApprover")
   leaveBalances            LeaveBalance[]
@@ -3859,6 +3860,24 @@ model ContractTemplate {
 
   @@index([status])
   @@index([name])
+}
+
+// 2026-05-18: Org-level user-defined merge tags for the contract template
+// editor. Surfaced in MergeTagPanel as the "Custom Tags" section, alongside
+// the hardcoded system catalog. `key` is always prefixed `custom.` and is
+// camelCased from the user-entered label at write time. Shared across all
+// admins (single-tenant) — `createdById` is audit-only and the row remains
+// even if the creator's user record is deleted.
+model ContractCustomTag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  createdById String?
+  createdBy   User?    @relation("ContractCustomTagCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
 }
 
 // ============================================================

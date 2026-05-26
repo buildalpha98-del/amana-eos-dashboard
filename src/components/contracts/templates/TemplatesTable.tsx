@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Copy, FileText, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,17 @@ function TemplateBadge({ status }: { status: "active" | "disabled" }) {
 
 // ── Row actions dropdown ──────────────────────────────────────────────────────
 
+/**
+ * Width of the dropdown panel (Tailwind `w-44` = 11rem = 176px) — kept in
+ * sync with the className below. Used by the positioning logic so we
+ * don't have to wait a frame to measure the menu before placing it.
+ */
+const MENU_W = 176;
+/** Approximate menu height (4 items + separator + padding) for first-paint placement. */
+const MENU_H_DEFAULT = 188;
+const VIEWPORT_GAP = 8;
+const TRIGGER_GAP = 4;
+
 function RowActions({
   template,
   onNavigate,
@@ -61,9 +73,75 @@ function RowActions({
   onNavigate: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const clone = useCloneContractTemplate();
   const del = useDeleteContractTemplate();
   const update = useUpdateContractTemplate();
+
+  // Position the dropdown in viewport coordinates. Portaling to <body>
+  // sidesteps the table's `overflow-hidden` (which is what was clipping
+  // the menu on rows near the bottom of the list). The flip-up logic
+  // covers rows that don't have room below.
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null);
+      return;
+    }
+    function place() {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      // jsdom (and a layoutless first paint) returns offsetWidth/Height
+      // of 0 — fall back to our known constants in that case, otherwise
+      // the flip-above check would always think the menu is zero-size.
+      const measuredH = menuRef.current?.offsetHeight ?? 0;
+      const measuredW = menuRef.current?.offsetWidth ?? 0;
+      const menuH = measuredH > 0 ? measuredH : MENU_H_DEFAULT;
+      const menuW = measuredW > 0 ? measuredW : MENU_W;
+
+      // Below the trigger by default; flip above if it would overflow
+      // the viewport's bottom edge.
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const flipAbove = spaceBelow < menuH + TRIGGER_GAP + VIEWPORT_GAP;
+      const top = flipAbove
+        ? Math.max(VIEWPORT_GAP, rect.top - menuH - TRIGGER_GAP)
+        : rect.bottom + TRIGGER_GAP;
+
+      // Right-align with the trigger, but clamp inside the viewport so a
+      // menu near the right edge doesn't get pushed off-screen.
+      const desiredLeft = rect.right - menuW;
+      const left = Math.min(
+        Math.max(VIEWPORT_GAP, desiredLeft),
+        window.innerWidth - menuW - VIEWPORT_GAP,
+      );
+
+      setCoords({ top, left });
+    }
+    place();
+    // Re-place while the menu is open in case the user scrolls the
+    // table or resizes the window.
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [open]);
+
+  // Close on Escape so keyboard users have a way out without clicking
+  // the backdrop.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   function handleClone() {
     setOpen(false);
@@ -96,55 +174,80 @@ function RowActions({
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
         className="p-1.5 rounded-lg hover:bg-surface transition-colors"
         aria-label="Template actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <MoreHorizontal className="w-4 h-4 text-muted" />
       </button>
 
-      {open && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setOpen(false)}
-          />
-          {/* Dropdown */}
-          <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-lg py-1 w-44">
-            <button
-              onClick={() => { setOpen(false); onNavigate(template.id); }}
-              className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface transition-colors"
+      {open && typeof document !== "undefined" &&
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+              data-testid="row-actions-backdrop"
+            />
+            {/* Dropdown — fixed-positioned via measured coords so it can
+                escape the table's overflow-hidden container. */}
+            <div
+              ref={menuRef}
+              role="menu"
+              data-testid="row-actions-menu"
+              style={{
+                position: "fixed",
+                top: coords?.top ?? -9999,
+                left: coords?.left ?? -9999,
+                // Hide for the first frame until useLayoutEffect has
+                // measured & placed us — otherwise the menu flashes at
+                // 0,0 briefly.
+                visibility: coords ? "visible" : "hidden",
+              }}
+              className="z-50 bg-card border border-border rounded-xl shadow-lg py-1 w-44"
             >
-              Edit
-            </button>
-            <button
-              onClick={handleClone}
-              disabled={clone.isPending}
-              className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface transition-colors flex items-center gap-2"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              Clone
-            </button>
-            <button
-              onClick={handleToggleStatus}
-              disabled={update.isPending}
-              className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface transition-colors"
-            >
-              {template.status === "active" ? "Disable" : "Enable"}
-            </button>
-            <div className="border-t border-border/50 my-1" />
-            <button
-              onClick={handleDelete}
-              disabled={del.isPending}
-              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete
-            </button>
-          </div>
-        </>
-      )}
+              <button
+                role="menuitem"
+                onClick={() => { setOpen(false); onNavigate(template.id); }}
+                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                role="menuitem"
+                onClick={handleClone}
+                disabled={clone.isPending}
+                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface transition-colors flex items-center gap-2"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Clone
+              </button>
+              <button
+                role="menuitem"
+                onClick={handleToggleStatus}
+                disabled={update.isPending}
+                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-surface transition-colors"
+              >
+                {template.status === "active" ? "Disable" : "Enable"}
+              </button>
+              <div className="border-t border-border/50 my-1" />
+              <button
+                role="menuitem"
+                onClick={handleDelete}
+                disabled={del.isPending}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </button>
+            </div>
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
