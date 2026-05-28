@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileText, Upload, Loader2 } from "lucide-react";
+import { Download, FileText, Upload, Loader2, Eye } from "lucide-react";
 import type { Document } from "@prisma/client";
 import { toast } from "@/hooks/useToast";
 
@@ -142,15 +142,24 @@ export function DocumentsTab({
                     {humanize(d.category)} · {formatDate(d.createdAt)}
                   </div>
                 </div>
-                <a
-                  href={d.fileUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Download
-                </a>
+                <div className="flex items-center gap-3 shrink-0">
+                  <a
+                    href={`/api/staff-documents/${d.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    View
+                  </a>
+                  <a
+                    href={`/api/staff-documents/${d.id}?download=1`}
+                    className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download
+                  </a>
+                </div>
               </li>
             ))}
           </ul>

@@ -7,6 +7,11 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { normaliseTagList } from "@/lib/staff-tags";
 const profileUpdateSchema = z.object({
+  // Identity fields — self can update own; admins can update any staff member.
+  // Role is intentionally NOT here — it lives on PATCH /api/users/[id], which
+  // is fully admin-gated and has the last-owner guard.
+  name: z.string().min(1).max(120).optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
   addressStreet: z.string().optional(),
@@ -51,6 +56,10 @@ const profileUpdateSchema = z.object({
 // end date). Sensitive identifiers (TFN, xero ID, visa, tags) and
 // admin-only assignments (role, serviceId) remain admin-only.
 const STAFF_SELF_FIELDS = new Set([
+  // Self-updatable identity (name/email allowed for self — they're not
+  // privilege-bearing). Role is admin-only and lives on PATCH /api/users/[id].
+  "name",
+  "email",
   "phone",
   "dateOfBirth",
   "addressStreet",
@@ -211,6 +220,21 @@ const { id } = await context!.params!;
     }
 
     data[key] = value;
+  }
+
+  // Pre-flight email uniqueness check so a clash returns 409 with a clear
+  // message instead of a 500 from Prisma's P2002 constraint violation.
+  if (typeof data.email === "string" && data.email !== user.email) {
+    const clash = await prisma.user.findUnique({
+      where: { email: data.email },
+      select: { id: true },
+    });
+    if (clash && clash.id !== id) {
+      return NextResponse.json(
+        { error: "Another user already has that email address." },
+        { status: 409 },
+      );
+    }
   }
 
   const updated = await prisma.user.update({

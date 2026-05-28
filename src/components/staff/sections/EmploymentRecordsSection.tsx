@@ -28,12 +28,18 @@ export interface EmploymentRecordsSectionProps {
   data: StaffProfileData;
   canEditPersonal: boolean;
   canEditEmployment: boolean;
+  /** Show the admin-only Account panel (role editor) — admin viewing another user. */
+  canEditAccount?: boolean;
+  /** Viewer is an owner (needed for the role dropdown's owner/head_office options). */
+  viewerIsOwner?: boolean;
 }
 
 export function EmploymentRecordsSection({
   data,
   canEditPersonal,
   canEditEmployment,
+  canEditAccount = false,
+  viewerIsOwner = false,
 }: EmploymentRecordsSectionProps) {
   return (
     <SectionShell<SubTab>
@@ -59,6 +65,8 @@ export function EmploymentRecordsSection({
               targetUser={data.targetUser}
               emergencyContacts={data.emergencyContacts}
               canEdit={canEditPersonal}
+              canEditAccount={canEditAccount}
+              viewerIsOwner={viewerIsOwner}
             />
           );
         }

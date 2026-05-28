@@ -59,6 +59,10 @@ export function StaffProfileLayout({
 }: StaffProfileLayoutProps) {
   // Pay data is admin-or-self only.
   const canViewPay = isAdmin || isSelf;
+  // Admin-only role editor — hide on own profile to prevent one-click
+  // self-demotion / self-elevation from the staff page.
+  const canEditAccount = isAdmin && !isSelf;
+  const viewerIsOwner = viewerRole === "owner";
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -98,6 +102,8 @@ export function StaffProfileLayout({
               data={data}
               canEditPersonal={canEditPersonal}
               canEditEmployment={canEditEmployment}
+              canEditAccount={canEditAccount}
+              viewerIsOwner={viewerIsOwner}
             />
             <PayCompensationSection
               data={data}
