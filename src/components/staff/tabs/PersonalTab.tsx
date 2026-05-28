@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { User, EmergencyContact } from "@prisma/client";
-import { Phone, MapPin, Cake, CalendarDays, Loader2 } from "lucide-react";
+import { Phone, MapPin, Cake, CalendarDays, Loader2, User as UserIcon, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -11,6 +11,10 @@ interface PersonalTabProps {
   targetUser: User;
   emergencyContacts: EmergencyContact[];
   canEdit: boolean;
+  /** True when the viewer is an admin and is NOT viewing their own profile — controls visibility of the admin "Account" panel (role editing). */
+  canEditAccount?: boolean;
+  /** True when the viewer is an owner — needed because only owners can promote to owner/head_office. */
+  viewerIsOwner?: boolean;
 }
 
 function formatDate(d: Date | null | undefined): string {
@@ -34,7 +38,13 @@ function toDateInput(d: Date | null | undefined): string {
   return dt.toISOString().slice(0, 10);
 }
 
-export function PersonalTab({ targetUser, emergencyContacts, canEdit }: PersonalTabProps) {
+export function PersonalTab({
+  targetUser,
+  emergencyContacts,
+  canEdit,
+  canEditAccount = false,
+  viewerIsOwner = false,
+}: PersonalTabProps) {
   const [editing, setEditing] = useState(false);
 
   if (editing && canEdit) {
@@ -63,6 +73,8 @@ export function PersonalTab({ targetUser, emergencyContacts, canEdit }: Personal
           )}
         </div>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field icon={UserIcon} label="Full name" value={targetUser.name || "—"} />
+          <Field icon={Mail} label="Email" value={targetUser.email || "—"} />
           <Field icon={Phone} label="Phone" value={targetUser.phone || "—"} />
           <Field icon={Cake} label="Date of birth" value={formatDate(targetUser.dateOfBirth)} />
           <Field
@@ -79,6 +91,10 @@ export function PersonalTab({ targetUser, emergencyContacts, canEdit }: Personal
           />
         </dl>
       </div>
+
+      {canEditAccount && (
+        <AccountPanel targetUser={targetUser} viewerIsOwner={viewerIsOwner} />
+      )}
 
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">Emergency contacts</h3>
@@ -126,6 +142,8 @@ function PersonalEditForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
+    name: targetUser.name ?? "",
+    email: targetUser.email ?? "",
     phone: targetUser.phone ?? "",
     dateOfBirth: toDateInput(targetUser.dateOfBirth),
     addressStreet: targetUser.addressStreet ?? "",
@@ -143,6 +161,8 @@ function PersonalEditForm({
       // want to clobber unrelated fields the admin never opened.
       const body: Record<string, string> = {};
       const initial = {
+        name: targetUser.name ?? "",
+        email: targetUser.email ?? "",
         phone: targetUser.phone ?? "",
         dateOfBirth: toDateInput(targetUser.dateOfBirth),
         addressStreet: targetUser.addressStreet ?? "",
@@ -199,6 +219,22 @@ function PersonalEditForm({
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Full name"
+            icon={UserIcon}
+            value={form.name}
+            onChange={(v) => setForm((f) => ({ ...f, name: v }))}
+            autoComplete="name"
+            className="sm:col-span-2"
+          />
+          <Input
+            label="Email"
+            icon={Mail}
+            type="email"
+            value={form.email}
+            onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+            autoComplete="email"
+          />
           <Input
             label="Phone"
             icon={Phone}
@@ -308,5 +344,134 @@ function Input({
         className="mt-1 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
       />
     </label>
+  );
+}
+
+// ── AccountPanel ───────────────────────────────────────────────────
+// Admin-only role editor. Shown on the staff profile when the viewer is an
+// admin and is NOT viewing their own profile (we don't want one-click
+// self-elevation/demotion from this UI; the user-list page handles that).
+// Saves via PATCH /api/users/[id] which enforces the canonical role guards
+// (only-owners-can-promote-to-owner, last-owner protection, etc.).
+
+const ROLE_OPTIONS: { value: string; label: string; ownerOnly?: boolean }[] = [
+  { value: "owner", label: "Owner", ownerOnly: true },
+  { value: "head_office", label: "Head office", ownerOnly: true },
+  { value: "admin", label: "Admin" },
+  { value: "marketing", label: "Marketing" },
+  { value: "member", label: "Member" },
+  { value: "staff", label: "Staff" },
+];
+
+function AccountPanel({
+  targetUser,
+  viewerIsOwner,
+}: {
+  targetUser: User;
+  viewerIsOwner: boolean;
+}) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [role, setRole] = useState<string>(targetUser.role);
+
+  const selectableRoles = ROLE_OPTIONS.filter(
+    (r) => viewerIsOwner || !r.ownerOnly,
+  );
+
+  async function handleSave() {
+    if (role === targetUser.role) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await mutateApi(`/api/users/${targetUser.id}`, {
+        method: "PATCH",
+        body: { role },
+      });
+      toast({ description: "Role updated." });
+      router.refresh();
+      setEditing(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to update role";
+      toast({ variant: "destructive", description: message });
+      // Reset the local role to the canonical value if the server rejected.
+      setRole(targetUser.role);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-6">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-lg font-semibold text-foreground">Account</h3>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">
+          Admin only
+        </span>
+      </div>
+      <p className="text-xs text-muted mb-4">
+        Privileged settings. Visible to owners and admins only.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+        <div>
+          <span className="text-xs uppercase tracking-wide text-muted">
+            Role
+          </span>
+          {editing ? (
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              disabled={saving}
+              className="mt-1 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+            >
+              {selectableRoles.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="mt-1 text-sm font-medium text-foreground capitalize">
+              {targetUser.role.replace(/_/g, " ")}
+            </div>
+          )}
+        </div>
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setRole(targetUser.role);
+                setEditing(false);
+              }}
+              disabled={saving}
+              className="text-sm text-muted hover:text-foreground px-3 py-1.5 rounded-md border border-border"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="text-sm font-medium text-white bg-brand hover:bg-brand/90 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 disabled:opacity-60"
+            >
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Save role
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="text-sm text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-md border border-border"
+          >
+            Change role
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
