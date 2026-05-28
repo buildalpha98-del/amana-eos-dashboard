@@ -181,7 +181,7 @@ describe("ContractViewerModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("on small viewports the modal uses full-screen layout (no rounded corners or sm:rounded-xl absent)", async () => {
+  it("uses full-screen layout on mobile and 90vw × 90vh on desktop (capped at 1400px)", async () => {
     global.fetch = vi.fn().mockResolvedValueOnce(
       new Response("<html></html>", { status: 200, headers: { "Content-Type": "text/html" } }),
     );
@@ -189,10 +189,44 @@ describe("ContractViewerModal", () => {
     render(wrap(<ContractViewerModal contract={baseTemplateContract} onClose={() => {}} />));
 
     const dialog = await screen.findByRole("dialog");
-    // Tailwind classes encoding mobile-first sizing: `h-full sm:h-auto`
-    // means the dialog fills the screen on small viewports and shrinks at sm+.
+    // Mobile: `w-full h-full` so it covers the whole screen edge-to-edge.
+    expect(dialog.className).toMatch(/\bw-full\b/);
     expect(dialog.className).toMatch(/\bh-full\b/);
+    // Desktop: explicit 90vw × 90vh sizing so a long handbook actually fills
+    // the screen — the previous max-w-4xl (768px) was unusable on a 1440px
+    // monitor.
+    expect(dialog.className).toMatch(/\bsm:w-\[90vw\]\b/);
+    expect(dialog.className).toMatch(/\bsm:h-\[90vh\]\b/);
+    // 1400px cap so 4K monitors don't get an absurdly wide modal.
+    expect(dialog.className).toMatch(/\bsm:max-w-\[1400px\]\b/);
     expect(dialog.className).toMatch(/\bsm:rounded-xl\b/);
+  });
+
+  it("injects a viewer-only stylesheet into the iframe srcDoc to tame the A4 margins for inline reading", async () => {
+    const baseHtml = `<!doctype html><html><head><style>body{margin:2cm}</style></head><body>Body</body></html>`;
+    global.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(baseHtml, {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      }),
+    );
+
+    render(wrap(<ContractViewerModal contract={baseTemplateContract} onClose={() => {}} />));
+
+    const iframe = (await screen.findByTestId(
+      "contract-viewer-iframe",
+    )) as HTMLIFrameElement;
+    const srcdoc = iframe.getAttribute("srcdoc") ?? "";
+    // The viewer injects a centered max-78ch text column so the body isn't
+    // a 1100px wall of text inside a 1260px modal.
+    expect(srcdoc).toMatch(/max-width:\s*78ch/);
+    // ... and a small-viewport override so mobile readers don't get a 2cm
+    // margin eating 40% of a 375px iPhone screen.
+    expect(srcdoc).toMatch(/@media \(max-width:\s*600px\)/);
+    // Original A4 margin from the renderer must still be present — only the
+    // PDF cares about that, but proving we left it intact catches accidental
+    // replace-all bugs.
+    expect(srcdoc).toMatch(/margin:\s*2cm/);
   });
 
   it("surfaces a fallback error message + PDF link when /render fails", async () => {

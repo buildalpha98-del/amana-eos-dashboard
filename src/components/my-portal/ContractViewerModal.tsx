@@ -19,7 +19,7 @@
  * modal cut-off symptom).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, AlertTriangle, CheckCircle2, ClipboardCheck, ExternalLink, Loader2, FileText } from "lucide-react";
@@ -145,6 +145,39 @@ export function ContractViewerModal({ contract, onClose }: Props) {
   const justAcknowledged = acknowledgeMut.isSuccess;
   const isAcknowledged = contract.acknowledged || justAcknowledged;
 
+  // The /render endpoint returns A4-styled HTML (margin: 2cm) suitable for
+  // the PDF path. Inside a modal that's ~1260px wide on desktop / 375px on
+  // mobile, those margins produce either a too-wide text column or a too-
+  // cramped one. Inject a viewer-only stylesheet (idempotent — only the
+  // modal sees it, the PDF path is unchanged) that caps the column at 78ch
+  // and tightens padding/font on narrow viewports.
+  const styledHtml = useMemo(() => {
+    if (!html) return html;
+    const injection = `<style>
+      html, body { height: auto; }
+      body {
+        max-width: 78ch;
+        margin: 2cm auto !important;
+        padding: 0 1rem;
+        box-sizing: border-box;
+      }
+      @media (max-width: 600px) {
+        body {
+          margin: 1.25rem auto !important;
+          padding: 0 0.75rem;
+          font-size: 14pt;
+        }
+        h1, h2, h3 { line-height: 1.2; }
+      }
+    </style>`;
+    // Prefer to slot the injection right before </head> so it overrides the
+    // base styles emitted by renderTemplateHtml. Fall back to prepending it
+    // if the HTML shape ever changes.
+    return html.includes("</head>")
+      ? html.replace("</head>", `${injection}</head>`)
+      : `${injection}${html}`;
+  }, [html]);
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
@@ -157,10 +190,17 @@ export function ContractViewerModal({ contract, onClose }: Props) {
       }}
     >
       <div
-        className="bg-card w-full sm:max-w-4xl flex flex-col shadow-2xl sm:rounded-xl sm:max-h-[90vh] h-full sm:h-auto"
+        // Sizing — these contracts are full staff handbooks; readers need
+        // real estate, not a card. On desktop we lock to 90% of the viewport
+        // on both axes (the inner srcDoc gets its own centered text column
+        // for line-length comfort, see styledHtml below). The 1400px cap
+        // keeps things sensible on 4K monitors. On mobile we stay edge-to-
+        // edge so the sticky footer hugs the iPhone safe area.
+        className="bg-card w-full h-full sm:w-[90vw] sm:h-[90vh] sm:max-w-[1400px] flex flex-col shadow-2xl sm:rounded-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="contract-viewer-title"
+        data-testid="contract-viewer-dialog"
       >
         {/* Header */}
         <header className="flex items-center justify-between gap-3 p-4 border-b border-border shrink-0">
@@ -215,10 +255,10 @@ export function ContractViewerModal({ contract, onClose }: Props) {
             </div>
           )}
 
-          {!loading && !htmlError && contract.isTemplateBased && html && (
+          {!loading && !htmlError && contract.isTemplateBased && styledHtml && (
             <iframe
               title="Contract content"
-              srcDoc={html}
+              srcDoc={styledHtml}
               sandbox="allow-same-origin"
               className="w-full h-full bg-white border-0"
               data-testid="contract-viewer-iframe"
