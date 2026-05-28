@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, ArrowRight, ArrowLeft, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -278,7 +279,12 @@ export function IssueFromTemplateModal({
     return `Step ${displayIdx + 1} of ${total} — ${labels[displayIdx] ?? ""}`;
   };
 
-  return (
+  // Portal to <body> so `position: fixed` ignores the dashboard <main>, which
+  // has `animate-slide-up` → leaves a permanent `translate: 0 0` and creates
+  // a containing block for fixed descendants (causing the modal to be
+  // centered inside <main> instead of the viewport).
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div className="bg-card rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
@@ -386,7 +392,8 @@ export function IssueFromTemplateModal({
           )}
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

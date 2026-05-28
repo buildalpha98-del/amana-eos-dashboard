@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useCreateContract } from "@/hooks/useContracts";
 import {
@@ -56,7 +57,10 @@ export function NewContractModal({ users, initialUserId, onClose }: Props) {
     );
   }
 
-  return (
+  // Portal to <body> so `position: fixed` escapes the dashboard <main>'s
+  // animate-slide-up containing block (see IssueFromTemplateModal for details).
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -106,6 +110,7 @@ export function NewContractModal({ users, initialUserId, onClose }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
