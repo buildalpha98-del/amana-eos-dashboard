@@ -11,6 +11,11 @@ export const MERGE_TAGS: MergeTagDef[] = [
   { key: "staff.city", label: "Staff: City/Suburb", group: "staff", blocking: true },
   { key: "staff.state", label: "Staff: State", group: "staff", blocking: true },
   { key: "staff.postcode", label: "Staff: Postcode", group: "staff", blocking: true },
+  // Composite — joins city + state + postcode with single spaces so authors can
+  // use one tag instead of three adjacent ones (which is easy to get wrong —
+  // see the "BonnyriggNSW2177" rendering bug). Non-blocking; the individual
+  // staff.city/state/postcode entries above are already blocking.
+  { key: "staff.cityStatePostcode", label: "Staff: City + State + Postcode (composite)", group: "staff", blocking: false },
   // Service
   { key: "service.name", label: "Service: Name", group: "service", blocking: true },
   { key: "service.address", label: "Service: Address", group: "service", blocking: false },

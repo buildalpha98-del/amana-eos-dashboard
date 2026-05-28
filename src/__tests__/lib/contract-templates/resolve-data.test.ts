@@ -58,12 +58,25 @@ describe("resolveTemplateData", () => {
     expect(resolved["staff.lastName"]).toBe("Doe");
     expect(resolved["staff.fullName"]).toBe("Sarah Doe");
     expect(resolved["staff.email"]).toBe("sarah.doe@example.com");
+    expect(resolved["staff.cityStatePostcode"]).toBe("Bonnyrigg NSW 2177");
     expect(resolved["service.name"]).toBe("Bonnyrigg OSHC");
     expect(resolved["service.entityName"]).toBe("Amana OSHC Pty Ltd");
     expect(resolved["manager.fullName"]).toBe("Daniel Khoury");
     expect(resolved["contract.payRate"]).toBe("$32.50");
     expect(resolved["contract.hoursPerWeek"]).toBe("38");
     expect(resolved["contract.position"]).toBe("Director of Service");
+  });
+
+  it("staff.cityStatePostcode skips empty pieces (partial address still renders cleanly)", async () => {
+    // Suburb missing → composite is "NSW 2177", no leading space.
+    const userNoSuburb = { ...FULL_USER, addressSuburb: null };
+    prismaMock.user.findUnique.mockResolvedValue(userNoSuburb);
+
+    const { resolved } = await resolveTemplateData({
+      userId: "user-1",
+      contractMeta: BASE_META,
+    });
+    expect(resolved["staff.cityStatePostcode"]).toBe("NSW 2177");
   });
 
   it("missing User.addressStreet → staff.address in missingBlocking", async () => {

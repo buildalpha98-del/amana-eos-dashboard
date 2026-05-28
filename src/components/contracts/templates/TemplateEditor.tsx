@@ -152,7 +152,21 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
   }
 
   const insertMergeTag = (key: string) => {
-    editor?.chain().focus().insertContent({ type: "mergeTag", attrs: { key } }).run();
+    if (!editor) return;
+    // If the node immediately before the cursor is another mergeTag, insert a
+    // space first so the two tags don't render as one concatenated string at
+    // resolve time (root cause of the "SarahDoe" / "BonnyriggNSW2177" bug —
+    // the renderer faithfully joins what the doc tree contains, and clicking
+    // chips back-to-back inserts them with no whitespace between).
+    const { from } = editor.state.selection;
+    const nodeBefore = editor.state.doc.resolve(from).nodeBefore;
+    const content = nodeBefore?.type.name === "mergeTag"
+      ? [
+          { type: "text" as const, text: " " },
+          { type: "mergeTag" as const, attrs: { key } },
+        ]
+      : { type: "mergeTag" as const, attrs: { key } };
+    editor.chain().focus().insertContent(content).run();
   };
 
   const insertTable = () => {
