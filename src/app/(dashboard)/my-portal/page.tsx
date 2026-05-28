@@ -521,7 +521,7 @@ export default function MyPortalPage() {
     );
   }
 
-  const { profile, leaveBalances, activeContract, pendingPolicies, onboardingProgress, offboardingProgress, lmsEnrollments, complianceCerts } = data;
+  const { profile, leaveBalances, activeContract, historicalContracts, pendingPolicies, onboardingProgress, offboardingProgress, lmsEnrollments, complianceCerts } = data;
   const firstName = getFirstName(profile.name);
 
   return (
@@ -826,20 +826,103 @@ export default function MyPortalPage() {
             )}
           </div>
 
-          {!activeContract.acknowledgedByStaff && (
-            <button
-              onClick={() => ackContractMutation.mutate(activeContract.id)}
-              disabled={ackContractMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
-            >
-              {ackContractMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ClipboardCheck className="w-4 h-4" />
-              )}
-              {ackContractMutation.isPending ? "Acknowledging..." : "Acknowledge Contract"}
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {activeContract.documentUrl && (
+              <a
+                href={`/api/contracts/${activeContract.id}/document`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-foreground bg-surface hover:bg-surface/70 border border-border rounded-lg transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                View Contract
+                <ExternalLink className="w-3.5 h-3.5 text-muted" />
+              </a>
+            )}
+
+            {!activeContract.acknowledgedByStaff && (
+              <button
+                onClick={() => ackContractMutation.mutate(activeContract.id)}
+                disabled={ackContractMutation.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              >
+                {ackContractMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ClipboardCheck className="w-4 h-4" />
+                )}
+                {ackContractMutation.isPending ? "Acknowledging..." : "Acknowledge Contract"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* 5b. PAST CONTRACTS                                           */}
+      {/* ============================================================ */}
+      {historicalContracts && historicalContracts.length > 0 && (
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
+            <FileText className="w-5 h-5 text-muted" />
+            Past Contracts
+            <span className="text-xs font-normal text-muted">({historicalContracts.length})</span>
+          </h3>
+          <ul className="divide-y divide-border">
+            {historicalContracts.map((c) => (
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand/10 text-brand">
+                      {formatContractType(c.contractType)}
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full",
+                        c.status === "superseded"
+                          ? "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-surface text-muted border border-border",
+                      )}
+                    >
+                      {c.status}
+                    </span>
+                    {c.awardLevel && (
+                      <span className="text-xs text-muted">{c.awardLevel}</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted mt-1 flex items-center gap-1.5">
+                    <CalendarDays className="w-3 h-3" />
+                    {formatDate(c.startDate)}
+                    {c.endDate && ` – ${formatDate(c.endDate)}`}
+                    {c.acknowledgedAt && (
+                      <>
+                        <span className="mx-1">·</span>
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        Acknowledged {formatDate(c.acknowledgedAt)}
+                      </>
+                    )}
+                  </p>
+                </div>
+                {c.documentUrl ? (
+                  <a
+                    href={`/api/contracts/${c.id}/document`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-surface hover:bg-surface/70 border border-border rounded-lg transition-colors shrink-0"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    View
+                    <ExternalLink className="w-3 h-3 text-muted" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted italic shrink-0">No document</span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

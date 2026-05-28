@@ -79,6 +79,18 @@ export interface ActiveContractData {
   endDate: string | null;
   status: string;
   acknowledgedByStaff: boolean;
+  documentUrl: string | null;
+}
+
+export interface HistoricalContractData {
+  id: string;
+  contractType: string;
+  awardLevel: string | null;
+  startDate: string;
+  endDate: string | null;
+  status: "superseded" | "terminated";
+  acknowledgedAt: string | null;
+  documentUrl: string | null;
 }
 
 export interface PendingPolicyData {
@@ -136,6 +148,7 @@ export interface MyPortalData {
   leaveBalances: LeaveBalanceData[];
   pendingLeaveRequests: PendingLeaveRequestData[];
   activeContract: ActiveContractData | null;
+  historicalContracts: HistoricalContractData[];
   pendingPolicies: PendingPolicyData[];
   onboardingProgress: OnboardingProgressData;
   offboardingProgress: OffboardingProgressData;
