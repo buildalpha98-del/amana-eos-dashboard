@@ -36,6 +36,17 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["jsdom", "mammoth", "@sparticuz/chromium", "puppeteer-core"],
+  // @sparticuz/chromium loads its brotli-compressed binaries from disk at
+  // runtime (paths are constructed dynamically), so Next.js's file tracer
+  // doesn't include them in the function bundle by default. Force the include
+  // for the one route that actually renders PDFs — otherwise the function
+  // crashes on Vercel with "The input directory ... chromium/bin does not
+  // exist. Please provide the location of the brotli files."
+  outputFileTracingIncludes: {
+    "/api/contracts/issue-from-template": [
+      "./node_modules/@sparticuz/chromium/bin/**",
+    ],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
