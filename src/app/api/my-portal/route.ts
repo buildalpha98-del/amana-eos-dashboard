@@ -10,6 +10,7 @@ const userId = session!.user.id;
     leaveBalances,
     pendingLeaveRequests,
     activeContract,
+    historicalContracts,
     publishedPolicies,
     userPolicyAcks,
     onboardingAssignment,
@@ -110,6 +111,28 @@ const userId = session!.user.id;
         endDate: true,
         status: true,
         acknowledgedByStaff: true,
+        // documentUrl is consumed by the frontend only to know whether to show
+        // the "View Contract" button. The actual URL is never opened directly
+        // by the client; it goes through /api/contracts/[id]/document which
+        // re-enforces ownership server-side.
+        documentUrl: true,
+      },
+      orderBy: { startDate: "desc" },
+    }),
+
+    // 4b. Past contracts (superseded or terminated) — read-only history so
+    // staff can refer back to anything they previously signed.
+    prisma.employmentContract.findMany({
+      where: { userId, status: { in: ["superseded", "terminated"] } },
+      select: {
+        id: true,
+        contractType: true,
+        awardLevel: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+        acknowledgedAt: true,
+        documentUrl: true,
       },
       orderBy: { startDate: "desc" },
     }),
@@ -271,6 +294,7 @@ const userId = session!.user.id;
     leaveBalances,
     pendingLeaveRequests,
     activeContract: activeContract || null,
+    historicalContracts,
     pendingPolicies,
     onboardingProgress,
     offboardingProgress,
