@@ -58,13 +58,15 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
           },
         }),
         mutationCache: new MutationCache({
-          onError: (error) => {
+          onError: (error, _variables, _context, mutation) => {
             if (is401(error)) {
               handleSessionExpired();
               return;
             }
-            // Only fire global toast if the mutation doesn't have its own onError
-            // Mutations with inline onError already handle the error (e.g. form validation)
+            // Only fire the global toast when the mutation doesn't already have
+            // its own onError handler. Otherwise the user sees two identical
+            // toasts (one from the hook's onError, one from here).
+            if (mutation.options.onError) return;
             toast({
               title: "Action failed",
               description: getErrorMessage(error),

@@ -10,7 +10,12 @@ import {
 } from "@/hooks/useContractTemplates";
 import { fetchApi } from "@/lib/fetch-api";
 import type { UserOption } from "./constants";
-import type { ManualField } from "@/lib/contract-templates/manual-fields-schema";
+import {
+  deriveCustomFields,
+  type DerivedCustomField,
+} from "@/lib/contract-templates/extract-merge-tags";
+import type { TipTapDoc } from "@/lib/contract-templates/render-html";
+import { MERGE_TAGS_BY_KEY } from "@/lib/contract-templates/merge-tag-catalog";
 import {
   CONTRACT_TYPES,
   CONTRACT_TYPE_LABELS,
@@ -31,6 +36,17 @@ type ContractMetaState = {
   position: string;
 };
 
+const INITIAL_CONTRACT_META: ContractMetaState = {
+  contractType: "ct_part_time",
+  awardLevel: null,
+  awardLevelCustom: null,
+  payRate: "",
+  hoursPerWeek: "",
+  startDate: "",
+  endDate: "",
+  position: "",
+};
+
 export function IssueFromTemplateModal({
   onClose,
   onSwitchToBlank,
@@ -43,20 +59,14 @@ export function IssueFromTemplateModal({
   const [templateId, setTemplateId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [manualValues, setManualValues] = useState<Record<string, string>>({});
-  const [contractMeta, setContractMeta] = useState<ContractMetaState>({
-    contractType: "ct_part_time",
-    awardLevel: null,
-    awardLevelCustom: null,
-    payRate: "",
-    hoursPerWeek: "",
-    startDate: "",
-    endDate: "",
-    position: "",
-  });
+  const [contractMeta, setContractMeta] = useState<ContractMetaState>(INITIAL_CONTRACT_META);
   const [previewData, setPreviewData] = useState<{
     html: string;
     missingTags: string[];
+    resolved?: Record<string, string>;
   } | null>(null);
+  /** Validation error surfaced inline on the final step if the merged data is still missing tags. */
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const { data: templates = [] } = useContractTemplates({ status: "active" });
   const { data: users = [] } = useQuery<UserOption[]>({
@@ -73,7 +83,45 @@ export function IssueFromTemplateModal({
     () => templates.find((t) => t.id === templateId),
     [templates, templateId],
   );
-  const manualFields = (selectedTemplate?.manualFields ?? []) as ManualField[];
+
+  /**
+   * Walk the selected template's body and auto-derive an input field for every
+   * `custom.*` merge tag it references. Replaces the legacy `manualFields`
+   * config — template authors no longer have to declare these by hand.
+   */
+  const customFields: DerivedCustomField[] = useMemo(() => {
+    if (!selectedTemplate?.contentJson) return [];
+    return deriveCustomFields(selectedTemplate.contentJson as TipTapDoc);
+  }, [selectedTemplate]);
+
+  const customFieldKeys = useMemo(
+    () => new Set(customFields.map((f) => f.key)),
+    [customFields],
+  );
+
+  /** All custom fields filled with a non-empty value? Gates Step 3 → Step 4. */
+  const allCustomFieldsFilled = useMemo(
+    () =>
+      customFields.every((f) => {
+        const v = manualValues[f.key];
+        return typeof v === "string" && v.trim().length > 0;
+      }),
+    [customFields, manualValues],
+  );
+
+  /** Tags missing values that the user must still fill — used for the submit gate. */
+  const unfilledCustomFields = useMemo(
+    () => customFields.filter((f) => !(manualValues[f.key]?.trim())),
+    [customFields, manualValues],
+  );
+
+  // Reset downstream state when the template changes so values from a previously
+  // selected template (award level, manual fields, etc.) don't leak across.
+  useEffect(() => {
+    setContractMeta(INITIAL_CONTRACT_META);
+    setManualValues({});
+    setPreviewData(null);
+  }, [templateId]);
 
   // Step 2: auto-resolve preview (no manualValues yet, with userId)
   useEffect(() => {
@@ -145,8 +193,8 @@ export function IssueFromTemplateModal({
   }, [step, templateId, userId, contractMeta, manualValues]);
 
   const handleNext = () => {
-    // Skip step 3 if no manual fields
-    if (step === 2 && manualFields.length === 0) {
+    // Skip step 3 if the template has no custom.* tags to collect.
+    if (step === 2 && customFields.length === 0) {
       setStep(4);
     } else {
       setStep((s) => (s + 1) as Step);
@@ -154,8 +202,7 @@ export function IssueFromTemplateModal({
   };
 
   const handleBack = () => {
-    if (step === 4 && manualFields.length === 0) {
-      // Skip step 3 in reverse too
+    if (step === 4 && customFields.length === 0) {
       setStep(2);
     } else {
       setStep((s) => Math.max(1, s - 1) as Step);
@@ -163,6 +210,31 @@ export function IssueFromTemplateModal({
   };
 
   const handleIssue = async () => {
+    setSubmissionError(null);
+    // Safety-net validation: even if the user got here, double-check the
+    // template doesn't reference any unresolved tags before hitting the API.
+    if (unfilledCustomFields.length > 0) {
+      setSubmissionError(
+        `Missing values for: ${unfilledCustomFields.map((f) => f.label).join(", ")}. Go back to the manual fields step to fill them in.`,
+      );
+      return;
+    }
+    if (previewData?.missingTags?.length) {
+      // Filter out tags we know about as custom fields — those are already
+      // caught above. Anything left is a template authoring issue.
+      const orphan = previewData.missingTags.filter(
+        (t) => !customFieldKeys.has(t),
+      );
+      if (orphan.length > 0) {
+        setSubmissionError(
+          `Template references tags that can't be resolved: ${orphan.join(", ")}. The template needs to be updated.`,
+        );
+        return;
+      }
+    }
+
+    // The mutation hook handles its own toast on error — don't show our own.
+    if (issueMut.isPending) return;
     try {
       await issueMut.mutateAsync({
         templateId,
@@ -187,18 +259,23 @@ export function IssueFromTemplateModal({
     }
   };
 
-  // Step 2 next-button disabled logic: block if staff.* tags are still missing
+  // Step 2 next-button disabled logic: block if staff.* tags are still missing.
   const hasBlockingMissingTags = Boolean(
     previewData?.missingTags.some((t) => t.startsWith("staff.")),
   );
 
   const getStepLabel = (s: Step): string => {
-    const total = manualFields.length > 0 ? 5 : 4;
-    const labels = manualFields.length > 0
-      ? ["Choose template & staff", "Review resolved tags", "Fill manual fields", "Contract details", "Final preview"]
+    const hasCustom = customFields.length > 0;
+    const total = hasCustom ? 5 : 4;
+    const labels = hasCustom
+      ? ["Choose template & staff", "Review resolved tags", "Fill custom fields", "Contract details", "Final preview"]
       : ["Choose template & staff", "Review resolved tags", "Contract details", "Final preview"];
-    const idx = manualFields.length > 0 ? s - 1 : s === 1 ? 0 : s === 2 ? 1 : s === 4 ? 2 : 3;
-    return `Step ${s <= total ? s : total} of ${total} — ${labels[idx] ?? ""}`;
+    // Internal step is 1,2,3,4,5 when custom fields exist; 1,2,_,4,5 when they don't.
+    // Remap to displayed step number so users see a contiguous "Step X of N".
+    const displayIdx = hasCustom
+      ? s - 1
+      : s === 1 ? 0 : s === 2 ? 1 : s === 4 ? 2 : 3;
+    return `Step ${displayIdx + 1} of ${total} — ${labels[displayIdx] ?? ""}`;
   };
 
   return (
@@ -250,11 +327,12 @@ export function IssueFromTemplateModal({
               previewData={previewData}
               loading={previewMut.isPending}
               userId={userId}
+              customFieldKeys={customFieldKeys}
             />
           )}
           {step === 3 && (
             <Step3
-              manualFields={manualFields}
+              customFields={customFields}
               values={manualValues}
               setValues={setManualValues}
             />
@@ -263,7 +341,11 @@ export function IssueFromTemplateModal({
             <Step4 meta={contractMeta} setMeta={setContractMeta} />
           )}
           {step === 5 && (
-            <Step5 previewData={previewData} loading={previewMut.isPending} />
+            <Step5
+              previewData={previewData}
+              loading={previewMut.isPending}
+              submissionError={submissionError}
+            />
           )}
         </div>
 
@@ -284,7 +366,8 @@ export function IssueFromTemplateModal({
               onClick={handleNext}
               disabled={
                 (step === 1 && (!templateId || !userId)) ||
-                (step === 2 && (!previewData || hasBlockingMissingTags))
+                (step === 2 && (!previewData || hasBlockingMissingTags)) ||
+                (step === 3 && !allCustomFieldsFilled)
               }
               className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -370,10 +453,13 @@ function Step2({
   previewData,
   loading,
   userId,
+  customFieldKeys,
 }: {
-  previewData: { html: string; missingTags: string[] } | null;
+  previewData: { html: string; missingTags: string[]; resolved?: Record<string, string> } | null;
   loading: boolean;
   userId: string;
+  /** Keys that will be collected as custom inputs in Step 3 — don't surface them as "unresolved" here. */
+  customFieldKeys: Set<string>;
 }) {
   if (loading) {
     return (
@@ -393,12 +479,23 @@ function Step2({
   }
 
   const staffMissingTags = previewData.missingTags.filter((t) => t.startsWith("staff."));
-  const otherMissingTags = previewData.missingTags.filter((t) => !t.startsWith("staff."));
+  // Tags that can't be resolved automatically and won't be collected by the
+  // dynamic custom-fields step. These usually indicate a template bug.
+  const orphanMissingTags = previewData.missingTags.filter(
+    (t) => !t.startsWith("staff.") && !customFieldKeys.has(t),
+  );
+
+  // Resolved staff.* tags to show as a read-only summary.
+  const resolvedStaffEntries = previewData.resolved
+    ? Object.entries(previewData.resolved).filter(
+        ([k, v]) => k.startsWith("staff.") && v && v.length > 0,
+      )
+    : [];
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted">
-        Review the tags that could be resolved from the staff member&apos;s profile. Missing{" "}
+        Confirm the values pulled from the staff member&apos;s profile. Missing{" "}
         <code className="text-xs bg-surface px-1 py-0.5 rounded">staff.*</code> tags must be
         fixed before continuing.
       </p>
@@ -425,30 +522,50 @@ function Step2({
         </div>
       )}
 
-      {otherMissingTags.length > 0 && (
+      {orphanMissingTags.length > 0 && (
         <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
           <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-amber-800">
-              Other unresolved tags ({otherMissingTags.length})
+              Unresolved tags ({orphanMissingTags.length})
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              {otherMissingTags.join(", ")} — fill these in the manual fields step.
+              {orphanMissingTags.join(", ")} — these tags aren&apos;t in the staff profile, the
+              contract details, or the custom-fields step. The template likely needs to be updated.
             </p>
           </div>
         </div>
       )}
 
-      {previewData.missingTags.length === 0 && (
+      {staffMissingTags.length === 0 && orphanMissingTags.length === 0 && (
         <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
           <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-          All staff tags resolved successfully.
+          All automatic tags resolved successfully.
+        </div>
+      )}
+
+      {resolvedStaffEntries.length > 0 && (
+        <div className="bg-surface rounded-lg border border-border p-3">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
+            Resolved from staff profile
+          </p>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+            {resolvedStaffEntries.map(([key, value]) => {
+              const label = MERGE_TAGS_BY_KEY[key]?.label ?? key;
+              return (
+                <div key={key} className="flex items-baseline gap-2">
+                  <dt className="text-muted text-xs shrink-0">{label}:</dt>
+                  <dd className="text-foreground font-medium truncate">{value}</dd>
+                </div>
+              );
+            })}
+          </dl>
         </div>
       )}
 
       <div className="bg-surface rounded-lg border border-border p-3">
         <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
-          Preview (sample data)
+          Document preview
         </p>
         <iframe
           title="Tag resolution preview"
@@ -461,21 +578,21 @@ function Step2({
   );
 }
 
-// ── Step 3: Manual fields ────────────────────────────────────────────────────
+// ── Step 3: Custom fields (auto-derived from template body) ──────────────────
 
 function Step3({
-  manualFields,
+  customFields,
   values,
   setValues,
 }: {
-  manualFields: ManualField[];
+  customFields: DerivedCustomField[];
   values: Record<string, string>;
   setValues: (v: Record<string, string>) => void;
 }) {
-  if (manualFields.length === 0) {
+  if (customFields.length === 0) {
     return (
       <p className="text-sm text-muted py-8 text-center">
-        No manual fields for this template.
+        This template doesn&apos;t reference any custom tags.
       </p>
     );
   }
@@ -483,41 +600,34 @@ function Step3({
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted">
-        Fill in any custom fields required by this template.
+        Fill in the custom values referenced by this template. All fields are required.
       </p>
-      {manualFields.map((field) => (
+      {customFields.map((field) => (
         <div key={field.key}>
           <label className="block text-sm font-medium text-foreground mb-1.5">
             {field.label}
-            {field.required && (
-              <span className="text-red-500 ml-1">*</span>
-            )}
+            <span className="text-red-500 ml-1">*</span>
+            <code className="ml-2 text-[10px] font-normal text-muted bg-surface px-1 py-0.5 rounded">
+              {`{{${field.key}}}`}
+            </code>
           </label>
           {field.type === "longtext" ? (
             <textarea
-              value={values[field.key] ?? field.default ?? ""}
+              value={values[field.key] ?? ""}
               onChange={(e) =>
                 setValues({ ...values, [field.key]: e.target.value })
               }
               rows={4}
               className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
-              placeholder={field.default ?? ""}
             />
           ) : (
             <input
-              type={
-                field.type === "date"
-                  ? "date"
-                  : field.type === "number"
-                    ? "number"
-                    : "text"
-              }
-              value={values[field.key] ?? field.default ?? ""}
+              type={field.type === "number" ? "number" : "text"}
+              value={values[field.key] ?? ""}
               onChange={(e) =>
                 setValues({ ...values, [field.key]: e.target.value })
               }
               className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-              placeholder={field.default ?? ""}
             />
           )}
         </div>
@@ -578,36 +688,36 @@ function Step4({
         />
       </div>
 
-      {/* Pay rate */}
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-1.5">
-          Pay Rate ($/hr) <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={meta.payRate}
-          onChange={(e) => setMeta({ ...meta, payRate: e.target.value })}
-          placeholder="e.g. 28.50"
-          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-        />
-      </div>
-
-      {/* Hours per week */}
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-1.5">
-          Hours per Week
-        </label>
-        <input
-          type="number"
-          min="0"
-          step="0.5"
-          value={meta.hoursPerWeek}
-          onChange={(e) => setMeta({ ...meta, hoursPerWeek: e.target.value })}
-          placeholder="e.g. 38"
-          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-        />
+      {/* Pay rate + hours per week */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">
+            Pay Rate ($/hr) <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={meta.payRate}
+            onChange={(e) => setMeta({ ...meta, payRate: e.target.value })}
+            placeholder="e.g. 28.50"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">
+            Hours per Week
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.5"
+            value={meta.hoursPerWeek}
+            onChange={(e) => setMeta({ ...meta, hoursPerWeek: e.target.value })}
+            placeholder="e.g. 38"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          />
+        </div>
       </div>
 
       {/* Award level */}
@@ -683,9 +793,11 @@ function Step4({
 function Step5({
   previewData,
   loading,
+  submissionError,
 }: {
-  previewData: { html: string; missingTags: string[] } | null;
+  previewData: { html: string; missingTags: string[]; resolved?: Record<string, string> } | null;
   loading: boolean;
+  submissionError: string | null;
 }) {
   if (loading) {
     return (
@@ -706,7 +818,14 @@ function Step5({
 
   return (
     <div className="space-y-4">
-      {previewData.missingTags.length > 0 && (
+      {submissionError && (
+        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <div className="font-medium">{submissionError}</div>
+        </div>
+      )}
+
+      {!submissionError && previewData.missingTags.length > 0 && (
         <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
           <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
           <div>

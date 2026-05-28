@@ -65,7 +65,9 @@ export const POST = withApiAuth(
       data,
     });
 
-    return NextResponse.json({ html, missingTags });
+    // Return `resolved` so the client can show a read-only summary of staff.*
+    // and other auto-resolved tags alongside the iframe preview.
+    return NextResponse.json({ html, missingTags, resolved });
   },
   { roles: ["owner", "admin"], feature: "contracts.view", rateLimit: { max: 20, windowMs: 60_000 } }
 );
