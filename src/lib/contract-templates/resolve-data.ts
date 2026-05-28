@@ -56,6 +56,12 @@ export async function resolveTemplateData(args: {
   set("staff.city", user?.addressSuburb);
   set("staff.state", user?.addressState);
   set("staff.postcode", user?.addressPostcode);
+  // Composite: "Bonnyrigg NSW 2177". Empty pieces are skipped so a partial
+  // address still renders cleanly (e.g. "NSW 2177" if suburb is missing).
+  const cityStatePostcode = [user?.addressSuburb, user?.addressState, user?.addressPostcode]
+    .filter(Boolean)
+    .join(" ");
+  set("staff.cityStatePostcode", cityStatePostcode);
 
   // ── Service ───────────────────────────────────────
   const svc = user?.service ?? null;

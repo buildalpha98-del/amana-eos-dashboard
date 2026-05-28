@@ -212,4 +212,97 @@ describe("renderTemplateHtml", () => {
     expect(html).toContain('href="https://example.com/x?y=1"');
     expect(html).toContain('href="mailto:hi@example.com"');
   });
+
+  // ── Whitespace-between-tags contract ────────────────────────────────────────
+  // These three tests document why "SarahDoe" / "BonnyriggNSW2177" happens.
+  // The renderer never inserts or strips whitespace between adjacent merge
+  // tags; the output reflects exactly what's in the source TipTap doc. Authors
+  // must include a text-node space (or a paragraph break) between tags they
+  // want visually separated.
+
+  it("merge tags separated by a text-node space render the space (full name case)", () => {
+    const doc: TipTapDoc = {
+      type: "doc",
+      content: [{
+        type: "paragraph",
+        content: [
+          { type: "mergeTag", attrs: { key: "staff.firstName" } },
+          { type: "text", text: " " },
+          { type: "mergeTag", attrs: { key: "staff.lastName" } },
+        ],
+      }],
+    };
+    const { html } = renderTemplateHtml({
+      doc,
+      data: { "staff.firstName": "Sarah", "staff.lastName": "Doe" },
+    });
+    expect(html).toContain("<p>Sarah Doe</p>");
+  });
+
+  it("adjacent merge tags with no text node between concatenate (no whitespace inserted)", () => {
+    const doc: TipTapDoc = {
+      type: "doc",
+      content: [{
+        type: "paragraph",
+        content: [
+          { type: "mergeTag", attrs: { key: "staff.firstName" } },
+          { type: "mergeTag", attrs: { key: "staff.lastName" } },
+        ],
+      }],
+    };
+    const { html } = renderTemplateHtml({
+      doc,
+      data: { "staff.firstName": "Sarah", "staff.lastName": "Doe" },
+    });
+    // Renderer faithfully reflects the source: no space because the source has none.
+    expect(html).toContain("<p>SarahDoe</p>");
+  });
+
+  it("multi-paragraph address renders each line in its own <p> (address-block case)", () => {
+    const doc: TipTapDoc = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "mergeTag", attrs: { key: "staff.address" } }],
+        },
+        {
+          type: "paragraph",
+          content: [
+            { type: "mergeTag", attrs: { key: "staff.city" } },
+            { type: "text", text: " " },
+            { type: "mergeTag", attrs: { key: "staff.state" } },
+            { type: "text", text: " " },
+            { type: "mergeTag", attrs: { key: "staff.postcode" } },
+          ],
+        },
+      ],
+    };
+    const { html } = renderTemplateHtml({
+      doc,
+      data: {
+        "staff.address": "12 Example Street",
+        "staff.city": "Bonnyrigg",
+        "staff.state": "NSW",
+        "staff.postcode": "2177",
+      },
+    });
+    expect(html).toContain("<p>12 Example Street</p>");
+    expect(html).toContain("<p>Bonnyrigg NSW 2177</p>");
+  });
+
+  it("staff.cityStatePostcode composite tag avoids the adjacency problem entirely", () => {
+    const doc: TipTapDoc = {
+      type: "doc",
+      content: [{
+        type: "paragraph",
+        content: [{ type: "mergeTag", attrs: { key: "staff.cityStatePostcode" } }],
+      }],
+    };
+    const { html } = renderTemplateHtml({
+      doc,
+      data: { "staff.cityStatePostcode": "Bonnyrigg NSW 2177" },
+    });
+    expect(html).toContain("<p>Bonnyrigg NSW 2177</p>");
+  });
 });
