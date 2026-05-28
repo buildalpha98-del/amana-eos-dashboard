@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Download, Upload, Trash2, Loader2, RefreshCw } from "lucide-react";
+import { Download, Eye, Upload, Trash2, Loader2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
@@ -226,14 +226,26 @@ export function CertActionBar({ cert, canEdit, canDelete, onUpdated }: CertActio
   return (
     <div className="inline-flex items-center gap-2">
       {cert.fileUrl && (
-        <a
-          href={`/api/compliance/${cert.id}/download`}
-          className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-          title={cert.fileName ?? "Download certificate"}
-        >
-          <Download className="w-3.5 h-3.5" />
-          Download
-        </a>
+        <>
+          <a
+            href={`/api/compliance/${cert.id}/download`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+            title={cert.fileName ?? "View certificate"}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View
+          </a>
+          <a
+            href={`/api/compliance/${cert.id}/download?download=1`}
+            className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+            title={cert.fileName ?? "Download certificate"}
+          >
+            <Download className="w-3.5 h-3.5" />
+            Download
+          </a>
+        </>
       )}
       {canEdit && (
         <button

@@ -12,6 +12,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Mail,
@@ -82,10 +83,23 @@ export function StaffProfileHeader({
   const roleLabel =
     ROLE_DISPLAY_NAMES[user.role as Role] ?? user.role;
 
+  const router = useRouter();
   const quickAction = useEmployeeQuickAction(user.id);
   const [pendingConfirm, setPendingConfirm] = useState<QuickActionType | null>(
     null,
   );
+
+  // Edit profile deep-link — switches the Employment records sub-tab to
+  // "Personal details" and auto-opens the edit form (PersonalTab reads
+  // `?edit=personal` from the URL on mount).
+  function handleEditProfile() {
+    router.replace(`?edit=personal#section-employment`, { scroll: false });
+    // Smooth-scroll after the URL change so the editor lands in the viewport.
+    requestAnimationFrame(() => {
+      const target = document.getElementById("section-employment");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   function runConfirm() {
     if (!pendingConfirm) return;
@@ -185,8 +199,8 @@ export function StaffProfileHeader({
                 <QuickActionButton
                   icon={<Pencil className="h-4 w-4" />}
                   label="Edit profile"
-                  disabled
-                  title="Edit fields directly inside each section below"
+                  onClick={handleEditProfile}
+                  title="Open the personal-details editor"
                   data-action="edit"
                 />
               )}
