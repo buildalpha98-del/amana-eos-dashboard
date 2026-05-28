@@ -111,6 +111,11 @@ const userId = session!.user.id;
         endDate: true,
         status: true,
         acknowledgedByStaff: true,
+        acknowledgedAt: true,
+        // templateId is consumed by the inline viewer modal: when present, the
+        // client hits /api/contracts/[id]/render to re-render the HTML;
+        // otherwise it falls back to embedding the baked PDF via documentUrl.
+        templateId: true,
         // documentUrl is consumed by the frontend only to know whether to show
         // the "View Contract" button. The actual URL is never opened directly
         // by the client; it goes through /api/contracts/[id]/document which
@@ -133,6 +138,7 @@ const userId = session!.user.id;
         status: true,
         acknowledgedAt: true,
         documentUrl: true,
+        templateId: true,
       },
       orderBy: { startDate: "desc" },
     }),

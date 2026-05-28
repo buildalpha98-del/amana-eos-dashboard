@@ -44,6 +44,10 @@ import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
+import {
+  ContractViewerModal,
+  type ContractViewerContract,
+} from "@/components/my-portal/ContractViewerModal";
 import { SetKioskPinCard } from "@/components/my-portal/SetKioskPinCard";
 import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
 
@@ -434,6 +438,10 @@ export default function MyPortalPage() {
   const [ackPolicyId, setAckPolicyId] = useState<string | null>(null);
   const [ackPolicyTitle, setAckPolicyTitle] = useState("");
 
+  /* ---- Inline contract viewer state ---- */
+  const [viewingContract, setViewingContract] =
+    useState<ContractViewerContract | null>(null);
+
   /* ---- Policy acknowledgement mutation ---- */
   const acknowledgePolicyMutation = useMutation({
     mutationFn: async (policyId: string) => {
@@ -453,22 +461,10 @@ export default function MyPortalPage() {
     },
   });
 
-  /* ---- Contract acknowledgement mutation ---- */
-  const ackContractMutation = useMutation({
-    mutationFn: async (contractId: string) => {
-      const res = await fetch(`/api/contracts/${contractId}/acknowledge`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("Failed to acknowledge contract");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-portal"] });
-    },
-    onError: (err: Error) => {
-      toast({ variant: "destructive", description: err.message || "Something went wrong" });
-    },
-  });
+  // Contract acknowledgement now happens inside ContractViewerModal — the
+  // staff member reads the document and acknowledges from a sticky footer
+  // button in one place, instead of a separate Acknowledge button on the
+  // card. The modal owns its own mutation and invalidates ["my-portal"].
 
   /* ---- Derived data ---- */
   const pendingItemCounts = useMemo(() => {
@@ -827,33 +823,37 @@ export default function MyPortalPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {activeContract.documentUrl && (
-              <a
-                href={`/api/contracts/${activeContract.id}/document`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-foreground bg-surface hover:bg-surface/70 border border-border rounded-lg transition-colors"
-              >
+            <button
+              type="button"
+              onClick={() =>
+                setViewingContract({
+                  id: activeContract.id,
+                  contractType: activeContract.contractType,
+                  startDate: activeContract.startDate,
+                  endDate: activeContract.endDate,
+                  isTemplateBased: !!activeContract.templateId,
+                  documentUrl: activeContract.documentUrl,
+                  acknowledged: activeContract.acknowledgedByStaff,
+                  acknowledgedAt: activeContract.acknowledgedAt,
+                  canAcknowledge: !activeContract.acknowledgedByStaff,
+                })
+              }
+              className={cn(
+                "inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors",
+                !activeContract.acknowledgedByStaff
+                  ? "text-white bg-brand hover:bg-brand-hover"
+                  : "text-foreground bg-surface hover:bg-surface/70 border border-border",
+              )}
+            >
+              {!activeContract.acknowledgedByStaff ? (
+                <ClipboardCheck className="w-4 h-4" />
+              ) : (
                 <FileText className="w-4 h-4" />
-                View Contract
-                <ExternalLink className="w-3.5 h-3.5 text-muted" />
-              </a>
-            )}
-
-            {!activeContract.acknowledgedByStaff && (
-              <button
-                onClick={() => ackContractMutation.mutate(activeContract.id)}
-                disabled={ackContractMutation.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
-              >
-                {ackContractMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ClipboardCheck className="w-4 h-4" />
-                )}
-                {ackContractMutation.isPending ? "Acknowledging..." : "Acknowledge Contract"}
-              </button>
-            )}
+              )}
+              {!activeContract.acknowledgedByStaff
+                ? "Read & acknowledge"
+                : "View Contract"}
+            </button>
           </div>
         </div>
       )}
@@ -906,17 +906,27 @@ export default function MyPortalPage() {
                     )}
                   </p>
                 </div>
-                {c.documentUrl ? (
-                  <a
-                    href={`/api/contracts/${c.id}/document`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {c.documentUrl || c.templateId ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewingContract({
+                        id: c.id,
+                        contractType: c.contractType,
+                        startDate: c.startDate,
+                        endDate: c.endDate,
+                        isTemplateBased: !!c.templateId,
+                        documentUrl: c.documentUrl,
+                        acknowledged: !!c.acknowledgedAt,
+                        acknowledgedAt: c.acknowledgedAt,
+                        canAcknowledge: false,
+                      })
+                    }
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-surface hover:bg-surface/70 border border-border rounded-lg transition-colors shrink-0"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     View
-                    <ExternalLink className="w-3 h-3 text-muted" />
-                  </a>
+                  </button>
                 ) : (
                   <span className="text-xs text-muted italic shrink-0">No document</span>
                 )}
@@ -1300,6 +1310,16 @@ export default function MyPortalPage() {
               setAckPolicyTitle("");
             }
           }}
+        />
+      )}
+
+      {/* ============================================================ */}
+      {/* INLINE CONTRACT VIEWER                                       */}
+      {/* ============================================================ */}
+      {viewingContract && (
+        <ContractViewerModal
+          contract={viewingContract}
+          onClose={() => setViewingContract(null)}
         />
       )}
     </div>

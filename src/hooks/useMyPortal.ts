@@ -79,7 +79,10 @@ export interface ActiveContractData {
   endDate: string | null;
   status: string;
   acknowledgedByStaff: boolean;
+  acknowledgedAt: string | null;
   documentUrl: string | null;
+  /** Non-null when the contract was issued from a template — drives inline-viewer render path. */
+  templateId: string | null;
 }
 
 export interface HistoricalContractData {
@@ -91,6 +94,7 @@ export interface HistoricalContractData {
   status: "superseded" | "terminated";
   acknowledgedAt: string | null;
   documentUrl: string | null;
+  templateId: string | null;
 }
 
 export interface PendingPolicyData {
