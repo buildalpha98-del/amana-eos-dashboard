@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useCreateContract } from "@/hooks/useContracts";
-import { useContractTemplates } from "@/hooks/useContractTemplates";
 import {
   ContractFormFields,
   EMPTY_CONTRACT_FORM,
@@ -23,17 +22,14 @@ interface Props {
 }
 
 /**
- * Modal for creating a new contract.
+ * Entry point for creating a new contract.
  *
- * If active templates exist, defaults to "From template" mode which renders
- * IssueFromTemplateModal. Falls back to "Blank" for manual data entry.
- * The mode can be toggled via the pill buttons at the top.
+ * Always opens IssueFromTemplateModal first. The blank form is retained as a
+ * secondary option, reached via the "Use blank form" link in the template
+ * modal's header.
  */
 export function NewContractModal({ users, initialUserId, onClose }: Props) {
-  const { data: templates = [] } = useContractTemplates({ status: "active" });
-  const hasTemplates = templates.length > 0;
-
-  const [mode, setMode] = useState<Mode>(hasTemplates ? "template" : "blank");
+  const [mode, setMode] = useState<Mode>("template");
 
   const [form, setForm] = useState<ContractFormValue>({
     ...EMPTY_CONTRACT_FORM,
@@ -51,8 +47,6 @@ export function NewContractModal({ users, initialUserId, onClose }: Props) {
 
   const canSubmit = isFormReady(form) && !createContract.isPending;
 
-  // When "From template" mode is selected, render the full IssueFromTemplateModal
-  // as a self-contained replacement (it owns its own layout and footer).
   if (mode === "template") {
     return (
       <IssueFromTemplateModal
@@ -67,35 +61,27 @@ export function NewContractModal({ users, initialUserId, onClose }: Props) {
       <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">New Contract</h3>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-surface transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-muted" />
-          </button>
-        </div>
-
-        {/* Mode toggle — only shown when templates exist */}
-        {hasTemplates && (
-          <div className="flex items-center gap-1 p-1 bg-surface rounded-lg mb-5">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">New Contract</h3>
+            <p className="text-xs text-muted mt-0.5">Blank form</p>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setMode("template")}
-              className="flex-1 py-1.5 text-sm font-medium rounded-md transition-colors bg-card text-foreground shadow-sm"
+              className="text-xs text-muted hover:text-foreground transition-colors underline underline-offset-2"
             >
-              From template
+              Use a template
             </button>
             <button
-              type="button"
-              onClick={() => setMode("blank")}
-              className="flex-1 py-1.5 text-sm font-medium rounded-md transition-colors text-muted hover:text-foreground"
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-surface transition-colors"
+              aria-label="Close"
             >
-              Blank
+              <X className="w-5 h-5 text-muted" />
             </button>
           </div>
-        )}
+        </div>
 
         <ContractFormFields
           users={users}

@@ -27,6 +27,8 @@ export type ContractTemplateData = {
 export type PreviewResult = {
   html: string;
   missingTags: string[];
+  /** Map of resolved tag → value (staff.*, contract.*, etc.). Absent on the legacy sample-data path. */
+  resolved?: Record<string, string>;
 };
 
 // ── List ──────────────────────────────────────────────────────────────────────

@@ -1,0 +1,77 @@
+import type { TipTapDoc, TipTapNode } from "./render-html";
+
+/**
+ * Walk a TipTap document and return every distinct merge-tag key referenced
+ * (e.g. "staff.firstName", "custom.payrunFrequency"). Order is preserved by
+ * first appearance in document order.
+ */
+export function extractMergeTagKeys(doc: TipTapDoc | null | undefined): string[] {
+  if (!doc) return [];
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  const walk = (nodes?: TipTapNode[]) => {
+    if (!nodes) return;
+    for (const n of nodes) {
+      if (n.type === "mergeTag") {
+        const key = n.attrs?.key;
+        if (typeof key === "string" && key.length > 0 && !seen.has(key)) {
+          seen.add(key);
+          ordered.push(key);
+        }
+      }
+      if (n.content) walk(n.content);
+    }
+  };
+  walk(doc.content);
+  return ordered;
+}
+
+/** "custom.payrunFrequency" → "Pay run frequency"; "custom.remunerationPercent" → "Remuneration percent (%)". */
+export function humanizeCustomTagKey(fullKey: string): string {
+  const tail = fullKey.replace(/^custom\./, "");
+  if (!tail) return fullKey;
+  // Split camelCase boundaries into words, then collapse the result to sentence case.
+  const withSpaces = tail
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
+  const lower = withSpaces.toLowerCase();
+  let label = lower.charAt(0).toUpperCase() + lower.slice(1);
+  if (/\bpercent\b/i.test(label)) {
+    label = label.replace(/percent/gi, "percent (%)");
+  }
+  return label;
+}
+
+export type InferredFieldType = "text" | "number" | "longtext";
+
+/** Pick an input type from a custom-tag key's suffix. */
+export function inferCustomFieldType(fullKey: string): InferredFieldType {
+  const tail = fullKey.split(".").pop() ?? "";
+  if (/(Percent|Rate|Amount|Count|Quantity|Hours|Days)$/i.test(tail)) return "number";
+  if (/(Notes|Details|Description|Summary|Comments)$/i.test(tail)) return "longtext";
+  return "text";
+}
+
+export type DerivedCustomField = {
+  /** Full merge-tag key, e.g. "custom.payrunFrequency". */
+  key: string;
+  label: string;
+  type: InferredFieldType;
+};
+
+/**
+ * Inspect a template body and return one input-field descriptor per distinct
+ * custom.* merge tag found. Used by the issuance flow to dynamically collect
+ * values without the template author having to declare manualFields.
+ */
+export function deriveCustomFields(
+  doc: TipTapDoc | null | undefined,
+): DerivedCustomField[] {
+  return extractMergeTagKeys(doc)
+    .filter((k) => k.startsWith("custom."))
+    .map((key) => ({
+      key,
+      label: humanizeCustomTagKey(key),
+      type: inferCustomFieldType(key),
+    }));
+}
