@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { User, EmergencyContact } from "@prisma/client";
 import { Phone, MapPin, Cake, CalendarDays, Loader2, User as UserIcon, Mail } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
@@ -45,7 +45,23 @@ export function PersonalTab({
   canEditAccount = false,
   viewerIsOwner = false,
 }: PersonalTabProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [editing, setEditing] = useState(false);
+
+  // Auto-open the edit form when arriving via the header's "Edit profile"
+  // Quick Action (which sets `?edit=personal`). One-shot on mount: we strip
+  // the param so a manual refresh doesn't re-open the form unexpectedly.
+  useEffect(() => {
+    if (!canEdit) return;
+    if (searchParams.get("edit") !== "personal") return;
+    setEditing(true);
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("edit");
+    const qs = next.toString();
+    router.replace(qs ? `?${qs}` : "?", { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (editing && canEdit) {
     return (

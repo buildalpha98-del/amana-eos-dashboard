@@ -9,6 +9,7 @@
  * 2026-05-04: introduced (spec PR #77, PR 3).
  */
 
+import { useSearchParams } from "next/navigation";
 import { Phone } from "lucide-react";
 import type { EmergencyContact } from "@prisma/client";
 import { EmploymentTab } from "@/components/staff/tabs/EmploymentTab";
@@ -41,6 +42,14 @@ export function EmploymentRecordsSection({
   canEditAccount = false,
   viewerIsOwner = false,
 }: EmploymentRecordsSectionProps) {
+  // Deep-link from the header's "Edit profile" Quick Action — see
+  // StaffProfileHeader.handleEditProfile. When `?edit=personal` is set we
+  // surface the Personal-details sub-tab on first render so the user lands
+  // directly on the editor instead of the default Employment-details view.
+  const searchParams = useSearchParams();
+  const initialTab: SubTab =
+    searchParams.get("edit") === "personal" ? "personal" : "employment";
+
   return (
     <SectionShell<SubTab>
       sectionKey="employment"
@@ -48,6 +57,7 @@ export function EmploymentRecordsSection({
       accentDotClass="bg-purple-500"
       accentActiveClass="bg-purple-100 text-purple-900 border-purple-300"
       subTabs={SUB_TABS}
+      defaultTab={initialTab}
     >
       {(active) => {
         if (active === "employment") {

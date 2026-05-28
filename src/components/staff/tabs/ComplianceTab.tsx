@@ -2,7 +2,7 @@ import type { StaffQualification, ComplianceCertificate } from "@prisma/client";
 import { CertStatusBadge } from "@/components/staff/CertStatusBadge";
 import { CertActionBar } from "@/components/compliance/CertActionBar";
 import { PdLogSection } from "@/components/staff/PdLogSection";
-import { Download } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 
 interface ComplianceTabProps {
   userId: string;
@@ -63,15 +63,24 @@ export function ComplianceTab({ userId, qualifications, certificates, canManage,
                 </div>
                 <CertStatusBadge expiryDate={q.expiryDate} />
                 {q.certificateUrl && (
-                  <a
-                    href={q.certificateUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Download
-                  </a>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <a
+                      href={`/api/qualifications/${q.id}/download`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View
+                    </a>
+                    <a
+                      href={`/api/qualifications/${q.id}/download?download=1`}
+                      className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download
+                    </a>
+                  </div>
                 )}
               </li>
             ))}
