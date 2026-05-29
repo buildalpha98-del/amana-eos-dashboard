@@ -181,6 +181,7 @@ function monthLabel(key: string) {
 function StaffComplianceView() {
   const { data: certs = [], isLoading, error, refetch } = useComplianceCerts();
   const createCert = useCreateCert();
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadType, setUploadType] = useState<string>("");
@@ -207,7 +208,8 @@ function StaffComplianceView() {
 
     setUploading(uploadType);
     try {
-      // Upload file via /api/upload
+      // Upload file via /api/upload — same blob storage path as everywhere
+      // else in the app.
       const formData = new FormData();
       formData.append("file", file);
       const uploadRes = await fetch("/api/upload", {
@@ -217,20 +219,44 @@ function StaffComplianceView() {
       if (!uploadRes.ok) throw new Error("Upload failed");
       const { url } = await uploadRes.json();
 
-      // Create compliance cert with file
-      const today = new Date().toISOString().split("T")[0];
-      const oneYearLater = new Date();
-      oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+      // Attach-or-create logic: when a cert of this type already exists for
+      // the staff member but has no file yet (typically an OWNA-synced
+      // metadata stub), PATCH the existing row so the upload lands on the
+      // record the admin profile is already showing. Otherwise fall back to
+      // creating a new row (the renewal case — file replaces nothing because
+      // the existing latest cert is already complete).
+      const orphanCert = certs.find(
+        (c) => c.type === uploadType && !c.fileUrl,
+      );
 
-      await createCert.mutateAsync({
-        serviceId: "auto", // Will be overridden by API for staff
-        type: uploadType,
-        label: `${typeLabels[uploadType]} - ${file.name}`,
-        issueDate: today,
-        expiryDate: oneYearLater.toISOString().split("T")[0],
-        fileUrl: url,
-        fileName: file.name,
-      });
+      if (orphanCert) {
+        const res = await fetch(`/api/compliance/${orphanCert.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileUrl: url, fileName: file.name }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error ?? "Failed to attach file");
+        }
+        // useCreateCert invalidates the cache on success; we have to do it
+        // manually on the PATCH path so the row's View button appears now,
+        // not on the next page load. Matches the key used by useCompliance.
+        await queryClient.invalidateQueries({ queryKey: ["compliance"] });
+      } else {
+        const today = new Date().toISOString().split("T")[0];
+        const oneYearLater = new Date();
+        oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+        await createCert.mutateAsync({
+          serviceId: "auto", // Will be overridden by API for staff
+          type: uploadType,
+          label: `${typeLabels[uploadType]} - ${file.name}`,
+          issueDate: today,
+          expiryDate: oneYearLater.toISOString().split("T")[0],
+          fileUrl: url,
+          fileName: file.name,
+        });
+      }
       toast({ title: "Document uploaded", description: "Your compliance document has been uploaded successfully." });
     } catch (err) {
       toast({ title: "Upload failed", description: "There was a problem uploading your document. Please try again.", variant: "destructive" });
