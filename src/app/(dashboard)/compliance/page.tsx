@@ -179,6 +179,8 @@ function monthLabel(key: string) {
 /* ------------------------------------------------------------------ */
 
 function StaffComplianceView() {
+  const { data: session } = useSession();
+  const viewerId = session?.user?.id;
   const { data: certs = [], isLoading, error, refetch } = useComplianceCerts();
   const createCert = useCreateCert();
   const queryClient = useQueryClient();
@@ -224,13 +226,26 @@ function StaffComplianceView() {
       const { url } = await uploadRes.json();
 
       // Attach-or-create logic: when a cert of this type already exists for
-      // the staff member but has no file yet (typically an OWNA-synced
-      // metadata stub), PATCH the existing row so the upload lands on the
-      // record the admin profile is already showing. Otherwise fall back to
-      // creating a new row (the renewal case — file replaces nothing because
-      // the existing latest cert is already complete).
+      // THIS user but has no file yet (typically an OWNA-synced metadata
+      // stub), PATCH the existing row so the upload lands on the record the
+      // admin profile is already showing. Otherwise fall back to creating a
+      // new row (the renewal case — file replaces nothing because the
+      // existing latest cert is already complete).
+      //
+      // userId match is essential: useComplianceCerts() returns service-wide
+      // certs for the `member` role (Director of Service), including
+      // org-wide rows with userId=null. PATCHing one of those would leave it
+      // unassigned, so the admin's /staff/[id] page — which queries by
+      // userId — would never see the file. Filtering on
+      // c.userId === viewerId here means we only attach to certs the staff
+      // already owns; everything else falls through to the POST path which
+      // forces userId = session.user.id server-side.
       const orphanCert = certs.find(
-        (c) => c.type === uploadType && !c.fileUrl,
+        (c) =>
+          c.type === uploadType &&
+          !c.fileUrl &&
+          !!viewerId &&
+          c.userId === viewerId,
       );
 
       if (orphanCert) {
