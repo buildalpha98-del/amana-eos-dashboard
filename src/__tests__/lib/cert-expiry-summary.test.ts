@@ -145,4 +145,24 @@ describe("bucketCertExpiry", () => {
     });
     expect(out.affectedStaff).toEqual([]);
   });
+
+  it("excludes null-expiry certs from every bucket (treated as valid forever)", () => {
+    const out = bucketCertExpiry(
+      [
+        // userId set + null expiry — must not be counted as expired/expiring.
+        { userId: "u-1", type: "wwcc" as CertInput["type"], expiryDate: null },
+        // For contrast, a real expiring cert is bucketed normally.
+        cert("u-2", "first_aid" as CertInput["type"], 3),
+      ],
+      ASOF,
+    );
+    expect(out.totals).toEqual({
+      expired: 0,
+      critical: 1, // only u-2's first_aid
+      warning: 0,
+      upcoming: 0,
+    });
+    expect(out.affectedStaff).toHaveLength(1);
+    expect(out.affectedStaff[0].userId).toBe("u-2");
+  });
 });

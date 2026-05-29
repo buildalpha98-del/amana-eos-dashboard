@@ -83,9 +83,12 @@ export function ComplianceTab({ userId, qualifications, certificates, canManage,
                   </div>
                 </div>
                 <div className="text-xs text-muted">
-                  Expires: {formatDate(q.expiryDate)}
+                  {q.expiryDate ? `Expires: ${formatDate(q.expiryDate)}` : "No expiry"}
                 </div>
-                <CertStatusBadge expiryDate={q.expiryDate} />
+                <CertStatusBadge
+                  expiryDate={q.expiryDate}
+                  noExpiry={!!q.certificateUrl && !q.expiryDate}
+                />
                 {q.certificateUrl ? (
                   <button
                     type="button"
@@ -132,9 +135,12 @@ export function ComplianceTab({ userId, qualifications, certificates, canManage,
                   )}
                 </div>
                 <div className="text-xs text-muted">
-                  Expires: {formatDate(c.expiryDate)}
+                  {c.expiryDate ? `Expires: ${formatDate(c.expiryDate)}` : "No expiry"}
                 </div>
-                <CertStatusBadge expiryDate={c.expiryDate} />
+                <CertStatusBadge
+                  expiryDate={c.expiryDate}
+                  noExpiry={!!c.fileUrl && !c.expiryDate}
+                />
                 <CertActionBar
                   cert={c}
                   canEdit={canManage}
