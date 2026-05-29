@@ -188,10 +188,15 @@ function StaffComplianceView() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadType, setUploadType] = useState<string>("");
 
+  // Per type, pick the latest cert that actually has a file attached. A row
+  // with fileUrl=null is metadata-only (OWNA stub or a previous failed
+  // upload) — the staff side should show that type as "missing — upload
+  // required" rather than "you have this cert" so a delete-and-re-upload
+  // cycle from the admin team view doesn't leave a stale-looking card.
   const certMap = useMemo(() => {
     const map: Record<string, ComplianceCertData> = {};
     certs.forEach((c) => {
-      // Keep latest cert per type
+      if (!c.fileUrl) return;
       if (!map[c.type] || new Date(c.expiryDate) > new Date(map[c.type].expiryDate)) {
         map[c.type] = c;
       }
@@ -223,7 +228,15 @@ function StaffComplianceView() {
         const body = await uploadRes.json().catch(() => ({}));
         throw new Error(body?.error ?? `Upload failed (${uploadRes.status})`);
       }
-      const { url } = await uploadRes.json();
+      // /api/upload returns { fileName, fileUrl, fileSize, mimeType }. The
+      // original destructure was `{ url }` which silently undefined'd the
+      // blob URL — every "successful" upload then wrote cert.fileUrl=null,
+      // matching the "uploaded successfully but admin sees No file attached"
+      // bug. Keep the alias for downstream readability.
+      const { fileUrl: uploadedFileUrl } = await uploadRes.json();
+      if (!uploadedFileUrl) {
+        throw new Error("Upload completed but no file URL was returned");
+      }
 
       // Attach-or-create logic: when a cert of this type already exists for
       // THIS user but has no file yet (typically an OWNA-synced metadata
@@ -252,7 +265,7 @@ function StaffComplianceView() {
         const res = await fetch(`/api/compliance/${orphanCert.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileUrl: url, fileName: file.name }),
+          body: JSON.stringify({ fileUrl: uploadedFileUrl, fileName: file.name }),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -272,7 +285,7 @@ function StaffComplianceView() {
           label: `${typeLabels[uploadType]} - ${file.name}`,
           issueDate: today,
           expiryDate: oneYearLater.toISOString().split("T")[0],
-          fileUrl: url,
+          fileUrl: uploadedFileUrl,
           fileName: file.name,
         });
       }
