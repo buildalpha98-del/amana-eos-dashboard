@@ -18,6 +18,13 @@ const ALLOWED_TYPES = [
   "image/jpeg",
   "image/gif",
   "image/webp",
+  // iPhone defaults to HEIC for photos; staff uploading a photo of a cert
+  // would otherwise hit a silent 400 here even though the image is valid.
+  "image/heic",
+  "image/heif",
+  // Common scanner / older-camera formats — still legitimate cert photos.
+  "image/tiff",
+  "image/bmp",
 ];
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB

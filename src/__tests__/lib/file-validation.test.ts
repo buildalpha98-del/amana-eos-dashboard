@@ -46,6 +46,22 @@ describe("detectFileType", () => {
     expect(detectFileType(buffer)).toBe("image/webp");
   });
 
+  it("detects little-endian TIFF files (II*\\0)", () => {
+    const buffer = createBuffer([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00]);
+    expect(detectFileType(buffer)).toBe("image/tiff");
+  });
+
+  it("detects big-endian TIFF files (MM\\0*)", () => {
+    const buffer = createBuffer([0x4d, 0x4d, 0x00, 0x2a, 0x00, 0x00, 0x00, 0x08]);
+    expect(detectFileType(buffer)).toBe("image/tiff");
+  });
+
+  it("detects BMP files (BM header)", () => {
+    // BM + 4-byte size + reserved + offset
+    const buffer = createBuffer([0x42, 0x4d, 0x36, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    expect(detectFileType(buffer)).toBe("image/bmp");
+  });
+
   it("detects ZIP-based Office formats (PK header)", () => {
     // PK\x03\x04 header
     const buffer = createBuffer([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00]);

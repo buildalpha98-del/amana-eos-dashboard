@@ -209,14 +209,18 @@ function StaffComplianceView() {
     setUploading(uploadType);
     try {
       // Upload file via /api/upload — same blob storage path as everywhere
-      // else in the app.
+      // else in the app. Surface the server's actual error message so HEIC /
+      // unsupported-type / size rejections aren't silent.
       const formData = new FormData();
       formData.append("file", file);
       const uploadRes = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
-      if (!uploadRes.ok) throw new Error("Upload failed");
+      if (!uploadRes.ok) {
+        const body = await uploadRes.json().catch(() => ({}));
+        throw new Error(body?.error ?? `Upload failed (${uploadRes.status})`);
+      }
       const { url } = await uploadRes.json();
 
       // Attach-or-create logic: when a cert of this type already exists for
@@ -259,7 +263,11 @@ function StaffComplianceView() {
       }
       toast({ title: "Document uploaded", description: "Your compliance document has been uploaded successfully." });
     } catch (err) {
-      toast({ title: "Upload failed", description: "There was a problem uploading your document. Please try again.", variant: "destructive" });
+      const message =
+        err instanceof Error
+          ? err.message
+          : "There was a problem uploading your document. Please try again.";
+      toast({ title: "Upload failed", description: message, variant: "destructive" });
     } finally {
       setUploading(null);
       setUploadType("");
@@ -293,7 +301,10 @@ function StaffComplianceView() {
         ref={fileRef}
         type="file"
         className="hidden"
-        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        // Match /api/upload's ALLOWED_TYPES so the OS file picker doesn't
+        // hide files the server would otherwise accept. iPhone HEIC photos
+        // and older scanner TIFFs are common cert uploads.
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.tif,.tiff,.bmp,image/*,application/pdf"
         onChange={onFileSelected}
       />
 
