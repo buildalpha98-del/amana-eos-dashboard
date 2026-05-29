@@ -9,7 +9,8 @@ import {
   formatDate,
   getAwardLabel,
 } from "@/components/contracts/constants";
-import { FileSignature, ChevronRight } from "lucide-react";
+import { FileSignature, ChevronRight, AlertTriangle } from "lucide-react";
+import { FileViewerModal } from "@/components/files/FileViewerModal";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -20,6 +21,11 @@ interface Props {
 export function ContractsTab({ userId, canEdit }: Props) {
   const { data: contracts = [], isLoading, error } = useContracts({ userId });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Shared FileViewerModal — clicking "View PDF" or the contract title in the
+  // expanded panel sets `viewing` and the modal renders below. We pipe
+  // through the auth-checked /api/contracts/[id]/document proxy instead of
+  // the raw documentUrl so cross-staff access is blocked server-side.
+  const [viewing, setViewing] = useState<ContractData | null>(null);
 
   if (isLoading) {
     return <div className="p-6 text-sm text-muted">Loading contracts…</div>;
@@ -64,8 +70,20 @@ export function ContractsTab({ userId, canEdit }: Props) {
           onToggle={() =>
             setSelectedId(selectedId === c.id ? null : c.id)
           }
+          onView={setViewing}
         />
       ))}
+
+      {viewing && (
+        <FileViewerModal
+          open={!!viewing}
+          onClose={() => setViewing(null)}
+          title={`${CONTRACT_TYPE_LABELS[viewing.contractType] ?? viewing.contractType} contract`}
+          viewerUrl={`/api/contracts/${viewing.id}/document`}
+          downloadUrl={`/api/contracts/${viewing.id}/document?download=1`}
+          fileName={`contract-${viewing.id}.pdf`}
+        />
+      )}
     </div>
   );
 }
@@ -74,10 +92,12 @@ function ContractRow({
   contract,
   expanded,
   onToggle,
+  onView,
 }: {
   contract: ContractData;
   expanded: boolean;
   onToggle: () => void;
+  onView: (contract: ContractData) => void;
 }) {
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -132,16 +152,22 @@ function ContractRow({
             <div className="text-xs text-muted mb-0.5">Signed PDF</div>
             <div>
               {contract.documentUrl ? (
-                <a
-                  href={contract.documentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => onView(contract)}
                   className="text-brand hover:underline"
+                  data-testid="contract-view-button"
                 >
                   View PDF
-                </a>
+                </button>
               ) : (
-                <span className="text-muted">Not uploaded</span>
+                <span
+                  className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded"
+                  data-testid="contract-no-file-badge"
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  No file attached
+                </span>
               )}
             </div>
           </div>

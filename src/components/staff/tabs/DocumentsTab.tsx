@@ -2,8 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileText, Upload, Loader2, Eye } from "lucide-react";
+import { FileText, Upload, Loader2, Eye } from "lucide-react";
 import type { Document } from "@prisma/client";
+import { FileViewerModal } from "@/components/files/FileViewerModal";
 import { toast } from "@/hooks/useToast";
 
 interface DocumentsTabProps {
@@ -40,6 +41,9 @@ export function DocumentsTab({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  // Shared viewer instance for all document rows. Clicking either the
+  // filename or the View action sets `viewing` and the modal renders below.
+  const [viewing, setViewing] = useState<Document | null>(null);
 
   async function handleUpload(file: File) {
     if (!targetUserId) return;
@@ -137,34 +141,44 @@ export function DocumentsTab({
               <li key={d.id} className="py-3 flex flex-wrap items-center gap-3">
                 <FileText className="w-4 h-4 text-muted shrink-0" />
                 <div className="flex-1 min-w-[200px]">
-                  <div className="text-sm font-medium text-foreground">{d.title}</div>
+                  {/* Title doubles as a clickable affordance per spec. */}
+                  <button
+                    type="button"
+                    onClick={() => setViewing(d)}
+                    className="text-sm font-medium text-foreground hover:text-brand hover:underline text-left"
+                    data-testid="document-title-button"
+                  >
+                    {d.title}
+                  </button>
                   <div className="text-xs text-muted">
                     {humanize(d.category)} · {formatDate(d.createdAt)}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <a
-                    href={`/api/staff-documents/${d.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    View
-                  </a>
-                  <a
-                    href={`/api/staff-documents/${d.id}?download=1`}
-                    className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Download
-                  </a>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewing(d)}
+                  className="inline-flex items-center gap-1 text-sm text-brand hover:underline shrink-0"
+                  data-testid="document-view-button"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  View
+                </button>
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {viewing && (
+        <FileViewerModal
+          open={!!viewing}
+          onClose={() => setViewing(null)}
+          title={viewing.title}
+          viewerUrl={`/api/staff-documents/${viewing.id}`}
+          downloadUrl={`/api/staff-documents/${viewing.id}?download=1`}
+          fileName={viewing.fileName ?? viewing.title}
+        />
+      )}
     </div>
   );
 }
