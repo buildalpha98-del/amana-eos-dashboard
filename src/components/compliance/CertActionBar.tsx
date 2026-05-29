@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Download, Eye, Upload, Trash2, Loader2, RefreshCw } from "lucide-react";
+import { Download, Eye, Upload, Trash2, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
+import { FileViewerModal } from "@/components/files/FileViewerModal";
 import { toast } from "@/hooks/useToast";
 
 /** Matches Prisma ComplianceCertificate.type */
@@ -61,6 +62,7 @@ export function CertActionBar({ cert, canEdit, canDelete, onUpdated }: CertActio
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   // Renew modal state — separate from the upload modal so the date pickers
   // don't muddy the file-upload flow.
@@ -225,27 +227,30 @@ export function CertActionBar({ cert, canEdit, canDelete, onUpdated }: CertActio
 
   return (
     <div className="inline-flex items-center gap-2">
-      {cert.fileUrl && (
-        <>
-          <a
-            href={`/api/compliance/${cert.id}/download`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-            title={cert.fileName ?? "View certificate"}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            View
-          </a>
-          <a
-            href={`/api/compliance/${cert.id}/download?download=1`}
-            className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-            title={cert.fileName ?? "Download certificate"}
-          >
-            <Download className="w-3.5 h-3.5" />
-            Download
-          </a>
-        </>
+      {cert.fileUrl ? (
+        <button
+          type="button"
+          onClick={() => setViewerOpen(true)}
+          className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+          title={cert.fileName ?? "View certificate"}
+          data-testid="cert-view-button"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          View
+        </button>
+      ) : (
+        // The row often shows a free-text `label` that looks like a filename
+        // even when no file is attached (typically OWNA-synced certs).
+        // Surface the actual state explicitly so users don't go hunting for
+        // a non-existent View button.
+        <span
+          className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded"
+          title="No certificate file has been uploaded for this record yet"
+          data-testid="cert-no-file-badge"
+        >
+          <AlertTriangle className="w-3 h-3" />
+          No file attached
+        </span>
       )}
       {canEdit && (
         <button
@@ -470,6 +475,17 @@ export function CertActionBar({ cert, canEdit, canDelete, onUpdated }: CertActio
           </div>
         </DialogContent>
       </Dialog>
+
+      {cert.fileUrl && (
+        <FileViewerModal
+          open={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          title={cert.fileName ?? "Certificate"}
+          viewerUrl={`/api/compliance/${cert.id}/download`}
+          downloadUrl={`/api/compliance/${cert.id}/download?download=1`}
+          fileName={cert.fileName ?? undefined}
+        />
+      )}
     </div>
   );
 }

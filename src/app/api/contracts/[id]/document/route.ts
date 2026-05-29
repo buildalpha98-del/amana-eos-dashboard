@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
@@ -19,9 +19,14 @@ import { isAdminRole } from "@/lib/role-permissions";
  *
  * Returns 404 if the contract doesn't exist or has no documentUrl
  * (blank-form contracts without an uploaded PDF).
+ *
+ * `?download=1` appends Vercel Blob's `download` query so the browser forces
+ * `Content-Disposition: attachment` instead of inline view — used by the
+ * Download affordance in the file viewer modal.
  */
-export const GET = withApiAuth(async (_req, session, context) => {
+export const GET = withApiAuth(async (req: NextRequest, session, context) => {
   const { id } = await context!.params!;
+  const wantsDownload = new URL(req.url).searchParams.get("download") === "1";
 
   const contract = await prisma.employmentContract.findUnique({
     where: { id },
@@ -37,5 +42,9 @@ export const GET = withApiAuth(async (_req, session, context) => {
 
   if (!isOwn && !isAdmin) throw ApiError.forbidden();
 
-  return NextResponse.redirect(contract.documentUrl);
+  const target = wantsDownload
+    ? `${contract.documentUrl}${contract.documentUrl.includes("?") ? "&" : "?"}download=contract-${contract.id}.pdf`
+    : contract.documentUrl;
+
+  return NextResponse.redirect(target);
 });
