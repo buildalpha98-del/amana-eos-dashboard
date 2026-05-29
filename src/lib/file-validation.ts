@@ -39,6 +39,19 @@ export function detectFileType(buffer: ArrayBuffer): string | null {
     return "image/webp";
   }
 
+  // TIFF: II*\0 (little-endian) or MM\0* (big-endian)
+  if (
+    (bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2a && bytes[3] === 0x00) ||
+    (bytes[0] === 0x4d && bytes[1] === 0x4d && bytes[2] === 0x00 && bytes[3] === 0x2a)
+  ) {
+    return "image/tiff";
+  }
+
+  // BMP: BM (Windows bitmap)
+  if (bytes[0] === 0x42 && bytes[1] === 0x4d) {
+    return "image/bmp";
+  }
+
   // DOCX/XLSX/PPTX (ZIP-based Office formats): PK header
   if (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) {
     return "application/zip"; // Could be docx, xlsx, pptx — all ZIP-based
