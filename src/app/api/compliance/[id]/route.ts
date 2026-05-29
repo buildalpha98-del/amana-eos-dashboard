@@ -9,7 +9,10 @@ const updateCertSchema = z.object({
   type: z.enum(["wwcc", "first_aid", "anaphylaxis", "asthma", "cpr", "police_check", "annual_review", "other"]).optional(),
   label: z.string().nullable().optional(),
   issueDate: z.string().optional(),
-  expiryDate: z.string().optional(),
+  // Allow null to clear an expiry (cert moved to "no expiry"); empty string
+  // is treated the same as null so a form that submits an empty input
+  // doesn't 400. Past-date validation runs after parse.
+  expiryDate: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   alertDays: z.number().optional(),
   acknowledged: z.boolean().optional(),
@@ -98,7 +101,25 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   const data: Record<string, unknown> = { ...parsed.data };
   if (parsed.data.issueDate) data.issueDate = new Date(parsed.data.issueDate);
-  if (parsed.data.expiryDate) data.expiryDate = new Date(parsed.data.expiryDate);
+  // expiryDate semantics on PATCH:
+  //   - undefined: don't touch the column
+  //   - null OR empty string: explicitly clear the expiry (cert becomes "no expiry")
+  //   - non-empty string: parse as date; reject past dates
+  if (parsed.data.expiryDate === null || parsed.data.expiryDate === "") {
+    data.expiryDate = null;
+  } else if (parsed.data.expiryDate) {
+    const value = new Date(parsed.data.expiryDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    value.setHours(0, 0, 0, 0);
+    if (value.getTime() < today.getTime()) {
+      return NextResponse.json(
+        { error: "Expiry date can't be in the past — pick today or later." },
+        { status: 400 },
+      );
+    }
+    data.expiryDate = new Date(parsed.data.expiryDate);
+  }
   if (replaceFile) {
     data.fileUrl = uploadedFileUrl;
     data.fileName = uploadedFileName;
