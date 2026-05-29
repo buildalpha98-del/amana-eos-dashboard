@@ -3351,11 +3351,7 @@ model ComplianceCertificate {
   type                  CertificateType
   label                 String?
   issueDate             DateTime
-  // Nullable so certs that legitimately never expire (e.g. annual policy
-  // ack, induction confirmation) can be modelled as `expiryDate: null`
-  // instead of a sentinel far-future date. The expiring-soon warning
-  // system treats null as "valid forever".
-  expiryDate            DateTime?
+  expiryDate            DateTime
   notes                 String?                @db.Text
   fileUrl               String?
   fileName              String?

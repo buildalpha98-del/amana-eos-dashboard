@@ -7,28 +7,13 @@ import { withApiAuth } from "@/lib/server-auth";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
-// Reject expiry dates that fall before today — uploading an already-expired
-// cert is a UX trap (the row would immediately read "expired"). Today itself
-// is accepted because a cert valid for the rest of the day is still valid.
-function isPastDate(dateStr: string): boolean {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const value = new Date(dateStr);
-  if (Number.isNaN(value.getTime())) return false; // shape validated separately
-  value.setHours(0, 0, 0, 0);
-  return value.getTime() < today.getTime();
-}
-
 const createCertSchema = z.object({
   serviceId: z.string().min(1),
   userId: z.string().optional().nullable(),
   type: z.enum(["wwcc", "first_aid", "anaphylaxis", "asthma", "cpr", "police_check", "annual_review", "other"]),
   label: z.string().optional().nullable(),
   issueDate: z.string().min(1),
-  // Nullable so "no expiry" certs can be created (matches schema). Strings
-  // get past-date validation downstream so we can return a clear 400 with
-  // a useful message rather than a generic Zod issue.
-  expiryDate: z.string().min(1).nullable().optional(),
+  expiryDate: z.string().min(1),
   notes: z.string().optional().nullable(),
   alertDays: z.number().optional(),
   fileUrl: z.string().optional().nullable(),
@@ -146,13 +131,6 @@ export const POST = withApiAuth(async (req, session) => {
     return NextResponse.json({ error: "Service ID is required" }, { status: 400 });
   }
 
-  if (parsed.data.expiryDate && isPastDate(parsed.data.expiryDate)) {
-    return NextResponse.json(
-      { error: "Expiry date can't be in the past — pick today or later." },
-      { status: 400 },
-    );
-  }
-
   const finalFileUrl = uploadedFileUrl ?? parsed.data.fileUrl ?? null;
   const finalFileName = uploadedFileName ?? parsed.data.fileName ?? null;
 
@@ -163,8 +141,7 @@ export const POST = withApiAuth(async (req, session) => {
       type: parsed.data.type,
       label: parsed.data.label || null,
       issueDate: new Date(parsed.data.issueDate),
-      // null when caller indicates "no expiry"; otherwise the supplied date.
-      expiryDate: parsed.data.expiryDate ? new Date(parsed.data.expiryDate) : null,
+      expiryDate: new Date(parsed.data.expiryDate),
       notes: parsed.data.notes || null,
       alertDays: parsed.data.alertDays ?? 30,
       fileUrl: finalFileUrl,

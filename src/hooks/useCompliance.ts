@@ -13,9 +13,7 @@ export interface ComplianceCertData {
   type: string;
   label: string | null;
   issueDate: string;
-  // Nullable since the schema migration made expiryDate optional for certs
-  // that don't expire (e.g. annual ack, induction confirmation).
-  expiryDate: string | null;
+  expiryDate: string;
   notes: string | null;
   fileUrl: string | null;
   fileName: string | null;
@@ -46,8 +44,7 @@ export function useCreateCert() {
       type: string;
       label?: string | null;
       issueDate: string;
-      // Nullable — pass null for "no expiry" certs (e.g. annual ack).
-      expiryDate: string | null;
+      expiryDate: string;
       notes?: string | null;
       alertDays?: number;
       fileUrl?: string | null;
