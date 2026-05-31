@@ -11,7 +11,9 @@ interface MyCert {
   type: string;
   label: string | null;
   issueDate: string;
-  expiryDate: string;
+  // Nullable post-2026-05 migration: "No expiry" certs (e.g. WWCC for life,
+  // baseline first-aid) come through as null.
+  expiryDate: string | null;
   fileUrl: string | null;
   fileName: string | null;
 }
@@ -83,11 +85,13 @@ export function MyComplianceCard({ userId }: MyComplianceCardProps) {
                   {labelFor(cert)}
                 </div>
                 <div className="text-xs text-muted">
-                  Expires: {new Date(cert.expiryDate).toLocaleDateString("en-AU", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {cert.expiryDate
+                    ? `Expires: ${new Date(cert.expiryDate).toLocaleDateString("en-AU", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}`
+                    : "No expiry"}
                 </div>
               </div>
               <CertStatusBadge expiryDate={cert.expiryDate ? new Date(cert.expiryDate) : null} />

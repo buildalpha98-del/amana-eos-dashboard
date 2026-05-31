@@ -28,7 +28,10 @@ export interface CertActionBarProps {
     userId: string | null;
     type: CertType;
     issueDate?: Date | string | null;
-    expiryDate: Date | string;
+    // expiryDate is nullable post-2026-05 migration ("No expiry" certs). The
+    // Renew flow guards on null below; the New-Version flow also passes the
+    // existing date through, including the empty-string case for nulls.
+    expiryDate: Date | string | null;
   };
   /** Can the viewer upload / replace the cert file? Admin or self. */
   canEdit: boolean;
@@ -103,7 +106,13 @@ export function CertActionBar({ cert, canEdit, canDelete, onUpdated }: CertActio
       toast({ variant: "destructive", description: "Expiry must be after issue date" });
       return;
     }
-    if (new Date(renewExpiry) <= new Date(cert.expiryDate)) {
+    // Only enforce "must be after previous expiry" when the previous cert
+    // actually HAD an expiry. A "No expiry" cert by definition outlasts any
+    // dated renewal, so we let those through.
+    if (
+      cert.expiryDate !== null &&
+      new Date(renewExpiry) <= new Date(cert.expiryDate)
+    ) {
       toast({
         variant: "destructive",
         description: "Renewed expiry must be later than the current cert's expiry",

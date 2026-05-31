@@ -46,6 +46,11 @@ export const GET = withApiAuth(async (_req, session, context) => {
       // Optional: exclude rows missing a userId (centre-level certs the
       // expiry-row schema also stores). Roster cares about per-staff certs.
       userId: { not: null },
+      // Roster-grid rollup is "expiring on or before <date>"; "No expiry"
+      // certs (nullable post-2026-05) never expire and are irrelevant for
+      // that calculation — drop them at the DB layer so the client never
+      // sees nulls and the StaffCertificate.expiryDate string contract holds.
+      expiryDate: { not: null },
     },
     select: {
       userId: true,
@@ -55,5 +60,18 @@ export const GET = withApiAuth(async (_req, session, context) => {
     orderBy: { expiryDate: "asc" },
   });
 
-  return NextResponse.json({ certificates: certs });
+  // After the `expiryDate: { not: null }` filter, every row's expiryDate is
+  // guaranteed non-null, but Prisma's generated type still has it nullable.
+  // Narrow + map to ISO strings so the client contract is concrete.
+  return NextResponse.json({
+    certificates: certs
+      .filter(
+        (c): c is typeof c & { expiryDate: Date } => c.expiryDate !== null,
+      )
+      .map((c) => ({
+        userId: c.userId,
+        type: c.type,
+        expiryDate: c.expiryDate.toISOString(),
+      })),
+  });
 });
