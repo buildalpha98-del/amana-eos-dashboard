@@ -1007,12 +1007,16 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                                 statusColor(status)
                               )}
                             >
-                              {status === "expired"
+                              {/* `days` is `null` for no-expiry certs (post-
+                                  2026-05 nullable migration). In that case
+                                  `status` is "valid" and we render a "No
+                                  expiry" pill instead of "nulld left".
+                                  Otherwise `days` is a number and the
+                                  status-driven branches all narrow cleanly. */}
+                              {days === null
+                                ? "No expiry"
+                                : status === "expired"
                                 ? `${Math.abs(days)}d overdue`
-                                : status === "critical"
-                                ? `${days}d left`
-                                : status === "warning"
-                                ? `${days}d left`
                                 : `${days}d left`}
                             </span>
 
