@@ -49,9 +49,15 @@ export const GET = withApiHandler(async (req) => {
       orderBy: { expiryDate: "asc" },
     });
 
-    const expiringCertsText = expiringCerts.length > 0
-      ? expiringCerts.map((c) => {
-          const daysLeft = Math.ceil((new Date(c.expiryDate).getTime() - now.getTime()) / 86400000);
+    // expiryDate is nullable post-migration; the query filters with lte:in90d
+    // which excludes nulls at the DB level. Filter again here as a TS narrow
+    // so `.getTime()` and the comparisons below stay sound.
+    const expiringCertsWithDate = expiringCerts.filter(
+      (c): c is typeof c & { expiryDate: Date } => c.expiryDate !== null,
+    );
+    const expiringCertsText = expiringCertsWithDate.length > 0
+      ? expiringCertsWithDate.map((c) => {
+          const daysLeft = Math.ceil((c.expiryDate.getTime() - now.getTime()) / 86400000);
           const urgency = daysLeft <= 0 ? "EXPIRED" : daysLeft <= 14 ? "URGENT" : "upcoming";
           return `- [${urgency}] ${c.type} — ${c.user?.name ?? "Unknown"} at ${c.service.name} (${daysLeft <= 0 ? "expired" : `expires in ${daysLeft} days`})`;
         }).join("\n")
@@ -132,8 +138,8 @@ export const GET = withApiHandler(async (req) => {
 
     // ── Determine severity ──────────────────────────────────
 
-    const hasExpired = expiringCerts.some((c) => new Date(c.expiryDate) <= now);
-    const hasUrgent = expiringCerts.some((c) => new Date(c.expiryDate) <= in14d);
+    const hasExpired = expiringCertsWithDate.some((c) => c.expiryDate <= now);
+    const hasUrgent = expiringCertsWithDate.some((c) => c.expiryDate <= in14d);
     const alerts: Array<{ level: string; message: string }> = [];
     if (hasExpired) alerts.push({ level: "critical", message: "Expired certificates require immediate action" });
     if (hasUrgent) alerts.push({ level: "warning", message: "Certificates expiring within 14 days" });

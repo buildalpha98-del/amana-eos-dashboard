@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import {
@@ -38,6 +38,7 @@ import { ComplianceMatrix } from "@/components/compliance/ComplianceMatrix";
 import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
 import { AuditResultsTab } from "@/components/compliance/AuditResultsTab";
 import { QualificationRatiosTab } from "@/components/compliance/QualificationRatiosTab";
+import { StaffCertUploadModal } from "@/components/compliance/StaffCertUploadModal";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   CalendarDays,
@@ -112,6 +113,16 @@ interface UserOption {
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
+// YYYY-MM-DD for the user's local "today" — used to seed `min` attributes on
+// the admin cert-create form's expiry date input so the picker can't scroll
+// backwards. Localised so users in different timezones don't see weird off-
+// by-one dates.
+function todayIso(): string {
+  const d = new Date();
+  const tz = d.getTimezoneOffset() * 60_000;
+  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
+}
+
 function daysUntilExpiry(expiryDate: string): number {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -185,8 +196,11 @@ function StaffComplianceView() {
   const createCert = useCreateCert();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploadType, setUploadType] = useState<string>("");
+  // `modalType` non-null = the StaffCertUploadModal is open for that cert
+  // type. Replaces the previous "click → OS file picker → silently upload
+  // with auto today+1y expiry" path, which had no way to capture the real
+  // expiry date and silently wrote the wrong data.
+  const [modalType, setModalType] = useState<string | null>(null);
 
   // Per type, pick the latest cert that actually has a file attached. A row
   // with fileUrl=null is metadata-only (OWNA stub or a previous failed
@@ -197,23 +211,43 @@ function StaffComplianceView() {
     const map: Record<string, ComplianceCertData> = {};
     certs.forEach((c) => {
       if (!c.fileUrl) return;
-      if (!map[c.type] || new Date(c.expiryDate) > new Date(map[c.type].expiryDate)) {
+      const existing = map[c.type];
+      if (!existing) {
         map[c.type] = c;
+        return;
+      }
+      // A cert with expiryDate=null is "valid forever" — always wins the
+      // tie-break against a dated cert. Two dated certs: latest wins.
+      // Two no-expiry certs: keep the first (arbitrary but stable).
+      const aNoExpiry = !c.expiryDate;
+      const bNoExpiry = !existing.expiryDate;
+      if (aNoExpiry && !bNoExpiry) {
+        map[c.type] = c;
+      } else if (!aNoExpiry && !bNoExpiry) {
+        if (new Date(c.expiryDate!) > new Date(existing.expiryDate!)) {
+          map[c.type] = c;
+        }
       }
     });
     return map;
   }, [certs]);
 
-  const handleUpload = async (type: string) => {
-    setUploadType(type);
-    fileRef.current?.click();
+  const handleUpload = (type: string) => {
+    setModalType(type);
   };
 
-  const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadType) return;
-
-    setUploading(uploadType);
+  // Called by StaffCertUploadModal when the user submits. Errors are thrown
+  // so the modal can display them inline; on success the modal closes
+  // itself and we surface a toast for the cert list page.
+  const handleModalSubmit = async ({
+    file,
+    expiryDate,
+  }: {
+    file: File;
+    expiryDate: string | null;
+  }) => {
+    if (!modalType) return;
+    setUploading(modalType);
     try {
       // Upload file via /api/upload — same blob storage path as everywhere
       // else in the app. Surface the server's actual error message so HEIC /
@@ -228,11 +262,6 @@ function StaffComplianceView() {
         const body = await uploadRes.json().catch(() => ({}));
         throw new Error(body?.error ?? `Upload failed (${uploadRes.status})`);
       }
-      // /api/upload returns { fileName, fileUrl, fileSize, mimeType }. The
-      // original destructure was `{ url }` which silently undefined'd the
-      // blob URL — every "successful" upload then wrote cert.fileUrl=null,
-      // matching the "uploaded successfully but admin sees No file attached"
-      // bug. Keep the alias for downstream readability.
       const { fileUrl: uploadedFileUrl } = await uploadRes.json();
       if (!uploadedFileUrl) {
         throw new Error("Upload completed but no file URL was returned");
@@ -255,7 +284,7 @@ function StaffComplianceView() {
       // forces userId = session.user.id server-side.
       const orphanCert = certs.find(
         (c) =>
-          c.type === uploadType &&
+          c.type === modalType &&
           !c.fileUrl &&
           !!viewerId &&
           c.userId === viewerId,
@@ -265,41 +294,41 @@ function StaffComplianceView() {
         const res = await fetch(`/api/compliance/${orphanCert.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileUrl: uploadedFileUrl, fileName: file.name }),
+          body: JSON.stringify({
+            fileUrl: uploadedFileUrl,
+            fileName: file.name,
+            // Explicit on PATCH: null clears whatever the OWNA stub had;
+            // an actual date overwrites it with what the staff just told us.
+            expiryDate: expiryDate ?? null,
+          }),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body?.error ?? "Failed to attach file");
         }
-        // useCreateCert invalidates the cache on success; we have to do it
-        // manually on the PATCH path so the row's View button appears now,
-        // not on the next page load. Matches the key used by useCompliance.
         await queryClient.invalidateQueries({ queryKey: ["compliance"] });
       } else {
         const today = new Date().toISOString().split("T")[0];
-        const oneYearLater = new Date();
-        oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
         await createCert.mutateAsync({
           serviceId: "auto", // Will be overridden by API for staff
-          type: uploadType,
-          label: `${typeLabels[uploadType]} - ${file.name}`,
+          type: modalType,
+          label: `${typeLabels[modalType]} - ${file.name}`,
           issueDate: today,
-          expiryDate: oneYearLater.toISOString().split("T")[0],
+          // The user explicitly picks expiry now; "no expiry" comes through
+          // as null. No more silent today+1y default.
+          expiryDate: expiryDate ?? null,
           fileUrl: uploadedFileUrl,
           fileName: file.name,
         });
       }
-      toast({ title: "Document uploaded", description: "Your compliance document has been uploaded successfully." });
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "There was a problem uploading your document. Please try again.";
-      toast({ title: "Upload failed", description: message, variant: "destructive" });
+      toast({
+        title: "Document uploaded",
+        description: expiryDate
+          ? `Saved with expiry ${expiryDate}.`
+          : "Saved with no expiry.",
+      });
     } finally {
       setUploading(null);
-      setUploadType("");
-      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -325,17 +354,6 @@ function StaffComplianceView() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <input
-        ref={fileRef}
-        type="file"
-        className="hidden"
-        // Match /api/upload's ALLOWED_TYPES so the OS file picker doesn't
-        // hide files the server would otherwise accept. iPhone HEIC photos
-        // and older scanner TIFFs are common cert uploads.
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.tif,.tiff,.bmp,image/*,application/pdf"
-        onChange={onFileSelected}
-      />
-
       <PageHeader
         title="My Compliance Documents"
         description="Upload and manage your required compliance certificates"
@@ -344,7 +362,10 @@ function StaffComplianceView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {certTypes.filter((t) => t !== "other").map((type) => {
           const cert = certMap[type];
-          const days = cert ? daysUntilExpiry(cert.expiryDate) : null;
+          // A cert with expiryDate=null is "valid forever" — skip the days
+          // calculation entirely so it doesn't end up rendered as expired.
+          const hasNoExpiry = !!cert && !cert.expiryDate;
+          const days = cert && cert.expiryDate ? daysUntilExpiry(cert.expiryDate) : null;
           const status = days !== null ? expiryStatus(days) : null;
           const isUploading = uploading === type;
 
@@ -372,7 +393,12 @@ function StaffComplianceView() {
                   >
                     {typeLabels[type]}
                   </span>
-                  {cert && status && (
+                  {cert && hasNoExpiry && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">
+                      No expiry
+                    </span>
+                  )}
+                  {cert && !hasNoExpiry && status && (
                     <span
                       className={cn(
                         "text-xs font-medium px-2 py-0.5 rounded-lg border",
@@ -399,7 +425,7 @@ function StaffComplianceView() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted">Expires</span>
                     <span className="font-medium text-foreground/80">
-                      {formatDate(cert.expiryDate)}
+                      {cert.expiryDate ? formatDate(cert.expiryDate) : "Never"}
                     </span>
                   </div>
                   {cert.fileUrl && (
@@ -442,6 +468,13 @@ function StaffComplianceView() {
           );
         })}
       </div>
+
+      <StaffCertUploadModal
+        open={modalType !== null}
+        onClose={() => setModalType(null)}
+        typeLabel={modalType ? (typeLabels[modalType] ?? modalType) : ""}
+        onSubmit={handleModalSubmit}
+      />
     </div>
   );
 }
@@ -628,6 +661,11 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
 
     certs.forEach((c) => {
       total++;
+      // No-expiry certs are always valid; don't run the days math against null.
+      if (!c.expiryDate) {
+        valid++;
+        return;
+      }
       const days = daysUntilExpiry(c.expiryDate);
       if (days < 0) expired++;
       else if (days <= 30) expiringSoon++;
@@ -651,7 +689,9 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
     const paginated = filteredCerts.slice(start, start + CERTS_PER_PAGE);
     const groups: Record<string, ComplianceCertData[]> = {};
     paginated.forEach((c) => {
-      const key = monthKey(c.expiryDate);
+      // No-expiry certs go into a dedicated bucket so they don't try to
+      // resolve a monthKey from null and don't pollute month groupings.
+      const key = c.expiryDate ? monthKey(c.expiryDate) : "no-expiry";
       if (!groups[key]) groups[key] = [];
       groups[key].push(c);
     });
@@ -665,13 +705,18 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
     type: "wwcc" as string,
     label: "",
     issueDate: "",
+    // hasExpiry defaults to true — most certs do expire, so existing admin
+    // workflows continue to require a date by default. Toggle to false for
+    // never-expiring records (annual ack, induction confirmation).
+    hasExpiry: true,
     expiryDate: "",
     notes: "",
     alertDays: 30,
   });
 
   const handleCreate = async () => {
-    if (!form.serviceId || !form.issueDate || !form.expiryDate) return;
+    if (!form.serviceId || !form.issueDate) return;
+    if (form.hasExpiry && !form.expiryDate) return;
     try {
       await createCert.mutateAsync({
         serviceId: form.serviceId,
@@ -679,7 +724,8 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
         type: form.type,
         label: form.label || null,
         issueDate: form.issueDate,
-        expiryDate: form.expiryDate,
+        // null when the admin chose "No expiry"; otherwise the supplied date.
+        expiryDate: form.hasExpiry ? form.expiryDate : null,
         notes: form.notes || null,
         alertDays: form.alertDays,
       });
@@ -690,6 +736,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
         type: "wwcc",
         label: "",
         issueDate: "",
+        hasExpiry: true,
         expiryDate: "",
         notes: "",
         alertDays: 30,
@@ -729,9 +776,9 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                 { header: "Type", accessor: (c) => typeLabels[c.type] || c.type },
                 { header: "Label", accessor: (c) => c.label ?? "" },
                 { header: "Issue Date", accessor: (c) => new Date(c.issueDate).toLocaleDateString("en-AU") },
-                { header: "Expiry Date", accessor: (c) => new Date(c.expiryDate).toLocaleDateString("en-AU") },
-                { header: "Days Until Expiry", accessor: (c) => daysUntilExpiry(c.expiryDate) },
-                { header: "Status", accessor: (c) => expiryStatus(daysUntilExpiry(c.expiryDate)) },
+                { header: "Expiry Date", accessor: (c) => c.expiryDate ? new Date(c.expiryDate).toLocaleDateString("en-AU") : "No expiry" },
+                { header: "Days Until Expiry", accessor: (c) => c.expiryDate ? daysUntilExpiry(c.expiryDate) : "" },
+                { header: "Status", accessor: (c) => c.expiryDate ? expiryStatus(daysUntilExpiry(c.expiryDate)) : "valid" },
                 { header: "Notes", accessor: (c) => c.notes ?? "" },
               ],
             )
@@ -880,8 +927,9 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                   </h3>
                   <div className="space-y-2">
                     {items.map((cert) => {
-                      const days = daysUntilExpiry(cert.expiryDate);
-                      const status = expiryStatus(days);
+                      // No-expiry certs render as "valid" — no days math.
+                      const days = cert.expiryDate ? daysUntilExpiry(cert.expiryDate) : null;
+                      const status = days !== null ? expiryStatus(days) : "valid";
                       return (
                         <div
                           key={cert.id}
@@ -950,7 +998,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                             <div className="text-right">
                               <p className="text-xs text-muted">Expires</p>
                               <p className="text-sm font-medium text-foreground/80">
-                                {formatDate(cert.expiryDate)}
+                                {cert.expiryDate ? formatDate(cert.expiryDate) : "No expiry"}
                               </p>
                             </div>
                             <span
@@ -1132,16 +1180,35 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground/80 mb-1">
-                    Expiry Date *
+                    Expiry Date {form.hasExpiry && "*"}
                   </label>
                   <input
                     type="date"
                     value={form.expiryDate}
+                    min={todayIso()}
+                    disabled={!form.hasExpiry}
                     onChange={(e) =>
                       setForm({ ...form, expiryDate: e.target.value })
                     }
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   />
+                  <label className="mt-2 inline-flex items-center gap-2 text-xs text-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!form.hasExpiry}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          hasExpiry: !e.target.checked,
+                          // Clear the date when switching to "no expiry" so a
+                          // stale value can't sneak through if the admin
+                          // toggles back later.
+                          expiryDate: e.target.checked ? "" : form.expiryDate,
+                        })
+                      }
+                    />
+                    No expiry — this certificate doesn&apos;t expire
+                  </label>
                 </div>
               </div>
 
@@ -1188,7 +1255,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                 disabled={
                   !form.serviceId ||
                   !form.issueDate ||
-                  !form.expiryDate ||
+                  (form.hasExpiry && !form.expiryDate) ||
                   createCert.isPending
                 }
                 className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

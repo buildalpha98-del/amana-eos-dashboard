@@ -214,13 +214,17 @@ async function lookupExpiringCerts(withinDays?: number): Promise<string> {
   });
 
   return JSON.stringify(
-    certs.map((c) => ({
-      type: c.type,
-      staff: c.user?.name ?? "Unknown",
-      centre: c.service.name,
-      expiryDate: c.expiryDate.toISOString().split("T")[0],
-      daysLeft: Math.ceil((c.expiryDate.getTime() - Date.now()) / 86400000),
-    })),
+    certs
+      // The AI tool surfaces expiring/expired certs to the LLM. No-expiry
+      // certs aren't risk signals, so drop them entirely before the map.
+      .filter((c): c is typeof c & { expiryDate: Date } => c.expiryDate !== null)
+      .map((c) => ({
+        type: c.type,
+        staff: c.user?.name ?? "Unknown",
+        centre: c.service.name,
+        expiryDate: c.expiryDate.toISOString().split("T")[0],
+        daysLeft: Math.ceil((c.expiryDate.getTime() - Date.now()) / 86400000),
+      })),
   );
 }
 

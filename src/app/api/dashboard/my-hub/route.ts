@@ -180,6 +180,9 @@ const userId = session!.user.id;
     { expiryDate: Date; type: CertificateType }
   >();
   for (const cert of allCerts) {
+    // Skip no-expiry certs — they don't belong in the my-hub "latest by
+    // expiry" map. The hub UI surfaces them separately if needed.
+    if (cert.expiryDate === null) continue;
     const existing = certsByType.get(cert.type);
     if (!existing || cert.expiryDate > existing.expiryDate) {
       certsByType.set(cert.type, {

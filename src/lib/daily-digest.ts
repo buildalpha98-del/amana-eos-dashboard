@@ -446,6 +446,10 @@ function buildUserNotifications(
     if (!isAdmin && cert.user?.id !== user.id) continue;
     const nId = `cert-${cert.id}`;
     if (dismissedIds.has(nId)) continue;
+    // Skip no-expiry certs — they never appear in the daily expiring
+    // digest. expiringCerts is typed `any[]` so the null check is a
+    // runtime guard, not a TS narrow.
+    if (!cert.expiryDate) continue;
     const expiry = new Date(cert.expiryDate);
     const isExpired = expiry <= now;
     const daysUntil = Math.ceil(

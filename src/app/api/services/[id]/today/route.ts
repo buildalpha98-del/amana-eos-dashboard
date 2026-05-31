@@ -139,18 +139,23 @@ export const GET = withApiAuth(async (req, session, context) => {
       status: t.status,
       createdAt: t.createdAt.toISOString(),
     })),
-    expiringCerts: expiringCerts.map((c) => {
-      const daysLeft = Math.ceil(
-        (c.expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      return {
-        id: c.id,
-        userName: c.user?.name || "Unknown",
-        type: c.type,
-        expiryDate: c.expiryDate.toISOString(),
-        daysLeft,
-      };
-    }),
+    // expiryDate is nullable on the Prisma type post-migration but the
+    // query above filters with gte/lte which excludes nulls at the DB
+    // level. The filter here is a TS narrow only; runtime is a no-op.
+    expiringCerts: expiringCerts
+      .filter((c): c is typeof c & { expiryDate: Date } => c.expiryDate !== null)
+      .map((c) => {
+        const daysLeft = Math.ceil(
+          (c.expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return {
+          id: c.id,
+          userName: c.user?.name || "Unknown",
+          type: c.type,
+          expiryDate: c.expiryDate.toISOString(),
+          daysLeft,
+        };
+      }),
   };
 
   return NextResponse.json(response);

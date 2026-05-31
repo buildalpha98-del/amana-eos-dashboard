@@ -22,7 +22,12 @@ export type CertStatus = "expired" | "critical" | "warning" | "upcoming" | "vali
 export interface CertInput {
   userId: string | null;
   type: CertificateType;
-  expiryDate: Date;
+  /**
+   * Nullable because some certs legitimately don't expire (e.g. annual
+   * policy ack, induction confirmation). `null` is treated as "valid
+   * forever" and excluded from every status bucket.
+   */
+  expiryDate: Date | null;
 }
 
 export interface AffectedCert {
@@ -97,6 +102,9 @@ export function bucketCertExpiry(
 
   for (const c of certs) {
     if (!c.userId) continue; // centre-level certs aren't surfaced in the staff card
+    // Null expiry = "valid forever"; skip without touching any bucket so the
+    // expiring-soon UI doesn't claim a never-expiring cert is at risk.
+    if (c.expiryDate === null) continue;
     const days = daysUntil(c.expiryDate, asOf);
     const status = classifyStatus(days);
     if (status === "valid") continue;

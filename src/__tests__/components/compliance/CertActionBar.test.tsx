@@ -23,21 +23,36 @@ const baseCert = {
 };
 
 describe("CertActionBar", () => {
-  it("renders a Download link when fileUrl is present", () => {
+  it("renders a Download link AND a View affordance when fileUrl is present", () => {
     const { container } = render(
       <CertActionBar cert={baseCert} canEdit={false} canDelete={false} />,
     );
-    const link = container.querySelector('a[href="/api/compliance/cert-1/download"]');
-    expect(link).not.toBeNull();
-    expect(link?.textContent).toContain("Download");
+    // Download is now an anchor with `?download=1` so the browser forces an
+    // attachment; View is a button that opens the inline FileViewerModal.
+    const dl = container.querySelector(
+      'a[href="/api/compliance/cert-1/download?download=1"]',
+    );
+    expect(dl).not.toBeNull();
+    expect(dl?.textContent).toContain("Download");
+    const viewBtn = container.querySelector(
+      '[data-testid="cert-view-button"]',
+    );
+    expect(viewBtn).not.toBeNull();
+    expect(viewBtn?.textContent).toContain("View");
   });
 
-  it("hides the Download link when fileUrl is null", () => {
+  it("hides View + Download when fileUrl is null", () => {
     const { container } = render(
       <CertActionBar cert={{ ...baseCert, fileUrl: null }} canEdit={false} canDelete={false} />,
     );
-    const link = container.querySelector('a[href="/api/compliance/cert-1/download"]');
-    expect(link).toBeNull();
+    expect(container.querySelector(
+      'a[href="/api/compliance/cert-1/download?download=1"]',
+    )).toBeNull();
+    expect(container.querySelector('[data-testid="cert-view-button"]')).toBeNull();
+    // Empty-state badge surfaces "No file attached" instead.
+    expect(
+      container.querySelector('[data-testid="cert-no-file-badge"]'),
+    ).not.toBeNull();
   });
 
   it("hides the Upload button when canEdit is false", () => {

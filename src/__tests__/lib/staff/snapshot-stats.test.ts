@@ -146,6 +146,22 @@ describe("computeSnapshotStats — certCounts", () => {
     );
     expect(out.certCounts).toEqual({ valid: 0, expiring: 1, expired: 0 });
   });
+
+  it("ignores 'No expiry' (null) certs — they don't land in any bucket", () => {
+    // "No expiry" certs (post-2026-05 nullable migration) should not be
+    // surfaced as expiring/expired/valid in the snapshot panel — they're
+    // qualitatively different and the UI shows them as a separate pill.
+    const out = computeSnapshotStats(
+      makeInput({
+        certificates: [
+          { expiryDate: null },
+          { expiryDate: daysFrom(ASOF, 100) }, // 1 valid
+        ],
+      }),
+      ASOF,
+    );
+    expect(out.certCounts).toEqual({ valid: 1, expiring: 0, expired: 0 });
+  });
 });
 
 describe("computeSnapshotStats — passthrough counts", () => {

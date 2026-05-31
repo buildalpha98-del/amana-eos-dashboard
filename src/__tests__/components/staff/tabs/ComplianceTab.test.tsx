@@ -58,7 +58,7 @@ describe("ComplianceTab", () => {
     expect(container.textContent).toContain("No certificates uploaded");
   });
 
-  it("renders qualifications with name, institution, expiry, download link", () => {
+  it("renders qualifications with name, institution, expiry, and a View affordance", () => {
     const { container } = render(
       <ComplianceTab userId="u-test" qualifications={[makeQual()]}
         certificates={[]}
@@ -68,11 +68,16 @@ describe("ComplianceTab", () => {
     );
     expect(container.textContent).toContain("HLTAID011 First Aid");
     expect(container.textContent).toContain("Allens Training");
-    const download = container.querySelector('a[href="https://example.com/q1.pdf"]');
-    expect(download).not.toBeNull();
+    // View is now a button that opens the inline FileViewerModal — the raw
+    // blob URL anchor was replaced. Check for the data-testid the button
+    // sets and the name-as-button affordance.
+    const viewButton = container.querySelector('[data-testid="qualification-view-button"]');
+    expect(viewButton).not.toBeNull();
+    const nameButton = container.querySelector('[data-testid="qualification-name-button"]');
+    expect(nameButton).not.toBeNull();
   });
 
-  it("renders certificates with label and expiry", () => {
+  it("renders certificates with label and a View affordance (via CertActionBar)", () => {
     const { container } = render(
       <ComplianceTab userId="u-test" qualifications={[]}
         certificates={[makeCert()]}
@@ -81,9 +86,15 @@ describe("ComplianceTab", () => {
       />,
     );
     expect(container.textContent).toContain("WWCC VIC");
-    // Download link now routes through the access-checked download route
-    const download = container.querySelector('a[href="/api/compliance/c1/download"]');
-    expect(download).not.toBeNull();
+    // CertActionBar's View opens the inline FileViewerModal via a button
+    // (data-testid="cert-view-button"); Download is still an anchor with
+    // ?download=1 so the browser forces an attachment.
+    expect(
+      container.querySelector('[data-testid="cert-view-button"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('a[href="/api/compliance/c1/download?download=1"]'),
+    ).not.toBeNull();
   });
 
   it("hides the Add qualification button when canManage is false", () => {

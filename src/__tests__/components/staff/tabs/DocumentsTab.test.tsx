@@ -42,12 +42,19 @@ describe("DocumentsTab", () => {
     expect(container.textContent).toContain("No documents uploaded");
   });
 
-  it("renders document list with title, category, and download link", () => {
+  it("renders document list with title, category, and a View affordance", () => {
     const { container } = render(<DocumentsTab documents={[makeDoc()]} />);
     expect(container.textContent).toContain("Employment Agreement");
     expect(container.textContent).toContain("Hr");
-    const download = container.querySelector('a[href="https://example.com/d1.pdf"]');
-    expect(download).not.toBeNull();
+    // The raw blob anchor was replaced by a button that opens the inline
+    // FileViewerModal. The title is itself a clickable affordance too — both
+    // have testids set by the component.
+    expect(
+      container.querySelector('[data-testid="document-view-button"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="document-title-button"]'),
+    ).not.toBeNull();
   });
 
   it("renders multiple documents", () => {

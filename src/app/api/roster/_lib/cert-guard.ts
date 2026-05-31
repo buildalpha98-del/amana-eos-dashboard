@@ -78,6 +78,8 @@ export async function assertStaffCertsValidForShift({
 
   const expired: { type: string; expiryDate: Date }[] = [];
   for (const c of certs) {
+    // No-expiry certs (null) never expire — skip the comparison.
+    if (c.expiryDate === null) continue;
     if (c.expiryDate.getTime() <= shiftDate.getTime()) {
       expired.push({ type: c.type, expiryDate: c.expiryDate });
     }

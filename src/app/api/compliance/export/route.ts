@@ -87,12 +87,15 @@ const { searchParams } = new URL(req.url);
   // Group certs by userId + type, keeping only the latest per type
   const certMap = new Map<
     string,
-    { expiryDate: Date; type: string }
+    { expiryDate: Date | null; type: string }
   >();
   for (const cert of certificates) {
     if (!cert.userId) continue;
     const key = `${cert.userId}:${cert.type}`;
     if (!certMap.has(key)) {
+      // expiryDate is now nullable per the schema migration. The map value
+      // type widens to accept null; downstream guards (getCertStatus +
+      // line-level ternaries) handle that case.
       certMap.set(key, { expiryDate: cert.expiryDate, type: cert.type });
     }
   }
@@ -126,7 +129,9 @@ const { searchParams } = new URL(req.url);
       } else {
         const status = getCertStatus(cert.expiryDate);
         parts.push(status);
-        parts.push(cert.expiryDate.toISOString().split("T")[0]);
+        // expiryDate is nullable post-migration; emit empty string for
+        // "No expiry" certs so the CSV column stays positional.
+        parts.push(cert.expiryDate ? cert.expiryDate.toISOString().split("T")[0] : "");
       }
     }
 

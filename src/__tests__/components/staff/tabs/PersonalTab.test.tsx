@@ -1,7 +1,22 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
+
+// PersonalTab + its child AccountPanel call useRouter() and
+// useSearchParams() for navigation after save. Under jsdom there's no
+// AppRouterProvider, so stub them out.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), back: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Avoid toast side-effects bleeding across tests.
+vi.mock("@/hooks/useToast", () => ({
+  toast: vi.fn(),
+  useToast: () => ({ toast: vi.fn() }),
+}));
+
 import { PersonalTab } from "@/components/staff/tabs/PersonalTab";
 
 function makeUser(overrides: Record<string, unknown> = {}) {

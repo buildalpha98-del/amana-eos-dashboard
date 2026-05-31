@@ -258,11 +258,16 @@ export async function generateBoardReport({
   // ── Compliance ─────────────────────────────────────────────
 
   const now = new Date();
-  const expiredCerts = allCerts.filter((c) => c.expiryDate < now);
-  const expiringSoon = allCerts.filter((c) => c.expiryDate >= now);
+  // Drop no-expiry certs from board-report stats — they're not expired or
+  // expiring; they're "valid forever" and don't belong on the risk panel.
+  const allDatedCerts = allCerts.filter(
+    (c): c is typeof c & { expiryDate: Date } => c.expiryDate !== null,
+  );
+  const expiredCerts = allDatedCerts.filter((c) => c.expiryDate < now);
+  const expiringSoon = allDatedCerts.filter((c) => c.expiryDate >= now);
 
   // Already sorted by expiryDate ASC from the query — most urgent first
-  const expiringList = allCerts.slice(0, 30).map((c) => ({
+  const expiringList = allDatedCerts.slice(0, 30).map((c) => ({
     type: c.type,
     service: c.service.name,
     expiryDate: c.expiryDate.toISOString(),

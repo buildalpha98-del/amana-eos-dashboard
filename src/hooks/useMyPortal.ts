@@ -134,7 +134,9 @@ export interface ComplianceCertPortalData {
   id: string;
   type: string;
   label: string | null;
-  expiryDate: string;
+  // Nullable since the schema migration made expiryDate optional. Staff
+  // portal renders "No expiry" when null.
+  expiryDate: string | null;
   acknowledged: boolean;
 }
 
