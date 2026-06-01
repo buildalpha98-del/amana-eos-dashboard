@@ -482,6 +482,11 @@ export default function MyPortalPage() {
     let expired = 0;
 
     data.complianceCerts.forEach((c) => {
+      // No-expiry certs are always valid; don't run the days math on null.
+      if (!c.expiryDate) {
+        valid++;
+        return;
+      }
       const days = daysUntilExpiry(c.expiryDate);
       if (days < 0) expired++;
       else if (days <= 30) expiring++;
@@ -1103,9 +1108,12 @@ export default function MyPortalPage() {
 
           <div className="space-y-2">
             {complianceCerts.map((cert) => {
-              const days = daysUntilExpiry(cert.expiryDate);
-              const isExpired = days < 0;
-              const isExpiring = days >= 0 && days <= 30;
+              // No-expiry certs render in the "valid" colour with a clear
+              // "No expiry" label instead of running the days math on null.
+              const hasNoExpiry = !cert.expiryDate;
+              const days = cert.expiryDate ? daysUntilExpiry(cert.expiryDate) : null;
+              const isExpired = days !== null && days < 0;
+              const isExpiring = days !== null && days >= 0 && days <= 30;
 
               return (
                 <div
@@ -1137,7 +1145,9 @@ export default function MyPortalPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-xs text-muted">
-                      {isExpired ? "Expired" : "Expires"} {formatDate(cert.expiryDate)}
+                      {hasNoExpiry
+                        ? "No expiry"
+                        : `${isExpired ? "Expired" : "Expires"} ${formatDate(cert.expiryDate!)}`}
                     </span>
                     <span
                       className={cn(
@@ -1149,8 +1159,10 @@ export default function MyPortalPage() {
                           : "bg-emerald-50 text-emerald-600 border-emerald-200"
                       )}
                     >
-                      {isExpired
-                        ? `${Math.abs(days)}d overdue`
+                      {hasNoExpiry
+                        ? "Valid"
+                        : isExpired
+                        ? `${Math.abs(days!)}d overdue`
                         : `${days}d left`}
                     </span>
                   </div>

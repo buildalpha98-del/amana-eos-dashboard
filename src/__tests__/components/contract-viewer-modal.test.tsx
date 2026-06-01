@@ -100,7 +100,14 @@ describe("ContractViewerModal", () => {
 
     await waitFor(() => {
       const iframe = screen.getByTestId("contract-viewer-iframe") as HTMLIFrameElement;
-      expect(iframe.getAttribute("srcdoc")).toBe(html);
+      // The modal injects a viewer-only <style> block (max-width 78ch, mobile
+      // responsive) into the srcDoc before passing it to the iframe. Assert
+      // that BOTH the original body content AND the injection are present —
+      // covers the regression where the destructure-style "expect equals
+      // raw HTML" assertion broke when the wrapper started post-processing.
+      const srcdoc = iframe.getAttribute("srcdoc") ?? "";
+      expect(srcdoc).toContain("Hello Daniel.");
+      expect(srcdoc).toMatch(/max-width:\s*78ch/);
     });
   });
 
@@ -194,11 +201,12 @@ describe("ContractViewerModal", () => {
     expect(dialog.className).toMatch(/\bh-full\b/);
     // Desktop: explicit 90vw × 90vh sizing so a long handbook actually fills
     // the screen — the previous max-w-4xl (768px) was unusable on a 1440px
-    // monitor.
-    expect(dialog.className).toMatch(/\bsm:w-\[90vw\]\b/);
-    expect(dialog.className).toMatch(/\bsm:h-\[90vh\]\b/);
-    // 1400px cap so 4K monitors don't get an absurdly wide modal.
-    expect(dialog.className).toMatch(/\bsm:max-w-\[1400px\]\b/);
+    // monitor. NB: no trailing `\b` after `]` — `]` is a non-word character
+    // and the next char is whitespace, so the regex `\bsm:w-\[90vw\]\b` was
+    // unmatchable (which silently passed before the test runner caught it).
+    expect(dialog.className).toContain("sm:w-[90vw]");
+    expect(dialog.className).toContain("sm:h-[90vh]");
+    expect(dialog.className).toContain("sm:max-w-[1400px]");
     expect(dialog.className).toMatch(/\bsm:rounded-xl\b/);
   });
 

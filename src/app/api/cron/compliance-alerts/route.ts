@@ -70,6 +70,10 @@ export const GET = withApiHandler(async (req) => {
       // A cert without an active staff owner has no-one to notify per-staff.
       // Skip rather than emit a summary (that is the admin digest's job).
       if (!cert.user || !cert.user.active) continue;
+      // expiryDate is nullable post-migration. The query above filters
+      // with lte: in30d which Prisma excludes nulls from, so this skip
+      // is a TS narrow only; runtime is a no-op.
+      if (cert.expiryDate === null) continue;
 
       const daysUntil = daysBetween(now, cert.expiryDate);
       const threshold = pickThreshold(daysUntil);

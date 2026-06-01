@@ -122,7 +122,9 @@ const { searchParams } = new URL(req.url);
       return {
         type,
         status,
-        expiryDate: cert.expiryDate.toISOString().split("T")[0],
+        expiryDate: cert.expiryDate
+          ? cert.expiryDate.toISOString().split("T")[0]
+          : null,
         daysLeft,
       };
     });

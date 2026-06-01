@@ -73,6 +73,10 @@ export async function checkCertExpiry(): Promise<CertExpiryResult> {
   for (const cert of allCerts) {
     // Count the cert regardless of whether its owner is active — the admin
     // digest surfaces orphaned certs so someone can re-assign or archive.
+    // `expiryDate` became nullable post-2026-05; the `lte: in30days` where
+    // clause already excludes NULLs at the SQL level (Postgres comparisons
+    // against NULL are never true), but TS still needs the narrowing.
+    if (cert.expiryDate === null) continue;
     const expiry = new Date(cert.expiryDate);
     if (expiry < now) {
       expiredCount++;

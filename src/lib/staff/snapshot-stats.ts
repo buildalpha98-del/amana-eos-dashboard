@@ -25,7 +25,9 @@ export interface SnapshotStatsInput {
     sessionType: string;
     service?: { name: string } | null;
   } | null;
-  certificates: Array<{ expiryDate: Date }>;
+  // expiryDate is nullable per the schema migration ("No expiry" certs).
+  // "missing" certs aren't counted in any bucket (see loop below).
+  certificates: Array<{ expiryDate: Date | null }>;
   activeRocks: number;
   openTodos: number;
 }

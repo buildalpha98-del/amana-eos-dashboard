@@ -14,7 +14,7 @@
  *   - `open={false}` renders nothing (no portal)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { FileViewerModal } from "@/components/files/FileViewerModal";
 
 const baseProps = {
@@ -57,12 +57,17 @@ describe("FileViewerModal", () => {
 
   it("unknown extension: shows fallback panel with Download + Open externally", () => {
     render(<FileViewerModal {...baseProps} fileName="report.docx" />);
-    expect(screen.getByTestId("file-viewer-fallback")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Open externally/i })).toHaveAttribute(
+    const fallback = screen.getByTestId("file-viewer-fallback");
+    expect(fallback).toBeInTheDocument();
+    // Scope queries to the fallback panel so the header's own Download link
+    // (which also matches /^Download$/i) doesn't make the role query
+    // ambiguous and throw "Found multiple elements".
+    const { getByRole } = within(fallback);
+    expect(getByRole("link", { name: /Open externally/i })).toHaveAttribute(
       "href",
       baseProps.viewerUrl,
     );
-    expect(screen.getByRole("link", { name: /^Download$/i })).toHaveAttribute(
+    expect(getByRole("link", { name: /^Download$/i })).toHaveAttribute(
       "href",
       baseProps.downloadUrl,
     );
@@ -131,8 +136,10 @@ describe("FileViewerModal", () => {
     const dialog = screen.getByTestId("file-viewer-dialog");
     expect(dialog.className).toMatch(/\bw-full\b/);
     expect(dialog.className).toMatch(/\bh-full\b/);
-    expect(dialog.className).toMatch(/\bsm:w-\[90vw\]\b/);
-    expect(dialog.className).toMatch(/\bsm:h-\[90vh\]\b/);
-    expect(dialog.className).toMatch(/\bsm:max-w-\[1400px\]\b/);
+    // No trailing `\b` after `]` — `]` is non-word and the next char is
+    // whitespace, so the boundary never matches.
+    expect(dialog.className).toContain("sm:w-[90vw]");
+    expect(dialog.className).toContain("sm:h-[90vh]");
+    expect(dialog.className).toContain("sm:max-w-[1400px]");
   });
 });

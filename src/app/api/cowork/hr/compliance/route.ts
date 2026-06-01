@@ -189,39 +189,45 @@ export const GET = withApiHandler(async (req) => {
       orderBy: { expiryDate: "asc" },
     });
 
-    const results = certs.map((c) => {
-      const daysUntilExpiry = Math.ceil(
-        (c.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      return {
-        id: c.id,
-        type: c.type,
-        label: c.label,
-        issueDate: c.issueDate.toISOString(),
-        expiryDate: c.expiryDate.toISOString(),
-        daysUntilExpiry,
-        status:
-          daysUntilExpiry < 0
-            ? "expired"
-            : daysUntilExpiry <= 30
-              ? "expiring"
-              : "valid",
-        acknowledged: c.acknowledged,
-        staff: c.user
-          ? {
-              id: c.user.id,
-              name: c.user.name,
-              email: c.user.email,
-              active: c.user.active,
-            }
-          : null,
-        service: {
-          id: c.service.id,
-          name: c.service.name,
-          code: c.service.code,
-        },
-      };
-    });
+    // expiryDate is nullable post-migration. Cowork integrations weren't
+    // expecting null, so filter out no-expiry certs from the response
+    // entirely — they're not "expiring" anyway. Existing cowork callers
+    // see the same shape they did before.
+    const results = certs
+      .filter((c): c is typeof c & { expiryDate: Date } => c.expiryDate !== null)
+      .map((c) => {
+        const daysUntilExpiry = Math.ceil(
+          (c.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return {
+          id: c.id,
+          type: c.type,
+          label: c.label,
+          issueDate: c.issueDate.toISOString(),
+          expiryDate: c.expiryDate.toISOString(),
+          daysUntilExpiry,
+          status:
+            daysUntilExpiry < 0
+              ? "expired"
+              : daysUntilExpiry <= 30
+                ? "expiring"
+                : "valid",
+          acknowledged: c.acknowledged,
+          staff: c.user
+            ? {
+                id: c.user.id,
+                name: c.user.name,
+                email: c.user.email,
+                active: c.user.active,
+              }
+            : null,
+          service: {
+            id: c.service.id,
+            name: c.service.name,
+            code: c.service.code,
+          },
+        };
+      });
 
     const expired = results.filter((r) => r.status === "expired").length;
     const expiring = results.filter((r) => r.status === "expiring").length;

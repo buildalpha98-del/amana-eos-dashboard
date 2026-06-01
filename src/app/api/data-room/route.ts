@@ -140,7 +140,8 @@ export const GET = withApiAuth(async (req, session) => {
         ["first_aid", "cpr", "anaphylaxis", "asthma"].includes(c.type),
       );
       if (relevant.length === 0) return { status: "missing" as DocumentStatus, count: 0 };
-      const hasValid = relevant.some((c) => new Date(c.expiryDate) > now);
+      // No-expiry certs are always valid; for dated certs, check the date is future.
+      const hasValid = relevant.some((c) => c.expiryDate === null || c.expiryDate > now);
       return { status: hasValid ? ("present" as DocumentStatus) : ("expired" as DocumentStatus), count: relevant.length };
     })(),
     // Operations
@@ -204,7 +205,7 @@ export const GET = withApiAuth(async (req, session) => {
         if (count === 0) {
           status = "missing";
         } else {
-          status = matches.some((c) => new Date(c.expiryDate) > now) ? "present" : "expired";
+          status = matches.some((c) => c.expiryDate === null || c.expiryDate > now) ? "present" : "expired";
         }
       } else if (req.source === "metrics" && req.metricsField) {
         const field = req.metricsField;

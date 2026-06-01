@@ -116,7 +116,11 @@ export const POST = withApiAuth(async (req, session, context) => {
   if (newExpiry <= newIssue) {
     throw ApiError.badRequest("expiryDate must be after issueDate");
   }
-  if (newExpiry <= existing.expiryDate) {
+  // `existing.expiryDate` became nullable after the 2026-05 schema migration
+  // ("No expiry" certs). A No-Expiry cert by definition outlasts any dated
+  // renewal, so we only enforce the "later than predecessor" rule when the
+  // predecessor actually HAD a date.
+  if (existing.expiryDate !== null && newExpiry <= existing.expiryDate) {
     throw ApiError.badRequest(
       "Renewed expiry must be later than the predecessor's expiry — this is a renewal, not a replacement.",
     );
