@@ -140,6 +140,7 @@ export const navItems: NavItem[] = [
   // it for member because /compliance prefix-matched /compliance/templates.
   { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ["head_office", "admin"] },
   { href: "/compliance/registers", label: "NQF Registers", icon: ClipboardList, section: "Operations", tooltip: "Reg 145/146/147/148 staff, supervisor and volunteer registers for ACECQA inspection", roles: ["owner", "head_office", "admin"] },
+  { href: "/safe-reports", label: "Safe Reports", icon: Shield, section: "Operations", tooltip: "Anonymous staff reports — harassment, safety, conduct. Owner & head office only.", roles: ["owner", "head_office"] },
   { href: "/policies", label: "Policies & Procedures", icon: Shield, section: "Operations", tooltip: "Versioned PDF library with per-version acknowledgement", roles: ALL_NON_MARKETING },
   // 2026-04-30: tightened from ALL_NON_MARKETING → ["head_office", "admin"].
   // Director of Service (member) and Educator (staff) now log incidents from

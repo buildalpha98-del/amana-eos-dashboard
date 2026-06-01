@@ -605,6 +605,11 @@ model User {
   // because visa lives on the User row, not a separate cert record.
   visaAlerts             VisaAlert[]       @relation("UserVisaAlerts")
 
+  // Back-ref for SafeReport.reviewedBy — SafeReport has NO reporterId
+  // (anonymity is the whole point). This relation only tracks who
+  // *reviewed* / *resolved* a report; never who filed it.
+  reviewedSafeReports    SafeReport[]      @relation("SafeReportReviewer")
+
   // ── NQS back-refs ─────────────────────────────────
   staffReflections          StaffReflection[]          @relation("StaffReflections")
   learningObservations      LearningObservation[]      @relation("LearningObservations")
@@ -2260,6 +2265,7 @@ model Service {
   riskAssessments RiskAssessment[]           @relation("ServiceRiskAssessments")
   ratioSnapshots  RatioSnapshot[]            @relation("ServiceRatios")
   handovers       ShiftHandover[]            @relation("ServiceHandovers")
+  safeReports     SafeReport[]
 
   // ── Marketing Cockpit (Sprint 2) ──────────────
   centreAvatar             CentreAvatar?
@@ -6746,4 +6752,82 @@ model VisaAlert {
 
   @@unique([userId, threshold])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Anonymous safe-reporting channel (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Closes the positive-duty obligation under the *Sex Discrimination
+// and Fair Work (Respect at Work) Amendment Act 2022* (in force since
+// Dec 2023). The Australian Human Rights Commission can investigate
+// employers for failure to take reasonable steps to prevent sexual
+// harassment — having a safe reporting channel is one of the named
+// "reasonable steps."
+//
+// Design hard requirements:
+//   - NO reporterId, NO ipAddress, NO userAgent. The intake API
+//     deliberately ignores the session even when one is present
+//     (uses `withApiHandler`, not `withApiAuth`).
+//   - Only reviewedById is stored — that's the owner / designated
+//     reviewer, NOT the reporter.
+//   - Auto-delete is NOT implemented at the DB layer. Reports may
+//     be needed as evidence years later (statute of limitations on
+//     harassment claims is up to 6 years). The owner can soft-delete
+//     once truly resolved.
+
+model SafeReport {
+  id          String              @id @default(cuid())
+
+  // What the report is about — drives triage. `child_safety` is
+  // separately flagged because it carries mandatory-reporting
+  // implications and may need to be escalated to authorities.
+  category    SafeReportCategory
+
+  // Optional service context. Reports about the whole org leave this
+  // null. Helps the reviewer route + scope follow-up.
+  serviceId   String?
+  service     Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  // The report itself. Up to ~20k chars (enforced at zod layer).
+  content     String              @db.Text
+
+  status      SafeReportStatus    @default(received)
+
+  // Private to the reviewer — never displayed to anyone except the
+  // owner/reviewer. Things like "called Mirna 12 May, agreed to mediate."
+  reviewNotes String?             @db.Text
+
+  reviewedById String?
+  reviewedBy   User?               @relation("SafeReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  resolvedAt   DateTime?
+
+  // Soft delete for "received in error / resolved with no further
+  // action needed and we'd like to declutter." Owner only.
+  deleted      Boolean             @default(false)
+
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@index([category, createdAt])
+}
+
+enum SafeReportCategory {
+  harassment           // Including sexual harassment (positive-duty)
+  discrimination       // Sex, race, disability, age, religion, etc
+  bullying
+  safety               // WHS / hazard concerns
+  conduct              // General staff conduct concerns
+  retaliation          // Retaliation against another reporter — critical
+  child_safety         // Child Safe Standards concerns — most urgent
+  other
+}
+
+enum SafeReportStatus {
+  received
+  under_review
+  resolved
+  closed_no_action
 }
