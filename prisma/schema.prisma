@@ -623,6 +623,11 @@ model User {
   casualConversionElections CasualConversionElection[] @relation("CasualConversionUser")
   respondedConversions      CasualConversionElection[] @relation("CasualConversionResponder")
 
+  // Workers Compensation claims (Health & WHS section).
+  workersCompClaims         WorkersCompensationClaim[] @relation("WCClaimant")
+  createdWCClaims           WorkersCompensationClaim[] @relation("WCClaimCreator")
+  closedWCClaims            WorkersCompensationClaim[] @relation("WCClaimCloser")
+
   // ── NQS back-refs ─────────────────────────────────
   staffReflections          StaffReflection[]          @relation("StaffReflections")
   learningObservations      LearningObservation[]      @relation("LearningObservations")
@@ -5175,6 +5180,12 @@ model IncidentRecord {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  // Workers compensation claim that may stem from this incident.
+  // SetNull on the FK in the back-relation so an incident can be
+  // deleted without taking the WC record with it (the claim is its
+  // own legal artifact at that point).
+  workersCompClaims     WorkersCompensationClaim[] @relation("IncidentWCClaim")
+
   @@index([serviceId])
   @@index([incidentDate])
   @@index([incidentType])
@@ -7034,4 +7045,91 @@ enum ConversionRequestType {
 enum ConversionResponse {
   accepted
   declined
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Workers Compensation claim record (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Tracks a workers compensation claim from lodgement → decision →
+// return-to-work → closure. Owned by HR, not the insurer (we don't
+// pretend to be a claims-management system); the goal is internal
+// audit trail + RTW plan tracking + a single place to see "what's
+// the status of this claim" without digging through emails.
+//
+// Linked to IncidentRecord (optional — some claims arise from
+// gradual-onset injuries with no single incident).
+//
+// Retention: indefinite for active claims; 7 years post-closure
+// per Fair Work + workers comp scheme record-keeping.
+
+model WorkersCompensationClaim {
+  id              String                @id @default(cuid())
+
+  // Claimant — the injured staff member.
+  userId          String
+  user            User                  @relation("WCClaimant", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional originating incident.
+  incidentId      String?
+  incident        IncidentRecord?       @relation("IncidentWCClaim", fields: [incidentId], references: [id], onDelete: SetNull)
+
+  // Insurer / claim metadata.
+  claimNumber     String?               // e.g. "WC-2026-001234"
+  insurerName     String?               // e.g. "iCare", "Allianz Workers Comp"
+  insurerContact  String?               @db.Text // claims manager name + email/phone
+
+  status          WCClaimStatus         @default(lodged)
+
+  // Timeline.
+  dateOfInjury    DateTime              @db.Date
+  dateLodged      DateTime              @db.Date
+  dateOfDecision  DateTime?             @db.Date
+
+  // Injury detail (free text for flexibility — body part can be
+  // multi-site, mechanism is highly varied).
+  injuryDescription String?             @db.Text
+  bodyPart          String?
+  mechanismOfInjury String?             @db.Text
+
+  // Return to work tracking — the most operational piece.
+  rtwPlanCreated      Boolean           @default(false)
+  rtwPlanUrl          String?
+  rtwStartDate        DateTime?         @db.Date
+  rtwFullCapacityDate DateTime?         @db.Date
+  currentRestrictions String?           @db.Text
+
+  // Payment status (high-level — we don't replicate the insurer's
+  // ledger, just flag whether weekly payments are active).
+  weeklyPaymentActive Boolean           @default(false)
+  weeklyPaymentRate   Float?
+  medicalExpensesPaid Float?
+
+  notes           String?               @db.Text
+
+  closedAt        DateTime?
+  closedById      String?
+  closedBy        User?                 @relation("WCClaimCloser", fields: [closedById], references: [id], onDelete: SetNull)
+
+  createdById     String
+  createdBy       User                  @relation("WCClaimCreator", fields: [createdById], references: [id])
+
+  deleted         Boolean               @default(false)
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([userId, status])
+  @@index([incidentId])
+  @@index([status, dateLodged])
+}
+
+enum WCClaimStatus {
+  lodged
+  under_review
+  accepted
+  declined
+  on_hold
+  closed
+  reopened
 }

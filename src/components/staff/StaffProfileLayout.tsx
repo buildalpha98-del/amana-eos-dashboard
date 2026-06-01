@@ -29,6 +29,7 @@ import { EmploymentRecordsSection } from "./sections/EmploymentRecordsSection";
 import { PayCompensationSection } from "./sections/PayCompensationSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { PerformanceSection } from "./sections/PerformanceSection";
+import { HealthWHSSection } from "./sections/HealthWHSSection";
 import type { StaffProfileData } from "./types";
 import type { SnapshotStats } from "@/lib/staff/snapshot-stats";
 
@@ -123,6 +124,14 @@ export function StaffProfileLayout({
               targetUserName={data.targetUser.name}
               viewerRole={viewerRole}
             />
+            {/* Health & WHS section — admin-only. Sub-tabs for workers
+                comp + reasonable adjustments. */}
+            {isAdmin && (
+              <HealthWHSSection
+                targetUserId={data.targetUser.id}
+                targetUserName={data.targetUser.name}
+              />
+            )}
           </div>
         </div>
 

@@ -18,7 +18,8 @@ export type StaffProfileSectionKey =
   | "employment"
   | "pay"
   | "documents"
-  | "performance";
+  | "performance"
+  | "health";
 
 interface SectionPill {
   id: StaffProfileSectionKey;
@@ -53,6 +54,15 @@ const SECTIONS: SectionPill[] = [
     label: "Performance",
     activeClass: "bg-orange-100 text-orange-900 border-orange-300",
     dotClass: "bg-orange-500",
+  },
+  // 2026-06-01: new section for the HR-audit follow-up — workers comp
+  // claims + reasonable adjustments. Sits AFTER Performance since it's
+  // less frequently visited.
+  {
+    id: "health",
+    label: "Health & WHS",
+    activeClass: "bg-rose-100 text-rose-900 border-rose-300",
+    dotClass: "bg-rose-500",
   },
 ];
 
