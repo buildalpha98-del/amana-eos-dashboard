@@ -610,6 +610,12 @@ model User {
   // *reviewed* / *resolved* a report; never who filed it.
   reviewedSafeReports    SafeReport[]      @relation("SafeReportReviewer")
 
+  // Per-User separation record (Fair Work termination evidence).
+  // Complements StaffOffboarding (operational checklist) — Separation
+  // is the legal-fact record of why and how they left.
+  separationRecord       SeparationRecord? @relation("SeparationSubject")
+  recordedSeparations    SeparationRecord[] @relation("SeparationRecorder")
+
   // ── NQS back-refs ─────────────────────────────────
   staffReflections          StaffReflection[]          @relation("StaffReflections")
   learningObservations      LearningObservation[]      @relation("LearningObservations")
@@ -6711,6 +6717,11 @@ model PerformanceCase {
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
 
+  // Back-ref for SeparationRecord — when a dismissal record references
+  // this case as the justifying disciplinary chain. Many separations
+  // CAN cite the same case (rare but legal), so it's a list.
+  separations SeparationRecord[]    @relation("SeparationCase")
+
   @@index([userId, status])
   @@index([type, occurredAt])
 }
@@ -6841,4 +6852,93 @@ enum SafeReportStatus {
   under_review
   resolved
   closed_no_action
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Separation record (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// The legal-fact record of an employee's departure. Closes the #6 HR
+// audit finding. Complements the existing StaffOffboarding pack
+// (operational checklist — return laptop, etc); SeparationRecord
+// captures the things Fair Work / FWC will ask for:
+//
+//   - WHY did they leave (structured enum, not free text)?
+//   - When was notice given, when was the last working day?
+//   - Has final pay been processed?
+//   - Was a reference letter issued, what does it say?
+//   - Are they eligible for rehire (matters for casual pool)?
+//   - For dismissals: link to the PerformanceCase chain that
+//     justifies the dismissal — procedural fairness defence.
+//
+// Retention: 7 years (Fair Work record-keeping). Soft-delete only.
+
+model SeparationRecord {
+  id              String           @id @default(cuid())
+
+  // ONE separation per user (re-hires get a new record under a new
+  // User row or we soft-delete + recreate). Unique constraint enforces.
+  userId          String           @unique
+  user            User             @relation("SeparationSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  reason          SeparationReason
+  // Free-text expansion of reason. Required at the UI layer for any
+  // dismissal type (capacity / misconduct) so the why is documented.
+  reasonDetail    String?          @db.Text
+
+  // Timeline.
+  noticeStartDate DateTime?        @db.Date
+  lastWorkingDay  DateTime         @db.Date
+  noticePeriodWeeks Float?
+
+  // Final-pay tracking — the most common dispute source after dismissal.
+  finalPayProcessed   Boolean      @default(false)
+  finalPayProcessedAt DateTime?
+  finalPayNotes       String?      @db.Text
+
+  // Reference letter.
+  referenceLetterIssued Boolean    @default(false)
+  referenceLetterUrl    String?
+  referenceNotes        String?    @db.Text
+
+  // Rehire eligibility — drives the casual pool / re-recruitment view.
+  eligibleForRehire Boolean        @default(true)
+  rehireNotes       String?        @db.Text
+
+  // Exit interview — separate from the offboarding pack so it's an
+  // explicit fact, not just one task in a list.
+  exitInterviewCompleted Boolean   @default(false)
+  exitInterviewNotes     String?   @db.Text
+  exitInterviewAt        DateTime?
+
+  // For dismissal cases — link to the disciplinary chain that justifies
+  // the termination. Procedural fairness defence.
+  performanceCaseId String?
+  performanceCase   PerformanceCase? @relation("SeparationCase", fields: [performanceCaseId], references: [id], onDelete: SetNull)
+
+  // Audit.
+  recordedById  String
+  recordedBy    User             @relation("SeparationRecorder", fields: [recordedById], references: [id])
+
+  // Soft delete — Fair Work retention is 7 years.
+  deleted       Boolean          @default(false)
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([reason])
+  @@index([lastWorkingDay])
+}
+
+enum SeparationReason {
+  resignation
+  dismissal_capacity         // unable to perform the role
+  dismissal_misconduct       // serious or sustained misconduct
+  redundancy
+  end_of_contract            // fixed-term contract completed
+  mutual_separation
+  retirement
+  abandonment                // stopped showing up; no contact
+  deceased
+  other
 }

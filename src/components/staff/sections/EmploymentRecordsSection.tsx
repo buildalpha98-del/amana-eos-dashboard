@@ -14,16 +14,19 @@ import { Phone } from "lucide-react";
 import type { EmergencyContact } from "@prisma/client";
 import { EmploymentTab } from "@/components/staff/tabs/EmploymentTab";
 import { PersonalTab } from "@/components/staff/tabs/PersonalTab";
+import { SeparationTab } from "@/components/staff/SeparationTab";
 import { SectionShell } from "./SectionShell";
 import type { StaffProfileData } from "@/components/staff/types";
 
-type SubTab = "employment" | "personal" | "emergency";
+type SubTab = "employment" | "personal" | "emergency" | "separation";
 
-const SUB_TABS = [
+const SUB_TABS_BASE = [
   { key: "employment", label: "Employment details" },
   { key: "personal", label: "Personal details" },
   { key: "emergency", label: "Emergency contacts" },
 ] as const;
+
+const SEPARATION_SUB_TAB = { key: "separation", label: "Separation" } as const;
 
 export interface EmploymentRecordsSectionProps {
   data: StaffProfileData;
@@ -33,6 +36,8 @@ export interface EmploymentRecordsSectionProps {
   canEditAccount?: boolean;
   /** Viewer is an owner (needed for the role dropdown's owner/head_office options). */
   viewerIsOwner?: boolean;
+  /** Show the admin-only Separation sub-tab. Admin / owner / head_office. */
+  canManageSeparation?: boolean;
 }
 
 export function EmploymentRecordsSection({
@@ -41,6 +46,7 @@ export function EmploymentRecordsSection({
   canEditEmployment,
   canEditAccount = false,
   viewerIsOwner = false,
+  canManageSeparation = false,
 }: EmploymentRecordsSectionProps) {
   // Deep-link from the header's "Edit profile" Quick Action — see
   // StaffProfileHeader.handleEditProfile. When `?edit=personal` is set we
@@ -50,13 +56,17 @@ export function EmploymentRecordsSection({
   const initialTab: SubTab =
     searchParams.get("edit") === "personal" ? "personal" : "employment";
 
+  const subTabs = canManageSeparation
+    ? ([...SUB_TABS_BASE, SEPARATION_SUB_TAB] as const)
+    : SUB_TABS_BASE;
+
   return (
     <SectionShell<SubTab>
       sectionKey="employment"
       title="Employment records"
       accentDotClass="bg-purple-500"
       accentActiveClass="bg-purple-100 text-purple-900 border-purple-300"
-      subTabs={SUB_TABS}
+      subTabs={subTabs}
       defaultTab={initialTab}
     >
       {(active) => {
@@ -77,6 +87,15 @@ export function EmploymentRecordsSection({
               canEdit={canEditPersonal}
               canEditAccount={canEditAccount}
               viewerIsOwner={viewerIsOwner}
+            />
+          );
+        }
+        if (active === "separation") {
+          if (!canManageSeparation) return null;
+          return (
+            <SeparationTab
+              targetUserId={data.targetUser.id}
+              targetUserName={data.targetUser.name}
             />
           );
         }

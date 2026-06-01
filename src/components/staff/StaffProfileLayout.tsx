@@ -104,6 +104,7 @@ export function StaffProfileLayout({
               canEditEmployment={canEditEmployment}
               canEditAccount={canEditAccount}
               viewerIsOwner={viewerIsOwner}
+              canManageSeparation={isAdmin}
             />
             <PayCompensationSection
               data={data}
