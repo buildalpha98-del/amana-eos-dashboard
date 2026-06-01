@@ -45,6 +45,7 @@ import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
 import { MyPayslipsCard } from "@/components/my-portal/MyPayslipsCard";
+import { MyLeaveRequestsCard } from "@/components/my-portal/MyLeaveRequestsCard";
 import {
   ContractViewerModal,
   type ContractViewerContract,
@@ -691,6 +692,14 @@ export default function MyPortalPage() {
       {/* so the layout doesn't shift for users without payroll yet.    */}
       {/* ============================================================ */}
       {session?.user?.id && <MyPayslipsCard />}
+
+      {/* ============================================================ */}
+      {/* 3b-ii. MY LEAVE REQUESTS (2026-06-01 — EH Payroll)            */}
+      {/* History + "Apply for leave" form. Submissions flow straight   */}
+      {/* into EH where managers approve. Auto-refreshes balances on    */}
+      {/* successful submit so the deducted hours show immediately.     */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyLeaveRequestsCard />}
 
       {/* ============================================================ */}
       {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}

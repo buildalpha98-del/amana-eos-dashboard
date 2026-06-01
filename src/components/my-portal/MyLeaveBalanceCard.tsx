@@ -1,51 +1,62 @@
 "use client";
 
+/**
+ * MyLeaveBalanceCard — current leave balances from Employment Hero
+ * Payroll, one row per category. EH-sourced as of 2026-06-01; the
+ * internal `LeaveBalance` table is no longer the staff source of truth
+ * (admin /leave page still uses it pending separate migration).
+ *
+ * Layout difference vs the pre-EH version:
+ *   - EH gives a single "current balance" number per category, not the
+ *     accrued/taken/remaining triple the internal tracker did. EH does
+ *     the accrual math server-side. Showing one number is honest;
+ *     reverse-engineering accrued+taken from EH would be wrong.
+ *   - Categories are dynamic, not hard-coded. If the business adds a
+ *     new leave type (e.g. Cultural Leave), it just shows up.
+ */
+
 import { useQuery } from "@tanstack/react-query";
 import { Plane } from "lucide-react";
-import { LeaveBalanceCard } from "@/components/staff/LeaveBalanceCard";
-import { fetchApi } from "@/lib/fetch-api";
+import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
 
-/** Shape returned by GET /api/leave/balances. */
-interface MyLeaveBalance {
-  id: string;
-  userId: string;
-  leaveType: "annual" | "personal" | "long_service" | string;
-  balance: number;
-  accrued: number;
-  taken: number;
-  pending: number;
+interface LeaveBalance {
+  leaveCategoryId: number;
+  leaveCategoryName: string;
+  accruedAmount: number;
+  unitType: "Hours" | "Days" | "Weeks";
+}
+
+interface BalancesResponse {
+  balances: LeaveBalance[];
+}
+
+function formatAmount(b: LeaveBalance): string {
+  // Hours: 2 decimal places (e.g. 73.50). Days/Weeks: 1 decimal (rare
+  // to fractionalise into 0.01 of a week).
+  const decimals = b.unitType === "Hours" ? 2 : 1;
+  return `${b.accruedAmount.toFixed(decimals)} ${b.unitType.toLowerCase()}`;
 }
 
 interface MyLeaveBalanceCardProps {
-  /** Current user's id — passed so server scopes and we can filter defensively. */
-  userId: string;
+  /** Kept for API compatibility with callers — not read here (the server
+   *  scopes to the session's own user via `requireOwnEmployee`). */
+  userId?: string;
 }
 
-function findBalance(
-  balances: MyLeaveBalance[],
-  type: "annual" | "personal" | "long_service",
-) {
-  const match = balances.find((b) => b.leaveType === type);
-  return {
-    accrued: match?.accrued ?? 0,
-    taken: match?.taken ?? 0,
-    remaining: match?.balance ?? 0,
-  };
-}
-
-export function MyLeaveBalanceCard({ userId }: MyLeaveBalanceCardProps) {
-  const { data, isLoading, error } = useQuery<MyLeaveBalance[]>({
-    queryKey: ["my-leave-balances", userId],
-    // GET /api/leave/balances auto-scopes to the staff user; pass userId for
-    // other roles so the response is still correctly filtered.
-    queryFn: () => fetchApi<MyLeaveBalance[]>(`/api/leave/balances?userId=${encodeURIComponent(userId)}`),
-    retry: 2,
-    staleTime: 60_000,
+export function MyLeaveBalanceCard({}: MyLeaveBalanceCardProps) {
+  const { data, isLoading, error } = useQuery<BalancesResponse, ApiResponseError>({
+    queryKey: ["my-leave-balances-eh"],
+    queryFn: () => fetchApi<BalancesResponse>("/api/my-portal/leave/balances"),
+    staleTime: 5 * 60_000,
+    retry: (count, err) => {
+      const status = (err as ApiResponseError)?.status;
+      if (status === 404 || status === 503) return false;
+      return count < 2;
+    },
   });
 
-  const balances = data ?? [];
-  const hasAnnual = balances.some((b) => b.leaveType === "annual");
-  const hasPersonal = balances.some((b) => b.leaveType === "personal");
+  const balances = data?.balances ?? [];
+  const errorStatus = (error as ApiResponseError | undefined)?.status;
 
   return (
     <div className="bg-card rounded-xl border border-border p-6" data-testid="my-leave-balance-card">
@@ -58,23 +69,38 @@ export function MyLeaveBalanceCard({ userId }: MyLeaveBalanceCardProps) {
 
       {isLoading ? (
         <p className="text-sm text-muted">Loading leave balances…</p>
+      ) : errorStatus === 503 ? (
+        <p className="text-sm text-muted">
+          Payroll integration isn&apos;t set up yet.
+        </p>
+      ) : errorStatus === 404 ? (
+        <p className="text-sm text-muted">
+          Your account isn&apos;t linked to a payroll record yet.
+        </p>
       ) : error ? (
         <p className="text-sm text-red-600">
           Unable to load leave balances. Please refresh the page.
         </p>
-      ) : !hasAnnual && !hasPersonal ? (
-        <p className="text-sm text-muted">
-          No leave balances on file yet.
-        </p>
+      ) : balances.length === 0 ? (
+        <p className="text-sm text-muted">No leave balances on file yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {hasAnnual && (
-            <LeaveBalanceCard balance={findBalance(balances, "annual")} type="annual" />
-          )}
-          {hasPersonal && (
-            <LeaveBalanceCard balance={findBalance(balances, "personal")} type="personal" />
-          )}
-        </div>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {balances.map((b) => (
+            <li
+              key={b.leaveCategoryId}
+              className="border border-border rounded-lg p-4 bg-white"
+              data-testid={`leave-balance-${b.leaveCategoryId}`}
+            >
+              <div className="text-sm font-medium text-foreground/80">
+                {b.leaveCategoryName}
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-emerald-700">
+                {formatAmount(b)}
+              </div>
+              <div className="text-xs text-muted mt-0.5">Available</div>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

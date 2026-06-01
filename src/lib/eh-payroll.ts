@@ -421,3 +421,129 @@ export async function fetchPayslipPdf(
   }
   return res;
 }
+
+// ─── Leave: balances, requests, categories ───────────────────────────
+//
+// All scoped to a single employeeId — caller MUST gate with
+// `requireOwnEmployee` from `eh-payroll-auth.ts` before invoking
+// anything here. The business API key has full access; identity
+// enforcement is our problem.
+//
+// Field shapes verified 2026-06-01 against swagger-au.json:
+//   - LeaveBalanceModel:      {leaveCategoryId, leaveCategoryName, accruedAmount, unitType}
+//   - HourLeaveRequestModel:  POST body {hours, fromDate, toDate, leaveCategoryId, notes, ...}
+//   - HourLeaveRequestResponseModel: {id, employeeId, leaveCategoryId, leaveCategory,
+//                                     fromDate, toDate, totalHours, hoursApplied, status,
+//                                     notes, attachmentId}
+//   - LeaveCategoryModel:     {id, name, externalId, unitType}
+
+export interface EhLeaveBalance {
+  leaveCategoryId: number;
+  leaveCategoryName: string;
+  /** Despite the name, this is the CURRENT balance (remaining), not the
+   *  total ever-accrued. EH does the accrual maths server-side. */
+  accruedAmount: number;
+  unitType: "Hours" | "Days" | "Weeks";
+}
+
+export async function getLeaveBalances(
+  employeeId: number,
+): Promise<EhLeaveBalance[]> {
+  return request<EhLeaveBalance[]>(`/employee/${employeeId}/leavebalances`);
+}
+
+export interface EhLeaveRequest {
+  id: number;
+  leaveCategoryId: number;
+  /** Human label EH attaches to the request — same as the matching
+   *  category's `name`. We pass it through so we don't need a second
+   *  /leavecategory lookup just to render. */
+  leaveCategory: string;
+  fromDate: string;
+  toDate: string;
+  totalHours: number;
+  /** "Pending" | "Approved" | "Rejected" | "Cancelled" — EH-defined. */
+  status: string;
+  notes: string | null;
+  attachmentId: number | null;
+}
+
+export async function listLeaveRequests(
+  employeeId: number,
+  limit = 20,
+): Promise<EhLeaveRequest[]> {
+  const out = await request<EhLeaveRequest[]>(
+    `/employee/${employeeId}/leaverequest`,
+  );
+  // EH returns oldest-first by default — most-recent first is what staff
+  // expect. Slice after the sort.
+  return out
+    .sort((a, b) => (b.fromDate > a.fromDate ? 1 : -1))
+    .slice(0, limit);
+}
+
+export interface CreateLeaveRequestInput {
+  fromDate: string; // YYYY-MM-DD
+  toDate: string; // YYYY-MM-DD
+  hours: number;
+  leaveCategoryId: number;
+  notes?: string;
+}
+
+export async function createLeaveRequest(
+  employeeId: number,
+  input: CreateLeaveRequestInput,
+): Promise<EhLeaveRequest> {
+  return request<EhLeaveRequest>(`/employee/${employeeId}/leaverequest`, {
+    method: "POST",
+    body: {
+      hours: input.hours,
+      fromDate: input.fromDate,
+      toDate: input.toDate,
+      leaveCategoryId: input.leaveCategoryId,
+      notes: input.notes ?? "",
+      // Staff-submitted requests never auto-approve — they always need
+      // manager sign-off in EH. Hardcoding here removes a parameter the
+      // UI doesn't need to expose (and shouldn't be able to set).
+      automaticallyApprove: false,
+      employeeId,
+    },
+  });
+}
+
+export interface EhLeaveCategory {
+  id: number;
+  name: string;
+  unitType: "Hours" | "Days" | "Weeks";
+}
+
+export async function listLeaveCategories(): Promise<EhLeaveCategory[]> {
+  // Business-scoped (not employee-scoped) — same shape as everywhere else
+  // gets sent through the `/business/{businessId}/...` prefix automatically
+  // by request().
+  return request<EhLeaveCategory[]>(`/leavecategory`);
+}
+
+export interface LeaveEstimate {
+  totalHours: number;
+}
+
+/** Asks EH "how many hours would this leave request consume?" — used by
+ *  the apply-for-leave form so staff see exactly what they're spending
+ *  before they hit Submit. EH does the maths based on the employee's
+ *  configured standard hours and any public-holiday awareness rules. */
+export async function estimateLeaveHours(
+  employeeId: number,
+  fromDate: string,
+  toDate: string,
+  leaveCategoryId: number,
+): Promise<LeaveEstimate> {
+  const params = new URLSearchParams({
+    fromDate,
+    toDate,
+    leaveCategoryId: String(leaveCategoryId),
+  });
+  return request<LeaveEstimate>(
+    `/employee/${employeeId}/leaverequest/estimate?${params.toString()}`,
+  );
+}
