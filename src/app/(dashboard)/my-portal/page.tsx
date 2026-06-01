@@ -46,6 +46,7 @@ import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCar
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
 import { MyPayslipsCard } from "@/components/my-portal/MyPayslipsCard";
 import { MyLeaveRequestsCard } from "@/components/my-portal/MyLeaveRequestsCard";
+import { MyExpensesCard } from "@/components/my-portal/MyExpensesCard";
 import {
   ContractViewerModal,
   type ContractViewerContract,
@@ -700,6 +701,15 @@ export default function MyPortalPage() {
       {/* successful submit so the deducted hours show immediately.     */}
       {/* ============================================================ */}
       {session?.user?.id && <MyLeaveRequestsCard />}
+
+      {/* ============================================================ */}
+      {/* 3b-iii. MY EXPENSES (2026-06-01 — EH Payroll)                 */}
+      {/* Submit reimbursement claims with optional receipt upload.     */}
+      {/* Each submission is one line item; staff with multiple         */}
+      {/* expenses just submit multiple forms. Receipts flow through    */}
+      {/* our proxy → EH's two-step create-then-attach flow.            */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyExpensesCard />}
 
       {/* ============================================================ */}
       {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}

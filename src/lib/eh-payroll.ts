@@ -547,3 +547,159 @@ export async function estimateLeaveHours(
     `/employee/${employeeId}/leaverequest/estimate?${params.toString()}`,
   );
 }
+
+// ─── Expense claims ──────────────────────────────────────────────────
+//
+// Field shapes verified 2026-06-01 against swagger-au.json:
+//   ExpenseRequestResponseModel: { id, employeeId, employeeName, status,
+//     description, lineItems[], attachments[], statusUpdatedByUser,
+//     statusUpdateNotes, dateStatusUpdated, dateCreated }
+//   ExpenseRequestLineItem(Edit)Model: { id, expenseCategoryId, locationId,
+//     notes, taxCode, taxCodeDisplayName, taxRate, amount, dateIncurred }
+//   AttachmentModel: { id, friendlyName, dateCreated, url, dateScanned,
+//     isInfected }
+//
+// v1 design intentionally restricts each expense request to a SINGLE
+// line item. EH supports many lines per request but the UI complexity
+// (per-line category, tax code, amount) is overkill for staff
+// reimbursements. Staff with multiple expenses submit multiple forms.
+
+export interface EhExpenseLineItem {
+  id: number;
+  expenseCategoryId: number;
+  expenseCategoryName: string | null;
+  notes: string | null;
+  amount: number;
+  dateIncurred: string;
+}
+
+export interface EhAttachment {
+  id: number;
+  friendlyName: string | null;
+  url: string | null;
+  dateCreated: string | null;
+  /** EH virus-scans attachments after upload. `dateScanned: null` means
+   *  "not yet scanned"; `isInfected: true` means EH flagged the file. */
+  dateScanned: string | null;
+  isInfected: boolean;
+}
+
+export interface EhExpenseRequest {
+  id: number;
+  employeeId: number;
+  status: string; // "Pending" | "Approved" | "Rejected" | "Cancelled"
+  description: string | null;
+  lineItems: EhExpenseLineItem[];
+  attachments: EhAttachment[];
+  dateCreated: string | null;
+  dateStatusUpdated: string | null;
+  statusUpdatedByUser: string | null;
+  statusUpdateNotes: string | null;
+}
+
+export async function listExpenseRequests(
+  employeeId: number,
+  limit = 20,
+): Promise<EhExpenseRequest[]> {
+  const out = await request<EhExpenseRequest[]>(
+    `/employee/${employeeId}/expenserequest`,
+  );
+  // Most-recent first by `dateCreated`. EH's default order varies.
+  return out
+    .sort((a, b) => (b.dateCreated ?? "") > (a.dateCreated ?? "") ? 1 : -1)
+    .slice(0, limit);
+}
+
+export interface EhExpenseCategory {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+export async function listExpenseCategories(): Promise<EhExpenseCategory[]> {
+  return request<EhExpenseCategory[]>(`/employeeexpensecategory`);
+}
+
+export interface CreateExpenseRequestInput {
+  description: string;
+  expenseCategoryId: number;
+  amount: number;
+  dateIncurred: string; // YYYY-MM-DD
+  notes?: string;
+}
+
+/** Creates the expense request. Receipt attachment (if any) is a
+ *  separate follow-up call via `attachExpenseReceipt` — EH doesn't
+ *  support combined create-with-receipt in one shot for the staff
+ *  workflow. */
+export async function createExpenseRequest(
+  employeeId: number,
+  input: CreateExpenseRequestInput,
+): Promise<EhExpenseRequest> {
+  return request<EhExpenseRequest>(
+    `/employee/${employeeId}/expenserequest`,
+    {
+      method: "POST",
+      body: {
+        employeeId,
+        description: input.description,
+        lineItems: [
+          {
+            expenseCategoryId: input.expenseCategoryId,
+            amount: input.amount,
+            dateIncurred: input.dateIncurred,
+            notes: input.notes ?? "",
+          },
+        ],
+      },
+    },
+  );
+}
+
+/**
+ * Upload a receipt file to an existing expense request. EH expects
+ * multipart/form-data with a `file` field, PUT (not POST — verified
+ * 2026-06-01 against the swagger spec).
+ *
+ * Returns the updated request with `attachments` populated. EH virus-
+ * scans the file asynchronously; the response may have `dateScanned:
+ * null` for a few seconds after upload.
+ */
+export async function attachExpenseReceipt(
+  employeeId: number,
+  expenseRequestId: number,
+  file: { buffer: ArrayBuffer; filename: string; contentType: string },
+): Promise<EhExpenseRequest> {
+  assertConfigured();
+  const url = `${API_BASE}/api/v2/business/${BUSINESS_ID}/employee/${employeeId}/expenserequest/${expenseRequestId}/attachment`;
+
+  // Hand-rolled multipart so we control exactly the boundary + field
+  // name. `FormData` would work in the runtime but the boundary/Content-
+  // Length interaction with Node 20's undici fetch is finicky; manual is
+  // more predictable for this one-off.
+  const form = new FormData();
+  const blob = new Blob([file.buffer], { type: file.contentType });
+  form.append("file", blob, file.filename);
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Authorization: authHeader(),
+      Accept: "application/json",
+      // Don't set Content-Type — let the runtime emit the
+      // `multipart/form-data; boundary=...` header for us.
+    },
+    body: form,
+    signal: AbortSignal.timeout(60_000), // larger window — receipts can be a few MB
+  });
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = await res.text().catch(() => null);
+    }
+    throw new EhPayrollError(res.status, body);
+  }
+  return (await res.json()) as EhExpenseRequest;
+}
