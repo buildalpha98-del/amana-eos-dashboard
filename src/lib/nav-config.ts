@@ -177,6 +177,7 @@ export const navItems: NavItem[] = [
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING },
   { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" },
   { href: "/diversity-dashboard", label: "Diversity & Inclusion", icon: Heart, section: "People", tooltip: "Aggregated workforce diversity (opt-in)", roles: ["owner", "head_office", "admin"] },
+  { href: "/wgea-report", label: "WGEA Report", icon: BarChart3, section: "People", tooltip: "Workforce-composition CSV export for WGEA reporting", roles: ["owner", "head_office", "admin"] },
   { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero", roles: ALL_NON_MARKETING },
   { href: "/leave", label: "Leave", icon: CalendarDays, section: "People", tooltip: "Internal leave tracker (historical) — also request leave" },
   { href: "/leave-payroll", label: "Leave (Payroll)", icon: CalendarDays, section: "People", tooltip: "Live leave data from Employment Hero. Approve in EH.", roles: ["owner", "head_office", "admin"] },
