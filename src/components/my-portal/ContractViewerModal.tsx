@@ -108,12 +108,12 @@ export function ContractViewerModal({ contract, onClose }: Props) {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Failed to acknowledge contract");
+        throw new Error(body.error || "Failed to sign contract");
       }
       return res.json();
     },
     onSuccess: () => {
-      toast({ description: "Contract acknowledged." });
+      toast({ description: "Contract signed." });
       qc.invalidateQueries({ queryKey: ["my-portal"] });
     },
     onError: (err: Error) => {
@@ -292,8 +292,8 @@ export function ContractViewerModal({ contract, onClose }: Props) {
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {justAcknowledged
-                  ? "Acknowledged just now"
-                  : `Acknowledged${contract.acknowledgedAt ? ` on ${formatDate(contract.acknowledgedAt)}` : ""}`}
+                  ? "Signed just now"
+                  : `Signed${contract.acknowledgedAt ? ` on ${formatDate(contract.acknowledgedAt)}` : ""}`}
               </span>
             ) : contract.canAcknowledge ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold">
@@ -327,7 +327,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
               ) : (
                 <ClipboardCheck className="w-4 h-4" />
               )}
-              {acknowledgeMut.isPending ? "Acknowledging…" : "Acknowledge Contract"}
+              {acknowledgeMut.isPending ? "Signing…" : "Sign Contract"}
             </button>
           )}
         </footer>

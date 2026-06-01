@@ -192,7 +192,7 @@ export function ContractDetailPanel({
         </div>
         <div>
           <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
-            Acknowledgement
+            Signature
           </p>
           <AcknowledgeBadge acknowledged={contract.acknowledgedByStaff} />
         </div>

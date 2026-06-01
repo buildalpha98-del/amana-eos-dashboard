@@ -586,7 +586,7 @@ export default function MyPortalPage() {
                   onClick={() => document.getElementById("section-contract")?.scrollIntoView({ behavior: "smooth" })}
                   className="font-medium hover:underline"
                 >
-                  Contract requires acknowledgement
+                  Contract requires signature
                 </button>
               )}
             </div>
@@ -834,7 +834,7 @@ export default function MyPortalPage() {
             {activeContract.acknowledgedByStaff ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                Acknowledged
+                Signed
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">

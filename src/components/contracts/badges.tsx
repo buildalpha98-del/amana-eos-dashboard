@@ -24,14 +24,20 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 /**
- * Acknowledgement indicator — green when staff has acknowledged,
+ * Signature indicator — green when staff has signed the contract,
  * amber otherwise.
+ *
+ * 2026-06-02: relabelled from "Acknowledged" to "Signed" at user
+ * request. Component name + the underlying DB field
+ * (`acknowledgedByStaff`) intentionally stay as-is — renaming them
+ * would cascade through the entire contracts surface for a UI-only
+ * cosmetic change.
  */
 export function AcknowledgeBadge({ acknowledged }: { acknowledged: boolean }) {
   return acknowledged ? (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
       <CheckCircle2 className="w-3 h-3" />
-      Acknowledged
+      Signed
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">

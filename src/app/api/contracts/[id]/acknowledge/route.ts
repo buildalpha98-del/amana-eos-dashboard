@@ -4,7 +4,12 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { resolveOnboardingPackForContract } from "@/lib/contracts/onboarding-mapping";
 
-// POST /api/contracts/[id]/acknowledge — staff acknowledges their own contract
+// POST /api/contracts/[id]/acknowledge — staff signs their own contract
+//
+// Endpoint name + DB field (`acknowledgedByStaff`) intentionally kept
+// as-is for 2026-06-02 user-facing relabel "Acknowledged" → "Signed".
+// Renaming the API path / column would cascade through every consumer
+// — the UI does the cosmetic relabel only.
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
 
@@ -16,17 +21,17 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
 
-  // Staff can only acknowledge their own contract
+  // Staff can only sign their own contract
   if (contract.userId !== session!.user.id) {
     return NextResponse.json(
-      { error: "You can only acknowledge your own contract" },
+      { error: "You can only sign your own contract" },
       { status: 403 }
     );
   }
 
   if (contract.acknowledgedByStaff) {
     return NextResponse.json(
-      { error: "Contract already acknowledged" },
+      { error: "Contract already signed" },
       { status: 409 }
     );
   }

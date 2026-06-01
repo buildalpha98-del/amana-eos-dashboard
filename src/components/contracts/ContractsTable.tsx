@@ -174,7 +174,7 @@ export function ContractsTable({
             <span>Pay Rate</span>
             <span>Hours</span>
             <span>Status</span>
-            <span>Acknowledged</span>
+            <span>Signed</span>
           </div>
 
           {/* Rows */}

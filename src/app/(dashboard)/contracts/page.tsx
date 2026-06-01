@@ -172,7 +172,7 @@ export default function ContractsPage() {
         <>
           <PageHeader
             title="Contracts"
-            description="Manage employment contracts, versions and staff acknowledgements"
+            description="Manage employment contracts, versions and staff signatures"
             primaryAction={{
               label: "New Contract",
               icon: Plus,
@@ -195,7 +195,7 @@ export default function ContractsPage() {
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="w-4 h-4 text-amber-500" />
                 <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">
-                  Pending Ack
+                  Unsigned
                 </p>
               </div>
               <p className="text-2xl font-bold text-amber-600">{stats.pendingAck}</p>
