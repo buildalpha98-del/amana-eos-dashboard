@@ -616,6 +616,12 @@ model User {
   separationRecord       SeparationRecord? @relation("SeparationSubject")
   recordedSeparations    SeparationRecord[] @relation("SeparationRecorder")
 
+  // Casual conversion elections — Closing Loopholes No. 2 Act 2024
+  // (employee-choice model). Multiple records possible over a casual's
+  // tenure; cooldown rules apply between elections.
+  casualConversionElections CasualConversionElection[] @relation("CasualConversionUser")
+  respondedConversions      CasualConversionElection[] @relation("CasualConversionResponder")
+
   // ── NQS back-refs ─────────────────────────────────
   staffReflections          StaffReflection[]          @relation("StaffReflections")
   learningObservations      LearningObservation[]      @relation("LearningObservations")
@@ -3884,6 +3890,11 @@ model EmploymentContract {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
+  // Back-ref for CasualConversionElection — when this contract was the
+  // result of an accepted conversion election, the election row points
+  // back here. Unique because one contract = one election (or null).
+  conversionElection  CasualConversionElection? @relation("ConversionResultContract")
+
   @@index([userId])
   @@index([status])
   @@index([contractType])
@@ -6941,4 +6952,70 @@ enum SeparationReason {
   abandonment                // stopped showing up; no contact
   deceased
   other
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Casual conversion (Closing Loopholes No. 2 Act, Aug 2024)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Employee-choice model: a casual who has been employed for at least
+// 6 months (12 months for small businesses with <15 employees) can
+// elect in writing to convert to permanent. The employer must respond
+// in writing within 21 days. Refusals are only valid on narrow
+// grounds (Fair Work Act s66B).
+//
+// This model is the audit trail Fair Work asks for if a dispute is
+// lodged. Manual entry by admin v1; later: a self-service surface
+// where casuals can submit their own election.
+
+model CasualConversionElection {
+  id              String                    @id @default(cuid())
+
+  userId          String
+  user            User                      @relation("CasualConversionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  // The Act gives the employee the choice — part-time vs full-time.
+  requestedType   ConversionRequestType
+
+  // When the election was lodged (employee → employer).
+  electedAt       DateTime                  @default(now())
+  // Optional context the employee provided in their written request.
+  electionNotes   String?                   @db.Text
+
+  // ─── Employer response ─────────────────────────────────────
+  // Per s66B(2), employer must respond in writing within 21 days.
+  // The dashboard surface shows a countdown ticker when this is null.
+  respondedAt     DateTime?
+  respondedById   String?
+  respondedBy     User?                     @relation("CasualConversionResponder", fields: [respondedById], references: [id], onDelete: SetNull)
+  response        ConversionResponse?
+  // REQUIRED for declined responses. Per s66B(3) the only valid grounds
+  // are limited (operational, position not existing in 12mo, etc).
+  // Free text so admin can document the specific grounds cited.
+  declineReasons  String?                   @db.Text
+
+  // If accepted, link to the new EmploymentContract that was issued.
+  // SetNull because deleting the contract shouldn't cascade-delete the
+  // election record — the election history stands regardless.
+  newContractId   String?                   @unique
+  newContract     EmploymentContract?       @relation("ConversionResultContract", fields: [newContractId], references: [id], onDelete: SetNull)
+
+  // Soft delete only — Fair Work retention is 7 years.
+  deleted         Boolean                   @default(false)
+
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([userId, electedAt])
+  @@index([response])
+}
+
+enum ConversionRequestType {
+  part_time
+  full_time
+}
+
+enum ConversionResponse {
+  accepted
+  declined
 }

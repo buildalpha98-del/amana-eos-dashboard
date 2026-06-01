@@ -15,16 +15,27 @@ import type { EmergencyContact } from "@prisma/client";
 import { EmploymentTab } from "@/components/staff/tabs/EmploymentTab";
 import { PersonalTab } from "@/components/staff/tabs/PersonalTab";
 import { SeparationTab } from "@/components/staff/SeparationTab";
+import { CasualConversionTab } from "@/components/staff/CasualConversionTab";
 import { SectionShell } from "./SectionShell";
 import type { StaffProfileData } from "@/components/staff/types";
 
-type SubTab = "employment" | "personal" | "emergency" | "separation";
+type SubTab =
+  | "employment"
+  | "personal"
+  | "emergency"
+  | "conversion"
+  | "separation";
 
 const SUB_TABS_BASE = [
   { key: "employment", label: "Employment details" },
   { key: "personal", label: "Personal details" },
   { key: "emergency", label: "Emergency contacts" },
 ] as const;
+
+const CONVERSION_SUB_TAB = {
+  key: "conversion",
+  label: "Casual conversion",
+} as const;
 
 const SEPARATION_SUB_TAB = { key: "separation", label: "Separation" } as const;
 
@@ -56,8 +67,12 @@ export function EmploymentRecordsSection({
   const initialTab: SubTab =
     searchParams.get("edit") === "personal" ? "personal" : "employment";
 
+  // Conversion and Separation sub-tabs are both admin-only — they
+  // gate on the same `canManageSeparation` prop (admin role).
+  // Sub-tab order: details → personal → emergency → conversion → separation
+  // — emotionally ordered too (most positive to most consequential).
   const subTabs = canManageSeparation
-    ? ([...SUB_TABS_BASE, SEPARATION_SUB_TAB] as const)
+    ? ([...SUB_TABS_BASE, CONVERSION_SUB_TAB, SEPARATION_SUB_TAB] as const)
     : SUB_TABS_BASE;
 
   return (
@@ -87,6 +102,15 @@ export function EmploymentRecordsSection({
               canEdit={canEditPersonal}
               canEditAccount={canEditAccount}
               viewerIsOwner={viewerIsOwner}
+            />
+          );
+        }
+        if (active === "conversion") {
+          if (!canManageSeparation) return null;
+          return (
+            <CasualConversionTab
+              targetUserId={data.targetUser.id}
+              targetUserName={data.targetUser.name}
             />
           );
         }
