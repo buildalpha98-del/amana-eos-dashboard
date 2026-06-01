@@ -7231,6 +7231,43 @@ enum DiversityCarer {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// EH Payroll webhook audit (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Mirror of every webhook event Employment Hero Payroll fires at us.
+// Use cases:
+//   - HMAC-verified inbound goes here regardless of whether we
+//     "understand" the event type — provides a complete forensic
+//     audit if support need to reconstruct what happened
+//   - `providerEventId` is unique → idempotent processing (EH retries
+//     up to 3 times on non-200 responses, we DON'T want to double-act)
+//   - `processedAt`/`error` track whether downstream handling worked
+//
+// Retention is rolled in with the existing audit-log cleanup cron at
+// 7 years — these aren't security records but they're operationally
+// useful enough that we don't want them pruning aggressively.
+
+model EhWebhookEvent {
+  id              String   @id @default(cuid())
+
+  eventType       String   @db.VarChar(100)
+  // EH provides an event ID we can dedup on. Optional because not
+  // every event type carries one.
+  providerEventId String?  @db.VarChar(200)
+  payload         Json
+
+  receivedAt      DateTime @default(now())
+  processedAt     DateTime?
+  // Free-text error from the handler when processing failed. Null
+  // when processedAt is set successfully.
+  error           String?  @db.Text
+
+  @@unique([providerEventId])
+  @@index([eventType, receivedAt])
+  @@index([receivedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // HR — Anonymous safe-reporting channel (2026-06-01)
 // ─────────────────────────────────────────────────────────────────────
 //
