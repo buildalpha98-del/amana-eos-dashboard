@@ -47,6 +47,7 @@ import { MyClockCard } from "@/components/my-portal/MyClockCard";
 import { MyPayslipsCard } from "@/components/my-portal/MyPayslipsCard";
 import { MyLeaveRequestsCard } from "@/components/my-portal/MyLeaveRequestsCard";
 import { MyExpensesCard } from "@/components/my-portal/MyExpensesCard";
+import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
 import {
   ContractViewerModal,
   type ContractViewerContract,
@@ -710,6 +711,14 @@ export default function MyPortalPage() {
       {/* our proxy → EH's two-step create-then-attach flow.            */}
       {/* ============================================================ */}
       {session?.user?.id && <MyExpensesCard />}
+
+      {/* ============================================================ */}
+      {/* 3b-iv. QUIET HOURS — right to disconnect (s333M Fair Work)    */}
+      {/* Staff sets their own preference; admin sees it read-only on  */}
+      {/* the staff profile. Not enforced in messaging (v1) — purely a */}
+      {/* documented preference for legal evidence + manager calibration. */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyQuietHoursCard />}
 
       {/* ============================================================ */}
       {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}

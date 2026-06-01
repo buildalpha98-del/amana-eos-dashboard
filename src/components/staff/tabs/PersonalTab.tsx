@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { User, EmergencyContact } from "@prisma/client";
-import { Phone, MapPin, Cake, CalendarDays, Loader2, User as UserIcon, Mail } from "lucide-react";
+import { Phone, MapPin, Cake, CalendarDays, Loader2, User as UserIcon, Mail, Moon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -24,6 +24,22 @@ function formatDate(d: Date | null | undefined): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function formatQuietHours(
+  u: User & { quietHoursStart?: string | null; quietHoursEnd?: string | null; quietHoursNotes?: string | null },
+): string {
+  const start = u.quietHoursStart;
+  const end = u.quietHoursEnd;
+  const notes = u.quietHoursNotes;
+  if (!start && !end && !notes) return "Not set — no quiet-hours preference recorded";
+  const range =
+    start && end
+      ? start <= end
+        ? `${start} – ${end}`
+        : `${start} – ${end} (overnight)`
+      : null;
+  return [range, notes].filter(Boolean).join(" · ") || "—";
 }
 
 function formatAddress(u: User): string {
@@ -104,6 +120,16 @@ export function PersonalTab({
             icon={CalendarDays}
             label="Probation ends"
             value={formatDate(targetUser.probationEndDate)}
+          />
+          {/* Quiet hours (right to disconnect, s333M). Read-only on the
+              staff profile — staff edit it themselves in My Portal.
+              Surfaced here so admins know the documented preference
+              before pinging at 9pm. Falls back to "—" when not set. */}
+          <Field
+            icon={Moon}
+            label="Quiet hours"
+            value={formatQuietHours(targetUser)}
+            className="sm:col-span-2"
           />
         </dl>
       </div>

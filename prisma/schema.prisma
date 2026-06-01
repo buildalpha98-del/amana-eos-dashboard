@@ -540,6 +540,19 @@ model User {
   // historical accounts). Populated by the daily sync cron based on email
   // match; admins can manually override for unmatched users.
   employmentHeroEmployeeId Int? @unique
+  // 2026-06-01 (right to disconnect — Fair Work Act s333M, in force
+  // Aug 2024). Staff-set preference: "don't message me between these
+  // hours." Stored as HH:MM strings to avoid timezone/`@db.Time`
+  // headaches. Both null = no preference set (the legal default is
+  // still that the employee can refuse unreasonable contact, but
+  // we'd lose evidence of an explicit refusal pattern).
+  // When `quietHoursStart > quietHoursEnd` the window wraps midnight
+  // (e.g. "20:00" → "07:00" = evening + overnight + early morning).
+  quietHoursStart String?
+  quietHoursEnd   String?
+  // Free-form expansion — "no contact on weekends", "calls OK in
+  // genuine emergencies only", etc. Helps managers calibrate.
+  quietHoursNotes String?   @db.Text
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
