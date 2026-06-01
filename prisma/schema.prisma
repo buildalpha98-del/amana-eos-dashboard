@@ -534,6 +534,12 @@ model User {
   // "PIN required before you can use the kiosk" for first-time users.
   kioskPinHash   String?
   kioskPinSetAt  DateTime?
+  // 2026-06-01: maps this User to their Employment Hero Payroll employee
+  // record so My Portal can surface payslips/leave/expenses. Nullable —
+  // not every dashboard user is in payroll (e.g. casuals during trial,
+  // historical accounts). Populated by the daily sync cron based on email
+  // match; admins can manually override for unmatched users.
+  employmentHeroEmployeeId Int? @unique
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

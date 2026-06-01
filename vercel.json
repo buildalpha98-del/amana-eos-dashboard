@@ -284,6 +284,10 @@
     {
       "path": "/api/cron/neon-snapshot",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/eh-payroll-sync-employees",
+      "schedule": "30 6 * * *"
     }
   ]
 }
