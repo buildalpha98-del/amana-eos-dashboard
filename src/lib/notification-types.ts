@@ -16,6 +16,10 @@ export const NOTIFICATION_TYPES = {
   VISA_EXPIRING_14D: "visa_expiring_14d",
   VISA_EXPIRING_7D: "visa_expiring_7d",
   VISA_EXPIRED: "visa_expired",
+  // 2026-06-01: weekly cron flags casuals who've just crossed the
+  // conversion threshold and have no pending election. Notifies
+  // admins so they can proactively offer s66B conversion.
+  CASUAL_CONVERSION_ELIGIBLE: "casual_conversion_eligible",
   LEAVE_SUBMITTED: "leave_submitted",
   LEAVE_APPROVED: "leave_approved",
   LEAVE_DENIED: "leave_denied",
