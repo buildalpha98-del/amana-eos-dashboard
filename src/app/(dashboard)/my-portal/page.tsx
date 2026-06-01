@@ -48,6 +48,7 @@ import { MyPayslipsCard } from "@/components/my-portal/MyPayslipsCard";
 import { MyLeaveRequestsCard } from "@/components/my-portal/MyLeaveRequestsCard";
 import { MyExpensesCard } from "@/components/my-portal/MyExpensesCard";
 import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
+import { MyPerformanceReviewsCard } from "@/components/my-portal/MyPerformanceReviewsCard";
 import {
   ContractViewerModal,
   type ContractViewerContract,
@@ -719,6 +720,14 @@ export default function MyPortalPage() {
       {/* documented preference for legal evidence + manager calibration. */}
       {/* ============================================================ */}
       {session?.user?.id && <MyQuietHoursCard />}
+
+      {/* ============================================================ */}
+      {/* 3b-v. MY PERFORMANCE REVIEWS (2026-06-01 — phase 2)            */}
+      {/* Self-renders only when the user has reviews on file. Surfaces */}
+      {/* the self-assessment form when status=self_assessment and the  */}
+      {/* acknowledgement flow when status=awaiting_acknowledgement.    */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyPerformanceReviewsCard />}
 
       {/* ============================================================ */}
       {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}
