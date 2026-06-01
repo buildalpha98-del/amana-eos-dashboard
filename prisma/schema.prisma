@@ -600,6 +600,11 @@ model User {
   raisedPerformanceCases PerformanceCase[] @relation("CaseRaiser")
   closedPerformanceCases PerformanceCase[] @relation("CaseCloser")
 
+  // Per-(userId, threshold) dedup marker for the visa-expiry alert
+  // cron. Mirrors ComplianceCertificateAlert but keyed on User
+  // because visa lives on the User row, not a separate cert record.
+  visaAlerts             VisaAlert[]       @relation("UserVisaAlerts")
+
   // ── NQS back-refs ─────────────────────────────────
   staffReflections          StaffReflection[]          @relation("StaffReflections")
   learningObservations      LearningObservation[]      @relation("LearningObservations")
@@ -6717,4 +6722,28 @@ enum PerformanceCaseStatus {
   resolved
   escalated
   closed
+}
+
+// HR — Visa expiry alert dedup (2026-06-01)
+//
+// Mirrors ComplianceCertificateAlert but keyed on User because visa
+// fields live on User, not on a separate Certificate row. Prevents the
+// daily cron from re-emailing staff the same threshold twice.
+//
+// Unique on (userId, threshold) — once we've sent the "30 days left"
+// notification for a given staff member's current visa, that pair is
+// locked. Renewing the visa (new expiry > old) is detected by the
+// cron and surfaces re-alerting in a future enhancement; v1 just stays
+// quiet until the row is manually cleared.
+
+model VisaAlert {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserVisaAlerts", fields: [userId], references: [id], onDelete: Cascade)
+  // Threshold the alert was sent for: 30 | 14 | 7 | 0 (already expired).
+  threshold Int
+  sentAt    DateTime @default(now())
+
+  @@unique([userId, threshold])
+  @@index([userId])
 }

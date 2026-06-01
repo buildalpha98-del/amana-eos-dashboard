@@ -8,6 +8,14 @@ export const NOTIFICATION_TYPES = {
   CERT_EXPIRING_14D: "cert_expiring_14d",
   CERT_EXPIRING_7D: "cert_expiring_7d",
   CERT_EXPIRED: "cert_expired",
+  // 2026-06-01: visa expiry alerts (Migration Act 1958 — director liability
+  // for continuing employment past visa expiry). Same 30/14/7/0 cadence as
+  // certs, separate types so the bell can colour them differently and the
+  // dedup table (`VisaAlert`) doesn't clash with cert dedup.
+  VISA_EXPIRING_30D: "visa_expiring_30d",
+  VISA_EXPIRING_14D: "visa_expiring_14d",
+  VISA_EXPIRING_7D: "visa_expiring_7d",
+  VISA_EXPIRED: "visa_expired",
   LEAVE_SUBMITTED: "leave_submitted",
   LEAVE_APPROVED: "leave_approved",
   LEAVE_DENIED: "leave_denied",

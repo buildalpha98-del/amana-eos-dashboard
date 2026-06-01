@@ -198,6 +198,139 @@ export const GET = withApiHandler(async (req) => {
       }
     }
 
+    // ── Visa expiry alerts ────────────────────────────────────
+    //
+    // Migration Act 1958 director liability: employing a non-citizen past
+    // their visa expiry is a sanction-able offence. Same 30/14/7/0
+    // cadence + dedup pattern as certs, but keyed on User (because the
+    // visa lives on User, not a cert row).
+    let visaEmailsSent = 0;
+    let visaNotificationsCreated = 0;
+    let visaAlertsRecorded = 0;
+    let visaSkippedDuplicates = 0;
+    try {
+      const expiringVisas = await prisma.user.findMany({
+        where: {
+          active: true,
+          visaExpiry: { lte: in30d, not: null },
+          // Citizens and permanent residents don't have an expiring visa
+          // to worry about — only work/student/bridging visas need this.
+          visaStatus: { in: ["work_visa", "student_visa", "bridging_visa", "other"] },
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          visaStatus: true,
+          visaExpiry: true,
+          service: { select: { id: true, name: true } },
+        },
+      });
+
+      for (const u of expiringVisas) {
+        if (!u.visaExpiry) continue; // belt-and-braces for the TS narrow
+
+        const daysUntil = daysBetween(now, u.visaExpiry);
+        const threshold = pickThreshold(daysUntil);
+        if (threshold === null) continue;
+
+        // Dedup: skip if we've already sent this (user, threshold).
+        const existing = await prisma.visaAlert.findUnique({
+          where: { userId_threshold: { userId: u.id, threshold } },
+        });
+        if (existing) {
+          visaSkippedDuplicates++;
+          continue;
+        }
+
+        const expiryStr = u.visaExpiry.toLocaleDateString("en-AU", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        const visaTypeLabel = (u.visaStatus ?? "visa").replace(/_/g, " ");
+
+        const { title, body, notifType } = visaNotificationCopy(
+          threshold,
+          visaTypeLabel,
+          expiryStr,
+        );
+
+        // Coordinator CC list — reuse cert cache scoped by service.
+        const svcKey = u.service?.id ?? "_no_service";
+        let coordinatorEmails = coordinatorCache.get(svcKey);
+        if (!coordinatorEmails && u.service?.id) {
+          const coordinators = await prisma.user.findMany({
+            where: { role: "member", serviceId: u.service.id, active: true },
+            select: { email: true },
+          });
+          coordinatorEmails = coordinators.map((c) => c.email);
+          coordinatorCache.set(svcKey, coordinatorEmails);
+        }
+
+        // Send email (in-app notification regardless, like cert flow).
+        if (resend) {
+          try {
+            const toList = [
+              u.email,
+              ...(coordinatorEmails ?? []).filter((e) => e !== u.email),
+            ];
+            await resend.emails.send({
+              from: FROM_EMAIL,
+              to: toList,
+              subject: title,
+              html: `<p>${body}</p><p>Update or renew the visa record in the staff profile under the Personal tab. If the visa has expired, the staff member <strong>must not be rostered</strong> until renewed.</p>`,
+            });
+            visaEmailsSent++;
+          } catch (err) {
+            errors.push(
+              `Failed visa email for ${u.email} (threshold ${threshold}): ${
+                err instanceof Error ? err.message : "Unknown"
+              }`,
+            );
+            continue;
+          }
+        }
+
+        try {
+          await prisma.userNotification.create({
+            data: {
+              userId: u.id,
+              type: notifType,
+              title,
+              body,
+              link: `/staff/${u.id}`,
+            },
+          });
+          visaNotificationsCreated++;
+        } catch (err) {
+          errors.push(
+            `Failed visa notification for user ${u.id}: ${
+              err instanceof Error ? err.message : "Unknown"
+            }`,
+          );
+        }
+
+        try {
+          await prisma.visaAlert.create({
+            data: { userId: u.id, threshold },
+          });
+          visaAlertsRecorded++;
+        } catch (err) {
+          const prismaErr = err as { code?: string };
+          if (prismaErr.code !== "P2002") {
+            errors.push(
+              `Failed visa dedup (user ${u.id}, threshold ${threshold}): ${
+                err instanceof Error ? err.message : "Unknown"
+              }`,
+            );
+          }
+        }
+      }
+    } catch (visaErr) {
+      logger.error("Visa expiry alert pass failed", { err: visaErr });
+    }
+
     // ── Overdue Audit Escalation ──────────────────────────────
     let overdueAudits = 0;
     try {
@@ -267,6 +400,10 @@ export const GET = withApiHandler(async (req) => {
       alertsRecorded,
       skippedDuplicates,
       overdueAudits,
+      visaEmailsSent,
+      visaNotificationsCreated,
+      visaAlertsRecorded,
+      visaSkippedDuplicates,
     });
 
     return NextResponse.json({
@@ -277,6 +414,12 @@ export const GET = withApiHandler(async (req) => {
       alertsRecorded,
       skippedDuplicates,
       overdueAudits,
+      visa: {
+        emailsSent: visaEmailsSent,
+        notificationsCreated: visaNotificationsCreated,
+        alertsRecorded: visaAlertsRecorded,
+        skippedDuplicates: visaSkippedDuplicates,
+      },
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
@@ -360,5 +503,46 @@ function notificationCopy(
     body: `Your ${typeLabel} certificate expires ${expiryDateStr}.`,
     notifType: NOTIFICATION_TYPES.CERT_EXPIRING_30D,
     urgency: "30 days",
+  };
+}
+
+/**
+ * Visa-flavoured variant of notificationCopy. Distinct copy because:
+ *   - The legal risk is different (Migration Act, not Children's
+ *     Services Award) — language reflects that.
+ *   - Renewal isn't done in our dashboard (no /compliance surface
+ *     for visas); the staff member has to deal directly with Home
+ *     Affairs / their migration agent.
+ */
+function visaNotificationCopy(
+  threshold: 30 | 14 | 7 | 0,
+  visaType: string,
+  expiryDateStr: string,
+): { title: string; body: string; notifType: string } {
+  if (threshold === 0) {
+    return {
+      title: "Visa expired — work rights ended",
+      body: `Your ${visaType} expired ${expiryDateStr}. You cannot be rostered until a renewed visa is on file. Contact Home Affairs or your migration agent immediately.`,
+      notifType: NOTIFICATION_TYPES.VISA_EXPIRED,
+    };
+  }
+  if (threshold === 7) {
+    return {
+      title: "Visa expiring in 7 days",
+      body: `Your ${visaType} expires ${expiryDateStr}. Please confirm your renewal status with the office before that date — rostering will be paused if it lapses.`,
+      notifType: NOTIFICATION_TYPES.VISA_EXPIRING_7D,
+    };
+  }
+  if (threshold === 14) {
+    return {
+      title: "Visa expiring in 14 days",
+      body: `Your ${visaType} expires ${expiryDateStr}. Please share your renewal plan with the office so we can update your record.`,
+      notifType: NOTIFICATION_TYPES.VISA_EXPIRING_14D,
+    };
+  }
+  return {
+    title: "Visa expiring in 30 days",
+    body: `Your ${visaType} expires ${expiryDateStr}. Time to start the renewal process if you haven't already.`,
+    notifType: NOTIFICATION_TYPES.VISA_EXPIRING_30D,
   };
 }
