@@ -65,6 +65,8 @@ const typeLabels: Record<string, string> = {
   geccko: "GECCKO",
   food_safety: "Food Safety",
   food_handler: "Food Handler",
+  mandatory_reporter_training: "Mandatory Reporter Training",
+  child_safe_code_of_conduct: "Child Safe Code of Conduct",
   other: "Other",
 };
 
@@ -80,6 +82,8 @@ const typeBadgeColors: Record<string, string> = {
   geccko: "bg-emerald-100 text-emerald-700",
   food_safety: "bg-amber-100 text-amber-700",
   food_handler: "bg-yellow-100 text-yellow-700",
+  mandatory_reporter_training: "bg-purple-100 text-purple-700",
+  child_safe_code_of_conduct: "bg-pink-100 text-pink-700",
   other: "bg-surface text-foreground/80",
 };
 
@@ -95,6 +99,8 @@ const certTypes = [
   "geccko",
   "food_safety",
   "food_handler",
+  "mandatory_reporter_training",
+  "child_safe_code_of_conduct",
   "other",
 ] as const;
 

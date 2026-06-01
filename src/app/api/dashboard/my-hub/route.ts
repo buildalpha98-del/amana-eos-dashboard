@@ -26,6 +26,8 @@ const CERT_LABELS: Record<CertificateType, string> = {
   geccko: "GECCKO",
   food_safety: "Food Safety",
   food_handler: "Food Handler",
+  mandatory_reporter_training: "Mandatory Reporter Training",
+  child_safe_code_of_conduct: "Child Safe Code of Conduct",
   other: "Other",
 };
 

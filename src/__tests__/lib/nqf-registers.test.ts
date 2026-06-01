@@ -34,6 +34,8 @@ function mkRow(over: Partial<StaffRegisterRow> = {}): StaffRegisterRow {
     policeCheckExpiry: "2027-01-15",
     childProtectionExpiry: "2027-07-01",
     foodSafetyExpiry: null,
+    mandatoryReporterExpiry: "2027-04-15",
+    childSafeCodeExpiry: "2027-04-15",
     ...over,
   };
 }

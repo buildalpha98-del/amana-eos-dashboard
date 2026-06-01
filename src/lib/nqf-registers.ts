@@ -48,6 +48,9 @@ export interface StaffRegisterRow {
   policeCheckExpiry: string | null;
   childProtectionExpiry: string | null;
   foodSafetyExpiry: string | null;
+  // Added 2026-06-01 (HR audit follow-up — annual refresher / annual ack).
+  mandatoryReporterExpiry: string | null;
+  childSafeCodeExpiry: string | null;
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -201,6 +204,8 @@ export async function buildStaffRegister(
       policeCheckExpiry: exp(u.id, "police_check"),
       childProtectionExpiry: exp(u.id, "child_protection"),
       foodSafetyExpiry: exp(u.id, "food_safety"),
+      mandatoryReporterExpiry: exp(u.id, "mandatory_reporter_training"),
+      childSafeCodeExpiry: exp(u.id, "child_safe_code_of_conduct"),
     };
   });
 }
@@ -241,6 +246,8 @@ export const STAFF_REGISTER_COLUMNS: Array<{
   { key: "policeCheckExpiry", header: "Police check expiry" },
   { key: "childProtectionExpiry", header: "Child Protection expiry" },
   { key: "foodSafetyExpiry", header: "Food Safety expiry" },
+  { key: "mandatoryReporterExpiry", header: "Mandatory Reporter Training" },
+  { key: "childSafeCodeExpiry", header: "Child Safe Code of Conduct" },
 ];
 
 export function rowsToCsv(rows: StaffRegisterRow[]): string {

@@ -36,6 +36,16 @@ const ONBOARDING_TODOS = [
       "Upload a copy of your current WWCC to keep your compliance records up to date.\n\nGo to: My Portal → Qualifications → Upload",
   },
   {
+    title: "Complete Mandatory Reporter Training (annual)",
+    description:
+      "OSHC educators are mandatory reporters under state child-protection law. Complete the annual refresher training and upload the certificate to your compliance record. This must be renewed every 12 months.\n\nGo to: My Portal → Compliance → Mandatory Reporter Training → Upload",
+  },
+  {
+    title: "Acknowledge the Child Safe Code of Conduct",
+    description:
+      "Read and sign the Amana OSHC Child Safe Code of Conduct. Re-acknowledged annually under the National Principles for Child Safe Organisations. Upload the signed copy to your compliance record.\n\nGo to: My Portal → Compliance → Child Safe Code of Conduct → Upload",
+  },
+  {
     title: "Review & acknowledge the Privacy Policy",
     description:
       "Read through the Amana OSHC Privacy Policy and mark it as acknowledged.\n\nGo to: Policies (sidebar) → Privacy Policy → Acknowledge",

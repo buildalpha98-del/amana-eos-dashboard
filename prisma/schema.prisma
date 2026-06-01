@@ -3365,6 +3365,17 @@ enum CertificateType {
   geccko
   food_safety
   food_handler
+  // Added 2026-06-01 per HR audit:
+  // - Annual mandatory-reporter refresher (NSW Children and Young
+  //   Persons (Care and Protection) Act 1998 + state equivalents);
+  //   OSHC educators are mandatory reporters and FWC / DCJ expect
+  //   evidence of yearly training as an aggravating-factor mitigator.
+  mandatory_reporter_training
+  // - Annual Child Safe Code of Conduct acknowledgement under the
+  //   National Principles for Child Safe Organisations (also
+  //   Victorian Child Safe Standards 2022, NSW Office of the
+  //   Children's Guardian, etc).
+  child_safe_code_of_conduct
   other
 }
 
