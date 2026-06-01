@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 /**
@@ -10,7 +10,7 @@ import { logger } from "@/lib/logger";
  * Auto-generates reminder Todos at 14/30/60 day thresholds.
  * Schedule: daily at 8pm AEST (10:00 UTC) — "0 10 * * *"
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

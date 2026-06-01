@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { getResend, sendEmail } from "@/lib/email";
 import { marketingDigestEmail } from "@/lib/email-templates";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 // ── Thresholds ──────────────────────────────────────────────
@@ -25,7 +25,7 @@ function formatAU(date: Date): string {
  * Weekly Friday email digest that compiles marketing performance data
  * and sends it to leadership.
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

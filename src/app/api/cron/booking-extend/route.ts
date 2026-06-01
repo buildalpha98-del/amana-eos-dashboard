@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
 
@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
  *
  * Schedule: Sunday 7pm AEST (09:00 UTC) — vercel.json
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

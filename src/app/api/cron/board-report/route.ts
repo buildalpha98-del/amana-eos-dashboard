@@ -4,7 +4,7 @@ import { generateBoardReport } from "@/lib/board-report-generator";
 import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { boardReportDraftNotificationEmail } from "@/lib/email-templates";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 /**
@@ -15,7 +15,7 @@ import { logger } from "@/lib/logger";
  *
  * Auth: Bearer CRON_SECRET
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
 

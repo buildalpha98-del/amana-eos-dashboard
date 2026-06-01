@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 
 /**
  * GET /api/cron/compliance-risk-report
@@ -13,7 +13,7 @@ import { withApiHandler } from "@/lib/api-handler";
  *
  * Auth: Bearer CRON_SECRET
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 

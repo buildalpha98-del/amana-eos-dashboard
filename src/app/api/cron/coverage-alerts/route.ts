@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 // ── Alert thresholds ────────────────────────────────────────
@@ -34,7 +34,7 @@ interface AlertDetail {
  * 2. < 3 posts in last 7 days → medium priority task
  * 3. Tier 3 centre (occupancy < 25%) with 0 active campaigns → medium priority task
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

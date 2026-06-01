@@ -5,11 +5,11 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { getOwnaClient } from "@/lib/owna";
 import { syncOwnaService, todayISO } from "@/lib/owna-sync";
 import type { ServiceSyncResult } from "@/lib/owna-sync";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 
 // ── Cron Handler ──────────────────────────────────────────────
 
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   // 1. Auth
   const authCheck = verifyCronSecret(req);
   if (authCheck) return authCheck.error;

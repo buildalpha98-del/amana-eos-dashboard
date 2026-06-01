@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 import type { Prisma } from "@prisma/client";
 
@@ -17,7 +17,7 @@ import type { Prisma } from "@prisma/client";
  * (harvestedFrom, sourceRecordId) constraint — re-running the cron for an
  * already-harvested record is a no-op.
  */
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withCronHandler(async (req: NextRequest) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
 

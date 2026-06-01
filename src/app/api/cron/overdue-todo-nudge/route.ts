@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 const BRAND_COLOR = "#004E64";
@@ -145,7 +145,7 @@ function buildAdminSummaryEmail(
  *
  * Auth: Bearer CRON_SECRET
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 

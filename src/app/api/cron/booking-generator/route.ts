@@ -25,7 +25,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
 
@@ -44,7 +44,7 @@ interface RunSummary {
   errors: { childId: string; message: string }[];
 }
 
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   // 1. Auth
   const authCheck = verifyCronSecret(req);
   if (authCheck) return authCheck.error;

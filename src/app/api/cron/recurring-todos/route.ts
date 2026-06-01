@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getWeekStart } from "@/lib/utils";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
 
@@ -17,7 +17,7 @@ import { logger } from "@/lib/logger";
  *
  * Auth: Bearer CRON_SECRET
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "");
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

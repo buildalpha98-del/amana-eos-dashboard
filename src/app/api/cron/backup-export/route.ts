@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { uploadFile } from "@/lib/storage";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 /**
@@ -16,7 +16,7 @@ import { logger } from "@/lib/logger";
  *   4. Rock — strategic priorities
  *   5. ComplianceCert — regulatory compliance records
  */
-export const POST = withApiHandler(async (req) => {
+export const POST = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

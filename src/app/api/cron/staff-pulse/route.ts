@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { pulseSurveyEmail } from "@/lib/email-templates";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   // 1. Auth
   const authCheck = verifyCronSecret(req);
   if (authCheck) return authCheck.error;

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 const MAX_LEADS_PER_RUN = 20;
@@ -16,7 +16,7 @@ const STALE_DAYS = 7;
  * Daily cron — scores leads in active pipeline stages that haven't been
  * scored in 7+ days (or never scored). Processes up to 20 per run.
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

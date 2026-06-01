@@ -4,7 +4,7 @@ import { acquireCronLock } from "@/lib/cron-guard";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
 import type { PipelineStage } from "@prisma/client";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 /**
@@ -26,7 +26,7 @@ const STAGE_DELAYS: Partial<Record<PipelineStage, { nextStage: PipelineStage; de
   proposal_sent: { nextStage: "submitted", delayMs: 72 * 3600 * 1000 },     // 3 days check-in
 };
 
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { notifyLowOccupancy } from "@/lib/teams-notify";
 import { acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 
 /**
@@ -19,7 +19,7 @@ import { logger } from "@/lib/logger";
  *
  * Auth: Bearer CRON_SECRET
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 

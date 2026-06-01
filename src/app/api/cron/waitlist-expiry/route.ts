@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { spotExpiredEmail, spotAvailableEmail } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
@@ -12,7 +12,7 @@ import { logger } from "@/lib/logger";
  * Runs every hour. Finds waitlisted enquiries where the 48-hour offer window has passed,
  * clears the offer, moves to end of waitlist, sends expiry email, and auto-offers to next.
  */
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withCronHandler(async (req: NextRequest) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
 

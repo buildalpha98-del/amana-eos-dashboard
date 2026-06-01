@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { computeLiveRatios } from "@/lib/ratio-compute";
 import { logger } from "@/lib/logger";
+import { withDbRetry } from "@/lib/prisma-retry";
 
 /**
  * Hourly ratio-capture cron.
@@ -14,6 +15,7 @@ import { logger } from "@/lib/logger";
  * Trigger: `vercel.json` schedule entry (caller: add hourly)
  */
 export async function GET(req: Request) {
+  return withDbRetry(async () => {
   const authError = verifyCronSecret(req);
   if (authError) return authError.error;
 
@@ -77,4 +79,5 @@ export async function GET(req: Request) {
       { status: 500 },
     );
   }
+  });
 }

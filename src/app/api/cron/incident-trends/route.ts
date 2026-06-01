@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 
 function getWeekOf(date: Date): Date {
   const d = new Date(date);
@@ -17,7 +17,7 @@ function getWeekOf(date: Date): Date {
  * Compares to 4-week rolling average
  * Creates alert Todos for flagged centres
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

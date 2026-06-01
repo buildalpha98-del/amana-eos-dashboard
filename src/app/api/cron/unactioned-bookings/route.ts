@@ -4,6 +4,7 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { baseLayout } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
+import { withDbRetry } from "@/lib/prisma-retry";
 
 const PORTAL_URL = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
@@ -15,6 +16,7 @@ const PORTAL_URL = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
  * that have been pending for more than 24 hours.
  */
 export async function GET(req: NextRequest) {
+  return withDbRetry(async () => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -144,4 +146,5 @@ export async function GET(req: NextRequest) {
     await guard.fail(err);
     throw err;
   }
+  });
 }

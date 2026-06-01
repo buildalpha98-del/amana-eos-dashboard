@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -13,7 +13,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * - stageChangedAt > 30 days ago
  * - No touchpoints sent in the last 14 days
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

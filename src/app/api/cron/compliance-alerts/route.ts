@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { complianceAlertEmail } from "@/lib/email-templates";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 
@@ -29,7 +29,7 @@ import { NOTIFICATION_TYPES } from "@/lib/notification-types";
  *
  * Auth: Bearer CRON_SECRET
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

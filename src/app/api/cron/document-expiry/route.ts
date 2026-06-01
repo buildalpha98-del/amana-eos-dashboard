@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { baseLayout } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
  * Finds documents expiring within 30 days and already-expired documents.
  * Sends summary emails to service coordinators.
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const authError = verifyCronSecret(req);
   if (authError) return authError.error;
 

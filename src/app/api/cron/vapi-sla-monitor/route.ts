@@ -17,7 +17,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { sendEmail } from "@/lib/email";
 import { baseLayout } from "@/lib/email-templates/base";
 import { sendTeamsNotification } from "@/lib/teams-notify";
@@ -95,7 +95,7 @@ async function sendEscalationEmail(call: {
   await sendEmail({ to: Array.from(recipients), subject, html });
 }
 
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {

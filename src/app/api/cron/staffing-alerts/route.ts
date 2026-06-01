@@ -4,9 +4,9 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { staffingAlertEmail } from "@/lib/email-templates";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   // 1. Auth
   const authCheck = verifyCronSecret(req);
   if (authCheck) return authCheck.error;

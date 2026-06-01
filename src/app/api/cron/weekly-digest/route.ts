@@ -3,7 +3,7 @@ import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
 import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 
 // ── Brand constants ─────────────────────────────────────────
 const BRAND_COLOR = "#004E64";
@@ -157,7 +157,7 @@ function buildDigestHtml(data: DigestData): string {
 
 // ── Cron handler ────────────────────────────────────────────
 
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

@@ -24,7 +24,7 @@ import {
   retentionWithdrawalInterceptEmail,
   nurtureFormAbandonmentEmail,
 } from "@/lib/email-templates";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
 import { sendSms } from "@/lib/sms";
@@ -94,7 +94,7 @@ const BATCH_SIZE = 15;
  *
  * Processes in batches of 15 via Promise.allSettled to avoid Vercel 60s timeout.
  */
-export const POST = withApiHandler(async (req) => {
+export const POST = withCronHandler(async (req) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
 

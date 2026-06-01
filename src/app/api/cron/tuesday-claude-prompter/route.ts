@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 import { getFocusAvatarForWeek, getFocusAvatarSlimForWeek } from "@/lib/avatar-focus-rotation";
 import { buildTuesdayPrompts, bundlePromptBody } from "@/lib/tuesday-prompts";
@@ -13,7 +13,7 @@ function isoWeekKey(date: Date): string {
   return monday.toISOString().slice(0, 10);
 }
 
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

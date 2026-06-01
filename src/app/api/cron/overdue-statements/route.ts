@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { logger } from "@/lib/logger";
 import { sendOverdueStatementNotification } from "@/lib/notifications/billing";
 
@@ -10,7 +10,7 @@ import { sendOverdueStatementNotification } from "@/lib/notifications/billing";
  * Daily cron: marks issued statements past their due date as overdue.
  * Schedule: daily at 10pm UTC — "0 22 * * *"
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 

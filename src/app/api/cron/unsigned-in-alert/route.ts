@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { sendUnsignedInAlert } from "@/lib/notifications/cron";
 import { logger } from "@/lib/logger";
@@ -14,7 +14,7 @@ import { logger } from "@/lib/logger";
  *
  * Auth: Bearer CRON_SECRET
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 

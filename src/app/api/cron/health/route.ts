@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { withDbRetry } from "@/lib/prisma-retry";
 
 /**
  * GET /api/cron/health
@@ -11,7 +12,7 @@ import { withApiAuth } from "@/lib/server-auth";
  * Only accessible to owner/admin roles.
  */
 export const GET = withApiAuth(
-  async (req: NextRequest) => {
+  async (req: NextRequest) => withDbRetry(async () => {
     // Get the most recent CronRun per cronName
     const latestRuns = await prisma.cronRun.findMany({
       orderBy: { startedAt: "desc" },
@@ -96,6 +97,6 @@ export const GET = withApiAuth(
       },
       crons: cronHealth,
     });
-  },
+  }),
   { roles: ["owner", "admin"] },
 );

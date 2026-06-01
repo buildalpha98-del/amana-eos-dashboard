@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
-import { withApiHandler } from "@/lib/api-handler";
+import { withCronHandler } from "@/lib/prisma-retry";
 
 // ── Constants ───────────────────────────────────────────────
 const CONSECUTIVE_MISS_THRESHOLD = 3;
@@ -37,7 +37,7 @@ function getYesterdayAEST(): Date {
  * Daily cron that checks whether each centre confirmed their daily photos.
  * Creates follow-up tasks when they haven't, with escalation for streaks.
  */
-export const GET = withApiHandler(async (req) => {
+export const GET = withCronHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
