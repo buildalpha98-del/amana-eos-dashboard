@@ -39,6 +39,13 @@ export const GET = withApiAuth(async (_req, session, context) => {
       templateId: true,
       templateValues: true,
       template: { select: { contentJson: true } },
+      // 2026-06-02: signature data URLs need to flow into the render
+      // so admins/staff viewing the contract in the in-app modal see
+      // both signatures, not just whatever was baked into the PDF.
+      adminSignatureDataUrl: true,
+      adminSignedAt: true,
+      staffSignatureDataUrl: true,
+      acknowledgedAt: true,
     },
   });
   if (!contract) throw ApiError.notFound("Contract not found");
@@ -61,7 +68,29 @@ export const GET = withApiAuth(async (_req, session, context) => {
     auto?: Record<string, string>;
     manual?: Record<string, string>;
   };
-  const data: Record<string, string> = { ...(tv.auto ?? {}), ...(tv.manual ?? {}) };
+
+  // Format the signature dates for the footer caption. en-AU long form
+  // matches the rest of the document's date style.
+  function friendlyDate(d: Date | null): string {
+    if (!d) return "";
+    return new Date(d).toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  const data: Record<string, string> = {
+    ...(tv.auto ?? {}),
+    ...(tv.manual ?? {}),
+    "signature.admin": contract.adminSignatureDataUrl ?? "",
+    "signature.staff": contract.staffSignatureDataUrl ?? "",
+    // Auxiliary date keys consumed by the signature footer; templates
+    // that place signatures inline can also reference these if they
+    // want a date under the line.
+    "signature.adminDate": friendlyDate(contract.adminSignedAt),
+    "signature.staffDate": friendlyDate(contract.acknowledgedAt),
+  };
 
   const { html } = renderTemplateHtml({
     doc: contract.template.contentJson as TipTapDoc,

@@ -154,6 +154,100 @@ function renderNode(node: TipTapNode, data: Record<string, string>, missing: str
   }
 }
 
+/**
+ * Walk the doc to find which merge-tag keys it references. Used by
+ * the renderer to detect whether signature placeholders are already
+ * placed inline by the template, or whether we need to auto-append
+ * a fallback signature block at the end of the document.
+ *
+ * Kept local rather than importing from extract-merge-tags.ts to
+ * avoid a circular dependency (extract-merge-tags imports types
+ * from this file).
+ */
+function collectMergeTagKeys(nodes: TipTapNode[] | undefined): Set<string> {
+  const keys = new Set<string>();
+  function walk(arr: TipTapNode[] | undefined) {
+    if (!arr) return;
+    for (const n of arr) {
+      if (n.type === "mergeTag") {
+        const k = n.attrs?.key;
+        if (typeof k === "string") keys.add(k);
+      }
+      if (n.content) walk(n.content);
+    }
+  }
+  walk(nodes);
+  return keys;
+}
+
+/**
+ * Inline HTML for one signature row in the fallback block. Renders
+ * the signature image (or a blank rule when the signature isn't
+ * available) above a labelled caption with the date.
+ *
+ * @param label    "Issuing admin" / "Staff member"
+ * @param dataUrl  The PNG data URL (or null/empty for blank)
+ * @param dateText Optional human date shown under the line
+ */
+function renderSignatureRow(
+  label: string,
+  dataUrl: string,
+  dateText: string,
+): string {
+  const sigHtml =
+    dataUrl && dataUrl.startsWith("data:image/")
+      ? `<img src="${dataUrl}" alt="Signature" style="display:block;max-width:240px;max-height:80px;" />`
+      : `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #aaa;height:1.4em;"></span>`;
+  return `
+    <div style="margin-top:1.2em;">
+      <div style="margin-bottom:0.2em;">${sigHtml}</div>
+      <div style="border-top:1px solid #ccc;padding-top:0.3em;font-size:11pt;">
+        <strong>${escapeHtml(label)}</strong>${dateText ? ` &middot; ${escapeHtml(dateText)}` : ""}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Build the fallback "Signatures" footer that's appended when the
+ * template doesn't already place signature.admin / signature.staff
+ * inline. We only show rows for signatures the template HASN'T
+ * already rendered — avoids duplicate display for templates that
+ * have one signature inline and one not.
+ *
+ * `placedInline` is the set of signature tags already in the template
+ * body so we know what to skip.
+ */
+function buildSignatureFooter(
+  data: Record<string, string>,
+  placedInline: Set<string>,
+): string {
+  const adminSig = data["signature.admin"] ?? "";
+  const staffSig = data["signature.staff"] ?? "";
+  const adminDate = data["signature.adminDate"] ?? "";
+  const staffDate = data["signature.staffDate"] ?? "";
+
+  const adminAlreadyInline = placedInline.has("signature.admin");
+  const staffAlreadyInline = placedInline.has("signature.staff");
+
+  // Only build the footer for signatures we actually need to surface.
+  const rows: string[] = [];
+  if (!adminAlreadyInline) {
+    rows.push(renderSignatureRow("Issuing admin", adminSig, adminDate));
+  }
+  if (!staffAlreadyInline) {
+    rows.push(renderSignatureRow("Staff member", staffSig, staffDate));
+  }
+  if (rows.length === 0) return "";
+
+  return `
+    <div style="margin-top:2.5em;padding-top:1em;border-top:2px solid #333;">
+      <h2 style="font-size:13pt;margin:0 0 0.3em;">Signatures</h2>
+      ${rows.join("")}
+    </div>
+  `;
+}
+
 export function renderTemplateHtml(args: {
   doc: TipTapDoc;
   data: Record<string, string>;
@@ -163,7 +257,19 @@ export function renderTemplateHtml(args: {
 
   const body = renderNodes(doc.content, data, missingTags);
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${body}</body></html>`;
+  // 2026-06-02: auto-append a Signatures footer when signature data
+  // exists but the template doesn't reference the placeholder inline.
+  // This gracefully handles legacy templates authored before the
+  // signature merge tags existed — admins don't have to retrofit
+  // every template to get both signatures visible.
+  const placedInline = collectMergeTagKeys(doc.content);
+  const hasAnySignatureData =
+    !!(data["signature.admin"] || data["signature.staff"]);
+  const signatureFooter = hasAnySignatureData
+    ? buildSignatureFooter(data, placedInline)
+    : "";
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${body}${signatureFooter}</body></html>`;
 
   return { html, missingTags };
 }

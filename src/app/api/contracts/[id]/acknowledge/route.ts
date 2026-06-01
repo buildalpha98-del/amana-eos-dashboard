@@ -91,11 +91,30 @@ const { id } = await context!.params!;
       const auto = values?.auto ?? {};
       const manual = values?.manual ?? {};
 
+      // Friendly date strings consumed by the signature footer / inline
+      // signature captions. Admin date comes from the stored timestamp;
+      // staff date is "now" since this request IS the staff signature.
+      const friendlyDate = (d: Date | null | undefined) =>
+        d
+          ? new Date(d).toLocaleDateString("en-AU", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : "";
+      const nowFriendly = new Date().toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+
       const allData: Record<string, string> = {
         ...auto,
         ...manual,
         "signature.admin": contract.adminSignatureDataUrl ?? "",
         "signature.staff": staffSignatureDataUrl,
+        "signature.adminDate": friendlyDate(contract.adminSignedAt),
+        "signature.staffDate": nowFriendly,
       };
 
       const { html } = renderTemplateHtml({

@@ -72,12 +72,20 @@ export const POST = withApiAuth(
     // Step 5: render HTML — merge auto + manual; unknown tags fail here.
     // Signature merge tags get the data URL straight from the request
     // (admin) or empty string (staff — they sign later, triggering a
-    // re-render).
+    // re-render). Date captions are populated for the signature footer
+    // — admin date is "now" at issue time; staff is empty until they sign.
+    const adminDateFriendly = new Date().toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
     const allData = {
       ...resolved,
       ...data.manualValues,
       "signature.admin": data.adminSignatureDataUrl ?? "",
       "signature.staff": "",
+      "signature.adminDate": data.adminSignatureDataUrl ? adminDateFriendly : "",
+      "signature.staffDate": "",
     };
     const { html, missingTags } = renderTemplateHtml({
       doc: template.contentJson as TipTapDoc,
