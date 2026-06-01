@@ -1183,6 +1183,32 @@ export default function LeavePage() {
         ]}
       />
 
+      {/* 2026-06-01: Staff portal + payroll-of-record now live in
+          Employment Hero. This page is the internal-tracker view; the
+          payroll-of-record view lives at /leave-payroll. Surface a
+          banner so admins know where the live data is. */}
+      {isAdmin && (
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 flex flex-wrap items-start gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-sm font-semibold text-blue-900">
+              Payroll-of-record leave lives in Employment Hero
+            </p>
+            <p className="text-xs text-blue-800/80 mt-1">
+              Staff requests, balances, and approvals now flow through
+              Employment Hero. This page shows the internal-tracker
+              historical view. For the live, payroll-of-record view, use
+              the &ldquo;Leave (Payroll)&rdquo; page.
+            </p>
+          </div>
+          <a
+            href="/leave-payroll"
+            className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+          >
+            Open Leave (Payroll)
+          </a>
+        </div>
+      )}
+
       {/* Leave Balance Cards */}
       {balancesLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

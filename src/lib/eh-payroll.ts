@@ -524,6 +524,35 @@ export async function listLeaveCategories(): Promise<EhLeaveCategory[]> {
   return request<EhLeaveCategory[]>(`/leavecategory`);
 }
 
+/**
+ * Admin-only: list ALL leave requests across the business. Used by the
+ * /leave-payroll admin view so the director can see pending approvals
+ * at a glance + click through to EH to approve them.
+ *
+ * The base endpoint `/business/{id}/leaverequest` accepts a `status`
+ * query param (Pending / Approved / Rejected / Cancelled) — when null
+ * we pull everything.
+ */
+export interface EhAdminLeaveRequest {
+  id: number;
+  employeeId: number;
+  employee: string; // employee name as EH returns it
+  leaveCategoryId: number;
+  leaveCategory: string;
+  fromDate: string;
+  toDate: string;
+  totalHours: number;
+  status: string;
+  notes: string | null;
+}
+
+export async function listAllLeaveRequests(
+  status?: "Pending" | "Approved" | "Rejected" | "Cancelled",
+): Promise<EhAdminLeaveRequest[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  return request<EhAdminLeaveRequest[]>(`/leaverequest${qs}`);
+}
+
 export interface LeaveEstimate {
   totalHours: number;
 }
