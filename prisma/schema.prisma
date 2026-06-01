@@ -4981,6 +4981,13 @@ model RecruitmentVacancy {
   employmentType        EmploymentType
   qualificationRequired String? // none, cert_iii, diploma
   status                String                 @default("open") // open, interviewing, offered, filled, cancelled
+
+  // Optional link to the Position Description library — when set,
+  // the vacancy detail surface shows the PD inline so interviewers
+  // have the selection criteria at hand. Nullable so legacy
+  // vacancies don't break.
+  positionDescriptionId String?
+  positionDescription   PositionDescription?   @relation("VacancyPositionDescription", fields: [positionDescriptionId], references: [id], onDelete: SetNull)
   postedChannels        String[]
   postedAt              DateTime?
   targetFillDate        DateTime?
@@ -7044,6 +7051,10 @@ model PositionDescription {
   // Users currently assigned this PD. SetNull on PD delete so a
   // mistakenly deleted PD doesn't cascade-delete staff records.
   assignedUsers     User[]   @relation("UserPositionDescription")
+
+  // Vacancies linked to this PD — interviewers see the PD inline on
+  // the vacancy detail surface.
+  vacancies         RecruitmentVacancy[] @relation("VacancyPositionDescription")
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

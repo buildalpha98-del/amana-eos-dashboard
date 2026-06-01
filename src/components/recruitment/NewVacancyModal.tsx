@@ -18,6 +18,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
     qualificationRequired: "",
     targetFillDate: "",
     notes: "",
+    positionDescriptionId: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -36,6 +37,19 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
     staleTime: 30_000,
   });
 
+  // Published PDs only — drafts shouldn't be linkable from a vacancy.
+  const { data: pdList } = useQuery<{
+    items: Array<{ id: string; title: string; targetRole: string | null }>;
+  }>({
+    queryKey: ["position-descriptions-published"],
+    queryFn: async () => {
+      const res = await fetch("/api/position-descriptions?status=published");
+      if (!res.ok) return { items: [] };
+      return res.json();
+    },
+    staleTime: 5 * 60_000,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.serviceId || !form.role) return;
@@ -49,6 +63,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
           ...form,
           qualificationRequired: form.qualificationRequired || null,
           targetFillDate: form.targetFillDate || null,
+          positionDescriptionId: form.positionDescriptionId || null,
         }),
       });
       if (!res.ok) throw new Error("Failed to create vacancy");
@@ -137,6 +152,31 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
+              Position Description{" "}
+              <span className="text-muted font-normal">(optional)</span>
+            </label>
+            <select
+              value={form.positionDescriptionId}
+              onChange={(e) =>
+                setForm({ ...form, positionDescriptionId: e.target.value })
+              }
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg"
+            >
+              <option value="">— None —</option>
+              {pdList?.items.map((pd) => (
+                <option key={pd.id} value={pd.id}>
+                  {pd.title}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted mt-1">
+              Linking a PD surfaces the selection criteria on the
+              vacancy detail page for the interview panel.
+            </p>
           </div>
 
           <div>

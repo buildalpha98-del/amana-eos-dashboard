@@ -222,6 +222,50 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
             </div>
           )}
 
+          {/* Position Description — surfaces the formal selection
+              criteria to the interview panel. Linked at vacancy
+              creation; null for legacy vacancies. */}
+          {vacancy.positionDescription && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-blue-900 flex items-center gap-1.5">
+                  Position Description ·{" "}
+                  {vacancy.positionDescription.title}
+                </p>
+                <a
+                  href={`/position-descriptions`}
+                  className="text-xs text-blue-700 hover:underline"
+                >
+                  View library →
+                </a>
+              </div>
+              {vacancy.positionDescription.summary && (
+                <PdField
+                  label="Summary"
+                  value={vacancy.positionDescription.summary}
+                />
+              )}
+              {vacancy.positionDescription.responsibilities && (
+                <PdField
+                  label="Key responsibilities"
+                  value={vacancy.positionDescription.responsibilities}
+                />
+              )}
+              {vacancy.positionDescription.selectionCriteria && (
+                <PdField
+                  label="Selection criteria"
+                  value={vacancy.positionDescription.selectionCriteria}
+                />
+              )}
+              {vacancy.positionDescription.qualifications && (
+                <PdField
+                  label="Qualifications"
+                  value={vacancy.positionDescription.qualifications}
+                />
+              )}
+            </div>
+          )}
+
           {/* Candidates */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -428,6 +472,17 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
           onClose={() => setSelectedCandidateId(null)}
         />
       )}
+    </div>
+  );
+}
+
+function PdField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-blue-900/70 mb-0.5">
+        {label}
+      </p>
+      <p className="text-sm text-blue-900 whitespace-pre-wrap">{value}</p>
     </div>
   );
 }

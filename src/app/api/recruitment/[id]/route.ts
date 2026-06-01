@@ -16,6 +16,7 @@ const updateVacancySchema = z.object({
   filledByUserId: z.string().nullable().optional(),
   assignedToId: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  positionDescriptionId: z.string().nullable().optional(),
 });
 
 export const GET = withApiAuth(async (req, session, context) => {
@@ -27,6 +28,18 @@ const { id } = await context!.params!;
       service: { select: { id: true, name: true, code: true } },
       assignedTo: { select: { id: true, name: true } },
       filledByUser: { select: { id: true, name: true } },
+      positionDescription: {
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          responsibilities: true,
+          selectionCriteria: true,
+          qualifications: true,
+          targetRole: true,
+          status: true,
+        },
+      },
       candidates: {
         orderBy: { createdAt: "desc" },
         include: {

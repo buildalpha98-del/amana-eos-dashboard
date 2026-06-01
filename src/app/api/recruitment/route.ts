@@ -13,6 +13,9 @@ const createVacancySchema = z.object({
   targetFillDate: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   assignedToId: z.string().optional().nullable(),
+  // Optional link to a Position Description — the interviewer sees
+  // the PD inline on the vacancy detail surface when set.
+  positionDescriptionId: z.string().optional().nullable(),
 });
 
 export const GET = withApiAuth(async (req, session) => {
@@ -57,7 +60,17 @@ const body = await parseJsonBody(req);
     );
   }
 
-  const { serviceId, role, employmentType, qualificationRequired, postedChannels, targetFillDate, notes, assignedToId } = parsed.data;
+  const {
+    serviceId,
+    role,
+    employmentType,
+    qualificationRequired,
+    postedChannels,
+    targetFillDate,
+    notes,
+    assignedToId,
+    positionDescriptionId,
+  } = parsed.data;
 
   const vacancy = await prisma.recruitmentVacancy.create({
     data: {
@@ -69,9 +82,11 @@ const body = await parseJsonBody(req);
       targetFillDate: targetFillDate ? new Date(targetFillDate) : null,
       notes: notes || null,
       assignedToId: assignedToId || null,
+      positionDescriptionId: positionDescriptionId || null,
     },
     include: {
       service: { select: { id: true, name: true, code: true } },
+      positionDescription: { select: { id: true, title: true, targetRole: true } },
     },
   });
 
