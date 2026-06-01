@@ -78,6 +78,20 @@ const roleLabelsSchema = z.object({
   staff: z.string().min(1).max(60),
 });
 
+// 2026-06-02: optional per-role page-access overrides. Each role can
+// have a custom list of pages it's allowed to visit; null = use the
+// compile-time defaults in `rolePageAccess`. Owner is intentionally
+// also overridable in the schema for completeness but the UI prevents
+// editing it — locked at full access via the matrix's guardrails.
+const rolePageOverridesSchema = z.object({
+  owner: z.array(z.string()).nullable(),
+  head_office: z.array(z.string()).nullable(),
+  admin: z.array(z.string()).nullable(),
+  marketing: z.array(z.string()).nullable(),
+  member: z.array(z.string()).nullable(),
+  staff: z.array(z.string()).nullable(),
+});
+
 // 2026-05-16: per-role guide overrides — welcome message only for v1.
 // The deep structured sections / steps editor is a follow-up. This handles
 // the highest-frequency edit (stale hardcoded names in welcome copy, e.g.
@@ -156,6 +170,11 @@ export const orgSettingsConfigSchema = z.object({
   // The DB rows still reference the Prisma `Role` enum (owner, head_office,
   // admin, marketing, member, staff); the label is purely cosmetic.
   roleLabels: roleLabelsSchema,
+  // 2026-06-02: per-role page-access overrides. Editable from the
+  // /settings/permissions matrix. Owner-only edit. When a role's
+  // entry is null, the compile-time default in role-permissions.ts is
+  // used; an array replaces the default entirely.
+  rolePageOverrides: rolePageOverridesSchema,
   // 2026-05-16: per-role guide overrides (welcome message only for v1).
   roleGuides: roleGuidesSchema,
   // 2026-05-16: per-item Getting Started checklist overrides (title +
@@ -226,6 +245,14 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     },
   },
   roleLabels: ROLE_LABEL_DEFAULTS,
+  rolePageOverrides: {
+    owner: null,
+    head_office: null,
+    admin: null,
+    marketing: null,
+    member: null,
+    staff: null,
+  },
   roleGuides: {
     owner: { welcomeMessage: "" },
     head_office: { welcomeMessage: "" },
@@ -385,6 +412,10 @@ export function mergeOrgSettings(
       member: pickLabel("member"),
       staff: pickLabel("staff"),
     },
+    rolePageOverrides: mergeRolePageOverrides(
+      safe.rolePageOverrides,
+      defaults.rolePageOverrides,
+    ),
     roleGuides: mergeRoleGuides(safe.roleGuides, defaults.roleGuides),
     checklistOverrides: mergeChecklistOverrides(
       safe.checklistOverrides,
@@ -450,6 +481,36 @@ function mergeOnboardingWelcome(
       typeof safe.body === "string" && safe.body.length > 0
         ? (safe.body as string)
         : defaults.body,
+  };
+}
+
+function mergeRolePageOverrides(
+  partial: unknown,
+  defaults: OrgSettingsConfig["rolePageOverrides"],
+): OrgSettingsConfig["rolePageOverrides"] {
+  const safe = (partial && typeof partial === "object" ? partial : {}) as Record<
+    string,
+    unknown
+  >;
+  // For each role: accept an array of strings (the explicit override)
+  // or null (use defaults). Anything else falls back to defaults.
+  const pick = (
+    k: keyof OrgSettingsConfig["rolePageOverrides"],
+  ): string[] | null => {
+    const v = safe[k];
+    if (Array.isArray(v) && v.every((x) => typeof x === "string")) {
+      return v as string[];
+    }
+    if (v === null) return null;
+    return defaults[k];
+  };
+  return {
+    owner: pick("owner"),
+    head_office: pick("head_office"),
+    admin: pick("admin"),
+    marketing: pick("marketing"),
+    member: pick("member"),
+    staff: pick("staff"),
   };
 }
 

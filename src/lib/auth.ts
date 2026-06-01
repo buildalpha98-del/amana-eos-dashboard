@@ -4,6 +4,7 @@ import { compare } from "bcryptjs";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
+import { getOrgSettings } from "@/lib/org-settings";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -95,6 +96,10 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Validate tokenVersion against database (checked periodically)
+      // and refresh the role-page-access override for this user.
+      // Piggybacking the 5-minute window means an admin's permission
+      // change propagates to active sessions within ~5 min without a
+      // re-login.
       if (token.id && typeof token.tokenVersion === "number") {
         const lastCheck = (token.tokenVersionCheckedAt as number) ?? 0;
         const FIVE_MINUTES = 5 * 60 * 1000;
@@ -108,6 +113,19 @@ export const authOptions: NextAuthOptions = {
               return { ...token, exp: 0 }; // Force token expiry
             }
             token.tokenVersionCheckedAt = Date.now();
+
+            // Refresh the page-access override for this user's role.
+            // Null = use compile-time defaults (kept in token so the
+            // middleware can act without an extra DB lookup).
+            try {
+              const settings = await getOrgSettings();
+              const roleKey = token.role as keyof typeof settings.rolePageOverrides;
+              const override = settings.rolePageOverrides?.[roleKey];
+              token.rolePageOverride = override ?? null;
+            } catch {
+              // Don't fail the token refresh if org-settings is
+              // unreachable — leave the previous value in place.
+            }
           } catch {
             // DB unavailable — allow token to continue
           }

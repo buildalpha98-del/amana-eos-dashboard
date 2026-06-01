@@ -23,12 +23,23 @@ export default withAuth(
     // Use the shared canAccessPage helper from role-permissions so dynamic
     // `[id]` route patterns (e.g. /children/[id]) match concrete paths
     // (/children/abc123) consistently with client-side sidebar filtering.
+    //
+    // 2026-06-02: token may carry a `rolePageOverride` — a custom
+    // allowlist set by an owner via /settings/permissions. When present,
+    // it replaces the compile-time default for THIS user's role. The
+    // JWT callback refreshes it every 5 min so changes propagate without
+    // a forced logout.
     const role = parseRole(token?.role);
-    if (role && !canAccessPage(role, pathname)) {
-      // Redirect to dashboard if user doesn't have access
-      const url = req.nextUrl.clone();
-      url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
+    if (role) {
+      const override = token?.rolePageOverride as readonly string[] | null | undefined;
+      const overrides =
+        override !== undefined ? { [role]: override } : undefined;
+      if (!canAccessPage(role, pathname, overrides)) {
+        // Redirect to dashboard if user doesn't have access
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
     }
 
     return NextResponse.next();

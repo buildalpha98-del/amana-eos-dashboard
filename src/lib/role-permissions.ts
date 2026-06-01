@@ -105,6 +105,7 @@ export const allPages = [
   "/settings",
   "/settings/organisation",
   "/settings/email-templates",
+  "/settings/permissions",
   "/profile",
   "/crm",
   "/crm/templates",
@@ -657,12 +658,34 @@ function pathMatches(pattern: string, href: string): boolean {
   return re.test(href);
 }
 
-/** Can the given role access a page (or a sub-path of it)? */
-export function canAccessPage(role: Role | undefined, href: string): boolean {
+/** Can the given role access a page (or a sub-path of it)?
+ *
+ * Optional `overrides` map (keyed by role, value is a custom allowlist
+ * or null for "use defaults") is consulted first — used by the
+ * /settings/permissions matrix to apply runtime configuration without
+ * a code deploy. Without overrides, falls back to the compile-time
+ * defaults in `rolePageAccess`.
+ */
+export function canAccessPage(
+  role: Role | undefined,
+  href: string,
+  overrides?: Partial<Record<Role, readonly string[] | null>>,
+): boolean {
   if (!role) return true; // still loading; let server middleware decide
-  const allowed = rolePageAccess[role];
-  if (!allowed) return true;
+  const allowed = getEffectivePageAccess(role, overrides);
   return allowed.some((path) => pathMatches(path, href));
+}
+
+/** Resolve the effective page list for a role, honouring overrides. */
+export function getEffectivePageAccess(
+  role: Role,
+  overrides?: Partial<Record<Role, readonly string[] | null>>,
+): readonly string[] {
+  const override = overrides?.[role];
+  if (override !== undefined && override !== null) {
+    return override;
+  }
+  return rolePageAccess[role] ?? [];
 }
 
 /** Convenience: return the list of accessible page paths */
