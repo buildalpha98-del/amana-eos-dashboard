@@ -17,6 +17,7 @@ import { PersonalTab } from "@/components/staff/tabs/PersonalTab";
 import { SeparationTab } from "@/components/staff/SeparationTab";
 import { CasualConversionTab } from "@/components/staff/CasualConversionTab";
 import { PositionDescriptionTab } from "@/components/staff/PositionDescriptionTab";
+import { ReferenceChecksTab } from "@/components/staff/ReferenceChecksTab";
 import { SectionShell } from "./SectionShell";
 import type { StaffProfileData } from "@/components/staff/types";
 
@@ -25,6 +26,7 @@ type SubTab =
   | "personal"
   | "emergency"
   | "position"
+  | "references"
   | "conversion"
   | "separation";
 
@@ -34,6 +36,8 @@ const SUB_TABS_BASE = [
   { key: "emergency", label: "Emergency contacts" },
   { key: "position", label: "Position description" },
 ] as const;
+
+const REFERENCES_SUB_TAB = { key: "references", label: "References" } as const;
 
 const CONVERSION_SUB_TAB = {
   key: "conversion",
@@ -70,12 +74,17 @@ export function EmploymentRecordsSection({
   const initialTab: SubTab =
     searchParams.get("edit") === "personal" ? "personal" : "employment";
 
-  // Conversion and Separation sub-tabs are both admin-only — they
-  // gate on the same `canManageSeparation` prop (admin role).
-  // Sub-tab order: details → personal → emergency → conversion → separation
-  // — emotionally ordered too (most positive to most consequential).
+  // Conversion, References and Separation sub-tabs are admin-only.
+  // Sub-tab order: details → personal → emergency → position →
+  // references (admin) → conversion (admin) → separation (admin).
+  // Emotionally ordered: most positive (employment) → most consequential.
   const subTabs = canManageSeparation
-    ? ([...SUB_TABS_BASE, CONVERSION_SUB_TAB, SEPARATION_SUB_TAB] as const)
+    ? ([
+        ...SUB_TABS_BASE,
+        REFERENCES_SUB_TAB,
+        CONVERSION_SUB_TAB,
+        SEPARATION_SUB_TAB,
+      ] as const)
     : SUB_TABS_BASE;
 
   return (
@@ -118,6 +127,18 @@ export function EmploymentRecordsSection({
               targetUserName={data.targetUser.name}
               targetUserRole={data.targetUser.role}
               viewerRole={canManageSeparation ? "admin" : "staff"}
+            />
+          );
+        }
+        if (active === "references") {
+          if (!canManageSeparation) return null;
+          // Pass viewerIsOwner via the coarse role string so the
+          // owner-only Soft-delete button can render in the modal.
+          return (
+            <ReferenceChecksTab
+              targetUserId={data.targetUser.id}
+              targetUserName={data.targetUser.name}
+              viewerRole={viewerIsOwner ? "owner" : "admin"}
             />
           );
         }

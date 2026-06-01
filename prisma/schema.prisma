@@ -627,6 +627,12 @@ model User {
   positionDescriptionAssignedAt   DateTime?
   createdPositionDescriptions     PositionDescription[] @relation("PDCreator")
 
+  // Reference checks — back-refs for both subject-side (checks ABOUT
+  // this user during their hiring) and checker-side (checks this user
+  // PERFORMED on others). Subject-side is the primary use case.
+  referenceChecks                 ReferenceCheck[] @relation("RefCheckSubject")
+  performedReferenceChecks        ReferenceCheck[] @relation("RefCheckChecker")
+
   // Per-(userId, threshold) dedup marker for the visa-expiry alert
   // cron. Mirrors ComplianceCertificateAlert but keyed on User
   // because visa lives on the User row, not a separate cert record.
@@ -7046,6 +7052,90 @@ enum PDStatus {
   draft
   published
   archived
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Reference checks on hire (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Structured record of reference checks performed during hiring.
+// The Fair Work Act doesn't mandate references but doing them is a
+// well-established defence against negligent hiring claims (esp. in
+// childcare where the bar for vetting is high). Capturing what was
+// asked, who said what, when, and what we concluded protects the
+// organisation if questions ever come back.
+//
+// Visibility: admin / owner / head_office only. Staff don't see
+// references taken about themselves through this surface. Notes can
+// reference identifiable third parties — owner-only deletion.
+//
+// Retention: 7 years per Fair Work record-keeping. Soft delete only.
+
+model ReferenceCheck {
+  id                  String   @id @default(cuid())
+
+  // Subject of the check — the (prospective) hire.
+  userId              String
+  user                User     @relation("RefCheckSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Who performed the check.
+  checkedById         String
+  checkedBy           User     @relation("RefCheckChecker", fields: [checkedById], references: [id])
+
+  // Referee identity
+  refereeName         String   @db.VarChar(200)
+  refereeRelationship String   @db.VarChar(200)
+  refereeOrganisation String?  @db.VarChar(200)
+  refereePhone        String?
+  refereeEmail        String?
+
+  method              RefCheckMethod
+  contactedAt         DateTime?
+
+  status              RefCheckStatus           @default(pending)
+  recommendation      RefCheckRecommendation?
+
+  // Free-form structured notes — capture what was discussed. v1
+  // doesn't enforce a fixed Q&A list; admins write down what was said.
+  notes               String   @db.Text
+  redFlags            String?  @db.Text
+
+  // Specific anti-fraud / quality flags
+  employmentVerified  Boolean?
+  wouldRehire         Boolean?
+
+  // 7-year Fair Work retention via soft delete.
+  deleted             Boolean  @default(false)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([checkedById])
+}
+
+enum RefCheckMethod {
+  phone
+  video
+  email
+  written_response
+  in_person
+}
+
+enum RefCheckStatus {
+  pending           // Created but not yet contacted
+  contacted         // Attempted; awaiting response
+  completed         // Done, notes captured
+  unable_to_reach   // Couldn't get hold of the referee
+  declined          // Referee declined to provide a reference
+}
+
+enum RefCheckRecommendation {
+  strong_positive
+  positive
+  neutral
+  reservations
+  do_not_recommend
 }
 
 // ─────────────────────────────────────────────────────────────────────
