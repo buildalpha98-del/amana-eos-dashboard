@@ -615,6 +615,7 @@ model User {
   // is the legal-fact record of why and how they left.
   separationRecord       SeparationRecord? @relation("SeparationSubject")
   recordedSeparations    SeparationRecord[] @relation("SeparationRecorder")
+  finalisedSeparations   SeparationRecord[] @relation("SeparationFinaliser")
 
   // Casual conversion elections — Closing Loopholes No. 2 Act 2024
   // (employee-choice model). Multiple records possible over a casual's
@@ -6931,6 +6932,20 @@ model SeparationRecord {
   recordedById  String
   recordedBy    User             @relation("SeparationRecorder", fields: [recordedById], references: [id])
 
+  // ── Finalisation (2026-06-01) ─────────────────────────────
+  // `finalisedAt` is the point of no return: when set, the system
+  // executed the orchestration side-effects (deactivate user, clear
+  // EH mapping, transfer owned Rocks/Issues/Todos to a successor).
+  // Owner-only action via POST /api/separations/[id]/finalise.
+  finalisedAt   DateTime?
+  finalisedById String?
+  finalisedBy   User?            @relation("SeparationFinaliser", fields: [finalisedById], references: [id], onDelete: SetNull)
+
+  // If specified at finalisation, who took over the leaving staff
+  // member's ownership of Rocks / open Todos / Issues. Null = no
+  // transfer requested (owner consciously left orphans for triage).
+  successorUserId String?
+
   // Soft delete — Fair Work retention is 7 years.
   deleted       Boolean          @default(false)
 
@@ -6939,6 +6954,7 @@ model SeparationRecord {
 
   @@index([reason])
   @@index([lastWorkingDay])
+  @@index([finalisedAt])
 }
 
 enum SeparationReason {

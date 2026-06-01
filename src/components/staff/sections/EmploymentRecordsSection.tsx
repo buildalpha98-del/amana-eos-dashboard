@@ -120,6 +120,8 @@ export function EmploymentRecordsSection({
             <SeparationTab
               targetUserId={data.targetUser.id}
               targetUserName={data.targetUser.name}
+              targetUserActive={data.targetUser.active}
+              viewerIsOwner={viewerIsOwner}
             />
           );
         }

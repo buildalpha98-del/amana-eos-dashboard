@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   FileText,
   ExternalLink,
+  X,
 } from "lucide-react";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -89,6 +90,10 @@ interface SeparationRecord {
     occurredAt: string;
   } | null;
   recordedBy: { id: string; name: string };
+  // ── Finalisation ─────────────────────────────────────
+  finalisedAt: string | null;
+  finalisedById: string | null;
+  successorUserId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,6 +101,11 @@ interface SeparationRecord {
 export interface SeparationTabProps {
   targetUserId: string;
   targetUserName: string;
+  /** Owner only — controls visibility of the "Finalise" action. */
+  viewerIsOwner?: boolean;
+  /** Whether the target user is currently active. Once finalised, this
+   *  flips to false and the Finalise button is hidden. */
+  targetUserActive: boolean;
 }
 
 function todayIso(): string {
@@ -118,9 +128,12 @@ function formatDate(iso: string | null): string {
 export function SeparationTab({
   targetUserId,
   targetUserName,
+  viewerIsOwner = false,
+  targetUserActive,
 }: SeparationTabProps) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
+  const [finaliseOpen, setFinaliseOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery<
     { record: SeparationRecord | null },
@@ -185,10 +198,29 @@ export function SeparationTab({
   }
 
   return (
-    <SeparationView
-      record={record}
-      onEdit={() => setEditing(true)}
-    />
+    <>
+      <SeparationView
+        record={record}
+        onEdit={() => setEditing(true)}
+        canFinalise={viewerIsOwner && targetUserActive && !record.finalisedAt}
+        onFinalise={() => setFinaliseOpen(true)}
+      />
+      {finaliseOpen && (
+        <FinaliseModal
+          recordId={record.id}
+          targetUserName={targetUserName}
+          targetUserId={targetUserId}
+          onClose={() => setFinaliseOpen(false)}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: ["separation", targetUserId] });
+            // Also invalidate the staff profile query if the page reads
+            // user.active anywhere on screen — defensive cache clear.
+            qc.invalidateQueries();
+            setFinaliseOpen(false);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -197,18 +229,61 @@ export function SeparationTab({
 function SeparationView({
   record,
   onEdit,
+  canFinalise,
+  onFinalise,
 }: {
   record: SeparationRecord;
   onEdit: () => void;
+  canFinalise: boolean;
+  onFinalise: () => void;
 }) {
   const reasonLabel =
     REASONS.find((r) => r.key === record.reason)?.label ?? record.reason;
   const isDismissal =
     record.reason === "dismissal_capacity" ||
     record.reason === "dismissal_misconduct";
+  const finalised = !!record.finalisedAt;
 
   return (
     <div className="space-y-4">
+      {finalised && (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 flex items-start gap-2">
+          <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold">
+              Separation finalised {formatDate(record.finalisedAt)}
+            </p>
+            <p className="text-xs mt-0.5">
+              User has been deactivated and Employment Hero mapping cleared.
+              {record.successorUserId &&
+                " Owned Rocks / open Issues / open Todos transferred to successor."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {canFinalise && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold">Ready to finalise?</p>
+            <p className="text-xs mt-0.5">
+              Last working day has passed. Click Finalise to deactivate the
+              user, clear their EH Payroll link, and transfer open work to a
+              successor. Owner-only action; not reversible without a
+              re-activation flow.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onFinalise}
+            className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+          >
+            Finalise separation
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -225,7 +300,8 @@ function SeparationView({
         <button
           type="button"
           onClick={onEdit}
-          className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-surface"
+          disabled={finalised}
+          className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Edit
         </button>
@@ -701,6 +777,207 @@ function SeparationForm({
           {save.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
           {existing ? "Save changes" : "Create record"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Finalise modal ───────────────────────────────────────────────────
+
+interface FinaliseModalProps {
+  recordId: string;
+  targetUserId: string;
+  targetUserName: string;
+  onClose: () => void;
+  onDone: () => void;
+}
+
+interface ActiveUserOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
+function FinaliseModal({
+  recordId,
+  targetUserId,
+  targetUserName,
+  onClose,
+  onDone,
+}: FinaliseModalProps) {
+  const [successorUserId, setSuccessorUserId] = useState<string>("");
+  const [confirmText, setConfirmText] = useState<string>("");
+  const [phase, setPhase] = useState<"choose" | "confirm">("choose");
+
+  // Re-use the existing eh-payroll/employees-style admin listing? No
+  // — keep it self-contained. Fetch active users via /api/users.
+  const { data: usersData, isLoading: usersLoading } = useQuery<{
+    users?: ActiveUserOption[];
+  } | ActiveUserOption[]>({
+    queryKey: ["active-users-for-successor"],
+    queryFn: async () => {
+      // /api/users returns a bare array in this codebase.
+      const arr = await fetchApi<ActiveUserOption[]>("/api/users?active=true");
+      return arr;
+    },
+    staleTime: 5 * 60_000,
+  });
+  // Normalise: this codebase's /api/users returns a bare array.
+  const allUsers: ActiveUserOption[] = Array.isArray(usersData)
+    ? usersData
+    : (usersData?.users ?? []);
+  const successors = allUsers.filter((u) => u.id !== targetUserId);
+
+  const finalise = useMutation({
+    mutationFn: () =>
+      mutateApi<{
+        transferredRocks: number;
+        transferredTodos: number;
+        transferredIssues: number;
+      }>(`/api/separations/${recordId}/finalise`, {
+        method: "POST",
+        body: { successorUserId: successorUserId || null },
+      }),
+    onSuccess: (res) => {
+      const moved =
+        res.transferredRocks + res.transferredTodos + res.transferredIssues;
+      const summary = successorUserId
+        ? `Deactivated ${targetUserName}. Transferred ${res.transferredRocks} Rocks, ${res.transferredTodos} open Todos, ${res.transferredIssues} Issues to successor.`
+        : `Deactivated ${targetUserName}. No work transferred (no successor chosen).`;
+      toast({ description: summary });
+      onDone();
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
+  const confirmPhrase = `finalise ${targetUserName.toLowerCase()}`;
+  const confirmMatch = confirmText.trim().toLowerCase() === confirmPhrase;
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-black/60 flex items-stretch sm:items-center justify-center sm:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !finalise.isPending) onClose();
+      }}
+    >
+      <div className="bg-card w-full h-full sm:h-auto sm:max-h-[90vh] sm:w-full sm:max-w-lg flex flex-col shadow-2xl sm:rounded-xl">
+        <header className="flex items-center justify-between gap-3 p-4 border-b border-border shrink-0">
+          <h2 className="text-base font-semibold text-foreground">
+            Finalise separation — {targetUserName}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={finalise.isPending}
+            className="p-2 -mr-1.5 rounded-lg hover:bg-surface disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5 text-muted" />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+            <p className="font-semibold">This action is not reversible.</p>
+            <p className="text-xs mt-1">
+              Finalising will deactivate {targetUserName}&apos;s account, clear
+              their Employment Hero Payroll link, and invalidate their
+              sessions. Compliance certificates, contracts, qualifications,
+              and past activity logs stay intact.
+            </p>
+          </div>
+
+          {phase === "choose" && (
+            <>
+              <div>
+                <label
+                  htmlFor="successor"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Successor{" "}
+                  <span className="text-muted font-normal">(optional)</span>
+                </label>
+                <select
+                  id="successor"
+                  value={successorUserId}
+                  onChange={(e) => setSuccessorUserId(e.target.value)}
+                  disabled={usersLoading || finalise.isPending}
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                >
+                  <option value="">— No transfer (leave work unowned) —</option>
+                  {successors.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.email})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted">
+                  If chosen, takes over open Rocks (on_track / off_track),
+                  open Todos (pending / in_progress), and open Issues
+                  (open / in_discussion). Leave blank to preserve as
+                  unowned for triage.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPhase("confirm")}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+              >
+                Continue
+              </button>
+            </>
+          )}
+
+          {phase === "confirm" && (
+            <>
+              <div>
+                <label
+                  htmlFor="confirm"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Type{" "}
+                  <code className="text-foreground bg-surface px-1 py-0.5 rounded">
+                    {confirmPhrase}
+                  </code>{" "}
+                  to confirm
+                </label>
+                <input
+                  id="confirm"
+                  type="text"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  disabled={finalise.isPending}
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-mono"
+                  placeholder={confirmPhrase}
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        <footer className="border-t border-border bg-card shrink-0 p-4 flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={finalise.isPending}
+            className="px-4 py-2 text-sm text-muted rounded-md border border-border disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          {phase === "confirm" && (
+            <button
+              type="button"
+              onClick={() => finalise.mutate()}
+              disabled={!confirmMatch || finalise.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              {finalise.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              Finalise separation
+            </button>
+          )}
+        </footer>
       </div>
     </div>
   );
