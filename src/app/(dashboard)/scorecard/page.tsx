@@ -70,7 +70,11 @@ export default function ScorecardPage() {
   const [showManageMembers, setShowManageMembers] = useState(false);
   const [groupBy, setGroupBy] = useState<"person" | "service">("person");
   const [aiNarrative, setAiNarrative] = useState("");
-  const [tab, setTab] = useState<"all" | "leadership" | "rollup">("all");
+  // 2026-06-02: removed "leadership" tab — it was a server-side
+  // filter on `serviceId === null` which doubled up with the
+  // existing All Measurables view. Multi-scorecard members + the
+  // Org Rollup cover the same use cases without a second tab.
+  const [tab, setTab] = useState<"all" | "rollup">("all");
   const queryClient = useQueryClient();
 
   const canManageSelected =
@@ -146,14 +150,12 @@ export default function ScorecardPage() {
     exportToCSV(rows, "scorecard-export", columns);
   };
 
-  // Leadership team = org-level measurables (no serviceId)
-  const filteredScorecard = useMemo(() => {
-    if (!scorecard || tab === "all") return scorecard;
-    return {
-      ...scorecard,
-      measurables: scorecard.measurables.filter((m) => !m.serviceId),
-    };
-  }, [scorecard, tab]);
+  // The previous "leadership team" filter (serviceId === null) was
+  // retired alongside the tab — every measurable in the scorecard is
+  // shown on the All Measurables view. Keeping `filteredScorecard` as
+  // an identity wrapper for now so the JSX below doesn't need to know
+  // about the change.
+  const filteredScorecard = scorecard;
 
   return (
     <div
@@ -266,27 +268,23 @@ export default function ScorecardPage() {
         </div>
       )}
 
-      {/* Sub-tabs */}
-      <div className="flex items-center gap-1 bg-surface rounded-lg p-0.5 mb-4">
-        <button
-          onClick={() => setTab("all")}
-          className={cn(
-            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-            tab === "all" ? "bg-card text-brand shadow-sm" : "text-muted hover:text-foreground"
-          )}
-        >
-          All Measurables
-        </button>
-        <button
-          onClick={() => setTab("leadership")}
-          className={cn(
-            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-            tab === "leadership" ? "bg-card text-brand shadow-sm" : "text-muted hover:text-foreground"
-          )}
-        >
-          Leadership Team
-        </button>
-        {isAdmin && (
+      {/* Sub-tabs.
+          2026-06-02: dropped "Leadership Team" — it was a no-op
+          filter on serviceId === null that confused users. For
+          non-admins this section now renders nothing (only one
+          option would have shown). Admin still sees the Org Rollup
+          toggle. */}
+      {isAdmin && (
+        <div className="flex items-center gap-1 bg-surface rounded-lg p-0.5 mb-4">
+          <button
+            onClick={() => setTab("all")}
+            className={cn(
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              tab === "all" ? "bg-card text-brand shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            All Measurables
+          </button>
           <button
             onClick={() => setTab("rollup")}
             className={cn(
@@ -296,8 +294,8 @@ export default function ScorecardPage() {
           >
             Org Rollup
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Content */}
       {tab === "rollup" ? (
@@ -330,12 +328,9 @@ export default function ScorecardPage() {
       ) : filteredScorecard && filteredScorecard.measurables.length === 0 ? (
         <EmptyState
           icon={BarChart3}
-          title={tab === "leadership" ? "No Leadership Measurables" : "No Measurables Yet"}
-          description={tab === "leadership"
-            ? "No org-level measurables found. Leadership measurables are those not tied to a specific service."
-            : "Your Scorecard tracks weekly KPIs that tell you if the business is on track. Add your first measurable to start monitoring what matters."
-          }
-          action={tab === "all" ? { label: "Add Your First Measurable", onClick: () => setShowAddMeasurable(true) } : undefined}
+          title="No Measurables Yet"
+          description="Your Scorecard tracks weekly KPIs that tell you if the business is on track. Add your first measurable to start monitoring what matters."
+          action={{ label: "Add Your First Measurable", onClick: () => setShowAddMeasurable(true) }}
         />
       ) : filteredScorecard ? (
         <ScorecardGrid

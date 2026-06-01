@@ -81,6 +81,75 @@ function weekKeyFromIso(iso: string): string {
   return new Date(iso).toISOString().split("T")[0];
 }
 
+export function useDeleteEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      measurableId,
+      weekOf,
+    }: {
+      measurableId: string;
+      weekOf: string;
+    }) => {
+      return mutateApi<{ ok: true }>(
+        `/api/measurables/${measurableId}/entries?weekOf=${encodeURIComponent(weekOf)}`,
+        { method: "DELETE" },
+      );
+    },
+    // Optimistic — drop the matching entry from every cached scorecard
+    // so the cell flips to "—" immediately. Same shape as useCreateEntry
+    // so the two stay symmetric.
+    onMutate: async ({ measurableId, weekOf }) => {
+      await queryClient.cancelQueries({
+        predicate: (q) => isScorecardQueryKey(q.queryKey),
+      });
+
+      const snapshots = queryClient.getQueriesData<ScorecardData>({
+        predicate: (q) => isScorecardQueryKey(q.queryKey),
+      });
+
+      const targetWeekKey = weekKeyFromIso(weekOf);
+
+      queryClient.setQueriesData<ScorecardData>(
+        { predicate: (q) => isScorecardQueryKey(q.queryKey) },
+        (old) => {
+          if (!old?.measurables) return old;
+          return {
+            ...old,
+            measurables: old.measurables.map((m) => {
+              if (m.id !== measurableId) return m;
+              return {
+                ...m,
+                entries: m.entries.filter(
+                  (e) => weekKeyFromIso(e.weekOf) !== targetWeekKey,
+                ),
+              };
+            }),
+          };
+        },
+      );
+
+      return { snapshots };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.snapshots) {
+        for (const [key, data] of context.snapshots) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      toast({
+        variant: "destructive",
+        description: err.message || "Couldn't clear the entry",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        predicate: (q) => isScorecardQueryKey(q.queryKey),
+      });
+    },
+  });
+}
+
 export function useCreateEntry() {
   const queryClient = useQueryClient();
   return useMutation({

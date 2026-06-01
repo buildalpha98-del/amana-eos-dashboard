@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useCreateEntry, type MeasurableEntry } from "@/hooks/useScorecard";
+import {
+  useCreateEntry,
+  useDeleteEntry,
+  type MeasurableEntry,
+} from "@/hooks/useScorecard";
 import { cn } from "@/lib/utils";
 
 export function DataEntryCell({
@@ -20,6 +24,7 @@ export function DataEntryCell({
   goalDirection: "above" | "below" | "exact";
 }) {
   const createEntry = useCreateEntry();
+  const deleteEntry = useDeleteEntry();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
   const [justSaved, setJustSaved] = useState(false);
@@ -43,7 +48,26 @@ export function DataEntryCell({
   }, [justSaved]);
 
   const handleSave = useCallback(() => {
-    const numVal = parseFloat(value);
+    const trimmed = value.trim();
+
+    // Empty input == clear the cell. If there's a stored entry, DELETE
+    // it; if there isn't, just exit edit mode (no-op).
+    if (trimmed === "") {
+      if (entry) {
+        deleteEntry.mutate(
+          { measurableId, weekOf },
+          {
+            onSuccess: () => setJustSaved(true),
+            onSettled: () => setEditing(false),
+          },
+        );
+      } else {
+        setEditing(false);
+      }
+      return;
+    }
+
+    const numVal = parseFloat(trimmed);
     if (isNaN(numVal)) {
       setEditing(false);
       return;
@@ -64,7 +88,7 @@ export function DataEntryCell({
         onSettled: () => setEditing(false),
       }
     );
-  }, [value, entry, measurableId, weekOf, createEntry]);
+  }, [value, entry, measurableId, weekOf, createEntry, deleteEntry]);
 
   const handleCancel = useCallback(() => {
     cancelledRef.current = true;
@@ -211,6 +235,14 @@ export function DataEntryCell({
           onChange={(e) => setValue(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
+          // Title surfaces the "blank to clear" affordance — the input
+          // is too narrow for a meaningful placeholder, so we lean on
+          // the native tooltip + the parent cell's title attribute.
+          title={
+            entry
+              ? "Type a number to update, or leave blank and press Enter to clear."
+              : "Type a number and press Enter to save."
+          }
           className="w-full px-1.5 py-1 text-xs text-center border border-brand rounded bg-card focus:outline-none focus:ring-1 focus:ring-brand"
         />
       </td>
