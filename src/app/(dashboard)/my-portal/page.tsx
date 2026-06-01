@@ -50,6 +50,7 @@ import { MyExpensesCard } from "@/components/my-portal/MyExpensesCard";
 import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
 import { MyPerformanceReviewsCard } from "@/components/my-portal/MyPerformanceReviewsCard";
 import { MyPositionDescriptionCard } from "@/components/my-portal/MyPositionDescriptionCard";
+import { MyDiversityCard } from "@/components/my-portal/MyDiversityCard";
 import {
   ContractViewerModal,
   type ContractViewerContract,
@@ -736,6 +737,14 @@ export default function MyPortalPage() {
       {/* Collapsed by default — staff can expand to read full content. */}
       {/* ============================================================ */}
       {session?.user?.id && <MyPositionDescriptionCard />}
+
+      {/* ============================================================ */}
+      {/* 3b-vii. MY DIVERSITY PROFILE (2026-06-01)                     */}
+      {/* Opt-in self-disclosed diversity register. Card expands on    */}
+      {/* click. Admin aggregate dashboard at /diversity-dashboard      */}
+      {/* never reveals individual values.                              */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyDiversityCard />}
 
       {/* ============================================================ */}
       {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}

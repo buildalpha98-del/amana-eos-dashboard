@@ -633,6 +633,10 @@ model User {
   referenceChecks                 ReferenceCheck[] @relation("RefCheckSubject")
   performedReferenceChecks        ReferenceCheck[] @relation("RefCheckChecker")
 
+  // Diversity & inclusion self-disclosed profile (opt-in). Withdrawal
+  // hard-deletes the row, so the relation cascades.
+  diversityProfile                DiversityProfile?
+
   // Per-(userId, threshold) dedup marker for the visa-expiry alert
   // cron. Mirrors ComplianceCertificateAlert but keyed on User
   // because visa lives on the User row, not a separate cert record.
@@ -7136,6 +7140,94 @@ enum RefCheckRecommendation {
   neutral
   reservations
   do_not_recommend
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Diversity & inclusion register (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Opt-in self-disclosed diversity profile. Feeds the WGEA workforce-
+// composition report (Workplace Gender Equality Agency mandatory
+// reporting for orgs ≥ 100 employees — we may not hit that threshold
+// for years but the register itself is a low-cost positive-step now).
+//
+// Privacy:
+//   - Staff own their data. They can read, edit, and DELETE it.
+//   - Admin NEVER sees individual values via any dashboard surface —
+//     only aggregate counts with a min-cell-size threshold (≥3) so
+//     categories of one or two can't be reverse-identified.
+//   - Hard delete on consent withdrawal (no soft-delete here, by
+//     design — staff trust depends on "no" actually meaning no).
+//   - The endpoint is wrapped in withApiAuth so admin attempts to
+//     read another user's profile are 403'd.
+
+model DiversityProfile {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Gender identity — modeled per ABS Standard for Sex and Gender
+  // Variables 2020. `prefer_to_self_describe` opens a free-text field
+  // (genderSelfDescribed). Null = not disclosed.
+  genderIdentity         DiversityGender?
+  genderSelfDescribed    String?  @db.VarChar(200)
+
+  // Cultural background — free text. Culture is too varied for an enum.
+  culturalIdentity       String?  @db.VarChar(200)
+  bornInAustralia        Boolean?
+  yearArrivedInAustralia Int?
+  languageAtHome         String?  @db.VarChar(200)
+
+  // Indigenous identity (ABS Standard).
+  indigenousIdentity     DiversityIndigenous?
+
+  // Disability — high-level disclosure + optional self-described detail.
+  disabilityStatus       DiversityDisability?
+  disabilityType         String?  @db.VarChar(200)
+
+  // Carer responsibilities (relevant for flexible work + family-friendly
+  // policy planning).
+  carerStatus            DiversityCarer?
+
+  // Australian Defence Force veteran status.
+  veteranStatus          Boolean?
+
+  // Explicit consent stamp — set when first saved, refreshed on update.
+  // Used in the privacy notice ("you opted in on YYYY-MM-DD").
+  consentGivenAt         DateTime
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+enum DiversityGender {
+  woman
+  man
+  non_binary
+  prefer_to_self_describe
+  prefer_not_to_say
+}
+
+enum DiversityIndigenous {
+  none
+  aboriginal
+  torres_strait_islander
+  both
+  prefer_not_to_say
+}
+
+enum DiversityDisability {
+  none
+  with_disability
+  prefer_not_to_say
+}
+
+enum DiversityCarer {
+  none
+  parent_carer
+  family_carer
+  both
+  prefer_not_to_say
 }
 
 // ─────────────────────────────────────────────────────────────────────

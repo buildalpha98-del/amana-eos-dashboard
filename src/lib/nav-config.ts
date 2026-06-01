@@ -51,6 +51,7 @@ import {
   Mail,
   QrCode,
   Network,
+  Heart,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -175,6 +176,7 @@ export const navItems: NavItem[] = [
   { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ALL_NON_MARKETING },
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING },
   { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" },
+  { href: "/diversity-dashboard", label: "Diversity & Inclusion", icon: Heart, section: "People", tooltip: "Aggregated workforce diversity (opt-in)", roles: ["owner", "head_office", "admin"] },
   { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero", roles: ALL_NON_MARKETING },
   { href: "/leave", label: "Leave", icon: CalendarDays, section: "People", tooltip: "Internal leave tracker (historical) — also request leave" },
   { href: "/leave-payroll", label: "Leave (Payroll)", icon: CalendarDays, section: "People", tooltip: "Live leave data from Employment Hero. Approve in EH.", roles: ["owner", "head_office", "admin"] },
