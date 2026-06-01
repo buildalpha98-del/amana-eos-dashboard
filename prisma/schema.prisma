@@ -628,6 +628,11 @@ model User {
   createdWCClaims           WorkersCompensationClaim[] @relation("WCClaimCreator")
   closedWCClaims            WorkersCompensationClaim[] @relation("WCClaimCloser")
 
+  // Reasonable adjustment records (Disability Discrimination Act 1992
+  // defence). Sensitive — admin-only.
+  reasonableAdjustments     ReasonableAdjustment[]   @relation("AdjustmentSubject")
+  recordedAdjustments       ReasonableAdjustment[]   @relation("AdjustmentRecorder")
+
   // ── NQS back-refs ─────────────────────────────────
   staffReflections          StaffReflection[]          @relation("StaffReflections")
   learningObservations      LearningObservation[]      @relation("LearningObservations")
@@ -7132,4 +7137,76 @@ enum WCClaimStatus {
   on_hold
   closed
   reopened
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Reasonable adjustment (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Records of accommodation requests + decisions under the Disability
+// Discrimination Act 1992 + Fair Work Act anti-discrimination
+// provisions. The legal test for refusing an adjustment is
+// "unjustifiable hardship" — and to defend that, you need a record
+// showing you actually considered the request and what trade-offs
+// you weighed. Most discrimination claims are won and lost on this
+// evidence.
+//
+// Sensitive — admin-only visibility. Often touches medical /
+// disability information.
+
+model ReasonableAdjustment {
+  id              String                       @id @default(cuid())
+
+  userId          String
+  user            User                         @relation("AdjustmentSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  // The request
+  requestedAt     DateTime                     @db.Date
+  requestSummary  String                       @db.Text
+
+  // Free-text context — disability or protected attribute the
+  // adjustment relates to. Optional because the employee may not
+  // wish to specify (and the employer can't insist).
+  contextNotes    String?                      @db.Text
+
+  // Assessment
+  assessedAt      DateTime?                    @db.Date
+  // What was considered: alternatives weighed, who was consulted
+  // (OT, medical, HR advisor), trade-offs.
+  assessmentNotes String?                      @db.Text
+
+  // Decision
+  status          ReasonableAdjustmentStatus   @default(under_assessment)
+  decisionAt      DateTime?                    @db.Date
+  decisionDetail  String?                      @db.Text
+  // REQUIRED when status=declined per DDA. Free text so admin can
+  // document the specific "unjustifiable hardship" basis.
+  declineReasons  String?                      @db.Text
+
+  // Review schedule — adjustments aren't set-and-forget.
+  reviewAt        DateTime?                    @db.Date
+
+  // Optional attachment — medical note, OT recommendation, etc.
+  fileUrl         String?
+  fileName        String?
+
+  // Audit
+  recordedById    String
+  recordedBy      User                         @relation("AdjustmentRecorder", fields: [recordedById], references: [id])
+
+  deleted         Boolean                      @default(false)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  @@index([userId, status])
+  @@index([reviewAt])
+}
+
+enum ReasonableAdjustmentStatus {
+  under_assessment
+  provided              // exactly as requested
+  modified              // alternative provided, not exact match
+  declined
+  withdrawn             // employee withdrew the request
+  no_longer_needed
 }

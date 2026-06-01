@@ -6,16 +6,17 @@
  * cleanly into the existing sections.
  *
  * Sub-tabs:
- *   1. Workers comp — claims tracking (today)
- *   2. Reasonable adjustments — DDA defence records (next task)
+ *   1. Workers comp — claims tracking
+ *   2. Reasonable adjustments — DDA 1992 defence records
  *
- * Admin-only at the page level; the section pill simply hides
- * for non-admin viewers. Pass `canManageHealth` from the parent.
+ * Admin-only at the page level; the layout wraps this in an
+ * `isAdmin` gate so non-admins don't see the section pill at all.
  */
 
-import { HeartPulse, Accessibility } from "lucide-react";
+import { HeartPulse } from "lucide-react";
 import { SectionShell } from "./SectionShell";
 import { WorkersCompTab } from "@/components/staff/WorkersCompTab";
+import { ReasonableAdjustmentTab } from "@/components/staff/ReasonableAdjustmentTab";
 
 type SubTab = "workers_comp" | "reasonable_adjustments";
 
@@ -51,12 +52,10 @@ export function HealthWHSSection({
           );
         }
         return (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <Accessibility className="h-10 w-10 text-border mb-3" />
-            <p className="text-sm text-muted italic">
-              Reasonable adjustment records will appear here. Coming next.
-            </p>
-          </div>
+          <ReasonableAdjustmentTab
+            targetUserId={targetUserId}
+            targetUserName={targetUserName}
+          />
         );
       }}
     </SectionShell>
