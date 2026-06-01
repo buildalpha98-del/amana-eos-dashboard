@@ -117,7 +117,11 @@ export function StaffProfileLayout({
               isAdmin={isAdmin}
               canManageCompliance={canManageCompliance}
             />
-            <PerformanceSection />
+            <PerformanceSection
+              targetUserId={data.targetUser.id}
+              targetUserName={data.targetUser.name}
+              viewerRole={viewerRole}
+            />
           </div>
         </div>
 

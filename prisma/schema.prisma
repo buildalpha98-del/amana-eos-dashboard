@@ -591,6 +591,15 @@ model User {
   todoTemplatesCreated          TodoTemplate[]                 @relation("TemplateCreator")
   createdServiceEvents          ServiceEvent[]                 @relation("ServiceEventCreator")
 
+  // ── Performance / disciplinary back-refs ───────────
+  // Cases where THIS user is the subject (warnings against them, grievances
+  // they raised, PIPs about their performance). Plus cases they raised as
+  // a manager and cases they closed. All three relations are needed because
+  // Prisma requires a back-reference field per named relation.
+  performanceCases       PerformanceCase[] @relation("CaseSubject")
+  raisedPerformanceCases PerformanceCase[] @relation("CaseRaiser")
+  closedPerformanceCases PerformanceCase[] @relation("CaseCloser")
+
   // ── NQS back-refs ─────────────────────────────────
   staffReflections          StaffReflection[]          @relation("StaffReflections")
   learningObservations      LearningObservation[]      @relation("LearningObservations")
@@ -6613,3 +6622,99 @@ model EmailTemplateOverride {
   updatedAt   DateTime @updatedAt
 }
 
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Performance & disciplinary cases (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Tracks formal disciplinary, performance management, and grievance
+// events tied to a staff member. The data point Fair Work Commission
+// asks for in any unfair-dismissal proceeding: "show me the warnings
+// you gave them, the dates, what was said, who signed."
+//
+// Visibility model: admin/owner/head_office only. Staff don't see
+// their own case file via this surface — managers communicate
+// outcomes through the existing 1:1 / email channels. `confidential`
+// raises the bar further (owner only) for sensitive allegations.
+//
+// Retention: Fair Work Act record-keeping requires 7 years. Cases
+// are SOFT-deleted (`deleted=true`) rather than physically removed
+// so the audit chain survives.
+
+model PerformanceCase {
+  id          String                @id @default(cuid())
+
+  // Subject of the case — the staff member it concerns.
+  userId      String
+  user        User                  @relation("CaseSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Manager / admin who logged it.
+  raisedById  String
+  raisedBy    User                  @relation("CaseRaiser", fields: [raisedById], references: [id])
+
+  // Manager who closed it out (null while open).
+  closedById  String?
+  closedBy    User?                 @relation("CaseCloser", fields: [closedById], references: [id])
+
+  type        PerformanceCaseType
+  status      PerformanceCaseStatus @default(open)
+
+  title       String                @db.VarChar(200)
+  summary     String                @db.Text
+
+  // The date the incident/conversation/etc actually happened. Separate
+  // from `createdAt` because cases are often logged days after the fact.
+  occurredAt  DateTime              @db.Date
+  // Optional follow-up review date (e.g. PIP review in 4 weeks).
+  followUpAt  DateTime?             @db.Date
+
+  // Free-text resolution — what was the outcome. Null until closed.
+  outcome     String?               @db.Text
+  closedAt    DateTime?
+
+  // Optional attachment — typically the signed warning letter PDF,
+  // PIP document, or supporting evidence. Stored as Vercel Blob URL.
+  fileUrl     String?
+  fileName    String?
+
+  // Confidential flag — restricts visibility to owner role only.
+  // Use for sensitive allegations where even other admins shouldn't
+  // see the detail (e.g. allegations of harassment against a colleague).
+  confidential Boolean              @default(false)
+
+  // Soft delete — Fair Work retention is 7 years; physical deletion
+  // is restricted to owner and stays a future concern.
+  deleted     Boolean               @default(false)
+
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([userId, status])
+  @@index([type, occurredAt])
+}
+
+enum PerformanceCaseType {
+  // Disciplinary chain (ascending severity).
+  verbal_warning
+  written_warning
+  final_warning
+  // Performance improvement plan — formal, time-bound, written.
+  pip
+  // Complaint raised BY this staff member (the user is the complainant).
+  grievance
+  // Complaint raised AGAINST this staff member.
+  allegation
+  // Positive — recognition / commendation. Tracking the good with the
+  // bad gives a more honest staff file and helps with regrading reviews.
+  commendation
+  // Informal "I had a chat with X about Y" — useful but doesn't escalate.
+  conversation
+}
+
+enum PerformanceCaseStatus {
+  open
+  in_progress
+  resolved
+  escalated
+  closed
+}
