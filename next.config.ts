@@ -2,8 +2,16 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const securityHeaders = [
-  // Prevent clickjacking
-  { key: "X-Frame-Options", value: "DENY" },
+  // Prevent clickjacking from OTHER origins. SAMEORIGIN (was DENY)
+  // lets the dashboard iframe its own PDF proxies — the staff payslip
+  // viewer, contract viewer, and any future in-app PDF rendering all
+  // depend on this. Third-party clickjacking is still blocked because
+  // SAMEORIGIN refuses iframes from any other host.
+  //
+  // The matching CSP frame-ancestors directive below (now 'self') is
+  // what modern browsers actually honour; X-Frame-Options is the
+  // legacy fallback for older clients.
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
   // Prevent MIME type sniffing
   { key: "X-Content-Type-Options", value: "nosniff" },
   // Control referrer info
@@ -27,7 +35,12 @@ const securityHeaders = [
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.vercel-storage.com",
       "connect-src 'self' https://*.vercel-analytics.com https://*.sentry.io https://*.upstash.io wss://ws-us3-e.pusher.com",
-      "frame-ancestors 'none'",
+      // frame-ancestors 'self' (was 'none'): pairs with the
+      // X-Frame-Options change above. Allows /my-portal and /contracts
+      // to iframe /api/my-portal/payslips/.../download and similar
+      // same-origin PDF proxies; still refuses iframing from any
+      // third-party host.
+      "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",
     ].join("; "),
