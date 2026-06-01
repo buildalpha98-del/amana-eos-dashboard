@@ -22,8 +22,9 @@ import { AcknowledgeBadge, StatusBadge } from "./badges";
 interface Props {
   contract: ContractData;
   allContracts: ContractData[];
-  onSupersede: (contract: ContractData) => void;
-  onTerminate: (contract: ContractData) => void;
+  /** Optional — read-only views (e.g. Archived tab) pass undefined. */
+  onSupersede?: (contract: ContractData) => void;
+  onTerminate?: (contract: ContractData) => void;
   canEdit: boolean;
 }
 
@@ -52,14 +53,14 @@ function ActionButtons({
   canSupersede: boolean;
   canTerminate: boolean;
   canEdit: boolean;
-  onSupersede: (c: ContractData) => void;
-  onTerminate: (c: ContractData) => void;
+  onSupersede?: (c: ContractData) => void;
+  onTerminate?: (c: ContractData) => void;
 }) {
   const resendMut = useResendIssueEmail();
 
   return (
     <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border">
-      {canSupersede && (
+      {canSupersede && onSupersede && (
         <button
           onClick={() => onSupersede(contract)}
           className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors"
@@ -68,7 +69,7 @@ function ActionButtons({
           Supersede
         </button>
       )}
-      {canTerminate && (
+      {canTerminate && onTerminate && (
         <button
           onClick={() => onTerminate(contract)}
           className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"

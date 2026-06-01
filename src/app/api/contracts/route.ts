@@ -28,10 +28,20 @@ const createContractSchema = z.object({
 });
 
 // GET /api/contracts — list contracts with filters
+//
+// Filters:
+//   ?status=active|contract_draft|superseded|terminated  — exact match
+//   ?excludeStatus=terminated                            — opt-out filter
+//
+// `excludeStatus` was added 2026-06-02 to support the new Archived
+// tab: the default "Issued Contracts" view passes
+// excludeStatus=terminated so retired contracts move out of sight,
+// and the Archived tab passes status=terminated to surface them.
 export const GET = withApiAuth(async (req, session) => {
 const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
   const status = searchParams.get("status");
+  const excludeStatus = searchParams.get("excludeStatus");
   const serviceId = searchParams.get("serviceId");
   const isAdmin = ["owner", "admin"].includes(session!.user.role);
 
@@ -44,7 +54,14 @@ const { searchParams } = new URL(req.url);
     if (userId) where.userId = userId;
   }
 
-  if (status) where.status = status;
+  if (status) {
+    where.status = status;
+  } else if (excludeStatus) {
+    // `status: { not: ... }` — Prisma's NotFilter. Single-value only
+    // because that's all the current UI needs; add an array variant
+    // here if/when callers want multi-status exclusion.
+    where.status = { not: excludeStatus };
+  }
 
   // Filter by serviceId via user relation
   if (serviceId) {

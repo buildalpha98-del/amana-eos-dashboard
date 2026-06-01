@@ -83,6 +83,42 @@ describe("GET /api/contracts", () => {
     expect(body).toHaveLength(1);
     expect(body[0].contractType).toBe("ct_permanent");
   });
+
+  it("excludeStatus=terminated builds a `not` filter (Archived tab pairing)", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.employmentContract.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/contracts?excludeStatus=terminated");
+    await GET(req);
+
+    const call = prismaMock.employmentContract.findMany.mock.calls[0]?.[0];
+    expect(call?.where).toMatchObject({ status: { not: "terminated" } });
+  });
+
+  it("explicit status filter wins over excludeStatus when both are sent", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.employmentContract.findMany.mockResolvedValue([]);
+
+    const req = createRequest(
+      "GET",
+      "/api/contracts?status=active&excludeStatus=terminated",
+    );
+    await GET(req);
+
+    const call = prismaMock.employmentContract.findMany.mock.calls[0]?.[0];
+    expect(call?.where).toMatchObject({ status: "active" });
+  });
+
+  it("status=terminated returns just the archived contracts", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.employmentContract.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/contracts?status=terminated");
+    await GET(req);
+
+    const call = prismaMock.employmentContract.findMany.mock.calls[0]?.[0];
+    expect(call?.where).toMatchObject({ status: "terminated" });
+  });
 });
 
 describe("POST /api/contracts", () => {

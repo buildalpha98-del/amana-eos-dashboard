@@ -28,7 +28,7 @@ import { fetchApi } from "@/lib/fetch-api";
 import { TemplatesTable } from "@/components/contracts/templates/TemplatesTable";
 import { NewTemplateModal } from "@/components/contracts/templates/NewTemplateModal";
 
-type ContractsTab = "issued" | "templates";
+type ContractsTab = "issued" | "archived" | "templates";
 
 export default function ContractsPage() {
   const router = useRouter();
@@ -37,17 +37,24 @@ export default function ContractsPage() {
   const role = (session?.user?.role as Role) || undefined;
   const isAdmin = hasMinRole(role, "admin");
 
-  // Tab state (URL-synced)
-  const urlTab = searchParams.get("tab") === "templates" ? "templates" : "issued";
+  // Tab state (URL-synced). 2026-06-02: added "archived" — terminated
+  // contracts now move out of the default Issued view automatically.
+  const urlTabRaw = searchParams.get("tab");
+  const urlTab: ContractsTab =
+    urlTabRaw === "templates"
+      ? "templates"
+      : urlTabRaw === "archived"
+        ? "archived"
+        : "issued";
   const [activeTab, setActiveTab] = useState<ContractsTab>(urlTab);
 
   function handleTabChange(tab: ContractsTab) {
     setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
-    if (tab === "templates") {
-      params.set("tab", "templates");
-    } else {
+    if (tab === "issued") {
       params.delete("tab");
+    } else {
+      params.set("tab", tab);
     }
     const qs = params.toString();
     router.push(qs ? `/contracts?${qs}` : "/contracts");
@@ -66,17 +73,37 @@ export default function ContractsPage() {
   // Templates tab — modal state
   const [showNewTemplate, setShowNewTemplate] = useState(false);
 
-  // Issued tab — data
+  // Contract fetch — driven by the active tab.
+  //
+  // - "issued":   excludes terminated (the Archived tab handles those).
+  //               When the user selects a specific status filter from the
+  //               dropdown, that wins — exclude only applies on the
+  //               "no specific status" default.
+  // - "archived": always status=terminated. The status filter dropdown
+  //               is hidden in this view so there's no conflict.
+  // - "templates": uses a separate component, this query is idle.
+  const contractsFilters = useMemo(() => {
+    if (activeTab === "archived") {
+      return {
+        status: "terminated",
+        contractType: contractTypeFilter || undefined,
+        search: search || undefined,
+      };
+    }
+    return {
+      status: statusFilter || undefined,
+      excludeStatus: statusFilter ? undefined : "terminated",
+      contractType: contractTypeFilter || undefined,
+      search: search || undefined,
+    };
+  }, [activeTab, statusFilter, contractTypeFilter, search]);
+
   const {
     data: contracts = [],
     isLoading,
     error,
     refetch,
-  } = useContracts({
-    status: statusFilter || undefined,
-    contractType: contractTypeFilter || undefined,
-    search: search || undefined,
-  });
+  } = useContracts(contractsFilters);
 
   const { data: users = [] } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -151,6 +178,17 @@ export default function ContractsPage() {
           }`}
         >
           Issued Contracts
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange("archived")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "archived"
+              ? "border-brand text-brand"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Archived
         </button>
         {isAdmin && (
           <button
@@ -254,6 +292,39 @@ export default function ContractsPage() {
               onClose={() => setTerminateTarget(null)}
             />
           )}
+        </>
+      )}
+
+      {/* ── Archived tab ──
+          Same table component as Issued, just driven by a different
+          filter set (status=terminated). No summary cards because the
+          counts don't carry the same meaning on archived data — and
+          no New/Supersede/Terminate actions because every row is
+          already in its terminal state. Admin can still open the
+          detail panel and re-view the original document. */}
+      {activeTab === "archived" && (
+        <>
+          <PageHeader
+            title="Archived Contracts"
+            description="Terminated contracts. Read-only — the original document remains accessible."
+          />
+
+          <ContractsTable
+            contracts={contracts}
+            search={search}
+            onSearchChange={setSearch}
+            statusFilter=""
+            onStatusFilterChange={() => {
+              /* No-op — status is locked to terminated on this tab. */
+            }}
+            contractTypeFilter={contractTypeFilter}
+            onContractTypeFilterChange={setContractTypeFilter}
+            isLoading={isLoading}
+            error={error as Error | null}
+            onRetry={refetch}
+            canEdit={false}
+            hideStatusFilter
+          />
         </>
       )}
 

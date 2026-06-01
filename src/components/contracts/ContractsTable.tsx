@@ -34,10 +34,15 @@ interface Props {
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
-  onCreate: () => void;
-  onSupersede: (contract: ContractData) => void;
-  onTerminate: (contract: ContractData) => void;
+  /** Optional — archive view doesn't surface "Create First Contract". */
+  onCreate?: () => void;
+  /** Optional — actions are hidden in the archive view. */
+  onSupersede?: (contract: ContractData) => void;
+  onTerminate?: (contract: ContractData) => void;
   canEdit: boolean;
+  /** Hide the status dropdown — the parent has locked it to a single
+   *  value (e.g. the Archived tab forces status=terminated). */
+  hideStatusFilter?: boolean;
 }
 
 const inputCls =
@@ -63,6 +68,7 @@ export function ContractsTable({
   onSupersede,
   onTerminate,
   canEdit,
+  hideStatusFilter = false,
 }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -107,17 +113,24 @@ export function ContractsTable({
             className={cn(inputCls, "pl-9 w-full")}
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => onStatusFilterChange(e.target.value)}
-          className={inputCls}
-        >
-          <option value="">All Statuses</option>
-          <option value="contract_draft">Draft</option>
-          <option value="active">Active</option>
-          <option value="superseded">Superseded</option>
-          <option value="terminated">Terminated</option>
-        </select>
+        {!hideStatusFilter && (
+          <select
+            value={statusFilter}
+            onChange={(e) => onStatusFilterChange(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">All Statuses</option>
+            <option value="contract_draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="superseded">Superseded</option>
+            {/*
+              Terminated is intentionally NOT in this dropdown — those
+              contracts live on the Archived tab as of 2026-06-02. If
+              admin needs to find a terminated contract they switch
+              tabs rather than filtering here.
+            */}
+          </select>
+        )}
         <select
           value={contractTypeFilter}
           onChange={(e) => onContractTypeFilterChange(e.target.value)}
@@ -152,10 +165,12 @@ export function ContractsTable({
           description={
             hasFilters
               ? "No contracts match your current filters. Try adjusting your search criteria."
-              : "Create employment contracts for your team members."
+              : onCreate
+                ? "Create employment contracts for your team members."
+                : "No contracts to show."
           }
           action={
-            !hasFilters
+            !hasFilters && onCreate
               ? {
                   label: "Create First Contract",
                   icon: Plus,

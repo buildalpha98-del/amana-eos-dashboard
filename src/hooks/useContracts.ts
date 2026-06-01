@@ -62,6 +62,10 @@ export interface ContractDetail extends ContractData {
 export function useContracts(filters?: {
   userId?: string;
   status?: string;
+  /** Hide contracts with this status — primary use is excludeStatus
+   *  = "terminated" on the default Issued tab so archived contracts
+   *  drop out of view. Server-side filter, NOT a client-side filter. */
+  excludeStatus?: string;
   serviceId?: string;
   contractType?: string;
   search?: string;
@@ -69,6 +73,7 @@ export function useContracts(filters?: {
   const params = new URLSearchParams();
   if (filters?.userId) params.set("userId", filters.userId);
   if (filters?.status) params.set("status", filters.status);
+  if (filters?.excludeStatus) params.set("excludeStatus", filters.excludeStatus);
   if (filters?.serviceId) params.set("serviceId", filters.serviceId);
   if (filters?.contractType) params.set("contractType", filters.contractType);
   if (filters?.search) params.set("search", filters.search);
