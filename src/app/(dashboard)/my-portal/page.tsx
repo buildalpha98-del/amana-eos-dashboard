@@ -49,6 +49,7 @@ import { MyLeaveRequestsCard } from "@/components/my-portal/MyLeaveRequestsCard"
 import { MyExpensesCard } from "@/components/my-portal/MyExpensesCard";
 import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
 import { MyPerformanceReviewsCard } from "@/components/my-portal/MyPerformanceReviewsCard";
+import { MyPositionDescriptionCard } from "@/components/my-portal/MyPositionDescriptionCard";
 import {
   ContractViewerModal,
   type ContractViewerContract,
@@ -728,6 +729,13 @@ export default function MyPortalPage() {
       {/* acknowledgement flow when status=awaiting_acknowledgement.    */}
       {/* ============================================================ */}
       {session?.user?.id && <MyPerformanceReviewsCard />}
+
+      {/* ============================================================ */}
+      {/* 3b-vi. MY POSITION DESCRIPTION (2026-06-01)                   */}
+      {/* Renders only when the user has a published PD assigned.       */}
+      {/* Collapsed by default — staff can expand to read full content. */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyPositionDescriptionCard />}
 
       {/* ============================================================ */}
       {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}

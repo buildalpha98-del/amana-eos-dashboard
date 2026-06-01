@@ -16,6 +16,7 @@ import { EmploymentTab } from "@/components/staff/tabs/EmploymentTab";
 import { PersonalTab } from "@/components/staff/tabs/PersonalTab";
 import { SeparationTab } from "@/components/staff/SeparationTab";
 import { CasualConversionTab } from "@/components/staff/CasualConversionTab";
+import { PositionDescriptionTab } from "@/components/staff/PositionDescriptionTab";
 import { SectionShell } from "./SectionShell";
 import type { StaffProfileData } from "@/components/staff/types";
 
@@ -23,6 +24,7 @@ type SubTab =
   | "employment"
   | "personal"
   | "emergency"
+  | "position"
   | "conversion"
   | "separation";
 
@@ -30,6 +32,7 @@ const SUB_TABS_BASE = [
   { key: "employment", label: "Employment details" },
   { key: "personal", label: "Personal details" },
   { key: "emergency", label: "Emergency contacts" },
+  { key: "position", label: "Position description" },
 ] as const;
 
 const CONVERSION_SUB_TAB = {
@@ -102,6 +105,19 @@ export function EmploymentRecordsSection({
               canEdit={canEditPersonal}
               canEditAccount={canEditAccount}
               viewerIsOwner={viewerIsOwner}
+            />
+          );
+        }
+        if (active === "position") {
+          // `canManageSeparation` already encodes admin/owner/head_office.
+          // Pass a coarse role string so the tab can gate its UI without
+          // needing the actual Role enum value from the session.
+          return (
+            <PositionDescriptionTab
+              targetUserId={data.targetUser.id}
+              targetUserName={data.targetUser.name}
+              targetUserRole={data.targetUser.role}
+              viewerRole={canManageSeparation ? "admin" : "staff"}
             />
           );
         }

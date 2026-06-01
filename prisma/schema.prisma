@@ -619,6 +619,14 @@ model User {
   reviewsReviewing       PerformanceReview[] @relation("ReviewReviewer")
   reviewsCreated         PerformanceReview[] @relation("ReviewCreator")
 
+  // Position description assignment. The PD library is the formal
+  // "this is what this job is" document — separate from contracts
+  // (legal terms) and from the role enum (auth bucket).
+  positionDescriptionId           String?
+  positionDescription             PositionDescription? @relation("UserPositionDescription", fields: [positionDescriptionId], references: [id], onDelete: SetNull)
+  positionDescriptionAssignedAt   DateTime?
+  createdPositionDescriptions     PositionDescription[] @relation("PDCreator")
+
   // Per-(userId, threshold) dedup marker for the visa-expiry alert
   // cron. Mirrors ComplianceCertificateAlert but keyed on User
   // because visa lives on the User row, not a separate cert record.
@@ -6979,6 +6987,65 @@ enum ReviewGoalStatus {
   achieved
   not_achieved
   deferred       // Carried forward to a later cycle
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Position descriptions (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// The formal "this is what this job is" document. Distinct from:
+//   - Contract (legal employment terms — pay, hours, type, end date)
+//   - Role enum (auth bucket — owner / admin / member / staff)
+//
+// Position descriptions are reusable templates. A given PD can be
+// linked to many users (e.g. "Educator Lead" PD attached to every
+// lead educator across centres). Staff see their assigned PD on My
+// Portal as a read-only reference for "what's expected of me here."
+//
+// Admin-only CRUD. Soft delete via `archived` status — historical
+// references survive even after a PD is no longer in active use.
+
+model PositionDescription {
+  id                String   @id @default(cuid())
+
+  // Short identifying title. Used as the link label everywhere.
+  title             String   @db.VarChar(200)
+
+  // Plain-text fields (markdown-friendly via the viewer). All are
+  // long-form so the same component renders any PD consistently.
+  summary           String   @db.Text
+  responsibilities  String   @db.Text
+  selectionCriteria String   @db.Text
+  qualifications    String   @db.Text
+
+  // Optional hint matching this PD to a Role. Used in the assignment
+  // picker to surface PDs that "fit" the staff member's role, but not
+  // enforced — a staff-role user can still hold a Lead PD.
+  targetRole        Role?
+
+  status            PDStatus @default(draft)
+
+  publishedAt       DateTime?
+  archivedAt        DateTime?
+
+  createdById       String
+  createdBy         User     @relation("PDCreator", fields: [createdById], references: [id])
+
+  // Users currently assigned this PD. SetNull on PD delete so a
+  // mistakenly deleted PD doesn't cascade-delete staff records.
+  assignedUsers     User[]   @relation("UserPositionDescription")
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([status, targetRole])
+  @@index([targetRole])
+}
+
+enum PDStatus {
+  draft
+  published
+  archived
 }
 
 // ─────────────────────────────────────────────────────────────────────
