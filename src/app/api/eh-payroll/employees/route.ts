@@ -1,13 +1,15 @@
 /**
  * GET /api/eh-payroll/employees
  *
- * Admin-only directory of EH Payroll employees, used by the manual
- * mapping UI in Settings → Team. Returns every Active employee plus
- * their current mapping status (whether they're already linked to a
- * dashboard User and which one).
+ * Admin payload powering the /settings/payroll mapping UI. Returns
+ * both sides of the join in one trip so the client doesn't have to
+ * stitch:
+ *   - `employees`: every Active EH employee with their current
+ *     mapping state (null if unlinked)
+ *   - `unmappedDashboardUsers`: active dashboard users with no
+ *     `employmentHeroEmployeeId` — the "needs attention" list
  *
- * Cached server-side by `listEmployees`'s upstream call — the route
- * itself is a thin join between EH and our User table.
+ * Cached server-side by listEmployees's call to EH; cheap to call.
  */
 
 import { NextResponse } from "next/server";
@@ -36,28 +38,46 @@ export const GET = withApiAuth(
       throw err;
     }
 
-    // Pull existing mappings so the UI knows which employees are already
-    // claimed and by whom. One-shot join — keep payload small (no email).
-    const mapped = await prisma.user.findMany({
-      where: { employmentHeroEmployeeId: { not: null } },
-      select: { id: true, name: true, employmentHeroEmployeeId: true },
+    // Join with the User table in one query: mapped users for the
+    // table rows + unmapped active users for the "needs attention"
+    // section. Pull employmentHeroEmployeeId so we can compute both
+    // from a single result set.
+    const allActiveUsers = await prisma.user.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        employmentHeroEmployeeId: true,
+      },
+      orderBy: { name: "asc" },
     });
+
     const userByEhId = new Map(
-      mapped.map((u) => [u.employmentHeroEmployeeId!, { id: u.id, name: u.name }]),
+      allActiveUsers
+        .filter((u) => u.employmentHeroEmployeeId !== null)
+        .map((u) => [u.employmentHeroEmployeeId!, { id: u.id, name: u.name }]),
     );
 
-    const result = employees
+    const employeesPayload = employees
       .filter((e) => e.status === "Active")
       .map((e) => ({
         id: e.id,
         name: `${e.firstName} ${e.surname}`.trim(),
         email: e.email,
         startDate: e.startDate,
-        // null = unmapped; { id, name } = already linked to this User.
         mappedUser: userByEhId.get(e.id) ?? null,
-      }));
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-    return NextResponse.json({ employees: result });
+    const unmappedDashboardUsers = allActiveUsers
+      .filter((u) => u.employmentHeroEmployeeId === null)
+      .map((u) => ({ id: u.id, name: u.name, email: u.email }));
+
+    return NextResponse.json({
+      employees: employeesPayload,
+      unmappedDashboardUsers,
+    });
   },
   { roles: ["owner", "head_office", "admin"] },
 );

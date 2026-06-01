@@ -109,6 +109,7 @@ export function StaffProfileLayout({
               data={data}
               isSelf={isSelf}
               canViewPay={canViewPay}
+              canManagePayroll={isAdmin}
             />
             <DocumentsSection
               data={data}

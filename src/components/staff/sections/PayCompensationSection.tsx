@@ -17,17 +17,23 @@
  */
 
 import { LeaveTab } from "@/components/staff/tabs/LeaveTab";
+import { PayrollLinkCard } from "@/components/staff/PayrollLinkCard";
 import { SectionShell } from "./SectionShell";
 import type { StaffProfileData } from "@/components/staff/types";
 import type { EmploymentContract } from "@prisma/client";
 
-type SubTab = "salary" | "hours" | "leave";
+type SubTab = "salary" | "hours" | "leave" | "payroll";
 
-const SUB_TABS = [
+const SUB_TABS_BASE = [
   { key: "salary", label: "Salary history" },
   { key: "hours", label: "Work hours" },
   { key: "leave", label: "Leave balances" },
 ] as const;
+
+// The payroll sub-tab only renders for admins (the manage permission is
+// stricter than the view permission). Built dynamically below so non-
+// admin viewers don't see a tab pill they can't action.
+const PAYROLL_SUB_TAB = { key: "payroll", label: "Payroll link" } as const;
 
 export interface PayCompensationSectionProps {
   data: StaffProfileData;
@@ -35,20 +41,28 @@ export interface PayCompensationSectionProps {
   /** True when the viewer is admin/owner OR self. False for other
    *  same-service viewers (member viewing another member). */
   canViewPay: boolean;
+  /** True when the viewer can manage the EH Payroll mapping. Admin-
+   *  only (not self) — staff shouldn't link themselves to arbitrary
+   *  EH IDs even though the server would reject it. */
+  canManagePayroll: boolean;
 }
 
 export function PayCompensationSection({
   data,
   isSelf,
   canViewPay,
+  canManagePayroll,
 }: PayCompensationSectionProps) {
+  const subTabs = canManagePayroll
+    ? ([...SUB_TABS_BASE, PAYROLL_SUB_TAB] as const)
+    : SUB_TABS_BASE;
   return (
     <SectionShell<SubTab>
       sectionKey="pay"
       title="Pay & compensation"
       accentDotClass="bg-teal-500"
       accentActiveClass="bg-teal-100 text-teal-900 border-teal-300"
-      subTabs={SUB_TABS}
+      subTabs={subTabs}
     >
       {(active) => {
         if (active === "salary") {
@@ -58,6 +72,19 @@ export function PayCompensationSection({
         if (active === "hours") {
           if (!canViewPay) return <PayPlaceholder />;
           return <WorkHours contract={data.latestContract} />;
+        }
+        if (active === "payroll") {
+          if (!canManagePayroll) return <PayPlaceholder />;
+          return (
+            <PayrollLinkCard
+              targetUserId={data.targetUser.id}
+              targetUserName={data.targetUser.name}
+              currentEmployeeId={
+                (data.targetUser as { employmentHeroEmployeeId?: number | null })
+                  .employmentHeroEmployeeId ?? null
+              }
+            />
+          );
         }
         return (
           <LeaveTab
