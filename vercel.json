@@ -292,6 +292,10 @@
     {
       "path": "/api/cron/casual-conversion-eligibility",
       "schedule": "0 21 * * 0"
+    },
+    {
+      "path": "/api/cron/audit-log-cleanup",
+      "schedule": "0 3 1 * *"
     }
   ]
 }
