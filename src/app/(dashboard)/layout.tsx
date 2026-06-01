@@ -18,6 +18,7 @@ import { RoleLabelsProvider } from "@/contexts/RoleLabelsContext";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
+import { FloatingChatWidget } from "@/components/assistant/FloatingChatWidget";
 import { cn } from "@/lib/utils";
 
 /**
@@ -116,6 +117,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <OnboardingTourWrapper />
         <KeyboardShortcuts />
       </div>
+      {/* 2026-06-02: Floating Amana AI chat — bottom-right pill that
+          opens an inline panel. Hidden on /assistant + /login by the
+          widget itself. */}
+      <FloatingChatWidget />
       <MobileTabBar onMorePress={() => setMobileNavOpen(true)} />
     </div>
   );

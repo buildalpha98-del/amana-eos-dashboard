@@ -106,6 +106,7 @@ export const allPages = [
   "/settings/organisation",
   "/settings/email-templates",
   "/settings/permissions",
+  "/settings/ai-knowledge",
   "/profile",
   "/crm",
   "/crm/templates",
@@ -276,6 +277,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/guides",
     "/help",
     "/directory",
+    // ── AI assistant — added 2026-06-02 for the FloatingChatWidget.
+    "/assistant",
     // ── INTENTIONALLY REMOVED 2026-04-29 ───────────────────────
     // The following were in member's allowlist but caused noise / were
     // cross-service surfaces a single-centre Director shouldn't manage:
@@ -326,6 +329,12 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/services/[id]",
     // /roll-call removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
     "/bookings",
+    // 2026-06-02: AI assistant opened to staff so the FloatingChatWidget
+    // works for them too. The /assistant page itself stays in the
+    // Admin nav section (so it's not a primary surface) but the route
+    // is reachable. /api/assistant/chat does its own auth + the AI
+    // can only call read-only tools.
+    "/assistant",
   ],
 };
 

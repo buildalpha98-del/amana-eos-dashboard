@@ -52,6 +52,7 @@ import {
   QrCode,
   Network,
   Heart,
+  Brain,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -194,6 +195,7 @@ export const navItems: NavItem[] = [
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
   { href: "/settings/organisation", label: "Org Settings", icon: Settings, section: "Admin", tooltip: "Runtime configuration — email sender, ratios, health score weights", roles: ["admin"] },
   { href: "/settings/permissions", label: "Role Permissions", icon: Shield, section: "Admin", tooltip: "Page-by-page access matrix — owner-only edit", roles: ["owner", "admin"] },
+  { href: "/settings/ai-knowledge", label: "AI Knowledge", icon: Brain, section: "Admin", tooltip: "Content the AI assistant searches when staff ask questions", roles: ["owner", "head_office", "admin"] },
   { href: "/settings/email-templates", label: "Email Templates", icon: Mail, section: "Admin", tooltip: "Edit subject + body for transactional emails", roles: ["admin"] },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
   { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections", roles: ALL_NON_MARKETING },

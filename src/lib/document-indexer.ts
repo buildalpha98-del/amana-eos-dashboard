@@ -353,6 +353,89 @@ export async function indexDocument(documentId: string): Promise<void> {
   }
 }
 
+// ─── indexTextContent ─────────────────────────────────────────
+//
+// Index raw text (no file extraction) against an existing Document.
+// Used by the Knowledge Library admin surface: an admin pastes plain
+// text into a textarea (Amana Way, Employee Handbook, Proven Process,
+// etc.) and we chunk + store it directly without going through a file
+// upload. The Document row itself uses a sentinel fileUrl
+// `internal://knowledge` to mark these as "non-file knowledge entries"
+// — distinguishes them from real file uploads in the Documents
+// library when needed.
+
+export async function indexTextContent(
+  documentId: string,
+  text: string,
+): Promise<void> {
+  if (!text || text.trim().length === 0) {
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { indexed: false, indexedAt: null, indexError: "No content" },
+    });
+    await prisma.documentChunk.deleteMany({ where: { documentId } });
+    return;
+  }
+
+  try {
+    const chunks = chunkText(text);
+
+    if (chunks.length === 0) {
+      await prisma.document.update({
+        where: { id: documentId },
+        data: {
+          indexed: true,
+          indexedAt: new Date(),
+          indexError: "No text content extracted",
+        },
+      });
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await prisma.$transaction(async (tx: any) => {
+      await tx.documentChunk.deleteMany({ where: { documentId } });
+      await tx.documentChunk.createMany({
+        data: chunks.map((chunk) => ({
+          documentId,
+          chunkIndex: chunk.chunkIndex,
+          content: chunk.content,
+          heading: chunk.heading,
+          tokenCount: chunk.tokenCount,
+        })),
+      });
+      await tx.$queryRawUnsafe(
+        `
+        UPDATE "DocumentChunk"
+        SET "searchVector" = to_tsvector('english', content)
+        WHERE "documentId" = $1
+      `,
+        documentId,
+      );
+      await tx.document.update({
+        where: { id: documentId },
+        data: {
+          indexed: true,
+          indexedAt: new Date(),
+          indexError: null,
+        },
+      });
+    });
+
+    logger.info("Knowledge entry indexed", {
+      documentId,
+      chunkCount: chunks.length,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error("Failed to index knowledge entry", { documentId, err });
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { indexError: message },
+    });
+  }
+}
+
 // ─── searchChunks ─────────────────────────────────────────────
 
 /**
