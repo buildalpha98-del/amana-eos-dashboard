@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const disconnectMock = vi.fn().mockResolvedValue(undefined);
+// `vi.mock` is hoisted above top-level `const`s, so we use `vi.hoisted` so the
+// factory can reference our spy without TDZ errors.
+const { disconnectMock } = vi.hoisted(() => ({
+  disconnectMock: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: { $disconnect: disconnectMock },
