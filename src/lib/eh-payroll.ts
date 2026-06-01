@@ -272,3 +272,152 @@ export async function listEmployees(): Promise<EhEmployee[]> {
 export async function getEmployee(employeeId: number): Promise<EhEmployee> {
   return request<EhEmployee>(`/employee/${employeeId}`);
 }
+
+// ─── Pay runs + payslips ─────────────────────────────────────────────
+//
+// Payslips don't have a "list my payslips" endpoint — verified against
+// the swagger spec on 2026-06-01. The flow is:
+//   1. List recent pay runs for the business
+//   2. For each pay run, GET /payrun/{id}/payslips/{employeeId} to
+//      check if the employee was paid in it (404 if not)
+//   3. Stream the PDF via /payrun/{id}/file/payslip/{employeeId}
+//
+// The /payrun/{id}/payslips/{employeeId} response is RICH and contains
+// bank account numbers, super fund member numbers, TFN-derived YTD
+// PAYG figures. We trim to a small "summary" shape (`EhPayslipSummary`)
+// before returning to any caller — the full response never leaves this
+// module's scope.
+
+export interface EhPayRun {
+  id: number;
+  /** ISO timestamp — "2026-05-29T00:00:00". May be null for pending runs. */
+  datePaid: string | null;
+  /** First day of the pay period (ISO). */
+  payPeriodStarting: string | null;
+  /** Last day of the pay period (ISO). */
+  payPeriodEnding: string | null;
+}
+
+export interface EhPayslipSummary {
+  /** EH's internal payslip id (stable; usable as a key in lists). */
+  id: number;
+  /** The pay run this payslip belongs to. Required to fetch the PDF. */
+  payRunId: number;
+  /** Date strings as EH returns them ("23/05/2026" — DD/MM/YYYY). We
+   *  don't normalise here so the UI sees the same string EH would show
+   *  in their own staff portal. */
+  payPeriodStarting: string | null;
+  payPeriodEnding: string | null;
+  /** Decimal dollars. */
+  grossEarnings: number;
+  netEarnings: number;
+  totalHours: number;
+  /** EH's `isPublished` flag — false while a pay run is still being
+   *  reviewed by the bookkeeper. We surface unpublished slips with a
+   *  "Draft" badge rather than hiding them, so staff aren't confused
+   *  about why their pay run didn't appear. */
+  isPublished: boolean;
+}
+
+/** List the N most recent pay runs (datePaid descending). */
+export async function listRecentPayRuns(limit = 12): Promise<EhPayRun[]> {
+  // EH's payrun endpoint supports OData-style $top + $orderby.
+  return request<EhPayRun[]>(
+    `/payrun?$top=${limit}&$orderby=datePaid+desc`,
+  );
+}
+
+/**
+ * Best-effort: returns the N most recent payslips for a single employee
+ * by iterating recent pay runs. Pay runs the employee isn't part of
+ * return 404 from EH — we silently skip those.
+ *
+ * Performance: this issues up to (1 + payRunLookback) requests per call
+ * — 1 to list pay runs + 1 per pay run to check inclusion. Cap callers
+ * to a reasonable lookback (default 12 pay runs ≈ 6 months fortnightly).
+ *
+ * Caching responsibility is the caller's — this function always hits
+ * the network. The route handler that fronts My Portal should layer
+ * a short in-memory cache (~60s) keyed by employee id.
+ */
+export async function listPayslipsForEmployee(
+  employeeId: number,
+  payRunLookback = 12,
+): Promise<EhPayslipSummary[]> {
+  const payRuns = await listRecentPayRuns(payRunLookback);
+  const results: EhPayslipSummary[] = [];
+
+  for (const pr of payRuns) {
+    let raw: Record<string, unknown> | null = null;
+    try {
+      // The single-employee variant returns ONE payslip object directly
+      // (not a dict keyed by employeeId like the no-suffix variant).
+      raw = await request<Record<string, unknown>>(
+        `/payrun/${pr.id}/payslips/${employeeId}`,
+        { noRetry: true }, // 404 is expected and cheap — don't burn retries
+      );
+    } catch (err) {
+      if (err instanceof EhPayrollError && err.status === 404) {
+        // Employee wasn't in this pay run — totally normal, move on.
+        continue;
+      }
+      throw err;
+    }
+
+    if (!raw) continue;
+
+    // Trim ruthlessly. The full response includes bank/super/TFN — we
+    // never want those in our memory space let alone our response.
+    results.push({
+      id: Number(raw.id),
+      payRunId: pr.id,
+      payPeriodStarting:
+        (raw.payPeriodStarting as string | null) ?? pr.payPeriodStarting,
+      payPeriodEnding:
+        (raw.payPeriodEnding as string | null) ?? pr.payPeriodEnding,
+      grossEarnings: Number(raw.grossEarnings ?? 0),
+      netEarnings: Number(raw.netEarnings ?? 0),
+      totalHours: Number(raw.totalHours ?? 0),
+      isPublished: Boolean(raw.isPublished),
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Fetches the payslip PDF as a streamable Response. Returns the raw
+ * Response so the route handler can pipe it through to the browser
+ * without buffering the entire PDF into memory.
+ *
+ * Caller responsibilities:
+ *   - Set `Content-Disposition` (inline vs attachment) on the outgoing
+ *     response based on whether `?download=1` was set
+ *   - Set `Cache-Control: private, no-store` — payslips contain PII
+ *     and must never sit in a shared CDN cache
+ *   - Verify the employeeId belongs to the requesting user BEFORE
+ *     calling this (use `requireOwnEmployee`)
+ */
+export async function fetchPayslipPdf(
+  employeeId: number,
+  payRunId: number,
+): Promise<Response> {
+  assertConfigured();
+  const url = `${API_BASE}/api/v2/business/${BUSINESS_ID}/payrun/${payRunId}/file/payslip/${employeeId}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: authHeader(),
+      Accept: "application/pdf",
+    },
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.text();
+    } catch {}
+    throw new EhPayrollError(res.status, body);
+  }
+  return res;
+}

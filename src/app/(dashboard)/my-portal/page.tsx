@@ -44,6 +44,7 @@ import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
+import { MyPayslipsCard } from "@/components/my-portal/MyPayslipsCard";
 import {
   ContractViewerModal,
   type ContractViewerContract,
@@ -682,6 +683,14 @@ export default function MyPortalPage() {
           <MyLeaveBalanceCard userId={session.user.id} />
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* 3b-i. MY PAYSLIPS (2026-06-01 — EH Payroll integration)       */}
+      {/* Surfaces the 12 most recent payslips for the signed-in user.  */}
+      {/* Self-renders "not configured" or "not mapped" states quietly  */}
+      {/* so the layout doesn't shift for users without payroll yet.    */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyPayslipsCard />}
 
       {/* ============================================================ */}
       {/* 3b0. SET KIOSK PIN (PR #62 — staff-set 4-digit PIN for the    */}
