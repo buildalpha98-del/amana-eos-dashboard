@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
+import { withDbRetry } from "@/lib/prisma-retry";
 
 // ── Constants ───────────────────────────────────────────────
 const CONSECUTIVE_MISS_THRESHOLD = 3;
@@ -41,12 +42,17 @@ export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
-  const guard = await acquireCronLock("photo-compliance", "daily");
-  if (!guard.acquired) {
-    return NextResponse.json({ message: guard.reason, skipped: true });
-  }
+  // Wrap the DB-touching body in withDbRetry — this cron has hit
+  // Neon's E57P01 (admin_shutdown) in production when the pooled
+  // handle goes stale between firings. The retry transparently
+  // reconnects on the recognised signatures.
+  return withDbRetry(async () => {
+    const guard = await acquireCronLock("photo-compliance", "daily");
+    if (!guard.acquired) {
+      return NextResponse.json({ message: guard.reason, skipped: true });
+    }
 
-  const yesterday = getYesterdayAEST();
+    const yesterday = getYesterdayAEST();
   const dateLabel = formatAU(yesterday);
 
   // Build the last N dates for consecutive-miss check
@@ -163,7 +169,8 @@ export const GET = withApiHandler(async (req) => {
     escalations,
   };
 
-  await guard.complete(result);
+    await guard.complete(result);
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  });
 });
