@@ -613,6 +613,12 @@ model User {
   raisedPerformanceCases PerformanceCase[] @relation("CaseRaiser")
   closedPerformanceCases PerformanceCase[] @relation("CaseCloser")
 
+  // Performance review back-refs (separate from PerformanceCase —
+  // reviews are scheduled assessments, cases are disciplinary records).
+  performanceReviews     PerformanceReview[] @relation("ReviewSubject")
+  reviewsReviewing       PerformanceReview[] @relation("ReviewReviewer")
+  reviewsCreated         PerformanceReview[] @relation("ReviewCreator")
+
   // Per-(userId, threshold) dedup marker for the visa-expiry alert
   // cron. Mirrors ComplianceCertificateAlert but keyed on User
   // because visa lives on the User row, not a separate cert record.
@@ -6815,6 +6821,164 @@ model VisaAlert {
 
   @@unique([userId, threshold])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HR — Performance reviews (2026-06-01)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Formal performance review cycles — distinct from PerformanceCase
+// (which is the disciplinary / grievance / commendation case file).
+// A review is a scheduled assessment with self + manager input, an
+// optional rating, and a goal set carried forward to the next cycle.
+//
+// Phase 1 scope (this model): admin can create reviews for any staff
+// member, fill in the manager assessment, set goals, mark complete.
+// Self-assessment + staff acknowledgement workflows ship in phase 2 —
+// the columns are already here so the migration is one-and-done.
+//
+// Visibility:
+//   - admin / owner / head_office: full read/write on every review
+//   - the subject (`userId`): reads their OWN reviews (My Portal) and
+//     can fill `selfAssessment` while status = self_assessment, and
+//     acknowledge while status = awaiting_acknowledgement. They never
+//     see `privateNotes` (admin-only HR commentary).
+//   - everyone else: 403
+//
+// Retention: Reviews form part of the staff file — soft-deleted only,
+// retained 7 years per Fair Work record-keeping.
+
+model PerformanceReview {
+  id              String              @id @default(cuid())
+
+  // Subject of the review — the staff member being reviewed.
+  userId          String
+  user            User                @relation("ReviewSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  // The manager assigned to complete the review. Selected by the admin
+  // at creation time (the User model has no direct "manager" relation,
+  // so we can't auto-default — typically the centre Director or the
+  // service manager from `Service.managerId` where applicable).
+  reviewerUserId  String?
+  reviewer        User?               @relation("ReviewReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+
+  // Whoever created the cycle (admin scheduling it).
+  createdById     String
+  createdBy       User                @relation("ReviewCreator", fields: [createdById], references: [id])
+
+  type            ReviewType
+  status          ReviewStatus        @default(scheduled)
+
+  // The review period this assessment covers. e.g. probation review =
+  // start date → 75 days later; annual = anniversary year.
+  periodStart     DateTime            @db.Date
+  periodEnd       DateTime            @db.Date
+  // When the completed review is due.
+  dueDate         DateTime            @db.Date
+
+  // ── Self-assessment (phase 2 workflow, columns ready now) ──
+  selfAssessment       String?        @db.Text
+  selfStrengths        String?        @db.Text
+  selfImprovements     String?        @db.Text
+  selfSubmittedAt      DateTime?
+
+  // ── Manager assessment ──
+  managerAssessment    String?        @db.Text
+  managerStrengths     String?        @db.Text
+  managerImprovements  String?        @db.Text
+  managerSubmittedAt   DateTime?
+
+  // Optional overall rating. Nullable so a review can be completed
+  // without a rating where the type doesn't call for one (e.g. a
+  // check-in conversation).
+  overallRating        ReviewRating?
+
+  // Staff acknowledgement — they've seen and signed off (or noted
+  // disagreement in `acknowledgementNotes`).
+  acknowledgedAt       DateTime?
+  acknowledgementNotes String?        @db.Text
+
+  // Admin-only HR commentary. Never returned to the subject.
+  privateNotes         String?        @db.Text
+
+  // When the review was finalised end-to-end (status = completed).
+  completedAt          DateTime?
+
+  // Soft delete — 7-year Fair Work retention.
+  deleted              Boolean         @default(false)
+
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  // Per-review goals carried forward.
+  goals                PerformanceReviewGoal[]
+
+  @@index([userId, status])
+  @@index([reviewerUserId, status])
+  @@index([dueDate])
+  @@index([type, periodEnd])
+}
+
+enum ReviewType {
+  probation         // ~75 days after start; binary pass/extend/end
+  mid_year          // Light-touch check-in mid annual cycle
+  annual            // Yearly full review
+  ad_hoc            // Manager-initiated outside the normal cadence
+}
+
+enum ReviewStatus {
+  scheduled                  // Created, not yet open for self-assessment
+  self_assessment            // Subject can fill self-assessment
+  manager_review             // Subject submitted; manager writing assessment
+  awaiting_acknowledgement   // Manager submitted; subject must sign off
+  completed                  // Acknowledged + closed
+  cancelled                  // Cycle abandoned (subject left, etc.)
+}
+
+enum ReviewRating {
+  below_expectations
+  partially_meeting
+  meeting_expectations
+  exceeding_expectations
+  exceptional
+}
+
+// Per-review goal — at review close-out the manager sets goals to
+// carry forward to the next cycle. Each goal has its own status so
+// mid-year check-ins can mark progress without re-opening the review.
+
+model PerformanceReviewGoal {
+  id            String         @id @default(cuid())
+  reviewId      String
+  review        PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  title         String         @db.VarChar(200)
+  description   String?        @db.Text
+
+  // Optional target date. Nullable for open-ended development goals.
+  dueDate       DateTime?      @db.Date
+
+  status        ReviewGoalStatus @default(not_started)
+
+  // Manager's running notes on this goal between reviews.
+  progressNotes String?        @db.Text
+
+  // Render order in the UI — managers like to put the most important
+  // goal first.
+  sortOrder     Int            @default(0)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([reviewId, sortOrder])
+}
+
+enum ReviewGoalStatus {
+  not_started
+  in_progress
+  achieved
+  not_achieved
+  deferred       // Carried forward to a later cycle
 }
 
 // ─────────────────────────────────────────────────────────────────────

@@ -4,19 +4,20 @@
  * PerformanceSection — orange section in the long-scroll profile.
  * Sub-tabs: Cases · Reviews · 9-Box · Management notes.
  *
- * Cases is wired against `/api/performance-cases` and is admin-only
- * (the API enforces). The other three remain scaffolded — placeholders
- * for the formal-review framework, talent grid, and one-on-one notes
- * when those land.
+ * Cases + Reviews are wired against their own APIs (admin-only).
+ * 9-Box and Management notes remain scaffolded for future phases.
  *
  * 2026-05-04: introduced (spec PR #77, PR 3).
  * 2026-06-01: Cases sub-tab wired (HR audit follow-up — fills the
  *             unfair-dismissal records gap).
+ * 2026-06-01: Reviews sub-tab wired (performance review framework
+ *             phase 1 — schema + admin shell).
  */
 
-import { Award, Grid3x3, NotebookPen } from "lucide-react";
+import { Grid3x3, NotebookPen } from "lucide-react";
 import { SectionShell } from "./SectionShell";
 import { PerformanceCasesTab } from "@/components/staff/PerformanceCasesTab";
+import { PerformanceReviewsTab } from "@/components/staff/PerformanceReviewsTab";
 
 type SubTab = "cases" | "reviews" | "talent" | "notes";
 
@@ -58,13 +59,15 @@ export function PerformanceSection({
             />
           );
         }
-        if (active === "reviews")
+        if (active === "reviews") {
           return (
-            <PerformanceEmpty
-              icon={Award}
-              message="Performance reviews will appear here. Coming in next release."
+            <PerformanceReviewsTab
+              targetUserId={targetUserId}
+              targetUserName={targetUserName}
+              viewerRole={viewerRole}
             />
           );
+        }
         if (active === "talent")
           return (
             <PerformanceEmpty
