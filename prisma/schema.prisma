@@ -706,6 +706,9 @@ model User {
   qualifications           StaffQualification[]
   pdRecords                ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
   contracts                EmploymentContract[]            @relation("ContractEmployee")
+  // Back-ref for contracts where this user signed as the issuing
+  // admin. 2026-06-02 — two-party contract signature feature.
+  signedContractsAsAdmin   EmploymentContract[]            @relation("ContractAdminSigner")
   createdContractTemplates ContractTemplate[]              @relation("TemplateCreator")
   updatedContractTemplates ContractTemplate[]              @relation("TemplateUpdater")
   createdContractCustomTags ContractCustomTag[]            @relation("ContractCustomTagCreator")
@@ -3928,6 +3931,26 @@ model EmploymentContract {
   signedAt            DateTime?
   acknowledgedByStaff Boolean              @default(false)
   acknowledgedAt      DateTime?
+
+  // ── Two-party signatures (2026-06-02) ────────────────────────────
+  // Captured client-side as transparent PNG data URLs from an HTML5
+  // canvas signature pad. Stored on the row (typical size 5-30 KB) so
+  // every consumer (PDF render, UI, audit) can read from the same
+  // source. The PDF document at `documentUrl` is re-rendered with
+  // both signatures embedded after the staff member signs, so the
+  // final downloadable contract carries both signatures in-doc.
+  //
+  // Legacy contracts (issued before this feature) leave these null;
+  // the render-html signature placeholder substitution treats null
+  // as "no signature available" and renders blank.
+  adminSignatureDataUrl  String?           @db.Text
+  adminSignedById        String?
+  adminSignedBy          User?             @relation("ContractAdminSigner", fields: [adminSignedById], references: [id], onDelete: SetNull)
+  adminSignedAt          DateTime?
+  staffSignatureDataUrl  String?           @db.Text
+  // staffSignedAt is intentionally NOT a new column — `acknowledgedAt`
+  // already records the moment the staff member completed their
+  // acknowledgement, which under the new flow IS the signature.
   notes               String?              @db.Text
   previousContractId  String?
   previousContract    EmploymentContract?  @relation("ContractHistory", fields: [previousContractId], references: [id])

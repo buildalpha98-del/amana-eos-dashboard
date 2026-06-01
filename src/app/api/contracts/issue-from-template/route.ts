@@ -30,6 +30,15 @@ const issueSchema = z.object({
     position: z.string().min(1),
   }),
   manualValues: z.record(z.string(), z.string()),
+  // 2026-06-02: admin signs the contract before issuing — captured
+  // as a PNG data URL from the signature pad. Optional so the legacy
+  // "issue without signing" path still works while we roll the
+  // feature out; the UI will require it once the rollout is complete.
+  adminSignatureDataUrl: z
+    .string()
+    .startsWith("data:image/", "Must be a PNG data URL")
+    .max(500_000, "Signature image too large")
+    .optional(),
 });
 
 export const POST = withApiAuth(
@@ -60,8 +69,16 @@ export const POST = withApiAuth(
       throw ApiError.badRequest(`Missing required staff fields: ${missingBlocking.join(", ")}`);
     }
 
-    // Step 5: render HTML — merge auto + manual; unknown tags fail here
-    const allData = { ...resolved, ...data.manualValues };
+    // Step 5: render HTML — merge auto + manual; unknown tags fail here.
+    // Signature merge tags get the data URL straight from the request
+    // (admin) or empty string (staff — they sign later, triggering a
+    // re-render).
+    const allData = {
+      ...resolved,
+      ...data.manualValues,
+      "signature.admin": data.adminSignatureDataUrl ?? "",
+      "signature.staff": "",
+    };
     const { html, missingTags } = renderTemplateHtml({
       doc: template.contentJson as TipTapDoc,
       data: allData,
@@ -100,6 +117,14 @@ export const POST = withApiAuth(
           documentId: null,
           templateId: template.id,
           templateValues: { auto: resolved, manual: data.manualValues },
+          // Persist admin signature alongside the contract so re-renders
+          // (after staff signs) can replay it without the admin needing
+          // to re-draw. signedById/At are an audit trail of WHO signed
+          // and WHEN — useful for Fair Work disputes about whether the
+          // contract was properly issued.
+          adminSignatureDataUrl: data.adminSignatureDataUrl ?? null,
+          adminSignedById: data.adminSignatureDataUrl ? session!.user.id : null,
+          adminSignedAt: data.adminSignatureDataUrl ? new Date() : null,
         },
       });
       await tx.activityLog.create({

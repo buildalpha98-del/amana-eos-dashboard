@@ -213,6 +213,11 @@ export type IssueFromTemplatePayload = {
     position: string;
   };
   manualValues: Record<string, string>;
+  /** PNG data URL captured from the admin's signature pad. The server
+   *  embeds this in the rendered PDF + stamps adminSignedAt /
+   *  adminSignedById on the contract row. Optional during the rollout
+   *  but the UI requires it. */
+  adminSignatureDataUrl?: string;
 };
 
 export function useIssueFromTemplate() {

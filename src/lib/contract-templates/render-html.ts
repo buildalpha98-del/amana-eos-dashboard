@@ -113,6 +113,28 @@ function renderNode(node: TipTapNode, data: Record<string, string>, missing: str
 
     case "mergeTag": {
       const key = String(node.attrs?.key ?? "");
+
+      // Signature placeholders are special: the data value is a PNG
+      // data URL, not a string we want to escape. Render an <img>
+      // sized for a contract signature line, or a discreet blank
+      // strip when no signature has been captured yet (admin issued
+      // but staff hasn't signed — first-render path).
+      if (key === "signature.admin" || key === "signature.staff") {
+        const value = data[key] ?? "";
+        if (value && value.startsWith("data:image/")) {
+          // Width capped so the canvas image doesn't blow out the
+          // signature line; height limit keeps tall scribbles in
+          // bounds. inline-block + vertical-align baseline so it
+          // sits where the cursor would on a printed page.
+          return `<img src="${value}" alt="Signature" style="display:inline-block;max-width:240px;max-height:80px;vertical-align:baseline;" />`;
+        }
+        // No signature yet — leave a small empty rule so the layout
+        // doesn't collapse. Authors typically place this under "Signed:
+        // ___________" so a missing signature reads naturally as "not
+        // yet signed."
+        return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #aaa;height:1.4em;vertical-align:baseline;"></span>`;
+      }
+
       if (key in data) {
         return escapeHtml(data[key]);
       }

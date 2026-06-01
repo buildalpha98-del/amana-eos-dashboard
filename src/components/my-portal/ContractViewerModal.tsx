@@ -24,6 +24,7 @@ import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, AlertTriangle, CheckCircle2, ClipboardCheck, ExternalLink, Loader2, FileText } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { SignaturePad } from "@/components/contracts/SignaturePad";
 
 export interface ContractViewerContract {
   id: string;
@@ -68,6 +69,13 @@ export function ContractViewerModal({ contract, onClose }: Props) {
   const [html, setHtml] = useState<string | null>(null);
   const [htmlError, setHtmlError] = useState<string | null>(null);
   const [loading, setLoading] = useState(contract.isTemplateBased);
+  // 2026-06-02: signature flow. The pad is collapsed by default and
+  // expands when the staff member clicks "Sign Contract" — keeps the
+  // viewing surface uncluttered for the read-through.
+  const [signing, setSigning] = useState(false);
+  const [staffSignatureDataUrl, setStaffSignatureDataUrl] = useState<
+    string | null
+  >(null);
 
   // Fetch the rendered HTML for template-based contracts. Blank-form contracts
   // skip this and go straight to the PDF iframe path.
@@ -102,9 +110,13 @@ export function ContractViewerModal({ contract, onClose }: Props) {
   }, [contract.id, contract.isTemplateBased]);
 
   const acknowledgeMut = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (signatureDataUrl: string) => {
       const res = await fetch(`/api/contracts/${contract.id}/acknowledge`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          staffSignatureDataUrl: signatureDataUrl,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -115,6 +127,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
     onSuccess: () => {
       toast({ description: "Contract signed." });
       qc.invalidateQueries({ queryKey: ["my-portal"] });
+      setSigning(false);
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message });
@@ -282,7 +295,51 @@ export function ContractViewerModal({ contract, onClose }: Props) {
           )}
         </div>
 
-        {/* Sticky footer — Acknowledge button (when applicable) + fallbacks. */}
+        {/* Inline signature pad — appears when the staff clicks
+            "Sign Contract" below. Stays in the modal so they can
+            still scroll the contract above for reference while
+            signing. */}
+        {signing && contract.canAcknowledge && !isAcknowledged && (
+          <div className="border-t border-border bg-surface/40 p-4">
+            <SignaturePad
+              label="Sign here to acknowledge this contract"
+              onChange={setStaffSignatureDataUrl}
+              disabled={acknowledgeMut.isPending}
+            />
+            <div className="flex items-center justify-end gap-2 mt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSigning(false);
+                  setStaffSignatureDataUrl(null);
+                }}
+                disabled={acknowledgeMut.isPending}
+                className="px-3 py-1.5 text-sm text-muted hover:text-foreground disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (staffSignatureDataUrl) {
+                    acknowledgeMut.mutate(staffSignatureDataUrl);
+                  }
+                }}
+                disabled={!staffSignatureDataUrl || acknowledgeMut.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              >
+                {acknowledgeMut.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ClipboardCheck className="w-4 h-4" />
+                )}
+                {acknowledgeMut.isPending ? "Signing…" : "Confirm signature"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sticky footer — Sign Contract button (when applicable) + fallbacks. */}
         <footer
           className="border-t border-border bg-card shrink-0 p-4 flex flex-wrap items-center justify-between gap-3"
           style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
@@ -314,20 +371,15 @@ export function ContractViewerModal({ contract, onClose }: Props) {
             )}
           </div>
 
-          {contract.canAcknowledge && !isAcknowledged && (
+          {contract.canAcknowledge && !isAcknowledged && !signing && (
             <button
               type="button"
-              onClick={() => acknowledgeMut.mutate()}
-              disabled={acknowledgeMut.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              onClick={() => setSigning(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
               data-testid="contract-viewer-acknowledge"
             >
-              {acknowledgeMut.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ClipboardCheck className="w-4 h-4" />
-              )}
-              {acknowledgeMut.isPending ? "Signing…" : "Sign Contract"}
+              <ClipboardCheck className="w-4 h-4" />
+              Sign Contract
             </button>
           )}
         </footer>

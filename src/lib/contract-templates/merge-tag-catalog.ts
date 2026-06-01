@@ -1,4 +1,10 @@
-export type MergeTagGroup = "staff" | "service" | "contract" | "manager" | "system";
+export type MergeTagGroup =
+  | "staff"
+  | "service"
+  | "contract"
+  | "manager"
+  | "system"
+  | "signature";
 export type MergeTagDef = { key: string; label: string; group: MergeTagGroup; blocking: boolean };
 export const MERGE_TAGS: MergeTagDef[] = [
   // Staff (blocking: true)
@@ -36,5 +42,14 @@ export const MERGE_TAGS: MergeTagDef[] = [
   // System
   { key: "today", label: "System: Today's date", group: "system", blocking: false },
   { key: "letterDate", label: "System: Letter date (long format)", group: "system", blocking: false },
+  // Signature placeholders — substituted at PDF-render time with the
+  // captured canvas PNG. Non-blocking: admin signs at issue time (so
+  // admin signature is present in the first render) but staff signs
+  // later (so staff signature is empty in the initial render and the
+  // PDF is re-rendered when the staff member signs). Both tags resolve
+  // to a blank caption strip when the signature isn't captured yet, so
+  // templates don't need conditional logic.
+  { key: "signature.admin", label: "Signature: Issuing admin (drawn)", group: "signature", blocking: false },
+  { key: "signature.staff", label: "Signature: Staff (drawn)", group: "signature", blocking: false },
 ];
 export const MERGE_TAGS_BY_KEY: Record<string, MergeTagDef> = Object.fromEntries(MERGE_TAGS.map((t) => [t.key, t]));

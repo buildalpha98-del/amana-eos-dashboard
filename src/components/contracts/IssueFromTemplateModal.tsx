@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useContractTemplates";
 import { fetchApi } from "@/lib/fetch-api";
 import type { UserOption } from "./constants";
+import { SignaturePad } from "./SignaturePad";
 import {
   deriveCustomFields,
   type DerivedCustomField,
@@ -68,6 +69,12 @@ export function IssueFromTemplateModal({
   } | null>(null);
   /** Validation error surfaced inline on the final step if the merged data is still missing tags. */
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  /** Admin signature captured on the final review step. PNG data URL.
+   *  Required before the "Issue & Email" button enables — issuing
+   *  unsigned is a policy hole we're closing in this PR. */
+  const [adminSignatureDataUrl, setAdminSignatureDataUrl] = useState<
+    string | null
+  >(null);
 
   const { data: templates = [] } = useContractTemplates({ status: "active" });
   const { data: users = [] } = useQuery<UserOption[]>({
@@ -234,6 +241,13 @@ export function IssueFromTemplateModal({
       }
     }
 
+    if (!adminSignatureDataUrl) {
+      setSubmissionError(
+        "Please draw your signature before issuing the contract.",
+      );
+      return;
+    }
+
     // The mutation hook handles its own toast on error — don't show our own.
     if (issueMut.isPending) return;
     try {
@@ -253,6 +267,7 @@ export function IssueFromTemplateModal({
           position: contractMeta.position,
         },
         manualValues,
+        adminSignatureDataUrl,
       });
       onClose();
     } catch {
@@ -351,6 +366,9 @@ export function IssueFromTemplateModal({
               previewData={previewData}
               loading={previewMut.isPending}
               submissionError={submissionError}
+              adminSignatureDataUrl={adminSignatureDataUrl}
+              onAdminSignatureChange={setAdminSignatureDataUrl}
+              disabled={issueMut.isPending}
             />
           )}
         </div>
@@ -383,11 +401,16 @@ export function IssueFromTemplateModal({
             <button
               type="button"
               onClick={handleIssue}
-              disabled={issueMut.isPending}
+              disabled={issueMut.isPending || !adminSignatureDataUrl}
+              title={
+                !adminSignatureDataUrl
+                  ? "Sign the contract first using the signature pad below."
+                  : undefined
+              }
               className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {issueMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {issueMut.isPending ? "Issuing…" : "Issue & Email"}
+              {issueMut.isPending ? "Issuing…" : "Sign & Issue"}
             </button>
           )}
         </footer>
@@ -801,10 +824,16 @@ function Step5({
   previewData,
   loading,
   submissionError,
+  adminSignatureDataUrl,
+  onAdminSignatureChange,
+  disabled,
 }: {
   previewData: { html: string; missingTags: string[]; resolved?: Record<string, string> } | null;
   loading: boolean;
   submissionError: string | null;
+  adminSignatureDataUrl: string | null;
+  onAdminSignatureChange: (dataUrl: string | null) => void;
+  disabled: boolean;
 }) {
   if (loading) {
     return (
@@ -846,13 +875,30 @@ function Step5({
         </div>
       )}
 
-      <div className="rounded-lg border border-border overflow-hidden" style={{ height: "60vh" }}>
+      <div className="rounded-lg border border-border overflow-hidden" style={{ height: "50vh" }}>
         <iframe
           title="Final contract preview"
           sandbox="allow-same-origin"
           srcDoc={previewData.html}
           className="w-full h-full bg-white"
         />
+      </div>
+
+      {/* Admin signature — required before issue. The PNG is embedded
+          into the rendered PDF via the signature.admin merge tag
+          placeholder. */}
+      <div className="rounded-lg border border-border bg-surface/40 p-4">
+        <SignaturePad
+          label="Sign as the issuing admin"
+          onChange={onAdminSignatureChange}
+          initial={adminSignatureDataUrl}
+          disabled={disabled}
+        />
+        <p className="text-xs text-muted mt-2">
+          Your signature is captured and embedded in the contract PDF
+          the staff member receives. They&apos;ll then sign their
+          half before the contract is fully executed.
+        </p>
       </div>
     </div>
   );
