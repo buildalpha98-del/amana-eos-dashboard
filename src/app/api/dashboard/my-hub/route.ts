@@ -3,16 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getWeekStart } from "@/lib/utils";
 import type { CertificateType } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
+import { STAFF_HEADLINE_TYPES } from "@/lib/required-cert-types";
 
-// The 6 required certification types for compliance calculation
-const REQUIRED_CERT_TYPES: CertificateType[] = [
-  "wwcc",
-  "first_aid",
-  "anaphylaxis",
-  "asthma",
-  "cpr",
-  "police_check",
-];
+// The headline cert types surfaced on the staff My Hub widget.
+// Source of truth is in `src/lib/required-cert-types.ts`.
+const REQUIRED_CERT_TYPES: readonly CertificateType[] = STAFF_HEADLINE_TYPES;
 
 const CERT_LABELS: Record<CertificateType, string> = {
   wwcc: "WWCC",

@@ -2,20 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { getCertStatus, type CertStatus } from "@/lib/cert-status";
-
-const REQUIRED_CERT_TYPES = [
-  "wwcc",
-  "first_aid",
-  "anaphylaxis",
-  "asthma",
-  "cpr",
-  "police_check",
-  "annual_review",
-  "child_protection",
-  "geccko",
-  "food_safety",
-  "food_handler",
-] as const;
+import { COMPLIANCE_MATRIX_TYPES as REQUIRED_CERT_TYPES } from "@/lib/required-cert-types";
 
 export const GET = withApiAuth(async (req, session) => {
 const { searchParams } = new URL(req.url);

@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-const REQUIRED_CERT_TYPES = [
-  "wwcc",
-  "first_aid",
-  "anaphylaxis",
-  "asthma",
-  "cpr",
-  "police_check",
-  "annual_review",
-] as const;
+import { COMPLIANCE_EXPORT_TYPES as REQUIRED_CERT_TYPES } from "@/lib/required-cert-types";
 
 const TYPE_LABELS: Record<string, string> = {
   wwcc: "WWCC",
@@ -19,6 +11,8 @@ const TYPE_LABELS: Record<string, string> = {
   cpr: "CPR",
   police_check: "Police Check",
   annual_review: "Annual Review",
+  mandatory_reporter_training: "Mandatory Reporter Training",
+  child_safe_code_of_conduct: "Child Safe Code of Conduct",
 };
 
 type CertStatus = "Valid" | "Expiring" | "Expired" | "Missing";
