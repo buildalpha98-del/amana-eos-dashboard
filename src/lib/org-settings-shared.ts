@@ -172,14 +172,24 @@ export type OrgSettingsConfig = z.infer<typeof orgSettingsConfigSchema>;
 
 export type RoleLabels = OrgSettingsConfig["roleLabels"];
 
-/** Static fallback used by `useRoleLabel()` when no provider is mounted. */
+/** Static fallback used by `useRoleLabel()` when no provider is mounted.
+ *
+ * 2026-06-02: relabel — `staff` → "OSHC Educator" (was "Educator"),
+ * `member` → "OSHC Coordinator" (was "OSHC Educator"). The underlying
+ * Role enum values are unchanged; permissions checks across the
+ * codebase use the enum names (`staff`, `member`) and aren't affected.
+ *
+ * Org-level overrides live in OrgSettings and win over these defaults
+ * when set. Reverting these defaults won't disturb any org that has
+ * customised labels in /settings/organisation.
+ */
 export const ROLE_LABEL_DEFAULTS: RoleLabels = {
   owner: "Owner",
   head_office: "State Manager",
   admin: "Admin",
   marketing: "Marketing",
-  member: "OSHC Educator",
-  staff: "Educator",
+  member: "OSHC Coordinator",
+  staff: "OSHC Educator",
 };
 
 /** Server-safe label getter. Pass the merged `OrgSettingsConfig.roleLabels`. */

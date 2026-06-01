@@ -1,15 +1,16 @@
 import { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
-// 2026-04-30: collapsed coordinator into member (Director of Service); see
-// migration 20260430140000_drop_coordinator_role.
+// Labels are kept in sync with src/lib/org-settings-shared.ts
+// ROLE_LABEL_DEFAULTS. 2026-06-02: staff → "OSHC Educator",
+// member → "OSHC Coordinator".
 const ROLE_STYLES: Record<Role, { label: string; className: string }> = {
   owner: { label: "Owner", className: "bg-slate-900 text-white" },
   head_office: { label: "State Manager", className: "bg-slate-700 text-white" },
   admin: { label: "Admin", className: "bg-blue-600 text-white" },
   marketing: { label: "Marketing", className: "bg-purple-500 text-white" },
-  member: { label: "OSHC Educator", className: "bg-emerald-500 text-white" },
-  staff: { label: "Educator", className: "bg-neutral-500 text-white" },
+  member: { label: "OSHC Coordinator", className: "bg-emerald-500 text-white" },
+  staff: { label: "OSHC Educator", className: "bg-neutral-500 text-white" },
 };
 
 export function RoleBadge({ role, className }: { role: Role; className?: string }) {

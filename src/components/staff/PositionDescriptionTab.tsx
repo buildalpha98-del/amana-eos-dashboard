@@ -53,8 +53,8 @@ const ROLE_LABEL: Record<Role, string> = {
   head_office: "State Manager",
   admin: "Admin",
   marketing: "Marketing",
-  member: "Director of Service",
-  staff: "Educator",
+  member: "OSHC Coordinator",
+  staff: "OSHC Educator",
 };
 
 const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);

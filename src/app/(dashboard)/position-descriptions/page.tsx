@@ -79,13 +79,17 @@ function statusPill(s: PDStatus): string {
   }
 }
 
+// Mirror src/lib/org-settings-shared.ts ROLE_LABEL_DEFAULTS — kept
+// local to dodge a client-component → server-shared-module import in
+// this page. 2026-06-02: staff → "OSHC Educator",
+// member → "OSHC Coordinator".
 const ROLE_LABEL: Record<Role, string> = {
   owner: "Owner",
   head_office: "State Manager",
   admin: "Admin",
   marketing: "Marketing",
-  member: "Director of Service",
-  staff: "Educator",
+  member: "OSHC Coordinator",
+  staff: "OSHC Educator",
 };
 
 const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);

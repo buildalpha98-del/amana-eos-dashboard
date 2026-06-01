@@ -70,8 +70,9 @@ const ROLE_DISPLAY_NAMES: Record<RoleKey, string> = {
   marketing: "Marketing Coordinator",
   // 2026-04-30: coordinator merged into member.
   // 2026-05-06: "Director of Service" → "OSHC Educator".
-  member: "OSHC Educator",
-  staff: "Educator",
+  // 2026-06-02: member → "OSHC Coordinator"; staff → "OSHC Educator".
+  member: "OSHC Coordinator",
+  staff: "OSHC Educator",
 };
 
 // ---------------------------------------------------------------------------
