@@ -113,14 +113,22 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
   {
     name: "search_knowledge_base",
     description:
-      "Search uploaded policies, procedures, SOPs, and guides. Use when staff ask about company policies, procedures, compliance requirements, or operational guidelines.",
+      "Full-text search across the Amana OSHC organisational knowledge base — this is the FIRST tool you should reach for on most staff questions. The base contains: " +
+      "(1) the Amana Way handbook (values, structure, how we work); " +
+      "(2) the Employee Handbook (conditions, leave, pay, performance, conduct); " +
+      "(3) the Proven Process (EOS-style operational playbook); " +
+      "(4) operational SOPs — OWNA procedures (posting to families, daily reports, attendance), incident & injury reporting, mandatory reporting, medication, behaviour guidance, roll-call, sign-in/out, excursions, vacation care; " +
+      "(5) compliance content — child protection, WHS, NQS, child-safe code of conduct, mandatory reporter training; " +
+      "(6) any other text the admin has loaded into /settings/ai-knowledge. " +
+      "Use it for ANY 'how do I…', 'what's our policy on…', 'where do I find…', 'what's the procedure for…' question. " +
+      "Search is keyword-based (PostgreSQL tsvector): if your first query returns nothing, RETRY with different wording before assuming the content isn't there.",
     input_schema: {
       type: "object" as const,
       properties: {
         query: {
           type: "string",
           description:
-            "Search keywords rephrased from the user's question about policies or procedures",
+            "Keywords to search. Use 3-6 specific words from the user's question PLUS likely synonyms / OSHC terminology. Example: user asks 'how do I post to families through OWNA' → search 'OWNA family communication post parent update'. If first search returns nothing, retry with different phrasing.",
         },
       },
       required: ["query"],

@@ -25,6 +25,7 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
@@ -90,6 +91,26 @@ export default function AiKnowledgePage() {
 
   const entries = data?.entries ?? [];
 
+  const qc = useQueryClient();
+  const seedMut = useMutation({
+    mutationFn: () =>
+      mutateApi<{
+        results: Array<{ title: string; status: "created" | "skipped" }>;
+      }>("/api/settings/ai-knowledge/seed", { method: "POST" }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
+      const created = data.results.filter((r) => r.status === "created").length;
+      const skipped = data.results.filter((r) => r.status === "skipped").length;
+      toast({
+        description: created
+          ? `Seeded ${created} starter ${created === 1 ? "entry" : "entries"}.${skipped ? ` (${skipped} already existed.)` : ""}`
+          : "All starter entries already exist — nothing to seed.",
+      });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <PageHeader title="AI Knowledge Library">
@@ -110,7 +131,21 @@ export default function AiKnowledgePage() {
         </p>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => seedMut.mutate()}
+          disabled={seedMut.isPending}
+          title="Pre-fill the library with starter Amana Way, Employee Handbook, and Proven Process entries. Idempotent — re-running skips existing entries."
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+        >
+          {seedMut.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Sparkles className="w-4 h-4 text-amber-500" />
+          )}
+          {seedMut.isPending ? "Seeding…" : "Seed starter content"}
+        </button>
         <button
           type="button"
           onClick={() => setEditing({ mode: "create" })}

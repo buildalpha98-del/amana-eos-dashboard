@@ -447,6 +447,9 @@ export async function searchChunks(
   limit: number = 8,
 ): Promise<SearchResult[]> {
   const rows = await prisma.$queryRawUnsafe<SearchChunkRow[]>(
+    // First pass: plainto_tsquery — treats the input as a phrase
+    // (implicit AND between tokens). Most precise but unforgiving:
+    // ANY unmatched token zeroes out the result.
     `
     SELECT
       dc.id,
@@ -470,7 +473,39 @@ export async function searchChunks(
     limit,
   );
 
-  if (rows.length === 0) return [];
+  // 2026-06-02 query-expansion fallback. When the strict AND-search
+  // returns nothing — common when the user's wording differs from the
+  // doc's ("posting to families" vs "parent communication") — retry
+  // with websearch_to_tsquery, which falls back to OR semantics for
+  // unmatched tokens. Recall up, precision down a notch; the ranker
+  // still surfaces the strongest matches first.
+  if (rows.length === 0) {
+    const fallback = await prisma.$queryRawUnsafe<SearchChunkRow[]>(
+      `
+      SELECT
+        dc.id,
+        dc."documentId",
+        dc."chunkIndex",
+        dc.content,
+        dc.heading,
+        dc."tokenCount",
+        ts_rank(dc."searchVector", websearch_to_tsquery('english', $1)) AS rank,
+        d.title AS "documentTitle",
+        d.category AS "documentCategory",
+        d."fileName"
+      FROM "DocumentChunk" dc
+      JOIN "Document" d ON d.id = dc."documentId"
+      WHERE dc."searchVector" @@ websearch_to_tsquery('english', $1)
+        AND d.deleted = false
+      ORDER BY rank DESC
+      LIMIT $2
+      `,
+      query,
+      limit,
+    );
+    if (fallback.length === 0) return [];
+    rows.push(...fallback);
+  }
 
   // Group by document
   const grouped = new Map<string, SearchResult>();
