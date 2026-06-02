@@ -38,6 +38,7 @@ import {
   Sunrise,
   Eye,
   FileText,
+  CheckCircle2,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceContentTab } from "@/components/services/ServiceContentTab";
@@ -51,6 +52,7 @@ import { WeeklyDataEntry } from "@/components/services/WeeklyDataEntry";
 import { ServiceCommTab } from "@/components/services/ServiceCommTab";
 import { ServiceAttendanceTab } from "@/components/services/ServiceAttendanceTab";
 import { ServiceBudgetTab } from "@/components/services/ServiceBudgetTab";
+import { ServicePurchaseApprovalsTab } from "@/components/services/ServicePurchaseApprovalsTab";
 import { ServiceProgramTab } from "@/components/services/ServiceProgramTab";
 import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
 import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
@@ -198,6 +200,7 @@ const tabGroups: TabGroup[] = [
     subTabs: [
       { key: "budget", label: "Budget", icon: Wallet },
       { key: "financials", label: "Financials", icon: DollarSign },
+      { key: "approvals", label: "Approvals", icon: CheckCircle2 },
     ],
   },
 ];
@@ -644,6 +647,12 @@ export default function ServiceDetailPage() {
               Dashboard page filtered to this centre.
             </p>
           </div>
+        )}
+        {activeGroup === "finance" && currentSubKey === "approvals" && (
+          <ServicePurchaseApprovalsTab
+            serviceId={service.id}
+            serviceName={service.name}
+          />
         )}
       </div>
     </div>

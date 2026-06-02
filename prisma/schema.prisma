@@ -670,6 +670,11 @@ model User {
   reasonableAdjustments     ReasonableAdjustment[]   @relation("AdjustmentSubject")
   recordedAdjustments       ReasonableAdjustment[]   @relation("AdjustmentRecorder")
 
+  // Purchase-approval requests — staff submit these from the service
+  // Finance tab when they need to buy something with personal funds.
+  purchaseApprovalsRequested PurchaseApproval[] @relation("PurchaseApprovalRequester")
+  purchaseApprovalsDecided   PurchaseApproval[] @relation("PurchaseApprovalDecider")
+
   // ── NQS back-refs ─────────────────────────────────
   staffReflections          StaffReflection[]          @relation("StaffReflections")
   learningObservations      LearningObservation[]      @relation("LearningObservations")
@@ -2276,6 +2281,10 @@ model Service {
   // ── Operations ────────────────────────────────────────
   qip       QualityImprovementPlan? @relation("ServiceQIP")
   incidents IncidentRecord[]        @relation("ServiceIncidents")
+
+  // Purchase approval requests raised by staff working at this
+  // service. Admin approves/rejects from the Finance → Approvals tab.
+  purchaseApprovals PurchaseApproval[] @relation("ServicePurchaseApprovals")
 
   // ── Programming & Quality ──────────────────────────
   childInterests ChildInterest[] @relation("ServiceInterests")
@@ -7262,6 +7271,63 @@ enum DiversityCarer {
   family_carer
   both
   prefer_not_to_say
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Service purchase approvals (2026-06-02)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Staff working at a centre raise an approval request BEFORE buying
+// something with their personal funds. Admin reviews + approves or
+// rejects. On approval the staff member is told to make the purchase
+// and submit an expense claim through My Portal (EH Payroll), so the
+// org reimbursement runs through normal payroll plumbing.
+//
+// Lives in: Service → Finance → Approvals sub-tab.
+//
+// Notifications fire on status change so the requester doesn't need
+// to poll — the bell-icon UserNotification surface picks them up.
+//
+// Money stored in CENTS (Int) to dodge float rounding. payRate /
+// budget elsewhere uses Float; centring on Int here is the cleaner
+// pattern for a new column and a 7-year audit footprint.
+
+model PurchaseApproval {
+  id           String  @id @default(cuid())
+
+  serviceId    String
+  service      Service @relation("ServicePurchaseApprovals", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  // Who's asking to buy the thing.
+  requestedById String
+  requestedBy   User   @relation("PurchaseApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  vendor       String  @db.VarChar(200)   // e.g. "Officeworks"
+  product      String  @db.VarChar(500)   // e.g. "Pack of coloring pens (50 ct)"
+  costCents    Int                        // e.g. 2000 = $20.00
+  reason       String? @db.Text           // optional rationale
+
+  status       PurchaseApprovalStatus @default(pending)
+
+  // Decision audit.
+  decidedById  String?
+  decidedBy    User?    @relation("PurchaseApprovalDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt    DateTime?
+  decisionNote String?  @db.Text   // admin's note on approve/reject
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([serviceId, status])
+  @@index([requestedById, status])
+  @@index([status, createdAt])
+}
+
+enum PurchaseApprovalStatus {
+  pending
+  approved
+  rejected
+  cancelled  // requester withdrew before decision
 }
 
 // ─────────────────────────────────────────────────────────────────────
