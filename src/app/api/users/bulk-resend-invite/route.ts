@@ -39,28 +39,51 @@ export const POST = withApiAuth(async (_req: NextRequest, session) => {
 
   let resent = 0;
   let failed = 0;
-  const failures: Array<{ email: string; error: string }> = [];
+  const failures: Array<{ email: string; reason: string }> = [];
 
   for (const user of pending) {
     try {
-      await issueInvite(user);
+      const result = await issueInvite(user);
       await prisma.activityLog.create({
         data: {
           userId: session!.user.id,
           action: "resend_invite",
           entityType: "User",
           entityId: user.id,
-          details: { bulk: true },
+          details: {
+            bulk: true,
+            sent: result.sent,
+            suppressed: result.suppressed,
+          },
         },
       });
-      resent++;
+      if (result.sent) {
+        resent++;
+      } else {
+        failed++;
+        // Translate the structured reason into something an admin can
+        // read in the response toast. Same vocabulary as the
+        // single-user route.
+        const reason =
+          result.reason === "suppressed"
+            ? "Email is on the suppression list (bounced previously)"
+            : result.reason === "not_configured"
+              ? "Server email not configured"
+              : result.error || "Send failed";
+        failures.push({ email: user.email, reason });
+        logger.warn("Bulk resend-invite per-user not sent", {
+          userId: user.id,
+          email: user.email,
+          reason: result.reason,
+        });
+      }
     } catch (err) {
       failed++;
       failures.push({
         email: user.email,
-        error: err instanceof Error ? err.message : "Unknown error",
+        reason: err instanceof Error ? err.message : "Unknown error",
       });
-      logger.warn("Bulk resend-invite per-user failure", {
+      logger.warn("Bulk resend-invite per-user threw", {
         userId: user.id,
         email: user.email,
         err,
