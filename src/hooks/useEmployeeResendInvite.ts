@@ -14,7 +14,10 @@ interface BulkResendResponse {
   message: string;
   resent: number;
   failed: number;
-  failures: Array<{ email: string; error: string }>;
+  // 2026-06-02: server renamed `error` → `reason` so the field name
+  // matches the structured outcome (suppressed / not_configured /
+  // send_failed) the bulk route now reports.
+  failures: Array<{ email: string; reason: string }>;
 }
 
 /**
@@ -51,10 +54,22 @@ export function useBulkResendInvite() {
     mutationFn: () =>
       mutateApi(`/api/users/bulk-resend-invite`, { method: "POST" }),
     onSuccess: (data) => {
-      toast({
-        description: data.message,
-        variant: data.failed > 0 ? "destructive" : undefined,
-      });
+      if (data.failed > 0) {
+        // Spell out who failed and why — the bare summary ("Resent X,
+        // 1 failed") leaves admin chasing logs to find the recipient.
+        // Cap at 5 lines so a 50-failure batch doesn't blow the toast.
+        const shown = data.failures.slice(0, 5);
+        const lines = shown.map((f) => `• ${f.email} — ${f.reason}`);
+        if (data.failures.length > shown.length) {
+          lines.push(`…and ${data.failures.length - shown.length} more.`);
+        }
+        toast({
+          variant: "destructive",
+          description: `${data.message}\n\n${lines.join("\n")}`,
+        });
+      } else {
+        toast({ description: data.message });
+      }
       qc.invalidateQueries({ queryKey: ["employees"] });
     },
     onError: (err) => {
