@@ -1,149 +1,161 @@
 /**
  * POST /api/settings/ai-knowledge/upload
  *
- * Multipart upload endpoint for AI knowledge files. Accepts PDF, DOCX,
- * DOC, TXT, and Markdown. The uploaded file is:
- *   1. Stored in Vercel Blob under the `ai-knowledge/` folder
- *   2. Recorded as a Document row (fileUrl = blob URL, distinguishes
- *      uploaded files from text-only knowledge entries which use the
- *      `internal://knowledge` sentinel)
- *   3. Text-extracted + chunked + indexed via the existing
- *      indexDocument() pipeline so the bot's search_knowledge_base
- *      tool can find it
+ * Client-direct upload coordinator for AI knowledge files. Uses the
+ * Vercel Blob `handleUpload` pattern so the FILE BYTES go browser →
+ * Blob directly, bypassing the serverless function body-size limit
+ * (~4.5 MB on the platform). This route only handles two short
+ * exchanges:
  *
- * Owner / head_office / admin can upload.
+ *   1. `onBeforeGenerateToken` — validates the requested filename +
+ *      content type + size cap, mints a single-use upload token for
+ *      the client.
+ *   2. `onUploadCompleted` — receives a Vercel webhook AFTER the
+ *      client has finished uploading to Blob. Creates the Document
+ *      row pointing at the new blob URL and runs the existing
+ *      `indexDocument()` pipeline to extract text + chunk + index.
+ *
+ * The client never POSTs the file bytes through this route, so we
+ * can comfortably accept 50 MB+ files. The pattern is documented in
+ * the Vercel Blob client docs.
+ *
+ * Auth: only owner/head_office/admin can call this. The session
+ * snapshot is embedded in `tokenPayload` so the post-upload webhook
+ * (which has no session cookie) can still attribute the upload.
  *
  * 2026-06-02.
  */
 
 import { NextResponse } from "next/server";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
-import { uploadFile } from "@/lib/storage";
 import { indexDocument } from "@/lib/document-indexer";
 import { logger } from "@/lib/logger";
 
-// File-type allowlist + size cap. PDF/DOCX cover the standard handbook
-// formats; TXT/MD for raw notes. Anything outside this list is rejected
-// — the bot can't index images, spreadsheets, etc. as-is, and we don't
-// want admins uploading 50MB design files into the knowledge base.
-const ALLOWED_MIME_TYPES = new Set([
+const ALLOWED_CONTENT_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
   "text/plain",
   "text/markdown",
-]);
-const ALLOWED_EXTENSIONS = new Set(["pdf", "docx", "doc", "txt", "md"]);
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+];
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — handles even big handbooks
 
 export const POST = withApiAuth(
   async (req, session) => {
-    const formData = await req.formData().catch(() => null);
-    if (!formData) {
-      throw ApiError.badRequest("Expected multipart/form-data");
+    const body = (await req.json().catch(() => null)) as HandleUploadBody | null;
+    if (!body) {
+      throw ApiError.badRequest("Missing upload payload");
     }
 
-    const file = formData.get("file");
-    if (!(file instanceof File)) {
-      throw ApiError.badRequest("No file uploaded");
-    }
+    try {
+      const jsonResponse = await handleUpload({
+        body,
+        request: req,
+        // Phase 1: token generation. Runs while the user still has a
+        // session; we validate + embed an attribution payload that
+        // the webhook half can read once upload completes.
+        onBeforeGenerateToken: async (pathname, clientPayload) => {
+          // clientPayload carries the title the admin typed. Wrap in
+          // a try because it's user input through the client lib.
+          let title = pathname.split("/").pop() ?? "Knowledge file";
+          if (clientPayload) {
+            try {
+              const parsed = JSON.parse(clientPayload) as {
+                title?: string;
+              };
+              if (parsed.title) title = parsed.title;
+            } catch {
+              // ignore — fall through to filename
+            }
+          }
 
-    // Title fallback comes from the filename (minus extension) if the
-    // form didn't send a custom title. The chunker doesn't care about
-    // title — it's just for the admin UI list.
-    const customTitle = String(formData.get("title") ?? "").trim();
-    const fallbackTitle = file.name.replace(/\.[^.]+$/, "");
-    const title = customTitle || fallbackTitle;
+          return {
+            allowedContentTypes: ALLOWED_CONTENT_TYPES,
+            maximumSizeInBytes: MAX_FILE_SIZE,
+            // Stash the actor + title for the webhook half. JSON-encoded
+            // because tokenPayload is `string | undefined`.
+            tokenPayload: JSON.stringify({
+              uploadedById: session!.user.id,
+              title,
+            }),
+          };
+        },
+        // Phase 2: the post-upload webhook from Vercel Blob. Creates
+        // the Document row and runs the existing extraction +
+        // chunking pipeline.
+        onUploadCompleted: async ({ blob, tokenPayload }) => {
+          try {
+            const meta = tokenPayload
+              ? (JSON.parse(tokenPayload) as {
+                  uploadedById?: string;
+                  title?: string;
+                })
+              : {};
 
-    if (!title) {
-      throw ApiError.badRequest("Title is required");
-    }
+            const fileName = blob.pathname.split("/").pop() ?? blob.pathname;
+            const created = await prisma.document.create({
+              data: {
+                title: meta.title || fileName,
+                description: null, // populated post-extraction
+                category: "other",
+                fileName,
+                fileUrl: blob.url,
+                fileSize: 0, // blob doesn't expose size at this stage; refreshed by indexer
+                mimeType: blob.contentType ?? "application/octet-stream",
+                uploadedById: meta.uploadedById ?? null,
+              },
+            });
 
-    if (file.size > MAX_FILE_SIZE) {
-      throw ApiError.badRequest(
-        `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB, max ${MAX_FILE_SIZE / 1024 / 1024} MB).`,
-      );
-    }
+            await indexDocument(created.id);
 
-    // Validate by both MIME type AND extension — clients sometimes lie
-    // about MIME, and extension is what the text extractor switches on.
-    const extension = (file.name.split(".").pop() ?? "").toLowerCase();
-    if (
-      !ALLOWED_MIME_TYPES.has(file.type) &&
-      !ALLOWED_EXTENSIONS.has(extension)
-    ) {
-      throw ApiError.badRequest(
-        `Unsupported file type. Accepted: ${[...ALLOWED_EXTENSIONS].join(", ")}.`,
-      );
-    }
+            // Backfill the description preview from the first chunk
+            // (post-extraction) so the list card has something to show.
+            const firstChunk = await prisma.documentChunk.findFirst({
+              where: { documentId: created.id },
+              orderBy: { chunkIndex: "asc" },
+              select: { content: true, tokenCount: true },
+            });
+            if (firstChunk) {
+              await prisma.document.update({
+                where: { id: created.id },
+                data: { description: firstChunk.content.slice(0, 280) },
+              });
+            }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    // Upload to blob storage under the ai-knowledge/ folder so we can
-    // distinguish AI knowledge files from other Document uploads when
-    // listing.
-    const { url } = await uploadFile(buffer, file.name, {
-      contentType: file.type || "application/octet-stream",
-      folder: "ai-knowledge",
-    });
-
-    // Create the Document row pointing at the uploaded blob.
-    const created = await prisma.document.create({
-      data: {
-        title,
-        description: null, // populated post-extraction below
-        category: "other",
-        fileName: file.name,
-        fileUrl: url,
-        fileSize: file.size,
-        mimeType: file.type || "application/octet-stream",
-        uploadedById: session!.user.id,
-      },
-    });
-
-    // Run the existing extraction + chunking pipeline. indexDocument
-    // downloads from fileUrl, switches on mimeType to call the right
-    // extractor (pdf-parse / mammoth / plain), chunks, and writes
-    // DocumentChunk rows with the tsvector populated.
-    await indexDocument(created.id);
-
-    // Fill the description from the first chunk so the list card has
-    // something to preview. Pulled post-index because the extractor
-    // is what produced the text.
-    const firstChunk = await prisma.documentChunk.findFirst({
-      where: { documentId: created.id },
-      orderBy: { chunkIndex: "asc" },
-      select: { content: true },
-    });
-    if (firstChunk) {
-      await prisma.document.update({
-        where: { id: created.id },
-        data: { description: firstChunk.content.slice(0, 280) },
+            logger.info("AI knowledge file uploaded + indexed", {
+              id: created.id,
+              title: meta.title,
+              blobUrl: blob.url,
+              contentType: blob.contentType,
+            });
+          } catch (err) {
+            // onUploadCompleted runs as a webhook — if we throw here
+            // the upload still succeeded but the Document row never
+            // got created, leaving an orphan blob. Log loud so we can
+            // tell.
+            logger.error("AI knowledge: onUploadCompleted failed", {
+              blobUrl: blob.url,
+              err: err instanceof Error ? err.message : String(err),
+            });
+            throw err;
+          }
+        },
       });
+
+      return NextResponse.json(jsonResponse);
+    } catch (err) {
+      // handleUpload returns a Response-style error envelope when
+      // validation fails (e.g. file too big, wrong content-type). We
+      // unwrap it to surface a clean message to the client.
+      const message = err instanceof Error ? err.message : String(err);
+      logger.warn("AI knowledge upload coordinator rejected request", {
+        err: message,
+      });
+      throw ApiError.badRequest(message);
     }
-
-    logger.info("AI knowledge file uploaded", {
-      id: created.id,
-      title,
-      fileSize: file.size,
-      mimeType: file.type,
-      actorId: session!.user.id,
-    });
-
-    return NextResponse.json(
-      {
-        id: created.id,
-        title,
-        fileName: file.name,
-        url,
-      },
-      { status: 201 },
-    );
   },
   { roles: ["owner", "head_office", "admin"] },
 );
-
-// Bump the API-route body size limit so 10MB PDFs land cleanly.
-export const maxDuration = 60;

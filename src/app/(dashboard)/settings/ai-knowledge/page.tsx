@@ -112,23 +112,32 @@ export default function AiKnowledgePage() {
 
   const uploadMut = useMutation({
     mutationFn: async (file: File) => {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/settings/ai-knowledge/upload", {
-        method: "POST",
-        body: fd,
+      // Client-direct upload to Vercel Blob via @vercel/blob/client.
+      // File bytes go browser → Blob directly; our API only mediates
+      // the token + the post-upload Document creation. Sidesteps the
+      // serverless function body-size limit (~4.5 MB) — handles up to
+      // the 50 MB server-side cap configured in onBeforeGenerateToken.
+      const { upload } = await import("@vercel/blob/client");
+
+      const title = file.name.replace(/\.[^.]+$/, "");
+
+      const blob = await upload(`ai-knowledge/${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/settings/ai-knowledge/upload",
+        contentType: file.type || "application/octet-stream",
+        // clientPayload reaches our route's onBeforeGenerateToken as
+        // a string; we use it to pass the title (filename minus
+        // extension by default).
+        clientPayload: JSON.stringify({ title }),
       });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as
-          | { error?: string }
-          | null;
-        throw new Error(body?.error || "Upload failed");
-      }
-      return res.json() as Promise<{ id: string; title: string }>;
+
+      return { url: blob.url, title };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      toast({ description: `Uploaded "${data.title}" and indexed.` });
+      toast({
+        description: `Uploaded "${data.title}" — indexing in the background. Refresh in a moment to see chunks land.`,
+      });
     },
     onError: (err: Error) =>
       toast({ variant: "destructive", description: err.message }),
