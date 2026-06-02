@@ -26,7 +26,7 @@ const MAX_TOOL_ROUNDS = 5;
  * Returns a Server-Sent Events stream of text deltas.
  * Supports tool calling: the assistant can look up live data during the conversation.
  */
-export const POST = withApiAuth(async (req) => {
+export const POST = withApiAuth(async (req, session) => {
   const ai = getAI();
   if (!ai) {
     throw new ApiError(503, "AI is not configured. Set ANTHROPIC_API_KEY environment variable.");
@@ -39,6 +39,17 @@ export const POST = withApiAuth(async (req) => {
   }
   const userMessages = parsed.data.messages;
   const currentPage = parsed.data.currentPage;
+
+  // 2026-06-02: tool gate. Non-admin staff get the knowledge-base
+  // search only — the dashboard-lookup tools surface data (financials,
+  // staff lists, expiring certs, enquiry pipeline) that should stay
+  // admin-only even when accessed through the bot. Admins keep the
+  // full set.
+  const role = session!.user.role;
+  const isAdmin = role === "owner" || role === "admin" || role === "head_office";
+  const allowedTools = isAdmin
+    ? ASSISTANT_TOOLS
+    : ASSISTANT_TOOLS.filter((t) => t.name === "search_knowledge_base");
 
   // Build system prompt with live dashboard context
   const dashboardContext = await buildDashboardContext();
@@ -81,7 +92,7 @@ export const POST = withApiAuth(async (req) => {
             max_tokens: 1024,
             system: systemPrompt,
             messages: apiMessages,
-            tools: ASSISTANT_TOOLS,
+            tools: allowedTools,
           });
 
           // Check if we need to handle tool use
@@ -149,7 +160,12 @@ export const POST = withApiAuth(async (req) => {
       Connection: "keep-alive",
     },
   });
-}, { roles: ["owner", "head_office", "admin"] });
+});
+// 2026-06-02: removed `roles:` restriction so the FloatingChatWidget
+// works for every authenticated staff member, not just admins. The
+// bot's tools are read-only (knowledge-base search + dashboard lookups
+// that don't expose data the caller couldn't otherwise see), so
+// opening the chat endpoint to all roles is safe.
 
 // Page-specific context mapping
 const PAGE_CONTEXTS: Record<string, string> = {
