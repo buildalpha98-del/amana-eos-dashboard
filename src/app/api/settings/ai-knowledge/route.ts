@@ -36,12 +36,27 @@ const createSchema = z.object({
 
 export const GET = withApiAuth(
   async () => {
+    // Knowledge entries come in two flavours:
+    //   1. Text entries (paste-in-UI) — fileUrl is the sentinel
+    //      `internal://knowledge`
+    //   2. File uploads (PDF / DOCX / TXT / MD) — fileUrl is the
+    //      Vercel Blob URL, stored under the `ai-knowledge/` folder
+    // The OR catches both. Other Document rows (staff documents,
+    // service-level uploads, etc.) stay out of this list.
     const entries = await prisma.document.findMany({
-      where: { fileUrl: KNOWLEDGE_FILE_URL },
+      where: {
+        OR: [
+          { fileUrl: KNOWLEDGE_FILE_URL },
+          { fileUrl: { contains: "/ai-knowledge/" } },
+        ],
+      },
       select: {
         id: true,
         title: true,
         description: true,
+        fileName: true,
+        fileUrl: true,
+        mimeType: true,
         indexed: true,
         indexedAt: true,
         indexError: true,
@@ -51,7 +66,14 @@ export const GET = withApiAuth(
       },
       orderBy: { createdAt: "asc" },
     });
-    return NextResponse.json({ entries });
+    // Add a `kind` discriminator so the UI can render file uploads
+    // with a download link vs text entries with the inline editor.
+    const decorated = entries.map((e) => ({
+      ...e,
+      kind:
+        e.fileUrl === KNOWLEDGE_FILE_URL ? ("text" as const) : ("file" as const),
+    }));
+    return NextResponse.json({ entries: decorated });
   },
   { roles: ["owner", "head_office", "admin"] },
 );

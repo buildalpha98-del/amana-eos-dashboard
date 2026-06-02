@@ -14,7 +14,7 @@
  * 2026-06-02.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Brain,
@@ -26,6 +26,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   Sparkles,
+  Upload,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
@@ -35,6 +38,12 @@ interface KnowledgeEntrySummary {
   id: string;
   title: string;
   description: string | null;
+  fileName: string | null;
+  fileUrl: string;
+  mimeType: string | null;
+  /** "text" = pasted-in entry editable inline; "file" = uploaded
+   *  PDF/DOCX/etc. with a download link. */
+  kind: "text" | "file";
   indexed: boolean;
   indexedAt: string | null;
   indexError: string | null;
@@ -47,6 +56,11 @@ interface KnowledgeEntryDetail {
   id: string;
   title: string;
   body: string;
+  /** Same discriminator as the list endpoint — file entries make the
+   *  body textarea read-only since you can't edit a PDF's text inline. */
+  kind: "text" | "file";
+  fileName: string | null;
+  fileUrl: string | null;
   indexed: boolean;
   indexedAt: string | null;
   indexError: string | null;
@@ -92,6 +106,34 @@ export default function AiKnowledgePage() {
   const entries = data?.entries ?? [];
 
   const qc = useQueryClient();
+  // Hidden <input type="file"> we trigger from the visible Upload
+  // button. Lets us style the button consistently with other actions.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadMut = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/settings/ai-knowledge/upload", {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(body?.error || "Upload failed");
+      }
+      return res.json() as Promise<{ id: string; title: string }>;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
+      toast({ description: `Uploaded "${data.title}" and indexed.` });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
   const seedMut = useMutation({
     mutationFn: () =>
       mutateApi<{
@@ -146,6 +188,34 @@ export default function AiKnowledgePage() {
           )}
           {seedMut.isPending ? "Seeding…" : "Seed starter content"}
         </button>
+        {/* Hidden native input — visible button triggers it via ref.
+            Restricting `accept` is a UX hint only (clients can pick
+            anything); server validates type + size. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadMut.mutate(f);
+            // Reset so picking the same file twice re-fires onChange.
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadMut.isPending}
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+        >
+          {uploadMut.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Upload className="w-4 h-4" />
+          )}
+          {uploadMut.isPending ? "Uploading…" : "Upload PDF / Word"}
+        </button>
         <button
           type="button"
           onClick={() => setEditing({ mode: "create" })}
@@ -170,14 +240,32 @@ export default function AiKnowledgePage() {
               className="bg-card rounded-lg border border-border p-4 flex flex-wrap items-start gap-3 hover:bg-surface/40 cursor-pointer"
               onClick={() => setEditing({ mode: "edit", id: e.id })}
             >
-              <div className="shrink-0 p-2 rounded-md bg-brand/10 text-brand">
-                <Brain className="w-4 h-4" />
+              {/* File entries get the doc icon + a different background
+                  so they're visually distinct from the pasted-text
+                  entries (which remain Brain-iconed). */}
+              <div
+                className={
+                  e.kind === "file"
+                    ? "shrink-0 p-2 rounded-md bg-blue-50 text-blue-700"
+                    : "shrink-0 p-2 rounded-md bg-brand/10 text-brand"
+                }
+              >
+                {e.kind === "file" ? (
+                  <FileText className="w-4 h-4" />
+                ) : (
+                  <Brain className="w-4 h-4" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold text-foreground">
                     {e.title}
                   </span>
+                  {e.kind === "file" && (
+                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                      {(e.fileName?.split(".").pop() ?? "FILE").toUpperCase()}
+                    </span>
+                  )}
                   {e.indexed ? (
                     <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
                       <CheckCircle2 className="w-3 h-3" />
@@ -200,9 +288,22 @@ export default function AiKnowledgePage() {
                     {e.description}
                   </p>
                 )}
-                <p className="text-xs text-muted mt-1">
-                  {e._count.chunks} chunk{e._count.chunks === 1 ? "" : "s"} ·
-                  last indexed {formatDate(e.indexedAt)}
+                <p className="text-xs text-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                  <span>
+                    {e._count.chunks} chunk{e._count.chunks === 1 ? "" : "s"} ·
+                    last indexed {formatDate(e.indexedAt)}
+                  </span>
+                  {e.kind === "file" && e.fileUrl && (
+                    <a
+                      href={e.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(ev) => ev.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-brand hover:underline"
+                    >
+                      Open original <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </p>
               </div>
             </li>
@@ -372,27 +473,46 @@ function EntryModal({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-foreground">
-                Body
+                {existing?.kind === "file"
+                  ? "Extracted text (read-only)"
+                  : "Body"}
               </label>
               <span
                 className={`text-xs ${byteSize > 500_000 ? "text-red-600" : "text-muted"}`}
               >
-                {byteSize.toLocaleString()} / 500,000 bytes
+                {byteSize.toLocaleString()}
+                {existing?.kind === "file"
+                  ? ` bytes (from ${existing.fileName})`
+                  : " / 500,000 bytes"}
               </span>
             </div>
             <textarea
               rows={20}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              disabled={save.isPending}
-              placeholder="Paste in the content. Markdown headings (# Heading) are detected and used to chunk by section for better retrieval."
+              disabled={save.isPending || existing?.kind === "file"}
+              readOnly={existing?.kind === "file"}
+              placeholder={
+                existing?.kind === "file"
+                  ? ""
+                  : "Paste in the content. Markdown headings (# Heading) are detected and used to chunk by section for better retrieval."
+              }
               className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-mono"
             />
-            <p className="text-xs text-muted mt-1">
-              Tip: include headings (Markdown <code>#</code> style) so the
-              chunker can split on natural section boundaries —
-              improves retrieval quality.
-            </p>
+            {existing?.kind === "file" ? (
+              <p className="text-xs text-muted mt-1">
+                This is the text extracted from{" "}
+                <code>{existing.fileName}</code> at upload time. To
+                change the content, delete this entry and re-upload.
+                You can still rename it via the Title field above.
+              </p>
+            ) : (
+              <p className="text-xs text-muted mt-1">
+                Tip: include headings (Markdown <code>#</code> style) so
+                the chunker can split on natural section boundaries —
+                improves retrieval quality.
+              </p>
+            )}
           </div>
         </div>
 
