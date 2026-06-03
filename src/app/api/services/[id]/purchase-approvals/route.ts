@@ -9,7 +9,16 @@
  *   - other staff at the service: read their own + create their own
  *   - everyone else: 403
  *
- * 2026-06-02.
+ * Notifications on POST go to (deduped):
+ *   - owner + head_office (org-wide approvers)
+ *   - admin = State Manager — only when service.state matches the
+ *     admin's user.state (admins with no state set fall through to
+ *     org-wide so legacy seed data still works)
+ *   - service.managerId (the Director of Service for this centre)
+ *   - the requester is removed from the recipient set
+ *
+ * 2026-06-02 — initial cut.
+ * 2026-06-03 — scoped admin notifications to their state.
  */
 
 import { NextResponse } from "next/server";
@@ -87,7 +96,7 @@ export const POST = withApiAuth(async (req, session, context) => {
 
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { id: true, managerId: true, name: true },
+    select: { id: true, managerId: true, name: true, state: true },
   });
   if (!service) throw ApiError.notFound("Service not found");
 
@@ -131,18 +140,44 @@ export const POST = withApiAuth(async (req, session, context) => {
     },
   });
 
-  // Notify admins of the new pending request. Find every admin /
-  // owner / head_office user; drop a UserNotification each. Cheap
-  // enough at this scale; if we grow to many admins this becomes a
-  // per-org broadcast helper.
-  const admins = await prisma.user.findMany({
-    where: { role: { in: ["owner", "admin", "head_office"] }, active: true },
+  // Fan out a UserNotification to every approver who has authority
+  // for this service:
+  //
+  //   - owner + head_office  → org-wide oversight, always notified
+  //   - admin (State Manager) → only if user.state matches
+  //     service.state. A NSW State Manager shouldn't get pinged for
+  //     a VIC request. Admins with no state set are treated as
+  //     org-wide (defensive — keeps the seed data working).
+  //   - service.managerId    → the Director of Service for this
+  //     centre. They're a valid approver per the PATCH route and
+  //     they should know what their team is requesting.
+  //
+  // We collect IDs into a Set so the service manager doesn't double
+  // up if they happen to also be admin / head_office.
+  const candidates = await prisma.user.findMany({
+    where: {
+      active: true,
+      OR: [
+        { role: { in: ["owner", "head_office"] } },
+        // State-scoped admins: same state as the service, or no
+        // state set (legacy / org-wide admin).
+        {
+          role: "admin",
+          OR: [{ state: service.state ?? null }, { state: null }],
+        },
+      ],
+    },
     select: { id: true },
   });
-  if (admins.length > 0) {
+  const recipientIds = new Set<string>(candidates.map((u) => u.id));
+  if (service.managerId) recipientIds.add(service.managerId);
+  // Don't notify the requester themselves — they raised it.
+  recipientIds.delete(userId);
+
+  if (recipientIds.size > 0) {
     await prisma.userNotification.createMany({
-      data: admins.map((a) => ({
-        userId: a.id,
+      data: Array.from(recipientIds).map((id) => ({
+        userId: id,
         type: "purchase_approval_requested",
         title: `New purchase approval — ${service.name}`,
         body: `${created.requestedBy.name} wants to buy ${product} from ${vendor} for $${costDollars.toFixed(2)}.`,
