@@ -81,13 +81,20 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/projects",
       "/scorecard",
       "/holiday-quest",
+      // 2026-06-03: EOS opened up for marketing pod L10
+      "/vision",
+      "/rocks",
+      "/todos",
+      "/issues",
+      "/meetings",
     ])("includes Akram's cockpit nav item %s", (href) => {
       expect(hrefs).toContain(href);
     });
 
     it("hides every item tagged with ALL_NON_MARKETING roles", () => {
       // Spot-check a handful of ALL_NON_MARKETING items across sections.
-      for (const href of ["/vision", "/rocks", "/services", "/financials", "/team", "/leadership", "/automations"]) {
+      // 2026-06-03: /vision and /rocks moved out — marketing now runs EOS.
+      for (const href of ["/services", "/financials", "/team", "/leadership", "/automations"]) {
         expect(hrefs).not.toContain(href);
       }
     });

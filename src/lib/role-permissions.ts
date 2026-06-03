@@ -232,6 +232,18 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/settings",
     "/assistant",
     "/accountability-chart",
+    // 2026-06-03: EOS access opened up to Marketing. Akram runs his
+    // own L10s on the marketing pod and tracks campaign rocks /
+    // weekly todos here. APIs gate creation where needed
+    // (/api/rocks POST excludes marketing, /api/meetings POST too —
+    // marketing reads cross-team rocks/meetings but doesn't create
+    // them outside the marketing pod). /api/todos is fully open so
+    // marketing can fully own their todo list.
+    "/vision",
+    "/rocks",
+    "/todos",
+    "/issues",
+    "/meetings",
   ],
   // 2026-04-30: `coordinator` enum value dropped — Service Coordinators are
   // now Directors of Service (`member`). The previous coordinator allowlist
@@ -605,6 +617,23 @@ const marketingFeatures: readonly Feature[] = [
   "projects.view",
   "projects.create",
   "my_portal.view",
+  // 2026-06-03: Marketing now participates in EOS — Akram runs an
+  // L10 on the marketing pod, owns campaign rocks, and tracks his
+  // own todos. APIs were opened in step with this: /api/rocks POST
+  // and /api/meetings POST now include "marketing". /api/todos and
+  // /api/issues are fully open. UI buttons gate on these flags.
+  "rocks.view",
+  "rocks.create",
+  "rocks.edit",
+  "todos.view",
+  "todos.create",
+  "todos.edit",
+  "issues.view",
+  "issues.create",
+  "issues.edit",
+  "meetings.view",
+  "meetings.create",
+  "scorecard.view",
 ];
 
 // 2026-04-30: coordinatorFeatures merged into memberFeatures below.
@@ -747,12 +776,12 @@ export interface PermissionRow {
 export const permissionsTable: PermissionRow[] = [
   // Pages
   { section: "Pages", label: "Dashboard", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: true },
-  { section: "Pages", label: "Vision / V-TO", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
-  { section: "Pages", label: "Rocks", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
-  { section: "Pages", label: "To-Dos", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: true },
-  { section: "Pages", label: "Issues", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
-  { section: "Pages", label: "Scorecard", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
-  { section: "Pages", label: "Meetings", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
+  { section: "Pages", label: "Vision / V-TO", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: false },
+  { section: "Pages", label: "Rocks", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: false },
+  { section: "Pages", label: "To-Dos", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: true },
+  { section: "Pages", label: "Issues", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: false },
+  { section: "Pages", label: "Scorecard", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: false },
+  { section: "Pages", label: "Meetings", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: false },
   { section: "Pages", label: "Services", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
   { section: "Pages", label: "Activity Library", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: true },
   { section: "Pages", label: "Projects", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: false },
@@ -774,9 +803,9 @@ export const permissionsTable: PermissionRow[] = [
 
   // Actions
   { section: "Actions", label: "View / edit Attendance", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
-  { section: "Actions", label: "Create / edit Rocks", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
-  { section: "Actions", label: "Create / edit To-Dos", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: true },
-  { section: "Actions", label: "Create / edit Issues", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
+  { section: "Actions", label: "Create / edit Rocks", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: false },
+  { section: "Actions", label: "Create / edit To-Dos", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: true },
+  { section: "Actions", label: "Create / edit Issues", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: false },
   { section: "Actions", label: "Edit Scorecard", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
   { section: "Actions", label: "Create / edit financial data", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
   { section: "Actions", label: "Create / edit Marketing posts", owner: true, head_office: true, admin: true, marketing: true, member: false, staff: false },

@@ -223,12 +223,24 @@ describe("hasFeature", () => {
     expect(hasFeature("admin", "api_keys.view")).toBe(false);
   });
 
-  it("marketing has marketing features only", () => {
+  it("marketing has marketing + EOS features (2026-06-03)", () => {
     expect(hasFeature("marketing", "marketing.view")).toBe(true);
     expect(hasFeature("marketing", "marketing.create")).toBe(true);
     expect(hasFeature("marketing", "crm.view")).toBe(true);
+    // EOS opened up for Akram's marketing pod L10
+    expect(hasFeature("marketing", "rocks.view")).toBe(true);
+    expect(hasFeature("marketing", "todos.create")).toBe(true);
+    expect(hasFeature("marketing", "meetings.view")).toBe(true);
+    // Financials still off-limits
     expect(hasFeature("marketing", "financials.view")).toBe(false);
-    expect(hasFeature("marketing", "rocks.view")).toBe(false);
+  });
+
+  it("marketing can access EOS pages", () => {
+    expect(canAccessPage("marketing", "/todos")).toBe(true);
+    expect(canAccessPage("marketing", "/rocks")).toBe(true);
+    expect(canAccessPage("marketing", "/issues")).toBe(true);
+    expect(canAccessPage("marketing", "/meetings")).toBe(true);
+    expect(canAccessPage("marketing", "/vision")).toBe(true);
   });
 
   it("staff can view and create todos", () => {

@@ -96,7 +96,12 @@ const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "member", "staff"];
 // detail tabs (/services/[id]?tab=eos&sub=...) — having a parallel global
 // sidebar entry was confusing because most of the rocks/todos/issues they
 // touch are service-scoped.
-const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin"];
+//
+// 2026-06-03: added "marketing" (Akram's role) — the Marketing Coordinator
+// participates in weekly L10s, owns todos out of those meetings, and tracks
+// quarterly rocks for campaigns. They had Scorecard already; this extends
+// the rest of the EOS surface to them.
+const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin", "marketing"];
 
 /**
  * Single source of truth for the app's navigation items.

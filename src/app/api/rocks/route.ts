@@ -144,4 +144,8 @@ const body = await parseJsonBody(req);
   // create rocks from inside their /services/[id] EOS tab. Service scoping
   // is enforced by the UI passing serviceId on create; cross-service rocks
   // remain admin-only via the parent flow.
-}, { roles: ["owner", "head_office", "admin", "member"] });
+  // 2026-06-03: Marketing added — Akram runs the marketing-pod L10 and
+  // creates campaign rocks. Cross-team rock visibility is a separate
+  // concern (handled in the list query above by the same scope rules
+  // used for member).
+}, { roles: ["owner", "head_office", "admin", "member", "marketing"] });
