@@ -9,16 +9,29 @@ import {
   formatDate,
   getAwardLabel,
 } from "@/components/contracts/constants";
-import { FileSignature, ChevronRight, AlertTriangle } from "lucide-react";
+import { FileSignature, ChevronRight, AlertTriangle, Upload } from "lucide-react";
 import { FileViewerModal } from "@/components/files/FileViewerModal";
+import { NewContractModal } from "@/components/contracts/NewContractModal";
 import { cn } from "@/lib/utils";
 
 interface Props {
   userId: string;
+  /** 2026-06-03 — passed in so the per-profile "Upload existing
+   *  contract" button can pre-fill the modal's staff dropdown without
+   *  a second /api/users round-trip. */
+  userName?: string;
+  userEmail?: string;
+  userRole?: string;
   canEdit: boolean;
 }
 
-export function ContractsTab({ userId, canEdit }: Props) {
+export function ContractsTab({
+  userId,
+  userName,
+  userEmail,
+  userRole,
+  canEdit,
+}: Props) {
   const { data: contracts = [], isLoading, error } = useContracts({ userId });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Shared FileViewerModal — clicking "View PDF" or the contract title in the
@@ -26,6 +39,26 @@ export function ContractsTab({ userId, canEdit }: Props) {
   // through the auth-checked /api/contracts/[id]/document proxy instead of
   // the raw documentUrl so cross-staff access is blocked server-side.
   const [viewing, setViewing] = useState<ContractData | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
+
+  // Single-item users list for the modal's staff dropdown — pre-locked to
+  // this profile. We don't need the full /api/users fetch here. UserOption
+  // requires role to be a string — empty fallback keeps it satisfied without
+  // adding any UI value (the dropdown shows just the name).
+  const usersForModal = userName
+    ? [
+        {
+          id: userId,
+          name: userName,
+          email: userEmail ?? "",
+          role: userRole ?? "",
+        },
+      ]
+    : [];
+
+  function openUpload() {
+    setShowUpload(true);
+  }
 
   if (isLoading) {
     return <div className="p-6 text-sm text-muted">Loading contracts…</div>;
@@ -41,17 +74,32 @@ export function ContractsTab({ userId, canEdit }: Props) {
 
   if (contracts.length === 0) {
     return (
-      <div className="p-8 text-center">
-        <FileSignature className="w-10 h-10 mx-auto text-muted mb-3" />
-        <p className="text-sm text-foreground/80">
-          No contracts on record for this staff member.
-        </p>
-        {canEdit && (
-          <p className="mt-2 text-xs text-muted">
-            Use the Contracts page to create a new contract.
+      <>
+        <div className="p-8 text-center">
+          <FileSignature className="w-10 h-10 mx-auto text-muted mb-3" />
+          <p className="text-sm text-foreground/80">
+            No contracts on record for this staff member.
           </p>
+          {canEdit && userName && (
+            <button
+              type="button"
+              onClick={openUpload}
+              className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+            >
+              <Upload className="h-4 w-4" />
+              Upload existing contract
+            </button>
+          )}
+        </div>
+        {showUpload && (
+          <NewContractModal
+            users={usersForModal}
+            initialUserId={userId}
+            initialMode="blank"
+            onClose={() => setShowUpload(false)}
+          />
         )}
-      </div>
+      </>
     );
   }
 
@@ -62,6 +110,19 @@ export function ContractsTab({ userId, canEdit }: Props) {
 
   return (
     <div className="space-y-3">
+      {canEdit && userName && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={openUpload}
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-lg hover:bg-surface transition-colors"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Upload existing contract
+          </button>
+        </div>
+      )}
+
       {sorted.map((c) => (
         <ContractRow
           key={c.id}
@@ -82,6 +143,15 @@ export function ContractsTab({ userId, canEdit }: Props) {
           viewerUrl={`/api/contracts/${viewing.id}/document`}
           downloadUrl={`/api/contracts/${viewing.id}/document?download=1`}
           fileName={`contract-${viewing.id}.pdf`}
+        />
+      )}
+
+      {showUpload && (
+        <NewContractModal
+          users={usersForModal}
+          initialUserId={userId}
+          initialMode="blank"
+          onClose={() => setShowUpload(false)}
         />
       )}
     </div>

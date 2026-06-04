@@ -25,7 +25,22 @@ const createContractSchema = z.object({
   documentId: z.string().nullish(),
   notes: z.string().nullish(),
   previousContractId: z.string().nullish(),
-});
+  // 2026-06-03: admin can attach a previously-signed contract (e.g.
+  // one signed in Employment Hero before this dashboard existed).
+  // When true, the contract is treated as fully executed — status
+  // jumps to "active" and acknowledgement is backfilled to the date
+  // it was originally signed. Both fields must travel together; the
+  // refine below enforces that.
+  acknowledgedByStaff: z.boolean().optional(),
+  acknowledgedAt: z.string().optional(),
+}).refine(
+  (d) => !d.acknowledgedByStaff || !!d.acknowledgedAt,
+  {
+    message:
+      "When marking as already signed, the original signed date is required.",
+    path: ["acknowledgedAt"],
+  },
+);
 
 // GET /api/contracts — list contracts with filters
 //
@@ -109,6 +124,17 @@ const body = await parseJsonBody(req);
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  // If the admin is uploading an already-signed contract (e.g. an
+  // EH-era PDF), promote status to "active" and stamp the
+  // acknowledgement fields with the date they entered. signedAt is
+  // the same source of truth — the renderer/PDF flow doesn't apply
+  // here because the PDF is already signed off-platform.
+  const isAlreadySigned = parsed.data.acknowledgedByStaff === true;
+  const signedDate = isAlreadySigned
+    ? new Date(parsed.data.acknowledgedAt!)
+    : null;
+  const finalStatus = isAlreadySigned ? "active" : parsed.data.status;
+
   const contract = await prisma.employmentContract.create({
     data: {
       userId: parsed.data.userId,
@@ -119,11 +145,14 @@ const body = await parseJsonBody(req);
       hoursPerWeek: parsed.data.hoursPerWeek || null,
       startDate: new Date(parsed.data.startDate),
       endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
-      status: parsed.data.status,
+      status: finalStatus,
       documentUrl: parsed.data.documentUrl || null,
       documentId: parsed.data.documentId || null,
       notes: parsed.data.notes || null,
       previousContractId: parsed.data.previousContractId || null,
+      acknowledgedByStaff: isAlreadySigned,
+      acknowledgedAt: signedDate,
+      signedAt: signedDate,
     },
     include: {
       user: {

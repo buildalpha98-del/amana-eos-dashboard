@@ -39,6 +39,10 @@ export interface EmployeeListItem {
    *  employee record. False shows a red "needs payroll link" badge
    *  on the row so admins can spot un-synced staff at a glance. */
   payrollLinked: boolean;
+  /** True when this user has at least one active or draft contract.
+   *  False shows a yellow "no contract issued" badge so admins can
+   *  spot staff who still need a contract attached. */
+  hasActiveContract: boolean;
 }
 
 export interface EmployeesListResponse {

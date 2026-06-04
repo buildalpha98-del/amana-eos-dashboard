@@ -43,6 +43,8 @@ export function SupersedeContractModal({
     notes: "",
     documentUrl: null,
     documentId: null,
+    alreadySigned: false,
+    signedDate: "",
   });
   const supersedeContract = useSupersedeContract();
 

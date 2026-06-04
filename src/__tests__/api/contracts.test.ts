@@ -271,6 +271,115 @@ describe("PATCH /api/contracts/[id]", () => {
   });
 });
 
+// 2026-06-03: admin can mark a contract as "already signed" off-platform
+// (e.g. an Employment Hero PDF). It should be created as active with the
+// acknowledgement fields backfilled.
+describe("POST /api/contracts — already-signed backfill", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("promotes status to active and stamps acknowledgement + signedAt", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin" });
+
+    prismaMock.user.findUnique.mockImplementation(
+      async (args: { where: { id: string } }) => {
+        if (args.where.id === "staff-1") {
+          return { id: "staff-1", name: "Staff", active: true };
+        }
+        return { active: true };
+      },
+    );
+
+    prismaMock.employmentContract.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) => ({
+        id: "c-uploaded",
+        ...args.data,
+        user: { id: "staff-1", name: "Staff", email: "s@x.com", avatar: null },
+      }),
+    );
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/contracts", {
+      body: {
+        userId: "staff-1",
+        contractType: "ct_permanent",
+        payRate: 32,
+        startDate: "2024-01-15",
+        documentUrl: "https://blob.vercel.app/signed.pdf",
+        acknowledgedByStaff: true,
+        acknowledgedAt: "2024-01-20",
+      },
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const createCall = prismaMock.employmentContract.create.mock.calls[0][0];
+    expect(createCall.data.status).toBe("active");
+    expect(createCall.data.acknowledgedByStaff).toBe(true);
+    // Prisma layer receives Date objects, not strings
+    expect(createCall.data.acknowledgedAt).toBeInstanceOf(Date);
+    expect(createCall.data.signedAt).toBeInstanceOf(Date);
+    expect(createCall.data.documentUrl).toBe(
+      "https://blob.vercel.app/signed.pdf",
+    );
+  });
+
+  it("rejects acknowledgedByStaff without acknowledgedAt", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin" });
+
+    const req = createRequest("POST", "/api/contracts", {
+      body: {
+        userId: "staff-1",
+        contractType: "ct_permanent",
+        payRate: 32,
+        startDate: "2024-01-15",
+        acknowledgedByStaff: true,
+        // no acknowledgedAt
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("leaves status as contract_draft when acknowledgedByStaff is false / absent", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin" });
+
+    prismaMock.user.findUnique.mockImplementation(
+      async (args: { where: { id: string } }) => {
+        if (args.where.id === "staff-1") {
+          return { id: "staff-1", name: "Staff", active: true };
+        }
+        return { active: true };
+      },
+    );
+    prismaMock.employmentContract.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) => ({
+        id: "c-draft",
+        ...args.data,
+        user: { id: "staff-1", name: "Staff", email: "s@x.com", avatar: null },
+      }),
+    );
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/contracts", {
+      body: {
+        userId: "staff-1",
+        contractType: "ct_permanent",
+        payRate: 32,
+        startDate: "2024-01-15",
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const createCall = prismaMock.employmentContract.create.mock.calls[0][0];
+    expect(createCall.data.status).toBe("contract_draft");
+    expect(createCall.data.acknowledgedByStaff).toBe(false);
+    expect(createCall.data.acknowledgedAt).toBe(null);
+  });
+});
+
 describe("POST /api/contracts — nullable optional fields", () => {
   beforeEach(() => {
     vi.clearAllMocks();

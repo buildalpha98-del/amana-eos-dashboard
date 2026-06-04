@@ -25,6 +25,12 @@ export interface ContractFormValue {
   // the existing nullable values when editing a contract.
   documentUrl: string | null;
   documentId: string | null;
+  // 2026-06-03: when admin uploads a contract that was already signed
+  // off-platform (e.g. previously-signed EH contracts), they tick this
+  // and provide the original signed date so the contract goes straight
+  // to "active" instead of sitting as a draft waiting for re-signing.
+  alreadySigned: boolean;
+  signedDate: string;
 }
 
 export const EMPTY_CONTRACT_FORM: ContractFormValue = {
@@ -39,6 +45,8 @@ export const EMPTY_CONTRACT_FORM: ContractFormValue = {
   notes: "",
   documentUrl: null,
   documentId: null,
+  alreadySigned: false,
+  signedDate: "",
 };
 
 export const inputCls =
@@ -317,6 +325,56 @@ export function ContractFormFields({
         )}
         <p className="text-xs text-muted mt-1">Accepts .pdf up to 10MB</p>
       </div>
+
+      {/* 2026-06-03: "this was already signed" — for backfilling
+          contracts that were signed in Employment Hero (or anywhere
+          else) before this dashboard issued them. When ticked the
+          contract goes straight to active + acknowledged. */}
+      <div className="rounded-lg border border-border bg-surface/40 p-3">
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={value.alreadySigned}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                alreadySigned: e.target.checked,
+                // Default the signed date to today when ticked so the
+                // admin only has to change it if the original was different.
+                signedDate:
+                  e.target.checked && !value.signedDate
+                    ? new Date().toISOString().slice(0, 10)
+                    : value.signedDate,
+              })
+            }
+            className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-2 focus:ring-brand/30"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-foreground">
+              This contract was already signed
+            </span>
+            <span className="block text-xs text-muted mt-0.5">
+              Tick this when uploading a previously-signed contract (e.g.
+              from Employment Hero). It&apos;ll skip the re-signing step
+              and go straight to <em>active</em>.
+            </span>
+          </span>
+        </label>
+        {value.alreadySigned && (
+          <div className="mt-3 pl-6">
+            <label className="block text-xs font-medium text-foreground/80 mb-1">
+              Date originally signed *
+            </label>
+            <input
+              type="date"
+              value={value.signedDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => set("signedDate", e.target.value)}
+              className={inputCls}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -338,8 +396,13 @@ export function buildContractPayload(form: ContractFormValue): {
   notes: string | null;
   documentUrl: string | null;
   documentId: string | null;
+  acknowledgedByStaff?: boolean;
+  acknowledgedAt?: string;
 } | null {
   if (!form.userId || !form.contractType || !form.payRate || !form.startDate) {
+    return null;
+  }
+  if (form.alreadySigned && !form.signedDate) {
     return null;
   }
   return {
@@ -355,14 +418,22 @@ export function buildContractPayload(form: ContractFormValue): {
     notes: form.notes || null,
     documentUrl: form.documentUrl,
     documentId: form.documentId,
+    ...(form.alreadySigned
+      ? {
+          acknowledgedByStaff: true,
+          acknowledgedAt: form.signedDate,
+        }
+      : {}),
   };
 }
 
 export function isFormReady(form: ContractFormValue): boolean {
-  return !!(
-    form.userId &&
-    form.contractType &&
-    form.payRate &&
-    form.startDate
-  );
+  if (!form.userId || !form.contractType || !form.payRate || !form.startDate) {
+    return false;
+  }
+  // When the admin ticks "already signed" they MUST provide the
+  // original signed date — otherwise we'd backfill acknowledgement
+  // with a missing timestamp.
+  if (form.alreadySigned && !form.signedDate) return false;
+  return true;
 }

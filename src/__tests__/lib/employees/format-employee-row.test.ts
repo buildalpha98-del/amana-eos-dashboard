@@ -17,6 +17,7 @@ function makeInput(overrides: Partial<EmployeeRowInput> = {}): EmployeeRowInput 
     tags: [],
     service: { id: "svc-1", name: "Mawson Lakes" },
     employmentHeroEmployeeId: 12345,
+    hasActiveContract: true,
     ...overrides,
   };
 }
@@ -107,6 +108,25 @@ describe("formatEmployeeRow", () => {
         "marketing",
       );
       expect(out.payrollLinked).toBe(false);
+    });
+  });
+
+  // 2026-06-03: yellow "no contract" badge.
+  describe("hasActiveContract", () => {
+    it("passes through true verbatim", () => {
+      const out = formatEmployeeRow(
+        makeInput({ hasActiveContract: true }),
+        "admin",
+      );
+      expect(out.hasActiveContract).toBe(true);
+    });
+
+    it("passes through false verbatim", () => {
+      const out = formatEmployeeRow(
+        makeInput({ hasActiveContract: false }),
+        "admin",
+      );
+      expect(out.hasActiveContract).toBe(false);
     });
   });
 });

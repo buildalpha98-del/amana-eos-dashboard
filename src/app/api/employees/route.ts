@@ -148,6 +148,26 @@ export const GET = withApiAuth(async (req, session) => {
     pendingWhere ? prisma.user.count({ where: pendingWhere }) : Promise.resolve(0),
   ]);
 
+  // 2026-06-03: who on this page has an issued contract (active OR
+  // draft awaiting signature)? Drives a yellow "no contract" badge
+  // on /team alongside the red EH Payroll one. Single batched query
+  // — no N+1.
+  const userIds = users.map((u) => u.id);
+  const contractedUserIds = userIds.length
+    ? new Set(
+        (
+          await prisma.employmentContract.findMany({
+            where: {
+              userId: { in: userIds },
+              status: { in: ["active", "contract_draft"] },
+            },
+            select: { userId: true },
+            distinct: ["userId"],
+          })
+        ).map((c) => c.userId),
+      )
+    : new Set<string>();
+
   const employees = users.map((u) =>
     formatEmployeeRow(
       {
@@ -162,6 +182,7 @@ export const GET = withApiAuth(async (req, session) => {
         tags: u.tags ?? [],
         service: u.service ?? null,
         employmentHeroEmployeeId: u.employmentHeroEmployeeId ?? null,
+        hasActiveContract: contractedUserIds.has(u.id),
       },
       role,
     ),

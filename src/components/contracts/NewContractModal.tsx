@@ -19,18 +19,28 @@ type Mode = "template" | "blank";
 interface Props {
   users: UserOption[];
   initialUserId?: string;
+  /** 2026-06-03 — when launching directly into "Upload existing
+   *  contract" (e.g. from a staff profile button), the caller can
+   *  set initialMode="blank" so the modal skips the template chooser. */
+  initialMode?: Mode;
   onClose: () => void;
 }
 
 /**
  * Entry point for creating a new contract.
  *
- * Always opens IssueFromTemplateModal first. The blank form is retained as a
- * secondary option, reached via the "Use blank form" link in the template
- * modal's header.
+ * Defaults to IssueFromTemplateModal first. The blank form is reachable
+ * via the "Upload existing signed contract" link in the template
+ * modal's header, or directly via `initialMode="blank"` from callers
+ * that already know that's what they want.
  */
-export function NewContractModal({ users, initialUserId, onClose }: Props) {
-  const [mode, setMode] = useState<Mode>("template");
+export function NewContractModal({
+  users,
+  initialUserId,
+  initialMode = "template",
+  onClose,
+}: Props) {
+  const [mode, setMode] = useState<Mode>(initialMode);
 
   const [form, setForm] = useState<ContractFormValue>({
     ...EMPTY_CONTRACT_FORM,
@@ -66,8 +76,13 @@ export function NewContractModal({ users, initialUserId, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-foreground">New Contract</h3>
-            <p className="text-xs text-muted mt-0.5">Blank form</p>
+            <h3 className="text-lg font-semibold text-foreground">
+              Upload existing contract
+            </h3>
+            <p className="text-xs text-muted mt-0.5">
+              For contracts signed off-platform (e.g. Employment Hero). Tick
+              &quot;already signed&quot; below to skip the re-signing step.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -75,7 +90,7 @@ export function NewContractModal({ users, initialUserId, onClose }: Props) {
               onClick={() => setMode("template")}
               className="text-xs text-muted hover:text-foreground transition-colors underline underline-offset-2"
             >
-              Use a template
+              Issue from template instead
             </button>
             <button
               onClick={onClose}

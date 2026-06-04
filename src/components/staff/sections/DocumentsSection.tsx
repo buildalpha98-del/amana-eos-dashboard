@@ -76,7 +76,15 @@ export function DocumentsSection({
           );
         }
         if (active === "contracts" && isAdmin) {
-          return <ContractsTab userId={data.targetUser.id} canEdit={isAdmin} />;
+          return (
+            <ContractsTab
+              userId={data.targetUser.id}
+              userName={data.targetUser.name}
+              userEmail={data.targetUser.email}
+              userRole={data.targetUser.role}
+              canEdit={isAdmin}
+            />
+          );
         }
         // Policies / Induction / Forms placeholder. The underlying data
         // models exist (PolicyAcknowledgement, InductionModuleCompletion,

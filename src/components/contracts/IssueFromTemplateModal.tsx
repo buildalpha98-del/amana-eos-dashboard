@@ -316,8 +316,9 @@ export function IssueFromTemplateModal({
                 type="button"
                 onClick={onSwitchToBlank}
                 className="text-xs text-muted hover:text-foreground transition-colors underline underline-offset-2"
+                title="Use this to attach a contract that was already signed off-platform (e.g. previously signed in Employment Hero)"
               >
-                Use blank form
+                Upload existing signed contract
               </button>
             )}
             <button

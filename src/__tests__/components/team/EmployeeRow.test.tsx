@@ -29,6 +29,7 @@ const ALICE = {
   status: "active" as const,
   tags: [] as string[],
   payrollLinked: true,
+  hasActiveContract: true,
 };
 
 function renderRow(props: React.ComponentProps<typeof EmployeeRow>) {
@@ -154,6 +155,66 @@ describe("EmployeeRow", () => {
         listSearchString: "",
       });
       expect(screen.getByTestId("payroll-warning-u-1")).toBeInTheDocument();
+    });
+  });
+
+  // 2026-06-03: yellow badge for staff who don't have a contract issued
+  // (active or draft). Daniel wanted a visual cue alongside the red
+  // payroll badge so admins can spot un-papered staff at a glance.
+  describe("contract badge", () => {
+    it("shows when active and hasActiveContract=false", () => {
+      renderRow({
+        employee: { ...ALICE, hasActiveContract: false },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.getByTestId("contract-warning-u-1")).toBeInTheDocument();
+    });
+
+    it("hides when employee has a contract on file", () => {
+      renderRow({
+        employee: { ...ALICE, hasActiveContract: true },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.queryByTestId("contract-warning-u-1")).toBeNull();
+    });
+
+    it("hides for deactivated employees", () => {
+      renderRow({
+        employee: { ...ALICE, hasActiveContract: false, status: "deactivated" },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.queryByTestId("contract-warning-u-1")).toBeNull();
+    });
+
+    it("shows for pending invites (paper them as part of onboarding)", () => {
+      renderRow({
+        employee: { ...ALICE, hasActiveContract: false, status: "pending" },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.getByTestId("contract-warning-u-1")).toBeInTheDocument();
+    });
+
+    it("shows both badges independently", () => {
+      renderRow({
+        employee: {
+          ...ALICE,
+          payrollLinked: false,
+          hasActiveContract: false,
+        },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.getByTestId("payroll-warning-u-1")).toBeInTheDocument();
+      expect(screen.getByTestId("contract-warning-u-1")).toBeInTheDocument();
     });
   });
 });

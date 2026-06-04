@@ -168,6 +168,11 @@ export function EmployeeRow({
   // do show it so admin remembers to link them as part of onboarding.
   const needsPayrollLink =
     !employee.payrollLinked && employee.status !== "deactivated";
+  // Yellow flag for active staff who don't have any contract on file
+  // (active or awaiting signature). Same status gating as the red
+  // payroll badge — deactivated users are exempt.
+  const needsContract =
+    !employee.hasActiveContract && employee.status !== "deactivated";
 
   const nameInner = (
     <>
@@ -191,6 +196,17 @@ export function EmployeeRow({
               className="inline-flex items-center"
             >
               <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+            </span>
+          ) : null}
+          {needsContract ? (
+            <span
+              role="img"
+              aria-label="No contract issued — upload or generate one"
+              title="No contract on file — open this staff profile and use the Contracts tab to upload an existing one or issue a new one"
+              data-testid={`contract-warning-${employee.id}`}
+              className="inline-flex items-center"
+            >
+              <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
             </span>
           ) : null}
         </p>

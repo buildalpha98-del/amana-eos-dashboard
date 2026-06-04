@@ -31,6 +31,10 @@ export interface EmployeeRowInput {
    *  Employment Hero Payroll employee record. Drives the red
    *  "needs payroll link" badge on the /team list. */
   employmentHeroEmployeeId: number | null;
+  /** 2026-06-03 — true when the user has at least one contract in
+   *  "active" or "contract_draft" status. False drives the yellow
+   *  "no contract issued" badge on the /team list. */
+  hasActiveContract: boolean;
 }
 
 export type EmployeeStatus = "active" | "pending" | "deactivated";
@@ -48,6 +52,9 @@ export interface EmployeeRow {
   /** True when the user is linked to an EH Payroll employee record.
    *  Drives a red "needs payroll link" indicator in the /team list. */
   payrollLinked: boolean;
+  /** True when the user has at least one active or draft contract.
+   *  False drives a yellow "no contract issued" indicator. */
+  hasActiveContract: boolean;
 }
 
 function deriveStatus(input: EmployeeRowInput): EmployeeStatus {
@@ -71,5 +78,6 @@ export function formatEmployeeRow(
     service: input.service,
     status: deriveStatus(input),
     payrollLinked: input.employmentHeroEmployeeId !== null,
+    hasActiveContract: input.hasActiveContract,
   };
 }
