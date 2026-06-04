@@ -305,4 +305,33 @@ describe("renderTemplateHtml", () => {
     });
     expect(html).toContain("<p>Bonnyrigg NSW 2177</p>");
   });
+
+  // 2026-06-03: branded header on every contract.
+  describe("Amana OSHC brand header", () => {
+    const minimalDoc: TipTapDoc = {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Body" }] }],
+    };
+
+    it("includes the inline Amana OSHC logo SVG", () => {
+      const { html } = renderTemplateHtml({ doc: minimalDoc, data: {} });
+      expect(html).toContain('aria-label="Amana OSHC"');
+      expect(html).toContain("<svg");
+    });
+
+    it("includes the Beyond The Bell tagline + brand divider", () => {
+      const { html } = renderTemplateHtml({ doc: minimalDoc, data: {} });
+      expect(html).toContain("Beyond The Bell");
+      // Midnight Green rule under the header
+      expect(html).toContain("#004E64");
+    });
+
+    it("renders the header before the contract body", () => {
+      const { html } = renderTemplateHtml({ doc: minimalDoc, data: {} });
+      const headerIdx = html.indexOf('aria-label="Amana OSHC"');
+      const bodyIdx = html.indexOf("Body");
+      expect(headerIdx).toBeGreaterThan(-1);
+      expect(bodyIdx).toBeGreaterThan(headerIdx);
+    });
+  });
 });

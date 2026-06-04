@@ -1,3 +1,5 @@
+import { buildContractHeader } from "@/lib/pdf/contract-branding";
+
 export type TipTapMark = { type: string; attrs?: Record<string, unknown> };
 export type TipTapNode = {
   type: string;
@@ -269,7 +271,13 @@ export function renderTemplateHtml(args: {
     ? buildSignatureFooter(data, placedInline)
     : "";
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${body}${signatureFooter}</body></html>`;
+  // 2026-06-03: prepend the Amana OSHC logo + "Beyond The Bell"
+  // tagline + Midnight Green divider at the top of every contract.
+  // Inlined SVG keeps the headless-Chromium render self-contained
+  // (no external asset fetch) and looks crisp at any zoom level.
+  const header = buildContractHeader();
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${header}${body}${signatureFooter}</body></html>`;
 
   return { html, missingTags };
 }
