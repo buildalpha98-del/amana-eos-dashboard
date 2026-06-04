@@ -22,6 +22,7 @@ import {
   UserX,
   Mail,
   Building2,
+  AlertCircle,
 } from "lucide-react";
 import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
@@ -161,6 +162,13 @@ export function EmployeeRow({
     quickAction.mutate(action);
   }
 
+  // Red flag for active staff who haven't been linked to their EH
+  // Payroll employee record yet. Deactivated users don't need a
+  // badge — they're not expected to be on payroll. Pending invites
+  // do show it so admin remembers to link them as part of onboarding.
+  const needsPayrollLink =
+    !employee.payrollLinked && employee.status !== "deactivated";
+
   const nameInner = (
     <>
       <StaffAvatar
@@ -172,7 +180,20 @@ export function EmployeeRow({
         size="sm"
       />
       <div>
-        <p className="font-medium text-foreground">{employee.name}</p>
+        <p className="flex items-center gap-1.5 font-medium text-foreground">
+          {employee.name}
+          {needsPayrollLink ? (
+            <span
+              role="img"
+              aria-label="Not linked to EH Payroll — sync employment ID"
+              title="Not linked to EH Payroll — sync this employee's payroll ID so payslips, leave, and expenses work for them"
+              data-testid={`payroll-warning-${employee.id}`}
+              className="inline-flex items-center"
+            >
+              <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+            </span>
+          ) : null}
+        </p>
         {employee.email ? (
           <p className="text-xs text-muted">{employee.email}</p>
         ) : null}

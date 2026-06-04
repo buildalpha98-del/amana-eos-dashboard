@@ -28,6 +28,7 @@ const ALICE = {
   service: { id: "svc-1", name: "Mawson Lakes" },
   status: "active" as const,
   tags: [] as string[],
+  payrollLinked: true,
 };
 
 function renderRow(props: React.ComponentProps<typeof EmployeeRow>) {
@@ -108,5 +109,51 @@ describe("EmployeeRow", () => {
       listSearchString: "",
     });
     expect(screen.queryByText("alice@example.com")).toBeNull();
+  });
+
+  // 2026-06-03: red badge for employees who haven't been linked to
+  // their EH Payroll record yet — Daniel wanted this visible at a
+  // glance on the /team list so we don't silently ship someone
+  // without payslips / leave / expenses.
+  describe("EH Payroll link badge", () => {
+    it("shows the badge for an active employee without a payroll link", () => {
+      renderRow({
+        employee: { ...ALICE, payrollLinked: false },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.getByTestId("payroll-warning-u-1")).toBeInTheDocument();
+    });
+
+    it("hides the badge when the employee IS linked to payroll", () => {
+      renderRow({
+        employee: { ...ALICE, payrollLinked: true },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.queryByTestId("payroll-warning-u-1")).toBeNull();
+    });
+
+    it("hides the badge for deactivated employees (not expected to be on payroll)", () => {
+      renderRow({
+        employee: { ...ALICE, payrollLinked: false, status: "deactivated" },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.queryByTestId("payroll-warning-u-1")).toBeNull();
+    });
+
+    it("shows the badge for pending invites (link as part of onboarding)", () => {
+      renderRow({
+        employee: { ...ALICE, payrollLinked: false, status: "pending" },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.getByTestId("payroll-warning-u-1")).toBeInTheDocument();
+    });
   });
 });

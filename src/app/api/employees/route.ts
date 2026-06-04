@@ -136,6 +136,11 @@ export const GET = withApiAuth(async (req, session) => {
         active: true,
         lastLoginAt: true,
         tags: true,
+        // 2026-06-03: null when this dashboard user hasn't been linked
+        // to their Employment Hero Payroll employee record yet. The
+        // /team UI surfaces a red badge for these so we don't quietly
+        // ship someone without payslips / leave / expenses access.
+        employmentHeroEmployeeId: true,
         service: { select: { id: true, name: true } },
       },
     }),
@@ -156,6 +161,7 @@ export const GET = withApiAuth(async (req, session) => {
         lastLoginAt: u.lastLoginAt,
         tags: u.tags ?? [],
         service: u.service ?? null,
+        employmentHeroEmployeeId: u.employmentHeroEmployeeId ?? null,
       },
       role,
     ),

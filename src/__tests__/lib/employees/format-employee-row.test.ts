@@ -16,6 +16,7 @@ function makeInput(overrides: Partial<EmployeeRowInput> = {}): EmployeeRowInput 
     lastLoginAt: new Date("2026-04-01"),
     tags: [],
     service: { id: "svc-1", name: "Mawson Lakes" },
+    employmentHeroEmployeeId: 12345,
     ...overrides,
   };
 }
@@ -80,5 +81,32 @@ describe("formatEmployeeRow", () => {
       "admin",
     );
     expect(out.service).toBe(null);
+  });
+
+  // 2026-06-03: payroll-link flag drives the red badge on the /team list.
+  describe("payrollLinked", () => {
+    it("is true when employmentHeroEmployeeId is populated", () => {
+      const out = formatEmployeeRow(
+        makeInput({ employmentHeroEmployeeId: 99 }),
+        "admin",
+      );
+      expect(out.payrollLinked).toBe(true);
+    });
+
+    it("is false when employmentHeroEmployeeId is null", () => {
+      const out = formatEmployeeRow(
+        makeInput({ employmentHeroEmployeeId: null }),
+        "admin",
+      );
+      expect(out.payrollLinked).toBe(false);
+    });
+
+    it("is preserved across viewer roles (marketing doesn't strip it)", () => {
+      const out = formatEmployeeRow(
+        makeInput({ employmentHeroEmployeeId: null }),
+        "marketing",
+      );
+      expect(out.payrollLinked).toBe(false);
+    });
   });
 });

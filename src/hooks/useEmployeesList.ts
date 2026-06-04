@@ -35,6 +35,10 @@ export interface EmployeeListItem {
   tags: string[];
   service: { id: string; name: string } | null;
   status: "active" | "pending" | "deactivated";
+  /** True when this user is linked to their Employment Hero Payroll
+   *  employee record. False shows a red "needs payroll link" badge
+   *  on the row so admins can spot un-synced staff at a glance. */
+  payrollLinked: boolean;
 }
 
 export interface EmployeesListResponse {

@@ -27,6 +27,10 @@ export interface EmployeeRowInput {
   lastLoginAt: Date | null;
   tags: string[];
   service: { id: string; name: string } | null;
+  /** 2026-06-03 — null when the user hasn't been linked to their
+   *  Employment Hero Payroll employee record. Drives the red
+   *  "needs payroll link" badge on the /team list. */
+  employmentHeroEmployeeId: number | null;
 }
 
 export type EmployeeStatus = "active" | "pending" | "deactivated";
@@ -41,6 +45,9 @@ export interface EmployeeRow {
   tags: string[];
   service: { id: string; name: string } | null;
   status: EmployeeStatus;
+  /** True when the user is linked to an EH Payroll employee record.
+   *  Drives a red "needs payroll link" indicator in the /team list. */
+  payrollLinked: boolean;
 }
 
 function deriveStatus(input: EmployeeRowInput): EmployeeStatus {
@@ -63,5 +70,6 @@ export function formatEmployeeRow(
     tags: input.tags ?? [],
     service: input.service,
     status: deriveStatus(input),
+    payrollLinked: input.employmentHeroEmployeeId !== null,
   };
 }
