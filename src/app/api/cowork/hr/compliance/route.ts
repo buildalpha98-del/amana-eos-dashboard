@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { CertificateType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
@@ -9,11 +10,11 @@ import { parseJsonBody } from "@/lib/api-error";
 const certificateSchema = z.object({
   userEmail: z.string().email().optional(),
   staffName: z.string().optional(),
-  type: z.enum([
-    "wwcc", "first_aid", "anaphylaxis", "asthma", "cpr",
-    "police_check", "annual_review", "child_protection",
-    "geccko", "food_safety", "food_handler", "other",
-  ]),
+  // 2026-06-04: switched from a hard-coded literal list to the Prisma
+  // enum so newer types (mandatory_reporter_training,
+  // child_safe_code_of_conduct, …) ingest correctly. Same fix as the
+  // dashboard's /api/compliance route.
+  type: z.nativeEnum(CertificateType),
   expiryDate: z.string().min(1),
   issueDate: z.string().optional(),
   label: z.string().nullable().optional(),

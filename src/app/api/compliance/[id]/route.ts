@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { CertificateType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile, deleteFile } from "@/lib/storage";
 import { isAdminRole } from "@/lib/role-permissions";
 const updateCertSchema = z.object({
-  type: z.enum(["wwcc", "first_aid", "anaphylaxis", "asthma", "cpr", "police_check", "annual_review", "other"]).optional(),
+  // 2026-06-04: was a hard-coded literal list missing the newer cert
+  // types (child_safe_code_of_conduct, mandatory_reporter_training,
+  // etc.) — staff editing one of those certs hit "Invalid option".
+  // Sourcing from the Prisma enum keeps the schemas in sync.
+  type: z.nativeEnum(CertificateType).optional(),
   label: z.string().nullable().optional(),
   issueDate: z.string().optional(),
   // Allow null to clear an expiry (cert moved to "no expiry"); empty string

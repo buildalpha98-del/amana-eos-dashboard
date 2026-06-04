@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { CertificateType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { parsePagination } from "@/lib/pagination";
@@ -22,7 +23,13 @@ function isPastDate(dateStr: string): boolean {
 const createCertSchema = z.object({
   serviceId: z.string().min(1),
   userId: z.string().optional().nullable(),
-  type: z.enum(["wwcc", "first_aid", "anaphylaxis", "asthma", "cpr", "police_check", "annual_review", "other"]),
+  // 2026-06-04: was a hard-coded literal list of 8 types that fell out
+  // of sync when child_protection / geccko / food_safety / food_handler
+  // / mandatory_reporter_training / child_safe_code_of_conduct were
+  // added to the Prisma enum. Staff hit "Invalid option" trying to
+  // upload a Child Safe Code of Conduct cert. Sourcing the type
+  // directly from the Prisma enum prevents this drift in future.
+  type: z.nativeEnum(CertificateType),
   label: z.string().optional().nullable(),
   issueDate: z.string().min(1),
   // Nullable so "no expiry" certs can be created (matches schema). Strings
