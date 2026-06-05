@@ -16,6 +16,7 @@ import {
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { NewContractModal } from "@/components/contracts/NewContractModal";
+import { ContractQuickUpload } from "@/components/contracts/ContractQuickUpload";
 
 interface EmploymentTabProps {
   targetUser: User & { service?: Service | null };
@@ -158,10 +159,11 @@ export function EmploymentTab({ targetUser, latestContract, canEdit }: Employmen
               <button
                 type="button"
                 onClick={() => setShowUpload(true)}
-                className="inline-flex items-center gap-1.5 text-sm text-foreground hover:bg-muted/50 px-3 py-1 rounded-md border border-border"
+                className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground"
+                title="Upload with full metadata (pay rate, dates, etc.)"
               >
                 <Upload className="w-3.5 h-3.5" />
-                Upload existing
+                Upload with details
               </button>
             )}
             {latestContract && (
@@ -175,17 +177,20 @@ export function EmploymentTab({ targetUser, latestContract, canEdit }: Employmen
           </div>
         </div>
         {!latestContract ? (
-          <div className="flex flex-col items-start gap-3">
+          <div className="space-y-3">
             <p className="text-sm text-muted">No contract on file.</p>
             {canEdit && (
-              <button
-                type="button"
-                onClick={() => setShowUpload(true)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
-              >
-                <Upload className="w-4 h-4" />
-                Upload existing contract
-              </button>
+              // 2026-06-04: drag-and-drop replaces the prior big
+              // "Upload existing" form button when there's nothing
+              // on file. The PDF carries the pay rate / dates /
+              // signatures internally — no need to retype them.
+              // The "Upload with details" link in the header above
+              // still opens the full form for the case where the
+              // admin wants to also set structured fields.
+              <ContractQuickUpload
+                userId={targetUser.id}
+                userName={targetUser.name}
+              />
             )}
           </div>
         ) : (

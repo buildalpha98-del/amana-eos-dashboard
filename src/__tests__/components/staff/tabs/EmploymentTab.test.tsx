@@ -88,11 +88,14 @@ describe("EmploymentTab", () => {
     expect(b.textContent).toContain("Edit");
   });
 
-  // 2026-06-04: surface "Upload existing contract" on the Latest
-  // Contract card itself so admins don't have to dig into the
-  // Documents → Contracts tab.
-  describe("upload existing contract button", () => {
-    it("shows in the empty state when canEdit", () => {
+  // 2026-06-04: Latest Contract card now exposes two upload paths:
+  //   1. A drag-and-drop dropzone in the empty state (no metadata
+  //      required — PDF carries it all internally).
+  //   2. A "Upload with details" link in the header that opens the
+  //      full ContractFormFields modal for the cases where the
+  //      admin wants to also set structured fields.
+  describe("upload paths", () => {
+    it("shows the drag-and-drop zone in the empty state when canEdit", () => {
       const { container } = render(
         <EmploymentTab
           targetUser={makeUser()}
@@ -100,10 +103,12 @@ describe("EmploymentTab", () => {
           canEdit={true}
         />,
       );
-      expect(container.textContent).toContain("Upload existing contract");
+      expect(container.textContent).toContain(
+        "Drop a signed contract PDF here",
+      );
     });
 
-    it("hides in the empty state when not canEdit", () => {
+    it("hides the dropzone in the empty state when not canEdit", () => {
       const { container } = render(
         <EmploymentTab
           targetUser={makeUser()}
@@ -111,10 +116,24 @@ describe("EmploymentTab", () => {
           canEdit={false}
         />,
       );
-      expect(container.textContent).not.toContain("Upload existing");
+      expect(container.textContent).not.toContain(
+        "Drop a signed contract PDF here",
+      );
+      expect(container.textContent).not.toContain("Upload with details");
     });
 
-    it("shows alongside View in Contracts when there's already a contract", () => {
+    it("shows the metadata-form link in the header when canEdit", () => {
+      const { container } = render(
+        <EmploymentTab
+          targetUser={makeUser()}
+          latestContract={null}
+          canEdit={true}
+        />,
+      );
+      expect(container.textContent).toContain("Upload with details");
+    });
+
+    it("header link + View in Contracts both render when a contract exists", () => {
       const { container } = render(
         <EmploymentTab
           targetUser={makeUser()}
@@ -122,7 +141,7 @@ describe("EmploymentTab", () => {
           canEdit={true}
         />,
       );
-      expect(container.textContent).toContain("Upload existing");
+      expect(container.textContent).toContain("Upload with details");
       expect(container.textContent).toContain("View in Contracts");
     });
   });
