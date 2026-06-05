@@ -46,6 +46,8 @@ function makePdfForm(opts: {
   fileName?: string;
   omitFile?: boolean;
   omitUserId?: boolean;
+  contractType?: string;
+  payRate?: string;
 }): FormData {
   const form = new FormData();
   if (!opts.omitUserId) {
@@ -57,6 +59,12 @@ function makePdfForm(opts: {
       type: opts.fileType ?? "application/pdf",
     });
     form.append("file", blob, opts.fileName ?? "signed-contract.pdf");
+  }
+  if (opts.contractType !== undefined) {
+    form.append("contractType", opts.contractType);
+  }
+  if (opts.payRate !== undefined) {
+    form.append("payRate", opts.payRate);
   }
   return form;
 }
@@ -167,5 +175,64 @@ describe("POST /api/contracts/quick-upload", () => {
       prismaMock.activityLog.create.mock.calls[0]?.[0];
     expect(activityCall.data.action).toBe("quick_upload_contract");
     expect(activityCall.data.entityType).toBe("EmploymentContract");
+  });
+
+  // 2026-06-05: admin can pre-fill contractType + payRate on the
+  // dropzone before dropping the PDF. Both stay optional.
+  describe("contractType + payRate fields", () => {
+    it("uses the admin-supplied contractType when provided", async () => {
+      const res = await callPost(
+        makePdfForm({ contractType: "ct_casual" }),
+      );
+      expect(res.status).toBe(201);
+      const createCall =
+        prismaMock.employmentContract.create.mock.calls[0]?.[0];
+      expect(createCall.data.contractType).toBe("ct_casual");
+    });
+
+    it("uses the admin-supplied payRate when provided", async () => {
+      const res = await callPost(makePdfForm({ payRate: "37.50" }));
+      expect(res.status).toBe(201);
+      const createCall =
+        prismaMock.employmentContract.create.mock.calls[0]?.[0];
+      expect(createCall.data.payRate).toBe(37.5);
+    });
+
+    it("rejects invalid contractType values", async () => {
+      const res = await callPost(
+        makePdfForm({ contractType: "ct_made_up" }),
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects non-numeric payRate", async () => {
+      const res = await callPost(makePdfForm({ payRate: "lots" }));
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects negative payRate", async () => {
+      const res = await callPost(makePdfForm({ payRate: "-5" }));
+      expect(res.status).toBe(400);
+    });
+
+    it("treats empty payRate string as default 0", async () => {
+      const res = await callPost(makePdfForm({ payRate: "" }));
+      expect(res.status).toBe(201);
+      const createCall =
+        prismaMock.employmentContract.create.mock.calls[0]?.[0];
+      expect(createCall.data.payRate).toBe(0);
+    });
+
+    it("stamps both values into the activity log details", async () => {
+      await callPost(
+        makePdfForm({ contractType: "ct_part_time", payRate: "28.40" }),
+      );
+      const activityCall =
+        prismaMock.activityLog.create.mock.calls[0]?.[0];
+      expect(activityCall.data.details).toMatchObject({
+        contractType: "ct_part_time",
+        payRate: 28.4,
+      });
+    });
   });
 });

@@ -51,12 +51,44 @@ export const POST = withApiAuth(
     const form = await req.formData();
     const userId = form.get("userId");
     const file = form.get("file");
+    const contractTypeRaw = form.get("contractType");
+    const payRateRaw = form.get("payRate");
 
     if (typeof userId !== "string" || !userId) {
       throw ApiError.badRequest("Missing userId");
     }
     if (!file || typeof file === "string") {
       throw ApiError.badRequest("Missing file");
+    }
+
+    // 2026-06-05: contractType + payRate are now admin-controllable
+    // on the dropzone. Both stay optional with sensible defaults so
+    // the one-click "just attach the PDF" path still works.
+    const allowedTypes: ContractType[] = [
+      ContractType.ct_permanent,
+      ContractType.ct_part_time,
+      ContractType.ct_casual,
+      ContractType.ct_fixed_term,
+    ];
+    let contractType: ContractType = ContractType.ct_permanent;
+    if (typeof contractTypeRaw === "string" && contractTypeRaw) {
+      const candidate = contractTypeRaw as ContractType;
+      if (!allowedTypes.includes(candidate)) {
+        throw ApiError.badRequest(
+          `Invalid contractType — expected one of ${allowedTypes.join(", ")}`,
+        );
+      }
+      contractType = candidate;
+    }
+    let payRate = 0;
+    if (typeof payRateRaw === "string" && payRateRaw.trim()) {
+      const parsed = Number(payRateRaw);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        throw ApiError.badRequest(
+          "Pay rate must be a non-negative number.",
+        );
+      }
+      payRate = parsed;
     }
 
     const fileObj = file as File;
@@ -89,15 +121,16 @@ export const POST = withApiAuth(
       folder: `contracts/imported/${userId}`,
     });
 
-    // Create the contract row with sensible defaults. The PDF is
-    // the authoritative source — anything not knowable from outside
-    // gets a placeholder + a notes field flagging the import path.
+    // Create the contract row. contractType + payRate take admin-
+    // supplied values when present (validated above), otherwise
+    // defaults of ct_permanent + 0. startDate is "today" as a
+    // placeholder — the PDF has the real value.
     const now = new Date();
     const contract = await prisma.employmentContract.create({
       data: {
         userId,
-        contractType: ContractType.ct_permanent,
-        payRate: 0,
+        contractType,
+        payRate,
         startDate: now,
         status: "active",
         documentUrl: uploaded.url,
@@ -107,8 +140,8 @@ export const POST = withApiAuth(
         signedAt: now,
         notes:
           "Imported from existing PDF — see attached document for the " +
-          "actual pay rate, dates, and terms. Created via drag-and-drop " +
-          "on the staff profile to backfill an off-platform contract.",
+          "full terms (dates, hours, award level). Created via the " +
+          "drag-and-drop quick-upload on the staff profile.",
       },
       include: {
         user: { select: { id: true, name: true, email: true, avatar: true } },
@@ -125,6 +158,8 @@ export const POST = withApiAuth(
           targetUserId: userId,
           fileName: fileObj.name,
           fileSize: fileObj.size,
+          contractType,
+          payRate,
         },
       },
     });
