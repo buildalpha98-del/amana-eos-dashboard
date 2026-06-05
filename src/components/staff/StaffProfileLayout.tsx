@@ -45,6 +45,14 @@ export interface StaffProfileLayoutProps {
   /** Backlink to /team — preserves filter state via the search string
    *  the user came from. Caller computes via `?<searchParams>`. */
   backHref: string;
+  /** Previous employee in the same filtered list (preserves the
+   *  searchParams so the navigation context carries through). Null
+   *  when the current user is the first row, or not in the filtered
+   *  list at all. */
+  prevHref: string | null;
+  /** Next employee in the same filtered list. Null when current user
+   *  is the last row or not in the filtered list. */
+  nextHref: string | null;
 }
 
 export function StaffProfileLayout({
@@ -57,6 +65,8 @@ export function StaffProfileLayout({
   canEditEmployment,
   canManageCompliance,
   backHref,
+  prevHref,
+  nextHref,
 }: StaffProfileLayoutProps) {
   // Pay data is admin-or-self only.
   const canViewPay = isAdmin || isSelf;
@@ -92,6 +102,8 @@ export function StaffProfileLayout({
             viewerRole={viewerRole}
             isSelf={isSelf}
             backHref={backHref}
+            prevHref={prevHref}
+            nextHref={nextHref}
           />
 
           <div className="mt-6">

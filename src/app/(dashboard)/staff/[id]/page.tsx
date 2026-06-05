@@ -7,6 +7,8 @@ import type { StaffProfileData } from "@/components/staff/types";
 import { StaffProfileLayout } from "@/components/staff/StaffProfileLayout";
 import { getCertStatus } from "@/lib/cert-status";
 import { computeSnapshotStats } from "@/lib/staff/snapshot-stats";
+import { buildListWhere } from "@/lib/employees/build-list-where";
+import { getCentreScope } from "@/lib/centre-scope";
 
 export async function canAccessProfile(
   viewerId: string,
@@ -53,6 +55,29 @@ function buildBackHref(
   return qs ? `/team?${qs}` : "/team";
 }
 
+/**
+ * Build a /staff/[id] link to a sibling user, carrying the same
+ * searchParams so the navigation context (filters, sort, page) is
+ * preserved. The user can keep paging through the same filtered list.
+ */
+function buildSiblingHref(
+  userId: string,
+  sp: Record<string, string | string[] | undefined>,
+): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    if (key === "tab") continue;
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const v of value) params.append(key, v);
+    } else {
+      params.set(key, value);
+    }
+  }
+  const qs = params.toString();
+  return qs ? `/staff/${userId}?${qs}` : `/staff/${userId}`;
+}
+
 export default async function StaffProfilePage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const sp = (await searchParams) ?? {};
@@ -95,6 +120,70 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
   const canEditPersonal = isSelf || isAdmin;
   const canEditEmployment = isSelf || isAdmin;
   const canManageCompliance = isAdmin;
+
+  // 2026-06-04: compute prev/next employee in the same filtered list
+  // the user arrived from. Cheap query — IDs only — so admins can
+  // page through staff one-by-one without bouncing back to /team.
+  // Marketing bypasses scope on the team list, mirroring /api/employees.
+  // Wrapped in try/catch so a downstream scope-resolution issue can't
+  // 500 the whole profile — we just hide the prev/next buttons.
+  let prevHref: string | null = null;
+  let nextHref: string | null = null;
+  try {
+    const scopedServiceIds: string[] | null =
+      viewerRole === "marketing"
+        ? null
+        : (await getCentreScope(session)).serviceIds;
+    const listParams = {
+      q: typeof sp.q === "string" ? sp.q : undefined,
+      status: typeof sp.status === "string" ? sp.status : undefined,
+      s: typeof sp.s === "string" ? sp.s : undefined,
+      r: typeof sp.r === "string" ? sp.r : undefined,
+      tag: typeof sp.tag === "string" ? sp.tag : undefined,
+    };
+    const sortParam = typeof sp.sort === "string" ? sp.sort : "name";
+    const orderBy = (() => {
+      switch (sortParam) {
+        case "role":
+          return { role: "asc" as const };
+        case "service":
+          return { service: { name: "asc" as const } };
+        case "status":
+          return { active: "desc" as const };
+        case "name":
+        default:
+          return { name: "asc" as const };
+      }
+    })();
+    const siblingWhere = buildListWhere({
+      params: listParams,
+      scopedServiceIds,
+      hideDeactivatedByDefault: true,
+    });
+    const siblings =
+      scopedServiceIds !== null && scopedServiceIds.length === 0
+        ? []
+        : (await prisma.user.findMany({
+            where: siblingWhere,
+            orderBy,
+            select: { id: true },
+          })) ?? [];
+    const currentIdx = siblings.findIndex((u) => u.id === targetUser.id);
+    const prevId = currentIdx > 0 ? siblings[currentIdx - 1].id : null;
+    const nextId =
+      currentIdx >= 0 && currentIdx < siblings.length - 1
+        ? siblings[currentIdx + 1].id
+        : null;
+    prevHref = prevId ? buildSiblingHref(prevId, sp) : null;
+    nextHref = nextId ? buildSiblingHref(nextId, sp) : null;
+  } catch (err) {
+    logger.warn("Staff profile: prev/next sibling lookup failed", {
+      viewerId: session.user.id,
+      targetId: id,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    // Leave prev/next as null — the buttons just render disabled.
+  }
 
   // Fetch all profile data in parallel
   const [
@@ -266,6 +355,8 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
       canEditEmployment={canEditEmployment}
       canManageCompliance={canManageCompliance}
       backHref={backHref}
+      prevHref={prevHref}
+      nextHref={nextHref}
     />
   );
 }

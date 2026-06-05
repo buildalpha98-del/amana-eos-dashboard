@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
   Mail,
   Phone,
   MapPin,
@@ -55,6 +56,11 @@ export interface StaffProfileHeaderProps {
   isSelf: boolean;
   /** The list page URL to return to (preserves filter state). */
   backHref: string;
+  /** Previous employee in the same filtered list, or null at the
+   *  start / when the current user isn't in the list. */
+  prevHref?: string | null;
+  /** Next employee in the same filtered list. */
+  nextHref?: string | null;
 }
 
 function deriveStatus(
@@ -76,6 +82,8 @@ export function StaffProfileHeader({
   viewerRole,
   isSelf,
   backHref,
+  prevHref,
+  nextHref,
 }: StaffProfileHeaderProps) {
   const isAdmin = isAdminRole(viewerRole);
   const isOwner = viewerRole === "owner";
@@ -115,8 +123,10 @@ export function StaffProfileHeader({
 
   return (
     <div data-testid="staff-profile-header">
-      {/* Top strip: back link + (future) Prev/Next employee buttons */}
-      <div className="mb-4 flex items-center gap-3">
+      {/* Top strip: back link + Prev/Next employee buttons so admins
+          can page through the filtered team list without bouncing
+          back to /team every time. 2026-06-04. */}
+      <div className="mb-4 flex items-center justify-between gap-3">
         <Link
           href={backHref}
           className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
@@ -124,6 +134,46 @@ export function StaffProfileHeader({
           <ArrowLeft className="h-4 w-4" />
           Back to Team
         </Link>
+        <div className="flex items-center gap-2">
+          {prevHref ? (
+            <Link
+              href={prevHref}
+              className="inline-flex items-center gap-1 text-sm text-foreground border border-border rounded-md px-3 py-1 hover:bg-surface transition-colors"
+              data-testid="staff-prev-employee"
+              title="Previous employee in this list"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Previous
+            </Link>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 text-sm text-muted border border-border/50 rounded-md px-3 py-1 opacity-50 cursor-not-allowed"
+              aria-disabled="true"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Previous
+            </span>
+          )}
+          {nextHref ? (
+            <Link
+              href={nextHref}
+              className="inline-flex items-center gap-1 text-sm text-foreground border border-border rounded-md px-3 py-1 hover:bg-surface transition-colors"
+              data-testid="staff-next-employee"
+              title="Next employee in this list"
+            >
+              Next
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 text-sm text-muted border border-border/50 rounded-md px-3 py-1 opacity-50 cursor-not-allowed"
+              aria-disabled="true"
+            >
+              Next
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
