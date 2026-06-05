@@ -506,12 +506,13 @@ function UserRow({
                   >
                     Set as {roleLabels.member}
                   </button>
-                  <button
-                    onClick={() => updateRole.mutate("member")}
-                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
-                  >
-                    Set as {roleLabels.member}
-                  </button>
+                  {/* 2026-06-05: removed duplicate "Set as OSHC
+                      Coordinator" button. It was a stale leftover from
+                      the 2026-04-30 collapse of the `coordinator` enum
+                      into `member` — both rows pointed at `member`,
+                      causing role changes to no-op (the dropdown was
+                      a copy-paste twin) and users to report that role
+                      updates "don't persist". */}
                   <button
                     onClick={() => updateRole.mutate("marketing")}
                     className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"

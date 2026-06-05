@@ -112,7 +112,24 @@ const DATE_PRESETS = [
   { value: "", label: "All Time" },
 ];
 
-const TEAM_MEMBERS = ["Akram", "Jayden", "Mirna", "Tracie", "Daniel"];
+// 2026-06-05: assignee list used to be a hardcoded string array of 5
+// names which (a) included staff who aren't admins, (b) silently
+// missed admins added later (e.g. Ginan). Now sourced from the User
+// table — anyone whose role is owner / head_office / admin and who
+// is still active. The field on VapiCall is a free-form String of
+// the person's name (not a userId FK), so we map User.name → option.
+const ASSIGNABLE_ROLES = new Set(["owner", "head_office", "admin"]);
+
+interface AssignableUser {
+  id: string;
+  name: string;
+  role: string;
+  active: boolean;
+}
+
+function getFirstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] ?? fullName;
+}
 
 const CALL_TYPE_LABELS: Record<string, string> = {
   new_enquiry: "New Enquiry",
@@ -271,6 +288,31 @@ export function CallsTab() {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+  // Fetch the list of admin-tier users to assign calls to. Cheap query
+  // — re-used across the whole tab so we use a shared query key.
+  const { data: usersList = [] } = useQuery<AssignableUser[]>({
+    queryKey: ["assignable-users"],
+    queryFn: () => fetchApi<AssignableUser[]>("/api/users?active=true"),
+    retry: 2,
+    staleTime: 5 * 60_000, // 5 min — roles change rarely
+  });
+  const assignableNames = useMemo(() => {
+    // Filter for admin-tier + active + map to first names (matches the
+    // legacy "Akram" / "Jayden" / "Daniel" stored in VapiCall.assignedTo
+    // so historical assignments stay matchable in the dropdown).
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const u of usersList) {
+      if (!u.active) continue;
+      if (!ASSIGNABLE_ROLES.has(u.role)) continue;
+      const first = getFirstName(u.name);
+      if (seen.has(first)) continue;
+      seen.add(first);
+      result.push(first);
+    }
+    return result.sort((a, b) => a.localeCompare(b));
+  }, [usersList]);
 
   // Update mutation
   const updateCall = useMutation({
@@ -542,8 +584,20 @@ export function CallsTab() {
                         className="px-1.5 py-0.5 rounded text-xs border-0 focus:ring-2 focus:ring-brand bg-transparent cursor-pointer"
                       >
                         <option value="">Unassigned</option>
-                        {TEAM_MEMBERS.map((t) => (
-                          <option key={t} value={t}>{t}</option>
+                        {/* Preserve historical assignee on this row
+                            even if the user has since been
+                            deactivated / role-changed, so the existing
+                            value doesn't disappear from the select. */}
+                        {call.assignedTo &&
+                          !assignableNames.includes(call.assignedTo) && (
+                            <option value={call.assignedTo}>
+                              {call.assignedTo} (legacy)
+                            </option>
+                          )}
+                        {assignableNames.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
                         ))}
                       </select>
                     </td>
