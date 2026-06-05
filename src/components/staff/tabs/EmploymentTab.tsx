@@ -5,9 +5,17 @@ import type { User, Service, EmploymentContract } from "@prisma/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RoleBadge } from "@/components/staff/RoleBadge";
-import { Briefcase, Building2, CalendarDays, BadgeCheck, Loader2 } from "lucide-react";
+import {
+  Briefcase,
+  Building2,
+  CalendarDays,
+  BadgeCheck,
+  Loader2,
+  Upload,
+} from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { NewContractModal } from "@/components/contracts/NewContractModal";
 
 interface EmploymentTabProps {
   targetUser: User & { service?: Service | null };
@@ -50,6 +58,19 @@ function toDateInput(d: Date | null | undefined): string {
 
 export function EmploymentTab({ targetUser, latestContract, canEdit }: EmploymentTabProps) {
   const [editing, setEditing] = useState(false);
+  // 2026-06-04: surface the "Upload existing contract" flow directly
+  // on the Latest contract card so admins don't have to remember to
+  // navigate over to Documents → Contracts. Pre-fills the staff
+  // member and skips the template chooser.
+  const [showUpload, setShowUpload] = useState(false);
+  const usersForModal = [
+    {
+      id: targetUser.id,
+      name: targetUser.name,
+      email: targetUser.email,
+      role: targetUser.role ?? "",
+    },
+  ];
 
   if (editing && canEdit) {
     return (
@@ -132,17 +153,41 @@ export function EmploymentTab({ targetUser, latestContract, canEdit }: Employmen
             <BadgeCheck className="w-5 h-5 text-brand" />
             Latest contract
           </h3>
-          {latestContract && (
-            <Link
-              href={`/contracts/${latestContract.id}`}
-              className="text-sm text-brand hover:underline"
-            >
-              View in Contracts
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setShowUpload(true)}
+                className="inline-flex items-center gap-1.5 text-sm text-foreground hover:bg-muted/50 px-3 py-1 rounded-md border border-border"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload existing
+              </button>
+            )}
+            {latestContract && (
+              <Link
+                href={`/contracts/${latestContract.id}`}
+                className="text-sm text-brand hover:underline"
+              >
+                View in Contracts
+              </Link>
+            )}
+          </div>
         </div>
         {!latestContract ? (
-          <p className="text-sm text-muted">No contract on file.</p>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-muted">No contract on file.</p>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setShowUpload(true)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                Upload existing contract
+              </button>
+            )}
+          </div>
         ) : (
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -187,6 +232,15 @@ export function EmploymentTab({ targetUser, latestContract, canEdit }: Employmen
           </dl>
         )}
       </div>
+
+      {showUpload && (
+        <NewContractModal
+          users={usersForModal}
+          initialUserId={targetUser.id}
+          initialMode="blank"
+          onClose={() => setShowUpload(false)}
+        />
+      )}
     </div>
   );
 }

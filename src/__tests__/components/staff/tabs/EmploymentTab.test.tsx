@@ -87,4 +87,43 @@ describe("EmploymentTab", () => {
     );
     expect(b.textContent).toContain("Edit");
   });
+
+  // 2026-06-04: surface "Upload existing contract" on the Latest
+  // Contract card itself so admins don't have to dig into the
+  // Documents → Contracts tab.
+  describe("upload existing contract button", () => {
+    it("shows in the empty state when canEdit", () => {
+      const { container } = render(
+        <EmploymentTab
+          targetUser={makeUser()}
+          latestContract={null}
+          canEdit={true}
+        />,
+      );
+      expect(container.textContent).toContain("Upload existing contract");
+    });
+
+    it("hides in the empty state when not canEdit", () => {
+      const { container } = render(
+        <EmploymentTab
+          targetUser={makeUser()}
+          latestContract={null}
+          canEdit={false}
+        />,
+      );
+      expect(container.textContent).not.toContain("Upload existing");
+    });
+
+    it("shows alongside View in Contracts when there's already a contract", () => {
+      const { container } = render(
+        <EmploymentTab
+          targetUser={makeUser()}
+          latestContract={makeContract()}
+          canEdit={true}
+        />,
+      );
+      expect(container.textContent).toContain("Upload existing");
+      expect(container.textContent).toContain("View in Contracts");
+    });
+  });
 });
