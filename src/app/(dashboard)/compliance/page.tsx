@@ -198,7 +198,12 @@ function monthLabel(key: string) {
 function StaffComplianceView() {
   const { data: session } = useSession();
   const viewerId = session?.user?.id;
-  const { data: certs = [], isLoading, error, refetch } = useComplianceCerts();
+  // 2026-06-05: scope=self forces userId=self on the server regardless
+  // of role, so a `member` (OSHC Coordinator) doesn't see other
+  // staff's certs on their *own* compliance page.
+  const { data: certs = [], isLoading, error, refetch } = useComplianceCerts({
+    scope: "self",
+  });
   const createCert = useCreateCert();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState<string | null>(null);
@@ -315,8 +320,12 @@ function StaffComplianceView() {
         await queryClient.invalidateQueries({ queryKey: ["compliance"] });
       } else {
         const today = new Date().toISOString().split("T")[0];
+        // 2026-06-05: don't bother sending a placeholder serviceId.
+        // The API derives serviceId for staff/member from the session
+        // / DB and stores null when the user has no service assigned
+        // (column relaxed in the same release). Personal cert,
+        // anchored on userId.
         await createCert.mutateAsync({
-          serviceId: "auto", // Will be overridden by API for staff
           type: modalType,
           label: `${typeLabels[modalType]} - ${file.name}`,
           issueDate: today,

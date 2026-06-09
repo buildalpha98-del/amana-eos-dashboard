@@ -24,10 +24,19 @@ export interface ComplianceCertData {
   createdAt: string;
 }
 
-export function useComplianceCerts(filters?: { serviceId?: string; upcoming?: string }) {
+export function useComplianceCerts(filters?: {
+  serviceId?: string;
+  upcoming?: string;
+  /** 2026-06-05: pass "self" from the personal /compliance portal so
+   *  the API forces a strict userId=self filter regardless of role.
+   *  Closes the leakage where a `member` (OSHC Coordinator) saw
+   *  service-wide certs on their *own* compliance page. */
+  scope?: "self";
+}) {
   const params = new URLSearchParams();
   if (filters?.serviceId) params.set("serviceId", filters.serviceId);
   if (filters?.upcoming) params.set("upcoming", filters.upcoming);
+  if (filters?.scope) params.set("scope", filters.scope);
   const query = params.toString();
 
   return useQuery<ComplianceCertData[]>({
@@ -41,7 +50,11 @@ export function useCreateCert() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: {
-      serviceId: string;
+      // 2026-06-05: serviceId relaxed to optional/nullable — personal
+      // certs (WWCC etc.) belong to the staff member, not a centre.
+      // The server falls back to session.user.serviceId for staff/
+      // member uploads and stores null if that's also empty.
+      serviceId?: string | null;
       userId?: string | null;
       type: string;
       label?: string | null;

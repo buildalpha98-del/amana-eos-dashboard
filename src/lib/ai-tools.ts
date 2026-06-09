@@ -229,7 +229,10 @@ async function lookupExpiringCerts(withinDays?: number): Promise<string> {
       .map((c) => ({
         type: c.type,
         staff: c.user?.name ?? "Unknown",
-        centre: c.service.name,
+        // 2026-06-05: cert.service can be null (personal cert). Fall
+        // back to "—" so the AI doesn't see "undefined" in the
+        // structured payload.
+        centre: c.service?.name ?? "—",
         expiryDate: c.expiryDate.toISOString().split("T")[0],
         daysLeft: Math.ceil((c.expiryDate.getTime() - Date.now()) / 86400000),
       })),

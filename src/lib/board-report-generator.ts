@@ -266,10 +266,12 @@ export async function generateBoardReport({
   const expiredCerts = allDatedCerts.filter((c) => c.expiryDate < now);
   const expiringSoon = allDatedCerts.filter((c) => c.expiryDate >= now);
 
-  // Already sorted by expiryDate ASC from the query — most urgent first
+  // Already sorted by expiryDate ASC from the query — most urgent first.
+  // 2026-06-05: cert.service can be null (personal cert) — fall back
+  // to "Personal" so the board report doesn't crash on null.
   const expiringList = allDatedCerts.slice(0, 30).map((c) => ({
     type: c.type,
-    service: c.service.name,
+    service: c.service?.name ?? "Personal",
     expiryDate: c.expiryDate.toISOString(),
   }));
 

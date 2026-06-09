@@ -3453,8 +3453,16 @@ enum CertificateType {
 
 model ComplianceCertificate {
   id                    String                 @id @default(cuid())
-  serviceId             String
-  service               Service                @relation("ServiceCertificates", fields: [serviceId], references: [id], onDelete: Cascade)
+  // 2026-06-05: serviceId relaxed to nullable. Personal certs
+  // (WWCC, First Aid, Child Safe Code of Conduct, etc.) belong to
+  // the individual staff member — they aren't tied to a specific
+  // centre. Pre-2026-06 the column was NOT NULL and the upload UI
+  // forced session.user.serviceId, which 400'd "Service ID is
+  // required" for any staff member without a service assigned.
+  // userId is now the only required identity for a personal cert;
+  // serviceId is optional and only used by service-level certs.
+  serviceId             String?
+  service               Service?               @relation("ServiceCertificates", fields: [serviceId], references: [id], onDelete: Cascade)
   userId                String?
   user                  User?                  @relation("UserCertificates", fields: [userId], references: [id], onDelete: SetNull)
   type                  CertificateType

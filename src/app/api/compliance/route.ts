@@ -8,6 +8,7 @@ import { withApiAuth } from "@/lib/server-auth";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage";
+import { logger } from "@/lib/logger";
 // Reject expiry dates that fall before today — uploading an already-expired
 // cert is a UX trap (the row would immediately read "expired"). Today itself
 // is accepted because a cert valid for the rest of the day is still valid.
@@ -21,7 +22,11 @@ function isPastDate(dateStr: string): boolean {
 }
 
 const createCertSchema = z.object({
-  serviceId: z.string().min(1),
+  // 2026-06-05: serviceId is now optional + nullable. Personal certs
+  // (WWCC, First Aid, etc.) belong to the staff member, not a centre.
+  // The route falls back to session.user.serviceId for staff/member
+  // uploads or stores null if the user has no service assigned.
+  serviceId: z.string().min(1).nullable().optional(),
   userId: z.string().optional().nullable(),
   // 2026-06-04: was a hard-coded literal list of 8 types that fell out
   // of sync when child_protection / geccko / food_safety / food_handler
@@ -46,6 +51,12 @@ export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const upcoming = searchParams.get("upcoming"); // "30" = next 30 days
+  // 2026-06-05: callers (e.g. the staff /compliance personal portal)
+  // can pass ?scope=self to force a strict userId=self filter
+  // regardless of the viewer's role. Closes a data-leakage hole where
+  // a `member` role staff saw service-wide certs on their *own*
+  // compliance page — including other staff's WWCCs etc.
+  const scopeParam = searchParams.get("scope");
 
   const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
@@ -55,7 +66,10 @@ export const GET = withApiAuth(async (req, session) => {
   // State Manager: only see compliance certs for services in their state
   if (stateScope) where.service = { state: stateScope };
 
-  if (scope) {
+  if (scopeParam === "self") {
+    // Personal portal — show ONLY the caller's own certs, nothing else.
+    where.userId = session!.user.id;
+  } else if (scope) {
     // Staff only see their own certs; member sees their service's certs
     if (role === "staff") {
       where.userId = session!.user.id;
@@ -145,12 +159,40 @@ export const POST = withApiAuth(async (req, session) => {
   const role = session!.user.role as string;
   const isServiceScoped = role === "staff" || role === "member";
 
-  // Staff/member: force userId to themselves and serviceId to their assigned service
-  const finalServiceId = isServiceScoped ? (session!.user.serviceId as string) : parsed.data.serviceId;
-  const finalUserId = isServiceScoped ? session!.user.id : (parsed.data.userId || null);
+  // Staff/member: force userId to themselves. serviceId is taken from
+  // their session if present; if the user has no service assigned
+  // (e.g. casuals on trial, recent hires), the cert is filed as a
+  // personal-only record with no service — the schema column was
+  // relaxed to nullable in 2026-06-05/compliance_serviceid_nullable
+  // for exactly this case.
+  let finalServiceId: string | null = isServiceScoped
+    ? (session!.user.serviceId as string | null) ?? null
+    : parsed.data.serviceId ?? null;
+  // For staff/member without a session serviceId, try one more lookup
+  // from the User table in case the session is stale.
+  if (isServiceScoped && !finalServiceId) {
+    const fresh = await prisma.user.findUnique({
+      where: { id: session!.user.id },
+      select: { serviceId: true },
+    });
+    finalServiceId = fresh?.serviceId ?? null;
+  }
+  const finalUserId = isServiceScoped
+    ? session!.user.id
+    : parsed.data.userId || null;
 
-  if (!finalServiceId) {
-    return NextResponse.json({ error: "Service ID is required" }, { status: 400 });
+  // userId is the canonical identity for a personal cert. Admin-created
+  // certs without a userId AND without a serviceId have no anchor at
+  // all — reject those (this preserves the original "must belong to
+  // *something*" invariant without forcing every cert to a service).
+  if (!finalUserId && !finalServiceId) {
+    return NextResponse.json(
+      {
+        error:
+          "A cert must belong to either a staff member (userId) or a service (serviceId).",
+      },
+      { status: 400 },
+    );
   }
 
   if (parsed.data.expiryDate && isPastDate(parsed.data.expiryDate)) {
@@ -192,6 +234,49 @@ export const POST = withApiAuth(async (req, session) => {
       details: { type: cert.type, serviceId: cert.serviceId },
     },
   });
+
+  // 2026-06-05: notify admins when a staff member finishes uploading
+  // their own cert. Daniel wanted a heads-up so the compliance team
+  // knows to review without having to manually poll the team page.
+  // Skip when the uploader IS an admin (they're filing for someone
+  // else and don't need to ping themselves) and when there's no file
+  // attached (a metadata-only OWNA stub create is internal noise).
+  if (isServiceScoped && finalFileUrl) {
+    try {
+      const admins = await prisma.user.findMany({
+        where: {
+          active: true,
+          role: { in: ["owner", "head_office", "admin"] },
+        },
+        select: { id: true },
+      });
+      const uploaderName = cert.user?.name ?? "A staff member";
+      const certLabel = cert.label ?? cert.type;
+      const link = finalUserId
+        ? `/staff/${finalUserId}`
+        : "/compliance";
+      const recipientIds = new Set(admins.map((a) => a.id));
+      recipientIds.delete(session!.user.id);
+      if (recipientIds.size > 0) {
+        await prisma.userNotification.createMany({
+          data: Array.from(recipientIds).map((id) => ({
+            userId: id,
+            type: "compliance_cert_uploaded",
+            title: `${uploaderName} uploaded ${certLabel}`,
+            body: `New ${cert.type} cert attached to ${uploaderName}'s record. Review when ready.`,
+            link,
+          })),
+        });
+      }
+    } catch (err) {
+      // Notification is best-effort — don't fail the upload because
+      // the heads-up couldn't be sent.
+      logger.warn("compliance: admin notify on staff upload failed", {
+        certId: cert.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   return NextResponse.json(cert, { status: 201 });
 });

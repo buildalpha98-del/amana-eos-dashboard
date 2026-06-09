@@ -59,7 +59,10 @@ export const GET = withApiHandler(async (req) => {
       ? expiringCertsWithDate.map((c) => {
           const daysLeft = Math.ceil((c.expiryDate.getTime() - now.getTime()) / 86400000);
           const urgency = daysLeft <= 0 ? "EXPIRED" : daysLeft <= 14 ? "URGENT" : "upcoming";
-          return `- [${urgency}] ${c.type} — ${c.user?.name ?? "Unknown"} at ${c.service.name} (${daysLeft <= 0 ? "expired" : `expires in ${daysLeft} days`})`;
+          // 2026-06-05: c.service can be null for personal certs.
+          // Fall back to a "Personal" tag in that case.
+          const where = c.service?.name ?? "Personal cert";
+          return `- [${urgency}] ${c.type} — ${c.user?.name ?? "Unknown"} at ${where} (${daysLeft <= 0 ? "expired" : `expires in ${daysLeft} days`})`;
         }).join("\n")
       : "No certificates expiring in next 90 days.";
 

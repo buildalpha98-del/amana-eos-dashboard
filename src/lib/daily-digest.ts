@@ -458,13 +458,17 @@ function buildUserNotifications(
     const certLabel =
       cert.label || cert.type.replace(/_/g, " ").toUpperCase();
     const staffName = cert.user?.name || "Unassigned";
+    // 2026-06-05: cert.service can now be null (personal certs aren't
+    // tied to a service). Render "for {name}" without a service suffix
+    // in that case rather than crashing on `cert.service.name`.
+    const atService = cert.service?.name ? ` at ${cert.service.name}` : "";
     notifications.push({
       type: "compliance_expiring",
       severity: isExpired || daysUntil <= 7 ? "critical" : "warning",
       title: isExpired ? "Certificate Expired" : "Certificate Expiring",
       message: isExpired
-        ? `${certLabel} for ${staffName} at ${cert.service.name} has expired`
-        : `${certLabel} for ${staffName} at ${cert.service.name} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`,
+        ? `${certLabel} for ${staffName}${atService} has expired`
+        : `${certLabel} for ${staffName}${atService} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`,
       link: "/compliance",
     });
   }

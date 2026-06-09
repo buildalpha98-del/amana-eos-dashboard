@@ -93,19 +93,28 @@ export const GET = withApiHandler(async (req) => {
         continue;
       }
 
-      // Resolve coordinator CC list (cached per serviceId).
-      let coordinatorEmails = coordinatorCache.get(cert.serviceId);
-      if (!coordinatorEmails) {
-        const coordinators = await prisma.user.findMany({
-          where: {
-            role: "member",
-            serviceId: cert.serviceId,
-            active: true,
-          },
-          select: { email: true },
-        });
-        coordinatorEmails = coordinators.map((c) => c.email);
-        coordinatorCache.set(cert.serviceId, coordinatorEmails);
+      // Resolve coordinator CC list (cached per serviceId). 2026-06-05:
+      // personal certs have a null serviceId — there are no service
+      // coordinators to CC in that case, so the CC list is just empty.
+      let coordinatorEmails: string[];
+      if (cert.serviceId) {
+        const cached = coordinatorCache.get(cert.serviceId);
+        if (cached) {
+          coordinatorEmails = cached;
+        } else {
+          const coordinators = await prisma.user.findMany({
+            where: {
+              role: "member",
+              serviceId: cert.serviceId,
+              active: true,
+            },
+            select: { email: true },
+          });
+          coordinatorEmails = coordinators.map((c) => c.email);
+          coordinatorCache.set(cert.serviceId, coordinatorEmails);
+        }
+      } else {
+        coordinatorEmails = [];
       }
 
       const expiryDateStr = cert.expiryDate.toLocaleDateString("en-AU", {
@@ -130,7 +139,9 @@ export const GET = withApiHandler(async (req) => {
               type: typeLabel,
               label: cert.label,
               expiryDate: cert.expiryDate,
-              service: cert.service.name,
+              // 2026-06-05: cert.service can be null for personal
+              // certs. Fall back so the alert email still renders.
+              service: cert.service?.name ?? "Personal cert",
               urgency,
             },
           ]);

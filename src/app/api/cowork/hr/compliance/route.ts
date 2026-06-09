@@ -222,11 +222,15 @@ export const GET = withApiHandler(async (req) => {
                 active: c.user.active,
               }
             : null,
-          service: {
-            id: c.service.id,
-            name: c.service.name,
-            code: c.service.code,
-          },
+          // 2026-06-05: c.service can be null for personal certs
+          // (WWCC etc.) — return null instead of crashing on .id.
+          service: c.service
+            ? {
+                id: c.service.id,
+                name: c.service.name,
+                code: c.service.code,
+              }
+            : null,
         };
       });
 
