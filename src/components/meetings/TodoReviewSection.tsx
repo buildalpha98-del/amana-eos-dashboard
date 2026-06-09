@@ -14,7 +14,7 @@ export function TodoReviewSection({
   if (!todos || todos.length === 0) {
     return (
       <div className="text-center py-12 text-muted text-sm">
-        No to-dos from last week to review.
+        No open to-dos for anyone in this meeting.
       </div>
     );
   }
@@ -28,8 +28,11 @@ export function TodoReviewSection({
           To-Do Review
         </h4>
         <p className="text-xs text-indigo-600">
-          Go through each to-do from last week. Mark done or not done. 90%+
-          completion rate is the goal.
+          {/* 2026-06-05: was scoped to "last week" by date. Now shows
+              every open to-do owned by people in this meeting so
+              older outstanding commitments don't slip. */}
+          Every open to-do assigned to someone in this meeting. Mark
+          done or not done as you go — 90%+ completion is the goal.
         </p>
       </div>
 

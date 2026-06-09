@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useUpdateMeeting } from "@/hooks/useMeetings";
 import { useScorecard, useCreateEntry } from "@/hooks/useScorecard";
-import { useRocks } from "@/hooks/useRocks";
+import { useRocks, useUpdateRock } from "@/hooks/useRocks";
 import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
 import { useIssues, useUpdateIssue, useCreateIssue } from "@/hooks/useIssues";
 import type { MeetingData } from "@/hooks/useMeetings";
@@ -22,7 +22,6 @@ import {
   cn,
   formatDateAU,
   getWeekStart,
-  getPreviousWeekStart,
   getCurrentQuarter,
 } from "@/lib/utils";
 import { fetchApi } from "@/lib/fetch-api";
@@ -69,6 +68,7 @@ export function ActiveMeetingView({
   const updateMeeting = useUpdateMeeting();
   const updateTodo = useUpdateTodo();
   const updateIssue = useUpdateIssue();
+  const updateRock = useUpdateRock();
   const createIssue = useCreateIssue();
   const createTodo = useCreateTodo();
   const createEntry = useCreateEntry();
@@ -76,13 +76,15 @@ export function ActiveMeetingView({
   // Data hooks
   const { data: scorecard } = useScorecard();
   const { data: allRocks } = useRocks(getCurrentQuarter());
-  // L10 To-Do Review pulls LAST week's todos, not this week's — these
-  // are the commitments people made AT last week's meeting and need to
-  // be marked done / not-done at this one. New todos created during
-  // this meeting (handleCreateTodoFromIssue below) still get this
-  // week's `weekOf` so they show up at next week's review.
-  const weekStart = getPreviousWeekStart();
-  const { data: allTodos } = useTodos({ weekOf: weekStart.toISOString() });
+  // 2026-06-05: To-Do Review now shows ALL open todos for the people
+  // attending this meeting — not just last week's todos. Daniel
+  // pointed out that filtering to "weekOf=last week" missed older
+  // open todos that the attendees still owed, and showed weekly todos
+  // for people who weren't in the room.
+  //
+  // We fetch every todo here and filter to attendee userIds +
+  // not-yet-completed status in the `todos` memo below.
+  const { data: allTodos } = useTodos();
   const { data: allIDSIssuesRaw } = useIssues({ status: "open,in_discussion" });
   const { data: services } = useServices("active");
   const { data: users } = useQuery<{ id: string; name: string }[]>({
@@ -117,14 +119,42 @@ export function ActiveMeetingView({
     };
   }, [scorecard, hasServiceScope, meetingServiceIds]);
 
-  // Filter todos by service scope
+  // 2026-06-05: derive the attendee userId set once so the todos
+  // memo doesn't rebuild it every render. Empty set when no
+  // attendees are recorded — we fall back to the legacy
+  // service-scope filter in that case so the meeting view still
+  // works for meetings that haven't been set up with attendees.
+  const attendeeUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (meeting.attendees) {
+      for (const a of meeting.attendees) {
+        ids.add(a.userId);
+      }
+    }
+    return ids;
+  }, [meeting.attendees]);
+
+  // Filter todos: drop completed/cancelled, then narrow to the
+  // attendees of THIS meeting (so Daniel doesn't review todos
+  // assigned to people who weren't in the room). Falls back to
+  // service scope when no attendees are recorded.
   const todos = useMemo(() => {
     if (!allTodos) return undefined;
-    if (!hasServiceScope) return allTodos;
-    return allTodos.filter(
-      (t) => !t.serviceId || meetingServiceIds.includes(t.serviceId)
+    const open = allTodos.filter(
+      (t) => t.status !== "complete" && t.status !== "cancelled",
     );
-  }, [allTodos, hasServiceScope, meetingServiceIds]);
+    if (attendeeUserIds.size > 0) {
+      return open.filter(
+        (t) => !!t.assigneeId && attendeeUserIds.has(t.assigneeId),
+      );
+    }
+    // No attendees recorded — fall back to service scope so the
+    // legacy "all todos at this centre" behaviour still works.
+    if (!hasServiceScope) return open;
+    return open.filter(
+      (t) => !t.serviceId || meetingServiceIds.includes(t.serviceId),
+    );
+  }, [allTodos, attendeeUserIds, hasServiceScope, meetingServiceIds]);
 
   // Filter + deduplicate IDS issues by service scope
   const allIDSIssues = useMemo(() => {
@@ -259,6 +289,25 @@ export function ActiveMeetingView({
       createIssue.mutate({ title, priority: "high" });
     },
     [createIssue]
+  );
+
+  // 2026-06-05: Drop a Rock into IDS during the rocks section. Creates
+  // an Issue linked to the rock via rockId so the IDS row carries
+  // through to the next meeting + any reporting, then bumps the rock
+  // to off_track so the visual status matches "we're discussing this".
+  // The rock's serviceId carries onto the issue so service-scoped
+  // meeting views see it.
+  const handleSendRockToIDS = useCallback(
+    (rock: { id: string; title: string; serviceId?: string | null }) => {
+      createIssue.mutate({
+        title: `Rock off-track: ${rock.title}`,
+        priority: "high",
+        rockId: rock.id,
+        serviceId: rock.serviceId ?? undefined,
+      });
+      updateRock.mutate({ id: rock.id, status: "off_track" });
+    },
+    [createIssue, updateRock],
   );
 
   const handleScorecardEntry = useCallback(
@@ -487,7 +536,18 @@ export function ActiveMeetingView({
               />
             )}
             {currentSection === 2 && (
-              <RockReviewSection rocks={rocks} />
+              <RockReviewSection
+                rocks={rocks}
+                onSendToIDS={isCompleted ? undefined : handleSendRockToIDS}
+                sendingRockIdToIDS={
+                  createIssue.isPending &&
+                  (createIssue.variables as { rockId?: string } | undefined)
+                    ?.rockId
+                    ? ((createIssue.variables as { rockId?: string }).rockId ??
+                      null)
+                    : null
+                }
+              />
             )}
             {currentSection === 3 && (
               <HeadlinesSection headlines={headlines} onUpdate={setHeadlines} />

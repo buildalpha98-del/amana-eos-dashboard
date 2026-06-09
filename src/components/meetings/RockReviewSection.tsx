@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle, Trophy, Pencil } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  Trophy,
+  Pencil,
+  AlertTriangle,
+} from "lucide-react";
 import type { RockData } from "@/hooks/useRocks";
 import { useUpdateRock } from "@/hooks/useRocks";
 import { RockDetailPanel } from "@/components/rocks/RockDetailPanel";
@@ -17,6 +23,12 @@ import type { RockStatus } from "@prisma/client";
  * "Edit" button opens the existing RockDetailPanel slide-over for
  * title, description and milestone edits — no navigation away from
  * the meeting.
+ *
+ * 2026-06-05: added a "Drop to IDS" button per rock — clicking it
+ * creates a linked Issue (Issue.rockId = rock.id) on the open IDS
+ * list and flips the rock's status to off_track. Lets the L10 team
+ * surface a struggling rock for discussion in the same pass they
+ * spot it, without typing the title twice.
  */
 
 const STATUS_BUTTONS: Array<{
@@ -45,7 +57,21 @@ const STATUS_BUTTONS: Array<{
   },
 ];
 
-export function RockReviewSection({ rocks }: { rocks: RockData[] | undefined }) {
+export function RockReviewSection({
+  rocks,
+  onSendToIDS,
+  sendingRockIdToIDS,
+}: {
+  rocks: RockData[] | undefined;
+  /** Called when the user clicks "Drop to IDS" on a row. Parent
+   *  creates a linked Issue and (optionally) sets the rock to
+   *  off_track in the same pass. Optional so the section still
+   *  renders gracefully in older callers / tests. */
+  onSendToIDS?: (rock: RockData) => void;
+  /** When set, the matching row shows a "Sending…" state so the
+   *  user gets feedback during the API round-trip. */
+  sendingRockIdToIDS?: string | null;
+}) {
   const updateRock = useUpdateRock();
   const [editingRockId, setEditingRockId] = useState<string | null>(null);
 
@@ -99,6 +125,8 @@ export function RockReviewSection({ rocks }: { rocks: RockData[] | undefined }) 
             rock={rock}
             onSetStatus={(s) => setStatus(rock.id, s)}
             onEdit={() => setEditingRockId(rock.id)}
+            onSendToIDS={onSendToIDS ? () => onSendToIDS(rock) : undefined}
+            sendingToIDS={sendingRockIdToIDS === rock.id}
             statusUpdating={
               updateRock.isPending &&
               (updateRock.variables as { id?: string } | undefined)?.id === rock.id
@@ -122,11 +150,15 @@ function RockRow({
   rock,
   onSetStatus,
   onEdit,
+  onSendToIDS,
+  sendingToIDS,
   statusUpdating,
 }: {
   rock: RockData;
   onSetStatus: (status: RockStatus) => void;
   onEdit: () => void;
+  onSendToIDS?: () => void;
+  sendingToIDS?: boolean;
   statusUpdating: boolean;
 }) {
   const isPositive = rock.status === "on_track" || rock.status === "complete";
@@ -162,6 +194,19 @@ function RockRow({
             {rock.percentComplete}% complete
           </p>
         </div>
+        {onSendToIDS && (
+          <button
+            type="button"
+            onClick={onSendToIDS}
+            disabled={sendingToIDS}
+            className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 disabled:cursor-wait"
+            data-testid={`rock-drop-to-ids-${rock.id}`}
+            title="Create an Issue linked to this rock and drop it into IDS for discussion"
+          >
+            <AlertTriangle className="w-3 h-3" />
+            {sendingToIDS ? "Sending…" : "Drop to IDS"}
+          </button>
+        )}
         <button
           type="button"
           onClick={onEdit}

@@ -44,7 +44,7 @@ describe("TodoReviewSection", () => {
   it("shows the empty state when there are no to-dos", () => {
     render(<TodoReviewSection todos={[]} onToggle={vi.fn()} />);
     expect(
-      screen.getByText(/No to-dos from last week to review/i),
+      screen.getByText(/No open to-dos for anyone in this meeting/i),
     ).toBeInTheDocument();
   });
 
