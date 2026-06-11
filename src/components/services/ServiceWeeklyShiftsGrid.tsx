@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { isAdminRole } from "@/lib/role-permissions";
 import { toast } from "@/hooks/useToast";
-import { cn, getWeekStart } from "@/lib/utils";
+import { cn, getWeekStart, toLocalIsoDate } from "@/lib/utils";
 
 interface ServiceWeeklyShiftsGridProps {
   serviceId: string;
@@ -43,7 +43,7 @@ const SESSION_LABELS: Record<(typeof SESSION_TYPES)[number], string> = {
 function getMondayIso(offsetWeeks: number): string {
   const monday = getWeekStart();
   monday.setDate(monday.getDate() + offsetWeeks * 7);
-  return monday.toISOString().split("T")[0];
+  return toLocalIsoDate(monday);
 }
 
 function formatWeekRange(mondayIso: string): string {
@@ -371,7 +371,7 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                 </th>
                 {weekDates.map((dateStr, i) => {
                   const d = new Date(dateStr);
-                  const isToday = dateStr === new Date().toISOString().split("T")[0];
+                  const isToday = dateStr === toLocalIsoDate(new Date());
                   return (
                     <th
                       key={dateStr}

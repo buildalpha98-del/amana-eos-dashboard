@@ -43,7 +43,7 @@ import { isAdminRole } from "@/lib/role-permissions";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { cn, getWeekStart } from "@/lib/utils";
+import { cn, getWeekStart, toLocalIsoDate } from "@/lib/utils";
 
 interface ServiceResponsiblePersonTabProps {
   serviceId: string;
@@ -68,7 +68,7 @@ const ROLE_TITLES: Record<string, string> = {
 function getMondayIso(offsetWeeks: number): string {
   const monday = getWeekStart();
   monday.setDate(monday.getDate() + offsetWeeks * 7);
-  return monday.toISOString().split("T")[0];
+  return toLocalIsoDate(monday);
 }
 
 function addDaysIso(iso: string, days: number): string {
@@ -93,7 +93,7 @@ function formatWeekRange(mondayIso: string): string {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalIsoDate(new Date());
 }
 
 export function ServiceResponsiblePersonTab({
