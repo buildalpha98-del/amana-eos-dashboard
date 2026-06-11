@@ -157,6 +157,33 @@ export function parseFromTranscript(
   return buildResult(callType, json);
 }
 
+/** Trim a value to a non-empty string, or return undefined. */
+function cleanPhone(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+/**
+ * Resolve the parent's contact phone for a VAPI end-of-call report.
+ *
+ * Priority:
+ *   1. statedPhone — a number the parent gave verbally during the call
+ *      (extracted from analysis.structuredData / transcript)
+ *   2. callerPhone — the number they called from (call.customer.number, E.164)
+ *   3. null
+ *
+ * The stated number wins because the parent may be calling from a different
+ * line (work, a partner's phone) than the one they want to be reached on.
+ * Blank, missing, or non-string values at either source are ignored.
+ */
+export function resolveParentPhone(
+  call: Record<string, unknown> | undefined,
+  statedPhone: string | undefined,
+): string | null {
+  const customer = call?.customer as Record<string, unknown> | undefined;
+  const callerPhone = cleanPhone(customer?.number);
+  return cleanPhone(statedPhone) ?? callerPhone ?? null;
+}
+
 /**
  * Main entry point — tries structured data first, then transcript markers, then defaults.
  */

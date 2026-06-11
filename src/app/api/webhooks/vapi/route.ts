@@ -12,7 +12,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logger } from "@/lib/logger";
-import { parseCallData } from "@/lib/vapi/parseTranscript";
+import { parseCallData, resolveParentPhone } from "@/lib/vapi/parseTranscript";
 import { sendParentFollowUpEmail } from "@/lib/vapi/sendCallEmail";
 import { sendInternalNotification } from "@/lib/vapi/sendInternalNotification";
 import { createEnquiryFromCall } from "@/lib/vapi/create-enquiry-from-call";
@@ -147,13 +147,18 @@ export async function POST(request: Request) {
     const calledAt = startedAt ? new Date(startedAt) : new Date();
     const parsed = parseCallData(transcript, messages, structuredData);
 
+    // Prefer the number the parent stated verbally; fall back to the number
+    // they called from (caller ID) so we still capture a contact even when no
+    // number was spoken during the call.
+    const parentPhone = resolveParentPhone(call, parsed.parentPhone);
+
     // Check for repeat caller (same phone in the last 7 days)
     let repeatCaller = false;
-    if (parsed.parentPhone) {
+    if (parentPhone) {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const prior = await prisma.vapiCall.findFirst({
         where: {
-          parentPhone: parsed.parentPhone,
+          parentPhone,
           calledAt: { gte: sevenDaysAgo },
         },
         select: { id: true },
@@ -179,7 +184,7 @@ export async function POST(request: Request) {
         urgency: parsed.urgency,
         callDetails: parsed.callDetails as Record<string, unknown> as Prisma.InputJsonValue,
         parentName: parsed.parentName,
-        parentPhone: parsed.parentPhone,
+        parentPhone,
         parentEmail: parsed.parentEmail,
         childName: parsed.childName,
         centreName: parsed.centreName,
