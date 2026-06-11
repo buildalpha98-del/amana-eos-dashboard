@@ -7,7 +7,7 @@
  * and not really admin-editable text.
  */
 
-import { parentEmailLayout, buttonHtml } from "./base";
+import { parentEmailLayout, buttonHtml, escapeHtml } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 // ─── Enrolment Confirmation ─────────────────────────────────
@@ -91,10 +91,10 @@ export function schoolEnrolmentNotificationEmail(opts: {
     // Collect medical conditions
     const conditions: string[] = [];
     if (med?.anaphylaxisRisk) conditions.push("Anaphylaxis risk");
-    if (med?.allergies && med.allergyDetails) conditions.push(`Allergies: ${med.allergyDetails}`);
+    if (med?.allergies && med.allergyDetails) conditions.push(`Allergies: ${escapeHtml(med.allergyDetails)}`);
     if (med?.asthma) conditions.push("Asthma");
-    if (med?.otherConditions) conditions.push(med.otherConditions);
-    if (med?.dietaryRequirements && med.dietaryDetails) conditions.push(`Dietary: ${med.dietaryDetails}`);
+    if (med?.otherConditions) conditions.push(escapeHtml(med.otherConditions));
+    if (med?.dietaryRequirements && med.dietaryDetails) conditions.push(`Dietary: ${escapeHtml(med.dietaryDetails)}`);
 
     // Medications
     const meds = med?.medications?.filter((m) => m.name) || [];
@@ -104,16 +104,16 @@ export function schoolEnrolmentNotificationEmail(opts: {
 
     return `
       <div style="${sectionStyle}">
-        ${children.length > 1 ? `Child ${i + 1}: ` : ""}${child.firstName} ${child.surname}
+        ${children.length > 1 ? `Child ${i + 1}: ` : ""}${escapeHtml(child.firstName)} ${escapeHtml(child.surname)}
       </div>
       <table style="width:100%;border-collapse:collapse;margin:0 0 8px;">
         <tr>
           <td style="${labelStyle}">Name</td>
-          <td style="${valueStyle}">${child.firstName} ${child.surname}</td>
+          <td style="${valueStyle}">${escapeHtml(child.firstName)} ${escapeHtml(child.surname)}</td>
         </tr>
         <tr>
           <td style="${labelStyle}">Class / Year</td>
-          <td style="${valueStyle}">${child.yearLevel || "Not specified"}</td>
+          <td style="${valueStyle}">${child.yearLevel ? escapeHtml(child.yearLevel) : "Not specified"}</td>
         </tr>
         ${conditions.length > 0 ? `
         <tr>
@@ -134,13 +134,13 @@ export function schoolEnrolmentNotificationEmail(opts: {
         <tr>
           <td style="${labelStyle}">Medications</td>
           <td style="${valueStyle}">
-            ${meds.map((m) => `${m.name} — ${m.dosage}, ${m.frequency}`).join("<br/>")}
+            ${meds.map((m) => `${escapeHtml(m.name)} — ${escapeHtml(m.dosage)}, ${escapeHtml(m.frequency)}`).join("<br/>")}
           </td>
         </tr>
         ` : ""}
         <tr>
           <td style="${labelStyle}">Action Plans</td>
-          <td style="${valueStyle}">${plans.length > 0 ? plans.join(", ") : "None uploaded"}</td>
+          <td style="${valueStyle}">${plans.length > 0 ? plans.map(escapeHtml).join(", ") : "None uploaded"}</td>
         </tr>
         <tr>
           <td style="${labelStyle}">Immunisation</td>
@@ -155,7 +155,7 @@ export function schoolEnrolmentNotificationEmail(opts: {
       New Enrolment Received
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      A new enrolment has been submitted for <strong>${serviceName}</strong>.
+      A new enrolment has been submitted for <strong>${escapeHtml(serviceName)}</strong>.
       Please review the details below and port the data into OWNA.
     </p>
 
@@ -163,15 +163,15 @@ export function schoolEnrolmentNotificationEmail(opts: {
     <table style="width:100%;border-collapse:collapse;margin:0 0 16px;">
       <tr>
         <td style="${labelStyle}">Parent Name</td>
-        <td style="${valueStyle}">${parentName}</td>
+        <td style="${valueStyle}">${escapeHtml(parentName)}</td>
       </tr>
       <tr>
         <td style="${labelStyle}">Phone</td>
-        <td style="${valueStyle}">${parentPhone || "Not provided"}</td>
+        <td style="${valueStyle}">${parentPhone ? escapeHtml(parentPhone) : "Not provided"}</td>
       </tr>
       <tr>
         <td style="${labelStyle}">Email</td>
-        <td style="${valueStyle}"><a href="mailto:${parentEmail}" style="color:#004E64;">${parentEmail}</a></td>
+        <td style="${valueStyle}"><a href="mailto:${encodeURIComponent(parentEmail)}" style="color:#004E64;">${escapeHtml(parentEmail)}</a></td>
       </tr>
     </table>
 

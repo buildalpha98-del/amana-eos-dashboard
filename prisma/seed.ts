@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { CENTRE_AVATAR_STARTER_DATA } from "../src/lib/seed/centre-avatar-starter-data";
+import { SEED_SEQUENCES } from "../src/lib/sequence-seed-data";
 
 const prisma = new PrismaClient();
 
@@ -2800,6 +2801,35 @@ Don't list every child by name. Don't invent events or meals — use only what's
     avatarsCreated += 1;
   }
   console.log(`Seeded ${avatarsCreated} new CentreAvatars (preserved ${allServices.length - avatarsCreated} existing)`);
+
+  // ── Email sequences (parent nurture + CRM outreach) ───────────
+  // The nurture sender is sequence-driven, so these MUST exist in prod.
+  // Idempotent: skip any sequence whose name already exists.
+  let sequencesCreated = 0;
+  for (const seq of SEED_SEQUENCES) {
+    const exists = await prisma.sequence.findFirst({
+      where: { name: seq.name },
+      select: { id: true },
+    });
+    if (exists) continue;
+    await prisma.sequence.create({
+      data: {
+        name: seq.name,
+        type: seq.type,
+        triggerStage: seq.triggerStage,
+        steps: {
+          create: seq.steps.map((s, i) => ({
+            stepNumber: i + 1,
+            name: s.name,
+            delayHours: s.delayHours,
+            templateKey: s.templateKey,
+          })),
+        },
+      },
+    });
+    sequencesCreated += 1;
+  }
+  console.log(`Seeded ${sequencesCreated} new email sequences (preserved ${SEED_SEQUENCES.length - sequencesCreated} existing)`);
 
   console.log("\nSeed complete!");
 }

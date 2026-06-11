@@ -111,6 +111,16 @@ export function buttonHtml(text: string, href: string) {
 </table>`;
 }
 
+/** Escape HTML-significant characters so untrusted values can't inject markup. */
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function generatePrefToken(contactId: string): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { createHmac } = require("crypto");
@@ -138,4 +148,32 @@ export function nurtureUnsubscribeFooter(contactId: string, baseUrl: string) {
     </td>
   </tr>
 </table>`;
+}
+
+/**
+ * Append the marketing unsubscribe / manage-preferences footer to a fully
+ * rendered email, just inside the closing `</body>`. Used by the nurture-send
+ * cron for parent (marketing) emails — transactional emails deliberately don't
+ * get an unsubscribe link, so this is applied at the send site, not baked into
+ * `parentEmailLayout`.
+ */
+export function appendUnsubscribeFooter(
+  html: string,
+  contactId: string,
+  baseUrl: string,
+): string {
+  const footer = nurtureUnsubscribeFooter(contactId, baseUrl);
+  const container = `
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:0 16px 24px;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+        <tr><td>${footer}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
+  return html.includes("</body>")
+    ? html.replace("</body>", `${container}</body>`)
+    : html + container;
 }

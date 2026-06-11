@@ -4,6 +4,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { signParentJwt } from "@/lib/parent-auth";
 import { logger } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const GET = withApiHandler(async (req: NextRequest) => {
   const token = req.nextUrl.searchParams.get("token");
@@ -15,6 +16,15 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   const loginErrorUrl = `${baseUrl}/parent/login?error=expired`;
 
   if (!token) {
+    return NextResponse.redirect(loginErrorUrl);
+  }
+
+  // Throttle per IP so stolen/guessed tokens can't be tried in bulk. Tokens are
+  // 256-bit so brute force is infeasible anyway — this is defence-in-depth.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = await checkRateLimit(`parent-verify:${ip}`, 10, 60 * 1000);
+  if (rl.limited) {
+    logger.warn("Parent verify: rate limited", { ip });
     return NextResponse.redirect(loginErrorUrl);
   }
 

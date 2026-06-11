@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret } from "@/lib/cron-guard";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import {
   nurtureWelcomeEmail,
   nurtureHowToEnrolEmail,
@@ -24,17 +24,28 @@ import {
   retentionWithdrawalInterceptEmail,
   nurtureFormAbandonmentEmail,
 } from "@/lib/email-templates";
+import { appendUnsubscribeFooter } from "@/lib/email-templates/base";
 import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
 import { sendSms } from "@/lib/sms";
 
 /**
- * Templates that should also fan out as an SMS in parallel with the
- * email send. Amana Way stage 7 — the "morning after" touch is a
- * personal text, not just an inbox notification. Limited to a tiny set
- * for now; expanding it means more steps need a corresponding SMS
- * body builder below.
+ * POST /api/cron/nurture-send — send due nurture / outreach emails.
+ *
+ * Runs every 2 hours during business hours. The parent nurture sequence and
+ * CRM outreach are both driven by the DB-defined Sequence system
+ * (SequenceStepExecution rows). The legacy ParentNurtureStep sender was retired
+ * in the 2026-06 cutover — the two systems used to double-send.
+ *
+ * Idempotency: `acquireCronLock` guards concurrent invocations; each execution
+ * is atomically claimed (pending → sending) before send.
+ */
+
+/**
+ * Templates that also fan out as an SMS in parallel with the email (Amana Way
+ * stage 7 — the "morning after" touch is a personal text). Limited to a tiny
+ * set; expanding it means adding a corresponding SMS body builder below.
  */
 const SMS_AUGMENTED_TEMPLATES = new Set<string>(["day1_checkin"]);
 
@@ -48,15 +59,14 @@ function buildSmsBody(templateKey: string, firstName: string, centreName: string
   return null;
 }
 
-// LEGACY: Hardcoded template map for ParentNurtureStep records.
-// The new SequenceStepExecution system uses emailTemplateId from the DB instead.
-// Safe to remove once no pending legacy ParentNurtureStep records remain.
+/**
+ * Maps a step's `templateKey` to its hardcoded default template. Used when a
+ * SequenceStep has no custom EmailTemplate override. `session_reminder` is
+ * handled separately (it needs the service address + orientation video).
+ */
 const TEMPLATE_MAP: Record<
   string,
-  (
-    firstName: string,
-    centreName: string,
-  ) =>
+  (firstName: string, centreName: string) =>
     | { subject: string; html: string }
     | Promise<{ subject: string; html: string }>
 > = {
@@ -82,18 +92,10 @@ const TEMPLATE_MAP: Record<
 };
 
 const BATCH_SIZE = 15;
+/** Failed sends are retried until this many attempts, then marked terminally failed. */
+const MAX_SEND_ATTEMPTS = 3;
+const BASE_URL = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
-/**
- * POST /api/cron/nurture-send — Send pending nurture emails
- *
- * Runs every 2 hours during business hours. Finds pending steps where
- * scheduledFor <= now, sends via Resend, updates status, logs to DeliveryLog.
- *
- * No cron lock needed — each step has a unique constraint and status tracking,
- * so concurrent runs won't double-send.
- *
- * Processes in batches of 15 via Promise.allSettled to avoid Vercel 60s timeout.
- */
 export const POST = withApiHandler(async (req) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
@@ -104,214 +106,16 @@ export const POST = withApiHandler(async (req) => {
     return NextResponse.json({ skipped: true, reason: guard.reason });
   }
 
-  const resend = getResend();
-  if (!resend) {
+  // Fail fast if email isn't configured (sends go through the suppression wrapper).
+  if (!getResend()) {
     await guard.fail(new Error("Resend not configured"));
     return NextResponse.json({ error: "Resend not configured" }, { status: 503 });
   }
 
   try {
-
-  const now = new Date();
-
-  // Atomically claim pending legacy steps to prevent double-processing
-  await prisma.parentNurtureStep.updateMany({
-    where: { status: "pending", scheduledFor: { lte: now } },
-    data: { status: "sending" },
-  });
-
-  // Find claimed steps ready to process
-  const pendingSteps = await prisma.parentNurtureStep.findMany({
-    where: {
-      status: "sending",
-    },
-    include: {
-      contact: {
-        select: {
-          email: true,
-          firstName: true,
-          subscribed: true,
-          mobile: true,
-          smsOptIn: true,
-        },
-      },
-      service: { select: { name: true, code: true, address: true, suburb: true, state: true, orientationVideoUrl: true } },
-    },
-    orderBy: { scheduledFor: "asc" },
-    take: 50, // Process in batches
-  });
-
-  if (pendingSteps.length === 0) {
-    // Still process sequence executions even if no legacy steps
-    const seqResult = await processSequenceExecutions(resend, now);
-    await guard.complete({ legacy: { sent: 0, skipped: 0, failed: 0 }, sequences: seqResult });
-    return NextResponse.json({
-      sent: seqResult.sent,
-      skipped: seqResult.skipped,
-      failed: seqResult.failed,
-      legacy: { sent: 0, skipped: 0, failed: 0 },
-      sequences: seqResult,
-    });
-  }
-
-  let sent = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  /** Process a single legacy ParentNurtureStep (already claimed with status="sending") */
-  async function processLegacyStep(step: (typeof pendingSteps)[number]): Promise<"sent" | "skipped" | "failed"> {
-    // Skip unsubscribed contacts
-    if (!step.contact.subscribed) {
-      await prisma.parentNurtureStep.update({
-        where: { id: step.id },
-        data: { status: "cancelled" },
-      });
-      return "skipped";
-    }
-
-    const firstName = step.contact.firstName || "Parent";
-    const centreName = step.service.name;
-
-    let subject: string;
-    let html: string;
-
-    if (step.templateKey === "session_reminder") {
-      const serviceAddress = [step.service.address, step.service.suburb, step.service.state]
-        .filter(Boolean)
-        .join(", ");
-      ({ subject, html } = nurtureSessionReminderEmail(
-        firstName,
-        centreName,
-        serviceAddress || undefined,
-        step.service.orientationVideoUrl || undefined,
-      ));
-    } else {
-      const templateFn = TEMPLATE_MAP[step.templateKey];
-      if (!templateFn) {
-        await prisma.parentNurtureStep.update({
-          where: { id: step.id },
-          data: { status: "failed" },
-        });
-        return "failed";
-      }
-      ({ subject, html } = await templateFn(firstName, centreName));
-    }
-
-    const result = await resend!.emails.send({
-      from: FROM_EMAIL,
-      to: step.contact.email,
-      subject,
-      html,
-    });
-
-    await prisma.parentNurtureStep.update({
-      where: { id: step.id },
-      data: { status: "sent", sentAt: new Date() },
-    });
-
-    // Log to DeliveryLog
-    await prisma.deliveryLog.create({
-      data: {
-        channel: "email",
-        serviceCode: step.service.code,
-        messageType: "nurture_sequence",
-        externalId: result.data?.id || null,
-        recipientCount: 1,
-        status: "sent",
-      },
-    });
-
-    // ── Optional SMS fan-out for select templates (Amana Way stage 7) ──
-    if (
-      SMS_AUGMENTED_TEMPLATES.has(step.templateKey) &&
-      step.contact.smsOptIn &&
-      step.contact.mobile
-    ) {
-      const smsBody = buildSmsBody(step.templateKey, firstName, centreName);
-      if (smsBody) {
-        try {
-          const smsResult = await sendSms({
-            to: { number: step.contact.mobile, contactId: step.contactId },
-            body: smsBody,
-          });
-          await prisma.deliveryLog.create({
-            data: {
-              channel: "sms",
-              serviceCode: step.service.code,
-              messageType: "nurture_sequence",
-              externalId: smsResult.ok ? smsResult.messageIds[0] ?? null : null,
-              recipientCount: 1,
-              status: smsResult.ok ? "sent" : "failed",
-              errorMessage: smsResult.ok ? null : smsResult.reason,
-            },
-          });
-        } catch (smsErr) {
-          // SMS is an augment, not a replacement — never fail the step on SMS error.
-          logger.warn("nurture-send: SMS fan-out failed", {
-            stepId: step.id,
-            templateKey: step.templateKey,
-            err: smsErr,
-          });
-        }
-      }
-    }
-
-    return "sent";
-  }
-
-  // Process legacy steps in batches of BATCH_SIZE via Promise.allSettled
-  for (let i = 0; i < pendingSteps.length; i += BATCH_SIZE) {
-    const batch = pendingSteps.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map(step => processLegacyStep(step))
-    );
-
-    for (let j = 0; j < results.length; j++) {
-      const result = results[j];
-      if (result.status === "fulfilled") {
-        if (result.value === "sent") sent++;
-        else if (result.value === "skipped") skipped++;
-        else if (result.value === "failed") failed++;
-      } else {
-        // Promise rejected — log failure and revert to pending for retry
-        const step = batch[j];
-        logger.error("nurture-send: Failed to send step", { stepId: step.id, err: result.reason });
-        try {
-          await prisma.parentNurtureStep.update({
-            where: { id: step.id },
-            data: { status: "pending" },
-          });
-          await prisma.deliveryLog.create({
-            data: {
-              channel: "email",
-              serviceCode: step.service.code,
-              messageType: "nurture_sequence",
-              recipientCount: 1,
-              status: "failed",
-              errorMessage: result.reason instanceof Error ? result.reason.message : String(result.reason),
-            },
-          });
-        } catch (dbErr) {
-          logger.error("nurture-send: Failed to record failure for step", { stepId: step.id, err: dbErr });
-        }
-        failed++;
-      }
-    }
-  }
-
-  // ── Also process SequenceStepExecution records (new system) ──
-  const seqResult = await processSequenceExecutions(resend, now);
-
-  const result = {
-    sent: sent + seqResult.sent,
-    skipped: skipped + seqResult.skipped,
-    failed: failed + seqResult.failed,
-    legacy: { sent, skipped, failed },
-    sequences: seqResult,
-  };
-  await guard.complete(result);
-  return NextResponse.json(result);
-
+    const result = await processSequenceExecutions(new Date());
+    await guard.complete(result);
+    return NextResponse.json(result);
   } catch (err) {
     await guard.fail(err);
     throw err;
@@ -319,27 +123,18 @@ export const POST = withApiHandler(async (req) => {
 });
 
 /**
- * Process pending SequenceStepExecution records for both parent nurture
- * and CRM outreach sequences.
- *
- * Processes in batches of BATCH_SIZE via Promise.allSettled for parallelism.
+ * Process pending SequenceStepExecution records for both parent nurture and
+ * CRM outreach sequences, in batches of BATCH_SIZE via Promise.allSettled.
  */
-async function processSequenceExecutions(
-  resend: ReturnType<typeof getResend>,
-  now: Date,
-) {
-  if (!resend) return { sent: 0, skipped: 0, failed: 0 };
-
-  // Atomically claim pending sequence executions to prevent double-processing
+async function processSequenceExecutions(now: Date) {
+  // Atomically claim pending executions to prevent double-processing
   await prisma.sequenceStepExecution.updateMany({
     where: { status: "pending", scheduledFor: { lte: now } },
     data: { status: "sending" },
   });
 
   const pending = await prisma.sequenceStepExecution.findMany({
-    where: {
-      status: "sending",
-    },
+    where: { status: "sending" },
     include: {
       step: {
         include: {
@@ -349,7 +144,25 @@ async function processSequenceExecutions(
       },
       enrolment: {
         include: {
-          contact: { select: { email: true, firstName: true, subscribed: true } },
+          contact: {
+            select: {
+              email: true,
+              firstName: true,
+              subscribed: true,
+              mobile: true,
+              smsOptIn: true,
+              service: {
+                select: {
+                  name: true,
+                  code: true,
+                  address: true,
+                  suburb: true,
+                  state: true,
+                  orientationVideoUrl: true,
+                },
+              },
+            },
+          },
           lead: { select: { contactEmail: true, contactName: true, schoolName: true } },
           sequence: { select: { name: true } },
         },
@@ -363,7 +176,7 @@ async function processSequenceExecutions(
   let skipped = 0;
   let failed = 0;
 
-  // Pre-import email layout module once to avoid repeated dynamic imports
+  // Pre-import email layout + branding once
   const { renderBlocksToHtml, marketingLayout } = await import("@/lib/email-marketing-layout");
   const { getEmailBranding } = await import("@/lib/email-branding");
   const branding = await getEmailBranding();
@@ -375,12 +188,13 @@ async function processSequenceExecutions(
     footerUrlLabel: branding.websiteUrlLabel,
   };
 
-  /** Process a single SequenceStepExecution */
+  /** Process a single SequenceStepExecution. Throws on send failure (handled by the batch loop). */
   async function processSequenceExec(exec: (typeof pending)[number]): Promise<"sent" | "skipped"> {
     const isParent = exec.step.sequence.type === "parent_nurture";
-    const email = isParent
-      ? exec.enrolment.contact?.email
-      : exec.enrolment.lead?.contactEmail;
+    const contact = exec.enrolment.contact;
+    const svc = contact?.service;
+    const lead = exec.enrolment.lead;
+    const email = isParent ? contact?.email : lead?.contactEmail;
 
     if (!email) {
       await prisma.sequenceStepExecution.update({
@@ -390,8 +204,8 @@ async function processSequenceExecutions(
       return "skipped";
     }
 
-    // Check subscription for parent contacts
-    if (isParent && exec.enrolment.contact && !exec.enrolment.contact.subscribed) {
+    // Honour the unsubscribe flag for parent contacts.
+    if (isParent && contact && !contact.subscribed) {
       await prisma.sequenceStepExecution.update({
         where: { id: exec.id },
         data: { status: "cancelled", error: "Unsubscribed" },
@@ -399,87 +213,162 @@ async function processSequenceExecutions(
       return "skipped";
     }
 
+    const name = isParent
+      ? contact?.firstName || "Parent"
+      : lead?.contactName || lead?.schoolName || "there";
+    // Centre name must be the service name — NOT the sequence name.
+    const centreName = isParent ? svc?.name || exec.enrolment.sequence.name : exec.enrolment.sequence.name;
+
     let subject: string;
     let html: string;
 
-    // Try visual template first, fall back to hardcoded TEMPLATE_MAP
     if (exec.step.emailTemplate?.blocks) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const blocks = exec.step.emailTemplate.blocks as any;
-      const name = isParent
-        ? exec.enrolment.contact?.firstName || "Parent"
-        : exec.enrolment.lead?.contactName || exec.enrolment.lead?.schoolName || "there";
-      html = renderBlocksToHtml(blocks, { firstName: name, parentName: name, contactName: name, schoolName: exec.enrolment.lead?.schoolName || "", centreName: "" });
+      html = renderBlocksToHtml(blocks, {
+        firstName: name,
+        parentName: name,
+        contactName: name,
+        schoolName: lead?.schoolName || "",
+        centreName,
+      });
       subject = exec.step.emailTemplate.subject || exec.step.name;
     } else if (exec.step.emailTemplate?.htmlContent) {
       html = marketingLayout(exec.step.emailTemplate.htmlContent, layoutOpts);
       subject = exec.step.emailTemplate.subject || exec.step.name;
+    } else if (isParent && exec.step.templateKey === "session_reminder") {
+      // Dedicated template: needs service address + orientation video.
+      const serviceAddress = [svc?.address, svc?.suburb, svc?.state].filter(Boolean).join(", ");
+      ({ subject, html } = nurtureSessionReminderEmail(
+        name,
+        centreName,
+        serviceAddress || undefined,
+        svc?.orientationVideoUrl || undefined,
+      ));
     } else {
-      // Fall back to hardcoded template
       const templateFn = TEMPLATE_MAP[exec.step.templateKey];
       if (!templateFn) {
-        // For CRM steps without templates, generate a basic email
+        // No template configured — log loudly rather than silently shipping a stub.
+        logger.error("nurture-send: no template for key", {
+          execId: exec.id,
+          templateKey: exec.step.templateKey,
+        });
         subject = exec.step.name;
-        html = marketingLayout(`<p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">${exec.step.name} — this email template has not been configured yet.</p>`, layoutOpts);
+        html = marketingLayout(
+          `<p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">${exec.step.name} — this email template has not been configured yet.</p>`,
+          layoutOpts,
+        );
       } else {
-        const name = isParent
-          ? exec.enrolment.contact?.firstName || "Parent"
-          : exec.enrolment.lead?.contactName || "there";
-        ({ subject, html } = await templateFn(name, exec.enrolment.sequence.name));
+        ({ subject, html } = await templateFn(name, centreName));
       }
     }
 
-    await resend!.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      subject,
-      html,
-    });
+    // Marketing unsubscribe footer for parent emails (Spam Act 2003).
+    if (isParent && exec.enrolment.contactId) {
+      html = appendUnsubscribeFooter(html, exec.enrolment.contactId, BASE_URL);
+    }
+
+    // Suppression-aware send — skips bounced/complained addresses.
+    const sendResult = await sendEmail({ to: email, subject, html });
+    if (sendResult.sent.length === 0) {
+      await prisma.sequenceStepExecution.update({
+        where: { id: exec.id },
+        data: { status: "cancelled", error: "Suppressed (bounce/complaint)" },
+      });
+      return "skipped";
+    }
 
     await prisma.sequenceStepExecution.update({
       where: { id: exec.id },
       data: { status: "sent", sentAt: new Date() },
     });
-
-    // Update enrolment progress
     await prisma.sequenceEnrolment.update({
       where: { id: exec.enrolmentId },
       data: { currentStepNumber: exec.step.stepNumber },
     });
 
-    // For CRM: create touchpoint log
-    if (!isParent && exec.enrolment.lead) {
-      await prisma.touchpointLog.create({
+    if (isParent && svc?.code) {
+      await prisma.deliveryLog.create({
         data: {
-          leadId: exec.enrolment.leadId!,
-          type: "auto_email",
-          subject,
+          channel: "email",
+          serviceCode: svc.code,
+          messageType: "nurture_sequence",
+          externalId: sendResult.messageId || null,
+          recipientCount: 1,
+          status: "sent",
         },
+      });
+    }
+
+    // ── Optional SMS fan-out for select parent templates (Amana Way stage 7) ──
+    if (
+      isParent &&
+      SMS_AUGMENTED_TEMPLATES.has(exec.step.templateKey) &&
+      contact?.smsOptIn &&
+      contact?.mobile
+    ) {
+      const smsBody = buildSmsBody(exec.step.templateKey, name, centreName);
+      if (smsBody) {
+        try {
+          const smsResult = await sendSms({
+            to: { number: contact.mobile, contactId: exec.enrolment.contactId ?? undefined },
+            body: smsBody,
+          });
+          await prisma.deliveryLog.create({
+            data: {
+              channel: "sms",
+              serviceCode: svc?.code ?? null,
+              messageType: "nurture_sequence",
+              externalId: smsResult.ok ? smsResult.messageIds[0] ?? null : null,
+              recipientCount: 1,
+              status: smsResult.ok ? "sent" : "failed",
+              errorMessage: smsResult.ok ? null : smsResult.reason,
+            },
+          });
+        } catch (smsErr) {
+          // SMS is an augment, not a replacement — never fail the step on SMS error.
+          logger.warn("nurture-send: SMS fan-out failed", {
+            execId: exec.id,
+            templateKey: exec.step.templateKey,
+            err: smsErr,
+          });
+        }
+      }
+    }
+
+    // CRM: log the auto-email as a touchpoint.
+    if (!isParent && lead) {
+      await prisma.touchpointLog.create({
+        data: { leadId: exec.enrolment.leadId!, type: "auto_email", subject },
       });
     }
 
     return "sent";
   }
 
-  // Process sequence executions in batches of BATCH_SIZE via Promise.allSettled
   for (let i = 0; i < pending.length; i += BATCH_SIZE) {
     const batch = pending.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map(exec => processSequenceExec(exec))
-    );
+    const results = await Promise.allSettled(batch.map((exec) => processSequenceExec(exec)));
 
     for (let j = 0; j < results.length; j++) {
       const result = results[j];
       if (result.status === "fulfilled") {
         if (result.value === "sent") sent++;
-        else if (result.value === "skipped") skipped++;
+        else skipped++;
       } else {
         const exec = batch[j];
         logger.error("nurture-send: Sequence exec failed", { execId: exec.id, err: result.reason });
+        // Retry up to MAX_SEND_ATTEMPTS, then give up so a poison row can't loop forever.
+        const willBe = (exec.attempts ?? 0) + 1;
+        const nextStatus = willBe >= MAX_SEND_ATTEMPTS ? "failed" : "pending";
         try {
           await prisma.sequenceStepExecution.update({
             where: { id: exec.id },
-            data: { status: "pending", error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
+            data: {
+              status: nextStatus,
+              attempts: { increment: 1 },
+              error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+            },
           });
         } catch (dbErr) {
           logger.error("nurture-send: Failed to record failure for exec", { execId: exec.id, err: dbErr });
@@ -489,9 +378,9 @@ async function processSequenceExecutions(
     }
   }
 
-  // Mark completed enrolments
-  const activeEnrolments = [...new Set(pending.map((e) => e.enrolmentId))];
-  for (const enrolmentId of activeEnrolments) {
+  // Mark fully-processed enrolments complete.
+  const enrolmentIds = [...new Set(pending.map((e) => e.enrolmentId))];
+  for (const enrolmentId of enrolmentIds) {
     const remaining = await prisma.sequenceStepExecution.count({
       where: { enrolmentId, status: { in: ["pending", "sending"] } },
     });

@@ -17,7 +17,7 @@
  *                 → month1_referral (+45d)
  */
 
-import { parentEmailLayout, buttonHtml } from "./base";
+import { parentEmailLayout, buttonHtml, escapeHtml } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 // ─── Parent Nurture: Welcome ────────────────────────────────
@@ -63,7 +63,7 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string)
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -113,7 +113,7 @@ export async function nurtureCcsAssistEmail(firstName: string, centreName: strin
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -186,9 +186,9 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
     </p>
   `,
     vars: {
-      firstName,
-      centreName,
-      enrolUrl,
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(enrolUrl),
       startButton: buttonHtml("Start Your Enrolment", enrolUrl),
     },
     wrap: parentEmailLayout,
@@ -234,7 +234,7 @@ export async function nurtureNudge1Email(firstName: string, centreName: string) 
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -298,7 +298,7 @@ export async function nurtureNudge2Email(firstName: string, centreName: string) 
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -343,7 +343,7 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -392,7 +392,7 @@ export async function nurtureFormSupportEmail(firstName: string, centreName: str
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -447,9 +447,9 @@ export async function nurtureFormAbandonmentEmail(firstName: string, centreName:
     </p>
   `,
     vars: {
-      firstName,
-      centreName,
-      enrolUrl,
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(enrolUrl),
       continueButton: buttonHtml("Continue Your Enrolment", enrolUrl),
     },
     wrap: parentEmailLayout,
@@ -464,6 +464,10 @@ export function nurtureSessionReminderEmail(
   serviceAddress?: string,
   orientationVideoUrl?: string,
 ) {
+  // Escape untrusted text before it goes into the HTML body.
+  firstName = escapeHtml(firstName);
+  centreName = escapeHtml(centreName);
+  if (serviceAddress) serviceAddress = escapeHtml(serviceAddress);
   const subject = `Tomorrow's the big day! Everything you need to know`;
   const addressBlock = serviceAddress
     ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#eff6ff;">
@@ -589,7 +593,7 @@ export async function nurtureWhatToBringEmail(firstName: string, centreName: str
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -634,7 +638,7 @@ export async function nurtureDay1CheckinEmail(firstName: string, centreName: str
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -653,7 +657,7 @@ export async function nurtureDay3CheckinEmail(firstName: string, centreName: str
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      A few days in and your child is starting to find their rhythm at ${centreName}.
+      A few days in and your child is starting to find their rhythm at {{centreName}}.
       By now they're probably beginning to recognise faces, find their favourite activities,
       and settle into the routine.
     </p>
@@ -670,7 +674,7 @@ export async function nurtureDay3CheckinEmail(firstName: string, centreName: str
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -731,7 +735,7 @@ export async function nurtureAppSetupEmail(firstName: string, centreName: string
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -795,7 +799,7 @@ export async function nurtureFirstWeekEmail(firstName: string, centreName: strin
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -842,7 +846,7 @@ export async function nurtureWeek2FeedbackEmail(firstName: string, centreName: s
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -891,9 +895,9 @@ export async function nurtureNpsSurveyEmail(firstName: string, centreName: strin
     </p>
   `,
     vars: {
-      firstName,
-      centreName,
-      surveyUrl,
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      surveyUrl: escapeHtml(surveyUrl),
       ratingButton: buttonHtml("Share Your Rating", surveyUrl),
     },
     wrap: parentEmailLayout,
@@ -945,7 +949,7 @@ export async function nurtureMonth1ReferralEmail(firstName: string, centreName: 
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -1042,7 +1046,7 @@ export async function retentionCasualReengageEmail(firstName: string, centreName
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -1149,7 +1153,7 @@ export async function retentionWithdrawalInterceptEmail(firstName: string, centr
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }
@@ -1196,7 +1200,7 @@ export async function retentionDayChangeReminderEmail(firstName: string, centreN
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName, centreName },
+    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
     wrap: parentEmailLayout,
   });
 }

@@ -508,6 +508,11 @@ export function getEmailTemplateManifestEntry(
 /**
  * Substitute `{{name}}` placeholders. Unknown placeholders are left as-is so
  * a partial / outdated override doesn't blank out a real variable.
+ *
+ * Values are substituted verbatim — templates that interpolate untrusted text
+ * are responsible for escaping it at the call site (see e.g.
+ * `email-templates/contracts.ts`), because some variables are intentional HTML
+ * fragments (CTA buttons) that must NOT be escaped.
  */
 export function interpolateTemplate(
   template: string,

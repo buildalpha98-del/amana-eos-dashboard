@@ -6150,6 +6150,7 @@ model SequenceStepExecution {
   sentAt       DateTime?
   status       String            @default("pending") // pending, sent, failed, cancelled
   error        String?
+  attempts     Int               @default(0) // failed send attempts; capped before marking "failed"
   createdAt    DateTime          @default(now())
 
   @@index([status, scheduledFor])
