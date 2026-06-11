@@ -12,13 +12,20 @@ export interface CertStatusResult {
  * - expired: expiry is in the past
  * - expiring: expiry within 30 days
  * - valid: expiry more than 30 days out
+ *
+ * `asOf` is the reference date to classify against (defaults to the real clock).
+ * Callers computing a point-in-time snapshot MUST pass their as-of date so the
+ * result is deterministic rather than drifting with the wall clock.
  */
-export function getCertStatus(expiryDate: Date | null): CertStatusResult {
+export function getCertStatus(
+  expiryDate: Date | null,
+  asOf: Date = new Date(),
+): CertStatusResult {
   if (!expiryDate) {
     return { status: "missing", daysLeft: null };
   }
 
-  const now = new Date();
+  const now = new Date(asOf);
   now.setHours(0, 0, 0, 0);
   const expiry = new Date(expiryDate);
   expiry.setHours(0, 0, 0, 0);

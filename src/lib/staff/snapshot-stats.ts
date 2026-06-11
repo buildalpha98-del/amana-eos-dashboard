@@ -103,7 +103,7 @@ export function computeSnapshotStats(
 
   const certCounts = { valid: 0, expiring: 0, expired: 0 };
   for (const c of input.certificates) {
-    const { status } = getCertStatus(c.expiryDate);
+    const { status } = getCertStatus(c.expiryDate, asOf);
     if (status === "valid") certCounts.valid += 1;
     else if (status === "expiring") certCounts.expiring += 1;
     else if (status === "expired") certCounts.expired += 1;
