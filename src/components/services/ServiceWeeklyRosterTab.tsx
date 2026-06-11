@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/Button";
 import { ServiceWeeklyShiftsGrid } from "./ServiceWeeklyShiftsGrid";
+import { ServiceResponsiblePersonTab } from "./ServiceResponsiblePersonTab";
 import { cn, getWeekStart } from "@/lib/utils";
 
 interface ServiceWeeklyRosterTabProps {
@@ -48,9 +49,14 @@ export function ServiceWeeklyRosterTab({ serviceId, serviceName }: ServiceWeekly
   const searchParams = useSearchParams();
   const router = useRouter();
   const rawSub = searchParams?.get("sub") ?? "bookings";
-  const sub: "bookings" | "shifts" = rawSub === "shifts" ? "shifts" : "bookings";
+  const sub: "bookings" | "shifts" | "responsible" =
+    rawSub === "shifts"
+      ? "shifts"
+      : rawSub === "responsible"
+        ? "responsible"
+        : "bookings";
 
-  const setSub = (next: "bookings" | "shifts") => {
+  const setSub = (next: "bookings" | "shifts" | "responsible") => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
     params.set("sub", next);
     router.replace(`?${params.toString()}`, { scroll: false });
@@ -98,10 +104,26 @@ export function ServiceWeeklyRosterTab({ serviceId, serviceName }: ServiceWeekly
         >
           Shifts
         </button>
+        <button
+          type="button"
+          onClick={() => setSub("responsible")}
+          className={cn(
+            "px-4 py-2 text-sm transition-colors",
+            sub === "responsible"
+              ? "border-b-2 border-brand font-medium text-foreground"
+              : "text-muted hover:text-foreground",
+          )}
+        >
+          Responsible Person
+        </button>
       </div>
 
       {sub === "shifts" && (
         <ServiceWeeklyShiftsGrid serviceId={serviceId} serviceName={serviceName} />
+      )}
+
+      {sub === "responsible" && (
+        <ServiceResponsiblePersonTab serviceId={serviceId} serviceName={serviceName} />
       )}
 
       {sub === "bookings" && (

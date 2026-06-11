@@ -821,6 +821,9 @@ model User {
   // ── Staff Rostering ──────────────────────────────
   rosterShifts        RosterShift[]      @relation("UserRosterShifts")
   createdRosterShifts RosterShift[]      @relation("CreatedRosterShifts")
+  // 2026-06-11: responsible-person register entries this user is named on / created.
+  responsiblePersonEntries        ResponsiblePersonEntry[] @relation("UserResponsiblePersonEntries")
+  createdResponsiblePersonEntries ResponsiblePersonEntry[] @relation("CreatedResponsiblePersonEntries")
   proposedShiftSwaps  ShiftSwapRequest[] @relation("ProposedShiftSwaps")
   targetShiftSwaps    ShiftSwapRequest[] @relation("TargetShiftSwaps")
   approvedShiftSwaps  ShiftSwapRequest[] @relation("ApprovedShiftSwaps")
@@ -2250,6 +2253,8 @@ model Service {
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts        BookingForecast[]       @relation("ServiceBookings")
   rosterShifts            RosterShift[]           @relation("ServiceRosterShifts")
+  // 2026-06-11: responsible-person register entries for this service.
+  responsiblePersonEntries ResponsiblePersonEntry[] @relation("ServiceResponsiblePersons")
   // 2026-05-04 (timeclock v1): kiosks registered to this service.
   kiosks                  Kiosk[]                 @relation("ServiceKiosks")
   // 2026-05-04 (shift templates v1): saved shift patterns for this service.
@@ -4664,6 +4669,49 @@ model RosterShift {
   @@index([userId])
   @@index([userId, date])
   @@index([status])
+}
+
+/// Responsible-person register — under the NQF an approved provider must
+/// designate one "responsible person working directly with children" per
+/// session and keep a record of it. This is that record: exactly one entry
+/// per (service, date, sessionType). Deliberately independent of
+/// RosterShift so the register is immutable history (a later roster edit
+/// must not rewrite the official record) and can be backfilled from paper
+/// records without fabricating shifts.
+///
+/// `personName` / `personRole` are snapshots taken at record time so the
+/// register stays accurate even if the staff member is later renamed,
+/// reassigned, or offboarded. `userId` is an optional convenience link.
+///
+/// Complements the Reg 145/148 staff register in src/lib/nqf-registers.ts
+/// (which lists all staff); this is the per-session responsible-person record.
+///
+/// 2026-06-11: introduced after an Assessment & Rating breach finding
+/// (no RP rostered, no record kept). Spec:
+/// docs/superpowers/specs/2026-06-11-responsible-person-register-design.md
+model ResponsiblePersonEntry {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceResponsiblePersons", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime    @db.Date
+  sessionType SessionType
+  personName  String
+  personRole  String?
+  userId      String?
+  user        User?       @relation("UserResponsiblePersonEntries", fields: [userId], references: [id], onDelete: SetNull)
+  startTime   String // "HH:mm" — designated-RP period start
+  endTime     String // "HH:mm" — designated-RP period end
+  notes       String?
+  createdById String?
+  createdBy   User?       @relation("CreatedResponsiblePersonEntries", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([serviceId, date, sessionType])
+  @@index([serviceId])
+  @@index([date])
+  @@index([serviceId, date])
+  @@index([userId])
 }
 
 /// Staff-initiated request to swap or cover a shift.
