@@ -34,7 +34,15 @@ import { toast } from "@/hooks/useToast";
 interface UserOption {
   id: string;
   name: string;
+  role?: string;
+  active?: boolean;
 }
+
+// 2026-06-05: assignment dropdowns are admin-tier only — same set the
+// Calls assignee uses. Daniel asked for this consistency so non-admins
+// (e.g. educators, marketing) don't accidentally end up owning tickets
+// that admins are supposed to action.
+const ASSIGNABLE_ROLES = new Set(["owner", "head_office", "admin"]);
 
 interface ServiceOption {
   id: string;
@@ -482,7 +490,10 @@ export function TicketDetailPanel({
               </div>
             </div>
 
-            {/* Assigned To */}
+            {/* Assigned To — admin-tier only (see ASSIGNABLE_ROLES).
+                Preserves any historical assignee that isn't in the
+                admin tier so the dropdown still reflects the row's
+                value. */}
             <div>
               <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 Assigned To
@@ -498,11 +509,33 @@ export function TicketDetailPanel({
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Unassigned</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
+                {(() => {
+                  const adminUsers = users.filter(
+                    (u) =>
+                      u.active !== false &&
+                      u.role &&
+                      ASSIGNABLE_ROLES.has(u.role),
+                  );
+                  const adminIds = new Set(adminUsers.map((u) => u.id));
+                  const currentLegacy =
+                    ticket.assignedToId && !adminIds.has(ticket.assignedToId)
+                      ? users.find((u) => u.id === ticket.assignedToId)
+                      : null;
+                  return (
+                    <>
+                      {currentLegacy && (
+                        <option value={currentLegacy.id}>
+                          {currentLegacy.name} (legacy)
+                        </option>
+                      )}
+                      {adminUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </>
+                  );
+                })()}
               </select>
             </div>
 

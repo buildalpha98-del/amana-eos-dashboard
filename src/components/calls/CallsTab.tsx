@@ -290,12 +290,17 @@ export function CallsTab() {
   });
 
   // Fetch the list of admin-tier users to assign calls to. Cheap query
-  // — re-used across the whole tab so we use a shared query key.
+  // — uses the shared `users-list` key (also used by /contact-centre
+  // tickets, ticket detail panel, etc.) so role changes from
+  // /settings invalidate this dropdown in one go. Settings's updateRole
+  // mutation explicitly invalidates `users-list` to ensure newly-
+  // promoted admins (e.g. Ginan) appear without waiting for
+  // staleTime to expire.
   const { data: usersList = [] } = useQuery<AssignableUser[]>({
-    queryKey: ["assignable-users"],
+    queryKey: ["users-list"],
     queryFn: () => fetchApi<AssignableUser[]>("/api/users?active=true"),
     retry: 2,
-    staleTime: 5 * 60_000, // 5 min — roles change rarely
+    staleTime: 60_000, // 1 min — roles change rarely, but be responsive
   });
   const assignableNames = useMemo(() => {
     // Filter for admin-tier + active + map to first names (matches the

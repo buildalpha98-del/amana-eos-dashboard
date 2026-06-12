@@ -16,7 +16,13 @@ interface ServiceOption {
 interface UserOption {
   id: string;
   name: string;
+  role?: string;
+  active?: boolean;
 }
+
+// 2026-06-05: assignment dropdowns are admin-tier only — same set the
+// Calls assignee + Ticket detail panel use.
+const ASSIGNABLE_ROLES = new Set(["owner", "head_office", "admin"]);
 
 export function CreateTicketModal({
   open,
@@ -268,7 +274,7 @@ export function CreateTicketModal({
             </div>
           </div>
 
-          {/* Assign To */}
+          {/* Assign To — admin-tier only */}
           <div>
             <label className="block text-sm font-medium text-foreground/80 mb-1.5">
               Assign To
@@ -279,11 +285,18 @@ export function CreateTicketModal({
               className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Unassigned</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
+              {users
+                .filter(
+                  (u) =>
+                    u.active !== false &&
+                    u.role &&
+                    ASSIGNABLE_ROLES.has(u.role),
+                )
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
             </select>
           </div>
 

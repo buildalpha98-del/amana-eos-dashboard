@@ -400,7 +400,15 @@ function UserRow({
       return res.json();
     },
     onSuccess: () => {
+      // 2026-06-05: also invalidate the other user-list cache keys
+      // so role-dependent dropdowns (Calls assignee, Ticket assignee,
+      // contact-centre filters, etc.) pick up the new role without
+      // waiting for their own staleTime to expire. Previously a fresh
+      // admin (e.g. Ginan promoted from member) wouldn't appear in
+      // the Calls "Assigned to" dropdown for up to 5 minutes.
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
+      queryClient.invalidateQueries({ queryKey: ["assignable-users"] });
       setShowMenu(false);
     },
     onError: (err: Error) => {
