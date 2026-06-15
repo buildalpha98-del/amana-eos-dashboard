@@ -52,23 +52,18 @@ interface BudgetTier {
 
 /**
  * Resolve the monthly centre purchase budget for a service.
- * Priority: per-service override > org-wide tier matching > fallback $150.
+ *
+ * 2026-06-15: Per-service overrides removed. The director's rule is
+ * firm — under 100 combined weekly attendances → $150/month;
+ * 100+ → $300/month. Allowing manual overrides drifted in practice
+ * (one centre had $300 locked in despite 43 weekly attendances).
+ * Tier-only keeps the rule self-correcting as attendance moves.
  */
 export async function getMonthlyBudget(serviceId: string): Promise<{
   amount: number;
   source: "override" | "tier";
   tierLabel?: string;
 }> {
-  const service = await prisma.service.findUnique({
-    where: { id: serviceId },
-    select: { monthlyPurchaseBudget: true },
-  });
-
-  // Per-service override takes precedence
-  if (service?.monthlyPurchaseBudget != null) {
-    return { amount: service.monthlyPurchaseBudget, source: "override" };
-  }
-
   // Load org-wide tiers
   const orgSettings = await prisma.orgSettings.findUnique({
     where: { id: "singleton" },

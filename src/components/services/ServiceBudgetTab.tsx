@@ -141,8 +141,6 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<BudgetItemRecord | null>(null);
-  const [showOverride, setShowOverride] = useState(false);
-  const [overrideValue, setOverrideValue] = useState<string>("");
 
   // Queries
   const { data: summary, isLoading: summaryLoading } = useBudgetSummary({
@@ -180,31 +178,6 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
       "Centre Purchases": Math.round(p.equipmentCost * 100) / 100,
     }));
   }, [summary]);
-
-  // Budget override handlers
-  const handleSaveOverride = async () => {
-    const val = parseFloat(overrideValue);
-    if (isNaN(val) || val <= 0) return;
-    await fetch(`/api/services/${serviceId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ monthlyPurchaseBudget: val }),
-    });
-    queryClient.invalidateQueries({ queryKey: ["budget-summary", serviceId] });
-    setShowOverride(false);
-    toast({ description: "Budget override saved" });
-  };
-
-  const handleClearOverride = async () => {
-    await fetch(`/api/services/${serviceId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ monthlyPurchaseBudget: null }),
-    });
-    queryClient.invalidateQueries({ queryKey: ["budget-summary", serviceId] });
-    setShowOverride(false);
-    toast({ description: "Budget override cleared" });
-  };
 
   return (
     <div className="space-y-6">
@@ -311,34 +284,9 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                 <p className="text-[10px] text-muted mt-1">{summary.allocationLabel}</p>
               </>
             )}
-            <button
-              onClick={() => {
-                setShowOverride(!showOverride);
-                setOverrideValue(String(summary?.monthlyAllocation || ""));
-              }}
-              className="text-[10px] text-blue-500 hover:text-blue-700 underline mt-1"
-            >
-              {summary?.allocationSource === "override" ? "Edit override" : "Override budget"}
-            </button>
-            {showOverride && (
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-muted">$</span>
-                <input
-                  type="number"
-                  value={overrideValue}
-                  onChange={(e) => setOverrideValue(e.target.value)}
-                  className="w-20 px-2 py-1 text-xs border border-border rounded"
-                />
-                <button onClick={handleSaveOverride} className="text-xs text-blue-600 font-medium">
-                  Save
-                </button>
-                {summary?.allocationSource === "override" && (
-                  <button onClick={handleClearOverride} className="text-xs text-red-500">
-                    Clear
-                  </button>
-                )}
-              </div>
-            )}
+            <p className="text-[10px] text-muted mt-1">
+              Auto-set from weekly attendance · 100+ → $300, otherwise $150
+            </p>
           </div>
 
           {/* Card 3: Total Spend */}

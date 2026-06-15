@@ -248,9 +248,6 @@ export function CentreSpendingBreakdown() {
                     {/* Monthly allocation */}
                     <td className="px-4 py-3 text-right text-muted">
                       {formatCurrency(r.monthlyAllocation)}
-                      {r.monthlyAllocationSource === "override" && (
-                        <span className="block text-[10px] text-amber-600">override</span>
-                      )}
                     </td>
                     {/* Monthly spent */}
                     <td className="px-4 py-3 text-right">
