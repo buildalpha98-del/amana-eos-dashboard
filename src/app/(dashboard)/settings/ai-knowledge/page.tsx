@@ -110,38 +110,95 @@ export default function AiKnowledgePage() {
   // button. Lets us style the button consistently with other actions.
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Bulk upload progress — surfaced when more than one file is dropped/picked.
+  const [bulkProgress, setBulkProgress] = useState<{
+    total: number;
+    done: number;
+    failed: number;
+    current: string | null;
+  } | null>(null);
+
+  const uploadOne = async (file: File) => {
+    // Client-direct upload to Vercel Blob via @vercel/blob/client.
+    // File bytes go browser → Blob directly; our API only mediates
+    // the token + the post-upload Document creation. Sidesteps the
+    // serverless function body-size limit (~4.5 MB) — handles up to
+    // the 50 MB server-side cap configured in onBeforeGenerateToken.
+    const { upload } = await import("@vercel/blob/client");
+    const title = file.name.replace(/\.[^.]+$/, "");
+    const blob = await upload(`ai-knowledge/${file.name}`, file, {
+      access: "public",
+      handleUploadUrl: "/api/settings/ai-knowledge/upload",
+      contentType: file.type || "application/octet-stream",
+      clientPayload: JSON.stringify({ title }),
+    });
+    return { url: blob.url, title };
+  };
+
   const uploadMut = useMutation({
-    mutationFn: async (file: File) => {
-      // Client-direct upload to Vercel Blob via @vercel/blob/client.
-      // File bytes go browser → Blob directly; our API only mediates
-      // the token + the post-upload Document creation. Sidesteps the
-      // serverless function body-size limit (~4.5 MB) — handles up to
-      // the 50 MB server-side cap configured in onBeforeGenerateToken.
-      const { upload } = await import("@vercel/blob/client");
-
-      const title = file.name.replace(/\.[^.]+$/, "");
-
-      const blob = await upload(`ai-knowledge/${file.name}`, file, {
-        access: "public",
-        handleUploadUrl: "/api/settings/ai-knowledge/upload",
-        contentType: file.type || "application/octet-stream",
-        // clientPayload reaches our route's onBeforeGenerateToken as
-        // a string; we use it to pass the title (filename minus
-        // extension by default).
-        clientPayload: JSON.stringify({ title }),
+    mutationFn: async (files: File[]) => {
+      // Sequential, not parallel — Vercel Blob token generation +
+      // indexing both touch the DB; running 80 in parallel would
+      // hammer the connection pool and the embedding API.
+      let done = 0;
+      let failed = 0;
+      const failures: string[] = [];
+      setBulkProgress({ total: files.length, done: 0, failed: 0, current: null });
+      for (const file of files) {
+        setBulkProgress({
+          total: files.length,
+          done,
+          failed,
+          current: file.name,
+        });
+        try {
+          await uploadOne(file);
+          done += 1;
+        } catch (err) {
+          failed += 1;
+          failures.push(`${file.name}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+      setBulkProgress({
+        total: files.length,
+        done,
+        failed,
+        current: null,
       });
-
-      return { url: blob.url, title };
+      return { total: files.length, done, failed, failures };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
-      toast({
-        description: `Uploaded "${data.title}" — indexing in the background. Refresh in a moment to see chunks land.`,
-      });
+      if (data.failed === 0) {
+        toast({
+          description:
+            data.total === 1
+              ? `Uploaded — indexing in the background. Refresh in a moment.`
+              : `Uploaded ${data.done} files — indexing in the background.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          description: `${data.done} uploaded, ${data.failed} failed. First failure: ${data.failures[0]?.slice(0, 120) ?? "unknown"}`,
+        });
+      }
+      // Clear progress card after a beat so the user sees the final tally.
+      setTimeout(() => setBulkProgress(null), 4000);
     },
-    onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message });
+      setBulkProgress(null);
+    },
   });
+
+  // Drag-and-drop state — visual only, the FileList comes through onDrop.
+  const [isDragging, setIsDragging] = useState(false);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) uploadMut.mutate(files);
+  };
 
   const seedMut = useMutation({
     mutationFn: () =>
@@ -182,6 +239,66 @@ export default function AiKnowledgePage() {
         </p>
       </div>
 
+      {/* Drag-and-drop zone — accepts a folder or multi-selection of
+          PDFs/DOCXs. Uploads sequentially so we don't hammer the
+          embedding API or the Blob token endpoint. */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => !uploadMut.isPending && fileInputRef.current?.click()}
+        className={[
+          "rounded-lg border-2 border-dashed p-6 text-center transition-colors cursor-pointer",
+          isDragging
+            ? "border-brand bg-brand/5"
+            : "border-border bg-surface/30 hover:bg-surface/60",
+          uploadMut.isPending ? "pointer-events-none opacity-60" : "",
+        ].join(" ")}
+      >
+        <Upload className="w-6 h-6 mx-auto text-muted mb-2" />
+        <p className="text-sm font-medium text-foreground">
+          Drag a folder or files here, or click to pick
+        </p>
+        <p className="text-xs text-muted mt-1">
+          PDF, DOCX, DOC, TXT, MD · up to 50 MB each · multiple files
+          upload sequentially in the background
+        </p>
+      </div>
+
+      {bulkProgress && (
+        <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-foreground">
+              {bulkProgress.current
+                ? `Uploading ${bulkProgress.done + bulkProgress.failed + 1} of ${bulkProgress.total}`
+                : `Finished — ${bulkProgress.done} uploaded${bulkProgress.failed ? `, ${bulkProgress.failed} failed` : ""}`}
+            </span>
+            <span className="text-xs text-muted">
+              {Math.round(
+                ((bulkProgress.done + bulkProgress.failed) /
+                  bulkProgress.total) *
+                  100,
+              )}
+              %
+            </span>
+          </div>
+          <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden">
+            <div
+              className="h-full bg-brand transition-all"
+              style={{
+                width: `${((bulkProgress.done + bulkProgress.failed) / bulkProgress.total) * 100}%`,
+              }}
+            />
+          </div>
+          {bulkProgress.current && (
+            <p className="text-xs text-muted truncate">{bulkProgress.current}</p>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
@@ -203,11 +320,12 @@ export default function AiKnowledgePage() {
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) uploadMut.mutate(f);
+            const files = Array.from(e.target.files ?? []);
+            if (files.length) uploadMut.mutate(files);
             // Reset so picking the same file twice re-fires onChange.
             e.target.value = "";
           }}
