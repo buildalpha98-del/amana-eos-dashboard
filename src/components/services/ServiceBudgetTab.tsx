@@ -85,7 +85,13 @@ function getFYRange(): { from: string; to: string; label: string } {
   const now = new Date();
   const fyYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
   const from = `${fyYear}-07-01`;
-  const to = now.toISOString().split("T")[0];
+  // 2026-06-15: `to` covers the full FY, not just today. Capping at
+  // "today" silently excluded Wed/Thu/Fri entries of the current
+  // week from the budget query — the breakdown would show only the
+  // first 1–2 days of the week. Coordinators routinely forecast a
+  // whole week's bookings at once; the bucket logic downstream
+  // slices the FY-wide rows into per-week buckets.
+  const to = `${fyYear + 1}-06-30`;
   return { from, to, label: `FY ${fyYear}/${fyYear + 1}` };
 }
 
