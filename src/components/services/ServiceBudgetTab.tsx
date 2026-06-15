@@ -92,7 +92,12 @@ function getFYRange(): { from: string; to: string; label: string } {
 export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
   const queryClient = useQueryClient();
   const fy = getFYRange();
-  const [period, setPeriod] = useState<"weekly" | "monthly">("weekly");
+  // 2026-06-05: period toggle removed per Daniel — the budget surface
+  // is weekly-only now. The data source is the Daily Operations
+  // attendance for the current week (per-day grid or the Weekly Data
+  // Entry forecast). Monthly view didn't match how coordinators think
+  // about grocery spend and the labels never made sense alongside it.
+  const period: "weekly" | "monthly" = "weekly";
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<BudgetItemRecord | null>(null);
@@ -162,21 +167,13 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header — 2026-06-05: weekly-only now (period toggle removed) */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Centre Budget</h2>
-          <p className="text-sm text-muted">{fy.label} — Groceries &amp; Centre Purchases</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as "weekly" | "monthly")}
-            className="px-3 py-1.5 border border-border rounded-lg text-sm text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-          >
-            <option value="monthly">Monthly</option>
-            <option value="weekly">Weekly</option>
-          </select>
+          <p className="text-sm text-muted">
+            {fy.label} — Groceries &amp; Centre Purchases · weekly view
+          </p>
         </div>
       </div>
 
@@ -202,7 +199,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
               ${summary?.currentPeriod?.groceryTotal?.toFixed(0) || "0"}
             </p>
             <p className="text-xs text-muted mt-1">
-              {period === "weekly" ? "This week" : "This month"}
+              This week
             </p>
           </div>
 
@@ -272,7 +269,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
               ${summary?.combinedTotal?.toFixed(0) || "0"}
             </p>
             <p className="text-xs text-muted mt-1">
-              {period === "weekly" ? "This week" : "This month"}
+              This week
             </p>
           </div>
 
@@ -303,7 +300,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
             the row as "FY total" any more. */}
         <p className="text-xs text-muted mb-4">
           Bookings &amp; cost for{" "}
-          {period === "weekly" ? "this week" : "this month"}.
+this week.
         </p>
         {summaryLoading ? (
           <div className="space-y-3 py-4">
@@ -415,7 +412,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
         <div className="bg-card rounded-xl border border-border p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-brand" />
-            Budget Trend ({period === "monthly" ? "Monthly" : "Weekly"})
+            Budget Trend (Weekly)
           </h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
