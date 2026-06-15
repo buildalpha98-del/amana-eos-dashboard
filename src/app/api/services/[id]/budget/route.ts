@@ -317,23 +317,60 @@ export const GET = withApiAuth(async (req, session, context) => {
 
 // ── Helpers ─────────────────────────────────────────────────
 
+// 2026-06-05: bucket dates in Australia/Sydney time, not UTC.
+//
+// The daily-attendance grid stores dates as `toISOString().split("T")[0]`
+// from a local-midnight Date — for an AEST/AEDT user (UTC+10/+11) the
+// resulting ISO date is the *Sunday* before the local Monday. If we
+// bucket by UTC day-of-week, that Sunday lands in the previous week
+// and the Grocery Budget Breakdown silently misses the local Monday's
+// entry while picking up Tue–Fri (which shift into the correct UTC
+// date). Forcing Sydney for the bucket math aligns the breakdown
+// with what coordinators actually entered in the grid.
+const SYDNEY_TZ = "Australia/Sydney";
+
+function getSydneyParts(date: Date): { year: number; month: number; day: number } {
+  // Intl returns the date components as the calendar would read them
+  // in Sydney, regardless of where the Node process runs (Vercel = UTC).
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: SYDNEY_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = fmt.formatToParts(date);
+  const year = Number(parts.find((p) => p.type === "year")?.value ?? "0");
+  const month = Number(parts.find((p) => p.type === "month")?.value ?? "0");
+  const day = Number(parts.find((p) => p.type === "day")?.value ?? "0");
+  return { year, month, day };
+}
+
 function getBucketKey(date: Date, period: string): string {
-  const d = new Date(date);
+  // Render this date as a Sydney calendar date and bucket from there.
+  const { year, month, day } = getSydneyParts(date);
+  // Construct a UTC-midnight Date for the Sydney calendar date so the
+  // downstream arithmetic stays timezone-independent.
+  const d = new Date(Date.UTC(year, month - 1, day));
   if (period === "weekly") {
-    // ISO week: find Monday
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    // ISO week: find Monday in UTC (date is now a UTC anchor for the
+    // Sydney calendar day, so UTC accessors are safe).
+    const dow = d.getUTCDay();
+    const diff = d.getUTCDate() - dow + (dow === 0 ? -6 : 1);
     const monday = new Date(d);
-    monday.setDate(diff);
-    const yr = monday.getFullYear();
-    const oneJan = new Date(yr, 0, 1);
+    monday.setUTCDate(diff);
+    const yr = monday.getUTCFullYear();
+    const oneJan = new Date(Date.UTC(yr, 0, 1));
     const weekNum = Math.ceil(
-      ((monday.getTime() - oneJan.getTime()) / 86400000 + oneJan.getDay() + 1) / 7
+      ((monday.getTime() - oneJan.getTime()) / 86400000 +
+        oneJan.getUTCDay() +
+        1) /
+        7,
     );
     return `${yr}-W${String(weekNum).padStart(2, "0")}`;
   }
-  // monthly
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  // monthly — use UTC accessors since `d` is now a UTC-anchored Date
+  // representing the Sydney calendar day.
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 interface PeriodBucket {
