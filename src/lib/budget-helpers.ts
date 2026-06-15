@@ -80,18 +80,24 @@ export async function getMonthlyBudget(serviceId: string): Promise<{
     { minWeeklyChildren: 0, monthlyBudget: 150 },
   ];
 
-  // Calculate average weekly attendance over last 4 complete weeks
+  // Calculate average weekly bookings over last 4 weeks. Must sum
+  // *both* enrolled (permanent) and attended (casual) — the tier rule
+  // is "combined weekly attendances", and only summing attended would
+  // miss every permanent booking (a service with 100 permanent kids
+  // and zero casuals would score 0 and fall to the base tier).
   const fourWeeksAgo = new Date(Date.now() - 28 * 86400000);
   const attendanceResult = await prisma.dailyAttendance.aggregate({
     where: {
       serviceId,
       date: { gte: fourWeeksAgo },
     },
-    _sum: { attended: true },
+    _sum: { enrolled: true, attended: true },
   });
 
-  const totalAttended = attendanceResult._sum.attended || 0;
-  const avgWeeklyAttendance = totalAttended / 4;
+  const totalBookings =
+    (attendanceResult._sum.enrolled || 0) +
+    (attendanceResult._sum.attended || 0);
+  const avgWeeklyAttendance = totalBookings / 4;
 
   // Match tier (sorted descending by minWeeklyChildren)
   const sortedTiers = [...tiers].sort((a, b) => b.minWeeklyChildren - a.minWeeklyChildren);
