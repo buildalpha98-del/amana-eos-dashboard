@@ -12,3 +12,13 @@ WHERE migration_name = '20260615120000_attendance_tz_shift';
 
 DELETE FROM "_prisma_migrations"
 WHERE migration_name = '20260615130000_attendance_tz_shift_v2';
+
+-- 2026-06-15: clear stale monthlyPurchaseBudget overrides so every
+-- centre falls back to the attendance-based tier rule (100+ weekly
+-- bookings → $300; otherwise $150). AIA Coburg was locked at $300
+-- despite 43 weekly attendances because an old override was still in
+-- place. The override mechanism has been removed from the codebase,
+-- so this DELETE-equivalent UPDATE is one-off recovery — idempotent
+-- (matches 0 rows on subsequent runs).
+UPDATE "Service" SET "monthlyPurchaseBudget" = NULL
+WHERE "monthlyPurchaseBudget" IS NOT NULL;
