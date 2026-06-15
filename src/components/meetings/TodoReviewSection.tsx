@@ -28,11 +28,9 @@ export function TodoReviewSection({
           To-Do Review
         </h4>
         <p className="text-xs text-indigo-600">
-          {/* 2026-06-05: was scoped to "last week" by date. Now shows
-              every open to-do owned by people in this meeting so
-              older outstanding commitments don't slip. */}
-          Every open to-do assigned to someone in this meeting. Mark
-          done or not done as you go — 90%+ completion is the goal.
+          Every open to-do for the people in this meeting, plus the
+          ones completed last week. Mark done or not done as you go —
+          90%+ completion is the goal.
         </p>
       </div>
 

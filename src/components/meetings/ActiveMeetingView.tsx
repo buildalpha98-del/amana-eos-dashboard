@@ -134,24 +134,44 @@ export function ActiveMeetingView({
     return ids;
   }, [meeting.attendees]);
 
-  // Filter todos: drop completed/cancelled, then narrow to the
-  // attendees of THIS meeting (so Daniel doesn't review todos
-  // assigned to people who weren't in the room). Falls back to
-  // service scope when no attendees are recorded.
+  // Filter todos for the L10 review:
+  //   - ALL incomplete (so commitments older than a week still surface)
+  //   - PLUS todos COMPLETED within the previous week (Mon-Sun before
+  //     this week) — to celebrate the wins from the period being reviewed
+  //   - Restricted to the attendees of THIS meeting in either case;
+  //     people who weren't invited shouldn't have their todos pulled in.
+  // 2026-06-15: completed-last-week added at Daniel's request — bare
+  // open list lost the "what got done since last L10" signal.
   const todos = useMemo(() => {
     if (!allTodos) return undefined;
-    const open = allTodos.filter(
-      (t) => t.status !== "complete" && t.status !== "cancelled",
-    );
+    // Find Monday 00:00 of THIS week, then Monday 00:00 of LAST week.
+    const today = new Date();
+    const dow = today.getDay();
+    const mondayDiff = dow === 0 ? -6 : 1 - dow;
+    const thisMonday = new Date(today);
+    thisMonday.setDate(today.getDate() + mondayDiff);
+    thisMonday.setHours(0, 0, 0, 0);
+    const lastMonday = new Date(thisMonday);
+    lastMonday.setDate(thisMonday.getDate() - 7);
+
+    const openOrRecent = allTodos.filter((t) => {
+      if (t.status === "cancelled") return false;
+      if (t.status !== "complete") return true; // open todo — always included
+      // Completed todo — only include if completed during the previous week.
+      if (!t.completedAt) return false;
+      const completed = new Date(t.completedAt);
+      return completed >= lastMonday && completed < thisMonday;
+    });
+
     if (attendeeUserIds.size > 0) {
-      return open.filter(
+      return openOrRecent.filter(
         (t) => !!t.assigneeId && attendeeUserIds.has(t.assigneeId),
       );
     }
     // No attendees recorded — fall back to service scope so the
     // legacy "all todos at this centre" behaviour still works.
-    if (!hasServiceScope) return open;
-    return open.filter(
+    if (!hasServiceScope) return openOrRecent;
+    return openOrRecent.filter(
       (t) => !t.serviceId || meetingServiceIds.includes(t.serviceId),
     );
   }, [allTodos, attendeeUserIds, hasServiceScope, meetingServiceIds]);
