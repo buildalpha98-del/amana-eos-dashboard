@@ -170,19 +170,24 @@ export function WeeklyDataEntry({
           (Rise and Shine / Amana Afternoons / Holiday Quest) so the
           form reads the same way Daniel describes sessions out loud.
           Each session splits into permanent (recurring) + casual. */}
+      {/* 2026-06-05 (revised): per session, inputs are per-day averages
+          (permanent + casual) and a "Weekly total bookings" line is
+          shown directly beneath so coordinators see exactly what the
+          Finance → Budget breakdown will read. Weekly total =
+          (permanent + casual) × 5 weekdays. */}
       <div>
         <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
-          Daily Attendance (avg per day)
+          Bookings (avg per day → weekly total)
         </h4>
 
         {/* Rise and Shine (BSC) */}
         <p className="text-[11px] font-semibold text-foreground/80 mt-1 mb-1.5">
           Rise and Shine
         </p>
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-[10px] text-muted block mb-0.5">
-              Permanent forecast
+              Permanent (per day)
             </label>
             <input
               type="number"
@@ -194,7 +199,7 @@ export function WeeklyDataEntry({
           </div>
           <div>
             <label className="text-[10px] text-muted block mb-0.5">
-              Estimated casual
+              Casual (per day)
             </label>
             <input
               type="number"
@@ -205,15 +210,27 @@ export function WeeklyDataEntry({
             />
           </div>
         </div>
+        <p
+          className="text-[11px] text-muted mt-1 mb-3"
+          data-testid="weekly-total-bsc"
+        >
+          Weekly total bookings:{" "}
+          <span className="font-semibold text-foreground">
+            {bscTotal * 5}
+          </span>{" "}
+          <span className="text-muted/70">
+            ({bscRecurring} permanent + {bscCasual} casual × 5 days)
+          </span>
+        </p>
 
         {/* Amana Afternoons (ASC) */}
         <p className="text-[11px] font-semibold text-foreground/80 mt-1 mb-1.5">
           Amana Afternoons
         </p>
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-[10px] text-muted block mb-0.5">
-              Permanent forecast
+              Permanent (per day)
             </label>
             <input
               type="number"
@@ -225,7 +242,7 @@ export function WeeklyDataEntry({
           </div>
           <div>
             <label className="text-[10px] text-muted block mb-0.5">
-              Estimated casual
+              Casual (per day)
             </label>
             <input
               type="number"
@@ -236,6 +253,18 @@ export function WeeklyDataEntry({
             />
           </div>
         </div>
+        <p
+          className="text-[11px] text-muted mt-1 mb-3"
+          data-testid="weekly-total-asc"
+        >
+          Weekly total bookings:{" "}
+          <span className="font-semibold text-foreground">
+            {ascTotal * 5}
+          </span>{" "}
+          <span className="text-muted/70">
+            ({ascRecurring} permanent + {ascCasual} casual × 5 days)
+          </span>
+        </p>
 
         {/* Holiday Quest (VC) — new 2026-06-05. Mirrors BSC/ASC so
             coordinators can forecast permanent vs walk-in bookings
@@ -246,7 +275,7 @@ export function WeeklyDataEntry({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-[10px] text-muted block mb-0.5">
-              Permanent forecast
+              Permanent (per day)
             </label>
             <input
               type="number"
@@ -258,7 +287,7 @@ export function WeeklyDataEntry({
           </div>
           <div>
             <label className="text-[10px] text-muted block mb-0.5">
-              Estimated casual
+              Casual (per day)
             </label>
             <input
               type="number"
@@ -269,6 +298,18 @@ export function WeeklyDataEntry({
             />
           </div>
         </div>
+        <p
+          className="text-[11px] text-muted mt-1"
+          data-testid="weekly-total-vc"
+        >
+          Weekly total bookings:{" "}
+          <span className="font-semibold text-foreground">
+            {vcTotal * 5}
+          </span>{" "}
+          <span className="text-muted/70">
+            ({vcRecurring} permanent + {vcCasual} casual × 5 days)
+          </span>
+        </p>
       </div>
 
       {/* Costs Grid */}
