@@ -21,5 +21,8 @@
 -- fail. Bouncing through +100 days puts every row safely outside
 -- the original range first, then -99 lands them at original+1.
 
-UPDATE "DailyAttendance" SET date = date + INTERVAL '100 days';
-UPDATE "DailyAttendance" SET date = date - INTERVAL '99 days';
+-- DailyAttendance.date is a Postgres `date` (not timestamp), so add
+-- integer day offsets directly — `date + interval` would yield a
+-- timestamp and break the column-type assignment.
+UPDATE "DailyAttendance" SET "date" = "date" + 100;
+UPDATE "DailyAttendance" SET "date" = "date" - 99;
