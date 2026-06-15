@@ -28,6 +28,7 @@ import { ScrollableTable } from "@/components/ui/ScrollableTable";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import dynamic from "next/dynamic";
 import { ImportOWNAModal } from "@/components/financials/ImportOWNAModal";
+import { CentreSpendingBreakdown } from "@/components/financials/CentreSpendingBreakdown";
 import { toast } from "@/hooks/useToast";
 import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -663,6 +664,9 @@ export default function FinancialsPage() {
           </ScrollableTable>
         )}
       </div>
+
+      {/* Centre spending breakdown — weekly groceries + monthly purchase budget */}
+      <CentreSpendingBreakdown />
 
       {/* Cash Flow Forecast */}
       <CashFlowChart />
