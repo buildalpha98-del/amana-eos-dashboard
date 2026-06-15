@@ -57,12 +57,18 @@ export function WeeklyDataEntry({
   selectedWeek.setDate(selectedWeek.getDate() - weekOffset * 7);
   const weekKey = selectedWeek.toISOString().split("T")[0];
 
-  // Attendance state
+  // Attendance state — split per session into permanent (recurring)
+  // + casual. Server stores totals + permanent counts where the
+  // column exists.
   const [bscRecurring, setBscRecurring] = useState(0);
   const [bscCasual, setBscCasual] = useState(0);
   const [ascRecurring, setAscRecurring] = useState(0);
   const [ascCasual, setAscCasual] = useState(0);
-  const [vcAttendance, setVcAttendance] = useState(0);
+  // 2026-06-05: Holiday Quest (Vacation Care) gets the same
+  // recurring + casual split as the BSC/ASC sessions so coordinators
+  // can forecast permanent bookings vs walk-ins separately.
+  const [vcRecurring, setVcRecurring] = useState(0);
+  const [vcCasual, setVcCasual] = useState(0);
 
   // Costs state
   const [staffCosts, setStaffCosts] = useState(0);
@@ -81,9 +87,10 @@ export function WeeklyDataEntry({
   // Live calculation
   const bscTotal = bscRecurring + bscCasual;
   const ascTotal = ascRecurring + ascCasual;
+  const vcTotal = vcRecurring + vcCasual;
   const estBscRevenue = bscTotal * bscRate * 5;
   const estAscRevenue = ascTotal * ascRate * 5;
-  const estVcRevenue = vcAttendance * vcRate * 5;
+  const estVcRevenue = vcTotal * vcRate * 5;
   const estTotalRevenue = estBscRevenue + estAscRevenue + estVcRevenue;
   const totalCostsVal = staffCosts + foodCosts + suppliesCosts + otherCosts;
   const estProfit = estTotalRevenue - totalCostsVal;
@@ -99,7 +106,11 @@ export function WeeklyDataEntry({
           bscCasual,
           ascRecurring,
           ascCasual,
-          vcAttendance,
+          // 2026-06-05: VC (Holiday Quest) now splits into
+          // recurring + casual to match the BSC/ASC fields. The
+          // server sums these into vcAttendance for storage.
+          vcRecurring,
+          vcCasual,
           staffCosts,
           foodCosts,
           suppliesCosts,
@@ -110,6 +121,9 @@ export function WeeklyDataEntry({
       queryClient.invalidateQueries({ queryKey: ["weekly-data", serviceId] });
       queryClient.invalidateQueries({ queryKey: ["financials"] });
       queryClient.invalidateQueries({ queryKey: ["service", serviceId] });
+      // 2026-06-05: refresh the Finance → Budget tab so the grocery
+      // spend + monthly budget cards reflect the new attendance.
+      queryClient.invalidateQueries({ queryKey: ["budget-summary", serviceId] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -152,14 +166,24 @@ export function WeeklyDataEntry({
         </button>
       </div>
 
-      {/* Attendance Grid */}
+      {/* Attendance Grid — labels use the friendly session names
+          (Rise and Shine / Amana Afternoons / Holiday Quest) so the
+          form reads the same way Daniel describes sessions out loud.
+          Each session splits into permanent (recurring) + casual. */}
       <div>
         <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
           Daily Attendance (avg per day)
         </h4>
-        <div className="grid grid-cols-2 gap-3">
+
+        {/* Rise and Shine (BSC) */}
+        <p className="text-[11px] font-semibold text-foreground/80 mt-1 mb-1.5">
+          Rise and Shine
+        </p>
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">BSC Recurring</label>
+            <label className="text-[10px] text-muted block mb-0.5">
+              Permanent forecast
+            </label>
             <input
               type="number"
               min={0}
@@ -169,7 +193,9 @@ export function WeeklyDataEntry({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">BSC Casual</label>
+            <label className="text-[10px] text-muted block mb-0.5">
+              Estimated casual
+            </label>
             <input
               type="number"
               min={0}
@@ -178,8 +204,17 @@ export function WeeklyDataEntry({
               className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
+        </div>
+
+        {/* Amana Afternoons (ASC) */}
+        <p className="text-[11px] font-semibold text-foreground/80 mt-1 mb-1.5">
+          Amana Afternoons
+        </p>
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">ASC Recurring</label>
+            <label className="text-[10px] text-muted block mb-0.5">
+              Permanent forecast
+            </label>
             <input
               type="number"
               min={0}
@@ -189,7 +224,9 @@ export function WeeklyDataEntry({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">ASC Casual</label>
+            <label className="text-[10px] text-muted block mb-0.5">
+              Estimated casual
+            </label>
             <input
               type="number"
               min={0}
@@ -198,13 +235,36 @@ export function WeeklyDataEntry({
               className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
-          <div className="col-span-2">
-            <label className="text-[10px] text-muted block mb-0.5">Vacation Care</label>
+        </div>
+
+        {/* Holiday Quest (VC) — new 2026-06-05. Mirrors BSC/ASC so
+            coordinators can forecast permanent vs walk-in bookings
+            for school-holiday weeks. */}
+        <p className="text-[11px] font-semibold text-foreground/80 mt-1 mb-1.5">
+          Holiday Quest
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] text-muted block mb-0.5">
+              Permanent forecast
+            </label>
             <input
               type="number"
               min={0}
-              value={vcAttendance === 0 ? "" : vcAttendance}
-              onChange={(e) => setVcAttendance(Number(e.target.value) || 0)}
+              value={vcRecurring === 0 ? "" : vcRecurring}
+              onChange={(e) => setVcRecurring(Number(e.target.value) || 0)}
+              className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-muted block mb-0.5">
+              Estimated casual
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={vcCasual === 0 ? "" : vcCasual}
+              onChange={(e) => setVcCasual(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
@@ -267,15 +327,15 @@ export function WeeklyDataEntry({
           <h4 className="text-xs font-semibold text-brand uppercase">Revenue Preview</h4>
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-muted">BSC ({bscTotal} × ${bscRate} × 5d)</span>
+          <span className="text-muted">Rise &amp; Shine ({bscTotal} × ${bscRate} × 5d)</span>
           <span className="font-medium text-foreground/80">{formatCurrency(estBscRevenue)}</span>
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-muted">ASC ({ascTotal} × ${ascRate} × 5d)</span>
+          <span className="text-muted">Afternoons ({ascTotal} × ${ascRate} × 5d)</span>
           <span className="font-medium text-foreground/80">{formatCurrency(estAscRevenue)}</span>
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-muted">VC ({vcAttendance} × ${vcRate} × 5d)</span>
+          <span className="text-muted">Holiday Quest ({vcTotal} × ${vcRate} × 5d)</span>
           <span className="font-medium text-foreground/80">{formatCurrency(estVcRevenue)}</span>
         </div>
         <div className="border-t border-brand/10 pt-1.5 mt-1.5">

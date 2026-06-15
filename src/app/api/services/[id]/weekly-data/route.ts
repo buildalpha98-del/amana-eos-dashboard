@@ -4,13 +4,19 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+// 2026-06-05: vcAttendance kept for backward compatibility with older
+// callers; new clients send vcRecurring + vcCasual just like BSC/ASC.
+// The route prefers the split values when supplied and falls back to
+// vcAttendance otherwise.
 const weeklyDataSchema = z.object({
   weekOf: z.string(),
   bscRecurring: z.number().min(0).default(0),
   bscCasual: z.number().min(0).default(0),
   ascRecurring: z.number().min(0).default(0),
   ascCasual: z.number().min(0).default(0),
-  vcAttendance: z.number().min(0).default(0),
+  vcRecurring: z.number().min(0).optional(),
+  vcCasual: z.number().min(0).optional(),
+  vcAttendance: z.number().min(0).optional(),
   staffCosts: z.number().min(0).default(0),
   foodCosts: z.number().min(0).default(0),
   suppliesCosts: z.number().min(0).default(0),
@@ -59,12 +65,20 @@ const { id } = await context!.params!;
   const ascRate = service.ascDailyRate || 0;
   const vcRate = service.vcDailyRate || 0;
 
-  // Calculate revenue: attendance × rate × 5 days per week
+  // Calculate revenue: attendance × rate × 5 days per week.
+  // Resolve vcAttendance from the new split fields when present so
+  // forecasts saved with the recurring/casual UI round-trip cleanly.
   const bscAttendance = data.bscRecurring + data.bscCasual;
   const ascAttendance = data.ascRecurring + data.ascCasual;
+  const vcRecurring = data.vcRecurring ?? 0;
+  const vcCasual = data.vcCasual ?? 0;
+  const vcAttendance =
+    data.vcRecurring !== undefined || data.vcCasual !== undefined
+      ? vcRecurring + vcCasual
+      : data.vcAttendance ?? 0;
   const bscRevenue = bscAttendance * bscRate * 5;
   const ascRevenue = ascAttendance * ascRate * 5;
-  const vcRevenue = data.vcAttendance * vcRate * 5;
+  const vcRevenue = vcAttendance * vcRate * 5;
   const totalRevenue = bscRevenue + ascRevenue + vcRevenue;
 
   // Calculate costs
@@ -98,7 +112,7 @@ const { id } = await context!.params!;
       margin,
       bscAttendance,
       ascAttendance,
-      vcAttendance: data.vcAttendance,
+      vcAttendance,
       bscEnrolments: data.bscRecurring,
       ascEnrolments: data.ascRecurring,
     },
@@ -120,7 +134,7 @@ const { id } = await context!.params!;
       margin,
       bscAttendance,
       ascAttendance,
-      vcAttendance: data.vcAttendance,
+      vcAttendance,
       bscEnrolments: data.bscRecurring,
       ascEnrolments: data.ascRecurring,
     },

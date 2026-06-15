@@ -79,6 +79,34 @@ export const GET = withApiAuth(async (req, session, context) => {
     attendanceMap[a.sessionType] = (a._sum.enrolled || 0) + (a._sum.attended || 0);
   }
 
+  // 2026-06-05: fall back to FinancialPeriod (the WeeklyDataEntry
+  // forecast) for any session that has zero DailyAttendance rows in
+  // the range. FinancialPeriod stores per-DAY averages so weekly
+  // bookings = bscAttendance × 5 days. Lets coordinators see grocery
+  // spend + monthly budget projections from their attendance
+  // forecast before the actual daily records exist.
+  const needsForecastFallback =
+    attendanceMap.bsc === 0 &&
+    attendanceMap.asc === 0 &&
+    attendanceMap.vc === 0;
+  if (needsForecastFallback) {
+    const weeklyAgg = await prisma.financialPeriod.aggregate({
+      where: {
+        serviceId: id,
+        periodType: "weekly",
+        periodStart: { gte: from, lte: to },
+      },
+      _sum: {
+        bscAttendance: true,
+        ascAttendance: true,
+        vcAttendance: true,
+      },
+    });
+    attendanceMap.bsc = (weeklyAgg._sum.bscAttendance ?? 0) * 5;
+    attendanceMap.asc = (weeklyAgg._sum.ascAttendance ?? 0) * 5;
+    attendanceMap.vc = (weeklyAgg._sum.vcAttendance ?? 0) * 5;
+  }
+
   const bscCost = attendanceMap.bsc * service.bscGroceryRate;
   const ascCost = attendanceMap.asc * service.ascGroceryRate;
   const vcCost = attendanceMap.vc * service.vcGroceryRate;
@@ -144,6 +172,51 @@ export const GET = withApiAuth(async (req, session, context) => {
         bucket.groceryCost += bookings * service.vcGroceryRate;
       }
       bucket.total = bucket.groceryCost + bucket.equipmentCost;
+    }
+  }
+
+  // 2026-06-05: same forecast fallback as the aggregate above, but
+  // per-bucket so the chart isn't a flat line when DailyAttendance
+  // hasn't been recorded yet. Only fills buckets that ended up with
+  // zero bookings from the daily roll-call data.
+  if (needsForecastFallback) {
+    const forecasts = await prisma.financialPeriod.findMany({
+      where: {
+        serviceId: id,
+        periodType: "weekly",
+        periodStart: { gte: from, lte: to },
+      },
+      select: {
+        periodStart: true,
+        bscAttendance: true,
+        ascAttendance: true,
+        vcAttendance: true,
+      },
+    });
+    for (const fc of forecasts) {
+      const bucketKey = getBucketKey(fc.periodStart, period);
+      const bucket = periods.find((p) => p.period === bucketKey);
+      if (!bucket) continue;
+      // Only fill if the daily-records pass didn't touch this bucket.
+      if (
+        bucket.bscAttendance === 0 &&
+        bucket.ascAttendance === 0 &&
+        bucket.vcAttendance === 0
+      ) {
+        // FinancialPeriod stores per-DAY averages; multiply by 5
+        // weekdays to get a comparable weekly booking count.
+        const bscWeek = fc.bscAttendance * 5;
+        const ascWeek = fc.ascAttendance * 5;
+        const vcWeek = fc.vcAttendance * 5;
+        bucket.bscAttendance += bscWeek;
+        bucket.ascAttendance += ascWeek;
+        bucket.vcAttendance += vcWeek;
+        bucket.groceryCost +=
+          bscWeek * service.bscGroceryRate +
+          ascWeek * service.ascGroceryRate +
+          vcWeek * service.vcGroceryRate;
+        bucket.total = bucket.groceryCost + bucket.equipmentCost;
+      }
     }
   }
 
