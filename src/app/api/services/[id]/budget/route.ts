@@ -220,6 +220,46 @@ export const GET = withApiAuth(async (req, session, context) => {
     }
   }
 
+  // 2026-06-05: derive a "currentPeriod" aggregate scoped to *this
+  // week* (or *this month*) so the Grocery Spend card and Grocery
+  // Budget Breakdown match their "This week / This month" labels.
+  // Was a real bug — the card said "This week: $103" but `groceryBudget`
+  // was actually FY-to-date. We expose both shapes so consumers that
+  // genuinely want the FY total (rare) still have it.
+  const currentBucketKey = getBucketKey(new Date(), period);
+  const currentBucket = periods.find((p) => p.period === currentBucketKey);
+  const currentPeriod = currentBucket
+    ? {
+        period: currentBucket.period,
+        bsc: {
+          attended: currentBucket.bscAttendance,
+          rate: service.bscGroceryRate,
+          cost: currentBucket.bscAttendance * service.bscGroceryRate,
+        },
+        asc: {
+          attended: currentBucket.ascAttendance,
+          rate: service.ascGroceryRate,
+          cost: currentBucket.ascAttendance * service.ascGroceryRate,
+        },
+        vc: {
+          attended: currentBucket.vcAttendance,
+          rate: service.vcGroceryRate,
+          cost: currentBucket.vcAttendance * service.vcGroceryRate,
+        },
+        groceryTotal: currentBucket.groceryCost,
+        equipmentTotal: currentBucket.equipmentCost,
+        combinedTotal: currentBucket.total,
+      }
+    : {
+        period: currentBucketKey,
+        bsc: { attended: 0, rate: service.bscGroceryRate, cost: 0 },
+        asc: { attended: 0, rate: service.ascGroceryRate, cost: 0 },
+        vc: { attended: 0, rate: service.vcGroceryRate, cost: 0 },
+        groceryTotal: 0,
+        equipmentTotal: 0,
+        combinedTotal: 0,
+      };
+
   // Resolve budget allocation
   const budgetAllocation = await getMonthlyBudget(id);
 
@@ -239,12 +279,18 @@ export const GET = withApiAuth(async (req, session, context) => {
   const monthToDatePurchaseSpend = monthToDateResult._sum.amount || 0;
 
   return NextResponse.json({
+    // FY-to-date aggregate — kept for callers that want the year
+    // figure (e.g. the year-average calculation on the client).
     groceryBudget: {
       total: groceryTotal,
       bsc: { attended: attendanceMap.bsc, rate: service.bscGroceryRate, cost: bscCost },
       asc: { attended: attendanceMap.asc, rate: service.ascGroceryRate, cost: ascCost },
       vc: { attended: attendanceMap.vc, rate: service.vcGroceryRate, cost: vcCost },
     },
+    // 2026-06-05: current-period aggregate (this week / this month).
+    // What the Grocery Spend card + Grocery Budget Breakdown should
+    // be reading — they say "This week"/"This month" on the label.
+    currentPeriod,
     equipmentBudget: {
       total: equipmentTotal,
       byCategory,

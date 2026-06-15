@@ -29,8 +29,25 @@ export interface BudgetPeriod {
   vcAttendance: number;
 }
 
+// 2026-06-05: current-period aggregate. Same per-session shape as
+// GroceryBreakdown but scoped to *this week* or *this month* per the
+// `period` query param. Lets the cards and breakdown table match
+// their "This week"/"This month" labels (the FY-scoped groceryBudget
+// was being shown under a per-period label, which read as wrong
+// numbers).
+export interface CurrentPeriodSummary {
+  period: string;
+  bsc: { attended: number; rate: number; cost: number };
+  asc: { attended: number; rate: number; cost: number };
+  vc: { attended: number; rate: number; cost: number };
+  groceryTotal: number;
+  equipmentTotal: number;
+  combinedTotal: number;
+}
+
 export interface BudgetSummary {
   groceryBudget: GroceryBreakdown;
+  currentPeriod: CurrentPeriodSummary;
   equipmentBudget: {
     total: number;
     byCategory: EquipmentCategorySummary[];

@@ -193,11 +193,13 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Grocery Spend */}
+          {/* Card 1: Grocery Spend (current period only — was FY-scoped
+              before 2026-06-05, which mismatched the "This week / This
+              month" label). */}
           <div className="bg-card rounded-xl border border-border p-4">
             <p className="text-xs font-medium text-muted mb-1">Grocery Spend</p>
             <p className="text-2xl font-bold text-emerald-700">
-              ${summary?.groceryBudget?.total?.toFixed(0) || "0"}
+              ${summary?.currentPeriod?.groceryTotal?.toFixed(0) || "0"}
             </p>
             <p className="text-xs text-muted mt-1">
               {period === "weekly" ? "This week" : "This month"}
@@ -293,10 +295,16 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
 
       {/* Grocery Breakdown */}
       <div className="bg-card rounded-xl border border-border p-6">
-        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
           <ShoppingCart className="w-4 h-4 text-emerald-600" />
           Grocery Budget Breakdown
         </h3>
+        {/* 2026-06-05: make the period explicit so admins don't read
+            the row as "FY total" any more. */}
+        <p className="text-xs text-muted mb-4">
+          Bookings &amp; cost for{" "}
+          {period === "weekly" ? "this week" : "this month"}.
+        </p>
         {summaryLoading ? (
           <div className="space-y-3 py-4">
             {[...Array(3)].map((_, i) => (
@@ -319,6 +327,11 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     <th className="pb-2 font-medium text-right">Grocery Cost</th>
                   </tr>
                 </thead>
+                {/* 2026-06-05: each row reads currentPeriod.* (this
+                    week / this month) instead of the FY-scoped
+                    groceryBudget.*. Matches the heading semantics
+                    that admins expect — Total Estimated = bookings
+                    this week, not bookings since 1 July. */}
                 <tbody className="divide-y divide-border/30">
                   <tr>
                     <td className="py-2.5">
@@ -328,13 +341,13 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                       </span>
                     </td>
                     <td className="py-2.5 text-right font-medium">
-                      {summary?.groceryBudget.bsc.attended.toLocaleString() || 0}
+                      {summary?.currentPeriod?.bsc.attended.toLocaleString() || 0}
                     </td>
                     <td className="py-2.5 text-right text-muted">
-                      ${summary?.groceryBudget.bsc.rate.toFixed(2) || "0.80"}
+                      ${summary?.currentPeriod?.bsc.rate.toFixed(2) || "0.80"}
                     </td>
                     <td className="py-2.5 text-right font-semibold text-foreground">
-                      {formatCurrency(summary?.groceryBudget.bsc.cost || 0)}
+                      {formatCurrency(summary?.currentPeriod?.bsc.cost || 0)}
                     </td>
                   </tr>
                   <tr>
@@ -345,13 +358,13 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                       </span>
                     </td>
                     <td className="py-2.5 text-right font-medium">
-                      {summary?.groceryBudget.asc.attended.toLocaleString() || 0}
+                      {summary?.currentPeriod?.asc.attended.toLocaleString() || 0}
                     </td>
                     <td className="py-2.5 text-right text-muted">
-                      ${summary?.groceryBudget.asc.rate.toFixed(2) || "1.20"}
+                      ${summary?.currentPeriod?.asc.rate.toFixed(2) || "1.20"}
                     </td>
                     <td className="py-2.5 text-right font-semibold text-foreground">
-                      {formatCurrency(summary?.groceryBudget.asc.cost || 0)}
+                      {formatCurrency(summary?.currentPeriod?.asc.cost || 0)}
                     </td>
                   </tr>
                   <tr>
@@ -362,13 +375,13 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                       </span>
                     </td>
                     <td className="py-2.5 text-right font-medium">
-                      {summary?.groceryBudget.vc.attended.toLocaleString() || 0}
+                      {summary?.currentPeriod?.vc.attended.toLocaleString() || 0}
                     </td>
                     <td className="py-2.5 text-right text-muted">
-                      ${summary?.groceryBudget.vc.rate.toFixed(2) || "4.50"}
+                      ${summary?.currentPeriod?.vc.rate.toFixed(2) || "4.50"}
                     </td>
                     <td className="py-2.5 text-right font-semibold text-foreground">
-                      {formatCurrency(summary?.groceryBudget.vc.cost || 0)}
+                      {formatCurrency(summary?.currentPeriod?.vc.cost || 0)}
                     </td>
                   </tr>
                 </tbody>
@@ -377,14 +390,14 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     <td className="pt-3 font-semibold text-foreground">Total</td>
                     <td className="pt-3 text-right font-semibold">
                       {(
-                        (summary?.groceryBudget.bsc.attended || 0) +
-                        (summary?.groceryBudget.asc.attended || 0) +
-                        (summary?.groceryBudget.vc.attended || 0)
+                        (summary?.currentPeriod?.bsc.attended || 0) +
+                        (summary?.currentPeriod?.asc.attended || 0) +
+                        (summary?.currentPeriod?.vc.attended || 0)
                       ).toLocaleString()}
                     </td>
                     <td className="pt-3" />
                     <td className="pt-3 text-right font-bold text-emerald-700 text-base">
-                      {formatCurrency(summary?.groceryBudget.total || 0)}
+                      {formatCurrency(summary?.currentPeriod?.groceryTotal || 0)}
                     </td>
                   </tr>
                 </tfoot>
