@@ -220,13 +220,20 @@ export const GET = withApiAuth(async (req, session, context) => {
     }
   }
 
-  // 2026-06-05: derive a "currentPeriod" aggregate scoped to *this
-  // week* (or *this month*) so the Grocery Spend card and Grocery
-  // Budget Breakdown match their "This week / This month" labels.
-  // Was a real bug — the card said "This week: $103" but `groceryBudget`
-  // was actually FY-to-date. We expose both shapes so consumers that
-  // genuinely want the FY total (rare) still have it.
-  const currentBucketKey = getBucketKey(new Date(), period);
+  // 2026-06-05: derive a "currentPeriod" aggregate scoped to *the
+  // selected week* (or month) so the Grocery Spend card and Grocery
+  // Budget Breakdown reflect what the coordinator is actually
+  // viewing in the Daily Operations grid.
+  //
+  // Client can pass ?asOf=YYYY-MM-DD to focus on a specific week
+  // (e.g. the future week they're forecasting). Without it, defaults
+  // to today's week. Critical fix — Daniel was entering attendance
+  // for "Week Starting 15 June" while today was June 5, and the
+  // breakdown only ever showed today's-week data so future entries
+  // never appeared.
+  const asOfParam = url.searchParams.get("asOf");
+  const focusDate = asOfParam ? new Date(asOfParam) : new Date();
+  const currentBucketKey = getBucketKey(focusDate, period);
   const currentBucket = periods.find((p) => p.period === currentBucketKey);
   const currentPeriod = currentBucket
     ? {

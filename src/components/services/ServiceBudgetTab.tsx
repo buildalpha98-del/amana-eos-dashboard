@@ -23,6 +23,8 @@ import {
   X,
   Check,
   Package,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -98,6 +100,38 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
   // Entry forecast). Monthly view didn't match how coordinators think
   // about grocery spend and the labels never made sense alongside it.
   const period: "weekly" | "monthly" = "weekly";
+  // 2026-06-05: weekOffset lets the breakdown follow whichever week
+  // the coordinator is forecasting in the Daily Operations grid.
+  // Without this the breakdown was always pinned to today's week,
+  // so future-week attendance entries silently never appeared.
+  // Convention matches the daily grid: 0 = current week, +1 = last
+  // week, etc. Negative offsets navigate into the future.
+  const [weekOffset, setWeekOffset] = useState(0);
+  const selectedWeek = useMemo(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const mondayDiff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + mondayDiff - weekOffset * 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [weekOffset]);
+  // Use local components, not toISOString — an AEST Monday midnight
+  // is Sunday in UTC, so toISOString would bucket us in the prior week.
+  const asOfParam = useMemo(() => {
+    const y = selectedWeek.getFullYear();
+    const m = String(selectedWeek.getMonth() + 1).padStart(2, "0");
+    const d = String(selectedWeek.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, [selectedWeek]);
+  const weekLabel = useMemo(
+    () =>
+      selectedWeek.toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+    [selectedWeek],
+  );
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<BudgetItemRecord | null>(null);
@@ -110,6 +144,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
     from: fy.from,
     to: fy.to,
     period,
+    asOf: asOfParam,
   });
 
   const { data: items, isLoading: itemsLoading } = useEquipmentItems({
@@ -167,13 +202,51 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Header — 2026-06-05: weekly-only now (period toggle removed) */}
-      <div className="flex items-center justify-between">
+      {/* Header — weekly-only with a week selector so the breakdown
+          follows whichever week the coordinator is forecasting in the
+          Daily Operations grid (added 2026-06-05). */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Centre Budget</h2>
           <p className="text-sm text-muted">
             {fy.label} — Groceries &amp; Centre Purchases · weekly view
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setWeekOffset((w) => w + 1)}
+            className="p-1.5 rounded-lg border border-border text-muted hover:text-foreground hover:border-border"
+            aria-label="Previous week"
+            data-testid="budget-week-prev"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="text-center min-w-[160px]">
+            <p className="text-sm font-semibold text-foreground">
+              Week of {weekLabel}
+            </p>
+            {weekOffset === 0 ? (
+              <p className="text-[10px] text-brand font-medium">Current Week</p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setWeekOffset(0)}
+                className="text-[10px] text-muted hover:text-foreground underline"
+              >
+                Jump to current week
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setWeekOffset((w) => w - 1)}
+            className="p-1.5 rounded-lg border border-border text-muted hover:text-foreground hover:border-border"
+            aria-label="Next week"
+            data-testid="budget-week-next"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -199,7 +272,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
               ${summary?.currentPeriod?.groceryTotal?.toFixed(0) || "0"}
             </p>
             <p className="text-xs text-muted mt-1">
-              This week
+              Week of {weekLabel}
             </p>
           </div>
 
@@ -269,7 +342,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
               ${summary?.combinedTotal?.toFixed(0) || "0"}
             </p>
             <p className="text-xs text-muted mt-1">
-              This week
+              Week of {weekLabel}
             </p>
           </div>
 
@@ -299,8 +372,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
         {/* 2026-06-05: make the period explicit so admins don't read
             the row as "FY total" any more. */}
         <p className="text-xs text-muted mb-4">
-          Bookings &amp; cost for{" "}
-this week.
+          Bookings &amp; cost for week of {weekLabel}.
         </p>
         {summaryLoading ? (
           <div className="space-y-3 py-4">
