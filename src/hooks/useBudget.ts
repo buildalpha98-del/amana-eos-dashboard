@@ -83,14 +83,26 @@ export function useBudgetSummary(params: {
   from?: string;
   to?: string;
   period?: "weekly" | "monthly";
+  /** 2026-06-05: YYYY-MM-DD anchor for the currentPeriod bucket. Lets
+   *  the Budget tab focus on the same week the coordinator is viewing
+   *  in the Daily Operations grid. Defaults server-side to today. */
+  asOf?: string;
 }) {
   return useQuery<BudgetSummary>({
-    queryKey: ["budget-summary", params.serviceId, params.from, params.to, params.period],
+    queryKey: [
+      "budget-summary",
+      params.serviceId,
+      params.from,
+      params.to,
+      params.period,
+      params.asOf,
+    ],
     queryFn: () => {
       const sp = new URLSearchParams();
       if (params.from) sp.set("from", params.from);
       if (params.to) sp.set("to", params.to);
       if (params.period) sp.set("period", params.period);
+      if (params.asOf) sp.set("asOf", params.asOf);
       return fetchApi<BudgetSummary>(`/api/services/${params.serviceId}/budget?${sp}`);
     },
     enabled: !!params.serviceId,
