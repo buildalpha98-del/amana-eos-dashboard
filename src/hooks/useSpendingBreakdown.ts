@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
 
 export interface SpendingBreakdownRow {
-  service: { id: string; code: string | null; name: string; state: string };
+  service: { id: string; code: string; name: string; state: string | null };
   weekBookings: number;
   perSession: { bsc: number; asc: number; vc: number };
   groceryForecast: number;

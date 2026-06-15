@@ -48,7 +48,7 @@ export const GET = withApiAuth(async (req) => {
   monthStart.setHours(0, 0, 0, 0);
 
   const services = await prisma.service.findMany({
-    where: { active: true },
+    where: { status: "active" },
     select: {
       id: true,
       code: true,
