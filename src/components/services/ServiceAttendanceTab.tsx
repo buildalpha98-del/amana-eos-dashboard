@@ -86,7 +86,18 @@ function getWeekDates(weekOffset: number): Date[] {
 }
 
 function formatDate(d: Date): string {
-  return d.toISOString().split("T")[0];
+  // 2026-06-15: use *local* calendar components, not toISOString. For
+  // an AEST/AEDT user, local-midnight Monday becomes Sunday in UTC,
+  // and toISOString().split("T")[0] returns that Sunday string. We
+  // then PUT that string to /api/attendance which parses it as UTC
+  // midnight — storing Monday's entry against Sunday's date, which
+  // the budget breakdown buckets as the previous ISO week. The
+  // breakdown's "Total Estimated" silently stays at 0 for the week
+  // the coordinator is actually filling in.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function formatDayLabel(d: Date): string {

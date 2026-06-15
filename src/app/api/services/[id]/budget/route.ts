@@ -226,11 +226,8 @@ export const GET = withApiAuth(async (req, session, context) => {
   // viewing in the Daily Operations grid.
   //
   // Client can pass ?asOf=YYYY-MM-DD to focus on a specific week
-  // (e.g. the future week they're forecasting). Without it, defaults
-  // to today's week. Critical fix — Daniel was entering attendance
-  // for "Week Starting 15 June" while today was June 5, and the
-  // breakdown only ever showed today's-week data so future entries
-  // never appeared.
+  // (e.g. a future week they're forecasting, or a past week they're
+  // reviewing). Without it, defaults to today's week.
   const asOfParam = url.searchParams.get("asOf");
   const focusDate = asOfParam ? new Date(asOfParam) : new Date();
   const currentBucketKey = getBucketKey(focusDate, period);
