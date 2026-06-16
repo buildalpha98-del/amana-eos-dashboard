@@ -67,7 +67,11 @@ export const GET = withApiAuth(async (_req, _session, context) => {
         isPrimary: true,
         isActive: u.active,
         membership: {
-          id: null as string | null,
+          // Synthetic id for primary rows so the client can route a
+          // remove call to the [membershipId] handler. The handler
+          // detects the prefix and clears User.serviceId rather than
+          // deleting a UserServiceMembership row.
+          id: `primary:${u.id}` as string | null,
           roleAtService: d.roleAtService,
           accessLevel: d.accessLevel,
           startDate: d.startDate,

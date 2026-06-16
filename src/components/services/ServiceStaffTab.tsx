@@ -136,7 +136,17 @@ export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
                   key={m.userId}
                   member={m}
                   canMutate={canMutate}
-                  onEdit={() => setEditing(m)}
+                  isOwner={role === "owner"}
+                  onEdit={() => {
+                    // Primary rows have no UserServiceMembership to
+                    // edit; send the owner to the staff profile where
+                    // role and primary-service assignment live.
+                    if (m.isPrimary) {
+                      window.location.assign(`/staff/${m.userId}`);
+                      return;
+                    }
+                    setEditing(m);
+                  }}
                   onRemove={() => setRemoving(m)}
                 />
               ))}
@@ -149,7 +159,14 @@ export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
                 key={m.userId}
                 member={m}
                 canMutate={canMutate}
-                onEdit={() => setEditing(m)}
+                isOwner={role === "owner"}
+                onEdit={() => {
+                  if (m.isPrimary) {
+                    window.location.assign(`/staff/${m.userId}`);
+                    return;
+                  }
+                  setEditing(m);
+                }}
                 onRemove={() => setRemoving(m)}
               />
             ))}
@@ -164,7 +181,7 @@ export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
           onClose={() => setAddOpen(false)}
         />
       ) : null}
-      {editing && editing.membership.id ? (
+      {editing && editing.membership.id && !editing.isPrimary ? (
         <EditServiceStaffDialog
           serviceId={serviceId}
           member={editing}
@@ -199,15 +216,20 @@ export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
 function StaffTableRow({
   member,
   canMutate,
+  isOwner,
   onEdit,
   onRemove,
 }: {
   member: ServiceStaffMember;
   canMutate: boolean;
+  isOwner: boolean;
   onEdit: () => void;
   onRemove: () => void;
 }) {
-  const canEditRow = canMutate && !member.isPrimary;
+  // Owners can act on primary rows too (Edit deep-links to the staff
+  // profile, Remove clears User.serviceId). Other admins still see
+  // the dash so they don't accidentally sever a primary link.
+  const canEditRow = canMutate && (!member.isPrimary || isOwner);
   return (
     <tr className="border-t border-[color:var(--color-border)]">
       <td className="px-4 py-3">
@@ -268,15 +290,20 @@ function StaffTableRow({
 function StaffMobileCard({
   member,
   canMutate,
+  isOwner,
   onEdit,
   onRemove,
 }: {
   member: ServiceStaffMember;
   canMutate: boolean;
+  isOwner: boolean;
   onEdit: () => void;
   onRemove: () => void;
 }) {
-  const canEditRow = canMutate && !member.isPrimary;
+  // Owners can act on primary rows too (Edit deep-links to the staff
+  // profile, Remove clears User.serviceId). Other admins still see
+  // the dash so they don't accidentally sever a primary link.
+  const canEditRow = canMutate && (!member.isPrimary || isOwner);
   return (
     <li className="p-3 flex items-start gap-3">
       <StaffAvatar
