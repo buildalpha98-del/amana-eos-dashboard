@@ -56,6 +56,13 @@ export const PATCH = withApiAuth(
 );
 
 // DELETE /api/services/[id]/staff/[membershipId]
+//
+// Two flavours:
+//   1. Real membership id → soft-deactivates the UserServiceMembership row.
+//   2. Synthetic "primary:<userId>" id → clears User.serviceId, so the
+//      user is no longer primary at this service. Owner-only because
+//      severing a primary link can leave the user without a home service
+//      and shouldn't be a one-click admin operation.
 export const DELETE = withApiAuth(
   async (_req, session, context) => {
     const params = await context!.params!;
@@ -65,6 +72,27 @@ export const DELETE = withApiAuth(
 
     if (!canMutate(role, session.user.serviceId, serviceId)) {
       throw ApiError.forbidden("You cannot manage staff at this service");
+    }
+
+    if (membershipId.startsWith("primary:")) {
+      if (role !== "owner") {
+        throw ApiError.forbidden(
+          "Only the owner can remove a primary staff member from a service.",
+        );
+      }
+      const userId = membershipId.slice("primary:".length);
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, serviceId: true },
+      });
+      if (!user || user.serviceId !== serviceId) {
+        throw ApiError.notFound("Primary user not found at this service");
+      }
+      await prisma.user.update({
+        where: { id: userId },
+        data: { serviceId: null },
+      });
+      return NextResponse.json({ ok: true, kind: "primary-cleared" });
     }
 
     const existing = await prisma.userServiceMembership.findUnique({
