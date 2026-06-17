@@ -46,6 +46,13 @@ const ALLOWED_CONTENT_TYPES = [
   // drop one .zip of policies instead of 30 separate files.
   "application/zip",
   "application/x-zip-compressed",
+  "multipart/x-zip",
+  // Catch-all for browsers that don't sniff a content-type from the
+  // file extension (some macOS Chrome builds tag .zip as
+  // octet-stream). The actual file type is re-verified by the
+  // extractor + chunker downstream, so accepting octet-stream here
+  // doesn't bypass safety.
+  "application/octet-stream",
 ];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — handles even big handbooks
 
