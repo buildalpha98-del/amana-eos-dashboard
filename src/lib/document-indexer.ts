@@ -145,10 +145,18 @@ export async function extractText(
     // wraps pdfjs-dist which requires a worker file at runtime
     // (`pdf.worker.mjs`) that isn't bundled in Vercel's serverless
     // output. v1 is a flat, worker-free library that runs cleanly in
-    // Node. Different API too: default function, returns { text }.
-    const pdfParse = (await import("pdf-parse")).default as (
-      data: Buffer,
-    ) => Promise<{ text: string }>;
+    // Node.
+    //
+    // Import from the deep path, NOT the package root: pdf-parse v1's
+    // index.js runs a debug test that tries to read
+    // `./test/data/05-versions-space.pdf` at module init — in a
+    // bundled environment that file isn't present and the require
+    // throws ENOENT before we get to call anything.
+    const pdfParseMod = (await import("pdf-parse/lib/pdf-parse.js")) as
+      | { default: (data: Buffer) => Promise<{ text: string }> }
+      | ((data: Buffer) => Promise<{ text: string }>);
+    const pdfParse =
+      typeof pdfParseMod === "function" ? pdfParseMod : pdfParseMod.default;
     const result = await pdfParse(buffer);
     return result.text;
   }
