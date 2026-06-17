@@ -58,13 +58,14 @@ export function FloatingChatWidget() {
 
   return (
     <>
-      {/* Trigger button — bottom-right pill */}
+      {/* Trigger button — bottom-LEFT pill (was bottom-right but
+          conflicted with the Send Feedback button anchored there). */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open AI assistant"
-          className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors"
+          className="fixed bottom-4 left-4 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors"
         >
           <Bot className="w-5 h-5" />
           <span className="text-sm font-medium hidden sm:inline">
@@ -73,15 +74,15 @@ export function FloatingChatWidget() {
         </button>
       )}
 
-      {/* Panel — bottom-right corner, full-screen on mobile */}
+      {/* Panel — bottom-LEFT corner, full-screen on mobile */}
       {open && (
         <div
           className={cn(
             "fixed z-50 bg-card border border-border shadow-2xl flex flex-col",
             // Mobile: full-screen sheet
             "inset-0 sm:inset-auto",
-            // Desktop: bottom-right anchored panel
-            "sm:bottom-4 sm:right-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
+            // Desktop: bottom-left anchored panel
+            "sm:bottom-4 sm:left-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
           )}
           role="dialog"
           aria-label="AI assistant"
