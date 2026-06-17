@@ -292,11 +292,15 @@ export async function indexDocument(documentId: string): Promise<void> {
     const chunks = chunkText(text);
 
     if (chunks.length === 0) {
+      // 2026-06-17: keep indexed=false here. Previously we set
+      // indexed=true which made the Re-index endpoint skip these
+      // rows forever — the file would silently sit with zero chunks
+      // and the bot couldn't find anything from it.
       await prisma.document.update({
         where: { id: documentId },
         data: {
-          indexed: true,
-          indexedAt: new Date(),
+          indexed: false,
+          indexedAt: null,
           indexError: "No text content extracted",
         },
       });

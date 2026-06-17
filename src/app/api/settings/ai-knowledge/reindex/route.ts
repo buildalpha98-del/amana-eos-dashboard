@@ -22,12 +22,22 @@ export const maxDuration = 300;
 
 export const POST = withApiAuth(
   async () => {
+    // 2026-06-17: pick up rows with indexError set too, not just
+    // indexed=false. A failed extraction would otherwise sit there
+    // forever even after the underlying issue is fixed.
     const stuck = await prisma.document.findMany({
       where: {
-        indexed: false,
         OR: [
           { fileUrl: { contains: "/ai-knowledge/" } },
           { fileUrl: "internal://knowledge" },
+        ],
+        AND: [
+          {
+            OR: [
+              { indexed: false },
+              { indexError: { not: null } },
+            ],
+          },
         ],
       },
       select: { id: true, title: true, fileName: true },
