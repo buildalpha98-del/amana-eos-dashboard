@@ -292,6 +292,42 @@ export default function AiKnowledgePage() {
       toast({ variant: "destructive", description: err.message }),
   });
 
+  // Backfill missing Document rows from Blob storage. Use after a
+  // bulk upload where the webhook may have dropped — walks the
+  // ai-knowledge/ prefix in Blob and creates Document rows for any
+  // orphaned files, then indexes them.
+  const backfillMut = useMutation({
+    mutationFn: () =>
+      mutateApi<{
+        totalInStorage: number;
+        alreadyRegistered: number;
+        newlyCreated: number;
+        newlyIndexed: number;
+        failed: number;
+        failures: { fileName: string; error: string }[];
+      }>("/api/settings/ai-knowledge/backfill", { method: "POST" }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
+      if (data.newlyCreated === 0 && data.totalInStorage === 0) {
+        toast({ description: "No files found in storage to recover." });
+        return;
+      }
+      if (data.newlyCreated === 0) {
+        toast({ description: `Nothing new — all ${data.totalInStorage} storage files are already in the library.` });
+        return;
+      }
+      const msg = `Recovered ${data.newlyCreated} file${data.newlyCreated === 1 ? "" : "s"} from storage (${data.newlyIndexed} indexed${data.failed ? `, ${data.failed} failed` : ""}).`;
+      toast({
+        description: data.failed
+          ? `${msg} First error: ${data.failures[0]?.error?.slice(0, 120) ?? "unknown"}`
+          : msg,
+        variant: data.failed ? "destructive" : undefined,
+      });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
   // 2026-06-17: auto-trigger reindex once per page load if any entries
   // are unindexed. The Vercel Blob webhook that runs indexDocument on
   // first upload can drop work under load (large zip fan-outs, cold
@@ -430,6 +466,20 @@ export default function AiKnowledgePage() {
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => backfillMut.mutate()}
+          disabled={backfillMut.isPending}
+          title="Scan Vercel Blob storage and recover any files that were uploaded but never registered in the dashboard. Safe to click any time."
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+        >
+          {backfillMut.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Upload className="w-4 h-4 text-blue-500" />
+          )}
+          {backfillMut.isPending ? "Recovering…" : "Recover from storage"}
+        </button>
         <button
           type="button"
           onClick={() => reindexMut.mutate()}
