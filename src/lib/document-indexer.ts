@@ -20,6 +20,38 @@
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
+// ─── pdfjs-dist Node polyfills ────────────────────────────────
+//
+// pdfjs-dist (which pdf-parse wraps) sniffs for browser globals at
+// import time and throws "DOMMatrix is not defined" in Vercel's
+// serverless Node runtime. We only need the text layer, not real
+// canvas rendering, so empty-class stubs are enough to get past the
+// sniff. Runs once per worker — guarded by undefined check.
+let pdfPolyfillApplied = false;
+function polyfillPdfjsGlobals(): void {
+  if (pdfPolyfillApplied) return;
+  pdfPolyfillApplied = true;
+  const g = globalThis as Record<string, unknown>;
+  if (typeof g.DOMMatrix === "undefined") {
+    g.DOMMatrix = class {
+      constructor(_init?: unknown) {}
+    };
+  }
+  if (typeof g.Path2D === "undefined") {
+    g.Path2D = class {
+      constructor(_init?: unknown) {}
+    };
+  }
+  if (typeof g.ImageData === "undefined") {
+    g.ImageData = class {
+      width = 0;
+      height = 0;
+      data: Uint8ClampedArray = new Uint8ClampedArray();
+      constructor(_w?: unknown, _h?: unknown) {}
+    };
+  }
+}
+
 // ─── Types ────────────────────────────────────────────────────
 
 export interface DocumentChunkData {
@@ -109,8 +141,14 @@ export async function extractText(
       );
     }
     const buffer = Buffer.from(await res.arrayBuffer());
+    // 2026-06-17: pdf-parse v2 wraps pdfjs-dist which expects the
+    // browser DOMMatrix / Path2D / ImageData globals at import time.
+    // In Vercel's serverless Node runtime those are undefined and
+    // pdfjs throws "DOMMatrix is not defined" before we even get to
+    // call getText(). A no-op stub satisfies the sniff — we don't
+    // need real matrix math because we only want the text layer.
+    polyfillPdfjsGlobals();
     const pdfModule = await import("pdf-parse");
-    // pdf-parse v2 exports PDFParse class; use it to extract text
     const pdf = new pdfModule.PDFParse({ data: new Uint8Array(buffer) });
     const result = await pdf.getText();
     await pdf.destroy();
