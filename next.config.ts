@@ -34,7 +34,11 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.vercel-storage.com",
-      "connect-src 'self' https://*.vercel-analytics.com https://*.sentry.io https://*.upstash.io wss://ws-us3-e.pusher.com",
+      // 2026-06-15: added vercel.com + blob.vercel-storage.com so the
+      // @vercel/blob client can call its token-mint endpoint and upload
+      // file bytes directly to Blob storage. AI Knowledge bulk-upload
+      // was hanging at 0% because CSP blocked the connect.
+      "connect-src 'self' https://vercel.com https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com https://*.vercel-storage.com https://*.vercel-analytics.com https://*.sentry.io https://*.upstash.io wss://ws-us3-e.pusher.com",
       // frame-ancestors 'self' (was 'none'): pairs with the
       // X-Frame-Options change above. Allows /my-portal and /contracts
       // to iframe /api/my-portal/payslips/.../download and similar
