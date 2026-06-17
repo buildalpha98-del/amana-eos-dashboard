@@ -33,6 +33,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { cn } from "@/lib/utils";
 
 interface KnowledgeEntrySummary {
   id: string;
