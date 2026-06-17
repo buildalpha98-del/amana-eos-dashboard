@@ -22,6 +22,7 @@ import { useSession } from "next-auth/react";
 import { Bot, Send, X, Loader2, Square, Trash2, Maximize2 } from "lucide-react";
 import Link from "next/link";
 import { useAssistant, type ChatMessage } from "@/hooks/useAssistant";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import { cn } from "@/lib/utils";
 
 const HIDE_ON_PATHS = ["/assistant", "/login"];
@@ -29,6 +30,7 @@ const HIDE_ON_PATHS = ["/assistant", "/login"];
 export function FloatingChatWidget() {
   const pathname = usePathname();
   const { status } = useSession();
+  const { collapsed } = useSidebar();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -58,14 +60,23 @@ export function FloatingChatWidget() {
 
   return (
     <>
-      {/* Trigger button — bottom-LEFT pill (was bottom-right but
-          conflicted with the Send Feedback button anchored there). */}
+      {/* Trigger button — anchored bottom-LEFT but offset past the
+          fixed sidebar so it isn't hidden behind it. Sidebar is
+          w-64 expanded / w-16 collapsed on desktop, hidden on
+          mobile — match each so the pill stays visible on every
+          page. */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open AI assistant"
-          className="fixed bottom-4 left-4 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors"
+          className={cn(
+            "fixed bottom-4 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors",
+            // Mobile: sidebar hidden → flush left
+            "left-4",
+            // Desktop: clear of the sidebar
+            collapsed ? "md:left-20" : "md:left-72",
+          )}
         >
           <Bot className="w-5 h-5" />
           <span className="text-sm font-medium hidden sm:inline">
@@ -74,15 +85,17 @@ export function FloatingChatWidget() {
         </button>
       )}
 
-      {/* Panel — bottom-LEFT corner, full-screen on mobile */}
+      {/* Panel — bottom-LEFT corner, full-screen on mobile, offset
+          past the sidebar on desktop. */}
       {open && (
         <div
           className={cn(
             "fixed z-50 bg-card border border-border shadow-2xl flex flex-col",
             // Mobile: full-screen sheet
             "inset-0 sm:inset-auto",
-            // Desktop: bottom-left anchored panel
-            "sm:bottom-4 sm:left-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
+            // Desktop: bottom-left anchored panel, offset past sidebar
+            "sm:bottom-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
+            collapsed ? "sm:left-20" : "sm:left-72",
           )}
           role="dialog"
           aria-label="AI assistant"
