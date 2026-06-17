@@ -153,6 +153,11 @@ export default function AiKnowledgePage() {
       handleUploadUrl: "/api/settings/ai-knowledge/upload",
       contentType,
       clientPayload: JSON.stringify({ title }),
+      // 2026-06-17: ensure every upload lands at a unique blob URL.
+      // Without this, re-uploading a file with the same name (or
+      // dropping a zip that contains a filename already in another
+      // zip) errors with "this blob already exists".
+      addRandomSuffix: true,
     });
     return { url: blob.url, title };
   };
