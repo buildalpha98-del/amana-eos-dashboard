@@ -240,6 +240,36 @@ export default function AiKnowledgePage() {
       toast({ variant: "destructive", description: err.message }),
   });
 
+  // Retries indexing for every file that's still `indexed=false`.
+  // Useful when a bulk zip upload partially completes and a handful
+  // of rows are stuck without an Indexed badge.
+  const reindexMut = useMutation({
+    mutationFn: () =>
+      mutateApi<{
+        checked: number;
+        done: number;
+        failed: number;
+        failures: { title: string; error: string }[];
+      }>("/api/settings/ai-knowledge/reindex", { method: "POST" }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
+      if (data.checked === 0) {
+        toast({ description: "Nothing to re-index — every file is already indexed." });
+        return;
+      }
+      if (data.failed === 0) {
+        toast({ description: `Re-indexed ${data.done} of ${data.checked} files.` });
+      } else {
+        toast({
+          variant: "destructive",
+          description: `Re-indexed ${data.done}/${data.checked}. ${data.failed} failed — first: ${data.failures[0]?.error?.slice(0, 120) ?? "unknown"}`,
+        });
+      }
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <PageHeader title="AI Knowledge Library">
@@ -321,6 +351,20 @@ export default function AiKnowledgePage() {
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => reindexMut.mutate()}
+          disabled={reindexMut.isPending}
+          title="Retry indexing for any file that's still showing 'Not indexed'. Safe to click any time — finished files are skipped."
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+        >
+          {reindexMut.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          )}
+          {reindexMut.isPending ? "Re-indexing…" : "Re-index unindexed"}
+        </button>
         <button
           type="button"
           onClick={() => seedMut.mutate()}
