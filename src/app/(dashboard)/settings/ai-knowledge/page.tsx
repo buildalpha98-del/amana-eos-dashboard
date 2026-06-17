@@ -33,6 +33,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { cn } from "@/lib/utils";
 
 interface KnowledgeEntrySummary {
   id: string;
@@ -289,6 +290,45 @@ export default function AiKnowledgePage() {
           immediately — no re-deploy needed.
         </p>
       </div>
+
+      {/* Library size — confirms documents + chunks are actually
+          there. Quick sanity check when the bot says it "can't find"
+          something the user just uploaded. */}
+      {!isLoading && entries.length > 0 && (() => {
+        const indexedCount = entries.filter((e) => e.indexed).length;
+        const totalChunks = entries.reduce((s, e) => s + e._count.chunks, 0);
+        const errored = entries.filter((e) => e.indexError).length;
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-card rounded-lg border border-border p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted">Documents</p>
+              <p className="text-2xl font-bold text-foreground">{entries.length}</p>
+            </div>
+            <div className="bg-card rounded-lg border border-border p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted">Indexed</p>
+              <p className={cn(
+                "text-2xl font-bold",
+                indexedCount === entries.length ? "text-emerald-600" : "text-amber-600",
+              )}>
+                {indexedCount}/{entries.length}
+              </p>
+            </div>
+            <div className="bg-card rounded-lg border border-border p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted">Chunks</p>
+              <p className="text-2xl font-bold text-foreground">{totalChunks}</p>
+            </div>
+            <div className="bg-card rounded-lg border border-border p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted">Errors</p>
+              <p className={cn(
+                "text-2xl font-bold",
+                errored === 0 ? "text-emerald-600" : "text-red-600",
+              )}>
+                {errored}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Drag-and-drop zone — accepts a folder or multi-selection of
           PDFs/DOCXs. Uploads sequentially so we don't hammer the
