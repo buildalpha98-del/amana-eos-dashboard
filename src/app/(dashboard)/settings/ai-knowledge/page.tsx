@@ -154,6 +154,27 @@ export default function AiKnowledgePage() {
       contentType,
       clientPayload: JSON.stringify({ title }),
     });
+
+    // 2026-06-17: don't rely on the onUploadCompleted webhook — it
+    // can drop work silently under bulk fan-out. Ping the register
+    // endpoint directly with the blob URL. It's idempotent so an
+    // eventual webhook arriving later won't double-create.
+    await mutateApi<{
+      id: string;
+      indexed: boolean;
+      indexError: string | null;
+      chunkCount: number;
+    }>("/api/settings/ai-knowledge/register", {
+      method: "POST",
+      body: {
+        blobUrl: blob.url,
+        fileName: file.name,
+        title,
+        mimeType: contentType,
+        fileSize: file.size,
+      },
+    });
+
     return { url: blob.url, title };
   };
 
