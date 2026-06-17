@@ -271,6 +271,24 @@ export default function AiKnowledgePage() {
       toast({ variant: "destructive", description: err.message }),
   });
 
+  // 2026-06-17: auto-trigger reindex once per page load if any entries
+  // are unindexed. The Vercel Blob webhook that runs indexDocument on
+  // first upload can drop work under load (large zip fan-outs, cold
+  // starts). Letting the page heal itself means coordinators don't
+  // need to remember the manual button.
+  const autoReindexedRef = useRef(false);
+  useEffect(() => {
+    if (autoReindexedRef.current) return;
+    if (!entries || entries.length === 0) return;
+    const unindexed = entries.filter((e) => !e.indexed);
+    if (unindexed.length === 0) return;
+    autoReindexedRef.current = true;
+    reindexMut.mutate();
+    // intentionally exclude reindexMut from deps — its identity
+    // changes every render and would cause a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <PageHeader title="AI Knowledge Library">
@@ -510,12 +528,20 @@ export default function AiKnowledgePage() {
                     </span>
                   )}
                   {e.indexError && (
-                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800">
+                    <span
+                      className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800"
+                      title={e.indexError}
+                    >
                       Error
                     </span>
                   )}
                 </div>
-                {e.description && (
+                {e.indexError && (
+                  <p className="text-xs text-red-700 mt-0.5">
+                    {e.indexError}
+                  </p>
+                )}
+                {!e.indexError && e.description && (
                   <p className="text-xs text-muted mt-0.5 line-clamp-2">
                     {e.description}
                   </p>
