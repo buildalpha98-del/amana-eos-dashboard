@@ -292,6 +292,32 @@ export default function AiKnowledgePage() {
       toast({ variant: "destructive", description: err.message }),
   });
 
+  // Collapse duplicate Document rows by filename — keeps the most
+  // recently indexed copy of each, deletes the rest (and their
+  // chunks). Re-uploads + Recover-from-storage runs can leave
+  // duplicates with different blob URLs but identical content.
+  const dedupeMut = useMutation({
+    mutationFn: () =>
+      mutateApi<{
+        scanned: number;
+        duplicateGroups: number;
+        removed: number;
+        kept: { id: string; fileName: string; copiesRemoved: number }[];
+      }>("/api/settings/ai-knowledge/dedupe", { method: "POST" }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["ai-knowledge"] });
+      if (data.removed === 0) {
+        toast({ description: "No duplicates found." });
+        return;
+      }
+      toast({
+        description: `Removed ${data.removed} duplicate file${data.removed === 1 ? "" : "s"} across ${data.duplicateGroups} group${data.duplicateGroups === 1 ? "" : "s"}.`,
+      });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
   // Backfill missing Document rows from Blob storage. Use after a
   // bulk upload where the webhook may have dropped — walks the
   // ai-knowledge/ prefix in Blob and creates Document rows for any
@@ -466,6 +492,20 @@ export default function AiKnowledgePage() {
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => dedupeMut.mutate()}
+          disabled={dedupeMut.isPending}
+          title="Find files with identical names and delete all but the newest indexed copy. Idempotent — safe to click any time."
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-foreground border border-border rounded-md hover:bg-surface disabled:opacity-50"
+        >
+          {dedupeMut.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4 text-rose-500" />
+          )}
+          {dedupeMut.isPending ? "Deduping…" : "Remove duplicates"}
+        </button>
         <button
           type="button"
           onClick={() => backfillMut.mutate()}

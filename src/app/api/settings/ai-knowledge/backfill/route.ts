@@ -91,6 +91,22 @@ export const POST = withApiAuth(
         created += 1;
         try {
           await indexDocument(doc.id);
+        } catch (err) {
+          failures.push({
+            fileName,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          continue;
+        }
+        // 2026-06-17: same fix as the reindex endpoint —
+        // indexDocument catches its own errors and sets indexError
+        // rather than throwing, so re-read the row to get the true
+        // outcome instead of always counting as indexed.
+        const refreshed = await prisma.document.findUnique({
+          where: { id: doc.id },
+          select: { indexed: true, indexError: true },
+        });
+        if (refreshed?.indexed) {
           const firstChunk = await prisma.documentChunk.findFirst({
             where: { documentId: doc.id },
             orderBy: { chunkIndex: "asc" },
@@ -103,12 +119,10 @@ export const POST = withApiAuth(
             });
           }
           indexed += 1;
-        } catch (err) {
-          // Index error doesn't undo creation — the row still exists,
-          // user sees the inline error and can act.
+        } else {
           failures.push({
             fileName,
-            error: err instanceof Error ? err.message : String(err),
+            error: refreshed?.indexError ?? "Unknown indexer failure",
           });
         }
       } catch (err) {

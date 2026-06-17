@@ -52,8 +52,26 @@ export const POST = withApiAuth(
     for (const d of stuck) {
       try {
         await indexDocument(d.id);
-        // Backfill the description preview from the first chunk so
-        // freshly-indexed rows have something to show in the list.
+      } catch (err) {
+        // indexDocument is supposed to catch its own errors and set
+        // indexError, but cover the case where it throws anyway.
+        failed += 1;
+        failures.push({
+          title: d.title,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        continue;
+      }
+      // 2026-06-17: indexDocument catches its own failures and sets
+      // indexError instead of throwing. Re-read the row after the
+      // call so we report the true outcome — earlier the loop just
+      // bumped `done` regardless of whether indexing actually worked,
+      // so "30/30" was lying when PDFs hit "DOMMatrix is not defined".
+      const refreshed = await prisma.document.findUnique({
+        where: { id: d.id },
+        select: { indexed: true, indexError: true },
+      });
+      if (refreshed?.indexed) {
         const firstChunk = await prisma.documentChunk.findFirst({
           where: { documentId: d.id },
           orderBy: { chunkIndex: "asc" },
@@ -66,11 +84,11 @@ export const POST = withApiAuth(
           });
         }
         done += 1;
-      } catch (err) {
+      } else {
         failed += 1;
         failures.push({
           title: d.title,
-          error: err instanceof Error ? err.message : String(err),
+          error: refreshed?.indexError ?? "Unknown indexer failure",
         });
       }
     }
