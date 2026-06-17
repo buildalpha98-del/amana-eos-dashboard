@@ -135,12 +135,10 @@ export const POST = withApiAuth(async (req, session) => {
           rounds++;
 
           const response = await ai.messages.create({
-            // 2026-06-17: claude-sonnet-4-20250514 has been deprecated
-            // upstream; the Anthropic API returns 404 "model not found"
-            // for that id. Bumped to claude-sonnet-4-5 (the current
-            // Sonnet 4.5 generation, matches the cost table in
-            // ai-provider/types.ts).
-            model: "claude-sonnet-4-5-20250514",
+            // 2026-06-17: previous ids (claude-sonnet-4-20250514 and
+            // claude-sonnet-4-5-20250514) are both deprecated upstream.
+            // The current Sonnet 4.6 alias accepts a stable short id.
+            model: "claude-sonnet-4-6",
             max_tokens: 1024,
             system: systemPrompt,
             messages: apiMessages,
