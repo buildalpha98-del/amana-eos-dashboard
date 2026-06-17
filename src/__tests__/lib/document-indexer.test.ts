@@ -1,16 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 
-// Mock pdf-parse (v2 class-based API)
-const mockGetText = vi.fn();
-const mockDestroy = vi.fn();
-vi.mock("pdf-parse", () => {
-  class MockPDFParse {
-    getText = mockGetText;
-    destroy = mockDestroy;
-  }
-  return { PDFParse: MockPDFParse };
-});
+// Mock unpdf (replaced pdf-parse 2026-06-17 — pdf-parse v2 needed
+// a worker file that isn't bundled in Vercel serverless).
+const mockExtractText = vi.fn();
+const mockGetDocumentProxy = vi.fn();
+vi.mock("unpdf", () => ({
+  extractText: mockExtractText,
+  getDocumentProxy: mockGetDocumentProxy,
+}));
 
 // Mock mammoth
 vi.mock("mammoth", () => ({
@@ -40,15 +38,16 @@ describe("document-indexer", () => {
   // ─── extractText ────────────────────────────────────────────
 
   describe("extractText", () => {
-    it("extracts text from PDF via pdf-parse", async () => {
+    it("extracts text from PDF via unpdf", async () => {
       const pdfBuffer = Buffer.from("fake-pdf-content");
       mockFetch.mockResolvedValue({
         ok: true,
         arrayBuffer: async () => pdfBuffer.buffer,
       });
 
-      mockGetText.mockResolvedValue({ text: "Hello from PDF" });
-      mockDestroy.mockResolvedValue(undefined);
+      const fakeProxy = { _stub: true };
+      mockGetDocumentProxy.mockResolvedValue(fakeProxy);
+      mockExtractText.mockResolvedValue({ text: "Hello from PDF" });
 
       const { extractText } = await import("@/lib/document-indexer");
       const result = await extractText(
@@ -57,7 +56,10 @@ describe("document-indexer", () => {
       );
 
       expect(result).toBe("Hello from PDF");
-      expect(mockGetText).toHaveBeenCalled();
+      expect(mockGetDocumentProxy).toHaveBeenCalled();
+      expect(mockExtractText).toHaveBeenCalledWith(fakeProxy, {
+        mergePages: true,
+      });
     });
 
     it("extracts text from DOCX via mammoth", async () => {

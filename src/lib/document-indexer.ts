@@ -141,18 +141,16 @@ export async function extractText(
       );
     }
     const buffer = Buffer.from(await res.arrayBuffer());
-    // 2026-06-17: pdf-parse v2 wraps pdfjs-dist which expects the
-    // browser DOMMatrix / Path2D / ImageData globals at import time.
-    // In Vercel's serverless Node runtime those are undefined and
-    // pdfjs throws "DOMMatrix is not defined" before we even get to
-    // call getText(). A no-op stub satisfies the sniff — we don't
-    // need real matrix math because we only want the text layer.
-    polyfillPdfjsGlobals();
-    const pdfModule = await import("pdf-parse");
-    const pdf = new pdfModule.PDFParse({ data: new Uint8Array(buffer) });
-    const result = await pdf.getText();
-    await pdf.destroy();
-    return result.text;
+    // 2026-06-17: switched to unpdf — purpose-built for serverless
+    // Node. No worker file (the issue that took down pdf-parse v2)
+    // and no debug-PDF require at module init (the issue that took
+    // down pdf-parse v1). Maintained, types included.
+    const { extractText: extractPdfText, getDocumentProxy } = await import(
+      "unpdf"
+    );
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const { text } = await extractPdfText(pdf, { mergePages: true });
+    return Array.isArray(text) ? text.join("\n\n") : text;
   }
 
   // DOCX
