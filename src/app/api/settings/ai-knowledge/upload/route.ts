@@ -28,6 +28,7 @@
 
 import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
@@ -40,8 +41,28 @@ const ALLOWED_CONTENT_TYPES = [
   "application/msword",
   "text/plain",
   "text/markdown",
+  // 2026-06-15: zip support — server unzips on receipt and processes
+  // each supported entry (PDF/DOCX/...) individually. Lets coordinators
+  // drop one .zip of policies instead of 30 separate files.
+  "application/zip",
+  "application/x-zip-compressed",
 ];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — handles even big handbooks
+
+// Per-entry mime detection for entries inside a zip — Vercel Blob
+// doesn't sniff content types from filenames the way the browser does.
+const EXT_TO_MIME: Record<string, string> = {
+  pdf: "application/pdf",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  doc: "application/msword",
+  txt: "text/plain",
+  md: "text/markdown",
+};
+
+// 2026-06-15: zip extraction can produce 30+ files. Raise the
+// serverless timeout so the webhook can land them all. Per-entry
+// indexing is fired in parallel but still adds up.
+export const maxDuration = 300;
 
 export const POST = withApiAuth(
   async (req, session) => {
@@ -85,7 +106,9 @@ export const POST = withApiAuth(
         },
         // Phase 2: the post-upload webhook from Vercel Blob. Creates
         // the Document row and runs the existing extraction +
-        // chunking pipeline.
+        // chunking pipeline. When the uploaded blob is a zip, unzip
+        // it on the server and process each supported entry
+        // individually so 30+ policies land from a single drop.
         onUploadCompleted: async ({ blob, tokenPayload }) => {
           try {
             const meta = tokenPayload
@@ -94,6 +117,16 @@ export const POST = withApiAuth(
                   title?: string;
                 })
               : {};
+
+            const isZip =
+              blob.contentType === "application/zip" ||
+              blob.contentType === "application/x-zip-compressed" ||
+              blob.pathname.toLowerCase().endsWith(".zip");
+
+            if (isZip) {
+              await processZipUpload(blob.url, meta.uploadedById);
+              return;
+            }
 
             const fileName = blob.pathname.split("/").pop() ?? blob.pathname;
             const created = await prisma.document.create({
@@ -159,3 +192,97 @@ export const POST = withApiAuth(
   },
   { roles: ["owner", "head_office", "admin"] },
 );
+
+/**
+ * Unzip an uploaded archive and ingest each supported entry. Entries
+ * land in Vercel Blob as individual files, get their own Document
+ * row, and are indexed in parallel (capped concurrency).
+ *
+ * Skips:
+ *  - directories
+ *  - macOS resource fork files (__MACOSX/, ._foo)
+ *  - any extension not in EXT_TO_MIME (so a stray .keynote in a zip
+ *    doesn't end up as opaque junk in the knowledge base)
+ *
+ * Fire-and-forget per-entry: each entry's full lifecycle (upload to
+ * blob → create Document → index) runs in a batched Promise.all so
+ * one slow PDF doesn't block the rest. Errors per entry are caught
+ * + logged so a single bad file doesn't drop the whole batch.
+ */
+async function processZipUpload(
+  zipUrl: string,
+  uploadedById: string | undefined,
+) {
+  const JSZip = (await import("jszip")).default;
+  const buf = await fetch(zipUrl).then((r) => r.arrayBuffer());
+  const zip = await JSZip.loadAsync(buf);
+
+  const entries: { name: string; mime: string; bytes: ArrayBuffer }[] = [];
+  for (const [path, entry] of Object.entries(zip.files)) {
+    if (entry.dir) continue;
+    if (path.startsWith("__MACOSX/")) continue;
+    const base = path.split("/").pop() ?? path;
+    if (base.startsWith("._") || base === ".DS_Store") continue;
+    const ext = base.split(".").pop()?.toLowerCase() ?? "";
+    const mime = EXT_TO_MIME[ext];
+    if (!mime) continue;
+    const bytes = await entry.async("arraybuffer");
+    entries.push({ name: base, mime, bytes });
+  }
+
+  logger.info("AI knowledge: unzipped", {
+    zipUrl,
+    entryCount: entries.length,
+  });
+
+  // Concurrency cap — embedding API + DB writes shouldn't be fanned
+  // out unbounded.
+  const BATCH = 4;
+  for (let i = 0; i < entries.length; i += BATCH) {
+    const slice = entries.slice(i, i + BATCH);
+    await Promise.all(
+      slice.map(async (entry) => {
+        try {
+          const innerBlob = await put(
+            `ai-knowledge/${entry.name}`,
+            entry.bytes,
+            { access: "public", contentType: entry.mime, addRandomSuffix: true },
+          );
+          const created = await prisma.document.create({
+            data: {
+              title: entry.name.replace(/\.[^.]+$/, ""),
+              description: null,
+              category: "other",
+              fileName: entry.name,
+              fileUrl: innerBlob.url,
+              fileSize: entry.bytes.byteLength,
+              mimeType: entry.mime,
+              uploadedById: uploadedById ?? null,
+            },
+          });
+          await indexDocument(created.id);
+          const firstChunk = await prisma.documentChunk.findFirst({
+            where: { documentId: created.id },
+            orderBy: { chunkIndex: "asc" },
+            select: { content: true },
+          });
+          if (firstChunk) {
+            await prisma.document.update({
+              where: { id: created.id },
+              data: { description: firstChunk.content.slice(0, 280) },
+            });
+          }
+          logger.info("AI knowledge: zip entry indexed", {
+            id: created.id,
+            entry: entry.name,
+          });
+        } catch (err) {
+          logger.error("AI knowledge: zip entry failed", {
+            entry: entry.name,
+            err: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }),
+    );
+  }
+}
