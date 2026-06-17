@@ -126,10 +126,31 @@ export default function AiKnowledgePage() {
     // the 50 MB server-side cap configured in onBeforeGenerateToken.
     const { upload } = await import("@vercel/blob/client");
     const title = file.name.replace(/\.[^.]+$/, "");
+
+    // Some browsers (notably macOS Chrome) report an empty / generic
+    // content-type for .zip and other archive formats. The Blob token
+    // is generated against a fixed allow-list, so a mismatched MIME
+    // here would either reject the token or — worse — hang the
+    // upload SDK on a silent retry loop. Infer from extension so we
+    // always send something the allow-list accepts.
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const EXT_MIME: Record<string, string> = {
+      pdf: "application/pdf",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      doc: "application/msword",
+      txt: "text/plain",
+      md: "text/markdown",
+      zip: "application/zip",
+    };
+    const contentType =
+      file.type && file.type !== "application/octet-stream"
+        ? file.type
+        : (ext && EXT_MIME[ext]) || "application/octet-stream";
+
     const blob = await upload(`ai-knowledge/${file.name}`, file, {
       access: "public",
       handleUploadUrl: "/api/settings/ai-knowledge/upload",
-      contentType: file.type || "application/octet-stream",
+      contentType,
       clientPayload: JSON.stringify({ title }),
     });
     return { url: blob.url, title };
