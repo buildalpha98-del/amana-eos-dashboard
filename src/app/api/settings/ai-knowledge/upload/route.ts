@@ -103,6 +103,10 @@ export const POST = withApiAuth(
           return {
             allowedContentTypes: ALLOWED_CONTENT_TYPES,
             maximumSizeInBytes: MAX_FILE_SIZE,
+            // 2026-06-17: every upload gets a unique blob path. Without
+            // this, re-uploading a file with the same name errors
+            // with "this blob already exists".
+            addRandomSuffix: true,
             // Stash the actor + title for the webhook half. JSON-encoded
             // because tokenPayload is `string | undefined`.
             tokenPayload: JSON.stringify({
