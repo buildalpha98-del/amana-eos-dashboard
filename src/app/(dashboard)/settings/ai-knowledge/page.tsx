@@ -263,8 +263,8 @@ export default function AiKnowledgePage() {
           Drag a folder or files here, or click to pick
         </p>
         <p className="text-xs text-muted mt-1">
-          PDF, DOCX, DOC, TXT, MD · up to 50 MB each · multiple files
-          upload sequentially in the background
+          PDF, DOCX, DOC, TXT, MD, ZIP · up to 50 MB each · drop a zip
+          and we unpack + index every supported file inside
         </p>
       </div>
 
@@ -321,7 +321,7 @@ export default function AiKnowledgePage() {
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+          accept=".pdf,.docx,.doc,.txt,.md,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,application/zip,application/x-zip-compressed"
           className="hidden"
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []);
