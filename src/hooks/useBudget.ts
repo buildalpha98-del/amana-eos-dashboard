@@ -41,6 +41,10 @@ export interface CurrentPeriodSummary {
   asc: { attended: number; rate: number; cost: number };
   vc: { attended: number; rate: number; cost: number };
   groceryTotal: number;
+  /** Actual grocery receipts logged for the selected week. */
+  groceryActualSpend: number;
+  /** groceryTotal − groceryActualSpend, floored at 0. */
+  groceryRemaining: number;
   equipmentTotal: number;
   combinedTotal: number;
 }

@@ -232,6 +232,31 @@ export const GET = withApiAuth(async (req, session, context) => {
   const focusDate = asOfParam ? new Date(asOfParam) : new Date();
   const currentBucketKey = getBucketKey(focusDate, period);
   const currentBucket = periods.find((p) => p.period === currentBucketKey);
+
+  // 2026-06-17: also surface the ACTUAL grocery purchases for the
+  // selected week (BudgetItem.category='groceries'). The Grocery
+  // Budget card uses this to show "X remaining of Y" — staff log
+  // a receipt against the grocery category and the card reflects
+  // how much budget they have left for the week.
+  const focusDayParts = getSydneyParts(focusDate);
+  const weekStartUtc = new Date(
+    Date.UTC(focusDayParts.year, focusDayParts.month - 1, focusDayParts.day),
+  );
+  const dow = weekStartUtc.getUTCDay();
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+  weekStartUtc.setUTCDate(weekStartUtc.getUTCDate() + mondayOffset);
+  const weekEndUtc = new Date(weekStartUtc);
+  weekEndUtc.setUTCDate(weekStartUtc.getUTCDate() + 7);
+  const groceryActualResult = await prisma.budgetItem.aggregate({
+    where: {
+      serviceId: id,
+      category: "groceries",
+      date: { gte: weekStartUtc, lt: weekEndUtc },
+    },
+    _sum: { amount: true },
+  });
+  const groceryActualSpend = groceryActualResult._sum.amount || 0;
+
   const currentPeriod = currentBucket
     ? {
         period: currentBucket.period,
@@ -251,6 +276,11 @@ export const GET = withApiAuth(async (req, session, context) => {
           cost: currentBucket.vcAttendance * service.vcGroceryRate,
         },
         groceryTotal: currentBucket.groceryCost,
+        groceryActualSpend,
+        groceryRemaining: Math.max(
+          0,
+          currentBucket.groceryCost - groceryActualSpend,
+        ),
         equipmentTotal: currentBucket.equipmentCost,
         combinedTotal: currentBucket.total,
       }
@@ -260,6 +290,8 @@ export const GET = withApiAuth(async (req, session, context) => {
         asc: { attended: 0, rate: service.ascGroceryRate, cost: 0 },
         vc: { attended: 0, rate: service.vcGroceryRate, cost: 0 },
         groceryTotal: 0,
+        groceryActualSpend,
+        groceryRemaining: 0,
         equipmentTotal: 0,
         combinedTotal: 0,
       };
