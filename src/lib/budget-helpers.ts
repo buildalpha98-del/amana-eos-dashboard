@@ -75,24 +75,38 @@ export async function getMonthlyBudget(serviceId: string): Promise<{
     { minWeeklyChildren: 0, monthlyBudget: 150 },
   ];
 
-  // Calculate average weekly bookings over last 4 weeks. Must sum
-  // *both* enrolled (permanent) and attended (casual) — the tier rule
-  // is "combined weekly attendances", and only summing attended would
-  // miss every permanent booking (a service with 100 permanent kids
-  // and zero casuals would score 0 and fall to the base tier).
-  const fourWeeksAgo = new Date(Date.now() - 28 * 86400000);
+  // 2026-06-17: tier is now driven by the CURRENT WEEK's combined
+  // bookings, not a 4-week average. Daniel saw AIA Coburg sitting at
+  // the $300 tier despite only 57 weekly attendances because the
+  // average had history from busier weeks. Current-week is also what
+  // staff naturally compare against ("we have 57 kids this week →
+  // shouldn't that be the $150 tier?").
+  //
+  // Recomputes automatically each Monday — the date window slides
+  // forward when the calendar week rolls over, so the next query
+  // after midnight Monday picks up the new week's data.
+  const now = new Date();
+  const dow = now.getDay();
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() + mondayOffset);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+
   const attendanceResult = await prisma.dailyAttendance.aggregate({
     where: {
       serviceId,
-      date: { gte: fourWeeksAgo },
+      date: { gte: weekStart, lt: weekEnd },
     },
     _sum: { enrolled: true, attended: true },
   });
 
-  const totalBookings =
+  // enrolled = permanent bookings, attended = casual bookings — sum
+  // both because the tier rule is "combined weekly attendances".
+  const avgWeeklyAttendance =
     (attendanceResult._sum.enrolled || 0) +
     (attendanceResult._sum.attended || 0);
-  const avgWeeklyAttendance = totalBookings / 4;
 
   // Match tier (sorted descending by minWeeklyChildren)
   const sortedTiers = [...tiers].sort((a, b) => b.minWeeklyChildren - a.minWeeklyChildren);
