@@ -72,6 +72,7 @@ export interface SearchChunkRow {
   documentTitle: string;
   documentCategory: string;
   fileName: string;
+  fileUrl: string;
 }
 
 export interface SearchResult {
@@ -79,6 +80,7 @@ export interface SearchResult {
   documentTitle: string;
   documentCategory: string;
   fileName: string;
+  fileUrl: string;
   chunks: {
     id: string;
     chunkIndex: number;
@@ -501,7 +503,8 @@ export async function searchChunks(
       ts_rank(dc."searchVector", plainto_tsquery('english', $1)) AS rank,
       d.title AS "documentTitle",
       d.category AS "documentCategory",
-      d."fileName"
+      d."fileName",
+      d."fileUrl"
     FROM "DocumentChunk" dc
     JOIN "Document" d ON d.id = dc."documentId"
     WHERE dc."searchVector" @@ plainto_tsquery('english', $1)
@@ -532,7 +535,8 @@ export async function searchChunks(
         ts_rank(dc."searchVector", websearch_to_tsquery('english', $1)) AS rank,
         d.title AS "documentTitle",
         d.category AS "documentCategory",
-        d."fileName"
+        d."fileName",
+        d."fileUrl"
       FROM "DocumentChunk" dc
       JOIN "Document" d ON d.id = dc."documentId"
       WHERE dc."searchVector" @@ websearch_to_tsquery('english', $1)
@@ -558,6 +562,7 @@ export async function searchChunks(
         documentTitle: row.documentTitle,
         documentCategory: row.documentCategory,
         fileName: row.fileName,
+        fileUrl: row.fileUrl,
         chunks: [],
       };
       grouped.set(row.documentId, group);
@@ -587,15 +592,18 @@ export function formatChunksForPrompt(results: SearchResult[]): string {
   const parts: string[] = [];
 
   for (const result of results) {
-    // Emit each document's id alongside the title so the model can
-    // build a markdown deep-link in its answer. Staff click "View
-    // source" → opens /documents/<id> directly.
+    // Emit OpenUrl pointing DIRECTLY at the file in Vercel Blob
+    // storage (https URL). Clicking opens the PDF/DOCX inline in the
+    // browser — no app route needed. Skip the URL line for pasted-
+    // text entries (sentinel fileUrl = "internal://knowledge") since
+    // those have no openable artifact.
     parts.push(
       `--- ${result.documentTitle} (${result.documentCategory}) ---`,
     );
     parts.push(`Source: ${result.fileName}`);
-    parts.push(`DocumentId: ${result.documentId}`);
-    parts.push(`OpenUrl: /documents/${result.documentId}`);
+    if (result.fileUrl && result.fileUrl.startsWith("http")) {
+      parts.push(`OpenUrl: ${result.fileUrl}`);
+    }
     parts.push("");
 
     for (const chunk of result.chunks) {
