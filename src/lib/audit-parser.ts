@@ -102,6 +102,13 @@ function isSectionHeader(line: string, nextLine: string | undefined): boolean {
   // Strong section indicators
   if (/^(SECTION|AREA|PART|CATEGORY)\s*\d*\s*[-:]/i.test(trimmed)) return true;
   if (/^QA\s*\d/i.test(trimmed)) return true;
+  // 2026-06-17: APP n: pattern used in Privacy / OAIC-aligned audits
+  // ("APP 1: OPEN AND TRANSPARENT MANAGEMENT…"). Without this they
+  // fall through to the ALL-CAPS heuristic which usually catches them
+  // but only when the whole header is upper-case.
+  if (/^APP\s*\d+\s*:/i.test(trimmed)) return true;
+  // Generic "WORD: …" with a short label-style first word.
+  if (/^[A-Z]{2,}(\s+[A-Z]+){0,3}\s*:\s+/.test(trimmed)) return true;
 
   // ALL CAPS line that isn't too short
   if (trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed) && trimmed.length >= 5 && trimmed.length <= 80) {
@@ -152,6 +159,19 @@ function isQuestionLine(line: string): boolean {
   if (
     /^(Is|Are|Does|Do|Has|Have|Can|Will|Should|Ensure|Check|Verify|Confirm|Review|Assess|Inspect|Observe|Monitor|Record|Document|Maintain|Provide|Display|Store|Keep|Follow|Complete|Submit|Update|Report|Investigate|Implement|Address|Identify|Include|Demonstrate)\s/i.test(
       trimmed
+    )
+  ) {
+    return true;
+  }
+
+  // 2026-06-17: assertion-style audit items (WHS / HR audits): not
+  // questions per se, but statements the auditor confirms. Common
+  // subject openers in OSHC audit docs. Length floor keeps section
+  // labels out.
+  if (
+    trimmed.length >= 25 &&
+    /^(The|All|There|Management|Staff|Employees?|Educators?|Workers?|Hazards?|Risks?|Procedures?|Policies|Records?|Equipment|Materials?|Children|Families|Parents|Documentation|Training|Service|Centre|Premises)\s/i.test(
+      trimmed,
     )
   ) {
     return true;
