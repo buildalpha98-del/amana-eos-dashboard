@@ -22,3 +22,21 @@ WHERE migration_name = '20260615130000_attendance_tz_shift_v2';
 -- (matches 0 rows on subsequent runs).
 UPDATE "Service" SET "monthlyPurchaseBudget" = NULL
 WHERE "monthlyPurchaseBudget" IS NOT NULL;
+
+-- 2026-06-17: backfill Document.category for files uploaded before
+-- the auto-categorisation rule was added. Idempotent — only touches
+-- rows currently sitting in "other" so re-runs match 0.
+UPDATE "Document" SET category = 'policy'
+WHERE category = 'other'
+  AND (LOWER(title) ~ '\mpolicy\M' OR LOWER(title) ~ '\mpolicies\M'
+    OR LOWER("fileName") ~ '\mpolicy\M' OR LOWER("fileName") ~ '\mpolicies\M');
+
+UPDATE "Document" SET category = 'procedure'
+WHERE category = 'other'
+  AND (LOWER(title) ~ '\mprocedure\M' OR LOWER(title) ~ '\mprocedures\M'
+    OR LOWER("fileName") ~ '\mprocedure\M' OR LOWER("fileName") ~ '\mprocedures\M');
+
+UPDATE "Document" SET category = 'guide'
+WHERE category = 'other'
+  AND (LOWER(title) ~ '\mguide\M' OR LOWER(title) ~ '\mhandbook\M' OR LOWER(title) ~ '\mmanual\M'
+    OR LOWER("fileName") ~ '\mguide\M' OR LOWER("fileName") ~ '\mhandbook\M' OR LOWER("fileName") ~ '\mmanual\M');
