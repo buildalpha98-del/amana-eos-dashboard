@@ -21,6 +21,9 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bot, Send, X, Loader2, Square, Trash2, Maximize2 } from "lucide-react";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 import { useAssistant, type ChatMessage } from "@/hooks/useAssistant";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import { cn } from "@/lib/utils";
@@ -226,7 +229,32 @@ function Bubble({ message }: { message: ChatMessage }) {
           </span>
         )}
         {message.content && (
-          <div className="whitespace-pre-wrap">{message.content}</div>
+          <div className="prose prose-sm max-w-none prose-p:my-2 prose-a:text-brand prose-a:underline prose-strong:text-foreground prose-headings:text-foreground prose-li:my-0.5">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeSanitize]}
+              components={{
+                // Internal /documents/<id> links stay in the same tab
+                // so they navigate the dashboard; external links open
+                // in a new tab so the chat stays open.
+                a: ({ href, children, ...rest }) => {
+                  const internal = href?.startsWith("/") ?? false;
+                  return (
+                    <a
+                      href={href}
+                      target={internal ? undefined : "_blank"}
+                      rel={internal ? undefined : "noopener noreferrer"}
+                      {...rest}
+                    >
+                      {children}
+                    </a>
+                  );
+                },
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
         )}
       </div>
     </div>

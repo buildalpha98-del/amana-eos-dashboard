@@ -587,10 +587,15 @@ export function formatChunksForPrompt(results: SearchResult[]): string {
   const parts: string[] = [];
 
   for (const result of results) {
+    // Emit each document's id alongside the title so the model can
+    // build a markdown deep-link in its answer. Staff click "View
+    // source" → opens /documents/<id> directly.
     parts.push(
       `--- ${result.documentTitle} (${result.documentCategory}) ---`,
     );
     parts.push(`Source: ${result.fileName}`);
+    parts.push(`DocumentId: ${result.documentId}`);
+    parts.push(`OpenUrl: /documents/${result.documentId}`);
     parts.push("");
 
     for (const chunk of result.chunks) {
