@@ -229,7 +229,7 @@ function Bubble({ message }: { message: ChatMessage }) {
           </span>
         )}
         {message.content && (
-          <div className="prose prose-sm max-w-none prose-p:my-2 prose-a:text-brand prose-a:underline prose-strong:text-foreground prose-headings:text-foreground prose-li:my-0.5">
+          <div className="prose prose-sm max-w-none prose-p:my-2 prose-a:text-blue-600 prose-a:underline prose-a:font-medium hover:prose-a:text-blue-800 prose-strong:text-foreground prose-headings:text-foreground prose-li:my-0.5">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeSanitize]}
