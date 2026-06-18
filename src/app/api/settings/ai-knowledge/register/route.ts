@@ -48,6 +48,12 @@ export const POST = withApiAuth(
     }
     const { blobUrl, fileName, title, mimeType, fileSize } = parsed.data;
 
+    // Auto-categorise from the filename — Daniel's library is full of
+    // "QA2 X Policy / Procedure" + "Y Handbook / Guide" files, so a
+    // simple keyword sniff puts them in the right Documents tab
+    // without a manual edit later.
+    const category = inferDocumentCategory(fileName, title);
+
     // Upsert by fileUrl so the webhook arriving after us is a no-op.
     const existing = await prisma.document.findFirst({
       where: { fileUrl: blobUrl },
@@ -61,7 +67,7 @@ export const POST = withApiAuth(
             data: {
               title,
               description: null,
-              category: "other",
+              category,
               fileName,
               fileUrl: blobUrl,
               fileSize: fileSize ?? 0,
@@ -111,3 +117,20 @@ export const POST = withApiAuth(
   },
   { roles: ["owner", "head_office", "admin"] },
 );
+
+/**
+ * Pick the best Document category for a freshly-uploaded file from
+ * its filename + title. Falls back to "other" when nothing matches.
+ * Order matters: "Policy" wins over generic words like "OSHC".
+ */
+function inferDocumentCategory(
+  fileName: string,
+  title: string,
+): "policy" | "procedure" | "guide" | "compliance" | "other" {
+  const haystack = `${fileName} ${title}`.toLowerCase();
+  if (/\bpolicy\b|\bpolicies\b/.test(haystack)) return "policy";
+  if (/\bprocedure\b|\bprocedures\b/.test(haystack)) return "procedure";
+  if (/\bguide\b|\bhandbook\b|\bmanual\b/.test(haystack)) return "guide";
+  if (/\bcompliance\b|\baudit\b/.test(haystack)) return "compliance";
+  return "other";
+}

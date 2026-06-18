@@ -15,7 +15,8 @@ import {
   DocumentData,
   DocumentFolder,
 } from "@/hooks/useDocuments";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { mutateApi } from "@/lib/fetch-api";
 import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
 import {
   FileText,
@@ -85,6 +86,29 @@ function getDownloadUrl(fileUrl: string): string {
 }
 
 export default function DocumentsPage() {
+  const qc = useQueryClient();
+  const dedupeMut = useMutation({
+    mutationFn: () =>
+      mutateApi<{
+        scanned: number;
+        duplicateGroups: number;
+        removed: number;
+        kept: { id: string; fileName: string; copiesRemoved: number }[];
+      }>("/api/documents/dedupe", { method: "POST" }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["documents"] });
+      if (data.removed === 0) {
+        toast({ description: "No duplicates found." });
+        return;
+      }
+      toast({
+        description: `Removed ${data.removed} duplicate file${data.removed === 1 ? "" : "s"} across ${data.duplicateGroups} group${data.duplicateGroups === 1 ? "" : "s"}. Newest copy of each kept.`,
+      });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedCentre, setSelectedCentre] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -355,6 +379,11 @@ export default function DocumentsPage() {
             { label: "Export", icon: Download, onClick: handleExport },
             { label: "New Folder", icon: FolderPlus, onClick: () => setShowNewFolder(true) },
             { label: "Bulk Upload", icon: Files, onClick: () => setShowBulkUpload(true) },
+            {
+              label: dedupeMut.isPending ? "Deduping…" : "Remove Duplicates",
+              icon: dedupeMut.isPending ? Loader2 : Trash2,
+              onClick: () => dedupeMut.mutate(),
+            },
           ]}
         />
 
