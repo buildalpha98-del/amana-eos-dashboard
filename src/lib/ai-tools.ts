@@ -111,6 +111,24 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
     },
   },
   {
+    name: "fetch_oshc_reference",
+    description:
+      "Fetch the text content of a page from a CURATED set of OSHC / Australian early-childhood regulatory sources when the answer isn't in the Amana knowledge base. Use AFTER search_knowledge_base returns nothing relevant — this is a fallback for industry-wide questions (NQF regulations, NQS standards, ACECQA guidance, Fair Work conditions, child safety law, etc.). " +
+      "Allowed hosts: acecqa.gov.au, nqaits.acecqa.gov.au, education.gov.au, education.nsw.gov.au, education.vic.gov.au, safeworkaustralia.gov.au, fairwork.gov.au, fwc.gov.au, legislation.gov.au, ochre.nsw.gov.au, esafety.gov.au. Any other host will be rejected. " +
+      "Pass a full https:// URL. If you don't know the exact URL, guess the most likely one based on the site's structure — e.g. https://www.acecqa.gov.au/nqf/national-law-regulations for NQF regs.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        url: {
+          type: "string",
+          description:
+            "Full https:// URL on an allowed host. Example: https://www.acecqa.gov.au/nqf/national-quality-standard",
+        },
+      },
+      required: ["url"],
+    },
+  },
+  {
     name: "search_knowledge_base",
     description:
       "Full-text search across the Amana OSHC organisational knowledge base — this is the FIRST tool you should reach for on most staff questions. The base contains: " +
@@ -170,6 +188,8 @@ export async function executeToolCall(
         }
         return formatChunksForPrompt(results);
       }
+      case "fetch_oshc_reference":
+        return await fetchOshcReference(input.url as string);
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
@@ -362,5 +382,124 @@ async function lookupEnquiryPipeline(stage?: string): Promise<string> {
       stage: l.pipelineStage,
       date: l.createdAt.toISOString().split("T")[0],
     })),
+  });
+}
+
+// ── Web fetch (allowlisted OSHC / regulator sources) ──────────
+//
+// The bot can call this when the internal knowledge base doesn't
+// cover a question — e.g. national-law specifics, ACECQA guidance,
+// Fair Work conditions. Only allowlisted hosts are accepted so the
+// tool can't be used to pull in arbitrary web content.
+const ALLOWED_HOSTS = new Set([
+  "acecqa.gov.au",
+  "www.acecqa.gov.au",
+  "nqaits.acecqa.gov.au",
+  "education.gov.au",
+  "www.education.gov.au",
+  "education.nsw.gov.au",
+  "www.education.nsw.gov.au",
+  "education.vic.gov.au",
+  "www.education.vic.gov.au",
+  "safeworkaustralia.gov.au",
+  "www.safeworkaustralia.gov.au",
+  "fairwork.gov.au",
+  "www.fairwork.gov.au",
+  "fwc.gov.au",
+  "www.fwc.gov.au",
+  "legislation.gov.au",
+  "www.legislation.gov.au",
+  "ochre.nsw.gov.au",
+  "www.ochre.nsw.gov.au",
+  "esafety.gov.au",
+  "www.esafety.gov.au",
+]);
+
+const MAX_FETCH_BYTES = 1_500_000; // 1.5 MB
+const MAX_RETURN_CHARS = 8000;
+
+async function fetchOshcReference(rawUrl: string): Promise<string> {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return JSON.stringify({ error: "Invalid URL" });
+  }
+  if (parsed.protocol !== "https:") {
+    return JSON.stringify({ error: "Only https URLs are allowed" });
+  }
+  if (!ALLOWED_HOSTS.has(parsed.hostname.toLowerCase())) {
+    return JSON.stringify({
+      error: `Host '${parsed.hostname}' is not in the allowlist`,
+      allowedHosts: Array.from(ALLOWED_HOSTS).filter((h) => !h.startsWith("www.")),
+    });
+  }
+
+  let res: Response;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    res = await fetch(parsed.toString(), {
+      headers: { "User-Agent": "Amana-OSHC-Assistant/1.0" },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+  } catch (err) {
+    return JSON.stringify({
+      error: "Fetch failed",
+      detail: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  if (!res.ok) {
+    return JSON.stringify({
+      error: `Source returned ${res.status} ${res.statusText}`,
+      url: parsed.toString(),
+    });
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    return JSON.stringify({ error: "Empty response body" });
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    if (value) {
+      total += value.byteLength;
+      if (total > MAX_FETCH_BYTES) {
+        await reader.cancel();
+        break;
+      }
+      chunks.push(value);
+    }
+  }
+  const html = Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
+
+  // Strip script + style blocks, then collapse HTML tags to whitespace.
+  // Crude but adequate for regulator pages — they're mostly text with
+  // headings, lists, and tables. No need for a full DOM parser.
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const truncated = text.length > MAX_RETURN_CHARS;
+  return JSON.stringify({
+    url: parsed.toString(),
+    host: parsed.hostname,
+    contentLength: text.length,
+    truncated,
+    content: truncated ? text.slice(0, MAX_RETURN_CHARS) + "…" : text,
   });
 }

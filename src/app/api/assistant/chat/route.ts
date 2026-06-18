@@ -47,9 +47,17 @@ export const POST = withApiAuth(async (req, session) => {
   // full set.
   const role = session!.user.role;
   const isAdmin = role === "owner" || role === "admin" || role === "head_office";
+  // Non-admin staff get the knowledge base + curated web fetch.
+  // fetch_oshc_reference is read-only public info from regulator
+  // sites so it's safe for educators to trigger when an answer isn't
+  // in the internal library.
   const allowedTools = isAdmin
     ? ASSISTANT_TOOLS
-    : ASSISTANT_TOOLS.filter((t) => t.name === "search_knowledge_base");
+    : ASSISTANT_TOOLS.filter(
+        (t) =>
+          t.name === "search_knowledge_base" ||
+          t.name === "fetch_oshc_reference",
+      );
 
   // Build system prompt with live dashboard context.
   //
@@ -95,8 +103,22 @@ export const POST = withApiAuth(async (req, session) => {
     "    'parent communication', 'family updates', 'OWNA Family App',",
     "    'daily report', 'announcements')",
     "",
-    "Only after 3+ searches return nothing relevant should you tell",
-    "the user the information isn't in the knowledge base.",
+    "Only after 3+ searches return nothing relevant should you fall",
+    "back to fetch_oshc_reference (see below) or tell the user the",
+    "information isn't in the knowledge base.",
+    "",
+    "### Falling back to public regulator sources",
+    "",
+    "If the knowledge base genuinely doesn't cover the question — and",
+    "the topic is industry-wide (NQF regs, NQS standards, ACECQA",
+    "guidance, Fair Work pay/conditions, child safety law, e-safety,",
+    "WHS), call fetch_oshc_reference with a guessed URL on one of the",
+    "allowlisted regulator hosts (ACECQA, NQAITS, education.gov.au,",
+    "Fair Work, Safe Work Australia, etc.). When you cite from a web",
+    "fetch, name the source host explicitly so staff know it's",
+    "external (e.g. *From ACECQA → National Quality Standard:*).",
+    "Prefer the internal library whenever it covers the question —",
+    "external content can change without notice.",
     "",
     "### When you find an answer",
     "",
