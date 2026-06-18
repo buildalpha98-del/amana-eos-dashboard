@@ -167,7 +167,7 @@ export function CentreSpendingBreakdown() {
               <tr className="bg-surface/50 text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
                 <th className="px-6 py-3" rowSpan={2}>Centre</th>
                 <th
-                  colSpan={3}
+                  colSpan={1}
                   className="px-4 py-2 text-center border-b border-border bg-emerald-50/30"
                 >
                   <span className="inline-flex items-center gap-1.5">
@@ -186,9 +186,10 @@ export function CentreSpendingBreakdown() {
                 </th>
               </tr>
               <tr className="bg-surface/50 text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
+                {/* 2026-06-17: dropped Groceries Spent + Variance —
+                    Daniel asked for forecast only; Centre Purchases
+                    section keeps Spent so the duplicate is gone. */}
                 <th className="px-4 py-2 text-right">Forecast</th>
-                <th className="px-4 py-2 text-right">Spent</th>
-                <th className="px-4 py-2 text-right">Variance</th>
                 <th className="px-4 py-2 text-right">Allocation</th>
                 <th className="px-4 py-2 text-right">Spent</th>
                 <th className="px-4 py-2 text-right">Status</th>
@@ -206,12 +207,6 @@ export function CentreSpendingBreakdown() {
                     : monthRatio > 0.8
                       ? "warn"
                       : "ok";
-                const groceryRatio =
-                  r.groceryForecast > 0
-                    ? r.grocerySpend / r.groceryForecast
-                    : 0;
-                const groceryOver = r.grocerySpend > r.groceryForecast && r.groceryForecast > 0;
-
                 return (
                   <tr key={r.service.id} className="hover:bg-surface transition-colors">
                     <td className="px-6 py-3">
@@ -220,30 +215,9 @@ export function CentreSpendingBreakdown() {
                         {r.service.code} · {r.weekBookings} bookings this week
                       </div>
                     </td>
-                    {/* Groceries — forecast */}
+                    {/* Groceries — forecast (only column kept) */}
                     <td className="px-4 py-3 text-right text-muted">
                       {formatCurrency(r.groceryForecast)}
-                    </td>
-                    {/* Groceries — spent */}
-                    <td className="px-4 py-3 text-right font-medium text-foreground">
-                      {formatCurrency(r.grocerySpend)}
-                    </td>
-                    {/* Groceries — variance */}
-                    <td
-                      className={cn(
-                        "px-4 py-3 text-right font-semibold",
-                        r.groceryForecast === 0
-                          ? "text-muted"
-                          : groceryOver
-                            ? "text-red-600"
-                            : groceryRatio > 0.9
-                              ? "text-amber-600"
-                              : "text-emerald-600",
-                      )}
-                    >
-                      {r.groceryForecast === 0
-                        ? "—"
-                        : `${r.groceryVariance >= 0 ? "+" : ""}${formatCurrency(r.groceryVariance)}`}
                     </td>
                     {/* Monthly allocation */}
                     <td className="px-4 py-3 text-right text-muted">
@@ -297,19 +271,6 @@ export function CentreSpendingBreakdown() {
                   <td className="px-6 py-3 text-foreground">Total</td>
                   <td className="px-4 py-3 text-right text-foreground">
                     {formatCurrency(totals.groceryForecast)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-foreground">
-                    {formatCurrency(totals.grocerySpend)}
-                  </td>
-                  <td
-                    className={cn(
-                      "px-4 py-3 text-right",
-                      totals.grocerySpend > totals.groceryForecast
-                        ? "text-red-600"
-                        : "text-emerald-600",
-                    )}
-                  >
-                    {`${totals.grocerySpend - totals.groceryForecast >= 0 ? "+" : ""}${formatCurrency(totals.grocerySpend - totals.groceryForecast)}`}
                   </td>
                   <td className="px-4 py-3 text-right text-foreground">
                     {formatCurrency(totals.monthlyAllocation)}

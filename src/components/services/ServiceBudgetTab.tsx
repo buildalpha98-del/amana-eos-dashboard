@@ -242,14 +242,29 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Card 1: Grocery Budget for the selected week. */}
+          {/* Card 1: Grocery Budget for the selected week. Shows
+              REMAINING — forecast minus actual grocery receipts.
+              2026-06-17: was showing the forecast figure regardless
+              of what coordinators had logged as grocery purchases,
+              so the number never moved when a receipt was added. */}
           <div className="bg-card rounded-xl border border-border p-4">
             <p className="text-xs font-medium text-muted mb-1">Grocery Budget</p>
-            <p className="text-2xl font-bold text-emerald-700">
-              ${summary?.currentPeriod?.groceryTotal?.toFixed(0) || "0"}
+            <p
+              className={cn(
+                "text-2xl font-bold",
+                (summary?.currentPeriod?.groceryActualSpend ?? 0) >
+                  (summary?.currentPeriod?.groceryTotal ?? 0)
+                  ? "text-red-600"
+                  : "text-emerald-700",
+              )}
+            >
+              ${summary?.currentPeriod?.groceryRemaining?.toFixed(0) || "0"}
             </p>
             <p className="text-xs text-muted mt-1">
-              Week of {weekLabel}
+              ${summary?.currentPeriod?.groceryActualSpend?.toFixed(0) || "0"}
+              {" of "}
+              ${summary?.currentPeriod?.groceryTotal?.toFixed(0) || "0"} spent
+              · Week of {weekLabel}
             </p>
           </div>
 
