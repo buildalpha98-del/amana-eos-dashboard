@@ -289,11 +289,16 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
             </p>
           </div>
 
-          {/* Card 3: Total Spend */}
+          {/* Card 3: Total Spend — this week's combined cost. Starts
+              at $0 and grows as attendance + centre purchases land
+              for the selected week. (Was reading the FY-wide
+              combinedTotal under a "Week of …" label, which made the
+              number look stuck at a high value regardless of when
+              you added a purchase.) */}
           <div className="bg-card rounded-xl border border-border p-4">
             <p className="text-xs font-medium text-muted mb-1">Total Spend</p>
             <p className="text-2xl font-bold text-purple-700">
-              ${summary?.combinedTotal?.toFixed(0) || "0"}
+              ${summary?.currentPeriod?.combinedTotal?.toFixed(0) || "0"}
             </p>
             <p className="text-xs text-muted mt-1">
               Week of {weekLabel}
