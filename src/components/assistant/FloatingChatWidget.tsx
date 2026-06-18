@@ -229,27 +229,40 @@ function Bubble({ message }: { message: ChatMessage }) {
           </span>
         )}
         {message.content && (
-          <div className="prose prose-sm max-w-none prose-p:my-2 prose-a:text-blue-600 prose-a:underline prose-a:font-medium hover:prose-a:text-blue-800 prose-strong:text-foreground prose-headings:text-foreground prose-li:my-0.5">
+          // Plain wrapper — @tailwindcss/typography isn't installed
+          // in this project, so prose-* classes were no-ops. Style
+          // markdown elements via explicit component overrides
+          // instead.
+          <div className="text-sm leading-relaxed [&>p]:my-2 [&>ul]:my-2 [&>ol]:my-2 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeSanitize]}
               components={{
-                // Internal /documents/<id> links stay in the same tab
-                // so they navigate the dashboard; external links open
-                // in a new tab so the chat stays open.
-                a: ({ href, children, ...rest }) => {
-                  const internal = href?.startsWith("/") ?? false;
-                  return (
-                    <a
-                      href={href}
-                      target={internal ? undefined : "_blank"}
-                      rel={internal ? undefined : "noopener noreferrer"}
-                      {...rest}
-                    >
-                      {children}
-                    </a>
-                  );
-                },
+                // Links land directly on the file URL in Vercel Blob.
+                // Always open in a new tab so the chat stays open
+                // while the PDF/DOCX shows in the browser viewer.
+                a: ({ href, children, ...rest }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline font-medium hover:text-blue-800"
+                    {...rest}
+                  >
+                    {children}
+                  </a>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-semibold text-foreground">
+                    {children}
+                  </strong>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc pl-5 space-y-0.5">{children}</ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal pl-5 space-y-0.5">{children}</ol>
+                ),
               }}
             >
               {message.content}
