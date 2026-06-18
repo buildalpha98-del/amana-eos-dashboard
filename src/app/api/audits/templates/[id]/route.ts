@@ -205,3 +205,58 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   return NextResponse.json({ ...template, ...(respread ? { respread } : {}) });
 }, { roles: ["owner", "head_office", "admin"] });
+
+/**
+ * DELETE /api/audits/templates/[id] — permanently remove a template
+ *
+ * Hard delete. Cascades to AuditTemplateItem (items), AuditInstance
+ * (per-service runs) and AuditItemResponse rows. Use when an audit
+ * has been superseded by a new version and the old one shouldn't
+ * keep appearing in dashboards or audit history.
+ *
+ * Owner only. Soft archive (PATCH isActive=false) stays as the
+ * gentler option in the UI for "hide from upcoming schedule but
+ * keep completion history" cases.
+ */
+export const DELETE = withApiAuth(
+  async (_req, session, context) => {
+    const { id } = await context!.params!;
+
+    const existing = await prisma.auditTemplate.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { instances: true, items: true } },
+      },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
+
+    // Cascade removes items + instances + responses via the FKs.
+    await prisma.auditTemplate.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: session!.user.id,
+        action: "delete",
+        entityType: "AuditTemplate",
+        entityId: id,
+        details: {
+          name: existing.name,
+          instancesRemoved: existing._count.instances,
+          itemsRemoved: existing._count.items,
+        },
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      name: existing.name,
+      instancesRemoved: existing._count.instances,
+      itemsRemoved: existing._count.items,
+    });
+  },
+  { roles: ["owner"] },
+);

@@ -287,6 +287,36 @@ export function useUpdateTemplate() {
   });
 }
 
+/**
+ * Hard-delete an audit template + every per-service instance + every
+ * response. Owner-only on the server. Use for "this template was
+ * superseded and the old version shouldn't keep appearing".
+ */
+export function useDeleteTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      mutateApi<{
+        ok: true;
+        name: string;
+        instancesRemoved: number;
+        itemsRemoved: number;
+      }>(`/api/audits/templates/${id}`, { method: "DELETE" }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+      toast({
+        description:
+          data.instancesRemoved > 0
+            ? `Deleted "${data.name}" and ${data.instancesRemoved} scheduled/completed instance${data.instancesRemoved === 1 ? "" : "s"}.`
+            : `Deleted "${data.name}".`,
+      });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+}
+
 export interface ApplyTemplateResult {
   created: number;
   skipped: number;

@@ -7,6 +7,7 @@ import {
   useParseAuditDocument,
   useImportAuditItems,
   useBulkParseAudit,
+  useDeleteTemplate,
   useDeleteTemplateItem,
   useUpdateTemplateItem,
   useReorderTemplateItems,
@@ -19,6 +20,8 @@ import {
   type BulkParseResult,
   type CalendarTemplatePreview,
 } from "@/hooks/useAudits";
+import { useSession } from "next-auth/react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -970,6 +973,11 @@ export default function AuditTemplatesPage() {
   const [showCalendarUpload, setShowCalendarUpload] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ created: number; skipped: number } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const { data: session } = useSession();
+  const isOwner = session?.user?.role === "owner";
+  const deleteTemplate = useDeleteTemplate();
 
   const { data: templates = [], isLoading, error, refetch } = useAuditTemplates();
 
@@ -1209,6 +1217,18 @@ export default function AuditTemplatesPage() {
                   >
                     <Upload className="w-4 h-4" />
                   </button>
+                  {isOwner && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget({ id: template.id, name: template.name });
+                      }}
+                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                      title="Delete template (removes items + every per-service instance + history)"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </button>
 
                 {isExpanded && (
@@ -1258,6 +1278,24 @@ export default function AuditTemplatesPage() {
         onClose={() => setApplyTarget(null)}
         template={applyTarget}
       />
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
+        <ConfirmDialog
+          open
+          onOpenChange={(o) => !o && setDeleteTarget(null)}
+          title={`Delete "${deleteTarget.name}"?`}
+          description="This wipes the template, every question, every scheduled and completed instance across every centre, and every staff response. Cannot be undone. If you just want to retire it without losing history, archive instead."
+          confirmLabel="Delete permanently"
+          variant="danger"
+          loading={deleteTemplate.isPending}
+          onConfirm={() => {
+            deleteTemplate.mutate(deleteTarget.id, {
+              onSettled: () => setDeleteTarget(null),
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
