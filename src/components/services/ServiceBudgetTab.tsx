@@ -241,12 +241,10 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Grocery Spend (current period only — was FY-scoped
-              before 2026-06-05, which mismatched the "This week / This
-              month" label). */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Card 1: Grocery Budget for the selected week. */}
           <div className="bg-card rounded-xl border border-border p-4">
-            <p className="text-xs font-medium text-muted mb-1">Grocery Spend</p>
+            <p className="text-xs font-medium text-muted mb-1">Grocery Budget</p>
             <p className="text-2xl font-bold text-emerald-700">
               ${summary?.currentPeriod?.groceryTotal?.toFixed(0) || "0"}
             </p>
@@ -289,23 +287,8 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
             </p>
           </div>
 
-          {/* Card 3: Total Spend — this week's combined cost. Starts
-              at $0 and grows as attendance + centre purchases land
-              for the selected week. (Was reading the FY-wide
-              combinedTotal under a "Week of …" label, which made the
-              number look stuck at a high value regardless of when
-              you added a purchase.) */}
-          <div className="bg-card rounded-xl border border-border p-4">
-            <p className="text-xs font-medium text-muted mb-1">Total Spend</p>
-            <p className="text-2xl font-bold text-purple-700">
-              ${summary?.currentPeriod?.combinedTotal?.toFixed(0) || "0"}
-            </p>
-            <p className="text-xs text-muted mt-1">
-              Week of {weekLabel}
-            </p>
-          </div>
-
-          {/* Card 4: Budget Remaining */}
+          {/* Card 3: Budget Remaining (was Card 4 — Total Spend
+              removed 2026-06-17 per Daniel, too confusing). */}
           <div className="bg-card rounded-xl border border-border p-4">
             <p className="text-xs font-medium text-muted mb-1">Budget Remaining</p>
             <p className={cn(
