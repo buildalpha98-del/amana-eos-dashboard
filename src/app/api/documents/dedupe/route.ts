@@ -11,15 +11,26 @@
  */
 
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
 export const maxDuration = 60;
 
+type DedupeDoc = {
+  id: string;
+  title: string;
+  fileName: string | null;
+  createdAt: Date;
+  indexed: boolean;
+  indexedAt: Date | null;
+  chunks: { content: string }[];
+};
+
 export const POST = withApiAuth(
   async () => {
-    const docs = await prisma.document.findMany({
+    const docs: DedupeDoc[] = await prisma.document.findMany({
       where: { deleted: false },
       select: {
         id: true,
@@ -28,12 +39,29 @@ export const POST = withApiAuth(
         createdAt: true,
         indexed: true,
         indexedAt: true,
+        chunks: {
+          select: { content: true },
+          orderBy: { chunkIndex: "asc" },
+        },
       },
     });
 
-    const groups = new Map<string, typeof docs>();
+    // 2026-06-17: also group by content hash, not just filename.
+    // Daniel uploaded the same policy under different names (macOS
+    // "filename (1).docx" rename pattern after re-uploads) and the
+    // filename-only dedupe missed them. SHA-256 of the concatenated
+    // chunk text catches identical-content-different-name dupes.
+    // Falls back to filename key for docs with no extracted text
+    // (e.g. images, failed extractions) so they still group.
+    const groups = new Map<string, DedupeDoc[]>();
     for (const d of docs) {
-      const key = (d.fileName ?? d.title).toLowerCase();
+      const text = d.chunks
+        .map((c) => c.content)
+        .join("\n")
+        .trim();
+      const key = text
+        ? `content:${createHash("sha256").update(text).digest("hex")}`
+        : `name:${(d.fileName ?? d.title).toLowerCase()}`;
       const list = groups.get(key) ?? [];
       list.push(d);
       groups.set(key, list);

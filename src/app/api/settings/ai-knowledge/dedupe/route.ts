@@ -24,15 +24,26 @@
  */
 
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
 export const maxDuration = 60;
 
+type DedupeDoc = {
+  id: string;
+  title: string;
+  fileName: string | null;
+  indexed: boolean;
+  indexedAt: Date | null;
+  createdAt: Date;
+  chunks: { content: string }[];
+};
+
 export const POST = withApiAuth(
   async () => {
-    const docs = await prisma.document.findMany({
+    const docs: DedupeDoc[] = await prisma.document.findMany({
       where: {
         OR: [
           { fileUrl: { contains: "/ai-knowledge/" } },
@@ -46,16 +57,27 @@ export const POST = withApiAuth(
         indexed: true,
         indexedAt: true,
         createdAt: true,
+        chunks: {
+          select: { content: true },
+          orderBy: { chunkIndex: "asc" },
+        },
       },
     });
 
-    // Group by lower-case filename. Strip the random suffix Vercel
-    // Blob appends so re-uploads of the same logical file collapse
-    // into the same group (filename-EaG1xZ.pdf vs filename-Q3pP9k.pdf
-    // both normalise to filename.pdf).
-    const groups = new Map<string, typeof docs>();
+    // 2026-06-17: dedupe by extracted content (SHA-256 over the
+    // concatenated chunk text), not just filename. Catches renamed
+    // duplicates ("Foo.docx" vs "Foo (1).docx") that the
+    // filename-only key missed. Falls back to filename for docs
+    // with no extracted text so they still group.
+    const groups = new Map<string, DedupeDoc[]>();
     for (const d of docs) {
-      const key = (d.fileName ?? d.title).toLowerCase();
+      const text = d.chunks
+        .map((c) => c.content)
+        .join("\n")
+        .trim();
+      const key = text
+        ? `content:${createHash("sha256").update(text).digest("hex")}`
+        : `name:${(d.fileName ?? d.title).toLowerCase()}`;
       const list = groups.get(key) ?? [];
       list.push(d);
       groups.set(key, list);
