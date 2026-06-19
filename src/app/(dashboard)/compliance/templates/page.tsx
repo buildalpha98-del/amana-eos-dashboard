@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { EditTemplateModal } from "@/components/audits/EditTemplateModal";
 import { ApplyToServicesModal } from "@/components/audits/ApplyToServicesModal";
+import { UploadDocumentAuditModal } from "@/components/audits/UploadDocumentAuditModal";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -971,6 +972,7 @@ export default function AuditTemplatesPage() {
   const [applyTarget, setApplyTarget] = useState<AuditTemplateSummary | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showCalendarUpload, setShowCalendarUpload] = useState(false);
+  const [showDocAuditUpload, setShowDocAuditUpload] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ created: number; skipped: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -1050,6 +1052,14 @@ export default function AuditTemplatesPage() {
           >
             <Calendar className="w-4 h-4" />
             Upload Calendar
+          </button>
+          <button
+            onClick={() => setShowDocAuditUpload(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-brand/5 transition-colors"
+            title="Upload a .docx audit and apply it to all centres. Each centre's coordinator fills it in inline (editor coming in phase 4)."
+          >
+            <FileText className="w-4 h-4" />
+            Upload Document Audit
           </button>
           <button
             onClick={() => setShowBulkUpload(true)}
@@ -1264,6 +1274,14 @@ export default function AuditTemplatesPage() {
       {showCalendarUpload && (
         <CalendarUploadModal onClose={() => setShowCalendarUpload(false)} />
       )}
+
+      {/* Document Audit Upload Modal — uploads a .docx as a doc-mode
+          template (no question parsing). Coordinators edit inline
+          per-instance once the editor lands in phase 4. */}
+      <UploadDocumentAuditModal
+        open={showDocAuditUpload}
+        onClose={() => setShowDocAuditUpload(false)}
+      />
 
       {/* Edit Template Modal */}
       <EditTemplateModal
