@@ -9,7 +9,9 @@ const patchSchema = z.object({
   description: z.string().optional(),
   qualityArea: z.number().optional(),
   nqsReference: z.string().optional(),
-  frequency: z.enum(["monthly", "half_yearly", "yearly"]).optional(),
+  frequency: z
+    .enum(["daily", "weekly", "monthly", "quarterly", "half_yearly", "yearly"])
+    .optional(),
   scheduledMonths: z.array(z.number().int().min(1).max(12)).optional(),
   responseFormat: z.enum(["yes_no", "rating_1_5", "compliant", "reverse_yes_no", "review_date", "inventory"]).optional(),
   estimatedMinutes: z.number().optional(),

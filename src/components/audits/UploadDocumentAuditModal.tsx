@@ -1,15 +1,17 @@
 "use client";
 
 /**
- * Upload a .docx file as a document-mode audit template.
+ * Upload a .docx as a document-mode audit template.
  *
- * Two-step flow matching the AI knowledge / contracts pattern:
+ * Flow:
  *   1. Client uploads bytes to Vercel Blob via @vercel/blob/client.upload()
- *   2. Client POSTs /api/audits/templates with the blob URL + metadata,
- *      which creates the AuditTemplate row with documentMode=true.
+ *   2. Client POSTs /api/audits/templates with the blob URL + metadata
  *
- * No question parsing — coordinators will edit the DOCX inline on each
- * per-service instance once the editor (phase 4) ships.
+ * 2026-06-19 simplified: dropped QA picker + NQS reference (audits
+ * span multiple QAs and we default to QA2 server-side). Cadence
+ * picker now covers daily/weekly/monthly/quarterly/half_yearly/yearly
+ * and the schedule anchors to the current month — so a yearly audit
+ * uploaded in June schedules for June each year, not January.
  */
 
 import { useState } from "react";
@@ -18,11 +20,45 @@ import { X, Loader2, Upload } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 
-const FREQUENCY_TO_DEFAULT_MONTHS: Record<string, number[]> = {
-  monthly: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-  half_yearly: [1, 7],
-  yearly: [1],
-};
+type Frequency =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "half_yearly"
+  | "yearly";
+
+/**
+ * Build the scheduledMonths array for a template, anchored to the
+ * month it's being uploaded in. Daniel's services close over the
+ * Jan/Jul school-holiday windows so the legacy Jan/Jul anchors
+ * created instances during shutdowns — anchor at the upload month
+ * instead.
+ */
+function computeScheduledMonths(freq: Frequency, anchorMonth: number): number[] {
+  const wrap = (m: number) => ((m - 1) % 12) + 1;
+  switch (freq) {
+    case "yearly":
+      return [anchorMonth];
+    case "half_yearly":
+      return [anchorMonth, wrap(anchorMonth + 6)].sort((a, b) => a - b);
+    case "quarterly":
+      return [
+        anchorMonth,
+        wrap(anchorMonth + 3),
+        wrap(anchorMonth + 6),
+        wrap(anchorMonth + 9),
+      ].sort((a, b) => a - b);
+    // For monthly + daily + weekly, every month is scheduled — the
+    // sub-month cadence is handled by the scheduler cron, not by
+    // picking specific months here.
+    case "monthly":
+    case "daily":
+    case "weekly":
+    default:
+      return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  }
+}
 
 interface Props {
   open: boolean;
@@ -34,17 +70,13 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [qualityArea, setQualityArea] = useState<number>(2);
-  const [nqsReference, setNqsReference] = useState("");
-  const [frequency, setFrequency] = useState<"monthly" | "half_yearly" | "yearly">("yearly");
+  const [frequency, setFrequency] = useState<Frequency>("yearly");
 
   const submit = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("Pick a .docx file first.");
       if (!name.trim()) throw new Error("Give the audit a name.");
-      if (!nqsReference.trim()) throw new Error("NQS reference is required.");
 
-      // 1. Push bytes to Vercel Blob direct from the browser.
       const { upload } = await import("@vercel/blob/client");
       const blob = await upload(`audits/${file.name}`, file, {
         access: "public",
@@ -54,30 +86,29 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
 
-      // 2. Create the template row with sourceFileUrl + documentMode=true.
-      const created = await mutateApi<{ id: string; name: string }>(
+      const anchorMonth = new Date().getMonth() + 1;
+      const scheduledMonths = computeScheduledMonths(frequency, anchorMonth);
+
+      return mutateApi<{ id: string; name: string }>(
         "/api/audits/templates",
         {
           method: "POST",
           body: {
             name: name.trim(),
             description: description.trim() || undefined,
-            qualityArea,
-            nqsReference: nqsReference.trim(),
             frequency,
-            scheduledMonths: FREQUENCY_TO_DEFAULT_MONTHS[frequency],
+            scheduledMonths,
             sourceFileUrl: blob.url,
             documentMode: true,
             sourceFileName: file.name,
           },
         },
       );
-      return created;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["audit-templates"] });
       toast({
-        description: `Audit "${data.name}" added. Click "Apply to services" to schedule it across centres.`,
+        description: `Audit "${data.name}" added. Click "Apply to services" on the row to schedule it across centres.`,
       });
       onClose();
     },
@@ -99,16 +130,21 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
           <h3 className="text-base font-semibold text-foreground">
             Upload Document Audit
           </h3>
-          <button onClick={onClose} className="p-1 rounded-md text-muted hover:text-foreground">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-muted hover:text-foreground"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
+
         <div className="px-6 py-4 space-y-4">
           <div className="rounded-md border border-blue-200 bg-blue-50/40 p-3 text-xs text-blue-900">
-            Document audits: upload a .docx, set the cadence, then apply to every
-            centre. Each centre gets its own scheduled instance — when a
-            coordinator completes one, the inline editor saves their filled-in
-            version per service.
+            Upload a .docx audit + set the cadence. Each centre gets its own
+            scheduled instance — when a coordinator completes one, the inline
+            editor (coming next) saves their filled-in version per service. The
+            schedule anchors to today's month, so a yearly audit uploaded in
+            June runs every June.
           </div>
 
           <div>
@@ -122,7 +158,6 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
                 const f = e.target.files?.[0] ?? null;
                 setFile(f);
                 if (f && !name) {
-                  // Pre-fill name from filename minus extension.
                   setName(f.name.replace(/\.docx?$/i, ""));
                 }
               }}
@@ -136,7 +171,9 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted block mb-1">Name</label>
+            <label className="text-xs font-medium text-muted block mb-1">
+              Name
+            </label>
             <input
               type="text"
               value={name}
@@ -158,58 +195,25 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted block mb-1">
-                Quality Area
-              </label>
-              <select
-                value={qualityArea}
-                onChange={(e) => setQualityArea(Number(e.target.value))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg"
-              >
-                <option value={1}>QA1 — Educational program</option>
-                <option value={2}>QA2 — Health & safety</option>
-                <option value={3}>QA3 — Physical environment</option>
-                <option value={4}>QA4 — Staffing</option>
-                <option value={5}>QA5 — Relationships</option>
-                <option value={6}>QA6 — Partnerships</option>
-                <option value={7}>QA7 — Governance</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted block mb-1">
-                NQS Reference
-              </label>
-              <input
-                type="text"
-                value={nqsReference}
-                onChange={(e) => setNqsReference(e.target.value)}
-                placeholder="e.g. 2.2.1"
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg"
-              />
-            </div>
-          </div>
-
           <div>
             <label className="text-xs font-medium text-muted block mb-1">
               Cadence
             </label>
             <select
               value={frequency}
-              onChange={(e) =>
-                setFrequency(e.target.value as "monthly" | "half_yearly" | "yearly")
-              }
+              onChange={(e) => setFrequency(e.target.value as Frequency)}
               className="w-full px-3 py-2 text-sm border border-border rounded-lg"
             >
-              <option value="monthly">Monthly (every month)</option>
-              <option value="half_yearly">Half-yearly (Jan + Jul)</option>
-              <option value="yearly">Yearly (Jan)</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="half_yearly">Half-yearly</option>
+              <option value="yearly">Yearly</option>
             </select>
             <p className="text-xs text-muted mt-1">
-              Each service gets an instance scheduled on these months. You can fine-
-              tune the schedule after upload via the existing Apply-to-Services
-              modal.
+              Each centre gets an instance scheduled at this cadence starting
+              from the month you upload.
             </p>
           </div>
         </div>
@@ -223,7 +227,7 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
           </button>
           <button
             onClick={() => submit.mutate()}
-            disabled={!file || !name.trim() || !nqsReference.trim() || submit.isPending}
+            disabled={!file || !name.trim() || submit.isPending}
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand/90 disabled:opacity-50"
           >
             {submit.isPending ? (
