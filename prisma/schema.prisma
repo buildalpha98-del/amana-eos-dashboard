@@ -4829,7 +4829,10 @@ model ConversionOpportunity {
 // ============================================================
 
 enum AuditFrequency {
+  daily
+  weekly
   monthly
+  quarterly
   half_yearly
   yearly
 }

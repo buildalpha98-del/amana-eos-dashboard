@@ -7,9 +7,19 @@ import { parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  qualityArea: z.number(),
-  nqsReference: z.string().min(1),
-  frequency: z.enum(["monthly", "half_yearly", "yearly"]),
+  // 2026-06-19: QA + NQS are now optional. Doc-mode audits typically
+  // span multiple QAs (an "annual operations audit") and shouldn't
+  // be forced to pick one. Defaults applied server-side when omitted.
+  qualityArea: z.number().optional(),
+  nqsReference: z.string().optional(),
+  frequency: z.enum([
+    "daily",
+    "weekly",
+    "monthly",
+    "quarterly",
+    "half_yearly",
+    "yearly",
+  ]),
   scheduledMonths: z.array(z.number()),
   responseFormat: z.enum(["yes_no", "rating_1_5", "compliant", "reverse_yes_no", "review_date", "inventory"]).optional(),
   estimatedMinutes: z.number().optional(),
@@ -75,8 +85,11 @@ const body = await parseJsonBody(req);
     data: {
       name,
       description,
-      qualityArea,
-      nqsReference,
+      // Default to QA2 (Health & Safety) when the modal didn't ask —
+      // matches the bulk of OSHC compliance audits. Admins can edit
+      // this later on the template.
+      qualityArea: qualityArea ?? 2,
+      nqsReference: nqsReference ?? "—",
       frequency,
       scheduledMonths,
       responseFormat: responseFormat || "yes_no",
