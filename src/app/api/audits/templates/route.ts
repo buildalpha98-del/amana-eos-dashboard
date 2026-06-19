@@ -13,6 +13,12 @@ const postSchema = z.object({
   scheduledMonths: z.array(z.number()),
   responseFormat: z.enum(["yes_no", "rating_1_5", "compliant", "reverse_yes_no", "review_date", "inventory"]).optional(),
   estimatedMinutes: z.number().optional(),
+  // 2026-06-19: document-mode templates carry the DOCX itself
+  // (Blob URL) instead of structured items. Coordinators edit the
+  // doc per-instance via the inline editor.
+  sourceFileUrl: z.string().url().optional(),
+  documentMode: z.boolean().optional(),
+  sourceFileName: z.string().optional(),
 });
 /**
  * GET /api/audits/templates — list audit templates
@@ -60,6 +66,9 @@ const body = await parseJsonBody(req);
     scheduledMonths,
     responseFormat,
     estimatedMinutes,
+    sourceFileUrl,
+    documentMode,
+    sourceFileName,
   } = parsed.data;
 
   const template = await prisma.auditTemplate.create({
@@ -72,6 +81,9 @@ const body = await parseJsonBody(req);
       scheduledMonths,
       responseFormat: responseFormat || "yes_no",
       estimatedMinutes,
+      sourceFileUrl,
+      documentMode: documentMode ?? false,
+      sourceFileName,
     },
   });
 
