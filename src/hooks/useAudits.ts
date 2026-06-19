@@ -17,6 +17,9 @@ export interface AuditTemplateSummary {
   estimatedMinutes: number | null;
   isActive: boolean;
   sortOrder: number;
+  documentMode?: boolean;
+  sourceFileUrl?: string | null;
+  sourceFileName?: string | null;
   _count: { items: number; instances: number };
 }
 
@@ -43,6 +46,7 @@ export interface AuditInstanceSummary {
     nqsReference: string;
     frequency: string;
     responseFormat: string;
+    documentMode?: boolean;
   };
   service: { id: string; name: string; code: string };
   auditor: { id: string; name: string } | null;

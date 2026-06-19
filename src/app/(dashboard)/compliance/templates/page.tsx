@@ -46,6 +46,7 @@ import {
   SlidersHorizontal,
   CalendarPlus,
   Plus,
+  FileDown,
 } from "lucide-react";
 import { EditTemplateModal } from "@/components/audits/EditTemplateModal";
 import { ApplyToServicesModal } from "@/components/audits/ApplyToServicesModal";
@@ -83,7 +84,10 @@ const formatLabels: Record<string, { label: string; color: string }> = {
 };
 
 const frequencyLabels: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
   monthly: "Monthly",
+  quarterly: "Quarterly",
   half_yearly: "Half-Yearly",
   yearly: "Yearly",
 };
@@ -976,10 +980,30 @@ export default function AuditTemplatesPage() {
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ created: number; skipped: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showWipeAll, setShowWipeAll] = useState(false);
+  const [wipeConfirm, setWipeConfirm] = useState("");
+  const [wiping, setWiping] = useState(false);
 
   const { data: session } = useSession();
   const isOwner = session?.user?.role === "owner";
   const deleteTemplate = useDeleteTemplate();
+
+  const handleWipeAll = async () => {
+    if (wipeConfirm !== "RESET") return;
+    setWiping(true);
+    try {
+      const res = await fetch("/api/audits/templates", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Reset failed");
+      setShowWipeAll(false);
+      setWipeConfirm("");
+      refetch();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Reset failed");
+    } finally {
+      setWiping(false);
+    }
+  };
 
   const { data: templates = [], isLoading, error, refetch } = useAuditTemplates();
 
@@ -1056,7 +1080,7 @@ export default function AuditTemplatesPage() {
           <button
             onClick={() => setShowDocAuditUpload(true)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-brand/5 transition-colors"
-            title="Upload a .docx audit and apply it to all centres. Each centre's coordinator fills it in inline (editor coming in phase 4)."
+            title="Upload a .docx audit and apply it to all centres. Each centre's coordinator fills it in inline — the master template stays untouched."
           >
             <FileText className="w-4 h-4" />
             Upload Document Audit
@@ -1068,6 +1092,19 @@ export default function AuditTemplatesPage() {
             <Package className="w-4 h-4" />
             Bulk Upload
           </button>
+          {isOwner && templates.length > 0 && (
+            <button
+              onClick={() => {
+                setWipeConfirm("");
+                setShowWipeAll(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-700 border border-rose-300 rounded-lg hover:bg-rose-50 transition-colors"
+              title="Wipe every template, every scheduled instance, and every staff response. Use only to start fresh."
+            >
+              <Trash2 className="w-4 h-4" />
+              Reset all
+            </button>
+          )}
         </div>
       </div>
 
@@ -1125,7 +1162,10 @@ export default function AuditTemplatesPage() {
           className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Frequencies</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
           <option value="half_yearly">Half-Yearly</option>
           <option value="yearly">Yearly</option>
         </select>
@@ -1172,6 +1212,14 @@ export default function AuditTemplatesPage() {
                       <p className="text-sm font-semibold text-foreground truncate">
                         {template.name}
                       </p>
+                      {template.documentMode && (
+                        <span
+                          className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-indigo-100 text-indigo-700"
+                          title="Document-mode audit — coordinators edit the .docx inline per instance"
+                        >
+                          Doc
+                        </span>
+                      )}
                       {!template.isActive && (
                         <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500">
                           Inactive
@@ -1186,6 +1234,11 @@ export default function AuditTemplatesPage() {
                       <span className="text-xs text-muted">
                         {frequencyLabels[template.frequency] || template.frequency}
                       </span>
+                      {template.documentMode && template.sourceFileName && (
+                        <span className="text-xs text-muted truncate max-w-[180px]" title={template.sourceFileName}>
+                          · {template.sourceFileName}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1197,6 +1250,19 @@ export default function AuditTemplatesPage() {
                     {template._count.items} items
                   </span>
 
+                  {template.documentMode && template.sourceFileUrl && (
+                    <a
+                      href={template.sourceFileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      download={template.sourceFileName ?? undefined}
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1.5 text-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors shrink-0"
+                      title="Download the original .docx (the master copy — staff edit a per-instance copy when filling in audits)"
+                    >
+                      <FileDown className="w-4 h-4" />
+                    </a>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1296,6 +1362,76 @@ export default function AuditTemplatesPage() {
         onClose={() => setApplyTarget(null)}
         template={applyTarget}
       />
+
+      {/* Reset-all dialog — owner only, typed confirmation. Wipes
+          every template + scheduled instance across the org. */}
+      {showWipeAll && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !wiping) {
+              setShowWipeAll(false);
+              setWipeConfirm("");
+            }
+          }}
+        >
+          <div className="bg-card rounded-t-xl sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-base font-semibold text-rose-700 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Reset the entire audit subsystem?
+              </h3>
+            </div>
+            <div className="px-6 py-4 space-y-3 text-sm">
+              <p className="text-foreground">
+                This wipes <strong>every</strong> audit template — including
+                ones uploaded as .docx — plus every per-service scheduled and
+                completed instance and every staff response. There is no
+                undo.
+              </p>
+              <p className="text-muted">
+                Use this only for a clean-slate restart of the audit module.
+                Per-template delete on each row is the safer option if you
+                only want to remove a few.
+              </p>
+              <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-2 text-rose-900">
+                <p className="text-xs mb-1.5">
+                  Type <code className="font-mono font-semibold">RESET</code>{" "}
+                  to confirm:
+                </p>
+                <input
+                  type="text"
+                  autoFocus
+                  value={wipeConfirm}
+                  onChange={(e) => setWipeConfirm(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-rose-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
+                  placeholder="RESET"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
+              <button
+                disabled={wiping}
+                onClick={() => {
+                  setShowWipeAll(false);
+                  setWipeConfirm("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={wipeConfirm !== "RESET" || wiping}
+                onClick={handleWipeAll}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 disabled:opacity-50"
+              >
+                {wiping && <Loader2 className="w-4 h-4 animate-spin" />}
+                Wipe everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirmation */}
       {deleteTarget && (

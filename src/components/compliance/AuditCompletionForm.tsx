@@ -8,6 +8,7 @@ import {
   useSaveAuditResponses,
   type AuditItemResponseData,
 } from "@/hooks/useAudits";
+import { DocumentAuditEditor } from "@/components/audits/DocumentAuditEditor";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -526,6 +527,23 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
           Back to Compliance
         </button>
       </div>
+    );
+  }
+
+  // Document-mode audits use an inline TipTap editor instead of the
+  // structured questionnaire. The template's DOCX is converted to
+  // HTML server-side and edited per-instance — the template itself
+  // stays untouched so the next scheduled run starts clean.
+  if (audit.template.documentMode) {
+    return (
+      <DocumentAuditEditor
+        auditId={auditId}
+        templateName={audit.template.name}
+        serviceName={audit.service.name}
+        dueDate={audit.dueDate}
+        status={audit.status}
+        onBack={() => router.back()}
+      />
     );
   }
 
