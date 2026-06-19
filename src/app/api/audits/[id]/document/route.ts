@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
-import mammoth from "mammoth";
 import { ensureCoordCanTouchAudit } from "../../_lib/scope";
 
 /**
@@ -87,6 +86,10 @@ export const GET = withApiAuth(async (req, session, context) => {
   const arrayBuffer = await docRes.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
+  // Dynamic import — matches the rest of the codebase (document-indexer,
+  // pandoc, audit-parser) and avoids Next 16 bundling issues for the
+  // browser-flavoured ESM build of mammoth.
+  const mammoth = (await import("mammoth")).default;
   const { value: html } = await mammoth.convertToHtml({ buffer });
 
   return NextResponse.json({
