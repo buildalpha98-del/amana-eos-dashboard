@@ -43,6 +43,7 @@ export interface AuditInstanceSummary {
     nqsReference: string;
     frequency: string;
     responseFormat: string;
+    documentMode?: boolean;
   };
   service: { id: string; name: string; code: string };
   auditor: { id: string; name: string } | null;
