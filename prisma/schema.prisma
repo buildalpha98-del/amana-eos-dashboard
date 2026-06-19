@@ -4935,6 +4935,9 @@ model AuditInstance {
   // the edited DOCX (or its rendered preview). Null for structured
   // audits where responses[] is the source of truth.
   completedFileUrl    String?
+  // Edited HTML for document-mode audits — what the coordinator
+  // saved in the inline editor. Rendered back via the doc viewer.
+  completedHtml       String?       @db.Text
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
