@@ -139,12 +139,22 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
         </div>
 
         <div className="px-6 py-4 space-y-4">
-          <div className="rounded-md border border-blue-200 bg-blue-50/40 p-3 text-xs text-blue-900">
-            Upload a .docx audit + set the cadence. Each centre gets its own
-            scheduled instance — when a coordinator completes one, the inline
-            editor (coming next) saves their filled-in version per service. The
-            schedule anchors to today's month, so a yearly audit uploaded in
-            June runs every June.
+          <div className="rounded-md border border-blue-200 bg-blue-50/40 p-3 text-xs text-blue-900 space-y-1.5">
+            <p>
+              The .docx becomes the master template — it stays untouched and
+              is downloadable from the template row.
+            </p>
+            <p>
+              Click "Apply to services" next, and each centre gets its own
+              scheduled instance from this month forward (no backdating). When
+              a coordinator opens an instance, the document loads in an inline
+              editor — what they save is stored on that instance only, so the
+              master template keeps cycling for the next period.
+            </p>
+            <p>
+              Cadence anchors to today's month — a yearly audit uploaded in
+              June runs every June.
+            </p>
           </div>
 
           <div>

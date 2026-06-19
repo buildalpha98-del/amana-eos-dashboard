@@ -17,6 +17,9 @@ export interface AuditTemplateSummary {
   estimatedMinutes: number | null;
   isActive: boolean;
   sortOrder: number;
+  documentMode?: boolean;
+  sourceFileUrl?: string | null;
+  sourceFileName?: string | null;
   _count: { items: number; instances: number };
 }
 

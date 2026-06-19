@@ -48,10 +48,30 @@ export const POST = withApiAuth(
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
 
-    const months = monthsOverride ?? template.scheduledMonths;
-    if (months.length === 0) {
+    const rawMonths = monthsOverride ?? template.scheduledMonths;
+    if (rawMonths.length === 0) {
       return NextResponse.json(
         { error: "Template has no scheduledMonths and no months override was provided" },
+        { status: 400 },
+      );
+    }
+
+    // 2026-06-19: never backdate. If applying to the current year,
+    // drop months that have already passed — Daniel runs audits from
+    // the apply date forward, not retroactively. Future years pass
+    // through unchanged.
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-based
+    const months =
+      year === currentYear ? rawMonths.filter((m) => m >= currentMonth) : rawMonths;
+
+    if (months.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "All scheduled months for this year have already passed. Re-apply for next year, or change the cadence.",
+        },
         { status: 400 },
       );
     }

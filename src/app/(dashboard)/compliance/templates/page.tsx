@@ -46,6 +46,7 @@ import {
   SlidersHorizontal,
   CalendarPlus,
   Plus,
+  FileDown,
 } from "lucide-react";
 import { EditTemplateModal } from "@/components/audits/EditTemplateModal";
 import { ApplyToServicesModal } from "@/components/audits/ApplyToServicesModal";
@@ -83,7 +84,10 @@ const formatLabels: Record<string, { label: string; color: string }> = {
 };
 
 const frequencyLabels: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
   monthly: "Monthly",
+  quarterly: "Quarterly",
   half_yearly: "Half-Yearly",
   yearly: "Yearly",
 };
@@ -1056,7 +1060,7 @@ export default function AuditTemplatesPage() {
           <button
             onClick={() => setShowDocAuditUpload(true)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-brand/5 transition-colors"
-            title="Upload a .docx audit and apply it to all centres. Each centre's coordinator fills it in inline (editor coming in phase 4)."
+            title="Upload a .docx audit and apply it to all centres. Each centre's coordinator fills it in inline — the master template stays untouched."
           >
             <FileText className="w-4 h-4" />
             Upload Document Audit
@@ -1125,7 +1129,10 @@ export default function AuditTemplatesPage() {
           className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Frequencies</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
           <option value="half_yearly">Half-Yearly</option>
           <option value="yearly">Yearly</option>
         </select>
@@ -1172,6 +1179,14 @@ export default function AuditTemplatesPage() {
                       <p className="text-sm font-semibold text-foreground truncate">
                         {template.name}
                       </p>
+                      {template.documentMode && (
+                        <span
+                          className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-indigo-100 text-indigo-700"
+                          title="Document-mode audit — coordinators edit the .docx inline per instance"
+                        >
+                          Doc
+                        </span>
+                      )}
                       {!template.isActive && (
                         <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500">
                           Inactive
@@ -1186,6 +1201,11 @@ export default function AuditTemplatesPage() {
                       <span className="text-xs text-muted">
                         {frequencyLabels[template.frequency] || template.frequency}
                       </span>
+                      {template.documentMode && template.sourceFileName && (
+                        <span className="text-xs text-muted truncate max-w-[180px]" title={template.sourceFileName}>
+                          · {template.sourceFileName}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1197,6 +1217,19 @@ export default function AuditTemplatesPage() {
                     {template._count.items} items
                   </span>
 
+                  {template.documentMode && template.sourceFileUrl && (
+                    <a
+                      href={template.sourceFileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      download={template.sourceFileName ?? undefined}
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1.5 text-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors shrink-0"
+                      title="Download the original .docx (the master copy — staff edit a per-instance copy when filling in audits)"
+                    >
+                      <FileDown className="w-4 h-4" />
+                    </a>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
