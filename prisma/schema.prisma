@@ -4869,6 +4869,11 @@ model AuditTemplate {
   responseFormat   AuditResponseFormat @default(yes_no)
   estimatedMinutes Int?
   sourceFileName   String?
+  // 2026-06-19: Document-mode templates carry the DOCX itself (Blob
+  // URL) and don't have structured items. Coordinators edit the doc
+  // inline (TipTap) on each instance instead of answering yes/no.
+  sourceFileUrl    String?
+  documentMode     Boolean             @default(false)
   isActive         Boolean             @default(true)
   sortOrder        Int                 @default(0)
   createdAt        DateTime            @default(now())
@@ -4926,6 +4931,10 @@ model AuditInstance {
   reviewedAt          DateTime?
   reviewedById        String?
   reviewNotes         String?       @db.Text
+  // 2026-06-19: For document-mode audits the completion artifact is
+  // the edited DOCX (or its rendered preview). Null for structured
+  // audits where responses[] is the source of truth.
+  completedFileUrl    String?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
