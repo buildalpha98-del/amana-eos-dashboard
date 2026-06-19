@@ -112,3 +112,39 @@ const body = await parseJsonBody(req);
 
   return NextResponse.json(template, { status: 201 });
 }, { roles: ["owner", "head_office", "admin"] });
+
+/**
+ * DELETE /api/audits/templates — wipe every audit template (owner only).
+ *
+ * Deletes every AuditTemplate row. Cascades to AuditTemplateItem,
+ * AuditInstance, AuditItemResponse and any per-instance reflection/
+ * review rows via the existing onDelete: Cascade FKs. Use only for a
+ * clean-slate reset of the audit subsystem — there is no undo.
+ *
+ * Owner only. Per-template delete (DELETE /api/audits/templates/[id])
+ * stays as the gentler option.
+ */
+export const DELETE = withApiAuth(
+  async (_req, session) => {
+    const counts = {
+      templates: await prisma.auditTemplate.count(),
+      items: await prisma.auditTemplateItem.count(),
+      instances: await prisma.auditInstance.count(),
+    };
+
+    await prisma.auditTemplate.deleteMany({});
+
+    await prisma.activityLog.create({
+      data: {
+        userId: session!.user.id,
+        action: "wipe_all",
+        entityType: "AuditTemplate",
+        entityId: "*",
+        details: { ...counts, reason: "owner-initiated reset of audit subsystem" },
+      },
+    });
+
+    return NextResponse.json({ ok: true, wiped: counts });
+  },
+  { roles: ["owner"] },
+);

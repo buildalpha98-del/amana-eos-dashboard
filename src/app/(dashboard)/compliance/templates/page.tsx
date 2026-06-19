@@ -980,10 +980,30 @@ export default function AuditTemplatesPage() {
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ created: number; skipped: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showWipeAll, setShowWipeAll] = useState(false);
+  const [wipeConfirm, setWipeConfirm] = useState("");
+  const [wiping, setWiping] = useState(false);
 
   const { data: session } = useSession();
   const isOwner = session?.user?.role === "owner";
   const deleteTemplate = useDeleteTemplate();
+
+  const handleWipeAll = async () => {
+    if (wipeConfirm !== "RESET") return;
+    setWiping(true);
+    try {
+      const res = await fetch("/api/audits/templates", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Reset failed");
+      setShowWipeAll(false);
+      setWipeConfirm("");
+      refetch();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Reset failed");
+    } finally {
+      setWiping(false);
+    }
+  };
 
   const { data: templates = [], isLoading, error, refetch } = useAuditTemplates();
 
@@ -1072,6 +1092,19 @@ export default function AuditTemplatesPage() {
             <Package className="w-4 h-4" />
             Bulk Upload
           </button>
+          {isOwner && templates.length > 0 && (
+            <button
+              onClick={() => {
+                setWipeConfirm("");
+                setShowWipeAll(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-700 border border-rose-300 rounded-lg hover:bg-rose-50 transition-colors"
+              title="Wipe every template, every scheduled instance, and every staff response. Use only to start fresh."
+            >
+              <Trash2 className="w-4 h-4" />
+              Reset all
+            </button>
+          )}
         </div>
       </div>
 
@@ -1329,6 +1362,76 @@ export default function AuditTemplatesPage() {
         onClose={() => setApplyTarget(null)}
         template={applyTarget}
       />
+
+      {/* Reset-all dialog — owner only, typed confirmation. Wipes
+          every template + scheduled instance across the org. */}
+      {showWipeAll && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !wiping) {
+              setShowWipeAll(false);
+              setWipeConfirm("");
+            }
+          }}
+        >
+          <div className="bg-card rounded-t-xl sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-base font-semibold text-rose-700 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Reset the entire audit subsystem?
+              </h3>
+            </div>
+            <div className="px-6 py-4 space-y-3 text-sm">
+              <p className="text-foreground">
+                This wipes <strong>every</strong> audit template — including
+                ones uploaded as .docx — plus every per-service scheduled and
+                completed instance and every staff response. There is no
+                undo.
+              </p>
+              <p className="text-muted">
+                Use this only for a clean-slate restart of the audit module.
+                Per-template delete on each row is the safer option if you
+                only want to remove a few.
+              </p>
+              <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-2 text-rose-900">
+                <p className="text-xs mb-1.5">
+                  Type <code className="font-mono font-semibold">RESET</code>{" "}
+                  to confirm:
+                </p>
+                <input
+                  type="text"
+                  autoFocus
+                  value={wipeConfirm}
+                  onChange={(e) => setWipeConfirm(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-rose-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
+                  placeholder="RESET"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
+              <button
+                disabled={wiping}
+                onClick={() => {
+                  setShowWipeAll(false);
+                  setWipeConfirm("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={wipeConfirm !== "RESET" || wiping}
+                onClick={handleWipeAll}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 disabled:opacity-50"
+              >
+                {wiping && <Loader2 className="w-4 h-4 animate-spin" />}
+                Wipe everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirmation */}
       {deleteTarget && (
