@@ -43,7 +43,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
     },
   });
 
-  if (!instance) throw new ApiError("Audit not found", 404);
+  if (!instance) throw new ApiError(404, "Audit not found");
 
   ensureCoordCanTouchAudit(
     session!.user.role ?? "",
@@ -53,8 +53,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
 
   if (!instance.template.documentMode) {
     throw new ApiError(
-      "Not a document-mode audit. Use the questionnaire form.",
       400,
+      "Not a document-mode audit. Use the questionnaire form.",
     );
   }
 
@@ -68,8 +68,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
 
   if (!instance.template.sourceFileUrl) {
     throw new ApiError(
-      "Document-mode audit has no source file. Re-upload the template.",
       400,
+      "Document-mode audit has no source file. Re-upload the template.",
     );
   }
 
@@ -78,8 +78,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
   });
   if (!docRes.ok) {
     throw new ApiError(
-      `Couldn't fetch source document (${docRes.status}).`,
       502,
+      `Couldn't fetch source document (${docRes.status}).`,
     );
   }
   const arrayBuffer = await docRes.arrayBuffer();
@@ -118,7 +118,7 @@ export const PATCH = withApiAuth(
         template: { select: { documentMode: true, name: true } },
       },
     });
-    if (!instance) throw new ApiError("Audit not found", 404);
+    if (!instance) throw new ApiError(404, "Audit not found");
 
     ensureCoordCanTouchAudit(
       session!.user.role ?? "",
@@ -127,7 +127,7 @@ export const PATCH = withApiAuth(
     );
 
     if (!instance.template.documentMode) {
-      throw new ApiError("Not a document-mode audit", 400);
+      throw new ApiError(400, "Not a document-mode audit");
     }
 
     const data: Record<string, unknown> = {
