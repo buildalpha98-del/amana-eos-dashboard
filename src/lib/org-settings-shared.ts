@@ -525,6 +525,7 @@ function mergeRolePageOverrides(
     marketing: pick("marketing"),
     member: pick("member"),
     staff: pick("staff"),
+    eos_viewer: pick("eos_viewer"),
   };
 }
 
@@ -555,6 +556,7 @@ function mergeRoleGuides(
     marketing: pick("marketing"),
     member: pick("member"),
     staff: pick("staff"),
+    eos_viewer: pick("eos_viewer"),
   };
 }
 
@@ -591,5 +593,6 @@ function mergeChecklistOverrides(
     marketing: pickRole("marketing"),
     member: pickRole("member"),
     staff: pickRole("staff"),
+    eos_viewer: pickRole("eos_viewer"),
   };
 }
