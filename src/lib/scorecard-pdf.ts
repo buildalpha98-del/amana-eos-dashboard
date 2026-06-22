@@ -122,7 +122,7 @@ export async function generateScorecardPdf(
     );
 
     // Column headers
-    let y = 30;
+    const y = 30;
     let x = margin;
     doc.setFillColor(...BRAND.green.rgb);
     const cols = [
