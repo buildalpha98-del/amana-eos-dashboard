@@ -40,6 +40,7 @@ const ROLE_KEYS: (keyof RoleLabels)[] = [
   "marketing",
   "member",
   "staff",
+  "eos_viewer",
 ];
 
 const ROLE_HINTS: Record<keyof RoleLabels, string> = {
@@ -49,6 +50,7 @@ const ROLE_HINTS: Record<keyof RoleLabels, string> = {
   marketing: "Marketing team scope",
   member: "Service-level lead (legacy: Director of Service)",
   staff: "On-shift educator",
+  eos_viewer: "View-only access to the EOS surface — coaches / advisors",
 };
 
 interface Props {
@@ -413,6 +415,7 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
               marketing: { welcomeMessage: "" },
               member: { welcomeMessage: "" },
               staff: { welcomeMessage: "" },
+              eos_viewer: { welcomeMessage: "" },
             },
           }))
         }

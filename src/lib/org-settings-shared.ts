@@ -263,6 +263,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     marketing: null,
     member: null,
     staff: null,
+    eos_viewer: null,
   },
   roleGuides: {
     owner: { welcomeMessage: "" },
@@ -271,6 +272,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     marketing: { welcomeMessage: "" },
     member: { welcomeMessage: "" },
     staff: { welcomeMessage: "" },
+    eos_viewer: { welcomeMessage: "" },
   },
   checklistOverrides: {
     owner: {},
@@ -279,6 +281,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     marketing: {},
     member: {},
     staff: {},
+    eos_viewer: {},
   },
   welcomePack: {
     welcomeIntro:

@@ -11,6 +11,7 @@ const ROLE_STYLES: Record<Role, { label: string; className: string }> = {
   marketing: { label: "Marketing", className: "bg-purple-500 text-white" },
   member: { label: "OSHC Coordinator", className: "bg-emerald-500 text-white" },
   staff: { label: "OSHC Educator", className: "bg-neutral-500 text-white" },
+  eos_viewer: { label: "EOS Viewer", className: "bg-amber-500 text-white" },
 };
 
 export function RoleBadge({ role, className }: { role: Role; className?: string }) {
