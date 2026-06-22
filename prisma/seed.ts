@@ -690,9 +690,12 @@ async function main() {
   // ============================================================
   // Seed Financial Periods
   // ============================================================
-  // Financial Periods — delete + replace
-  await prisma.financialPeriod.deleteMany();
-  {
+  // 2026-06-22: first-run only. Same wipe bug as V/TO — once Daniel
+  // starts entering real per-centre financial data through the UI,
+  // this block would clobber it on every deploy. Skip when any
+  // FinancialPeriod row already exists.
+  const existingFinancialCount = await prisma.financialPeriod.count();
+  if (existingFinancialCount === 0) {
     const services = await prisma.service.findMany();
 
     // Define financial parameters per centre (realistic OSHC data)
@@ -786,15 +789,21 @@ async function main() {
       }
     }
 
-    console.log("Replaced financial periods for all centres (3 months)");
+    console.log("Created initial financial periods for all centres (first-run seed)");
+  } else {
+    console.log(
+      `Skipping FinancialPeriod seed — ${existingFinancialCount} row(s) already exist (preserving owner edits)`,
+    );
   }
 
   // ============================================================
   // Seed Centre Metrics
   // ============================================================
-  // Centre Metrics — delete + replace
-  await prisma.centreMetrics.deleteMany();
-  {
+  // 2026-06-22: first-run only. Same wipe pattern as V/TO. Real
+  // per-centre operational metrics entered through the dashboard
+  // would be lost on every deploy without this guard.
+  const existingCentreMetricsCount = await prisma.centreMetrics.count();
+  if (existingCentreMetricsCount === 0) {
     const services = await prisma.service.findMany();
 
     // Define metrics profiles per centre
@@ -864,13 +873,25 @@ async function main() {
       });
     }
 
-    console.log("Replaced centre metrics for all services");
+    console.log("Created initial centre metrics for all services (first-run seed)");
+  } else {
+    console.log(
+      `Skipping CentreMetrics seed — ${existingCentreMetricsCount} row(s) already exist (preserving owner edits)`,
+    );
   }
 
   // ============================================================
   // Support Tickets: Contacts, Tickets, Messages, Templates
   // ============================================================
-
+  // 2026-06-22: first-run only. Support tickets, WhatsApp contacts,
+  // and ticket messages can hold real customer conversations — never
+  // wipe on deploy. Skip when any data is present in any of these
+  // tables.
+  const supportDataCount =
+    (await prisma.supportTicket.count()) +
+    (await prisma.whatsAppContact.count()) +
+    (await prisma.ticketMessage.count());
+  if (supportDataCount === 0) {
   // Support Tickets — delete + replace
   await prisma.ticketMessage.deleteMany();
   await prisma.supportTicket.deleteMany();
@@ -1188,7 +1209,12 @@ async function main() {
       }),
     ]);
 
-    console.log("Replaced 7 response templates");
+    console.log("Created initial support tickets + WhatsApp contacts (first-run seed)");
+  }
+  } else {
+    console.log(
+      `Skipping Support seed — ${supportDataCount} record(s) already exist (preserving customer conversations)`,
+    );
   }
 
   // ── Accountability Chart (EOS) ────────────────────────────
