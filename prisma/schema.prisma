@@ -911,7 +911,11 @@ model VisionTractionOrganiser {
   coreNiche         String?
   tenYearTarget     String?  @db.Text
   threeYearPicture  String?  @db.Text
-  marketingStrategy String?  @db.Text
+  marketingStrategy String?  @db.Text // legacy freeform — superseded by the four gtm* fields below; rendered read-only until cleared
+  gtmTargetMarket   String?  @db.Text
+  gtmThreeUniques   String?  @db.Text
+  gtmProvenProcess  String?  @db.Text
+  gtmGuarantee      String?  @db.Text
   sectionLabels     Json? // Custom section titles e.g. { tenYearTarget: "5-Year Target" }
   updatedAt         DateTime @updatedAt
   updatedById       String?

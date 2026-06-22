@@ -10,6 +10,12 @@ const updateVtoSchema = z.object({
   tenYearTarget: z.string().nullable().optional(),
   threeYearPicture: z.string().nullable().optional(),
   marketingStrategy: z.string().nullable().optional(),
+  // Go to Market Strategy — four EOS sub-fields that replace the
+  // single freeform marketingStrategy block.
+  gtmTargetMarket: z.string().nullable().optional(),
+  gtmThreeUniques: z.string().nullable().optional(),
+  gtmProvenProcess: z.string().nullable().optional(),
+  gtmGuarantee: z.string().nullable().optional(),
   sectionLabels: z.record(z.string(), z.string()).nullable().optional(),
 });
 
@@ -59,6 +65,10 @@ const body = await parseJsonBody(req);
   if (parsed.data.tenYearTarget !== undefined) data.tenYearTarget = parsed.data.tenYearTarget;
   if (parsed.data.threeYearPicture !== undefined) data.threeYearPicture = parsed.data.threeYearPicture;
   if (parsed.data.marketingStrategy !== undefined) data.marketingStrategy = parsed.data.marketingStrategy;
+  if (parsed.data.gtmTargetMarket !== undefined) data.gtmTargetMarket = parsed.data.gtmTargetMarket;
+  if (parsed.data.gtmThreeUniques !== undefined) data.gtmThreeUniques = parsed.data.gtmThreeUniques;
+  if (parsed.data.gtmProvenProcess !== undefined) data.gtmProvenProcess = parsed.data.gtmProvenProcess;
+  if (parsed.data.gtmGuarantee !== undefined) data.gtmGuarantee = parsed.data.gtmGuarantee;
   if (parsed.data.sectionLabels !== undefined) data.sectionLabels = parsed.data.sectionLabels;
 
   data.updatedById = session!.user.id;

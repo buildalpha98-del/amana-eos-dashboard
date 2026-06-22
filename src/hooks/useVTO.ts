@@ -32,6 +32,10 @@ export interface VTOData {
   tenYearTarget: string | null;
   threeYearPicture: string | null;
   marketingStrategy: string | null;
+  gtmTargetMarket: string | null;
+  gtmThreeUniques: string | null;
+  gtmProvenProcess: string | null;
+  gtmGuarantee: string | null;
   sectionLabels: Record<string, string> | null;
   updatedAt: string;
   updatedBy: { id: string; name: string } | null;
@@ -57,6 +61,10 @@ export function useUpdateVTO() {
         tenYearTarget: string;
         threeYearPicture: string;
         marketingStrategy: string;
+        gtmTargetMarket: string;
+        gtmThreeUniques: string;
+        gtmProvenProcess: string;
+        gtmGuarantee: string;
         sectionLabels: Record<string, string>;
       }>
     ) => {
