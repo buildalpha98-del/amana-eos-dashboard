@@ -31,7 +31,8 @@ type Role =
   | "admin"
   | "marketing"
   | "member"
-  | "staff";
+  | "staff"
+  | "eos_viewer";
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
