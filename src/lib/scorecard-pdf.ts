@@ -151,7 +151,6 @@ export async function generateScorecardPdf(
   const drawRow = (
     m: ScorecardMeasurableForPdf,
     cols: { key: string; width: number }[],
-    pageWeeks: string[],
     y: number,
     alt: boolean,
   ) => {
@@ -271,7 +270,7 @@ export async function generateScorecardPdf(
           drawHeader(pageWeeks);
           y = 30 + HEADER_H;
         }
-        drawRow(m, cols, pageWeeks, y, row % 2 === 1);
+        drawRow(m, cols, y, row % 2 === 1);
         y += ROW_H;
         row++;
       }
