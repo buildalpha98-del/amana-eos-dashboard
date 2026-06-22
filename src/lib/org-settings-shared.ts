@@ -425,6 +425,7 @@ export function mergeOrgSettings(
       marketing: pickLabel("marketing"),
       member: pickLabel("member"),
       staff: pickLabel("staff"),
+      eos_viewer: pickLabel("eos_viewer"),
     },
     rolePageOverrides: mergeRolePageOverrides(
       safe.rolePageOverrides,
