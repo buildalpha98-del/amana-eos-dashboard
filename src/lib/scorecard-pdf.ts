@@ -98,7 +98,7 @@ export async function generateScorecardPdf(
   );
   const totalWeekPages = Math.max(1, Math.ceil(allWeeks.length / weeksPerPage));
 
-  const drawHeader = (pageWeeks: string[], pageIndex: number) => {
+  const drawHeader = (pageWeeks: string[]) => {
     // Header band
     doc.setFillColor(...BRAND.green.rgb);
     doc.rect(0, 0, pageWidth, 22, "F");
@@ -145,7 +145,7 @@ export async function generateScorecardPdf(
       });
       x += col.width + COL_GAP;
     }
-    return { cols, totalRowW, y: y + HEADER_H };
+    return { cols };
   };
 
   const drawRow = (
@@ -244,7 +244,7 @@ export async function generateScorecardPdf(
   };
 
   if (data.measurables.length === 0) {
-    drawHeader([], 0);
+    drawHeader([]);
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
     doc.text("No measurables in this scorecard yet.", margin, 50);
@@ -255,7 +255,7 @@ export async function generateScorecardPdf(
         p * weeksPerPage,
         (p + 1) * weeksPerPage,
       );
-      const { cols } = drawHeader(pageWeeks, p);
+      const { cols } = drawHeader(pageWeeks);
 
       let y = 30 + HEADER_H;
       const rowsPerPage = Math.floor(
@@ -263,13 +263,12 @@ export async function generateScorecardPdf(
       );
 
       let row = 0;
-      let subPage = 0;
       for (const m of data.measurables) {
         if (row > 0 && row % rowsPerPage === 0) {
-          // Add another sub-page for this week-slice
-          subPage++;
+          // Vertical overflow within this week-slice — new page,
+          // re-draw the header for the same week columns.
           doc.addPage("a4", "l");
-          drawHeader(pageWeeks, p);
+          drawHeader(pageWeeks);
           y = 30 + HEADER_H;
         }
         drawRow(m, cols, pageWeeks, y, row % 2 === 1);
