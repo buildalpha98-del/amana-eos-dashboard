@@ -348,6 +348,31 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // can only call read-only tools.
     "/assistant",
   ],
+  // 2026-06-22: view-only access to the EOS surface for coaches /
+  // board observers / advisors. Write APIs across V/TO, Rocks,
+  // Scorecard, Todos, Issues, Meetings, Accountability Chart are all
+  // gated to specific roles and intentionally exclude eos_viewer, so
+  // adding the pages here gives them the read surface and nothing
+  // else. They don't see services, financials, marketing, HR, etc.
+  eos_viewer: [
+    "/dashboard",
+    "/getting-started",
+    "/my-portal",
+    "/profile",
+    "/assistant",
+    // EOS surface — view-only
+    "/vision",
+    "/rocks",
+    "/scorecard",
+    "/todos",
+    "/issues",
+    "/meetings",
+    "/accountability-chart",
+    // Read-only org resources they may genuinely need to reference
+    "/guides",
+    "/help",
+    "/directory",
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -662,6 +687,14 @@ const staffFeatures: readonly Feature[] = [
   "timesheets.create",
 ];
 
+// 2026-06-22: EOS Viewer — view-only coach/advisor role. No write
+// features at all. Page access (rolePageAccess['eos_viewer']) is
+// what carries the actual capability; feature flags are reserved
+// for write surfaces this role intentionally can't touch.
+const eosViewerFeatures: readonly Feature[] = [
+  "my_portal.view",
+];
+
 export const roleFeatures: Record<Role, readonly Feature[]> = {
   owner: ownerFeatures,
   head_office: headOfficeFeatures,
@@ -669,6 +702,7 @@ export const roleFeatures: Record<Role, readonly Feature[]> = {
   marketing: marketingFeatures,
   member: memberFeatures,
   staff: staffFeatures,
+  eos_viewer: eosViewerFeatures,
 };
 
 // ---------------------------------------------------------------------------
@@ -745,6 +779,9 @@ const rolePriority: Record<Role, number> = {
   marketing: 3,
   member: 2,
   staff: 1,
+  // EOS Viewer sits at the bottom — never satisfies a `minRole`
+  // requirement above plain authenticated access.
+  eos_viewer: 0,
 };
 
 export function hasMinRole(
@@ -770,6 +807,11 @@ export interface PermissionRow {
   marketing: boolean;
   member: boolean;
   staff: boolean;
+  // 2026-06-22: optional so the 60+ existing rows compile without
+  // forcing a row-by-row edit. The Settings permissions matrix UI
+  // doesn't display the column yet — actual access for eos_viewer
+  // lives in `rolePageAccess['eos_viewer']`, not here.
+  eos_viewer?: boolean;
 }
 
 /** Informational table data for the Settings > Permissions panel */

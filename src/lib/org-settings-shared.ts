@@ -76,6 +76,10 @@ const roleLabelsSchema = z.object({
   marketing: z.string().min(1).max(60),
   member: z.string().min(1).max(60),
   staff: z.string().min(1).max(60),
+  // 2026-06-22: defaults so existing OrgSettings JSON (which doesn't
+  // have an eos_viewer key) still parses cleanly. The default kicks
+  // in once and persists when the row is next written.
+  eos_viewer: z.string().min(1).max(60).default("EOS Viewer"),
 });
 
 // 2026-06-02: optional per-role page-access overrides. Each role can
@@ -90,6 +94,7 @@ const rolePageOverridesSchema = z.object({
   marketing: z.array(z.string()).nullable(),
   member: z.array(z.string()).nullable(),
   staff: z.array(z.string()).nullable(),
+  eos_viewer: z.array(z.string()).nullable().default(null),
 });
 
 // 2026-05-16: per-role guide overrides — welcome message only for v1.
@@ -103,6 +108,9 @@ const roleGuidesSchema = z.object({
   marketing: z.object({ welcomeMessage: z.string().max(2_000) }),
   member: z.object({ welcomeMessage: z.string().max(2_000) }),
   staff: z.object({ welcomeMessage: z.string().max(2_000) }),
+  eos_viewer: z
+    .object({ welcomeMessage: z.string().max(2_000) })
+    .default({ welcomeMessage: "" }),
 });
 
 // 2026-05-16: per-item override map for the Getting Started checklist.
@@ -122,6 +130,7 @@ const checklistOverridesSchema = z.object({
   marketing: z.record(z.string(), checklistOverrideEntrySchema),
   member: z.record(z.string(), checklistOverrideEntrySchema),
   staff: z.record(z.string(), checklistOverrideEntrySchema),
+  eos_viewer: z.record(z.string(), checklistOverrideEntrySchema).default({}),
 });
 
 // 2026-05-16: onboarding welcome announcement seed override. The original
@@ -209,6 +218,7 @@ export const ROLE_LABEL_DEFAULTS: RoleLabels = {
   marketing: "Marketing",
   member: "OSHC Coordinator",
   staff: "OSHC Educator",
+  eos_viewer: "EOS Viewer",
 };
 
 /** Server-safe label getter. Pass the merged `OrgSettingsConfig.roleLabels`. */
