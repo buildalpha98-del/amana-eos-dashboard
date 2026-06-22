@@ -222,6 +222,36 @@ export default function ScorecardPage() {
         }]}
         secondaryActions={[
           {
+            label: "Export PDF",
+            icon: Download,
+            hidden: !selectedScorecardId || !scorecard?.measurables?.length,
+            onClick: async () => {
+              if (!selectedScorecardId) return;
+              try {
+                const res = await fetch(`/api/scorecard/${selectedScorecardId}/pdf`);
+                if (!res.ok) {
+                  const msg = await res.text().catch(() => "");
+                  throw new Error(msg || `Download failed (${res.status})`);
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                const safe = (scorecard?.title ?? "scorecard").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
+                a.download = `amana-scorecard-${safe}-${new Date().toISOString().slice(0, 10)}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+              } catch (err) {
+                toast({
+                  variant: "destructive",
+                  description: err instanceof Error ? err.message : "Couldn't generate PDF",
+                });
+              }
+            },
+          },
+          {
             label: "Export CSV",
             icon: Download,
             onClick: handleExport,
