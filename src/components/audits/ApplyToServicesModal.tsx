@@ -47,10 +47,17 @@ function ApplyToServicesModalInner({
   const { data: services = [], isLoading: servicesLoading } = useQuery<ServiceOption[]>({
     queryKey: ["services"],
     queryFn: async () => {
-      const payload = await fetchApi<{ services?: ServiceOption[] } | ServiceOption[]>(
-        "/api/services?limit=100",
-      );
-      return Array.isArray(payload) ? payload : payload.services ?? [];
+      // /api/services returns a plain array when unpaginated, and
+      // { items, total, page, totalPages } when paginated (any limit
+      // param triggers pagination). The modal previously asked for
+      // ?limit=100 and only handled `{services}` / array, so it always
+      // showed "no active services". Drop the param and handle both
+      // realistic shapes defensively.
+      const payload = await fetchApi<
+        ServiceOption[] | { services?: ServiceOption[]; items?: ServiceOption[] }
+      >("/api/services");
+      if (Array.isArray(payload)) return payload;
+      return payload.items ?? payload.services ?? [];
     },
     staleTime: 60_000,
     retry: 2,
@@ -71,14 +78,21 @@ function ApplyToServicesModalInner({
     [services],
   );
 
-  const effectiveMonths = overrideMonths ? months : template.scheduledMonths;
+  const rawMonths = overrideMonths ? months : template.scheduledMonths;
 
-  // Warn if any selected month is in the past of the selected year
-  const hasBackfill = useMemo(() => {
-    if (year > currentYear) return false;
-    if (year < currentYear) return true;
-    return effectiveMonths.some((m) => m < currentMonth);
-  }, [year, effectiveMonths, currentYear, currentMonth]);
+  // Mirror the server filter: when applying to the current year, drop
+  // months that have already passed — Daniel runs audits forward from
+  // the apply date, not retroactively. Future years pass through.
+  const effectiveMonths = useMemo(() => {
+    if (year > currentYear) return rawMonths;
+    if (year < currentYear) return [] as number[];
+    return rawMonths.filter((m) => m >= currentMonth);
+  }, [year, rawMonths, currentYear, currentMonth]);
+
+  const droppedPastMonths = useMemo(
+    () => rawMonths.filter((m) => !effectiveMonths.includes(m)),
+    [rawMonths, effectiveMonths],
+  );
 
   const toggleService = (id: string) => {
     setSelectedIds((prev) =>
@@ -229,7 +243,7 @@ function ApplyToServicesModalInner({
           <div>
             <p className="text-sm font-medium text-foreground/80 mb-1.5">Year</p>
             <div className="flex items-center gap-2">
-              {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
+              {[currentYear, currentYear + 1, currentYear + 2].map((y) => (
                 <button
                   key={y}
                   type="button"
@@ -301,10 +315,16 @@ function ApplyToServicesModalInner({
                 )}
                 . Duplicates will be skipped.
               </p>
-              {hasBackfill && (
+              {droppedPastMonths.length > 0 && (
                 <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                   <AlertTriangle className="w-3 h-3" />
-                  Backfilling past months
+                  Skipping past months: {droppedPastMonths.map((m) => monthNames[m - 1]).join(", ")}
+                </div>
+              )}
+              {year < currentYear && (
+                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-50 text-red-700 border border-red-200">
+                  <AlertTriangle className="w-3 h-3" />
+                  No instances will be created for past years
                 </div>
               )}
             </div>
