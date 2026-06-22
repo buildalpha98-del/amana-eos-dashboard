@@ -13,7 +13,10 @@ import {
   AlertTriangle,
   Mountain,
   ArrowRight,
+  Download,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -24,6 +27,34 @@ export default function VisionPage() {
   const quarter = getCurrentQuarter();
   const { data: issues } = useIssues();
   const { data: rocks } = useRocks(quarter);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch("/api/vto/pdf");
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        throw new Error(msg || `Download failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `amana-vto-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Couldn't generate PDF",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   // Company-level issues (no owner assigned = company-level parking lot)
   const companyIssues = issues?.filter(
@@ -50,6 +81,14 @@ export default function VisionPage() {
         description="Your strategic compass — click any section to edit"
         helpTooltipId="vto-heading"
         helpTooltipContent="Your Vision/Traction Organizer defines where you're going and how you'll get there. Review quarterly to stay aligned."
+        primaryAction={{
+          label: "Download PDF",
+          icon: Download,
+          onClick: handleDownloadPdf,
+          loading: downloading,
+          hidden: !vto,
+          variant: "secondary",
+        }}
       />
 
       {/* Content */}
