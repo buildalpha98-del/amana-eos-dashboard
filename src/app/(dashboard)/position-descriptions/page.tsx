@@ -90,6 +90,7 @@ const ROLE_LABEL: Record<Role, string> = {
   marketing: "Marketing",
   member: "OSHC Coordinator",
   staff: "OSHC Educator",
+  eos_viewer: "EOS Viewer",
 };
 
 const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);

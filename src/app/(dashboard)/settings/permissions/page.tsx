@@ -53,6 +53,7 @@ const ROLES_ORDER: readonly Role[] = [
   "marketing",
   "member",
   "staff",
+  "eos_viewer",
 ];
 
 /** Group pages by their first URL segment for a readable matrix. */
@@ -99,6 +100,7 @@ export default function RolePermissionsPage() {
       marketing: new Set(),
       member: new Set(),
       staff: new Set(),
+      eos_viewer: new Set(),
     };
     for (const r of ROLES_ORDER) {
       const list = data.overrides[r] ?? data.defaults[r];
@@ -157,6 +159,7 @@ export default function RolePermissionsPage() {
       marketing: new Set(),
       member: new Set(),
       staff: new Set(),
+      eos_viewer: new Set(),
     };
     for (const r of ROLES_ORDER) {
       next[r] = new Set(data.defaults[r]);
@@ -174,6 +177,7 @@ export default function RolePermissionsPage() {
       marketing: null,
       member: null,
       staff: null,
+      eos_viewer: null,
     };
     for (const r of ROLES_ORDER) {
       const list = [...working[r]].sort();

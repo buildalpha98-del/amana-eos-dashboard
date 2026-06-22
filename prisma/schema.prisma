@@ -22,6 +22,7 @@ enum Role {
   marketing
   member // displayed as "Director of Service"
   staff // displayed as "Educator"
+  eos_viewer // view-only access to the EOS surface — for EOS coaches / board observers / advisors
 }
 
 enum RockStatus {

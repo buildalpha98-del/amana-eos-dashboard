@@ -23,6 +23,7 @@ const ROLE_AT_SERVICE: Record<Role, string> = {
   marketing: "Marketing",
   member: "OSHC Educator",
   staff: "Educator",
+  eos_viewer: "EOS Viewer",
 };
 
 const ACCESS_LEVEL: Record<Role, ServiceAccessLevel> = {
@@ -32,6 +33,9 @@ const ACCESS_LEVEL: Record<Role, ServiceAccessLevel> = {
   marketing: "contributor",
   member: "admin",
   staff: "contributor",
+  // EOS Viewer never gets per-service write access — they're a view
+  // surface only. Use the most-restricted level the union allows.
+  eos_viewer: "contributor",
 };
 
 function toIsoDate(d: Date | string): string {
