@@ -12,9 +12,10 @@ import { isAdminRole } from "@/lib/role-permissions";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
-  role: z.enum(["owner", "head_office", "admin", "marketing", "member", "staff"], {
-    error: "Invalid role. Must be one of: owner, head_office, admin, marketing, member, staff",
-  }).optional(),
+  role: z.enum(
+    ["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer"],
+    { error: "Invalid role. Must be one of: owner, head_office, admin, marketing, member, staff, eos_viewer" },
+  ).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
   state: z.string().optional().nullable(),
