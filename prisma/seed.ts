@@ -1218,8 +1218,12 @@ async function main() {
   }
 
   // ── Accountability Chart (EOS) ────────────────────────────
-  await prisma.accountabilitySeatAssignment.deleteMany();
-  await prisma.accountabilitySeat.deleteMany();
+  // 2026-06-22: first-run only. Same wipe pattern that bit the V/TO,
+  // Scorecard, FinancialPeriod, etc. — `seat.deleteMany()` on every
+  // Vercel build reset Daniel's chart edits. Skip when any seat row
+  // already exists.
+  const existingSeatCount = await prisma.accountabilitySeat.count();
+  if (existingSeatCount === 0) {
 
   // Helper to create a seat with optional assignee by email
   const createSeat = async (
@@ -1338,7 +1342,12 @@ async function main() {
     centreManagers.id, 0
   );
 
-  console.log("Replaced accountability chart (17 seats)");
+    console.log("Created initial accountability chart (first-run seed)");
+  } else {
+    console.log(
+      `Skipping accountability chart seed — ${existingSeatCount} seat(s) already exist (preserving owner edits)`,
+    );
+  }
 
   // ── Marketing Content Templates ─────────────────────────────
   console.log("Seeding marketing templates...");
