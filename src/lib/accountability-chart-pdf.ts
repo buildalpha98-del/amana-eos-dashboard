@@ -36,11 +36,15 @@ export interface SeatNodeForPdf {
 
 // ── Layout constants (mm, before any scale-to-fit shrink) ──────────────
 
-const BOX_W = 46;
-const BOX_H = 18;
+const BOX_W = 54;
+const BOX_H = 30;
 const H_GAP = 4; // gap between sibling subtrees
 const V_GAP = 14; // gap between levels (room for connector lines)
-const TITLE_BAR_H = 6;
+const TITLE_BAR_H = 5;
+// Max responsibilities to render inside each card. The full list
+// always appears on the reference page after the chart, so extras
+// are dropped here rather than overflowing the box.
+const MAX_RESP_PER_CARD = 5;
 
 interface PositionedNode {
   node: SeatNodeForPdf;
@@ -132,30 +136,63 @@ function drawCard(
   doc.rect(x, y, w, titleBarH, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7 * scale);
-  const titleLines = doc.splitTextToSize(node.title, w - 4);
-  doc.text(titleLines[0] ?? "", x + 2, y + titleBarH - 1.7 * scale);
+  doc.setFontSize(6.5 * scale);
+  const titleText = doc.splitTextToSize(node.title, w - 4)[0] ?? "";
+  doc.text(titleText, x + 2, y + titleBarH - 1.5 * scale);
 
   // Assignees
   const assigneeText =
     node.assignees.length > 0
       ? node.assignees.map((a) => a.name).join(", ")
       : "— vacant —";
-  doc.setTextColor(50, 50, 50);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5 * scale);
-  const assigneeLines = doc.splitTextToSize(assigneeText, w - 4);
-  let ty = y + titleBarH + 3 * scale;
-  // Up to 3 lines, ellipsis the rest
-  const maxLines = Math.max(1, Math.floor((h - titleBarH - 1.5 * scale) / (3 * scale)));
-  for (let i = 0; i < Math.min(assigneeLines.length, maxLines); i++) {
-    const line =
-      i === maxLines - 1 && assigneeLines.length > maxLines
-        ? assigneeLines[i].slice(0, -1) + "…"
-        : assigneeLines[i];
-    doc.text(line, x + 2, ty);
-    ty += 3 * scale;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6 * scale);
+  doc.setTextColor(...BRAND.green.rgb);
+  const assigneeLine = doc.splitTextToSize(assigneeText, w - 4)[0] ?? "";
+  let ty = y + titleBarH + 3.2 * scale;
+  doc.text(assigneeLine, x + 2, ty);
+  ty += 3 * scale;
+
+  // Thin separator under the assignee
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.15 * scale);
+  doc.line(x + 2, ty - 1.5 * scale, x + w - 2, ty - 1.5 * scale);
+
+  // Responsibilities — up to MAX_RESP_PER_CARD, one per line,
+  // truncated to fit the card width.
+  if (node.responsibilities.length > 0) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.5 * scale);
+    doc.setTextColor(60, 60, 60);
+    const lineH = 2.8 * scale;
+    const maxLines = Math.min(
+      MAX_RESP_PER_CARD,
+      Math.max(1, Math.floor((y + h - ty - 1.5 * scale) / lineH)),
+    );
+    for (let i = 0; i < Math.min(node.responsibilities.length, maxLines); i++) {
+      const isLastVisible =
+        i === maxLines - 1 && node.responsibilities.length > maxLines;
+      const raw = isLastVisible
+        ? `• ${node.responsibilities[i]} (+${node.responsibilities.length - maxLines} more)`
+        : `• ${node.responsibilities[i]}`;
+      // Truncate to one line so the card stays clean
+      const fit = truncateToWidth(doc, raw, w - 4);
+      doc.text(fit, x + 2, ty);
+      ty += lineH;
+    }
   }
+}
+
+function truncateToWidth(doc: jsPDF, text: string, maxWidth: number): string {
+  if (doc.getTextWidth(text) <= maxWidth) return text;
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi + 1) / 2);
+    if (doc.getTextWidth(text.slice(0, mid) + "…") <= maxWidth) lo = mid;
+    else hi = mid - 1;
+  }
+  return text.slice(0, lo) + "…";
 }
 
 function drawConnectors(
