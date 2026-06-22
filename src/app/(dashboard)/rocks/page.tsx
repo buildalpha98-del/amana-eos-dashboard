@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
+import { toast } from "@/hooks/useToast";
 
 export default function RocksPage() {
   const v2 = useStaffV2Flag();
@@ -51,6 +52,33 @@ export default function RocksPage() {
           onChange: (v) => setView(v as "kanban" | "list"),
         }]}
         secondaryActions={[
+          {
+            label: "Export PDF",
+            icon: Download,
+            onClick: async () => {
+              try {
+                const res = await fetch(`/api/rocks/pdf?quarter=${encodeURIComponent(quarter)}`);
+                if (!res.ok) {
+                  const msg = await res.text().catch(() => "");
+                  throw new Error(msg || `Download failed (${res.status})`);
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `amana-rocks-${quarter}-${new Date().toISOString().slice(0, 10)}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+              } catch (err) {
+                toast({
+                  variant: "destructive",
+                  description: err instanceof Error ? err.message : "Couldn't generate PDF",
+                });
+              }
+            },
+          },
           {
             label: "Export CSV",
             icon: Download,
