@@ -49,10 +49,20 @@ async function main() {
     console.log(`Staff ready: ${user.email} (${user.role})`);
   }
 
-  // V/TO — delete + replace
-  await prisma.oneYearGoal.deleteMany();
-  await prisma.visionTractionOrganiser.deleteMany();
-  const vto = await prisma.visionTractionOrganiser.create({
+  // V/TO — first-run only.
+  //
+  // 2026-06-22: previously this block did
+  // `visionTractionOrganiser.deleteMany() + create()` on every run.
+  // Because `npx tsx prisma/seed.ts` is part of the Vercel build, that
+  // wiped Daniel's V/TO edits on every push to main — exact same bug
+  // pattern that bit the Scorecard at line ~120 and was fixed in
+  // PR #91. Daniel reported the same revert symptom on V/TO sections
+  // (especially the new GTM sub-fields) on 2026-06-22 — fix is the
+  // same: skip the seed entirely when a V/TO already exists, so
+  // user-entered content survives every redeploy.
+  const existingVtoCount = await prisma.visionTractionOrganiser.count();
+  if (existingVtoCount === 0) {
+    const vto = await prisma.visionTractionOrganiser.create({
       data: {
         coreValues: [
           "Faith & Character",
@@ -108,7 +118,12 @@ async function main() {
       },
     });
 
-  console.log("Replaced V/TO with goals");
+    console.log("Created initial V/TO + goals (first-run seed)");
+  } else {
+    console.log(
+      `Skipping V/TO seed — ${existingVtoCount} V/TO already exists (preserving owner edits)`,
+    );
+  }
 
   // Scorecard — first-run only. The old "delete + replace" pattern
   // was wiping ALL user-entered weekly measurables (MeasurableEntry)
