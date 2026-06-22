@@ -7,6 +7,7 @@ import { getCurrentQuarter } from "@/lib/utils";
 import { CoreValuesCard } from "@/components/vision/CoreValuesCard";
 import { VTOSection } from "@/components/vision/VTOSection";
 import { GoalsSection } from "@/components/vision/GoalsSection";
+import { GoToMarketStrategyCard } from "@/components/vision/GoToMarketStrategyCard";
 import {
   Eye,
   AlertTriangle,
@@ -125,13 +126,7 @@ export default function VisionPage() {
 
               <GoalsSection goals={vto.oneYearGoals} vtoId={vto.id} />
 
-              <VTOSection
-                title="Marketing Strategy"
-                field="marketingStrategy"
-                value={vto.marketingStrategy}
-                multiline
-                sectionLabels={vto.sectionLabels}
-              />
+              <GoToMarketStrategyCard vto={vto} />
             </div>
           </div>
 
