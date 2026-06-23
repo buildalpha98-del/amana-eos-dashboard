@@ -356,6 +356,38 @@ export function IssueDetailPanel({
             </div>
           </div>
 
+          {/* List — short-term (weekly L10) vs long-term (V/TO, quarterly) */}
+          <div>
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
+              List
+            </label>
+            <div className="flex gap-1">
+              {([
+                { key: "short_term", label: "Short-Term" },
+                { key: "long_term", label: "Long-Term" },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => updateIssue.mutate({ id: issueId, category: opt.key })}
+                  disabled={updateIssue.isPending}
+                  className={cn(
+                    "flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors",
+                    issue.category === opt.key
+                      ? "bg-brand/10 border-brand/30 text-brand"
+                      : "bg-card border-border text-muted hover:border-border"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-muted">
+              {issue.category === "long_term"
+                ? "Parked for quarterly planning on the V/TO."
+                : "Worked weekly at the L10 via IDS."}
+            </p>
+          </div>
+
           {/* Owner */}
           <div>
             <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-1">
