@@ -202,3 +202,33 @@ export function useBulkIssueAction() {
     },
   });
 }
+
+export function usePromoteIssueToRock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...body
+    }: {
+      id: string;
+      quarter?: string;
+      ownerId?: string | null;
+      rockType?: "company" | "personal";
+    }) => {
+      return mutateApi<{ rock: { id: string; title: string }; issue: IssueData }>(
+        `/api/issues/${id}/promote-to-rock`,
+        { method: "POST", body },
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      queryClient.invalidateQueries({ queryKey: ["issue"] });
+      queryClient.invalidateQueries({ queryKey: ["rocks"] });
+      queryClient.invalidateQueries({ queryKey: ["rocks-list-active"] });
+      toast({ description: "Promoted to a Rock" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
