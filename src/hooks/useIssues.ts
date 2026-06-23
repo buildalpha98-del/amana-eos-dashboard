@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { IssueStatus, IssuePriority } from "@prisma/client";
+import type { IssueStatus, IssuePriority, IssueCategory } from "@prisma/client";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
@@ -26,6 +26,7 @@ export interface IssueData {
   service: { id: string; name: string } | null;
   priority: IssuePriority;
   status: IssueStatus;
+  category: IssueCategory;
   identifiedAt: string;
   discussedAt: string | null;
   solvedAt: string | null;
@@ -49,17 +50,21 @@ export function useIssues(filters?: {
   priority?: string;
   ownerId?: string;
   rockId?: string;
+  serviceId?: string;
+  category?: string;
 }) {
   const params = new URLSearchParams();
   if (filters?.status) params.set("status", filters.status);
   if (filters?.priority) params.set("priority", filters.priority);
   if (filters?.ownerId) params.set("ownerId", filters.ownerId);
   if (filters?.rockId) params.set("rockId", filters.rockId);
+  if (filters?.serviceId) params.set("serviceId", filters.serviceId);
+  if (filters?.category) params.set("category", filters.category);
 
   const query = params.toString();
 
   return useQuery<IssueData[]>({
-    queryKey: ["issues", filters?.status, filters?.priority, filters?.ownerId, filters?.rockId],
+    queryKey: ["issues", filters?.status, filters?.priority, filters?.ownerId, filters?.rockId, filters?.serviceId, filters?.category],
     queryFn: () => fetchApi<IssueData[]>(`/api/issues${query ? `?${query}` : ""}`),
     staleTime: 30_000,
     retry: 2,
@@ -85,6 +90,7 @@ export function useCreateIssue() {
       rockId?: string | null;
       serviceId?: string | null;
       priority?: IssuePriority;
+      category?: IssueCategory;
     }) => {
       return mutateApi<IssueData>("/api/issues", {
         method: "POST",
@@ -116,6 +122,7 @@ export function useUpdateIssue() {
       priority?: IssuePriority;
       rockId?: string | null;
       resolution?: string | null;
+      category?: IssueCategory;
     }) => {
       return mutateApi<IssueData>(`/api/issues/${id}`, {
         method: "PATCH",
