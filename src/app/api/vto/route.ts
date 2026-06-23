@@ -17,6 +17,14 @@ const updateVtoSchema = z.object({
   threeYearProfit: z.string().nullable().optional(),
   threeYearMeasurables: z.string().nullable().optional(),
   threeYearLooksLike: z.string().nullable().optional(),
+  // 2026-06-23: 1-Year Plan header fields (Future Date / Revenue /
+  // Profit / Measurables). Goals themselves stay in the OneYearGoal
+  // relation — these sit on the VTO as the "page header" of the
+  // 1-Year Plan card.
+  oneYearFutureDate: z.string().nullable().optional(),
+  oneYearRevenue: z.string().nullable().optional(),
+  oneYearProfit: z.string().nullable().optional(),
+  oneYearMeasurables: z.string().nullable().optional(),
   marketingStrategy: z.string().nullable().optional(),
   // Go to Market Strategy — four EOS sub-fields that replace the
   // single freeform marketingStrategy block.
@@ -81,6 +89,14 @@ const body = await parseJsonBody(req);
   if (parsed.data.threeYearProfit !== undefined) data.threeYearProfit = parsed.data.threeYearProfit;
   if (parsed.data.threeYearMeasurables !== undefined) data.threeYearMeasurables = parsed.data.threeYearMeasurables;
   if (parsed.data.threeYearLooksLike !== undefined) data.threeYearLooksLike = parsed.data.threeYearLooksLike;
+  if (parsed.data.oneYearFutureDate !== undefined) {
+    data.oneYearFutureDate = parsed.data.oneYearFutureDate
+      ? new Date(parsed.data.oneYearFutureDate)
+      : null;
+  }
+  if (parsed.data.oneYearRevenue !== undefined) data.oneYearRevenue = parsed.data.oneYearRevenue;
+  if (parsed.data.oneYearProfit !== undefined) data.oneYearProfit = parsed.data.oneYearProfit;
+  if (parsed.data.oneYearMeasurables !== undefined) data.oneYearMeasurables = parsed.data.oneYearMeasurables;
   if (parsed.data.marketingStrategy !== undefined) data.marketingStrategy = parsed.data.marketingStrategy;
   if (parsed.data.gtmTargetMarket !== undefined) data.gtmTargetMarket = parsed.data.gtmTargetMarket;
   if (parsed.data.gtmThreeUniques !== undefined) data.gtmThreeUniques = parsed.data.gtmThreeUniques;

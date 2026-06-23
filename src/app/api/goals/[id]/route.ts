@@ -8,6 +8,7 @@ const updateGoalSchema = z.object({
   description: z.string().nullable().optional(),
   status: z.enum(["on_track", "at_risk", "off_track", "complete"]).optional(),
   targetDate: z.string().nullable().optional(),
+  smart: z.boolean().optional(),
 });
 
 // PATCH /api/goals/[id]
@@ -24,6 +25,7 @@ const { id } = await context!.params!;
   if (parsed.data.description !== undefined) data.description = parsed.data.description;
   if (parsed.data.status !== undefined) data.status = parsed.data.status;
   if (parsed.data.targetDate !== undefined) data.targetDate = parsed.data.targetDate ? new Date(parsed.data.targetDate) : null;
+  if (parsed.data.smart !== undefined) data.smart = parsed.data.smart;
 
   const goal = await prisma.oneYearGoal.update({
     where: { id },

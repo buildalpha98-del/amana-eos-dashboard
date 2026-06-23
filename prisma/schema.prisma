@@ -926,6 +926,10 @@ model VisionTractionOrganiser {
   threeYearProfit       String?
   threeYearMeasurables  String?  @db.Text
   threeYearLooksLike    String?  @db.Text
+  oneYearFutureDate     DateTime?
+  oneYearRevenue        String?
+  oneYearProfit         String?
+  oneYearMeasurables    String?  @db.Text
   marketingStrategy String?  @db.Text // legacy freeform — superseded by the four gtm* fields below; rendered read-only until cleared
   gtmTargetMarket   String?  @db.Text
   gtmThreeUniques   String?  @db.Text
@@ -945,6 +949,7 @@ model OneYearGoal {
   description String?                 @db.Text
   targetDate  DateTime?
   status      GoalStatus              @default(on_track)
+  smart       Boolean                 @default(false)
   vtoId       String
   vto         VisionTractionOrganiser @relation(fields: [vtoId], references: [id], onDelete: Cascade)
   createdAt   DateTime                @default(now())

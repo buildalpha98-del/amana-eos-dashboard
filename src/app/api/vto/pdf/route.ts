@@ -47,6 +47,12 @@ export const GET = withApiAuth(async () => {
     threeYearProfit: vto.threeYearProfit,
     threeYearMeasurables: vto.threeYearMeasurables,
     threeYearLooksLike: vto.threeYearLooksLike,
+    oneYearFutureDate: vto.oneYearFutureDate
+      ? vto.oneYearFutureDate.toISOString()
+      : null,
+    oneYearRevenue: vto.oneYearRevenue,
+    oneYearProfit: vto.oneYearProfit,
+    oneYearMeasurables: vto.oneYearMeasurables,
     marketingStrategy: vto.marketingStrategy,
     gtmTargetMarket: vto.gtmTargetMarket,
     gtmThreeUniques: vto.gtmThreeUniques,
@@ -60,6 +66,7 @@ export const GET = withApiAuth(async () => {
       description: g.description,
       targetDate: g.targetDate ? g.targetDate.toISOString() : null,
       status: g.status,
+      smart: g.smart,
       rocks: g.rocks.map((r) => ({
         title: r.title,
         status: r.status,
