@@ -13,6 +13,11 @@ import {
   ShieldAlert,
   UserPlus,
   CalendarCheck,
+  Eye,
+  BarChart3,
+  CheckSquare,
+  Presentation,
+  Network,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
@@ -213,13 +218,79 @@ function QuickActionButtons() {
 
 // ─── Role Helpers ────────────────────────────────────────────
 
-type DashboardRole = "owner" | "head_office" | "admin" | "member" | "staff" | "marketing";
+type DashboardRole =
+  | "owner"
+  | "head_office"
+  | "admin"
+  | "member"
+  | "staff"
+  | "marketing"
+  | "eos_viewer"
+  | "eos_implementer";
 
 function getDashboardRole(role: string): DashboardRole {
-  if (["owner", "head_office", "admin", "member", "staff", "marketing"].includes(role)) {
+  if (
+    [
+      "owner",
+      "head_office",
+      "admin",
+      "member",
+      "staff",
+      "marketing",
+      "eos_viewer",
+      "eos_implementer",
+    ].includes(role)
+  ) {
     return role as DashboardRole;
   }
   return "staff";
+}
+
+// ─── EOS Dashboard (eos_viewer / eos_implementer) ───────────
+// EOS-only roles are org-wide and have no centre, so the command-centre
+// and Educator dashboards don't fit. This is a self-contained hub of
+// links into the EOS surface — no data fetching, so nothing can 403.
+
+function EosDashboard({ canWrite }: { canWrite: boolean }) {
+  const { data: session } = useSession();
+  const firstName = session?.user?.name?.split(" ")[0] || "there";
+  const tiles: { href: string; label: string; desc: string; icon: typeof Mountain }[] = [
+    { href: "/rocks", label: "Rocks", desc: "Quarterly priorities", icon: Mountain },
+    { href: "/scorecard", label: "Scorecard", desc: "Weekly measurables", icon: BarChart3 },
+    { href: "/todos", label: "To-Dos", desc: "7-day action items", icon: CheckSquare },
+    { href: "/issues", label: "Issues", desc: "IDS issues list", icon: AlertCircle },
+    { href: "/meetings", label: "Meetings", desc: "Weekly L10s", icon: Presentation },
+    { href: "/vision", label: "Vision / V-TO", desc: "Traction organiser", icon: Eye },
+    { href: "/accountability-chart", label: "Accountability", desc: "Org structure", icon: Network },
+  ];
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-heading font-bold text-foreground">Welcome, {firstName}</h1>
+        <p className="text-sm text-muted mt-1">
+          Your EOS workspace{canWrite ? "" : " — view-only"}. Jump into the tools below.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {tiles.map((t) => (
+          <Link
+            key={t.href}
+            href={t.href}
+            className="group rounded-2xl border border-border bg-card p-4 hover:border-brand/40 hover:shadow-[var(--shadow-warm-sm)] transition-all flex items-center gap-3"
+          >
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
+              <t.icon className="w-5 h-5 text-brand" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">{t.label}</p>
+              <p className="text-xs text-muted truncate">{t.desc}</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted ml-auto group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ─── Main Dashboard Content ─────────────────────────────────
@@ -257,6 +328,14 @@ export function DashboardContent() {
   // includes DirectorAnalyticsWidget — keep existing behavior
   if (role === "member") {
     return <StaffDashboard />;
+  }
+
+  // EOS roles (viewer / implementer) are EOS-only and org-wide. They land
+  // on /rocks normally; if they reach /dashboard, show a focused EOS hub
+  // rather than the Educator dashboard (which is service-scoped and would
+  // 403 / come back empty for a user with no centre).
+  if (role === "eos_viewer" || role === "eos_implementer") {
+    return <EosDashboard canWrite={role === "eos_implementer"} />;
   }
 
   // From here on: owner, head_office, admin, coordinator see the Command Centre

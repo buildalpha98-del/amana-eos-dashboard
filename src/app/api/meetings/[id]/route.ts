@@ -153,4 +153,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(meeting);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });

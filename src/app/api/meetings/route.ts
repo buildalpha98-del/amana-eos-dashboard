@@ -106,4 +106,4 @@ const body = await parseJsonBody(req);
   // 2026-06-03: Marketing added — the marketing pod runs its own L10
   // and needs to schedule meetings on it. List GET is already open so
   // this just lets them create the meeting record they're running.
-}, { roles: ["owner", "head_office", "admin", "marketing"] });
+}, { roles: ["owner", "head_office", "admin", "marketing", "eos_implementer"] });

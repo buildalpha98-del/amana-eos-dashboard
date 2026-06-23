@@ -102,4 +102,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });

@@ -92,4 +92,4 @@ const body = await parseJsonBody(req);
     created: created.length,
     todos: created.map((t) => ({ id: t.id, title: t.title })),
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });

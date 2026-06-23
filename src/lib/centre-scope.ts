@@ -1,11 +1,15 @@
 import type { Session } from "next-auth";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { EOS_ROLES } from "@/lib/role-enum";
 
 // ---------------------------------------------------------------------------
 // Roles that always see ALL data (no centre filtering)
 // ---------------------------------------------------------------------------
-const UNSCOPED_ROLES: readonly Role[] = ["owner", "head_office"];
+// EOS roles (viewer / implementer) are organisation-wide: they run/observe
+// EOS across every centre, so they get the unscoped (null) filter rather
+// than falling through to the "no centre assigned" empty scope.
+const UNSCOPED_ROLES: readonly Role[] = ["owner", "head_office", ...EOS_ROLES];
 
 // ---------------------------------------------------------------------------
 // Roles scoped to their assigned centres

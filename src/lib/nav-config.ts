@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
+import { EOS_ROLES } from "@/lib/role-enum";
 
 export interface NavItem {
   href: string;
@@ -101,7 +102,9 @@ const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "member", "staff"];
 // participates in weekly L10s, owns todos out of those meetings, and tracks
 // quarterly rocks for campaigns. They had Scorecard already; this extends
 // the rest of the EOS surface to them.
-const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin", "marketing"];
+// 2026-06-23: EOS roles (viewer / implementer) are EOS-only and need the
+// EOS sidebar links to actually reach their surface.
+const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin", "marketing", ...EOS_ROLES];
 
 /**
  * Single source of truth for the app's navigation items.
@@ -124,7 +127,7 @@ export const navItems: NavItem[] = [
   // surfaced in Akram's marketing cockpit (campaign metrics roll up here).
   // Allowed for State Manager, Admin, and Marketing — but NOT Director of
   // Service or Educator. Owner bypasses.
-  { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS", tooltip: "Weekly measurables & KPIs", roles: ["head_office", "admin", "marketing"] },
+  { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS", tooltip: "Weekly measurables & KPIs", roles: ["head_office", "admin", "marketing", ...EOS_ROLES] },
   { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings", roles: EOS_SIDEBAR_ROLES },
   { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)", roles: EOS_SIDEBAR_ROLES },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings", roles: EOS_SIDEBAR_ROLES },

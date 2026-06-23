@@ -48,4 +48,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(goal, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });

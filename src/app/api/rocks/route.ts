@@ -148,4 +148,4 @@ const body = await parseJsonBody(req);
   // creates campaign rocks. Cross-team rock visibility is a separate
   // concern (handled in the list query above by the same scope rules
   // used for member).
-}, { roles: ["owner", "head_office", "admin", "member", "marketing"] });
+}, { roles: ["owner", "head_office", "admin", "member", "marketing", "eos_implementer"] });

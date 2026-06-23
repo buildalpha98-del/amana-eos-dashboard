@@ -216,6 +216,50 @@ describe("withApiAuth", () => {
     });
   });
 
+  // ── EOS roles (regression guard for VALID_ROLES drift) ─────
+  // Before sourcing VALID_ROLES from ROLES, a newer enum value (eos_viewer /
+  // eos_implementer) hit the "invalid role" 401 here, breaking every API
+  // call for that user. These lock that behaviour in.
+  describe("EOS roles", () => {
+    it("treats eos_implementer as a valid role (not an invalid-role 401)", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: { id: "user-1", role: "eos_implementer", email: "cam@test.com" },
+      });
+
+      const handler = withApiAuth(async () => NextResponse.json({ ok: true }));
+      const res = await handler(mockReq);
+
+      expect(res.status).toBe(200);
+    });
+
+    it("accepts eos_implementer on an EOS-write roles array", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: { id: "user-1", role: "eos_implementer", email: "cam@test.com" },
+      });
+
+      const handler = withApiAuth(async () => NextResponse.json({ ok: true }), {
+        roles: ["owner", "head_office", "admin", "eos_implementer"] as any,
+      });
+      const res = await handler(mockReq);
+
+      expect(res.status).toBe(200);
+    });
+
+    it("rejects eos_viewer on an EOS-write roles array (stays read-only)", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: { id: "user-1", role: "eos_viewer", email: "coach@test.com" },
+      });
+
+      const handler = withApiAuth(async () => NextResponse.json({ ok: true }), {
+        roles: ["owner", "head_office", "admin", "eos_implementer"] as any,
+      });
+      const res = await handler(mockReq);
+
+      expect(res.status).toBe(403);
+      expect(await parseJson(res)).toEqual({ error: "Forbidden" });
+    });
+  });
+
   // ── Error Handling ─────────────────────────────────────────
 
   describe("Error handling", () => {

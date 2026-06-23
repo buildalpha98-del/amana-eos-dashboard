@@ -32,7 +32,8 @@ type Role =
   | "marketing"
   | "member"
   | "staff"
-  | "eos_viewer";
+  | "eos_viewer"
+  | "eos_implementer";
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ const roleLabelsSchema = z.object({
   // have an eos_viewer key) still parses cleanly. The default kicks
   // in once and persists when the row is next written.
   eos_viewer: z.string().min(1).max(60).default("EOS Viewer"),
+  eos_implementer: z.string().min(1).max(60).default("EOS Implementer"),
 });
 
 // 2026-06-02: optional per-role page-access overrides. Each role can
@@ -96,6 +98,7 @@ const rolePageOverridesSchema = z.object({
   member: z.array(z.string()).nullable(),
   staff: z.array(z.string()).nullable(),
   eos_viewer: z.array(z.string()).nullable().default(null),
+  eos_implementer: z.array(z.string()).nullable().default(null),
 });
 
 // 2026-05-16: per-role guide overrides — welcome message only for v1.
@@ -110,6 +113,9 @@ const roleGuidesSchema = z.object({
   member: z.object({ welcomeMessage: z.string().max(2_000) }),
   staff: z.object({ welcomeMessage: z.string().max(2_000) }),
   eos_viewer: z
+    .object({ welcomeMessage: z.string().max(2_000) })
+    .default({ welcomeMessage: "" }),
+  eos_implementer: z
     .object({ welcomeMessage: z.string().max(2_000) })
     .default({ welcomeMessage: "" }),
 });
@@ -132,6 +138,7 @@ const checklistOverridesSchema = z.object({
   member: z.record(z.string(), checklistOverrideEntrySchema),
   staff: z.record(z.string(), checklistOverrideEntrySchema),
   eos_viewer: z.record(z.string(), checklistOverrideEntrySchema).default({}),
+  eos_implementer: z.record(z.string(), checklistOverrideEntrySchema).default({}),
 });
 
 // 2026-05-16: onboarding welcome announcement seed override. The original
@@ -220,6 +227,7 @@ export const ROLE_LABEL_DEFAULTS: RoleLabels = {
   member: "OSHC Coordinator",
   staff: "OSHC Educator",
   eos_viewer: "EOS Viewer",
+  eos_implementer: "EOS Implementer",
 };
 
 /** Server-safe label getter. Pass the merged `OrgSettingsConfig.roleLabels`. */
@@ -264,6 +272,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     member: null,
     staff: null,
     eos_viewer: null,
+    eos_implementer: null,
   },
   roleGuides: {
     owner: { welcomeMessage: "" },
@@ -273,6 +282,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     member: { welcomeMessage: "" },
     staff: { welcomeMessage: "" },
     eos_viewer: { welcomeMessage: "" },
+    eos_implementer: { welcomeMessage: "" },
   },
   checklistOverrides: {
     owner: {},
@@ -282,6 +292,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     member: {},
     staff: {},
     eos_viewer: {},
+    eos_implementer: {},
   },
   welcomePack: {
     welcomeIntro:
@@ -426,6 +437,7 @@ export function mergeOrgSettings(
       member: pickLabel("member"),
       staff: pickLabel("staff"),
       eos_viewer: pickLabel("eos_viewer"),
+      eos_implementer: pickLabel("eos_implementer"),
     },
     rolePageOverrides: mergeRolePageOverrides(
       safe.rolePageOverrides,
@@ -527,6 +539,7 @@ function mergeRolePageOverrides(
     member: pick("member"),
     staff: pick("staff"),
     eos_viewer: pick("eos_viewer"),
+    eos_implementer: pick("eos_implementer"),
   };
 }
 
@@ -558,6 +571,7 @@ function mergeRoleGuides(
     member: pick("member"),
     staff: pick("staff"),
     eos_viewer: pick("eos_viewer"),
+    eos_implementer: pick("eos_implementer"),
   };
 }
 
@@ -595,5 +609,6 @@ function mergeChecklistOverrides(
     member: pickRole("member"),
     staff: pickRole("staff"),
     eos_viewer: pickRole("eos_viewer"),
+    eos_implementer: pickRole("eos_implementer"),
   };
 }

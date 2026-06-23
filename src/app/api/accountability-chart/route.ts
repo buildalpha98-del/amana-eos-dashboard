@@ -120,4 +120,4 @@ export const POST = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json(seat, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });
