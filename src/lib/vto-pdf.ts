@@ -23,6 +23,10 @@ export interface VtoPdfData {
   threeYearProfit: string | null;
   threeYearMeasurables: string | null;
   threeYearLooksLike: string | null;
+  oneYearFutureDate: string | null;
+  oneYearRevenue: string | null;
+  oneYearProfit: string | null;
+  oneYearMeasurables: string | null;
   marketingStrategy: string | null;
   gtmTargetMarket: string | null;
   gtmThreeUniques: string | null;
@@ -36,6 +40,7 @@ export interface VtoPdfData {
     description: string | null;
     targetDate: string | null;
     status: string;
+    smart: boolean;
     rocks: Array<{ title: string; status: string; percentComplete: number }>;
   }>;
 }
@@ -153,29 +158,88 @@ export async function generateVtoPdf(data: VtoPdfData): Promise<jsPDF> {
     b.paragraph(data.threeYearPicture);
   }
 
-  // ── 1-Year Goals ──
-  b.heading("1-YEAR GOALS");
+  // ── 1-Year Plan ──
+  b.heading(label("oneYearPlan", "1-YEAR PLAN"));
+  if (data.oneYearFutureDate) {
+    const d = (() => {
+      try {
+        return new Date(data.oneYearFutureDate).toLocaleDateString("en-AU", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+      } catch {
+        return data.oneYearFutureDate ?? "";
+      }
+    })();
+    b.row("Future Date:", d);
+  }
+  if (data.oneYearRevenue) b.row("Revenue:", data.oneYearRevenue);
+  if (data.oneYearProfit) b.row("Profit:", data.oneYearProfit);
+  if (data.oneYearMeasurables) {
+    const lines = data.oneYearMeasurables.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      b.checkPage(8 + lines.length * 5);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(80, 80, 80);
+      doc.text("Measurables", margin, b.y);
+      b.y += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(40, 40, 40);
+      for (const line of lines) {
+        const wrapped = doc.splitTextToSize(`• ${line}`, pageWidth - margin * 2 - 6);
+        doc.text(wrapped, margin + 3, b.y);
+        b.y += wrapped.length * 4.5;
+      }
+      b.y += 2;
+    }
+  }
+
+  // Goals for the Year
+  b.checkPage(10);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(80, 80, 80);
+  doc.text("Goals for the Year", margin, b.y);
+  doc.text("S.M.A.R.T.", pageWidth - margin, b.y, { align: "right" });
+  b.y += 5;
+
   if (data.oneYearGoals.length === 0) {
     b.paragraph("— no goals yet —");
   } else {
-    for (const goal of data.oneYearGoals) {
+    for (let i = 0; i < data.oneYearGoals.length; i++) {
+      const goal = data.oneYearGoals[i];
       b.checkPage(15);
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...BRAND.green.rgb);
+      const numberedTitle = `${i + 1}. ${goal.title}`;
       const titleLines = doc.splitTextToSize(
-        goal.title,
-        pageWidth - margin * 2 - 30,
+        numberedTitle,
+        pageWidth - margin * 2 - 40,
       );
       doc.text(titleLines, margin, b.y);
 
-      // status pill on the right
+      // SMART checkbox (rightmost) + status pill (left of it)
+      const smartX = pageWidth - margin - 4;
+      doc.setDrawColor(...BRAND.green.rgb);
+      doc.setLineWidth(0.3);
+      doc.rect(smartX, b.y - 3.5, 3.5, 3.5);
+      if (goal.smart) {
+        doc.setFillColor(...BRAND.green.rgb);
+        doc.rect(smartX, b.y - 3.5, 3.5, 3.5, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(7);
+        doc.text("✓", smartX + 0.8, b.y - 1, { align: "left" });
+      }
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(...statusColor(goal.status));
       doc.text(
         statusLabel(goal.status),
-        pageWidth - margin,
+        pageWidth - margin - 8,
         b.y,
         { align: "right" },
       );

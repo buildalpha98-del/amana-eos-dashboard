@@ -18,6 +18,7 @@ export interface OneYearGoal {
   description: string | null;
   targetDate: string | null;
   status: GoalStatus;
+  smart: boolean;
   vtoId: string;
   rocks: GoalRock[];
   createdAt: string;
@@ -36,6 +37,10 @@ export interface VTOData {
   threeYearProfit: string | null;
   threeYearMeasurables: string | null;
   threeYearLooksLike: string | null;
+  oneYearFutureDate: string | null;
+  oneYearRevenue: string | null;
+  oneYearProfit: string | null;
+  oneYearMeasurables: string | null;
   marketingStrategy: string | null;
   gtmTargetMarket: string | null;
   gtmThreeUniques: string | null;
@@ -70,6 +75,10 @@ export function useUpdateVTO() {
         threeYearProfit: string;
         threeYearMeasurables: string;
         threeYearLooksLike: string;
+        oneYearFutureDate: string | null;
+        oneYearRevenue: string;
+        oneYearProfit: string;
+        oneYearMeasurables: string;
         marketingStrategy: string;
         gtmTargetMarket: string;
         gtmThreeUniques: string;
@@ -121,6 +130,7 @@ export function useUpdateGoal() {
       description?: string | null;
       status?: GoalStatus;
       targetDate?: string | null;
+      smart?: boolean;
     }) => {
       return mutateApi(`/api/goals/${id}`, { method: "PATCH", body: data });
     },

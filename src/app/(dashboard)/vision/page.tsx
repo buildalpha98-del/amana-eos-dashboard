@@ -6,9 +6,9 @@ import { useRocks } from "@/hooks/useRocks";
 import { getCurrentQuarter } from "@/lib/utils";
 import { CoreValuesCard } from "@/components/vision/CoreValuesCard";
 import { VTOSection } from "@/components/vision/VTOSection";
-import { GoalsSection } from "@/components/vision/GoalsSection";
 import { GoToMarketStrategyCard } from "@/components/vision/GoToMarketStrategyCard";
 import { ThreeYearPictureCard } from "@/components/vision/ThreeYearPictureCard";
+import { OneYearPlanCard } from "@/components/vision/OneYearPlanCard";
 import {
   Eye,
   AlertTriangle,
@@ -158,7 +158,7 @@ export default function VisionPage() {
 
               <ThreeYearPictureCard vto={vto} />
 
-              <GoalsSection goals={vto.oneYearGoals} vtoId={vto.id} />
+              <OneYearPlanCard vto={vto} />
 
               <GoToMarketStrategyCard vto={vto} />
             </div>
