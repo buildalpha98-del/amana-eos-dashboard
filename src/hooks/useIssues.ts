@@ -26,6 +26,8 @@ export interface IssueData {
   service: { id: string; name: string } | null;
   priority: IssuePriority;
   status: IssueStatus;
+  /** "short_term" | "long_term" | null — null defaults to short-term in the UI */
+  category: string | null;
   identifiedAt: string;
   discussedAt: string | null;
   solvedAt: string | null;
