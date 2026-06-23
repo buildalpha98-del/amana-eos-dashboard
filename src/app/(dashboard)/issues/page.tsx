@@ -66,6 +66,11 @@ export default function IssuesPage() {
     setDetailFocus(undefined);
   }, []);
   const [statusFilter, setStatusFilter] = useState("");
+  // 2026-06-22: EOS Long-Term Issues List. "short_term" is the
+  // default L10 list; "long_term" is the 3-year strategic list.
+  // "all" shows both — useful when triaging which list to put a
+  // newly-raised issue on.
+  const [categoryTab, setCategoryTab] = useState<"short_term" | "long_term" | "all">("short_term");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -95,11 +100,27 @@ export default function IssuesPage() {
 
   const bulkAction = useBulkIssueAction();
 
-  // Filter out closed issues when archive is hidden
+  // Filter out closed issues when archive is hidden, then apply the
+  // Short-term / Long-term category tab. Null category counts as
+  // short-term (the EOS default for issues raised in the weekly L10).
   const filteredIssues = useMemo(() => {
     if (!issues) return [];
-    if (showArchived) return issues;
-    return issues.filter((i) => i.status !== "closed");
+    const base = showArchived ? issues : issues.filter((i) => i.status !== "closed");
+    if (categoryTab === "all") return base;
+    if (categoryTab === "long_term") {
+      return base.filter((i) => i.category === "long_term");
+    }
+    return base.filter((i) => i.category !== "long_term");
+  }, [issues, showArchived, categoryTab]);
+
+  const categoryCounts = useMemo(() => {
+    if (!issues) return { short_term: 0, long_term: 0, all: 0 };
+    const live = showArchived ? issues : issues.filter((i) => i.status !== "closed");
+    return {
+      short_term: live.filter((i) => i.category !== "long_term").length,
+      long_term: live.filter((i) => i.category === "long_term").length,
+      all: live.length,
+    };
   }, [issues, showArchived]);
 
   // Group issues by status for board view
@@ -278,6 +299,41 @@ export default function IssuesPage() {
           disabled={openIssues.length === 0}
         />
       </PageHeader>
+
+      {/* EOS Long-Term Issues List tab */}
+      <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-border">
+        {([
+          { key: "short_term", label: "Short Term", help: "This-quarter issues for the weekly L10" },
+          { key: "long_term", label: "Long Term", help: "Strategic 3-year issues — reviewed quarterly" },
+          { key: "all", label: "All", help: "Both lists together" },
+        ] as const).map((tab) => {
+          const isActive = categoryTab === tab.key;
+          const count = categoryCounts[tab.key];
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setCategoryTab(tab.key)}
+              title={tab.help}
+              className={cn(
+                "px-3 sm:px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors inline-flex items-center gap-2",
+                isActive
+                  ? "border-brand text-brand"
+                  : "border-transparent text-muted hover:text-foreground hover:border-border",
+              )}
+            >
+              {tab.label}
+              <span
+                className={cn(
+                  "text-xs px-1.5 py-0.5 rounded-full",
+                  isActive ? "bg-brand/10 text-brand" : "bg-surface text-muted",
+                )}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* Status Tabs */}
       {viewMode === "list" && (
