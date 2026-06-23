@@ -5,12 +5,14 @@ import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
+import { getLandingPage } from "@/lib/role-permissions";
 
 /**
  * Pick the post-sign-in destination. Service-scoped roles (staff / member /
  * coordinator) with an assigned `serviceId` land directly on their service's
  * detail page — tablets at the centre kiosk shouldn't go via /dashboard.
- * Org-wide roles continue to land on /dashboard.
+ * EOS-only roles land on /rocks (their primary surface). Other org-wide
+ * roles land on /dashboard.
  *
  * Honours an explicit `callbackUrl` in the URL query — forgot-password
  * redirects + bookmarked links should still work.
@@ -31,7 +33,8 @@ export function destinationForSession(
     !!serviceId;
 
   if (serviceScoped) return `/services/${serviceId}?tab=today`;
-  return "/dashboard";
+  // EOS roles → /rocks; everyone else → /dashboard.
+  return getLandingPage(role);
 }
 
 function LoginForm() {

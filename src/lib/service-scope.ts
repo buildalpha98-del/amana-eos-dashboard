@@ -1,4 +1,5 @@
 import type { Session } from "next-auth";
+import { isEosRole } from "@/lib/role-enum";
 
 /**
  * Returns the serviceId to scope queries by, or null if the user has full access.
@@ -19,6 +20,7 @@ export function getServiceScope(session: Session | null): string | null {
     role !== "owner" &&
     role !== "head_office" &&
     role !== "admin" &&
+    !isEosRole(role) && // EOS roles are organisation-wide, never centre-scoped
     session.user.serviceId
   ) {
     return session.user.serviceId as string;

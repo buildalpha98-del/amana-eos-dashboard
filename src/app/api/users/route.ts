@@ -18,7 +18,7 @@ const createUserSchema = z.object({
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   password: passwordSchema,
   role: z
-    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer"])
+    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer"])
     .default("member"),
   serviceId: z.string().optional().nullable(),
   state: z.string().optional().nullable(),

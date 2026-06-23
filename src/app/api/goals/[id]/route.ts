@@ -47,7 +47,7 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(goal);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });
 
 // DELETE /api/goals/[id]
 export const DELETE = withApiAuth(async (req, session, context) => {
@@ -65,4 +65,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });

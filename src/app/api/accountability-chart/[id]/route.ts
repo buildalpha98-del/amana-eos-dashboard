@@ -84,7 +84,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(seat);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });
 
 // ---------- DELETE /api/accountability-chart/[id] ----------
 
@@ -113,4 +113,4 @@ export const DELETE = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });

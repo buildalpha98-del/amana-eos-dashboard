@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Role } from "@prisma/client";
 import type { Session } from "next-auth";
 import { hasFeature, hasMinRole, type Feature } from "@/lib/role-permissions";
+import { ROLES } from "@/lib/role-enum";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-handler";
 import { ApiError } from "@/lib/api-error";
@@ -156,9 +157,11 @@ export function withApiAuth(
       );
     }
 
-    const VALID_ROLES: Role[] = ["owner", "head_office", "admin", "marketing", "member", "staff"];
+    // Source the valid-role set from the single ROLES list (role-enum.ts)
+    // rather than a hand-maintained literal — a stale parallel array here
+    // silently 401s any newer role (this is what broke eos_viewer).
     const role = session.user.role as string;
-    if (!VALID_ROLES.includes(role as Role)) {
+    if (!(ROLES as readonly string[]).includes(role)) {
       logger.error("Invalid role in session", { userId: session.user.id, role });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

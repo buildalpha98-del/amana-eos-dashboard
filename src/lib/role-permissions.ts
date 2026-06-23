@@ -1,4 +1,5 @@
 import { Role } from "@prisma/client";
+import { isEosRole } from "@/lib/role-enum";
 
 /**
  * The set of roles considered "admin" across page-level, feature-level, and
@@ -373,6 +374,31 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/help",
     "/directory",
   ],
+  // 2026-06-23: write-capable sibling of eos_viewer. Same EOS surface,
+  // but the EOS write APIs add `eos_implementer` to their allowlists so
+  // this role can actually run L10s / own rocks / edit the scorecard.
+  // Organisation-wide (unscoped); no Operations / Growth / People /
+  // Financials / Admin access.
+  eos_implementer: [
+    "/dashboard",
+    "/getting-started",
+    "/my-portal",
+    "/profile",
+    "/assistant",
+    "/queue",
+    // EOS surface — full write
+    "/vision",
+    "/rocks",
+    "/scorecard",
+    "/todos",
+    "/issues",
+    "/meetings",
+    "/accountability-chart",
+    // Read-only org resources they may genuinely need to reference
+    "/guides",
+    "/help",
+    "/directory",
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -695,6 +721,31 @@ const eosViewerFeatures: readonly Feature[] = [
   "my_portal.view",
 ];
 
+// 2026-06-23: EOS Implementer — full write across the EOS surface, and
+// nothing else. These flags gate the create/edit/delete buttons on the
+// EOS pages; the matching write APIs add `eos_implementer` to their role
+// allowlists. No financials / services / marketing / HR / admin features.
+const eosImplementerFeatures: readonly Feature[] = [
+  "rocks.view",
+  "rocks.create",
+  "rocks.edit",
+  "rocks.delete",
+  "todos.view",
+  "todos.create",
+  "todos.edit",
+  "todos.delete",
+  "issues.view",
+  "issues.create",
+  "issues.edit",
+  "issues.delete",
+  "meetings.view",
+  "meetings.create",
+  "meetings.edit",
+  "scorecard.view",
+  "scorecard.edit",
+  "my_portal.view",
+];
+
 export const roleFeatures: Record<Role, readonly Feature[]> = {
   owner: ownerFeatures,
   head_office: headOfficeFeatures,
@@ -703,6 +754,7 @@ export const roleFeatures: Record<Role, readonly Feature[]> = {
   member: memberFeatures,
   staff: staffFeatures,
   eos_viewer: eosViewerFeatures,
+  eos_implementer: eosImplementerFeatures,
 };
 
 // ---------------------------------------------------------------------------
@@ -782,6 +834,11 @@ const rolePriority: Record<Role, number> = {
   // EOS Viewer sits at the bottom — never satisfies a `minRole`
   // requirement above plain authenticated access.
   eos_viewer: 0,
+  // EOS Implementer is EOS-only: its access comes from explicit `roles:`
+  // allowlists, page access, and feature flags — not from rank. Kept at
+  // staff level so it never clears a `minRole` gate above plain operational
+  // access.
+  eos_implementer: 1,
 };
 
 export function hasMinRole(
@@ -790,6 +847,16 @@ export function hasMinRole(
 ): boolean {
   if (!currentRole) return false;
   return rolePriority[currentRole] >= rolePriority[requiredRole];
+}
+
+/**
+ * The page a user should land on after sign-in (and on bare-domain visits).
+ * EOS-only roles (viewer / implementer) land on `/rocks` — their primary
+ * surface — instead of the admin command-centre `/dashboard`, which renders
+ * operational widgets they have no business seeing. Everyone else: `/dashboard`.
+ */
+export function getLandingPage(role: string | null | undefined): string {
+  return isEosRole(role) ? "/rocks" : "/dashboard";
 }
 
 // ---------------------------------------------------------------------------
@@ -809,9 +876,10 @@ export interface PermissionRow {
   staff: boolean;
   // 2026-06-22: optional so the 60+ existing rows compile without
   // forcing a row-by-row edit. The Settings permissions matrix UI
-  // doesn't display the column yet — actual access for eos_viewer
-  // lives in `rolePageAccess['eos_viewer']`, not here.
+  // doesn't display the column yet — actual access for eos_viewer /
+  // eos_implementer lives in `rolePageAccess[...]`, not here.
   eos_viewer?: boolean;
+  eos_implementer?: boolean;
 }
 
 /** Informational table data for the Settings > Permissions panel */

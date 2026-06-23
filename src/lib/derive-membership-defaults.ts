@@ -24,6 +24,7 @@ const ROLE_AT_SERVICE: Record<Role, string> = {
   member: "OSHC Educator",
   staff: "Educator",
   eos_viewer: "EOS Viewer",
+  eos_implementer: "EOS Implementer",
 };
 
 const ACCESS_LEVEL: Record<Role, ServiceAccessLevel> = {
@@ -36,6 +37,9 @@ const ACCESS_LEVEL: Record<Role, ServiceAccessLevel> = {
   // EOS Viewer never gets per-service write access — they're a view
   // surface only. Use the most-restricted level the union allows.
   eos_viewer: "contributor",
+  // EOS Implementer is org-wide for EOS but not a per-service member, so
+  // it gets no per-service write access either.
+  eos_implementer: "contributor",
 };
 
 function toIsoDate(d: Date | string): string {

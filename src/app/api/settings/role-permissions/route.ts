@@ -35,6 +35,7 @@ const overridesSchema = z.object({
     member: z.array(z.string()).nullable(),
     staff: z.array(z.string()).nullable(),
     eos_viewer: z.array(z.string()).nullable(),
+    eos_implementer: z.array(z.string()).nullable(),
   }),
 });
 
@@ -89,6 +90,7 @@ export const PUT = withApiAuth(
       member: null,
       staff: null,
       eos_viewer: null,
+      eos_implementer: null,
     };
 
     for (const role of Object.keys(parsed.data.overrides) as Role[]) {

@@ -23,6 +23,7 @@ enum Role {
   member // displayed as "Director of Service"
   staff // displayed as "Educator"
   eos_viewer // view-only access to the EOS surface — for EOS coaches / board observers / advisors
+  eos_implementer // full write access to the EOS surface (org-wide) — for the EOS implementer running L10s, rocks, scorecard, etc.
 }
 
 enum RockStatus {

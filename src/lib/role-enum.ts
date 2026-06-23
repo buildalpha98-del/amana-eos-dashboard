@@ -27,9 +27,25 @@ export const ROLES: readonly Role[] = [
   "marketing",
   "member",
   "staff",
+  "eos_viewer",
+  "eos_implementer",
 ] as const;
 
 const ROLE_SET: Set<string> = new Set(ROLES);
+
+/**
+ * The EOS-only roles: organisation-wide access to the EOS surface and
+ * nothing else. `eos_viewer` is read-only (coaches / board observers);
+ * `eos_implementer` has full write access (runs L10s, owns rocks /
+ * scorecard / todos). Both are unscoped (not centre- or state-bound) and
+ * are the source of truth for the EOS scope/nav/dashboard branches.
+ */
+export const EOS_ROLES: readonly Role[] = ["eos_viewer", "eos_implementer"] as const;
+
+/** Is this an EOS-only role (viewer or implementer)? */
+export function isEosRole(role: string | null | undefined): boolean {
+  return role === "eos_viewer" || role === "eos_implementer";
+}
 
 /** Type guard. Narrows `value` to `Role` when it's a known enum value. */
 export function isRole(value: unknown): value is Role {
