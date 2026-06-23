@@ -40,6 +40,13 @@ export const GET = withApiAuth(async () => {
     coreNiche: vto.coreNiche,
     tenYearTarget: vto.tenYearTarget,
     threeYearPicture: vto.threeYearPicture,
+    threeYearFutureDate: vto.threeYearFutureDate
+      ? vto.threeYearFutureDate.toISOString()
+      : null,
+    threeYearRevenue: vto.threeYearRevenue,
+    threeYearProfit: vto.threeYearProfit,
+    threeYearMeasurables: vto.threeYearMeasurables,
+    threeYearLooksLike: vto.threeYearLooksLike,
     marketingStrategy: vto.marketingStrategy,
     gtmTargetMarket: vto.gtmTargetMarket,
     gtmThreeUniques: vto.gtmThreeUniques,

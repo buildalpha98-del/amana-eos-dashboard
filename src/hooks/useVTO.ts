@@ -31,6 +31,11 @@ export interface VTOData {
   coreNiche: string | null;
   tenYearTarget: string | null;
   threeYearPicture: string | null;
+  threeYearFutureDate: string | null;
+  threeYearRevenue: string | null;
+  threeYearProfit: string | null;
+  threeYearMeasurables: string | null;
+  threeYearLooksLike: string | null;
   marketingStrategy: string | null;
   gtmTargetMarket: string | null;
   gtmThreeUniques: string | null;
@@ -60,6 +65,11 @@ export function useUpdateVTO() {
         coreNiche: string;
         tenYearTarget: string;
         threeYearPicture: string;
+        threeYearFutureDate: string | null;
+        threeYearRevenue: string;
+        threeYearProfit: string;
+        threeYearMeasurables: string;
+        threeYearLooksLike: string;
         marketingStrategy: string;
         gtmTargetMarket: string;
         gtmThreeUniques: string;

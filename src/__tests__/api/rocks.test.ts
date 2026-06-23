@@ -118,15 +118,28 @@ describe("POST /api/rocks", () => {
     expect(res.status).toBe(201);
   });
 
-  it("returns 403 when marketing tries to create (no rock surface for marketing)", async () => {
+  it("allows marketing to create a rock (Akram runs the marketing-pod L10)", async () => {
     mockSession({ id: "user-3", name: "Marketing", role: "marketing" });
+    prismaMock.rock.create.mockResolvedValue({
+      id: "rock-mkt",
+      title: "Test Rock",
+      description: null,
+      ownerId: "user-3",
+      quarter: "Q1-2025",
+      priority: "medium",
+      rockType: "personal",
+      owner: { id: "user-3", name: "Marketing", email: "m@test.com", avatar: null },
+      oneYearGoal: null,
+      _count: { todos: 0, issues: 0, milestones: 0 },
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
 
     const req = createRequest("POST", "/api/rocks", {
       body: { title: "Test Rock", ownerId: "user-3", quarter: "Q1-2025" },
     });
     const res = await POST(req);
 
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(201);
   });
 
   it("returns 400 when title is missing", async () => {

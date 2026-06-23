@@ -44,8 +44,8 @@ describe("ROLE_DISPLAY_NAMES", () => {
     expect(ROLE_DISPLAY_NAMES.head_office).toBe("State Manager");
     expect(ROLE_DISPLAY_NAMES.admin).toBe("Admin");
     expect(ROLE_DISPLAY_NAMES.marketing).toBe("Marketing");
-    expect(ROLE_DISPLAY_NAMES.member).toBe("OSHC Educator");
-    expect(ROLE_DISPLAY_NAMES.staff).toBe("Educator");
+    expect(ROLE_DISPLAY_NAMES.member).toBe("OSHC Coordinator");
+    expect(ROLE_DISPLAY_NAMES.staff).toBe("OSHC Educator");
   });
 });
 
@@ -53,7 +53,7 @@ describe("roleFromDisplayName", () => {
   it("resolves display names back to role keys (case-insensitive)", () => {
     expect(roleFromDisplayName("Owner")).toBe("owner");
     expect(roleFromDisplayName("state manager")).toBe("head_office");
-    expect(roleFromDisplayName("EDUCATOR")).toBe("staff");
+    expect(roleFromDisplayName("OSHC EDUCATOR")).toBe("staff");
   });
 
   it("returns undefined for unknown names", () => {
@@ -102,10 +102,12 @@ describe("rolePageAccess", () => {
     expect(allowed).toContain("/leave");
     expect(allowed).toContain("/settings");
     expect(allowed).toContain("/assistant");
+    // 2026-06-03: marketing now participates in EOS (Akram's marketing-pod L10).
+    expect(allowed).toContain("/rocks");
+    expect(allowed).toContain("/meetings");
     // Still scoped out — marketing does NOT touch these.
     expect(allowed).not.toContain("/financials");
     expect(allowed).not.toContain("/team");
-    expect(allowed).not.toContain("/rocks");
   });
 
   // 2026-04-30: `coordinator` enum value dropped — Service Coordinators
@@ -382,10 +384,13 @@ describe("roleFeatures", () => {
     }
   });
 
-  it("marketing has the fewest features (specialized role)", () => {
+  it("marketing is a limited role (fewer features than the admin tier)", () => {
+    // 2026-06-03: marketing gained EOS features (Akram's marketing-pod L10), so
+    // it's no longer the fewest overall — but it's still well below the
+    // full-access admin tier, which is the invariant worth protecting.
     const marketingCount = roleFeatures.marketing.length;
-    for (const role of ALL_ROLES) {
-      expect(roleFeatures[role].length).toBeGreaterThanOrEqual(marketingCount);
+    for (const role of ["owner", "head_office", "admin"] as const) {
+      expect(roleFeatures[role].length).toBeGreaterThan(marketingCount);
     }
   });
 });

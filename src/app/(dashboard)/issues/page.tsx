@@ -66,11 +66,15 @@ export default function IssuesPage() {
     setDetailFocus(undefined);
   }, []);
   const [statusFilter, setStatusFilter] = useState("");
+  // 2026-06-22: EOS Long-Term Issues List. "short_term" is the
+  // default L10 list; "long_term" is the 3-year strategic list.
+  // "all" shows both — useful when triaging which list to put a
+  // newly-raised issue on.
+  const [categoryTab, setCategoryTab] = useState<"short_term" | "long_term" | "all">("short_term");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"board" | "list">("board");
-  const [listFilter, setListFilter] = useState<"short_term" | "long_term">("short_term");
   const [showArchived, setShowArchived] = useState(false);
   const [aiPrioritization, setAiPrioritization] = useState("");
 
@@ -83,7 +87,6 @@ export default function IssuesPage() {
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(priorityFilter ? { priority: priorityFilter } : {}),
     ...(ownerFilter ? { ownerId: ownerFilter } : {}),
-    category: listFilter,
   });
 
   const { data: users } = useQuery<UserOption[]>({
@@ -97,11 +100,27 @@ export default function IssuesPage() {
 
   const bulkAction = useBulkIssueAction();
 
-  // Filter out closed issues when archive is hidden
+  // Filter out closed issues when archive is hidden, then apply the
+  // Short-term / Long-term category tab. Null category counts as
+  // short-term (the EOS default for issues raised in the weekly L10).
   const filteredIssues = useMemo(() => {
     if (!issues) return [];
-    if (showArchived) return issues;
-    return issues.filter((i) => i.status !== "closed");
+    const base = showArchived ? issues : issues.filter((i) => i.status !== "closed");
+    if (categoryTab === "all") return base;
+    if (categoryTab === "long_term") {
+      return base.filter((i) => i.category === "long_term");
+    }
+    return base.filter((i) => i.category !== "long_term");
+  }, [issues, showArchived, categoryTab]);
+
+  const categoryCounts = useMemo(() => {
+    if (!issues) return { short_term: 0, long_term: 0, all: 0 };
+    const live = showArchived ? issues : issues.filter((i) => i.status !== "closed");
+    return {
+      short_term: live.filter((i) => i.category !== "long_term").length,
+      long_term: live.filter((i) => i.category === "long_term").length,
+      all: live.length,
+    };
   }, [issues, showArchived]);
 
   // Group issues by status for board view
@@ -281,34 +300,39 @@ export default function IssuesPage() {
         />
       </PageHeader>
 
-      {/* Short-Term / Long-Term list toggle — the two EOS issues lists */}
-      <div className="mt-4 mb-4">
-        <div className="inline-flex gap-1 bg-surface rounded-lg p-1" role="tablist" aria-label="Issues list">
-          {([
-            { key: "short_term", label: "Short-Term", hint: "Worked weekly at the L10 via IDS" },
-            { key: "long_term", label: "Long-Term", hint: "Parked on the V/TO — reviewed quarterly" },
-          ] as const).map((opt) => {
-            const isActive = listFilter === opt.key;
-            return (
-              <button
-                key={opt.key}
-                role="tab"
-                aria-selected={isActive}
-                title={opt.hint}
-                onClick={() => {
-                  setListFilter(opt.key);
-                  clearSelection();
-                }}
+      {/* EOS Long-Term Issues List tab */}
+      <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-border">
+        {([
+          { key: "short_term", label: "Short Term", help: "This-quarter issues for the weekly L10" },
+          { key: "long_term", label: "Long Term", help: "Strategic 3-year issues — reviewed quarterly" },
+          { key: "all", label: "All", help: "Both lists together" },
+        ] as const).map((tab) => {
+          const isActive = categoryTab === tab.key;
+          const count = categoryCounts[tab.key];
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setCategoryTab(tab.key)}
+              title={tab.help}
+              className={cn(
+                "px-3 sm:px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors inline-flex items-center gap-2",
+                isActive
+                  ? "border-brand text-brand"
+                  : "border-transparent text-muted hover:text-foreground hover:border-border",
+              )}
+            >
+              {tab.label}
+              <span
                 className={cn(
-                  "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  isActive ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+                  "text-xs px-1.5 py-0.5 rounded-full",
+                  isActive ? "bg-brand/10 text-brand" : "bg-surface text-muted",
                 )}
               >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Status Tabs */}
@@ -561,27 +585,25 @@ export default function IssuesPage() {
                 )}
               </div>
 
-              {/* Move to the other list (only the relevant direction) */}
-              {listFilter === "long_term" && (
-                <button
-                  onClick={() => handleBulkMove("short_term")}
-                  disabled={bulkAction.isPending}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
-                >
-                  <ArrowRightCircle className="w-3.5 h-3.5" />
-                  Move to Short-Term
-                </button>
-              )}
-              {listFilter === "short_term" && (
-                <button
-                  onClick={() => handleBulkMove("long_term")}
-                  disabled={bulkAction.isPending}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
-                >
-                  <ArrowRightCircle className="w-3.5 h-3.5" />
-                  Move to Long-Term
-                </button>
-              )}
+              {/* Move to Short-term */}
+              <button
+                onClick={() => handleBulkMove("short_term")}
+                disabled={bulkAction.isPending}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+              >
+                <ArrowRightCircle className="w-3.5 h-3.5" />
+                Short-term
+              </button>
+
+              {/* Move to Long-term */}
+              <button
+                onClick={() => handleBulkMove("long_term")}
+                disabled={bulkAction.isPending}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+              >
+                <ArrowRightCircle className="w-3.5 h-3.5" />
+                Long-term
+              </button>
 
               {/* Delete */}
               <button
