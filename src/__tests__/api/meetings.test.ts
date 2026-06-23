@@ -93,7 +93,7 @@ describe("POST /api/meetings (create) — role enforcement", () => {
     ["member", 403],
     ["member", 403],
     ["staff", 403],
-    ["marketing", 403],
+    ["marketing", 201],
   ])("role %s → %i", async (role, expected) => {
     mockSession({ id: "u1", name: "U", role: role as MockUserRole });
     prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role });
