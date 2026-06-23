@@ -85,7 +85,7 @@ export function ActiveMeetingView({
   // We fetch every todo here and filter to attendee userIds +
   // not-yet-completed status in the `todos` memo below.
   const { data: allTodos } = useTodos();
-  const { data: allIDSIssuesRaw } = useIssues({ status: "open,in_discussion" });
+  const { data: allIDSIssuesRaw } = useIssues({ status: "open,in_discussion", category: "short_term" });
   const { data: services } = useServices("active");
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
@@ -276,12 +276,20 @@ export function ActiveMeetingView({
     [updateIssue]
   );
 
+  const handleDropToLongTerm = useCallback(
+    (id: string) => {
+      updateIssue.mutate({ id, category: "long_term" });
+    },
+    [updateIssue]
+  );
+
   const handleCreateIssue = useCallback(
     (title: string, priority?: string) => {
       createIssue.mutate({
         title,
         priority: (priority || "medium") as any,
         serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
+        category: "short_term",
       });
     },
     [createIssue, meetingServiceIds]
@@ -586,6 +594,7 @@ export function ActiveMeetingView({
                 onCreateTodo={handleCreateTodoFromIssue}
                 onUpdatePriority={handleUpdatePriority}
                 onUpdateDescription={handleUpdateDescription}
+                onDropToLongTerm={handleDropToLongTerm}
                 users={users}
               />
             )}
