@@ -912,7 +912,12 @@ model VisionTractionOrganiser {
   corePurpose       String?
   coreNiche         String?
   tenYearTarget     String?  @db.Text
-  threeYearPicture  String?  @db.Text
+  threeYearPicture  String?  @db.Text // legacy freeform — superseded by the threeYear* fields below; rendered read-only until cleared
+  threeYearFutureDate   DateTime?
+  threeYearRevenue      String?
+  threeYearProfit       String?
+  threeYearMeasurables  String?  @db.Text
+  threeYearLooksLike    String?  @db.Text
   marketingStrategy String?  @db.Text // legacy freeform — superseded by the four gtm* fields below; rendered read-only until cleared
   gtmTargetMarket   String?  @db.Text
   gtmThreeUniques   String?  @db.Text

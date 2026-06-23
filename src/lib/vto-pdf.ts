@@ -18,6 +18,11 @@ export interface VtoPdfData {
   coreNiche: string | null;
   tenYearTarget: string | null;
   threeYearPicture: string | null;
+  threeYearFutureDate: string | null;
+  threeYearRevenue: string | null;
+  threeYearProfit: string | null;
+  threeYearMeasurables: string | null;
+  threeYearLooksLike: string | null;
   marketingStrategy: string | null;
   gtmTargetMarket: string | null;
   gtmThreeUniques: string | null;
@@ -97,7 +102,56 @@ export async function generateVtoPdf(data: VtoPdfData): Promise<jsPDF> {
 
   // ── 3-Year Picture ──
   b.heading(label("threeYearPicture", "3-YEAR PICTURE"));
-  b.paragraph(data.threeYearPicture || "— not set —");
+  if (data.threeYearFutureDate) {
+    const d = (() => {
+      try {
+        return new Date(data.threeYearFutureDate).toLocaleDateString("en-AU", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+      } catch {
+        return data.threeYearFutureDate ?? "";
+      }
+    })();
+    b.row("Future Date:", d);
+  }
+  if (data.threeYearRevenue) b.row("Revenue:", data.threeYearRevenue);
+  if (data.threeYearProfit) b.row("Profit:", data.threeYearProfit);
+
+  const renderBullets = (label: string, raw: string | null) => {
+    if (!raw) return;
+    const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    b.checkPage(8 + lines.length * 5);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(80, 80, 80);
+    doc.text(label, margin, b.y);
+    b.y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(40, 40, 40);
+    for (const line of lines) {
+      const wrapped = doc.splitTextToSize(`• ${line}`, pageWidth - margin * 2 - 6);
+      doc.text(wrapped, margin + 3, b.y);
+      b.y += wrapped.length * 4.5;
+    }
+    b.y += 2;
+  };
+  renderBullets("Measurables", data.threeYearMeasurables);
+  renderBullets("What Does It Look Like?", data.threeYearLooksLike);
+
+  // Legacy freeform text — only show if populated and no structured
+  // data has been entered yet.
+  const hasStructured =
+    data.threeYearFutureDate ||
+    data.threeYearRevenue ||
+    data.threeYearProfit ||
+    data.threeYearMeasurables ||
+    data.threeYearLooksLike;
+  if (!hasStructured && data.threeYearPicture) {
+    b.paragraph(data.threeYearPicture);
+  }
 
   // ── 1-Year Goals ──
   b.heading("1-YEAR GOALS");
