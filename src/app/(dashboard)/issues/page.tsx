@@ -70,6 +70,7 @@ export default function IssuesPage() {
   const [ownerFilter, setOwnerFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"board" | "list">("board");
+  const [listFilter, setListFilter] = useState<"short_term" | "long_term">("short_term");
   const [showArchived, setShowArchived] = useState(false);
   const [aiPrioritization, setAiPrioritization] = useState("");
 
@@ -82,6 +83,7 @@ export default function IssuesPage() {
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(priorityFilter ? { priority: priorityFilter } : {}),
     ...(ownerFilter ? { ownerId: ownerFilter } : {}),
+    category: listFilter,
   });
 
   const { data: users } = useQuery<UserOption[]>({
@@ -278,6 +280,36 @@ export default function IssuesPage() {
           disabled={openIssues.length === 0}
         />
       </PageHeader>
+
+      {/* Short-Term / Long-Term list toggle — the two EOS issues lists */}
+      <div className="mt-4 mb-4">
+        <div className="inline-flex gap-1 bg-surface rounded-lg p-1" role="tablist" aria-label="Issues list">
+          {([
+            { key: "short_term", label: "Short-Term", hint: "Worked weekly at the L10 via IDS" },
+            { key: "long_term", label: "Long-Term", hint: "Parked on the V/TO — reviewed quarterly" },
+          ] as const).map((opt) => {
+            const isActive = listFilter === opt.key;
+            return (
+              <button
+                key={opt.key}
+                role="tab"
+                aria-selected={isActive}
+                title={opt.hint}
+                onClick={() => {
+                  setListFilter(opt.key);
+                  clearSelection();
+                }}
+                className={cn(
+                  "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
+                  isActive ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+                )}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Status Tabs */}
       {viewMode === "list" && (
@@ -529,25 +561,27 @@ export default function IssuesPage() {
                 )}
               </div>
 
-              {/* Move to Short-term */}
-              <button
-                onClick={() => handleBulkMove("short_term")}
-                disabled={bulkAction.isPending}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
-              >
-                <ArrowRightCircle className="w-3.5 h-3.5" />
-                Short-term
-              </button>
-
-              {/* Move to Long-term */}
-              <button
-                onClick={() => handleBulkMove("long_term")}
-                disabled={bulkAction.isPending}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
-              >
-                <ArrowRightCircle className="w-3.5 h-3.5" />
-                Long-term
-              </button>
+              {/* Move to the other list (only the relevant direction) */}
+              {listFilter === "long_term" && (
+                <button
+                  onClick={() => handleBulkMove("short_term")}
+                  disabled={bulkAction.isPending}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+                >
+                  <ArrowRightCircle className="w-3.5 h-3.5" />
+                  Move to Short-Term
+                </button>
+              )}
+              {listFilter === "short_term" && (
+                <button
+                  onClick={() => handleBulkMove("long_term")}
+                  disabled={bulkAction.isPending}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+                >
+                  <ArrowRightCircle className="w-3.5 h-3.5" />
+                  Move to Long-Term
+                </button>
+              )}
 
               {/* Delete */}
               <button
