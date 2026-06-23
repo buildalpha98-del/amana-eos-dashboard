@@ -8,7 +8,7 @@ const bulkSchema = z.object({
   action: z.enum(["resolve", "delete", "assign", "move"]),
   ids: z.array(z.string()).min(1),
   assigneeId: z.string().optional(),
-  category: z.string().optional(),
+  category: z.enum(["short_term", "long_term"]).optional(),
 });
 
 // POST /api/issues/bulk

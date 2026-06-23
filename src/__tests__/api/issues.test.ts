@@ -115,6 +115,17 @@ describe("GET /api/issues", () => {
     expect(callArgs.where.rockId).toBe("r1");
     expect(callArgs.where.serviceId).toBe("s1");
   });
+
+  it("filters by category (long_term list)", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.issue.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/issues?category=long_term");
+    await GET(req);
+
+    const callArgs = prismaMock.issue.findMany.mock.calls[0][0];
+    expect(callArgs.where.category).toBe("long_term");
+  });
 });
 
 describe("POST /api/issues", () => {
@@ -184,6 +195,37 @@ describe("POST /api/issues", () => {
 
     // Writes activity log
     expect(prismaMock.activityLog.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("defaults category to short_term when omitted", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.issue.create.mockResolvedValue({ id: "i-new", title: "T", priority: "medium", status: "open", raisedBy: null, owner: null, rock: null, _count: { spawnedTodos: 0 } });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/issues", { body: { title: "T" } });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const createCall = prismaMock.issue.create.mock.calls[0][0];
+    expect(createCall.data.category).toBe("short_term");
+  });
+
+  it("accepts an explicit long_term category", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.issue.create.mockResolvedValue({ id: "i-new", title: "T", priority: "medium", status: "open", raisedBy: null, owner: null, rock: null, _count: { spawnedTodos: 0 } });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/issues", { body: { title: "T", category: "long_term" } });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const createCall = prismaMock.issue.create.mock.calls[0][0];
+    expect(createCall.data.category).toBe("long_term");
+  });
+
+  it("returns 400 for an invalid category", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const req = createRequest("POST", "/api/issues", { body: { title: "T", category: "someday" } });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
   });
 });
 
@@ -287,6 +329,20 @@ describe("PATCH /api/issues/[id]", () => {
 
     const updateCall = prismaMock.issue.update.mock.calls[0][0];
     expect(updateCall.data.discussedAt).toBeInstanceOf(Date);
+  });
+
+  it("moves an issue to the long-term list", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.issue.findUnique.mockResolvedValue({ id: "i1", status: "open", discussedAt: null, solvedAt: null, ownerId: null });
+    prismaMock.issue.update.mockResolvedValue({ id: "i1", title: "Big rebrand", category: "long_term", priority: "medium", raisedBy: null, owner: null, rock: null, _count: { spawnedTodos: 0 } });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("PATCH", "/api/issues/i1", { body: { category: "long_term" } });
+    const context = { params: Promise.resolve({ id: "i1" }) };
+    const res = await PATCH(req, context);
+    expect(res.status).toBe(200);
+    const updateCall = prismaMock.issue.update.mock.calls[0][0];
+    expect(updateCall.data.category).toBe("long_term");
   });
 });
 

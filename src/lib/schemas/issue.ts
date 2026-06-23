@@ -7,6 +7,7 @@ export const createIssueSchema = z.object({
   rockId: z.string().optional().nullable(),
   serviceId: z.string().optional().nullable(),
   priority: z.enum(["critical", "high", "medium", "low"]).default("medium"),
+  category: z.enum(["short_term", "long_term"]).default("short_term"),
 });
 
 export type CreateIssueInput = z.input<typeof createIssueSchema>;

@@ -20,6 +20,7 @@ const { serviceIds } = await getCentreScope(session);
   const ownerId = searchParams.get("ownerId");
   const rockId = searchParams.get("rockId");
   const serviceId = searchParams.get("serviceId");
+  const category = searchParams.get("category");
 
   const where: Record<string, unknown> = { deleted: false };
 
@@ -34,6 +35,7 @@ const { serviceIds } = await getCentreScope(session);
   if (ownerId) where.ownerId = ownerId;
   if (rockId) where.rockId = rockId;
   if (serviceId) where.serviceId = serviceId;
+  if (category) where.category = category;
 
   // Centre scoping: scoped roles see issues for their centres or raised/owned by them
   if (serviceIds !== null) {
@@ -104,6 +106,7 @@ const body = await parseJsonBody(req);
       rockId: parsed.data.rockId || null,
       serviceId: parsed.data.serviceId || null,
       priority: parsed.data.priority,
+      category: parsed.data.category,
     },
     include: {
       raisedBy: { select: { id: true, name: true, email: true, avatar: true } },

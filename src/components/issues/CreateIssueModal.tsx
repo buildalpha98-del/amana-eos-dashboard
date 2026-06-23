@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createIssueSchema, type CreateIssueInput } from "@/lib/schemas/issue";
@@ -24,9 +25,13 @@ interface RockOption {
 export function CreateIssueModal({
   open,
   onClose,
+  defaultCategory = "short_term",
+  serviceId,
 }: {
   open: boolean;
   onClose: () => void;
+  defaultCategory?: "short_term" | "long_term";
+  serviceId?: string | null;
 }) {
   const createIssue = useCreateIssue();
 
@@ -43,8 +48,25 @@ export function CreateIssueModal({
       ownerId: "",
       rockId: "",
       priority: "medium",
+      category: defaultCategory,
     },
   });
+
+  // Reset to the intended list each time the modal opens — supports prefill
+  // from the V/TO long-term box and per-service contexts.
+  useEffect(() => {
+    if (open) {
+      reset({
+        title: "",
+        description: "",
+        ownerId: "",
+        rockId: "",
+        priority: "medium",
+        category: defaultCategory,
+        serviceId: serviceId ?? undefined,
+      });
+    }
+  }, [open, defaultCategory, serviceId, reset]);
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -72,6 +94,7 @@ export function CreateIssueModal({
         description: data.description || undefined,
         ownerId: data.ownerId || null,
         rockId: data.rockId || null,
+        serviceId: data.serviceId || null,
       },
       {
         onSuccess: () => {
@@ -109,6 +132,13 @@ export function CreateIssueModal({
               rows={3}
               placeholder="Context and impact..."
             />
+          </FormField>
+
+          <FormField label="List">
+            <FormSelect registration={register("category")}>
+              <option value="short_term">Short-Term — solve weekly at the L10 (IDS)</option>
+              <option value="long_term">Long-Term — park on the V/TO (quarterly)</option>
+            </FormSelect>
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">

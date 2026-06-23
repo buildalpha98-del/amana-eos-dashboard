@@ -13,6 +13,7 @@ const updateIssueSchema = z.object({
   rockId: z.string().nullable().optional(),
   status: z.enum(["open", "in_discussion", "solved", "closed"]).optional(),
   resolution: z.string().nullable().optional(),
+  category: z.enum(["short_term", "long_term"]).optional(),
 });
 
 // GET /api/issues/[id]
@@ -67,6 +68,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   if (parsed.data.priority !== undefined) data.priority = parsed.data.priority;
   if (parsed.data.rockId !== undefined) data.rockId = parsed.data.rockId || null;
   if (parsed.data.resolution !== undefined) data.resolution = parsed.data.resolution;
+  if (parsed.data.category !== undefined) data.category = parsed.data.category;
 
   if (parsed.data.status !== undefined) {
     data.status = parsed.data.status;

@@ -55,6 +55,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
   const queryClient = useQueryClient();
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"short_term" | "long_term">("short_term");
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -64,9 +65,9 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
   });
 
   const { data: issues = [], isLoading } = useQuery<IssueData[]>({
-    queryKey: ["issues", { serviceId }],
+    queryKey: ["issues", { serviceId, category: categoryFilter }],
     queryFn: async () => {
-      const res = await fetch(`/api/issues?serviceId=${serviceId}`);
+      const res = await fetch(`/api/issues?serviceId=${serviceId}&category=${categoryFilter}`);
       if (!res.ok) return [];
       return res.json();
     },
@@ -163,6 +164,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
       priority: formData.priority,
       ownerId: formData.ownerId || null,
       serviceId,
+      category: categoryFilter,
     });
   }
 
@@ -175,6 +177,22 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
           Service Issues
         </h3>
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex gap-0.5 bg-surface rounded-md p-0.5" role="tablist" aria-label="Issues list">
+            {([
+              { key: "short_term", label: "Short-Term" },
+              { key: "long_term", label: "Long-Term" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.key}
+                role="tab"
+                aria-selected={categoryFilter === opt.key}
+                onClick={() => setCategoryFilter(opt.key)}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${categoryFilter === opt.key ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}

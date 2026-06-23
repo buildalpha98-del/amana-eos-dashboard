@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useIssue, useUpdateIssue, useDeleteIssue } from "@/hooks/useIssues";
+import { useIssue, useUpdateIssue, useDeleteIssue, usePromoteIssueToRock } from "@/hooks/useIssues";
 import { useCreateTodo } from "@/hooks/useTodos";
 import { useRocks } from "@/hooks/useRocks";
 import { useQuery } from "@tanstack/react-query";
@@ -50,6 +50,7 @@ export function IssueDetailPanel({
 }) {
   const { data: issue, isLoading } = useIssue(issueId);
   const updateIssue = useUpdateIssue();
+  const promoteToRock = usePromoteIssueToRock();
   const deleteIssue = useDeleteIssue();
   const createTodo = useCreateTodo();
   const { data: rocks } = useRocks(getCurrentQuarter());
@@ -354,6 +355,48 @@ export function IssueDetailPanel({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* List — short-term (weekly L10) vs long-term (V/TO, quarterly) */}
+          <div>
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
+              List
+            </label>
+            <div className="flex gap-1">
+              {([
+                { key: "short_term", label: "Short-Term" },
+                { key: "long_term", label: "Long-Term" },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => updateIssue.mutate({ id: issueId, category: opt.key })}
+                  disabled={updateIssue.isPending}
+                  className={cn(
+                    "flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors",
+                    issue.category === opt.key
+                      ? "bg-brand/10 border-brand/30 text-brand"
+                      : "bg-card border-border text-muted hover:border-border"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-muted">
+              {issue.category === "long_term"
+                ? "Parked for quarterly planning on the V/TO."
+                : "Worked weekly at the L10 via IDS."}
+            </p>
+            {issue.category === "long_term" && !issue.rockId && (
+              <button
+                onClick={() => promoteToRock.mutate({ id: issueId })}
+                disabled={promoteToRock.isPending}
+                className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand bg-brand/5 border border-brand/20 rounded-lg hover:bg-brand/10 transition-colors disabled:opacity-50"
+              >
+                <Mountain className="w-3.5 h-3.5" />
+                {promoteToRock.isPending ? "Promoting…" : "Promote to Rock"}
+              </button>
+            )}
           </div>
 
           {/* Owner */}
