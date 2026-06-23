@@ -9,6 +9,14 @@ const updateVtoSchema = z.object({
   coreNiche: z.string().nullable().optional(),
   tenYearTarget: z.string().nullable().optional(),
   threeYearPicture: z.string().nullable().optional(),
+  // 2026-06-23: structured 3-Year Picture sub-fields. threeYearPicture
+  // is kept for back-compat as a legacy block, same pattern as the
+  // GTM migration.
+  threeYearFutureDate: z.string().nullable().optional(),
+  threeYearRevenue: z.string().nullable().optional(),
+  threeYearProfit: z.string().nullable().optional(),
+  threeYearMeasurables: z.string().nullable().optional(),
+  threeYearLooksLike: z.string().nullable().optional(),
   marketingStrategy: z.string().nullable().optional(),
   // Go to Market Strategy — four EOS sub-fields that replace the
   // single freeform marketingStrategy block.
@@ -64,6 +72,15 @@ const body = await parseJsonBody(req);
   if (parsed.data.coreNiche !== undefined) data.coreNiche = parsed.data.coreNiche;
   if (parsed.data.tenYearTarget !== undefined) data.tenYearTarget = parsed.data.tenYearTarget;
   if (parsed.data.threeYearPicture !== undefined) data.threeYearPicture = parsed.data.threeYearPicture;
+  if (parsed.data.threeYearFutureDate !== undefined) {
+    data.threeYearFutureDate = parsed.data.threeYearFutureDate
+      ? new Date(parsed.data.threeYearFutureDate)
+      : null;
+  }
+  if (parsed.data.threeYearRevenue !== undefined) data.threeYearRevenue = parsed.data.threeYearRevenue;
+  if (parsed.data.threeYearProfit !== undefined) data.threeYearProfit = parsed.data.threeYearProfit;
+  if (parsed.data.threeYearMeasurables !== undefined) data.threeYearMeasurables = parsed.data.threeYearMeasurables;
+  if (parsed.data.threeYearLooksLike !== undefined) data.threeYearLooksLike = parsed.data.threeYearLooksLike;
   if (parsed.data.marketingStrategy !== undefined) data.marketingStrategy = parsed.data.marketingStrategy;
   if (parsed.data.gtmTargetMarket !== undefined) data.gtmTargetMarket = parsed.data.gtmTargetMarket;
   if (parsed.data.gtmThreeUniques !== undefined) data.gtmThreeUniques = parsed.data.gtmThreeUniques;

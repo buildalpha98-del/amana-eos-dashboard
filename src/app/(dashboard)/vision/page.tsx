@@ -8,6 +8,7 @@ import { CoreValuesCard } from "@/components/vision/CoreValuesCard";
 import { VTOSection } from "@/components/vision/VTOSection";
 import { GoalsSection } from "@/components/vision/GoalsSection";
 import { GoToMarketStrategyCard } from "@/components/vision/GoToMarketStrategyCard";
+import { ThreeYearPictureCard } from "@/components/vision/ThreeYearPictureCard";
 import {
   Eye,
   AlertTriangle,
@@ -155,13 +156,7 @@ export default function VisionPage() {
                 </h3>
               </div>
 
-              <VTOSection
-                title="3-Year Picture"
-                field="threeYearPicture"
-                value={vto.threeYearPicture}
-                multiline
-                sectionLabels={vto.sectionLabels}
-              />
+              <ThreeYearPictureCard vto={vto} />
 
               <GoalsSection goals={vto.oneYearGoals} vtoId={vto.id} />
 
