@@ -37,22 +37,27 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
   const [openSection, setOpenSection] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Group nav items by section in source order — same as the sidebar.
+  // Group nav items by section. Unlike the sidebar (which respects
+  // source order so it can interleave grouped + standalone items),
+  // the top bar must have each section appear EXACTLY ONCE — same
+  // section name with non-consecutive items in nav-config would
+  // otherwise spawn duplicate top-bar tabs (Daniel reported a
+  // duplicate "Operations" + "Admin" on 2026-06-26).
   const grouped = useMemo(() => {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined,
     );
-    const sections: { key: string; items: NavItem[] }[] = [];
+    const byKey = new Map<string, NavItem[]>();
+    const order: string[] = [];
     for (const item of filtered) {
-      const last = sections[sections.length - 1];
-      if (last && last.key === item.section) {
-        last.items.push(item);
-      } else {
-        sections.push({ key: item.section, items: [item] });
+      if (!byKey.has(item.section)) {
+        byKey.set(item.section, []);
+        order.push(item.section);
       }
+      byKey.get(item.section)!.push(item);
     }
-    return sections;
+    return order.map((key) => ({ key, items: byKey.get(key)! }));
   }, [session?.user?.role]);
 
   // Close the open dropdown when the user clicks outside / presses Esc /
@@ -163,36 +168,11 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
                 </button>
 
                 {isOpen && (
-                  <div className="absolute left-0 top-full mt-1 min-w-[240px] max-w-[320px] bg-card text-foreground border border-border rounded-lg shadow-xl py-1.5 z-50">
-                    {section.items.map((item) => {
-                      const Icon = item.icon;
-                      const itemActive =
-                        pathname === item.href ||
-                        pathname.startsWith(item.href + "/");
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setOpenSection(null)}
-                          className={cn(
-                            "flex items-start gap-2.5 px-3 py-2 text-sm hover:bg-surface transition-colors",
-                            itemActive && "bg-brand/5 text-brand font-medium",
-                          )}
-                          title={item.tooltip}
-                        >
-                          <Icon className="w-4 h-4 mt-0.5 shrink-0 text-muted" />
-                          <div className="min-w-0">
-                            <p className="truncate">{item.label}</p>
-                            {item.tooltip && (
-                              <p className="text-[11px] text-muted line-clamp-2 mt-0.5">
-                                {item.tooltip}
-                              </p>
-                            )}
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
+                  <SectionDropdown
+                    items={section.items}
+                    pathname={pathname}
+                    onClose={() => setOpenSection(null)}
+                  />
                 )}
               </div>
             );
@@ -219,5 +199,64 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * Dropdown rendered under each top-bar section button. Small sections
+ * (<= 8 items) get a single column with rich item descriptions.
+ * Larger sections (Admin has 23, Growth 17) get a compact two-column
+ * layout so the dropdown stays scannable without scrolling — same
+ * pattern OWNA HQ uses for Children/Attendances.
+ */
+function SectionDropdown({
+  items,
+  pathname,
+  onClose,
+}: {
+  items: NavItem[];
+  pathname: string;
+  onClose: () => void;
+}) {
+  const TWO_COLUMN_THRESHOLD = 9;
+  const twoCol = items.length >= TWO_COLUMN_THRESHOLD;
+
+  return (
+    <div
+      className={cn(
+        "absolute left-0 top-full mt-1 bg-card text-foreground border border-border rounded-lg shadow-xl py-1.5 z-50",
+        twoCol
+          ? "w-[520px] grid grid-cols-2 gap-x-1"
+          : "min-w-[260px] max-w-[340px]",
+      )}
+    >
+      {items.map((item) => {
+        const Icon = item.icon;
+        const itemActive =
+          pathname === item.href || pathname.startsWith(item.href + "/");
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onClose}
+            className={cn(
+              "flex items-start gap-2.5 px-3 py-2 text-sm hover:bg-surface transition-colors rounded-md",
+              itemActive && "bg-brand/5 text-brand font-medium",
+            )}
+            title={item.tooltip}
+          >
+            <Icon className="w-4 h-4 mt-0.5 shrink-0 text-muted" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate">{item.label}</p>
+              {!twoCol && item.tooltip && (
+                <p className="text-[11px] text-muted line-clamp-2 mt-0.5">
+                  {item.tooltip}
+                </p>
+              )}
+            </div>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
