@@ -126,10 +126,16 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
           </span>
         </Link>
 
-        {/* Section dropdowns — desktop only */}
+        {/* Section dropdowns — desktop only.
+            NOTE: cannot use `overflow-x-auto` here — browsers treat
+            any non-visible overflow axis as clipping for BOTH axes,
+            which would hide the dropdowns that drop below the nav
+            (Daniel reported this 2026-06-26). Use flex-wrap as the
+            overflow strategy instead; for the current section count
+            (~6) it fits a single row at all desktop widths anyway. */}
         <nav
           aria-label="Main navigation"
-          className="hidden md:flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-hide"
+          className="hidden md:flex flex-wrap items-center gap-1 flex-1 min-w-0"
         >
           {grouped.map((section) => {
             const isOpen = openSection === section.key;
