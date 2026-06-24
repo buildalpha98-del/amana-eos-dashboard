@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { ensureCoordCanTouchAudit } from "../../_lib/scope";
+import { scanAuditForFlags } from "@/lib/audit-ai-scan";
+import { logger } from "@/lib/logger";
 
 // Force Node runtime — mammoth needs Buffer + Node streams.
 export const runtime = "nodejs";
@@ -38,6 +40,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
           documentMode: true,
           sourceFileUrl: true,
           sourceFileName: true,
+          sourceHtml: true,
         },
       },
     },
@@ -58,11 +61,31 @@ export const GET = withApiAuth(async (_req, session, context) => {
     );
   }
 
+  const responseExtras = {
+    sourceFileName: instance.template.sourceFileName,
+    aiFlags: instance.aiFlags ?? null,
+    aiSummary: instance.aiSummary ?? null,
+    aiScannedAt: instance.aiScannedAt
+      ? instance.aiScannedAt.toISOString()
+      : null,
+  };
+
   if (instance.completedHtml) {
     return NextResponse.json({
       html: instance.completedHtml,
       source: "saved" as const,
-      sourceFileName: instance.template.sourceFileName,
+      ...responseExtras,
+    });
+  }
+
+  // 2026-06-24: use the template's cached sourceHtml if present —
+  // converted once at first preview, edited by admin, reused for
+  // every new instance.
+  if (instance.template.sourceHtml) {
+    return NextResponse.json({
+      html: instance.template.sourceHtml,
+      source: "template" as const,
+      ...responseExtras,
     });
   }
 
@@ -90,10 +113,19 @@ export const GET = withApiAuth(async (_req, session, context) => {
   const mammoth = (await import("mammoth")).default;
   const { value: html } = await mammoth.convertToHtml({ buffer });
 
+  // Cache the conversion on the template so subsequent loads skip
+  // the fetch + mammoth round-trip and so the admin's later edits
+  // can persist HTML directly.
+  await prisma.auditTemplate
+    .update({ where: { id: instance.template.id }, data: { sourceHtml: html } })
+    .catch(() => {
+      /* non-fatal — the live request still returns the HTML */
+    });
+
   return NextResponse.json({
     html,
     source: "template" as const,
-    sourceFileName: instance.template.sourceFileName,
+    ...responseExtras,
   });
 });
 
@@ -115,6 +147,7 @@ export const PATCH = withApiAuth(
         id: true,
         serviceId: true,
         status: true,
+        service: { select: { name: true } },
         template: { select: { documentMode: true, name: true } },
       },
     });
@@ -145,6 +178,30 @@ export const PATCH = withApiAuth(
       data.startedAt = new Date();
       data.auditorId = session!.user.id;
       data.auditorName = session!.user.name;
+    }
+
+    // On completion, run the AI flag scan synchronously so the
+    // detail page shows results immediately when the user lands on
+    // it. Scan failures are non-fatal — the completion still
+    // persists; aiFlags just stays null.
+    if (parsed.data.complete) {
+      try {
+        const result = await scanAuditForFlags({
+          templateName: instance.template.name,
+          serviceName: instance.service?.name ?? "—",
+          completedHtml: parsed.data.completedHtml,
+        });
+        if (result) {
+          data.aiFlags = result.flags;
+          data.aiSummary = result.summary;
+          data.aiScannedAt = new Date();
+        }
+      } catch (err) {
+        logger.warn("audit AI scan: skipped on completion", {
+          err,
+          auditId: id,
+        });
+      }
     }
 
     const updated = await prisma.auditInstance.update({

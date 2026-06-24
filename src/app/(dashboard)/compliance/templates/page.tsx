@@ -51,6 +51,7 @@ import {
 import { EditTemplateModal } from "@/components/audits/EditTemplateModal";
 import { ApplyToServicesModal } from "@/components/audits/ApplyToServicesModal";
 import { UploadDocumentAuditModal } from "@/components/audits/UploadDocumentAuditModal";
+import { TemplateDocumentEditor } from "@/components/audits/TemplateDocumentEditor";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -330,6 +331,19 @@ function TemplateDetail({
   }
 
   if (!template) return null;
+
+  // 2026-06-24: doc-mode templates render the master document inline
+  // (preview + admin edit) instead of the structured-checklist UI.
+  // The .docx import flow was confusing because it kept prompting
+  // to upload a file even after the doc had been uploaded.
+  if (template.documentMode) {
+    return (
+      <TemplateDocumentEditor
+        templateId={templateId}
+        templateName={template.name}
+      />
+    );
+  }
 
   const items = template.items || [];
 
