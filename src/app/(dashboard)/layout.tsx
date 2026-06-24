@@ -5,6 +5,8 @@ import Image from "next/image";
 import { Menu } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
+import { TopNav } from "@/components/layout/TopNav";
+import { useNavLayout } from "@/hooks/useNavLayout";
 import { QuickAddProvider } from "@/components/quick-add/QuickAddProvider";
 import { SidebarProvider, useSidebar } from "@/components/layout/SidebarContext";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -57,6 +59,8 @@ export default function DashboardLayout({
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { collapsed } = useSidebar();
+  const { layout } = useNavLayout();
+  const useTopBar = layout === "topbar";
 
   return (
     <div
@@ -72,41 +76,60 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         Skip to main content
       </a>
 
-      <Sidebar
-        mobileOpen={mobileNavOpen}
-        onMobileClose={() => setMobileNavOpen(false)}
-      />
+      {/* Sidebar — desktop only when in sidebar layout; mobile drawer in
+          both layouts so the existing hamburger flow keeps working
+          without rebuilding mobile nav from scratch. */}
+      {(useTopBar ? mobileNavOpen : true) && (
+        <Sidebar
+          mobileOpen={mobileNavOpen}
+          onMobileClose={() => setMobileNavOpen(false)}
+        />
+      )}
 
-      {/* Mobile header — compact bar with hamburger, logo, and utility buttons */}
-      <div className="md:hidden fixed top-0 inset-x-0 h-12 bg-background border-b border-border z-30 flex items-center justify-between px-3">
-        <button
-          onClick={() => setMobileNavOpen(true)}
-          aria-label="Open navigation menu"
-          className="p-2 -ml-1 rounded-lg text-foreground/70 hover:bg-surface transition-colors"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-        <div className="flex items-center gap-1.5">
-          <Image
-            src="/logo-icon-white.svg"
-            alt="Amana OSHC logo"
-            width={16}
-            height={22}
-            className="invert"
-          />
-          <span className="text-xs font-heading font-semibold text-foreground">Amana</span>
+      {useTopBar && (
+        <TopNav onMobileMenu={() => setMobileNavOpen(true)} />
+      )}
+
+      {/* Mobile header — only when using the sidebar layout. In the
+          top-bar layout the TopNav itself carries the hamburger. */}
+      {!useTopBar && (
+        <div className="md:hidden fixed top-0 inset-x-0 h-12 bg-background border-b border-border z-30 flex items-center justify-between px-3">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation menu"
+            className="p-2 -ml-1 rounded-lg text-foreground/70 hover:bg-surface transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-1.5">
+            <Image
+              src="/logo-icon-white.svg"
+              alt="Amana OSHC logo"
+              width={16}
+              height={22}
+              className="invert"
+            />
+            <span className="text-xs font-heading font-semibold text-foreground">Amana</span>
+          </div>
+          {/* Mobile utility buttons — pulled up from old sub-header */}
+          <div className="flex items-center gap-1" id="mobile-header-actions" />
         </div>
-        {/* Mobile utility buttons — pulled up from old sub-header */}
-        <div className="flex items-center gap-1" id="mobile-header-actions" />
-      </div>
+      )}
 
       <div
         className={cn(
-          "pt-12 md:pt-0 transition-all duration-300",
-          collapsed ? "md:pl-16" : "md:pl-64"
+          "transition-all duration-300",
+          // Sidebar layout: shifted right by the sidebar's width.
+          // Top-bar layout: full width, no left offset.
+          useTopBar
+            ? "pt-0"
+            : ["pt-12 md:pt-0", collapsed ? "md:pl-16" : "md:pl-64"],
         )}
       >
-        <TopBar />
+        {/* TopBar (breadcrumb / utility row) only on sidebar layout —
+            the TopNav already carries breadcrumb-like signposting via
+            the open section + the page header. */}
+        {!useTopBar && <TopBar />}
         <main id="main-content" className="p-4 md:p-8 pb-20 md:pb-8 animate-slide-up">
           <SystemBannerBar />
           <ErrorBoundary>{children}</ErrorBoundary>
@@ -121,6 +144,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           opens an inline panel. Hidden on /assistant + /login by the
           widget itself. */}
       <FloatingChatWidget />
+      {/* Mobile bottom-tab bar stays in both layouts so phones keep
+          their quick-access tabs. */}
       <MobileTabBar onMorePress={() => setMobileNavOpen(true)} />
     </div>
   );

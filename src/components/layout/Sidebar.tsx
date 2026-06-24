@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { navItems, filterNavItems } from "@/lib/nav-config";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { NavLayoutToggle } from "@/components/layout/NavLayoutToggle";
 import { useBookingRequestCount } from "@/hooks/useBookingRequests";
 import { useUnreadMessageCount } from "@/hooks/useMessaging";
 import { useMyPendingPoliciesCount } from "@/hooks/usePolicies";
@@ -313,9 +314,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* Theme Toggle */}
-        <div className={cn("px-3 pb-1", collapsed && "px-1.5")}>
+        {/* Theme + Nav Layout toggles */}
+        <div className={cn("px-3 pb-1 space-y-1.5", collapsed && "px-1.5")}>
           <ThemeToggle className="w-full justify-center text-white/50 hover:text-white hover:bg-white/10" />
+          {!collapsed && <NavLayoutToggle className="w-full justify-center" />}
         </div>
 
         {/* User Section */}
