@@ -4902,6 +4902,11 @@ model AuditTemplate {
   // URL) and don't have structured items. Coordinators edit the doc
   // inline (TipTap) on each instance instead of answering yes/no.
   sourceFileUrl    String?
+  // 2026-06-24: cached mammoth conversion of the source .docx so
+  // the admin can preview + edit the master template inline. Lazy-
+  // populated on first GET .../document when sourceFileUrl exists
+  // but sourceHtml is null.
+  sourceHtml       String?             @db.Text
   documentMode     Boolean             @default(false)
   isActive         Boolean             @default(true)
   sortOrder        Int                 @default(0)
@@ -4967,6 +4972,13 @@ model AuditInstance {
   // Edited HTML for document-mode audits — what the coordinator
   // saved in the inline editor. Rendered back via the doc viewer.
   completedHtml       String?       @db.Text
+  // 2026-06-24: AI flag scan results. When a doc-mode audit is
+  // completed, the AI reads `completedHtml`, surfaces action items /
+  // failed checks / hazards as `aiFlags` JSON and a one-paragraph
+  // `aiSummary` for leadership review.
+  aiFlags             Json?
+  aiSummary           String?       @db.Text
+  aiScannedAt         DateTime?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 

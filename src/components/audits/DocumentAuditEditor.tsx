@@ -38,6 +38,10 @@ import {
   Save,
   CheckCircle2,
   ArrowLeft,
+  Sparkles,
+  AlertTriangle,
+  AlertCircle,
+  Info,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
@@ -53,10 +57,19 @@ interface DocumentAuditEditorProps {
   onBack: () => void;
 }
 
+interface AuditFlagItem {
+  title: string;
+  severity: "high" | "medium" | "low";
+  snippet: string;
+}
+
 interface DocumentResponse {
   html: string;
   source: "saved" | "template";
   sourceFileName: string | null;
+  aiFlags: AuditFlagItem[] | null;
+  aiSummary: string | null;
+  aiScannedAt: string | null;
 }
 
 function ToolbarBtn({
@@ -242,6 +255,14 @@ export function DocumentAuditEditor({
         </p>
       </div>
 
+      {docQuery.data?.aiSummary && (
+        <AiFlagsPanel
+          flags={docQuery.data.aiFlags ?? []}
+          summary={docQuery.data.aiSummary}
+          scannedAt={docQuery.data.aiScannedAt}
+        />
+      )}
+
       {editor && !isCompleted && (
         <div className="bg-card border border-border rounded-t-xl px-3 py-2 flex flex-wrap items-center gap-1 sticky top-0 z-10">
           <ToolbarBtn title="Undo" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
@@ -328,4 +349,86 @@ export function DocumentAuditEditor({
       )}
     </div>
   );
+}
+
+function AiFlagsPanel({
+  flags,
+  summary,
+  scannedAt,
+}: {
+  flags: AuditFlagItem[];
+  summary: string;
+  scannedAt: string | null;
+}) {
+  const high = flags.filter((f) => f.severity === "high");
+  const medium = flags.filter((f) => f.severity === "medium");
+  const low = flags.filter((f) => f.severity === "low");
+
+  const accent = high.length
+    ? "border-red-200 bg-red-50/60"
+    : medium.length
+      ? "border-amber-200 bg-amber-50/60"
+      : flags.length
+        ? "border-blue-200 bg-blue-50/60"
+        : "border-emerald-200 bg-emerald-50/60";
+
+  return (
+    <div className={cn("rounded-xl border p-4 space-y-3", accent)}>
+      <div className="flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-brand" />
+        <p className="text-sm font-semibold text-foreground">
+          AI review of this audit
+        </p>
+        {scannedAt && (
+          <span className="text-[11px] text-muted ml-auto">
+            Scanned{" "}
+            {new Date(scannedAt).toLocaleDateString("en-AU", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+        )}
+      </div>
+
+      <p className="text-sm text-foreground/80 leading-relaxed">{summary}</p>
+
+      {flags.length > 0 && (
+        <ul className="space-y-2">
+          {flags.map((f, idx) => (
+            <li
+              key={idx}
+              className="flex items-start gap-2 bg-card/70 border border-border rounded-lg p-2.5"
+            >
+              <SeverityIcon severity={f.severity} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">{f.title}</p>
+                {f.snippet && (
+                  <p className="text-xs text-muted mt-0.5 italic line-clamp-3">
+                    &ldquo;{f.snippet}&rdquo;
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {flags.length === 0 && (
+        <p className="text-xs text-muted italic">
+          No follow-up items flagged — the AI didn't find anything that needs leadership attention.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SeverityIcon({ severity }: { severity: "high" | "medium" | "low" }) {
+  if (severity === "high") {
+    return <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />;
+  }
+  if (severity === "medium") {
+    return <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />;
+  }
+  return <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />;
 }
