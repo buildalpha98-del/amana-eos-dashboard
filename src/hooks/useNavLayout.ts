@@ -15,6 +15,7 @@ import { useEffect, useState, useCallback } from "react";
 export type NavLayout = "sidebar" | "topbar";
 
 const STORAGE_KEY = "amana.navLayout";
+const SAME_TAB_EVENT = "amana:navLayoutChanged";
 
 function readPreference(): NavLayout {
   if (typeof window === "undefined") return "sidebar";
@@ -35,13 +36,28 @@ export function useNavLayout(): {
   useEffect(() => {
     setLayoutState(readPreference());
 
-    // Sync across tabs — if the user toggles in another tab, this one
-    // picks the change up on next render.
-    const handler = (e: StorageEvent) => {
+    // Cross-tab sync via the native `storage` event — only fires
+    // on *other* tabs, not the current one.
+    const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) setLayoutState(readPreference());
     };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+    // Same-tab sync — multiple instances of this hook (the toggle
+    // button and the dashboard layout both call it) need to react
+    // immediately when one of them calls setLayout. localStorage
+    // alone doesn't notify same-tab listeners, so we dispatch our
+    // own custom event and every hook instance listens for it.
+    const handleSameTab = (e: Event) => {
+      const detail = (e as CustomEvent<NavLayout>).detail;
+      if (detail === "topbar" || detail === "sidebar") {
+        setLayoutState(detail);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(SAME_TAB_EVENT, handleSameTab as EventListener);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(SAME_TAB_EVENT, handleSameTab as EventListener);
+    };
   }, []);
 
   const setLayout = useCallback((next: NavLayout) => {
@@ -50,6 +66,12 @@ export function useNavLayout(): {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
       /* private-mode storage refusal — non-fatal, just won't persist */
+    }
+    // Notify every other hook instance in this tab.
+    try {
+      window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT, { detail: next }));
+    } catch {
+      /* Event dispatch shouldn't fail in any normal browser */
     }
   }, []);
 
