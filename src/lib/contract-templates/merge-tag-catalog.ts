@@ -13,10 +13,15 @@ export const MERGE_TAGS: MergeTagDef[] = [
   { key: "staff.fullName", label: "Staff: Full name", group: "staff", blocking: true },
   { key: "staff.email", label: "Staff: Email", group: "staff", blocking: true },
   { key: "staff.phone", label: "Staff: Phone", group: "staff", blocking: false },
-  { key: "staff.address", label: "Staff: Street address", group: "staff", blocking: true },
-  { key: "staff.city", label: "Staff: City/Suburb", group: "staff", blocking: true },
-  { key: "staff.state", label: "Staff: State", group: "staff", blocking: true },
-  { key: "staff.postcode", label: "Staff: Postcode", group: "staff", blocking: true },
+  // 2026-06-26: Daniel wants to be able to issue temporary contracts
+  // before the staff member has filled in their postal address. The
+  // contract template still references these merge tags; they simply
+  // render as empty strings when missing instead of blocking issue.
+  // Staff fills them in via /profile and a re-render picks them up.
+  { key: "staff.address", label: "Staff: Street address", group: "staff", blocking: false },
+  { key: "staff.city", label: "Staff: City/Suburb", group: "staff", blocking: false },
+  { key: "staff.state", label: "Staff: State", group: "staff", blocking: false },
+  { key: "staff.postcode", label: "Staff: Postcode", group: "staff", blocking: false },
   // Composite — joins city + state + postcode with single spaces so authors can
   // use one tag instead of three adjacent ones (which is easy to get wrong —
   // see the "BonnyriggNSW2177" rendering bug). Non-blocking; the individual
