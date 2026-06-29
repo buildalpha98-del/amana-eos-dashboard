@@ -289,6 +289,20 @@ export const DOCUMENT_TYPES = [
   { value: "immunisation_record", label: "Immunisation Record" },
 ] as const;
 
+/**
+ * Extra document types collected conditionally on later steps:
+ *   - court_order: shown on the parent step when `courtOrders` is true
+ *   - medical_action_plan: shown on the medical step when a child has
+ *     anaphylaxis or allergies flagged
+ * They aren't in DOCUMENT_TYPES so they don't appear as upload slots
+ * for every child on step 0 — they only surface where they're
+ * relevant. validateStep() enforces them at the appropriate step.
+ */
+export const CONDITIONAL_DOCUMENT_TYPES = {
+  court_order: "Court Order Documents",
+  medical_action_plan: "Medical Action Plan",
+} as const;
+
 /** Returns error messages for a step, or empty array if valid */
 export function validateStep(step: number, data: EnrolmentFormData): string[] {
   const errors: string[] = [];
@@ -297,9 +311,21 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
     case 0: // Child Details
       data.children.forEach((child, i) => {
         const label = data.children.length > 1 ? ` (Child ${i + 1})` : "";
+        const childName = child.firstName.trim() || `Child ${i + 1}`;
         if (!child.firstName.trim()) errors.push(`First name is required${label}`);
         if (!child.surname.trim()) errors.push(`Surname is required${label}`);
         if (!child.dob) errors.push(`Date of birth is required${label}`);
+
+        // 2026-06-26: birth certificate + immunisation record are
+        // hard-required to proceed. Parents can't skip — they're
+        // baseline compliance documents for OSHC enrolment.
+        const childUploads = data.documentUploads.filter((d) => d.childIndex === i);
+        if (!childUploads.some((d) => d.type === "birth_certificate")) {
+          errors.push(`Birth certificate is required for ${childName}`);
+        }
+        if (!childUploads.some((d) => d.type === "immunisation_record")) {
+          errors.push(`Immunisation record is required for ${childName}`);
+        }
       });
       break;
 
@@ -337,16 +363,53 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
           if (!sp.mobile.trim()) errors.push("Secondary parent mobile is required");
         }
       }
+      // 2026-06-26: if the family has a court order, the form already
+      // exposes a courtOrderFiles upload widget — just require at
+      // least one file before they advance past this step.
+      if (data.courtOrders === true) {
+        if (!data.courtOrderFiles || data.courtOrderFiles.length === 0) {
+          errors.push("Court order document is required when you've indicated court orders apply");
+        }
+      }
       break;
 
     case 2: // Medical
       data.medicals.forEach((med, i) => {
-        const label = data.children.length > 1 ? ` (${data.children[i]?.firstName || `Child ${i + 1}`})` : "";
+        const childName = data.children[i]?.firstName?.trim() || `Child ${i + 1}`;
+        const label = data.children.length > 1 ? ` (${childName})` : "";
         if (!med.doctorName.trim()) errors.push(`Doctor's name is required${label}`);
         if (!med.doctorPhone.trim()) errors.push(`Doctor's phone is required${label}`);
         if (med.immunisationUpToDate === null) errors.push(`Immunisation status is required${label}`);
         if (med.anaphylaxisRisk === null) errors.push(`Anaphylaxis risk is required${label}`);
         if (med.allergies === null) errors.push(`Allergies status is required${label}`);
+
+        // 2026-06-26: if this child has a flagged medical condition,
+        // require an action plan upload before they can advance off
+        // the medical step. The MedicalStep UI already exposes the
+        // upload widgets — they just weren't enforced. Each condition
+        // has its own plan type already wired into medicalFiles:
+        //   anaphylaxis → ascia_action_plan
+        //   allergies   → allergy_plan
+        //   asthma      → asthma_care_plan
+        const hasPlan = (planType: string) =>
+          data.medicalFiles.some(
+            (f) => f.childIndex === i && f.type === planType,
+          );
+        if (med.anaphylaxisRisk === true && !hasPlan("ascia_action_plan")) {
+          errors.push(
+            `ASCIA Action Plan is required for ${childName} (anaphylaxis flagged)`,
+          );
+        }
+        if (med.allergies === true && !hasPlan("allergy_plan")) {
+          errors.push(
+            `Allergy action plan is required for ${childName} (allergies flagged)`,
+          );
+        }
+        if (med.asthma === true && !hasPlan("asthma_care_plan")) {
+          errors.push(
+            `Asthma Care Plan is required for ${childName} (asthma flagged)`,
+          );
+        }
       });
       break;
 
