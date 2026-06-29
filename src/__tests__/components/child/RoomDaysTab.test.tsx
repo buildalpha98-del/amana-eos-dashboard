@@ -40,6 +40,7 @@ function makeChild(
     schoolName: null,
     yearLevel: null,
     crn: null,
+    countryOfBirth: null,
     medical: null,
     dietary: null,
     bookingPrefs,
