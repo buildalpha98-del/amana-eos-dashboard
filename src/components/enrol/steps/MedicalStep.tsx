@@ -224,7 +224,10 @@ export function MedicalStep({ data, updateData }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Input label="Medicare Number" value={medical.medicareNumber} onChange={(v) => updateMedical("medicareNumber", v)} />
         <Input label="Reference Number" value={medical.medicareRef} onChange={(v) => updateMedical("medicareRef", v)} />
-        <Input label="Expiry Date" value={medical.medicareExpiry} onChange={(v) => updateMedical("medicareExpiry", v)} type="date" />
+        {/* 2026-06-26: Medicare cards show MM/YYYY on the front — there is no day-level
+            expiry to capture. type="month" gives parents a native month+year picker
+            (output is "YYYY-MM") and the dashboard converts to a full DateTime on save. */}
+        <Input label="Expiry (Month / Year)" value={medical.medicareExpiry} onChange={(v) => updateMedical("medicareExpiry", v)} type="month" />
       </div>
 
       <div className="space-y-4 mt-6">
