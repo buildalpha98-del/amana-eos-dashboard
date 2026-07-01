@@ -51,8 +51,8 @@ describe("EmployeeRow", () => {
   it("renders name + role + service + status for an admin viewer", () => {
     renderRow({ employee: ALICE, viewerRole: "admin", viewerId: "viewer-1", listSearchString: "" });
     expect(screen.getByText("Alice Adams")).toBeInTheDocument();
-    // Role display name resolves via ROLE_DISPLAY_NAMES — "staff" → "Educator"
-    expect(screen.getByText("Educator")).toBeInTheDocument();
+    // Role display name resolves via ROLE_DISPLAY_NAMES — "staff" → "OSHC Educator" (relabeled 2026-06-02)
+    expect(screen.getByText("OSHC Educator")).toBeInTheDocument();
     expect(screen.getByText("Mawson Lakes")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
   });

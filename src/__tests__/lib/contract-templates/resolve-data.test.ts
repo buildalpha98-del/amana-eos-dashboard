@@ -79,7 +79,7 @@ describe("resolveTemplateData", () => {
     expect(resolved["staff.cityStatePostcode"]).toBe("NSW 2177");
   });
 
-  it("missing User.addressStreet → staff.address in missingBlocking", async () => {
+  it("missing User.addressStreet → staff.address resolves empty but is NOT blocking (contracts can issue without postal address)", async () => {
     const userWithoutAddress = { ...FULL_USER, addressStreet: null };
     prismaMock.user.findUnique.mockResolvedValue(userWithoutAddress);
 
@@ -88,7 +88,9 @@ describe("resolveTemplateData", () => {
       contractMeta: BASE_META,
     });
 
-    expect(missingBlocking).toContain("staff.address");
+    // staff.address is blocking=false in the merge-tag catalog since
+    // fix/contract-address-non-blocking — contracts may be issued without it.
+    expect(missingBlocking).not.toContain("staff.address");
     expect(resolved["staff.address"]).toBe("");
   });
 

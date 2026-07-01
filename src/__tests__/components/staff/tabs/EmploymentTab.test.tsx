@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
+
+// ContractQuickUpload (rendered inside EmploymentTab) calls useRouter; mock
+// next/navigation so it doesn't throw "app router not mounted" in jsdom.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 import { EmploymentTab } from "@/components/staff/tabs/EmploymentTab";
 
 function makeUser(overrides: Record<string, unknown> = {}) {
