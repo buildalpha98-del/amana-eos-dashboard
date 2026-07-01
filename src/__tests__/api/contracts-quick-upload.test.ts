@@ -86,12 +86,14 @@ describe("POST /api/contracts/quick-upload", () => {
     _clearUserActiveCache();
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.user.findUnique.mockImplementation(
-      async (args: { where: { id: string } }) => {
+      async (args: { where: { id: string }; select?: Record<string, boolean> }) => {
+        // isUserActive selects only { active: true } — any authenticated session user is active
+        if (args.select && Object.keys(args.select).length === 1 && "active" in args.select) {
+          return { active: true };
+        }
+        // Route-level lookups by target userId
         if (args.where.id === "staff-1") {
           return { id: "staff-1", name: "Staff", active: true };
-        }
-        if (args.where.id === "admin-1") {
-          return { active: true };
         }
         return null;
       },
