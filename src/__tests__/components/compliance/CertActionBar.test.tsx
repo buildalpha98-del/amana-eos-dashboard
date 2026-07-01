@@ -23,17 +23,12 @@ const baseCert = {
 };
 
 describe("CertActionBar", () => {
-  it("renders a Download link AND a View affordance when fileUrl is present", () => {
+  it("renders a View affordance when fileUrl is present", () => {
     const { container } = render(
       <CertActionBar cert={baseCert} canEdit={false} canDelete={false} />,
     );
-    // Download is now an anchor with `?download=1` so the browser forces an
-    // attachment; View is a button that opens the inline FileViewerModal.
-    const dl = container.querySelector(
-      'a[href="/api/compliance/cert-1/download?download=1"]',
-    );
-    expect(dl).not.toBeNull();
-    expect(dl?.textContent).toContain("Download");
+    // View opens the inline FileViewerModal (download anchor lives inside
+    // the modal and is only in the DOM when the modal is open).
     const viewBtn = container.querySelector(
       '[data-testid="cert-view-button"]',
     );
