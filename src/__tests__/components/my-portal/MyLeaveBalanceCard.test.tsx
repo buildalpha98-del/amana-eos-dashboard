@@ -6,20 +6,22 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 
+// Component fetches /api/my-portal/leave/balances via fetchApi (which checks
+// content-type). Mock returns the EH payroll shape: { balances: LeaveBalance[] }.
 function mockFetchBalances(
   balances: Array<Record<string, unknown>>,
   opts: { ok?: boolean } = {},
 ) {
   const ok = opts.ok !== false;
   global.fetch = vi.fn().mockImplementation((url: string) => {
-    if (typeof url === "string" && url.includes("/api/leave/balances")) {
+    if (typeof url === "string" && url.includes("/api/my-portal/leave/balances")) {
       return Promise.resolve({
         ok,
         status: ok ? 200 : 500,
         headers: {
           get: (h: string) => (h === "content-type" ? "application/json" : null),
         },
-        json: async () => (ok ? balances : { error: "Server error" }),
+        json: async () => (ok ? { balances } : { error: "Server error" }),
       });
     }
     return Promise.resolve({
@@ -59,75 +61,60 @@ describe("MyLeaveBalanceCard", () => {
     });
   });
 
-  it("renders the annual leave balance numbers when present", async () => {
+  it("renders the leave balance when present (EH payroll format)", async () => {
     mockFetchBalances([
       {
-        id: "lb-1",
-        userId: "user-1",
-        leaveType: "annual",
-        balance: 15,
-        accrued: 20,
-        taken: 5,
-        pending: 0,
+        leaveCategoryId: 1,
+        leaveCategoryName: "Annual Leave",
+        accruedAmount: 15.5,
+        unitType: "Hours",
       },
     ]);
     const { container } = renderCard("user-1");
 
     await waitFor(() => {
-      // accrued 20, taken 5, remaining 15 — all should appear
-      expect(container.textContent).toContain("20");
-      expect(container.textContent).toContain("5");
-      expect(container.textContent).toContain("15");
-    });
-    expect(container.textContent).toMatch(/annual/i);
-  });
-
-  it("renders both annual and personal when both present", async () => {
-    mockFetchBalances([
-      {
-        id: "lb-1",
-        userId: "user-1",
-        leaveType: "annual",
-        balance: 12,
-        accrued: 18,
-        taken: 6,
-        pending: 0,
-      },
-      {
-        id: "lb-2",
-        userId: "user-1",
-        leaveType: "personal",
-        balance: 7,
-        accrued: 10,
-        taken: 3,
-        pending: 0,
-      },
-    ]);
-    const { container } = renderCard("user-1");
-
-    await waitFor(() => {
-      expect(container.textContent).toMatch(/annual/i);
-      expect(container.textContent).toMatch(/personal/i);
+      expect(container.textContent).toContain("Annual Leave");
+      expect(container.textContent).toContain("15.50 hours");
     });
   });
 
-  it("does not render annual card when only personal is returned", async () => {
+  it("renders both leave categories when both present", async () => {
     mockFetchBalances([
       {
-        id: "lb-2",
-        userId: "user-1",
-        leaveType: "personal",
-        balance: 4,
-        accrued: 10,
-        taken: 6,
-        pending: 0,
+        leaveCategoryId: 1,
+        leaveCategoryName: "Annual Leave",
+        accruedAmount: 40.0,
+        unitType: "Hours",
+      },
+      {
+        leaveCategoryId: 2,
+        leaveCategoryName: "Personal/Carer's Leave",
+        accruedAmount: 8.0,
+        unitType: "Hours",
       },
     ]);
     const { container } = renderCard("user-1");
 
     await waitFor(() => {
-      expect(container.textContent).toMatch(/personal/i);
+      expect(container.textContent).toContain("Annual Leave");
+      expect(container.textContent).toContain("Personal/Carer's Leave");
     });
-    expect(container.textContent).not.toMatch(/annual leave/i);
+  });
+
+  it("does not show annual leave when only personal leave is returned", async () => {
+    mockFetchBalances([
+      {
+        leaveCategoryId: 2,
+        leaveCategoryName: "Personal/Carer's Leave",
+        accruedAmount: 4.0,
+        unitType: "Hours",
+      },
+    ]);
+    const { container } = renderCard("user-1");
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("Personal/Carer's Leave");
+    });
+    expect(container.textContent).not.toContain("Annual Leave");
   });
 });
