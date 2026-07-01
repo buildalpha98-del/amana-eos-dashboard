@@ -7,6 +7,7 @@
  * acknowledged so the /team yellow "no contract" badge clears.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession } from "../helpers/auth-mock";
 
@@ -70,10 +71,7 @@ function makePdfForm(opts: {
 }
 
 function callPost(form: FormData) {
-  // Built-in fetch Request supports a FormData body natively. The
-  // route only reads `req.headers["content-type"]` and `req.formData()`,
-  // both of which the Request object provides for us.
-  const req = new Request("http://localhost/api/contracts/quick-upload", {
+  const req = new NextRequest("http://localhost/api/contracts/quick-upload", {
     method: "POST",
     body: form,
   });

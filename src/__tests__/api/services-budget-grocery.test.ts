@@ -48,6 +48,10 @@ describe("GET /api/services/[id]/budget — grocery breakdown", () => {
     });
     prismaMock.budgetItem.findMany.mockResolvedValue([]);
     prismaMock.budgetItem.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+    prismaMock.financialPeriod.aggregate.mockResolvedValue({
+      _sum: { bscAttendance: 0, ascAttendance: 0, vcAttendance: 0 },
+    });
+    prismaMock.financialPeriod.findMany.mockResolvedValue([]);
   });
 
   it("sums both permanent (enrolled) and casual (attended) bookings per session type", async () => {

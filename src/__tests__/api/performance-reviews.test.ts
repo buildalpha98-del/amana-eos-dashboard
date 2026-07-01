@@ -84,6 +84,7 @@ const baseReview = {
 beforeEach(() => {
   vi.clearAllMocks();
   _clearUserActiveCache();
+  prismaMock.user.findUnique.mockReset();
   prismaMock.user.findUnique.mockResolvedValue({
     active: true,
     serviceId: "svc-1",
