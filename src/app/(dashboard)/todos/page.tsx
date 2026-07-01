@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import { useTodos, useUpdateTodo, useDeleteTodo, useCreateTodo, useBulkTodoAction, type TodoData } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
 import { getWeekStart } from "@/lib/utils";
-import { WeekSelector } from "@/components/todos/WeekSelector";
 import { TodoListByPerson } from "@/components/todos/TodoListByPerson";
 import { TodoItem } from "@/components/todos/TodoItem";
 import { CreateTodoModal } from "@/components/todos/CreateTodoModal";
@@ -21,8 +20,6 @@ import {
   LayoutGrid,
   Filter,
   ChevronDown,
-  ChevronRight,
-  ArrowRight,
   Trash2,
   X,
   Archive,
@@ -35,7 +32,6 @@ import {
 import { exportToCsv } from "@/lib/csv-export";
 import { BulkCreateTodosModal } from "@/components/todos/BulkCreateTodosModal";
 import { TemplateManagerModal } from "@/components/todos/TemplateManagerModal";
-import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -78,7 +74,12 @@ function TodosPageContent() {
     [searchParams, router, pathname],
   );
 
-  const [weekOf, setWeekOf] = useState(() => getWeekStart());
+  // 2026-06-29: /todos no longer has a Weekly / All toggle — Daniel
+  // wanted a single always-on "all open to-dos" view so leftovers
+  // never hide behind a week boundary. `weekOf` is still tracked so
+  // Create / Bulk-Create / Templates can seed new todos with the
+  // current week without exposing a week picker.
+  const weekOf = useMemo(() => getWeekStart(), []);
   const [showCreate, setShowCreate] = useState(false);
   const [showBulkCreate, setShowBulkCreate] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<TodoData | null>(null);
@@ -113,9 +114,7 @@ function TodosPageContent() {
 
   const [showFilters, setShowFilters] = useState(!!(filterAssignee || filterStatus));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showCarryForward, setShowCarryForward] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
-  const [showAll, setShowAll] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [quickAddTitle, setQuickAddTitle] = useState("");
 
@@ -127,7 +126,6 @@ function TodosPageContent() {
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
 
   const { data: todos, isLoading, error, refetch } = useTodos({
-    ...(showAll ? {} : { weekOf: weekOf.toISOString() }),
     ...(filterAssignee ? { assigneeId: filterAssignee } : {}),
     ...(filterStatus ? { status: filterStatus } : {}),
   });
@@ -136,24 +134,6 @@ function TodosPageContent() {
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => { await refetch(); },
   });
-
-  // Fetch prior week's incomplete todos for carry-forward
-  const prevWeek = useMemo(() => {
-    const d = new Date(weekOf);
-    d.setDate(d.getDate() - 7);
-    return d;
-  }, [weekOf]);
-
-  const { data: prevTodos } = useTodos({
-    weekOf: prevWeek.toISOString(),
-  });
-
-  const carryForwardTodos = useMemo(() => {
-    if (!prevTodos) return [];
-    return prevTodos.filter(
-      (t) => t.status !== "complete" && t.status !== "cancelled"
-    );
-  }, [prevTodos]);
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -241,14 +221,6 @@ function TodosPageContent() {
     setSelectedIds(new Set());
   }, [selectedIds, bulkAction]);
 
-  const handleBatchMoveToThisWeek = useCallback(async () => {
-    const promises = Array.from(selectedIds).map((id) =>
-      updateTodo.mutateAsync({ id, weekOf: weekOf.toISOString() })
-    );
-    await Promise.all(promises);
-    setSelectedIds(new Set());
-  }, [selectedIds, weekOf, updateTodo]);
-
   const handleBatchDelete = useCallback(async () => {
     await bulkAction.mutateAsync({
       action: "delete",
@@ -268,17 +240,6 @@ function TodosPageContent() {
     setBulkAssignOpen(false);
   }, [selectedIds, bulkAction]);
 
-  const handleCarryForward = useCallback(async (todoId: string) => {
-    await updateTodo.mutateAsync({ id: todoId, weekOf: weekOf.toISOString() });
-  }, [weekOf, updateTodo]);
-
-  const handleCarryForwardAll = useCallback(async () => {
-    const promises = carryForwardTodos.map((t) =>
-      updateTodo.mutateAsync({ id: t.id, weekOf: weekOf.toISOString() })
-    );
-    await Promise.all(promises);
-  }, [carryForwardTodos, weekOf, updateTodo]);
-
   return (
     <div
       {...(v2 ? { "data-v2": "staff" } : {})}
@@ -289,7 +250,7 @@ function TodosPageContent() {
       {/* Header */}
       <PageHeader
         title="To-Dos"
-        description={showAll ? "Leadership action items across every week — Educator + Director of Service to-dos live on each service" : "Leadership action items for the L10 meeting rhythm — service-level to-dos are on each service page"}
+        description="Leadership action items across every week — Educator + Director of Service to-dos live on each service"
         helpTooltipId="todos-heading"
         helpTooltipContent="This board shows to-dos assigned to admin, marketing, and state-manager roles. Educator and Director of Service to-dos are managed inside each service's EOS To-Dos tab."
         primaryAction={{ label: "Add To-Do", icon: Plus, onClick: () => setShowCreate(true) }}
@@ -342,35 +303,6 @@ function TodosPageContent() {
           },
         ]}
       />
-
-      {/* Week Selector with All toggle */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex items-center bg-surface rounded-lg p-0.5">
-          <button
-            onClick={() => setShowAll(true)}
-            className={cn(
-              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-              showAll
-                ? "bg-card text-brand shadow-sm"
-                : "text-muted hover:text-foreground"
-            )}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setShowAll(false)}
-            className={cn(
-              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-              !showAll
-                ? "bg-card text-brand shadow-sm"
-                : "text-muted hover:text-foreground"
-            )}
-          >
-            Weekly
-          </button>
-        </div>
-        {!showAll && <WeekSelector value={weekOf} onChange={setWeekOf} />}
-      </div>
 
       {/* Filters */}
       {showFilters && (
@@ -434,69 +366,6 @@ function TodosPageContent() {
           }}
         />
       </div>
-
-      {/* Carry Forward Section (weekly mode only) */}
-      {!showAll && carryForwardTodos.length > 0 && (
-        <div className="mb-4 bg-amber-50/50 border border-amber-200 rounded-xl overflow-hidden">
-          <button
-            onClick={() => setShowCarryForward(!showCarryForward)}
-            className="w-full flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-3 hover:bg-amber-50 transition-colors gap-2"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              {showCarryForward ? (
-                <ChevronDown className="w-4 h-4 text-amber-600 shrink-0" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-amber-600 shrink-0" />
-              )}
-              <span className="text-sm font-semibold text-amber-800">
-                Carried Forward
-              </span>
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 font-medium shrink-0">
-                {carryForwardTodos.length}
-              </span>
-              <span className="text-xs text-amber-600 hidden sm:inline">
-                incomplete from last week
-              </span>
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCarryForwardAll();
-              }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors self-start sm:self-auto shrink-0"
-            >
-              <ArrowRight className="w-3 h-3" />
-              Move all to this week
-            </button>
-          </button>
-          {showCarryForward && (
-            <div className="px-4 pb-3 space-y-1.5">
-              {carryForwardTodos.map((todo) => (
-                <div
-                  key={todo.id}
-                  className="flex items-center gap-3 px-3 py-2 bg-card rounded-lg border border-amber-100"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {todo.title}
-                    </p>
-                    <span className="text-xs text-muted">
-                      {todo.assignee?.name ?? "Unassigned"}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleCarryForward(todo.id)}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-brand bg-brand/5 hover:bg-brand/10 rounded transition-colors"
-                  >
-                    <ArrowRight className="w-3 h-3" />
-                    Move
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Error State */}
       {error && (
@@ -632,7 +501,7 @@ function TodosPageContent() {
       ) : (
         <EmptyState
           icon={CheckSquare}
-          title={showAll ? "No active To-Dos" : "No To-Dos this week"}
+          title="No active To-Dos"
           description="To-Dos are the weekly action items that push your Rocks forward. Add them here or spawn them from Issues in your L10 meetings."
           action={{ label: "Create Your First To-Do", onClick: () => setShowCreate(true) }}
         />
@@ -684,16 +553,6 @@ function TodosPageContent() {
                   </div>
                 )}
               </div>
-
-              <button
-                onClick={handleBatchMoveToThisWeek}
-                disabled={bulkAction.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors border border-border disabled:opacity-50"
-              >
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Move to this week</span>
-                <span className="sm:hidden">Move</span>
-              </button>
 
               <button
                 onClick={() => setShowBulkDeleteConfirm(true)}
