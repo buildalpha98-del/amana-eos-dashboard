@@ -11,6 +11,12 @@ export interface ChildDetails {
   schoolName: string;
   yearLevel: string;
   crn: string;
+  /**
+   * Country of birth. Stored as the final display string —
+   * "Australia", "New Zealand", or whatever the parent typed
+   * when they selected "Other". Empty string = not yet answered.
+   */
+  countryOfBirth: string;
 }
 
 export interface ParentDetails {
@@ -141,6 +147,7 @@ export const EMPTY_CHILD: ChildDetails = {
   schoolName: "",
   yearLevel: "",
   crn: "",
+  countryOfBirth: "",
 };
 
 export const EMPTY_PARENT: ParentDetails = {
@@ -272,6 +279,11 @@ export const CULTURAL_OPTIONS = [
 
 export const AUSTRALIAN_STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"];
 
+/** Quick-pick options for the per-child Country of Birth question.
+ *  "Other" reveals a free-text input — whatever the parent types is
+ *  what gets stored. */
+export const COUNTRY_OF_BIRTH_QUICK_PICKS = ["Australia", "New Zealand"] as const;
+
 export const RELATIONSHIP_OPTIONS = [
   "Mum",
   "Dad",
@@ -315,6 +327,7 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
         if (!child.firstName.trim()) errors.push(`First name is required${label}`);
         if (!child.surname.trim()) errors.push(`Surname is required${label}`);
         if (!child.dob) errors.push(`Date of birth is required${label}`);
+        if (!child.countryOfBirth.trim()) errors.push(`Country of birth is required${label}`);
 
         // 2026-06-26: birth certificate + immunisation record are
         // hard-required to proceed. Parents can't skip — they're

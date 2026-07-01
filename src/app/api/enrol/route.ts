@@ -27,6 +27,7 @@ const childSchema = z.object({
   schoolName: z.string().default(""),
   yearLevel: z.string().default(""),
   crn: z.string().min(1, "Child CRN is required"),
+  countryOfBirth: z.string().default(""),
 });
 
 const parentSchema = z.object({
@@ -366,6 +367,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
           schoolName: child.schoolName || undefined,
           yearLevel: child.yearLevel || undefined,
           crn: child.crn || undefined,
+          countryOfBirth: child.countryOfBirth || undefined,
           medical: child.medical || undefined,
           dietary: child.medical?.dietaryRequirements
             ? { details: child.medical.dietaryDetails }

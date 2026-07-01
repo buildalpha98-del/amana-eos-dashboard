@@ -96,6 +96,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
             <Field label="Name" value={`${child.firstName} ${child.surname}`} />
             <Field label="DOB" value={child.dob} />
             <Field label="Gender" value={child.gender} />
+            <Field label="Country of Birth" value={child.countryOfBirth} />
             <Field label="Address" value={[child.street, child.suburb, child.state, child.postcode].filter(Boolean).join(", ")} />
             <Field label="School" value={child.schoolName} />
             <Field label="Year" value={child.yearLevel} />

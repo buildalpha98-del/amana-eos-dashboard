@@ -6093,6 +6093,7 @@ model Child {
   schoolName            String?
   yearLevel             String?
   crn                   String?
+  countryOfBirth        String? // "Australia" | "New Zealand" | free text for "Other"
   medical               Json? // Full medical info (legacy — from enrolment import)
   dietary               Json? // Dietary requirements (legacy — from enrolment import)
   bookingPrefs          Json? // Session types, days, booking type

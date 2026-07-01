@@ -7,6 +7,7 @@ import {
   ChildDetails,
   CULTURAL_OPTIONS,
   AUSTRALIAN_STATES,
+  COUNTRY_OF_BIRTH_QUICK_PICKS,
   DOCUMENT_TYPES,
 } from "../types";
 import { stateFromPostcode } from "@/lib/au-postcodes";
@@ -65,6 +66,81 @@ function Input({
         pattern={pattern}
         className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
+    </div>
+  );
+}
+
+/**
+ * Quick-pick segmented control for "Country of Birth".
+ * Stores the final display string directly on the child record:
+ *   - Australia / New Zealand pills → that exact label
+ *   - "Other" → reveals a text input; whatever is typed becomes the value
+ * Derivation rule: if `value` matches a quick-pick label exactly, that
+ * pill is selected; if `value` is non-empty and not a quick-pick, the
+ * Other pill is selected with the text pre-filled.
+ */
+function CountryOfBirthPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const isQuickPick = COUNTRY_OF_BIRTH_QUICK_PICKS.some((p) => p === value);
+  const otherSelected = !isQuickPick && value !== "";
+  // local controlled flag so the Other input shows immediately on click
+  // even before any keystroke has populated `value`.
+  const [showOther, setShowOther] = useState(otherSelected);
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2">
+        {COUNTRY_OF_BIRTH_QUICK_PICKS.map((opt) => {
+          const selected = value === opt;
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => {
+                onChange(opt);
+                setShowOther(false);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                selected
+                  ? "bg-brand/10 border-brand text-brand"
+                  : "bg-surface/50 border-border text-muted hover:bg-surface"
+              }`}
+            >
+              {opt}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => {
+            setShowOther(true);
+            // Clear quick-pick selection if user is switching from one
+            if (isQuickPick) onChange("");
+          }}
+          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+            showOther || otherSelected
+              ? "bg-brand/10 border-brand text-brand"
+              : "bg-surface/50 border-border text-muted hover:bg-surface"
+          }`}
+        >
+          Other
+        </button>
+      </div>
+      {(showOther || otherSelected) && (
+        <input
+          type="text"
+          value={otherSelected ? value : ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Type the country of birth"
+          autoFocus={showOther && !otherSelected}
+          className="mt-2 w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
+        />
+      )}
     </div>
   );
 }
@@ -138,6 +214,14 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
                 <option value="male">Male</option>
               </select>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <FieldLabel label="Country of Birth" required />
+            <CountryOfBirthPicker
+              value={child.countryOfBirth}
+              onChange={(v) => updateChild(i, "countryOfBirth", v)}
+            />
           </div>
 
           <h4 className="text-sm font-semibold text-muted mt-6 mb-3">Address</h4>
