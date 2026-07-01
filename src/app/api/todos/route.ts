@@ -47,7 +47,7 @@ export const GET = withApiAuth(async (req, session) => {
   if (stateScope) where.service = { state: stateScope };
 
   const include = {
-    assignee: { select: { id: true, name: true, email: true, avatar: true } },
+    assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
     rock: { select: { id: true, title: true } },
     issue: { select: { id: true, title: true } },
     assignees: {
@@ -102,7 +102,7 @@ const body = await parseJsonBody(req);
       weekOf: new Date(parsed.data.weekOf),
     },
     include: {
-      assignee: { select: { id: true, name: true, email: true, avatar: true } },
+      assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
       assignees: {

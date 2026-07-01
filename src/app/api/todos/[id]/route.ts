@@ -24,7 +24,7 @@ export const GET = withApiAuth(async (req, session, context) => {
   const todo = await prisma.todo.findUnique({
     where: { id, deleted: false },
     include: {
-      assignee: { select: { id: true, name: true, email: true, avatar: true } },
+      assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
     },
@@ -80,7 +80,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     where: { id },
     data,
     include: {
-      assignee: { select: { id: true, name: true, email: true, avatar: true } },
+      assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
     },

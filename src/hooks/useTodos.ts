@@ -10,6 +10,13 @@ export interface TodoAssignee {
   name: string;
   email: string;
   avatar: string | null;
+  /**
+   * The assignee's role. Surfaced so /todos can hide todos assigned
+   * to service-level roles (Director of Service / Educator) — those
+   * appear on the service's own To-Dos tab instead of the org-wide
+   * EOS To-Dos page.
+   */
+  role: import("@prisma/client").Role;
 }
 
 export interface TodoData {
