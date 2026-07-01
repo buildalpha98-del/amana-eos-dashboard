@@ -343,7 +343,41 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile: card-stack. On sm+ the desktop table renders instead.
+                Same underlying data — currentPeriod session-type rows. */}
+            <div className="sm:hidden space-y-2">
+              {(["bsc", "asc", "vc"] as const).map((k) => {
+                const row = summary?.currentPeriod?.[k];
+                const color =
+                  k === "bsc" ? CHART_COLORS.primary
+                    : k === "asc" ? CHART_COLORS.accent
+                    : CHART_COLORS.success;
+                return (
+                  <div key={k} className="rounded-lg border border-border/50 bg-card/50 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                        {SESSION_LABELS[k]}
+                      </span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {formatCurrency(row?.cost || 0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted">
+                      <span>{(row?.attended || 0).toLocaleString()} attended</span>
+                      <span>${(row?.rate ?? 0).toFixed(2)} / head</span>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <span className="text-sm font-semibold text-foreground">Total</span>
+                <span className="text-base font-bold text-emerald-700">
+                  {formatCurrency(summary?.currentPeriod?.groceryTotal || 0)}
+                </span>
+              </div>
+            </div>
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-muted border-b border-border/50">

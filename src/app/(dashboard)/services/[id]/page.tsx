@@ -20,7 +20,6 @@ import {
   AlertTriangle,
   CalendarDays,
   CalendarClock,
-  DollarSign,
   FolderKanban,
   Loader2,
   Radio,
@@ -199,7 +198,11 @@ const tabGroups: TabGroup[] = [
     icon: Wallet,
     subTabs: [
       { key: "budget", label: "Budget", icon: Wallet },
-      { key: "financials", label: "Financials", icon: DollarSign },
+      // 2026-06-29: "Financials" sub-tab removed — it was a stub that
+      // just pointed users at the global /financials page. If admins
+      // want per-service P&L they now navigate to Financials from the
+      // sidebar with the centre filter set instead of hitting a dead
+      // end here.
       { key: "approvals", label: "Approvals", icon: CheckCircle2 },
     ],
   },
@@ -633,20 +636,6 @@ export default function ServiceDetailPage() {
         {/* Finance group */}
         {activeGroup === "finance" && currentSubKey === "budget" && (
           <ServiceBudgetTab serviceId={service.id} />
-        )}
-        {activeGroup === "finance" && currentSubKey === "financials" && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mb-4">
-              <DollarSign className="w-6 h-6 text-brand" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-1">
-              Financial Dashboard
-            </h3>
-            <p className="text-sm text-muted max-w-md">
-              Financial summary for {service.name} is available on the Financial
-              Dashboard page filtered to this centre.
-            </p>
-          </div>
         )}
         {activeGroup === "finance" && currentSubKey === "approvals" && (
           <ServicePurchaseApprovalsTab
