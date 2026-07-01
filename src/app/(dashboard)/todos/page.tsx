@@ -164,32 +164,50 @@ function TodosPageContent() {
     },
   });
 
-  // Summary stats
+  // 2026-06-29: the org-wide /todos page is now scoped to leadership
+  // to-dos only. Service-level roles (Director of Service, Educator)
+  // manage their todos inside /services/[id]?tab=eos&sub=todos so the
+  // EOS To-Dos board stays a coordination view for admin / marketing /
+  // state-manager instead of a firehose of every educator's tasks.
+  const LEADERSHIP_ASSIGNEE_ROLES = new Set<string>([
+    "owner",
+    "head_office",
+    "admin",
+    "marketing",
+  ]);
+  const leadershipTodos = useMemo(() => {
+    if (!todos) return [];
+    return todos.filter(
+      (t) => t.assignee && LEADERSHIP_ASSIGNEE_ROLES.has(t.assignee.role),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todos]);
+
+  // Summary stats — reflect the leadership-scoped view so counts on the
+  // page match what the user actually sees below.
   const stats = useMemo(() => {
-    if (!todos) return { total: 0, complete: 0, pending: 0, overdue: 0 };
+    if (!leadershipTodos.length) return { total: 0, complete: 0, pending: 0, overdue: 0 };
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     return {
-      total: todos.length,
-      complete: todos.filter((t) => t.status === "complete").length,
-      pending: todos.filter(
+      total: leadershipTodos.length,
+      complete: leadershipTodos.filter((t) => t.status === "complete").length,
+      pending: leadershipTodos.filter(
         (t) => t.status === "pending" || t.status === "in_progress"
       ).length,
-      overdue: todos.filter(
+      overdue: leadershipTodos.filter(
         (t) =>
           t.status !== "complete" &&
           t.status !== "cancelled" &&
           new Date(t.dueDate) < now
       ).length,
     };
-  }, [todos]);
+  }, [leadershipTodos]);
 
-  // Filter out completed/cancelled todos when archive is hidden
   const filteredTodos = useMemo(() => {
-    if (!todos) return [];
-    if (showArchived) return todos;
-    return todos.filter((t) => t.status !== "complete" && t.status !== "cancelled");
-  }, [todos, showArchived]);
+    if (showArchived) return leadershipTodos;
+    return leadershipTodos.filter((t) => t.status !== "complete" && t.status !== "cancelled");
+  }, [leadershipTodos, showArchived]);
 
   const hasActiveFilters = filterAssignee || filterStatus;
 
@@ -271,9 +289,9 @@ function TodosPageContent() {
       {/* Header */}
       <PageHeader
         title="To-Dos"
-        description={showAll ? "All active action items across every week" : "Weekly action items for the L10 meeting rhythm"}
+        description={showAll ? "Leadership action items across every week — Educator + Director of Service to-dos live on each service" : "Leadership action items for the L10 meeting rhythm — service-level to-dos are on each service page"}
         helpTooltipId="todos-heading"
-        helpTooltipContent="7-day action items. Every to-do should be completable within one week. If it takes longer, it's probably a Rock."
+        helpTooltipContent="This board shows to-dos assigned to admin, marketing, and state-manager roles. Educator and Director of Service to-dos are managed inside each service's EOS To-Dos tab."
         primaryAction={{ label: "Add To-Do", icon: Plus, onClick: () => setShowCreate(true) }}
         toggles={[{
           options: [
