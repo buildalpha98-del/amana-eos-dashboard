@@ -532,7 +532,7 @@ function MyRequestsTab({
       <EmptyState
         icon={CalendarDays}
         title="No Leave Requests"
-        description='You have not submitted any leave requests yet. Click "Request Leave" to get started.'
+        description="You haven't submitted any leave here. New requests now go through My Portal → Leave."
       />
     );
   }
@@ -1173,15 +1173,38 @@ export default function LeavePage() {
   return (
     <div className="max-w-7xl mx-auto">
       <PageHeader
-        title="Leave Management"
+        title="Leave (Historical)"
         description={isAdmin
-          ? "Review, approve, and track team leave across all centres"
-          : "View your leave balances and submit leave requests"}
-        primaryAction={{ label: "Request Leave", icon: Plus, onClick: () => setShowRequestModal(true) }}
+          ? "Backlog of dashboard-internal leave requests. New requests go through My Portal → Employment Hero."
+          : "Your historical leave requests. To submit new leave, go to My Portal → Leave."}
         secondaryActions={[
           { label: "Export", icon: Download, onClick: handleExport },
         ]}
       />
+
+      {/* 2026-06-29: /leave is being wound down — all new requests now
+          go through My Portal → EH so managers get the pending
+          notification in Employment Hero itself. This banner steers
+          both staff and admins to the new flow. Existing pending
+          requests still visible below so admins can drain the queue. */}
+      <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 flex flex-wrap items-start gap-3">
+        <div className="flex-1 min-w-[200px]">
+          <p className="text-sm font-semibold text-amber-900">
+            New leave requests now go through My Portal
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            {isAdmin
+              ? "Staff submit leave via My Portal → Leave. Those requests land in Employment Hero and you approve them in EH. This page shows the backlog of dashboard-only requests submitted before the switchover — approve or reject them here to close them out."
+              : "Submit new leave via My Portal → Leave. Your request will land in Employment Hero for manager approval. This page just shows your historical requests."}
+          </p>
+        </div>
+        <a
+          href="/my-portal#leave"
+          className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 transition-colors"
+        >
+          Go to My Portal →
+        </a>
+      </div>
 
       {/* 2026-06-01: Staff portal + payroll-of-record now live in
           Employment Hero. This page is the internal-tracker view; the
