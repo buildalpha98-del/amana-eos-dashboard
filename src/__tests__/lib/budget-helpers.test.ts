@@ -26,21 +26,29 @@ describe("getMonthlyBudget", () => {
     vi.clearAllMocks();
   });
 
-  it("returns override when service has monthlyPurchaseBudget", async () => {
-    prismaMock.service.findUnique.mockResolvedValue({
-      monthlyPurchaseBudget: 500,
+  it("returns tier budget based on current-week combined attendance (override path removed 2026-06-15)", async () => {
+    // Per-service overrides were removed — the function now always uses
+    // orgSettings tiers + current-week enrolled+attended count.
+    prismaMock.orgSettings.findUnique.mockResolvedValue({
+      purchaseBudgetTiers: [
+        { minWeeklyChildren: 100, monthlyBudget: 300 },
+        { minWeeklyChildren: 0, monthlyBudget: 150 },
+      ],
+    });
+    // 80 enrolled + 30 attended = 110 combined → ≥ 100 → $300 tier
+    prismaMock.dailyAttendance.aggregate.mockResolvedValue({
+      _sum: { enrolled: 80, attended: 30 },
     });
 
     const result = await getMonthlyBudget("svc-1");
 
-    expect(result).toEqual({ amount: 500, source: "override" });
-    expect(prismaMock.service.findUnique).toHaveBeenCalledWith({
-      where: { id: "svc-1" },
-      select: { monthlyPurchaseBudget: true },
+    expect(result).toEqual({
+      amount: 300,
+      source: "tier",
+      tierLabel: "100+ children — $300/mo",
     });
-    // Should NOT query orgSettings or attendance when override exists
-    expect(prismaMock.orgSettings.findUnique).not.toHaveBeenCalled();
-    expect(prismaMock.dailyAttendance.aggregate).not.toHaveBeenCalled();
+    // No per-service override query
+    expect(prismaMock.service.findUnique).not.toHaveBeenCalled();
   });
 
   it("calculates tier from attendance data", async () => {

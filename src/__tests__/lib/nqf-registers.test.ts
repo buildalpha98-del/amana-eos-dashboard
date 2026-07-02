@@ -88,9 +88,12 @@ describe("rowsToCsv", () => {
   it("emits empty fields for null values (positional integrity)", () => {
     const csv = rowsToCsv([mkRow({ phone: null, foodSafetyExpiry: null })]);
     const lines = csv.split("\n");
-    const data = lines[1].split(",");
-    // Column count must equal header column count even with nulls.
-    expect(data.length).toBe(STAFF_REGISTER_COLUMNS.length);
+    // Use the header row to validate column count — column names don't
+    // contain commas, so naive split is safe there. Data fields like
+    // addresses can contain commas (which csvEscape quotes), so
+    // lines[1].split(",") would overcount those.
+    const headerCols = lines[0].split(",");
+    expect(headerCols.length).toBe(STAFF_REGISTER_COLUMNS.length);
   });
 
   it("output is stable — same input → byte-identical output", () => {

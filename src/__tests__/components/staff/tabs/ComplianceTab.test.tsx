@@ -86,14 +86,11 @@ describe("ComplianceTab", () => {
       />,
     );
     expect(container.textContent).toContain("WWCC VIC");
-    // CertActionBar's View opens the inline FileViewerModal via a button
-    // (data-testid="cert-view-button"); Download is still an anchor with
-    // ?download=1 so the browser forces an attachment.
+    // CertActionBar's View opens the inline FileViewerModal via a button.
+    // The download anchor lives inside the modal and is only in the DOM
+    // when the modal is open, so we only assert on the trigger button here.
     expect(
       container.querySelector('[data-testid="cert-view-button"]'),
-    ).not.toBeNull();
-    expect(
-      container.querySelector('a[href="/api/compliance/c1/download?download=1"]'),
     ).not.toBeNull();
   });
 

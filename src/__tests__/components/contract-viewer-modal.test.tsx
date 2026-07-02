@@ -24,6 +24,30 @@ vi.mock("@/hooks/useToast", () => ({
   toast: vi.fn(),
 }));
 
+vi.mock("@/components/contracts/SignaturePad", async () => {
+  const React = await import("react");
+  return {
+    SignaturePad: ({
+      onChange,
+      disabled,
+    }: {
+      onChange: (data: string | null) => void;
+      label?: string;
+      disabled?: boolean;
+    }) =>
+      React.default.createElement(
+        "button",
+        {
+          "data-testid": "mock-sign-here",
+          onClick: () => onChange("data:image/png;base64,fakesig"),
+          disabled,
+          type: "button",
+        },
+        "Draw Signature",
+      ),
+  };
+});
+
 function wrap(node: ReactNode) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -140,8 +164,17 @@ describe("ContractViewerModal", () => {
 
     render(wrap(<ContractViewerModal contract={baseTemplateContract} onClose={() => {}} />));
 
+    // Click the Sign Contract button to open signing mode.
     const btn = await screen.findByTestId("contract-viewer-acknowledge");
     fireEvent.click(btn);
+
+    // Mock SignaturePad renders a "Draw Signature" button; clicking it sets the sig data URL.
+    const drawBtn = await screen.findByTestId("mock-sign-here");
+    fireEvent.click(drawBtn);
+
+    // Now click "Confirm signature" (enabled once a sig data URL is set).
+    const confirmBtn = await screen.findByText("Confirm signature");
+    fireEvent.click(confirmBtn);
 
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledWith(
@@ -150,9 +183,9 @@ describe("ContractViewerModal", () => {
       );
     });
 
-    // Footer transitions to "Acknowledged just now" and the button is gone.
+    // Footer transitions to "Signed just now" and the button is gone.
     await waitFor(() => {
-      expect(screen.getByText(/acknowledged just now/i)).toBeInTheDocument();
+      expect(screen.getByText(/signed just now/i)).toBeInTheDocument();
     });
     expect(screen.queryByTestId("contract-viewer-acknowledge")).toBeNull();
   });
@@ -173,7 +206,7 @@ describe("ContractViewerModal", () => {
     // Wait for content load to settle.
     await screen.findByTestId("contract-viewer-iframe");
     expect(screen.queryByTestId("contract-viewer-acknowledge")).toBeNull();
-    expect(screen.getByText(/acknowledged on/i)).toBeInTheDocument();
+    expect(screen.getByText(/signed on/i)).toBeInTheDocument();
   });
 
   it("pressing Escape calls onClose", async () => {

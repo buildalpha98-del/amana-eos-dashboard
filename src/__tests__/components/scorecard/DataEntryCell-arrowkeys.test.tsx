@@ -3,13 +3,14 @@ import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Mock the create-entry mutation so the cell's save path doesn't try to fetch.
+// Mock the create/delete-entry mutations so the cell's save path doesn't try to fetch.
 vi.mock("@/hooks/useScorecard", () => ({
   useCreateEntry: () => ({
     mutate: (_args: unknown, opts?: { onSettled?: () => void }) => {
       opts?.onSettled?.();
     },
   }),
+  useDeleteEntry: () => ({ mutate: vi.fn() }),
 }));
 
 import { DataEntryCell } from "@/components/scorecard/DataEntryCell";

@@ -167,7 +167,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
               className="w-full px-3 py-2 text-sm border border-border rounded-lg"
             >
               <option value="">— None —</option>
-              {pdList?.items.map((pd) => (
+              {pdList?.items?.map((pd) => (
                 <option key={pd.id} value={pd.id}>
                   {pd.title}
                 </option>
