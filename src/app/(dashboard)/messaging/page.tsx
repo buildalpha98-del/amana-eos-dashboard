@@ -1,16 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/layout/PageHeader";
-import { MessagingInbox } from "@/components/messaging/MessagingInbox";
-
+/**
+ * 2026-07-05 nav consolidation phase 2: family messaging now lives as
+ * the "Messages" tab on /contact-centre so every parent-communication
+ * surface has one front door. This stub keeps old links alive.
+ */
 export default function MessagingPage() {
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Messages"
-        description="Communicate with families across your services"
-      />
-      <MessagingInbox />
-    </div>
-  );
+  redirect("/contact-centre?tab=messages");
 }

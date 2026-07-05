@@ -1,9 +1,9 @@
-import CoordinatorTodosContent from "@/components/marketing/coordinator-todos/CoordinatorTodosContent";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Coordinator Todos — Amana EOS",
-};
-
-export default function MarketingCoordinatorTodosPage() {
-  return <CoordinatorTodosContent />;
+/**
+ * 2026-07-05 nav consolidation phase 2: folded into /marketing as the
+ * Team Ops tab. This stub keeps old links alive.
+ */
+export default function Page() {
+  redirect("/marketing?tab=teamops&sub=todos");
 }

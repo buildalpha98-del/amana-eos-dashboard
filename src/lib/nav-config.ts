@@ -13,7 +13,6 @@ import {
   DollarSign,
   Trophy,
   FileText,
-  MessageSquare,
   MessageCircle,
   ScrollText,
   Megaphone,
@@ -24,10 +23,7 @@ import {
   CalendarDays,
   FileSignature,
   UserCircle,
-  UserPlus,
-  Package,
   Target,
-  Repeat,
   Palmtree,
   Calculator,
   FolderLock,
@@ -45,7 +41,6 @@ import {
   CalendarCheck,
   Receipt,
   Mail,
-  QrCode,
   Network,
   Brain,
 } from "lucide-react";
@@ -136,7 +131,11 @@ export const navItems: NavItem[] = [
   { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ALL_NON_MARKETING },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING },
   { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING },
-  { href: "/performance", label: "Performance", icon: Trophy, section: "Operations", roles: ALL_NON_MARKETING },
+  // 2026-07-05 nav consolidation phase 2: /reports folded in as the
+  // "Reports" view; /messaging → Contact Centre tab; /conversions → CRM
+  // view; five marketing satellites → /marketing Field Ops / Team Ops
+  // tabs (vendor-briefs page kept, linked from Field Ops).
+  { href: "/performance", label: "Performance & Reports", icon: Trophy, section: "Operations", tooltip: "Centre health scores plus attendance, booking, revenue, enrolment and medical reports", roles: ALL_NON_MARKETING },
   // 2026-07-05 (nav consolidation phase 1): /compliance/templates and
   // /compliance/registers removed from the sidebar — the /compliance page
   // tab bar now links out to both sub-pages instead.
@@ -151,22 +150,14 @@ export const navItems: NavItem[] = [
   { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
 
   // ── Growth — pipeline, parents & outreach ─────────────────
-  { href: "/messaging", label: "Messages", icon: MessageSquare, section: "Growth", tooltip: "Send and receive messages with families", roles: ALL_NON_MARKETING },
   { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING },
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING },
   { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services", roles: ALL_NON_MARKETING },
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Marketing" },
   { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Marketing", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] },
-  { href: "/marketing/vendor-briefs", label: "Vendor & Printing", icon: Package, section: "Marketing", tooltip: "Brief Jinan, track SLAs, prep for next term", roles: ["marketing"] },
-  { href: "/marketing/activations", label: "Activations", icon: CalendarCheck, section: "Marketing", tooltip: "Lifecycle stepper, term grid, recap tracking", roles: ["marketing"] },
-  { href: "/marketing/team", label: "Content Team", icon: Users, section: "Marketing", tooltip: "Hiring milestones, output, role status", roles: ["marketing"] },
-  { href: "/marketing/coordinator-todos", label: "Coordinator Todos", icon: CheckSquare, section: "Marketing", tooltip: "Push tasks to centre coordinators", roles: ["marketing"] },
-  { href: "/marketing/qr-codes", label: "QR Hub", icon: QrCode, section: "Marketing", tooltip: "Create + track scannable QR codes for activations", roles: ["marketing"] },
-  { href: "/marketing/newsletter-chase", label: "Newsletter Chase", icon: Mail, section: "Marketing", tooltip: "Pre-drafted newsletter chase emails (last 1–2 weeks of term)", roles: ["marketing"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
   { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Marketing", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] },
-  { href: "/conversions", label: "Conversions", icon: Repeat, section: "Growth", tooltip: "Track casual-to-regular booking conversions", roles: ALL_NON_MARKETING },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
   // ── People — HR & workforce ───────────────────────────────
@@ -196,7 +187,6 @@ export const navItems: NavItem[] = [
   // Coordinator implicit-kept (user listed 6 roles in target spec without
   // explicitly removing coordinator).
   { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ["admin"] },
-  { href: "/reports", label: "Reports", icon: BarChart3, section: "Operations", tooltip: "Attendance, booking, revenue, enrolment, and medical reports", roles: ALL_NON_MARKETING },
     // ── Settings — pulled out of Admin 2026-06-29. Admin was 23 items
   // deep; extracting the 5 configuration items into their own section
   // gives users a clear mental model of "where do I change config?"
