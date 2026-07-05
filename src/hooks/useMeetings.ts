@@ -30,6 +30,14 @@ export interface MeetingAttendee {
   updatedAt: string;
 }
 
+/** AI-prepared L10 agenda draft (2026-07-05, draft-first meetings). */
+export interface MeetingAgendaDraft {
+  summary: string;
+  idsOrder: Array<{ issueId: string; title: string; reason: string }>;
+  scorecardCommentary: string;
+  rockSuggestions: Array<{ rockId: string; title: string; suggestion: string }>;
+}
+
 export interface MeetingData {
   id: string;
   title: string;
@@ -50,6 +58,8 @@ export interface MeetingData {
   createdBy: MeetingUser;
   cascades?: MeetingCascade[];
   attendees?: MeetingAttendee[];
+  aiAgendaDraft?: MeetingAgendaDraft | null;
+  aiAgendaDraftAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -92,6 +102,28 @@ export function useCreateMeeting() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meetings"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+/** Draft (or regenerate) the AI agenda for a meeting. */
+export function usePrepareMeeting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return mutateApi<{ draft: MeetingAgendaDraft }>(
+        `/api/meetings/${id}/prepare`,
+        // AI drafting can take a while — give it more than the default.
+        { method: "POST", timeoutMs: 120_000 },
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+      queryClient.invalidateQueries({ queryKey: ["meeting"] });
+      toast({ description: "AI agenda draft is ready." });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });

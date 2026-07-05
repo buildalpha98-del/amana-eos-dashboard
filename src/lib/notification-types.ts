@@ -38,6 +38,9 @@ export const NOTIFICATION_TYPES = {
   // 2026-07-05: cowork automations used to drop reports/todos into
   // /queue silently — assignees only found them by checking the page.
   QUEUE_ITEM_ASSIGNED: "queue_item_assigned",
+  // 2026-07-05: AI morning briefing — fired only on mornings where at
+  // least one signal needs the reader (quiet days get no ping).
+  MORNING_BRIEF_READY: "morning_brief_ready",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

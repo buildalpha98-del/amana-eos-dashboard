@@ -296,6 +296,10 @@
     {
       "path": "/api/cron/audit-log-cleanup",
       "schedule": "0 3 1 * *"
+    },
+    {
+      "path": "/api/cron/morning-briefing",
+      "schedule": "0 20 * * *"
     }
   ]
 }
