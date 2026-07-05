@@ -1,9 +1,7 @@
-import { FeedbackInboxContent } from "./FeedbackInboxContent";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Report Issue Inbox | Amana EOS",
-};
-
-export default function FeedbackInboxPage() {
-  return <FeedbackInboxContent />;
+/** Retired 2026-07-05 (nav consolidation phase 1) — the internal feedback
+ *  inbox is now the "Internal Feedback" tab on /feedback. */
+export default function FeedbackInboxRedirect() {
+  redirect("/feedback?tab=internal");
 }

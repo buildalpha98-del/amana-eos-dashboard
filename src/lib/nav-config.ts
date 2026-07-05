@@ -36,22 +36,17 @@ import {
   Wrench,
   Briefcase,
   BookOpen,
-  BookOpenCheck,
-  HelpCircle,
   Rocket,
   Contact,
   Crown,
   Inbox,
-  AlertTriangle,
   Shield,
   Activity,
   CalendarCheck,
   Receipt,
-  Bug,
   Mail,
   QrCode,
   Network,
-  Heart,
   Brain,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
@@ -142,21 +137,16 @@ export const navItems: NavItem[] = [
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING },
   { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING },
   { href: "/performance", label: "Performance", icon: Trophy, section: "Operations", roles: ALL_NON_MARKETING },
+  // 2026-07-05 (nav consolidation phase 1): /compliance/templates and
+  // /compliance/registers removed from the sidebar — the /compliance page
+  // tab bar now links out to both sub-pages instead.
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ALL_NON_MARKETING },
-  // 2026-04-29: tightened from ALL_NON_MARKETING → admin-tier + member
-  // only. Audit-template management is a head office / area-coordinator
-  // configuration concern — Directors of Service (member) and on-shift
-  // staff shouldn't see it. Without this tightening the nav still showed
-  // it for member because /compliance prefix-matched /compliance/templates.
-  { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ["head_office", "admin"] },
-  { href: "/compliance/registers", label: "NQF Registers", icon: ClipboardList, section: "Operations", tooltip: "Reg 145/146/147/148 staff, supervisor and volunteer registers for ACECQA inspection", roles: ["owner", "head_office", "admin"] },
   { href: "/safe-reports", label: "Safe Reports", icon: Shield, section: "Operations", tooltip: "Anonymous staff reports — harassment, safety, conduct. Owner & head office only.", roles: ["owner", "head_office"] },
   { href: "/policies", label: "Policies & Procedures", icon: Shield, section: "Operations", tooltip: "Versioned PDF library with per-version acknowledgement", roles: ALL_NON_MARKETING },
-  // 2026-04-30: tightened from ALL_NON_MARKETING → ["head_office", "admin"].
-  // Director of Service (member) and Educator (staff) now log incidents from
-  // inside the service detail page (service-scoped). The cross-service
-  // Incidents view in the sidebar is for State Manager / Admin only.
-  { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking", roles: ["head_office", "admin"] },
+  // 2026-07-05: /incidents removed from the sidebar entirely (was
+  // head_office/admin since 2026-04-30). Deprecated in favour of the
+  // leadership card + per-service Compliance → Incidents tabs. The page
+  // itself stays reachable by URL.
   { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
   { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
 
@@ -185,8 +175,9 @@ export const navItems: NavItem[] = [
   { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ALL_NON_MARKETING },
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING },
   { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" },
-  { href: "/diversity-dashboard", label: "Diversity & Inclusion", icon: Heart, section: "People", tooltip: "Aggregated workforce diversity (opt-in)", roles: ["owner", "head_office", "admin"] },
-  { href: "/wgea-report", label: "WGEA Report", icon: BarChart3, section: "People", tooltip: "Workforce-composition CSV export for WGEA reporting", roles: ["owner", "head_office", "admin"] },
+  // 2026-07-05 (nav consolidation phase 1): /diversity-dashboard +
+  // /wgea-report collapsed into the /workforce-reports hub (tabs).
+  { href: "/workforce-reports", label: "Workforce Reports", icon: BarChart3, section: "People", tooltip: "Diversity & inclusion stats and WGEA workforce-composition reporting", roles: ["owner", "head_office", "admin"] },
   { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero", roles: ALL_NON_MARKETING },
   // 2026-06-29: `/leave` retired from the sidebar. Every new leave
   // request now goes through My Portal → EH so managers get the
@@ -220,18 +211,18 @@ export const navItems: NavItem[] = [
   { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring", roles: ALL_NON_MARKETING },
   { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Admin", tooltip: "Monthly board & investor report generator", roles: ALL_NON_MARKETING },
   { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Admin", tooltip: "Ask questions about your dashboard data" },
-  { href: "/guides", label: "Quick-Start Guides", icon: BookOpenCheck, section: "Admin", tooltip: "Printable role-specific quick-start guides" },
-  { href: "/help", label: "Help Centre", icon: HelpCircle, section: "Admin", tooltip: "FAQ and knowledge base — find answers to common questions" },
+  // 2026-07-05 (nav consolidation phase 1): six entries — /guides, /help,
+  // /tools/the-amana-way, /tools/handbook, /tools/amana-way-one-pager and
+  // /tools/employee-handbook — collapsed into the /handbook hub (tabs).
+  // The old routes redirect there, so deep links keep working.
+  { href: "/handbook", label: "Handbook & Help", icon: BookOpen, section: "Admin", tooltip: "Handbooks, The Amana Way, quick-start guides and the help centre" },
   { href: "/automations", label: "Automations", icon: Activity, section: "Admin", tooltip: "Monitor the health and cadence of all automated tasks", roles: ALL_NON_MARKETING },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText, section: "Admin", tooltip: "Security audit trail — who did what and when", roles: ALL_NON_MARKETING },
-  { href: "/admin/feedback", label: "Feedback Inbox", icon: Bug, section: "Admin", tooltip: "Triage staff-submitted bug reports, feature requests, and questions", roles: ALL_NON_MARKETING },
-  { href: "/feedback", label: "Parent Feedback", icon: MessageCircle, section: "Admin", tooltip: "Triage parent SMS replies and survey responses (Amana Way stage 7)", roles: ALL_NON_MARKETING },
+  // 2026-07-05 (nav consolidation phase 1): /admin/feedback merged into
+  // /feedback as the "Internal Feedback" tab (admin-tier only).
+  { href: "/feedback", label: "Feedback", icon: MessageCircle, section: "Admin", tooltip: "Parent SMS/survey responses and staff-submitted internal feedback", roles: ALL_NON_MARKETING },
   { href: "/admin/ai-drafts", label: "AI Drafts", icon: Bot, section: "Admin", tooltip: "Review and bulk-triage all AI-generated task drafts across the organisation", roles: ALL_NON_MARKETING },
   { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Admin", tooltip: "Child Care Subsidy cost estimator", roles: ALL_NON_MARKETING },
-  { href: "/tools/the-amana-way", label: "The Amana Way", icon: BookOpenCheck, section: "Admin", tooltip: "Interactive educator induction handbook" },
-  { href: "/tools/handbook", label: "Handbook", icon: BookOpen, section: "Admin", tooltip: "Educators Induction Handbook" },
-  { href: "/tools/amana-way-one-pager", label: "Amana Proven Process", icon: FileText, section: "Admin", tooltip: "Our 7-stage journey from enrolment to ongoing care" },
-  { href: "/tools/employee-handbook", label: "Employee Handbook", icon: BookOpen, section: "Admin", tooltip: "Full employee induction handbook with policies and procedures" },
 ];
 
 /**

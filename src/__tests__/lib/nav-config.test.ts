@@ -192,3 +192,84 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
     });
   });
 });
+
+// ─── 2026-07-05: nav consolidation phase 1 ─────────────────
+// Six handbook/help routes collapsed into /handbook, /admin/feedback merged
+// into /feedback tabs, D&I + WGEA collapsed into /workforce-reports, and
+// /incidents + the two /compliance sub-pages left the sidebar entirely.
+describe("nav consolidation phase 1 (2026-07-05)", () => {
+  const RETIRED_HREFS = [
+    // → /handbook hub tabs
+    "/guides",
+    "/help",
+    "/tools/the-amana-way",
+    "/tools/handbook",
+    "/tools/amana-way-one-pager",
+    "/tools/employee-handbook",
+    // → /feedback "Internal Feedback" tab
+    "/admin/feedback",
+    // → /workforce-reports hub tabs
+    "/diversity-dashboard",
+    "/wgea-report",
+    // Removed from nav outright (pages still reachable by URL)
+    "/incidents",
+    "/compliance/templates",
+    "/compliance/registers",
+  ];
+
+  it.each(RETIRED_HREFS)(
+    "retired nav entry %s is gone from the raw nav list",
+    (href) => {
+      expect(navItems.some((i) => i.href === href)).toBe(false);
+    },
+  );
+
+  it("owner sees the three consolidated hubs", () => {
+    const hrefs = filterNavItems(navItems, "owner" as Role).map((i) => i.href);
+    expect(hrefs).toContain("/handbook");
+    expect(hrefs).toContain("/feedback");
+    expect(hrefs).toContain("/workforce-reports");
+  });
+
+  it.each(["head_office", "admin"] as Role[])(
+    "%s sees /workforce-reports (D&I + WGEA)",
+    (role) => {
+      const hrefs = filterNavItems(navItems, role).map((i) => i.href);
+      expect(hrefs).toContain("/workforce-reports");
+    },
+  );
+
+  it.each(["member", "staff", "marketing", "eos_viewer", "eos_implementer"] as Role[])(
+    "%s does NOT see /workforce-reports",
+    (role) => {
+      const hrefs = filterNavItems(navItems, role).map((i) => i.href);
+      expect(hrefs).not.toContain("/workforce-reports");
+    },
+  );
+
+  it.each([
+    "owner",
+    "head_office",
+    "admin",
+    "marketing",
+    "member",
+    "staff",
+    "eos_viewer",
+    "eos_implementer",
+  ] as Role[])("%s sees the Handbook & Help hub", (role) => {
+    const hrefs = filterNavItems(navItems, role).map((i) => i.href);
+    expect(hrefs).toContain("/handbook");
+  });
+
+  it("the /feedback entry is relabelled to plain 'Feedback'", () => {
+    const item = navItems.find((i) => i.href === "/feedback");
+    expect(item?.label).toBe("Feedback");
+  });
+
+  it("member and staff do not see /feedback (admin-tier page access)", () => {
+    for (const role of ["member", "staff"] as Role[]) {
+      const hrefs = filterNavItems(navItems, role).map((i) => i.href);
+      expect(hrefs).not.toContain("/feedback");
+    }
+  });
+});
