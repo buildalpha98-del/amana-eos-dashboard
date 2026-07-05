@@ -1,14 +1,9 @@
-import { Suspense } from "react";
-import QrCodesContent from "@/components/marketing/qr-codes/QrCodesContent";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "QR Hub — Amana EOS",
-};
-
-export default function MarketingQrCodesPage() {
-  return (
-    <Suspense fallback={null}>
-      <QrCodesContent />
-    </Suspense>
-  );
+/**
+ * 2026-07-05 nav consolidation phase 2: folded into /marketing as the
+ * Field Ops tab. This stub keeps old links alive.
+ */
+export default function Page() {
+  redirect("/marketing?tab=fieldops&sub=qr");
 }

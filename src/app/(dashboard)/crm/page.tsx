@@ -26,7 +26,9 @@ import {
   X,
   Handshake,
   Loader2,
+  Repeat,
 } from "lucide-react";
+import { ConversionsContent } from "@/components/crm/ConversionsContent";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -62,7 +64,15 @@ interface UserOption {
 }
 
 export default function CrmPage() {
-  const [view, setView] = useState<"pipeline" | "table">("pipeline");
+  // "conversions" joined the view toggle in the 2026-07-05 nav
+  // consolidation — /conversions redirects to /crm?view=conversions.
+  // window.location (not useSearchParams) so no Suspense boundary is
+  // needed for prerender.
+  const [view, setView] = useState<"pipeline" | "table" | "conversions">(() => {
+    if (typeof window === "undefined") return "pipeline";
+    const v = new URLSearchParams(window.location.search).get("view");
+    return v === "conversions" || v === "table" ? v : "pipeline";
+  });
   const [filters, setFilters] = useState<LeadFilters>({});
   const [search, setSearch] = useState("");
   const [selectedLead, setSelectedLead] = useState<LeadSummary | null>(null);
@@ -172,6 +182,18 @@ export default function CrmPage() {
             >
               <List className="w-3.5 h-3.5 inline mr-1" />
               Table
+            </button>
+            <button
+              onClick={() => setView("conversions")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                view === "conversions"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground"
+              )}
+            >
+              <Repeat className="w-3.5 h-3.5 inline mr-1" />
+              Conversions
             </button>
           </div>
 
@@ -385,7 +407,9 @@ export default function CrmPage() {
       />
 
       {/* Content */}
-      {error ? (
+      {view === "conversions" ? (
+        <ConversionsContent />
+      ) : error ? (
         <ErrorState
           title="Failed to load CRM"
           error={error as Error}

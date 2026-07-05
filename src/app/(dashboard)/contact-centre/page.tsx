@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { UserPlus, MessageSquare, Phone, Trophy } from "lucide-react";
+import { UserPlus, MessageSquare, Phone, Trophy, Mail } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { isAdminRole } from "@/lib/role-permissions";
 
@@ -27,9 +27,18 @@ const LeaderboardContent = dynamic(
   { loading: () => <Skeleton className="h-96 w-full" /> },
 );
 
+// 2026-07-05 nav consolidation phase 2: parent messaging folded in as a
+// tab — /messaging redirects here so every parent-communication surface
+// (enquiries, tickets, DMs, calls) has one front door.
+const MessagingInbox = dynamic(
+  () => import("@/components/messaging/MessagingInbox").then((m) => ({ default: m.MessagingInbox })),
+  { loading: () => <Skeleton className="h-96 w-full" /> },
+);
+
 const TABS = [
   { key: "enquiries", label: "Enquiries", icon: UserPlus },
   { key: "tickets", label: "Tickets", icon: MessageSquare },
+  { key: "messages", label: "Messages", icon: Mail },
   { key: "calls", label: "Calls", icon: Phone },
   { key: "leaderboard", label: "Leaderboard", icon: Trophy, adminOnly: true },
 ] as const;
@@ -73,7 +82,7 @@ function ContactCentreContent() {
     >
       <PageHeader
         title="Contact Centre"
-        description="Enquiries, support tickets, and VAPI call logs in one place"
+        description="Enquiries, tickets, family messages, and call logs in one place"
       />
 
       {/* Tab Switcher */}
@@ -103,6 +112,7 @@ function ContactCentreContent() {
       {/* Tab Content */}
       {activeTab === "enquiries" && <EnquiriesContent />}
       {activeTab === "tickets" && <TicketsContent />}
+      {activeTab === "messages" && <MessagingInbox />}
       {activeTab === "calls" && <CallsTab />}
       {activeTab === "leaderboard" && isAdmin && <LeaderboardContent />}
     </div>

@@ -12,7 +12,16 @@ import {
   Flame,
   Wrench,
   Workflow,
+  CalendarCheck,
+  Users,
+  ExternalLink,
 } from "lucide-react";
+import Link from "next/link";
+import ActivationsContent from "@/components/marketing/activations/ActivationsContent";
+import QrCodesContent from "@/components/marketing/qr-codes/QrCodesContent";
+import NewsletterChaseContent from "@/components/marketing/NewsletterChaseContent";
+import TeamContent from "@/components/marketing/team/TeamContent";
+import CoordinatorTodosContent from "@/components/marketing/coordinator-todos/CoordinatorTodosContent";
 import { MarketingCockpit } from "@/components/marketing/MarketingCockpit";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
 import { CampaignsTab } from "@/components/marketing/CampaignsTab";
@@ -55,25 +64,50 @@ const ALL_TABS = [
   { key: "posts", label: "Posts", icon: FileText },
   { key: "calendar", label: "Calendar", icon: Calendar },
   { key: "growth", label: "Growth", icon: Flame },
+  // 2026-07-05 nav consolidation phase 2: the former satellite pages
+  // (/marketing/activations, qr-codes, newsletter-chase, team,
+  // coordinator-todos) fold in as two composite tabs. Old URLs
+  // redirect here with ?tab=&sub= deep links. Vendor Briefs keeps its
+  // own page (complex URL state) and is linked from Field Ops.
+  { key: "fieldops", label: "Field Ops", icon: CalendarCheck },
+  { key: "teamops", label: "Team Ops", icon: Users },
   { key: "analytics", label: "Analytics", icon: TrendingUp },
   { key: "toolkit", label: "Toolkit", icon: Wrench },
 ];
 
 const MARKETING_HIDDEN_TABS = new Set(["tasks", "growth"]);
+// Field/Team Ops were marketing-role satellites (+ owner via role
+// bypass) — keep that audience rather than exposing them to every
+// admin-tier viewer of /marketing.
+const MARKETING_ONLY_TABS = new Set(["fieldops", "teamops"]);
 
 export default function MarketingPage() {
   const { data: session } = useSession();
   const isMarketingRole = session?.user?.role === "marketing";
+  const isOwner = session?.user?.role === "owner";
 
   const tabs = useMemo(
     () =>
-      isMarketingRole
-        ? ALL_TABS.filter((t) => !MARKETING_HIDDEN_TABS.has(t.key))
-        : ALL_TABS,
-    [isMarketingRole],
+      ALL_TABS.filter((t) => {
+        if (isMarketingRole && MARKETING_HIDDEN_TABS.has(t.key)) return false;
+        if (!isMarketingRole && !isOwner && MARKETING_ONLY_TABS.has(t.key)) return false;
+        return true;
+      }),
+    [isMarketingRole, isOwner],
   );
 
-  const [rawActiveTab, setActiveTab] = useState("overview");
+  // Deep-linkable: redirect stubs from the retired satellite pages land
+  // on /marketing?tab=<x>&sub=<y>. window.location (not useSearchParams)
+  // so no Suspense boundary is needed for prerender.
+  const urlParam = (key: string): string | null =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get(key);
+
+  const [rawActiveTab, setActiveTab] = useState(() => {
+    const t = urlParam("tab");
+    return t && ALL_TABS.some((x) => x.key === t) ? t : "overview";
+  });
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -85,11 +119,19 @@ export default function MarketingPage() {
   /* Sub-view state for composite tabs */
   const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "email" | "hashtags" | "kpis" | "workload">("assets");
   const [growthView, setGrowthView] = useState<"occupancy" | "referrals" | "launch">("occupancy");
+  const [fieldOpsView, setFieldOpsView] = useState<"activations" | "qr" | "newsletters">(() => {
+    const s = urlParam("sub");
+    return s === "qr" || s === "newsletters" ? s : "activations";
+  });
+  const [teamOpsView, setTeamOpsView] = useState<"team" | "todos">(() =>
+    urlParam("sub") === "todos" ? "todos" : "team",
+  );
 
   // If the stored tab has been hidden for this role, render Overview instead.
   // Derived — avoids setState-in-effect render cascade.
   const activeTab =
-    isMarketingRole && MARKETING_HIDDEN_TABS.has(rawActiveTab)
+    (isMarketingRole && MARKETING_HIDDEN_TABS.has(rawActiveTab)) ||
+    (!isMarketingRole && !isOwner && MARKETING_ONLY_TABS.has(rawActiveTab))
       ? "overview"
       : rawActiveTab;
 
@@ -185,6 +227,73 @@ export default function MarketingPage() {
               <ReferralsTab serviceId={selectedServiceId} />
             )}
             {growthView === "launch" && <LaunchTracker />}
+          </div>
+        )}
+
+        {/* ---- Field Ops: activations / QR hub / newsletter chase ---- */}
+        {activeTab === "fieldops" && (isMarketingRole || isOwner) && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2">
+              {([
+                { key: "activations", label: "Activations" },
+                { key: "qr", label: "QR Hub" },
+                { key: "newsletters", label: "Newsletter Chase" },
+              ] as const).map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setFieldOpsView(item.key)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                    fieldOpsView === item.key
+                      ? "bg-brand text-white border-brand"
+                      : "bg-card text-muted border-border hover:bg-surface"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+              <Link
+                href="/marketing/vendor-briefs"
+                className="px-3 py-1.5 text-sm font-medium rounded-full border bg-card text-muted border-border hover:bg-surface inline-flex items-center gap-1"
+              >
+                Vendor & Printing
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {fieldOpsView === "activations" && <ActivationsContent />}
+            {fieldOpsView === "qr" && (
+              <Suspense fallback={null}>
+                <QrCodesContent />
+              </Suspense>
+            )}
+            {fieldOpsView === "newsletters" && <NewsletterChaseContent />}
+          </div>
+        )}
+
+        {/* ---- Team Ops: content team / coordinator todos ---- */}
+        {activeTab === "teamops" && (isMarketingRole || isOwner) && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2">
+              {([
+                { key: "team", label: "Content Team" },
+                { key: "todos", label: "Coordinator Todos" },
+              ] as const).map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setTeamOpsView(item.key)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                    teamOpsView === item.key
+                      ? "bg-brand text-white border-brand"
+                      : "bg-card text-muted border-border hover:bg-surface"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {teamOpsView === "team" && <TeamContent />}
+            {teamOpsView === "todos" && <CoordinatorTodosContent />}
           </div>
         )}
 

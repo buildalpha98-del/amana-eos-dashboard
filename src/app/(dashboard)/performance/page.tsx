@@ -31,14 +31,15 @@ import { HealthScoreDetail } from "@/components/performance/HealthScoreDetail";
 import { CentreLeaderboard } from "@/components/performance/CentreLeaderboard";
 import { CentreComparison } from "@/components/performance/CentreComparison";
 import { RegionalRollup } from "@/components/performance/RegionalRollup";
-import { LayoutGrid, ListOrdered, BarChart3 } from "lucide-react";
+import { LayoutGrid, ListOrdered, BarChart3, FileBarChart } from "lucide-react";
+import { ReportsDashboard } from "@/components/reports/ReportsDashboard";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AiButton } from "@/components/ui/AiButton";
 import { TrendInsightsWidget } from "@/components/trends/TrendInsightsWidget";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Download } from "lucide-react";
 
-type ViewMode = "centres" | "leaderboard" | "compare";
+type ViewMode = "centres" | "leaderboard" | "compare" | "reports";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -80,7 +81,17 @@ export default function PerformancePage() {
   const { data: centres, isLoading, error, refetch } = usePerformance();
   const [sortBy, setSortBy] = useState<string>("overall");
   const [selectedCentreId, setSelectedCentreId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("centres");
+  // Deep-linkable: /performance?view=reports is the redirect target for
+  // the retired /reports nav entry (2026-07-05 nav consolidation).
+  // window.location (not useSearchParams) so the client page needs no
+  // Suspense boundary for prerender.
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === "undefined") return "centres";
+    const v = new URLSearchParams(window.location.search).get("view");
+    return v === "reports" || v === "leaderboard" || v === "compare"
+      ? (v as ViewMode)
+      : "centres";
+  });
   const [aiDigest, setAiDigest] = useState<string | null>(null);
   const [stateFilter, setStateFilter] = useState<string | null>(null);
 
@@ -167,6 +178,7 @@ export default function PerformancePage() {
               { icon: LayoutGrid, label: "Centres", value: "centres" },
               { icon: ListOrdered, label: "Leaderboard", value: "leaderboard" },
               { icon: BarChart3, label: "Compare", value: "compare" },
+              { icon: FileBarChart, label: "Reports", value: "reports" },
             ],
             value: viewMode,
             onChange: (v) => {
@@ -474,6 +486,11 @@ export default function PerformancePage() {
 
       {/* ═══ Compare View ═══ */}
       {viewMode === "compare" && <CentreComparison />}
+
+      {/* ═══ Reports View — the operational analytics dashboard that
+           used to live at /reports (folded in 2026-07-05; /reports
+           redirects here). ═══ */}
+      {viewMode === "reports" && <ReportsDashboard />}
     </div>
   );
 }
