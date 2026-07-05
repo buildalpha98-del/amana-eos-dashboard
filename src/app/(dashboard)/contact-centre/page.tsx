@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { UserPlus, MessageSquare, Phone, Trophy } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { isAdminRole } from "@/lib/role-permissions";
-import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 // Lazy-load heavy tab content
 import dynamic from "next/dynamic";
@@ -38,7 +37,6 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 function ContactCentreContent() {
-  const v2 = useStaffV2Flag();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
@@ -70,7 +68,7 @@ function ContactCentreContent() {
 
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-7xl mx-auto"
     >
       <PageHeader
