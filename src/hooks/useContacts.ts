@@ -20,6 +20,7 @@ export interface ContactData {
 
 export function useContacts() {
   return useQuery<ContactData[]>({
+    staleTime: 30_000,
     queryKey: ["contacts"],
     queryFn: () => fetchApi<ContactData[]>("/api/contacts"),
     retry: 2,

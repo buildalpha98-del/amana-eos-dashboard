@@ -54,6 +54,7 @@ export interface VTOData {
 
 export function useVTO() {
   return useQuery<VTOData>({
+    staleTime: 30_000,
     queryKey: ["vto"],
     queryFn: () => fetchApi<VTOData>("/api/vto"),
     retry: 2,

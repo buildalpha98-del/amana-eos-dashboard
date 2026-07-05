@@ -76,7 +76,8 @@ export function useAttendance(params?: {
   sessionType?: SessionType;
 }) {
   return useQuery<AttendanceRecord[]>({
-    queryKey: ["attendance", params],
+    staleTime: 30_000,
+    queryKey: ["attendance", params?.serviceId, params?.from, params?.to, params?.sessionType],
     queryFn: () => {
       const sp = new URLSearchParams();
       if (params?.serviceId) sp.set("serviceId", params.serviceId);
@@ -96,7 +97,8 @@ export function useAttendanceSummary(params?: {
   period?: "weekly" | "monthly";
 }) {
   return useQuery<AttendanceSummaryResponse>({
-    queryKey: ["attendance-summary", params],
+    staleTime: 30_000,
+    queryKey: ["attendance-summary", params?.serviceId, params?.from, params?.to, params?.period],
     queryFn: () => {
       const sp = new URLSearchParams();
       if (params?.serviceId) sp.set("serviceId", params.serviceId);

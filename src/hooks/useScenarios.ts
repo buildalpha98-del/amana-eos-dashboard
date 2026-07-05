@@ -19,6 +19,7 @@ export interface SavedScenario {
 
 export function useScenarios() {
   return useQuery<SavedScenario[]>({
+    staleTime: 30_000,
     queryKey: ["scenarios"],
     queryFn: () => fetchApi<SavedScenario[]>("/api/scenarios"),
     retry: 2,

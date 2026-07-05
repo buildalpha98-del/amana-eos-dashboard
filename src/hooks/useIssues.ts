@@ -73,6 +73,7 @@ export function useIssues(filters?: {
 
 export function useIssue(id: string) {
   return useQuery<IssueDetail>({
+    staleTime: 30_000,
     queryKey: ["issue", id],
     queryFn: () => fetchApi<IssueDetail>(`/api/issues/${id}`),
     enabled: !!id,

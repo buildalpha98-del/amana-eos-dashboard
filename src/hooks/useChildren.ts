@@ -157,6 +157,7 @@ export function useChildren(filters?: ChildrenFilters) {
 
 export function useChild(id: string | null) {
   return useQuery<ChildRecord>({
+    staleTime: 30_000,
     queryKey: ["child", id],
     queryFn: () => fetchApi<ChildRecord>(`/api/children/${id}`),
     enabled: Boolean(id),

@@ -10,6 +10,7 @@ import { toast } from "@/hooks/useToast";
 
 export function useAnnouncements(audience?: string) {
   return useQuery({
+    staleTime: 30_000,
     queryKey: ["announcements", audience],
     queryFn: async () => {
       const params = audience ? `?audience=${audience}` : "";
@@ -21,6 +22,7 @@ export function useAnnouncements(audience?: string) {
 
 export function useAnnouncement(id: string) {
   return useQuery({
+    staleTime: 30_000,
     queryKey: ["announcement", id],
     queryFn: async () => {
       return fetchApi<any>(`/api/communication/announcements/${id}`);
@@ -129,6 +131,7 @@ export function useMarkAnnouncementRead() {
 
 export function useCascadeMessages() {
   return useQuery({
+    staleTime: 30_000,
     queryKey: ["cascade-messages"],
     queryFn: async () => {
       return fetchApi<any>("/api/communication/cascade");
@@ -139,6 +142,7 @@ export function useCascadeMessages() {
 
 export function useCascadeMessage(id: string) {
   return useQuery({
+    staleTime: 30_000,
     queryKey: ["cascade-message", id],
     queryFn: async () => {
       return fetchApi<any>(`/api/communication/cascade/${id}`);
@@ -257,6 +261,7 @@ export function usePulses(weekOf?: string, userId?: string) {
 
 export function usePulse(id: string) {
   return useQuery({
+    staleTime: 30_000,
     queryKey: ["pulse", id],
     queryFn: async () => {
       return fetchApi<any>(`/api/communication/pulse/${id}`);
@@ -344,6 +349,7 @@ export function useDeletePulse() {
 
 export function usePulseSummary(weekOf: string) {
   return useQuery({
+    staleTime: 30_000,
     queryKey: ["pulse-summary", weekOf],
     queryFn: async () => {
       return fetchApi<any>(
@@ -386,6 +392,7 @@ export interface PulseAdminSummary {
 
 export function usePulseAdminSummary(weekOf: string, enabled: boolean) {
   return useQuery<PulseAdminSummary>({
+    staleTime: 30_000,
     queryKey: ["pulse-admin-summary", weekOf],
     queryFn: () =>
       fetchApi<PulseAdminSummary>(`/api/communication/pulse/admin-summary?weekOf=${weekOf}`),

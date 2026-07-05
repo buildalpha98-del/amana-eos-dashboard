@@ -31,6 +31,7 @@ export interface BoardReportFull extends BoardReportSummary {
 
 export function useBoardReports() {
   return useQuery<BoardReportSummary[]>({
+    staleTime: 30_000,
     queryKey: ["board-reports"],
     queryFn: () => fetchApi<BoardReportSummary[]>("/api/reports/board"),
     retry: 2,
@@ -41,6 +42,7 @@ export function useBoardReports() {
 
 export function useBoardReport(id: string | null) {
   return useQuery<BoardReportFull>({
+    staleTime: 30_000,
     queryKey: ["board-report", id],
     queryFn: () => fetchApi<BoardReportFull>(`/api/reports/board/${id}`),
     enabled: !!id,

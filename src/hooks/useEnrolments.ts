@@ -65,6 +65,7 @@ export function useEnrolments(status?: string) {
   params.set("limit", "100");
 
   return useQuery<EnrolmentsResponse>({
+    staleTime: 30_000,
     queryKey: ["enrolments", status || "all"],
     queryFn: () => fetchApi<EnrolmentsResponse>(`/api/enrolments?${params}`),
     retry: 2,
@@ -73,6 +74,7 @@ export function useEnrolments(status?: string) {
 
 export function useEnrolment(id: string | null) {
   return useQuery<EnrolmentSubmission>({
+    staleTime: 30_000,
     queryKey: ["enrolment", id],
     queryFn: () => fetchApi<EnrolmentSubmission>(`/api/enrolments/${id}`),
     enabled: Boolean(id),

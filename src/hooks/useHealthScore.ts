@@ -53,6 +53,7 @@ export interface HealthScoreDetail {
 
 export function useHealthScore(serviceId: string | null) {
   return useQuery<HealthScoreDetail>({
+    staleTime: 30_000,
     queryKey: ["health-score", serviceId],
     queryFn: () => fetchApi<HealthScoreDetail>(`/api/health-scores/${serviceId}`),
     retry: 2,

@@ -24,6 +24,7 @@ interface OwnaStatus {
 
 export function useOwnaStatus() {
   return useQuery<OwnaStatus>({
+    staleTime: 30_000,
     queryKey: ["owna-status"],
     queryFn: () => fetchApi<OwnaStatus>("/api/owna/status"),
     retry: 2,

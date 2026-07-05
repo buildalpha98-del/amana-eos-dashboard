@@ -77,7 +77,8 @@ export function useProjects(filters?: {
   ownerId?: string;
 }) {
   return useQuery<ProjectSummary[]>({
-    queryKey: ["projects", filters],
+    staleTime: 30_000,
+    queryKey: ["projects", filters?.status, filters?.serviceId, filters?.ownerId],
     queryFn: () => {
       const params = new URLSearchParams();
       if (filters?.status) params.set("status", filters.status);
@@ -91,6 +92,7 @@ export function useProjects(filters?: {
 
 export function useProject(id: string) {
   return useQuery<ProjectDetail>({
+    staleTime: 30_000,
     queryKey: ["project", id],
     queryFn: () => fetchApi<ProjectDetail>(`/api/projects/${id}`),
     enabled: !!id,

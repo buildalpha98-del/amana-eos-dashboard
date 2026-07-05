@@ -62,6 +62,7 @@ export function useFinancials(filters?: { period?: string; serviceId?: string })
   const query = params.toString();
 
   return useQuery<{ financials: FinancialPeriodData[]; summary: FinancialSummary }>({
+    staleTime: 30_000,
     queryKey: ["financials", filters?.period ?? null, filters?.serviceId ?? null],
     queryFn: () =>
       fetchApi<{ financials: FinancialPeriodData[]; summary: FinancialSummary }>(

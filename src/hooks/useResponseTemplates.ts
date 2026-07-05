@@ -16,6 +16,7 @@ export interface ResponseTemplateData {
 
 export function useResponseTemplates() {
   return useQuery<ResponseTemplateData[]>({
+    staleTime: 30_000,
     queryKey: ["response-templates"],
     queryFn: () => fetchApi<ResponseTemplateData[]>("/api/response-templates"),
     retry: 2,

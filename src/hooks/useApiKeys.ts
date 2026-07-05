@@ -31,6 +31,7 @@ export interface CreateApiKeyResponse extends Omit<ApiKeyData, "createdBy" | "re
 /** Fetch all API keys (owner only) */
 export function useApiKeys() {
   return useQuery<ApiKeyData[]>({
+    staleTime: 30_000,
     queryKey: ["api-keys"],
     queryFn: () => fetchApi<ApiKeyData[]>("/api/settings/api-keys"),
     retry: 2,

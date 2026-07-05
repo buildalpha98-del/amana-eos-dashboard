@@ -65,6 +65,7 @@ export interface StaffOffboardingData {
 
 export function useOffboardingPacks(serviceId?: string) {
   return useQuery<OffboardingPackData[]>({
+    staleTime: 30_000,
     queryKey: ["offboarding-packs", serviceId],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -77,6 +78,7 @@ export function useOffboardingPacks(serviceId?: string) {
 
 export function useOffboardingPack(id: string | null) {
   return useQuery<OffboardingPackData & { tasks: OffboardingTaskData[]; assignments: StaffOffboardingData[] }>({
+    staleTime: 30_000,
     queryKey: ["offboarding-pack", id],
     queryFn: () => fetchApi(`/api/offboarding/packs/${id}`),
     enabled: !!id,
@@ -101,6 +103,7 @@ export function useCreateOffboardingPack() {
 
 export function useOffboardingAssignments(userId?: string) {
   return useQuery<StaffOffboardingData[]>({
+    staleTime: 30_000,
     queryKey: ["offboarding-assignments", userId],
     queryFn: () => {
       const params = new URLSearchParams();

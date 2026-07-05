@@ -22,6 +22,7 @@ const QUERY_KEY = ["accountability-chart"];
 
 export function useAccountabilityChart() {
   return useQuery<SeatNode[]>({
+    staleTime: 30_000,
     queryKey: QUERY_KEY,
     queryFn: () => fetchApi<SeatNode[]>("/api/accountability-chart"),
     retry: 2,

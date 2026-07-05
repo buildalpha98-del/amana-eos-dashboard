@@ -63,7 +63,7 @@ export interface LeaveRequestFilters {
 
 export function useLeaveRequests(filters?: LeaveRequestFilters) {
   return useQuery<LeaveRequestData[]>({
-    queryKey: ["leave-requests", filters],
+    queryKey: ["leave-requests", filters?.userId, filters?.status, filters?.serviceId, filters?.leaveType, filters?.startAfter, filters?.startBefore],
     staleTime: 30_000,
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -81,6 +81,7 @@ export function useLeaveRequests(filters?: LeaveRequestFilters) {
 
 export function useLeaveRequest(id: string | null) {
   return useQuery<LeaveRequestData>({
+    staleTime: 30_000,
     queryKey: ["leave-request", id],
     queryFn: async () => {
       return fetchApi<LeaveRequestData>(`/api/leave/requests/${id}`);
@@ -188,6 +189,7 @@ export function useCancelLeaveRequest() {
 
 export function useLeaveBalances(userId?: string) {
   return useQuery<LeaveBalanceData[]>({
+    staleTime: 30_000,
     queryKey: ["leave-balances", userId],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -204,6 +206,7 @@ export function useLeaveCalendar(
   month?: number
 ) {
   return useQuery<LeaveCalendarEntry[]>({
+    staleTime: 30_000,
     queryKey: ["leave-calendar", serviceId, year, month],
     queryFn: async () => {
       const params = new URLSearchParams();

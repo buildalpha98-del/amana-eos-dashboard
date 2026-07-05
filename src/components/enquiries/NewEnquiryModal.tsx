@@ -95,7 +95,9 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
         onClose();
       }
     } catch (err) {
-      console.error("Failed to create enquiry:", err);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Failed to create enquiry:", err);
+      }
     } finally {
       setSaving(false);
     }

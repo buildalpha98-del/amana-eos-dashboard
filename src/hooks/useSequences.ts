@@ -85,6 +85,7 @@ export function useSequences(type?: string) {
   if (type) params.set("type", type);
 
   return useQuery<SequencesResponse>({
+    staleTime: 30_000,
     queryKey: ["sequences", type || "all"],
     queryFn: async () => {
       return fetchApi<SequencesResponse>(`/api/sequences?${params}`);
@@ -95,6 +96,7 @@ export function useSequences(type?: string) {
 
 export function useSequence(id: string | null) {
   return useQuery<SequenceData>({
+    staleTime: 30_000,
     queryKey: ["sequence", id],
     queryFn: async () => {
       return fetchApi<SequenceData>(`/api/sequences/${id}`);
@@ -204,6 +206,7 @@ export function useSequenceEnrolments(filters?: {
   params.set("limit", "100");
 
   return useQuery<EnrolmentsResponse>({
+    staleTime: 30_000,
     queryKey: [
       "sequence-enrolments",
       filters?.type || "all",

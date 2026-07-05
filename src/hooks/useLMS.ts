@@ -58,6 +58,7 @@ export interface LMSEnrollmentData {
 
 export function useLMSCourses(status?: string, serviceId?: string) {
   return useQuery<LMSCourseData[]>({
+    staleTime: 30_000,
     queryKey: ["lms-courses", status, serviceId],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -71,6 +72,7 @@ export function useLMSCourses(status?: string, serviceId?: string) {
 
 export function useLMSCourse(id: string | null) {
   return useQuery<LMSCourseData & { modules: LMSModuleData[]; enrollments: LMSEnrollmentData[] }>({
+    staleTime: 30_000,
     queryKey: ["lms-course", id],
     queryFn: async () => {
       return fetchApi(`/api/lms/courses/${id}`);

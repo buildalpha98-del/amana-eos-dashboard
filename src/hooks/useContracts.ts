@@ -81,7 +81,8 @@ export function useContracts(filters?: {
   const query = params.toString();
 
   return useQuery<ContractData[]>({
-    queryKey: ["contracts", filters],
+    staleTime: 30_000,
+    queryKey: ["contracts", filters?.userId, filters?.status, filters?.excludeStatus, filters?.serviceId, filters?.contractType, filters?.search],
     queryFn: () => fetchApi<ContractData[]>(`/api/contracts${query ? `?${query}` : ""}`),
     retry: 2,
   });
@@ -91,6 +92,7 @@ export function useContracts(filters?: {
 
 export function useContract(id: string | null) {
   return useQuery<ContractDetail>({
+    staleTime: 30_000,
     queryKey: ["contract", id],
     queryFn: () => fetchApi<ContractDetail>(`/api/contracts/${id}`),
     enabled: !!id,

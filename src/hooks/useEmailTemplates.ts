@@ -24,6 +24,7 @@ export interface EmailTemplateData {
 export function useEmailTemplates(category?: string) {
   const params = category ? `?category=${category}` : "";
   return useQuery<EmailTemplateData[]>({
+    staleTime: 30_000,
     queryKey: ["email-templates", category || "all"],
     queryFn: () => fetchApi<EmailTemplateData[]>(`/api/email-templates${params}`),
     retry: 2,
@@ -175,6 +176,7 @@ export interface EmailHistoryEntry {
 
 export function useEmailHistory(entityType: string, entityId: string | null) {
   return useQuery<EmailHistoryEntry[]>({
+    staleTime: 30_000,
     queryKey: ["email-history", entityType, entityId],
     queryFn: () =>
       fetchApi<EmailHistoryEntry[]>(

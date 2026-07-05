@@ -9,6 +9,7 @@ interface StaffingDashboardData {
 
 export function useStaffingDashboard() {
   return useQuery<StaffingDashboardData>({
+    staleTime: 30_000,
     queryKey: ["dashboard-staffing"],
     queryFn: () => fetchApi<StaffingDashboardData>("/api/dashboard/staffing"),
     retry: 2,
@@ -19,6 +20,7 @@ export function useStaffingDashboard() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useServiceStaffing(serviceId: string, weekStart?: string) {
   return useQuery<any>({
+    staleTime: 30_000,
     queryKey: ["service-staffing", serviceId, weekStart],
     queryFn: () => {
       const sp = new URLSearchParams({ serviceId });

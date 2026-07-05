@@ -54,6 +54,7 @@ export function useCalendarStatus() {
 /** List calendar events in a date range */
 export function useCalendarEvents(startDate: string | null, endDate: string | null) {
   return useQuery<CalendarEvent[]>({
+    staleTime: 30_000,
     queryKey: ["calendar-events", startDate, endDate],
     queryFn: () =>
       fetchApi<CalendarEvent[]>(

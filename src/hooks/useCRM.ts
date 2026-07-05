@@ -82,7 +82,8 @@ export interface PaginatedLeads {
 /** Fetch leads (flat array). For paginated results, use `useLeadsPaginated`. */
 export function useLeads(filters?: Omit<LeadFilters, "page" | "limit">) {
   return useQuery<LeadSummary[]>({
-    queryKey: ["leads", filters],
+    staleTime: 30_000,
+    queryKey: ["leads", filters?.stage, filters?.source, filters?.state, filters?.assigneeId, filters?.search],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.stage) params.set("stage", filters.stage);
@@ -101,7 +102,8 @@ export function useLeadsPaginated(filters?: LeadFilters) {
   const page = filters?.page ?? 1;
   const limit = filters?.limit ?? 50;
   return useQuery<PaginatedLeads>({
-    queryKey: ["leads-paginated", filters],
+    staleTime: 30_000,
+    queryKey: ["leads-paginated", filters?.stage, filters?.source, filters?.state, filters?.assigneeId, filters?.search, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.stage) params.set("stage", filters.stage);
@@ -119,6 +121,7 @@ export function useLeadsPaginated(filters?: LeadFilters) {
 
 export function useLead(id: string) {
   return useQuery<LeadDetail>({
+    staleTime: 30_000,
     queryKey: ["lead", id],
     queryFn: async () => {
       return fetchApi<LeadDetail>(`/api/crm/leads/${id}`);
@@ -130,6 +133,7 @@ export function useLead(id: string) {
 
 export function useTouchpoints(leadId: string) {
   return useQuery<TouchpointEntry[]>({
+    staleTime: 30_000,
     queryKey: ["touchpoints", leadId],
     queryFn: async () => {
       return fetchApi<TouchpointEntry[]>(`/api/crm/leads/${leadId}/touchpoints`);
