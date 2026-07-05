@@ -61,13 +61,20 @@ export function useFinancials(filters?: { period?: string; serviceId?: string })
   if (filters?.serviceId) params.set("serviceId", filters.serviceId);
   const query = params.toString();
 
-  return useQuery<{ financials: FinancialPeriodData[]; summary: FinancialSummary }>({
-    staleTime: 30_000,
+  return useQuery<{
+    financials: FinancialPeriodData[];
+    summary: FinancialSummary;
+    /** Last successful attendance-to-financials cron completion, or null if it has never run. */
+    lastAttendanceSync: string | null;
+  }>({
     queryKey: ["financials", filters?.period ?? null, filters?.serviceId ?? null],
     queryFn: () =>
-      fetchApi<{ financials: FinancialPeriodData[]; summary: FinancialSummary }>(
-        `/api/financials${query ? `?${query}` : ""}`,
-      ),
+      fetchApi<{
+        financials: FinancialPeriodData[];
+        summary: FinancialSummary;
+        lastAttendanceSync: string | null;
+      }>(`/api/financials${query ? `?${query}` : ""}`),
     retry: 2,
+    staleTime: 30_000,
   });
 }

@@ -6,6 +6,7 @@ import { resolveAssignee } from "../../_lib/resolve-assignee";
 import { resolveServiceByCode } from "../../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 
 const reportBodySchema = z.object({
   seat: z.string().min(1, "seat is required"),
@@ -75,6 +76,24 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         },
       })
     )
+  );
+
+  // Tell each assignee something landed in their queue — before this,
+  // reports arrived silently and staff only found them by checking
+  // /queue. Fire-and-forget: a notification failure must never fail
+  // the ingest.
+  await Promise.allSettled(
+    reports.map((report) =>
+      prisma.userNotification.create({
+        data: {
+          userId: report.assignedToId!,
+          type: NOTIFICATION_TYPES.QUEUE_ITEM_ASSIGNED,
+          title: "New report in your queue",
+          body: title,
+          link: "/queue",
+        },
+      }),
+    ),
   );
 
   return NextResponse.json(

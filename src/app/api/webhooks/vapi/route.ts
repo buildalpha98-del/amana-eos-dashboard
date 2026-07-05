@@ -12,6 +12,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logger } from "@/lib/logger";
+import { withApiHandler } from "@/lib/api-handler";
+import { parseJsonBody } from "@/lib/api-error";
 import { parseCallData, resolveParentPhone } from "@/lib/vapi/parseTranscript";
 import { sendParentFollowUpEmail } from "@/lib/vapi/sendCallEmail";
 import { sendInternalNotification } from "@/lib/vapi/sendInternalNotification";
@@ -80,14 +82,14 @@ function normalisePayload(body: Record<string, unknown>): {
 }
 
 /** Health check — lets the team verify the endpoint is live and the secret is configured. */
-export async function GET() {
+export const GET = withApiHandler(async () => {
   return NextResponse.json({
     status: "ok",
     secretConfigured: !!process.env.VAPI_WEBHOOK_SECRET,
   });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiHandler(async (request) => {
   // Verify webhook secret
   const secret = request.headers.get("x-vapi-secret");
   if (secret !== process.env.VAPI_WEBHOOK_SECRET) {
@@ -98,12 +100,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = (await parseJsonBody(request)) as Record<string, unknown>;
 
   const {
     type,
@@ -246,4 +243,4 @@ export async function POST(request: Request) {
     logger.error("VAPI webhook processing error", { error: err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

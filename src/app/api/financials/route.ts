@@ -60,7 +60,21 @@ export const GET = withApiAuth(
       totalBudgetCosts,
     };
 
-    return NextResponse.json({ financials, summary, usedPeriod });
+    // Surface when the attendance-to-financials cron last completed so
+    // the page can show data freshness — before this, only Xero showed
+    // a last-sync time and a silently failed cron was invisible.
+    const lastAttendanceRun = await prisma.cronRun.findFirst({
+      where: { cronName: "attendance-to-financials", status: "completed" },
+      orderBy: { completedAt: "desc" },
+      select: { completedAt: true },
+    });
+
+    return NextResponse.json({
+      financials,
+      summary,
+      usedPeriod,
+      lastAttendanceSync: lastAttendanceRun?.completedAt ?? null,
+    });
   },
   { roles: ["owner", "head_office", "admin"] },
 );

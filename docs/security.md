@@ -46,17 +46,23 @@ Login attempts are rate-limited via **Upstash Redis** before any credential vali
 
 ### Role Hierarchy
 
-The system defines seven roles with numeric privilege levels:
+The system defines eight roles with numeric privilege levels:
 
 | Role | Level | Scope |
 |---|---|---|
 | `owner` | 5 | Full platform access, all services |
-| `head_office` | 4 | All services, most platform features |
+| `head_office` | 4 | All services, most platform features (display: "State Manager") |
 | `admin` | 4 | All services, operational features |
-| `marketing` | 3 | Read-broad, write on marketing modules |
-| `coordinator` | 2 | Assigned service(s), operational features |
-| `member` | 2 | Own service, limited feature set |
-| `staff` | 1 | My Portal, own records only |
+| `marketing` | 3 | Read-broad, write on marketing modules + EOS for the marketing pod |
+| `member` | 2 | Own service, operational features (display: "Director of Service") |
+| `staff` | 1 | My Portal, own records only (display: "Educator") |
+| `eos_implementer` | 2 | Write access to EOS surfaces org-wide, nothing else |
+| `eos_viewer` | 1 | Read-only EOS surfaces, nothing else |
+
+> The former `coordinator` role was collapsed into `member` on
+> 2026-04-30 — the merged role carries the single-service operational
+> allowlist. The EOS-only roles were added 2026-06-22/23 for external
+> EOS facilitators.
 
 ### Middleware-Level Page Protection
 
@@ -110,13 +116,13 @@ Equivalent to `head_office` for day-to-day operations across all services. Canno
 
 Read access across most reporting and operational views for content and campaign purposes. Write access scoped to: marketing campaigns, communication records, and parent engagement modules. Cannot access: staff records, financial data, compliance records, or settings.
 
-### Coordinator (Level 2)
+### Member / Director of Service (Level 2)
 
-Full operational access within their assigned service(s): rosters, compliance, leave management, staff communications, enrolment enquiries, and incident records. Cannot access: cross-service data, financial margins, or organization-level settings.
+Full operational access within their own service: rosters, compliance, leave approvals, staff communications, enrolment enquiries, incident records, and the service-detail EOS tabs. Cannot access: cross-service data, financial margins, org-level EOS pages, or organization-level settings. (Absorbed the former `coordinator` role on 2026-04-30.)
 
-### Member (Level 2)
+### EOS Roles (`eos_implementer` Level 2, `eos_viewer` Level 1)
 
-Access to their own service's operational data and their own staff portal. Visibility is comparable to coordinator but limited to a single service context.
+For external EOS facilitators: `eos_viewer` reads the EOS surfaces (V/TO, Rocks, To-Dos, Issues, Meetings, Scorecard, Accountability Chart) org-wide; `eos_implementer` can also write to them. Neither can reach operational, financial, people, or settings surfaces.
 
 ### Staff (Level 1)
 
