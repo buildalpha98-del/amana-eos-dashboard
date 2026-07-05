@@ -109,7 +109,7 @@ describe("service staff API", () => {
         (m: { userId: string }) => m.userId === PRIMARY_USER.id,
       );
       expect(primary.isPrimary).toBe(true);
-      expect(primary.membership.id).toBeNull();
+      expect(primary.membership.id).toBe("primary:primary-u1");
       expect(primary.membership.roleAtService).toBe("OSHC Educator");
       expect(primary.membership.accessLevel).toBe("admin");
       expect(primary.membership.startDate).toBe("2026-01-15");

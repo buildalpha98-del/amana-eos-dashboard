@@ -31,7 +31,7 @@ describe("POST /api/audits/templates/[id]/apply", () => {
 
   const validBody = {
     serviceIds: ["svc-1", "svc-2"],
-    year: 2026,
+    year: 2027,
   };
 
   const ctx = { params: Promise.resolve({ id: "tpl-1" }) };
@@ -63,7 +63,7 @@ describe("POST /api/audits/templates/[id]/apply", () => {
     const req = createRequest(
       "POST",
       "/api/audits/templates/tpl-1/apply",
-      { body: { serviceIds: [], year: 2026 } },
+      { body: { serviceIds: [], year: 2027 } },
     );
     const res = await APPLY_POST(req, ctx);
     expect(res.status).toBe(400);
@@ -147,7 +147,7 @@ describe("POST /api/audits/templates/[id]/apply", () => {
     const req = createRequest(
       "POST",
       "/api/audits/templates/tpl-1/apply",
-      { body: { serviceIds: ["svc-1"], year: 2026 } },
+      { body: { serviceIds: ["svc-1"], year: 2027 } },
     );
     const res = await APPLY_POST(req, ctx);
     expect(res.status).toBe(200);
@@ -178,7 +178,7 @@ describe("POST /api/audits/templates/[id]/apply", () => {
     const req = createRequest(
       "POST",
       "/api/audits/templates/tpl-1/apply",
-      { body: { serviceIds: ["svc-1"], year: 2026, months: [3, 4, 5] } },
+      { body: { serviceIds: ["svc-1"], year: 2027, months: [3, 4, 5] } },
     );
     const res = await APPLY_POST(req, ctx);
     expect(res.status).toBe(200);
@@ -209,7 +209,7 @@ describe("POST /api/audits/templates/[id]/apply", () => {
     const req = createRequest(
       "POST",
       "/api/audits/templates/tpl-1/apply",
-      { body: { serviceIds: ["svc-1", "svc-ghost"], year: 2026 } },
+      { body: { serviceIds: ["svc-1", "svc-ghost"], year: 2027 } },
     );
     const res = await APPLY_POST(req, ctx);
     expect(res.status).toBe(200);
@@ -240,7 +240,7 @@ describe("POST /api/audits/templates/[id]/apply", () => {
     const req = createRequest(
       "POST",
       "/api/audits/templates/tpl-1/apply",
-      { body: { serviceIds: ["svc-1"], year: 2026 } },
+      { body: { serviceIds: ["svc-1"], year: 2027 } },
     );
     const res = await APPLY_POST(req, ctx);
     expect(res.status).toBe(200);
@@ -274,7 +274,7 @@ describe("POST /api/audits/templates/[id]/apply", () => {
     const req = createRequest(
       "POST",
       "/api/audits/templates/tpl-1/apply",
-      { body: { serviceIds: ["svc-1"], year: 2026 } },
+      { body: { serviceIds: ["svc-1"], year: 2027 } },
     );
     const res = await APPLY_POST(req, ctx);
     expect(res.status).toBe(200);

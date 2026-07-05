@@ -7,6 +7,7 @@
  * acknowledged so the /team yellow "no contract" badge clears.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession } from "../helpers/auth-mock";
 
@@ -70,10 +71,7 @@ function makePdfForm(opts: {
 }
 
 function callPost(form: FormData) {
-  // Built-in fetch Request supports a FormData body natively. The
-  // route only reads `req.headers["content-type"]` and `req.formData()`,
-  // both of which the Request object provides for us.
-  const req = new Request("http://localhost/api/contracts/quick-upload", {
+  const req = new NextRequest("http://localhost/api/contracts/quick-upload", {
     method: "POST",
     body: form,
   });
@@ -88,12 +86,14 @@ describe("POST /api/contracts/quick-upload", () => {
     _clearUserActiveCache();
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.user.findUnique.mockImplementation(
-      async (args: { where: { id: string } }) => {
+      async (args: { where: { id: string }; select?: Record<string, boolean> }) => {
+        // isUserActive selects only { active: true } — any authenticated session user is active
+        if (args.select && Object.keys(args.select).length === 1 && "active" in args.select) {
+          return { active: true };
+        }
+        // Route-level lookups by target userId
         if (args.where.id === "staff-1") {
           return { id: "staff-1", name: "Staff", active: true };
-        }
-        if (args.where.id === "admin-1") {
-          return { active: true };
         }
         return null;
       },

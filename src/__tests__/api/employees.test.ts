@@ -60,6 +60,7 @@ beforeEach(() => {
     if (select && "active" in select) return Promise.resolve({ active: true });
     return Promise.resolve({ active: true });
   });
+  prismaMock.employmentContract.findMany.mockResolvedValue([]);
   mockedGetCentreScope.mockResolvedValue({ serviceIds: null });
 });
 

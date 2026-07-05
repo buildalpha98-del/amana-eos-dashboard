@@ -38,7 +38,9 @@ describe("TodoReviewSection", () => {
     ];
     render(<TodoReviewSection todos={todos} onToggle={vi.fn()} />);
     expect(screen.getByText("To-Do Review")).toBeInTheDocument();
-    expect(screen.getByText(/completed/i)).toBeInTheDocument();
+    // Both the description ("...completed last week") and the count
+    // ("1 / 2 completed") contain "completed" — use getAllByText.
+    expect(screen.getAllByText(/completed/i).length).toBeGreaterThan(0);
   });
 
   it("shows the empty state when there are no to-dos", () => {
