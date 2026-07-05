@@ -35,6 +35,9 @@ export const NOTIFICATION_TYPES = {
   SHIFT_SWAP_ACCEPTED: "shift_swap_accepted",
   SHIFT_SWAP_APPROVED: "shift_swap_approved",
   SHIFT_SWAP_REJECTED: "shift_swap_rejected",
+  // 2026-07-05: cowork automations used to drop reports/todos into
+  // /queue silently — assignees only found them by checking the page.
+  QUEUE_ITEM_ASSIGNED: "queue_item_assigned",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

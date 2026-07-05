@@ -5,6 +5,7 @@ import { todosSchema } from "../../_lib/validation";
 import { resolveAssignee } from "../_lib/resolve-assignee";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 
 // POST /api/cowork/todos — Create daily to-dos
 export const POST = withApiHandler(async (req: NextRequest) => {
@@ -47,6 +48,25 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         },
       })
     )
+  );
+
+  // Notify each resolved assignee — queue todos used to arrive
+  // silently. Fire-and-forget: never fail the ingest over a
+  // notification.
+  await Promise.allSettled(
+    created
+      .filter((t) => t.assignedToId)
+      .map((t) =>
+        prisma.userNotification.create({
+          data: {
+            userId: t.assignedToId!,
+            type: NOTIFICATION_TYPES.QUEUE_ITEM_ASSIGNED,
+            title: "New task in your queue",
+            body: t.title,
+            link: "/queue",
+          },
+        }),
+      ),
   );
 
   return NextResponse.json({ todos: created }, { status: 201 });

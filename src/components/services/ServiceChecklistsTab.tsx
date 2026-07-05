@@ -158,19 +158,30 @@ function ChecklistCard({
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
-      {/* Header */}
-      <button
+      {/* Header — a div with button semantics, NOT a <button>: the
+          Mark All action inside it is a real <button>, and nesting
+          buttons is invalid HTML (breaks keyboard nav + hydration). */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-surface/50 transition-colors"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
+        aria-expanded={expanded}
+        className="w-full flex items-center justify-between gap-2 p-4 hover:bg-surface/50 transition-colors cursor-pointer"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {expanded ? (
-            <ChevronDown className="w-4 h-4 text-muted" />
+            <ChevronDown className="w-4 h-4 text-muted flex-shrink-0" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-muted" />
+            <ChevronRight className="w-4 h-4 text-muted flex-shrink-0" />
           )}
-          <div className="text-left">
-            <div className="flex items-center gap-2">
+          <div className="text-left min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-foreground">
                 {dateStr}
               </span>
@@ -180,13 +191,13 @@ function ChecklistCard({
               {statusBadge(checklist.status)}
             </div>
             {checklist.completedBy && (
-              <p className="text-xs text-muted mt-0.5">
+              <p className="text-xs text-muted mt-0.5 truncate">
                 Completed by {checklist.completedBy.name}
               </p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {checkedCount < totalCount && (
             <button
               onClick={(e) => {
@@ -208,7 +219,7 @@ function ChecklistCard({
             <div className="text-xs text-muted">
               {checkedCount}/{totalCount}
             </div>
-            <div className="w-24 h-1.5 bg-border rounded-full mt-1">
+            <div className="w-14 sm:w-24 h-1.5 bg-border rounded-full mt-1">
               <div
                 className={cn(
                   "h-1.5 rounded-full transition-all",
@@ -219,7 +230,7 @@ function ChecklistCard({
             </div>
           </div>
         </div>
-      </button>
+      </div>
 
       {/* Expanded items */}
       {expanded && (

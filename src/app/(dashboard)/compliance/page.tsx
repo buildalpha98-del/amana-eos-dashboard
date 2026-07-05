@@ -293,13 +293,23 @@ function StaffComplianceView() {
       // c.userId === viewerId here means we only attach to certs the staff
       // already owns; everything else falls through to the POST path which
       // forces userId = session.user.id server-side.
-      const orphanCert = certs.find(
-        (c) =>
-          c.type === modalType &&
-          !c.fileUrl &&
-          !!viewerId &&
-          c.userId === viewerId,
-      );
+      // When data corruption leaves MULTIPLE orphan stubs for the same
+      // user + type, attach to the newest one deterministically (the
+      // most recent OWNA sync) instead of whatever happens to sort
+      // first — older stubs stay visible for the admin dedupe tool
+      // rather than silently swallowing the upload.
+      const orphanCert = certs
+        .filter(
+          (c) =>
+            c.type === modalType &&
+            !c.fileUrl &&
+            !!viewerId &&
+            c.userId === viewerId,
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )[0];
 
       if (orphanCert) {
         const res = await fetch(`/api/compliance/${orphanCert.id}`, {

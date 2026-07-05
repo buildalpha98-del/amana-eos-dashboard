@@ -75,7 +75,13 @@ export interface TimesheetFilters {
 
 export function useTimesheets(filters?: TimesheetFilters) {
   return useQuery<TimesheetData[]>({
-    queryKey: ["timesheets", filters],
+    queryKey: [
+      "timesheets",
+      filters?.serviceId ?? null,
+      filters?.status ?? null,
+      filters?.weekEndingAfter ?? null,
+      filters?.weekEndingBefore ?? null,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.serviceId) params.set("serviceId", filters.serviceId);
@@ -85,6 +91,7 @@ export function useTimesheets(filters?: TimesheetFilters) {
       return fetchApi<TimesheetData[]>(`/api/timesheets?${params}`);
     },
     retry: 2,
+    staleTime: 30_000,
   });
 }
 
@@ -98,6 +105,7 @@ export function useTimesheet(id: string | null) {
     },
     enabled: !!id,
     retry: 2,
+    staleTime: 30_000,
   });
 }
 
@@ -424,6 +432,7 @@ export function useTimesheetsSummary(
     },
     enabled: !!startDate && !!endDate,
     retry: 2,
+    staleTime: 30_000,
   });
 }
 

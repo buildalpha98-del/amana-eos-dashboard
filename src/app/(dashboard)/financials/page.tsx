@@ -80,6 +80,48 @@ function XeroSyncBadge() {
   );
 }
 
+/**
+ * Freshness chip for the attendance-to-financials cron (Sun 11 PM
+ * AEST). Before this, only Xero showed a last-sync time — a silently
+ * failed cron left the revenue table looking current when it wasn't.
+ * Turns amber once the last run is more than 8 days old (one missed
+ * weekly run).
+ */
+function AttendanceSyncBadge({ lastSync }: { lastSync: string | null }) {
+  // Captured once per mount — the badge doesn't need to tick live,
+  // and calling Date.now() in render is impure.
+  const [nowTs] = useState(() => Date.now());
+  if (!lastSync) {
+    return (
+      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-medium">
+        <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+        Attendance sync: never run
+      </span>
+    );
+  }
+  const ageDays = (nowTs - new Date(lastSync).getTime()) / (24 * 60 * 60 * 1000);
+  const stale = ageDays > 8;
+  return (
+    <span
+      className={cn(
+        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
+        stale ? "bg-amber-100 text-amber-800" : "bg-emerald-50 text-emerald-700",
+      )}
+      title="Last successful attendance-to-financials cron run"
+    >
+      <div className={cn("w-1.5 h-1.5 rounded-full", stale ? "bg-amber-500" : "bg-emerald-500")} />
+      Attendance data:{" "}
+      {new Date(lastSync).toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+      {stale ? " — stale" : ""}
+    </span>
+  );
+}
+
 function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const queryClient = useQueryClient();
   const { data: services } = useServices("active");
@@ -326,6 +368,7 @@ export default function FinancialsPage() {
         ]}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <AttendanceSyncBadge lastSync={data?.lastAttendanceSync ?? null} />
           <XeroSyncBadge />
           <div className="flex items-center gap-2">
             <AiButton
