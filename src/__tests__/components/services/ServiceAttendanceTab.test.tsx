@@ -98,7 +98,14 @@ function seedWeek() {
   for (let i = 0; i < 5; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const iso = d.toISOString();
+    // API dates are UTC-midnight strings for the *local* calendar day
+    // (see formatDate in ServiceAttendanceTab). toISOString() of local
+    // midnight lands on the previous UTC day for AEST users, dropping
+    // the record out of the grid's startsWith(dateStr) match.
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const iso = `${y}-${m}-${dd}T00:00:00.000Z`;
     attendanceRecords.push(
       {
         date: iso,
