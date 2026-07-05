@@ -173,7 +173,9 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
       "/onboarding",
       "/compliance",
       "/policies",
-      "/leave",
+      // 2026-06-29: /leave retired from the sidebar — new leave requests
+      // go through My Portal → Employment Hero. The route still resolves
+      // for admins draining the historical backlog.
       "/knowledge",
       "/queue",
       "/my-portal",
