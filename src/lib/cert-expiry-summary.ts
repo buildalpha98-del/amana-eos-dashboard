@@ -166,3 +166,119 @@ export function bucketCertExpiry(
     affectedStaff,
   };
 }
+
+// ── Org-wide rollup (per-service) ─────────────────────────────────
+
+export interface CertInputWithService extends CertInput {
+  /**
+   * Nullable since 2026-06-05: personal certs can exist without a
+   * service. Those can't be attributed to a centre, so the rollup
+   * skips them (the caller should also filter at the SQL boundary).
+   */
+  serviceId: string | null;
+}
+
+export interface ServiceRollupRow {
+  serviceId: string;
+  /** Worst status across all of this service's affected certs. */
+  status: CertStatus;
+  totals: {
+    expired: number;
+    critical: number;
+    warning: number;
+    upcoming: number;
+  };
+  /** Distinct count of staff at this service with at least one
+   *  expired/critical/warning/upcoming cert. */
+  affectedStaffCount: number;
+}
+
+export interface CertExpiryOrgRollup {
+  asOf: string;
+  /** Sum across all services. */
+  orgTotals: {
+    expired: number;
+    critical: number;
+    warning: number;
+    upcoming: number;
+  };
+  /** Per-service rows, sorted worst-status-first then by total count.
+   *  Services with zero affected certs are excluded. */
+  services: ServiceRollupRow[];
+}
+
+/**
+ * Org-wide aggregation for the leadership-page card. Groups certs by
+ * `serviceId`, runs the per-service buckets, then collapses each
+ * service into a single row with worst-status + counts.
+ *
+ * Services with zero affected certs are excluded from the rows array
+ * — keeps the card focused on services that need attention.
+ *
+ * The per-service surface (PR #69) shows ONE centre at a time; this
+ * is the State Manager's at-a-glance view of all centres. Null-expiry
+ * certs ("valid forever") are handled by bucketCertExpiry, which
+ * skips them.
+ */
+export function bucketCertExpiryByService(
+  certs: CertInputWithService[],
+  asOf: Date,
+): CertExpiryOrgRollup {
+  // Bucket each service independently. Skip centre-level certs
+  // (userId=null) and serviceless personal certs (serviceId=null) up
+  // front — neither can be attributed to a staff row at a centre.
+  const byService = new Map<string, CertInput[]>();
+  for (const c of certs) {
+    if (!c.userId || !c.serviceId) continue;
+    const list = byService.get(c.serviceId) ?? [];
+    list.push({ userId: c.userId, type: c.type, expiryDate: c.expiryDate });
+    byService.set(c.serviceId, list);
+  }
+
+  const orgTotals = { expired: 0, critical: 0, warning: 0, upcoming: 0 };
+  const services: ServiceRollupRow[] = [];
+
+  for (const [serviceId, serviceCerts] of byService) {
+    const summary = bucketCertExpiry(serviceCerts, asOf);
+    const totalProblems =
+      summary.totals.expired +
+      summary.totals.critical +
+      summary.totals.warning +
+      summary.totals.upcoming;
+    if (totalProblems === 0) continue;
+
+    // Worst-status across the service is the same as the worst status
+    // any of its affected staff have (which bucketCertExpiry already
+    // sorts to position [0]).
+    const worstStatus = summary.affectedStaff[0]?.status ?? "valid";
+
+    services.push({
+      serviceId,
+      status: worstStatus,
+      totals: summary.totals,
+      affectedStaffCount: summary.affectedStaff.length,
+    });
+
+    orgTotals.expired += summary.totals.expired;
+    orgTotals.critical += summary.totals.critical;
+    orgTotals.warning += summary.totals.warning;
+    orgTotals.upcoming += summary.totals.upcoming;
+  }
+
+  // Sort services: worst status first, then by total count desc.
+  services.sort((a, b) => {
+    const sevDiff = SEVERITY_ORDER[b.status] - SEVERITY_ORDER[a.status];
+    if (sevDiff !== 0) return sevDiff;
+    const aTotal =
+      a.totals.expired + a.totals.critical + a.totals.warning + a.totals.upcoming;
+    const bTotal =
+      b.totals.expired + b.totals.critical + b.totals.warning + b.totals.upcoming;
+    return bTotal - aTotal;
+  });
+
+  return {
+    asOf: asOf.toISOString().split("T")[0],
+    orgTotals,
+    services,
+  };
+}

@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Crown, Users, Building2, AlertCircle, MessageSquare, Mountain } from "lucide-react";
 import { LeadershipRecentIncidentsCard } from "@/components/leadership/LeadershipRecentIncidentsCard";
+import { LeadershipCertExpiryCard } from "@/components/leadership/LeadershipCertExpiryCard";
 import { PerformanceListCard } from "@/components/leadership/PerformanceListCard";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +89,12 @@ export default function LeadershipPage() {
                leadership triage surface (the page itself is still
                accessible for filtering / CSV export). */}
           <LeadershipRecentIncidentsCard />
+
+          {/* Section 1.6: Compliance risk — quiet by default, only
+               renders when at least one centre has expiring/expired
+               certs. Org-wide complement to the per-service cert card
+               on the Compliance tab (PR #69). */}
+          <LeadershipCertExpiryCard />
 
           {/* Section 2: Quarterly Rocks Rollup */}
           <section className="rounded-xl border border-border bg-card p-6">
