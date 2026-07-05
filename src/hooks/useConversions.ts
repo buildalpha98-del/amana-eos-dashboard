@@ -47,7 +47,8 @@ export function useConversions(filters?: {
   const qs = params.toString() ? `?${params.toString()}` : "";
 
   return useQuery<ConversionsResponse>({
-    queryKey: ["conversions", filters],
+    staleTime: 30_000,
+    queryKey: ["conversions", filters?.serviceId, filters?.status, filters?.sessionType],
     queryFn: () => fetchApi<ConversionsResponse>(`/api/conversions${qs}`),
     retry: 2,
   });

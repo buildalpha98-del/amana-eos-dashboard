@@ -17,6 +17,7 @@ export interface CrmEmailTemplateData {
 
 export function useCrmEmailTemplates() {
   return useQuery<CrmEmailTemplateData[]>({
+    staleTime: 30_000,
     queryKey: ["crm-email-templates"],
     queryFn: () => fetchApi<CrmEmailTemplateData[]>("/api/crm/email-templates"),
     retry: 2,

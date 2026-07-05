@@ -60,7 +60,8 @@ export function useDocuments(filters?: {
   const query = params.toString();
 
   return useQuery<DocumentsResponse>({
-    queryKey: ["documents", filters],
+    staleTime: 30_000,
+    queryKey: ["documents", filters?.category, filters?.centreId, filters?.folderId, filters?.search, filters?.page, filters?.limit],
     queryFn: async () => {
       return fetchApi<DocumentsResponse>(`/api/documents${query ? `?${query}` : ""}`);
     },
@@ -70,6 +71,7 @@ export function useDocuments(filters?: {
 
 export function useDocumentFolders() {
   return useQuery<DocumentFolder[]>({
+    staleTime: 30_000,
     queryKey: ["document-folders"],
     queryFn: async () => {
       return fetchApi<DocumentFolder[]>("/api/document-folders");

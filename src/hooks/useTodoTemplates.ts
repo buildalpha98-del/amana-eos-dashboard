@@ -35,6 +35,7 @@ export interface TodoTemplateData {
 
 export function useTodoTemplates() {
   return useQuery<TodoTemplateData[]>({
+    staleTime: 30_000,
     queryKey: ["todo-templates"],
     queryFn: () => fetchApi<TodoTemplateData[]>("/api/todo-templates"),
     retry: 2,

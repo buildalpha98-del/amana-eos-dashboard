@@ -129,7 +129,8 @@ export function useAuditTemplates(filters?: { qualityArea?: number; frequency?: 
   const query = params.toString();
 
   return useQuery<AuditTemplateSummary[]>({
-    queryKey: ["audit-templates", filters],
+    staleTime: 30_000,
+    queryKey: ["audit-templates", filters?.qualityArea, filters?.frequency],
     queryFn: async () => {
       return fetchApi<AuditTemplateSummary[]>(`/api/audits/templates${query ? `?${query}` : ""}`);
     },
@@ -159,7 +160,8 @@ export function useAuditInstances(filters?: {
     stats: AuditStats;
     pagination: { page: number; limit: number; total: number; pages: number };
   }>({
-    queryKey: ["audit-instances", filters],
+    staleTime: 30_000,
+    queryKey: ["audit-instances", filters?.serviceId, filters?.status, filters?.qualityArea, filters?.month, filters?.year],
     queryFn: async () => {
       return fetchApi(`/api/audits${query ? `?${query}` : ""}`);
     },
@@ -171,6 +173,7 @@ export function useAuditInstances(filters?: {
 
 export function useAuditDetail(id: string) {
   return useQuery<AuditInstanceDetail>({
+    staleTime: 30_000,
     queryKey: ["audit-detail", id],
     queryFn: async () => {
       return fetchApi<AuditInstanceDetail>(`/api/audits/${id}`);
@@ -260,6 +263,7 @@ export interface AuditTemplateDetail extends AuditTemplateSummary {
 
 export function useAuditTemplateDetail(id: string) {
   return useQuery<AuditTemplateDetail>({
+    staleTime: 30_000,
     queryKey: ["audit-template-detail", id],
     queryFn: async () => {
       return fetchApi<AuditTemplateDetail>(`/api/audits/templates/${id}`);
@@ -814,6 +818,7 @@ export function useQualificationRatios() {
       diplomaPlusPercent: number;
     };
   }>({
+    staleTime: 30_000,
     queryKey: ["qualification-ratios"],
     queryFn: async () => {
       return fetchApi("/api/compliance/qualification-ratios");

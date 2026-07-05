@@ -55,6 +55,7 @@ export interface StaffOnboardingData {
 
 export function useOnboardingPacks(serviceId?: string) {
   return useQuery<OnboardingPackData[]>({
+    staleTime: 30_000,
     queryKey: ["onboarding-packs", serviceId],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -67,6 +68,7 @@ export function useOnboardingPacks(serviceId?: string) {
 
 export function useOnboardingPack(id: string | null) {
   return useQuery<OnboardingPackData & { tasks: OnboardingTaskData[]; assignments: StaffOnboardingData[] }>({
+    staleTime: 30_000,
     queryKey: ["onboarding-pack", id],
     queryFn: async () => {
       return fetchApi(`/api/onboarding/packs/${id}`);
@@ -131,6 +133,7 @@ export function useDeleteOnboardingPack() {
 
 export function useOnboardingAssignments(userId?: string) {
   return useQuery<StaffOnboardingData[]>({
+    staleTime: 30_000,
     queryKey: ["onboarding-assignments", userId],
     queryFn: async () => {
       const params = new URLSearchParams();

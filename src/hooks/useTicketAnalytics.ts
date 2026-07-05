@@ -21,6 +21,7 @@ export interface TicketAnalyticsData {
 
 export function useTicketAnalytics(days: number = 30, enabled: boolean = true) {
   return useQuery<TicketAnalyticsData>({
+    staleTime: 30_000,
     queryKey: ["ticket-analytics", days],
     queryFn: () => fetchApi<TicketAnalyticsData>(`/api/tickets/analytics?days=${days}`),
     enabled,

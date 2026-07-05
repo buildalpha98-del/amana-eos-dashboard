@@ -111,6 +111,7 @@ export function useCampaigns(filters?: {
   const qs = params.toString();
 
   return useQuery<CampaignData[]>({
+    staleTime: 30_000,
     queryKey: ["campaigns", filters?.status, filters?.type, filters?.serviceId],
     queryFn: async () => {
       return fetchApi<CampaignData[]>(`/api/marketing/campaigns${qs ? `?${qs}` : ""}`);
@@ -121,6 +122,7 @@ export function useCampaigns(filters?: {
 
 export function useCampaign(id: string) {
   return useQuery<CampaignDetail>({
+    staleTime: 30_000,
     queryKey: ["campaign", id],
     queryFn: async () => {
       return fetchApi<CampaignDetail>(`/api/marketing/campaigns/${id}`);
@@ -223,6 +225,7 @@ export function useDeleteCampaign() {
 
 export function useCampaignComments(campaignId: string) {
   return useQuery<CommentData[]>({
+    staleTime: 30_000,
     queryKey: ["campaignComments", campaignId],
     queryFn: async () => {
       return fetchApi<CommentData[]>(
@@ -282,6 +285,7 @@ export function usePosts(filters?: {
   const qs = params.toString();
 
   return useQuery<PostData[]>({
+    staleTime: 30_000,
     queryKey: [
       "marketing-posts",
       filters?.status,
@@ -299,6 +303,7 @@ export function usePosts(filters?: {
 
 export function usePost(id: string) {
   return useQuery<PostData & { recurringChildren?: { id: string; title: string; scheduledDate: string | null; status: MarketingPostStatus }[] }>({
+    staleTime: 30_000,
     queryKey: ["post", id],
     queryFn: async () => {
       return fetchApi(`/api/marketing/posts/${id}`);
@@ -409,6 +414,7 @@ export function useMarketingOverview(serviceId?: string) {
   const qs = params.toString();
 
   return useQuery<OverviewData>({
+    staleTime: 30_000,
     queryKey: ["marketing-overview", serviceId],
     queryFn: async () => {
       return fetchApi<OverviewData>(`/api/marketing/overview${qs ? `?${qs}` : ""}`);
@@ -441,6 +447,7 @@ export function useMarketingAnalytics(period: number, serviceId?: string) {
   const qs = params.toString();
 
   return useQuery<AnalyticsData>({
+    staleTime: 30_000,
     queryKey: ["marketing-analytics", period, serviceId],
     queryFn: async () => {
       return fetchApi<AnalyticsData>(`/api/marketing/analytics?${qs}`);
@@ -453,6 +460,7 @@ export function useMarketingAnalytics(period: number, serviceId?: string) {
 
 export function useCentreCoverage() {
   return useQuery({
+    staleTime: 30_000,
     queryKey: ["marketing-coverage"],
     queryFn: async () => {
       return fetchApi<any>("/api/marketing/coverage");
@@ -497,6 +505,7 @@ export interface KPIData {
 
 export function useKPIs() {
   return useQuery<KPIData[]>({
+    staleTime: 30_000,
     queryKey: ["marketingKPIs"],
     queryFn: async () => {
       return fetchApi<KPIData[]>("/api/marketing/kpis");
@@ -594,6 +603,7 @@ export function useAssets(filters?: { type?: string; search?: string }) {
   const qs = params.toString();
 
   return useQuery<AssetData[]>({
+    staleTime: 30_000,
     queryKey: ["marketingAssets", filters?.type, filters?.search],
     queryFn: async () => {
       return fetchApi<AssetData[]>(`/api/marketing/assets${qs ? `?${qs}` : ""}`);
@@ -663,6 +673,7 @@ export interface TemplateData {
 export function useTemplates(platform?: string) {
   const qs = platform ? `?platform=${platform}` : "";
   return useQuery<TemplateData[]>({
+    staleTime: 30_000,
     queryKey: ["marketingTemplates", platform],
     queryFn: async () => {
       return fetchApi<TemplateData[]>(`/api/marketing/templates${qs}`);
@@ -742,6 +753,7 @@ export interface HashtagSetData {
 export function useHashtagSets(category?: string) {
   const qs = category ? `?category=${category}` : "";
   return useQuery<HashtagSetData[]>({
+    staleTime: 30_000,
     queryKey: ["marketingHashtags", category],
     queryFn: async () => {
       return fetchApi<HashtagSetData[]>(`/api/marketing/hashtags${qs}`);
@@ -926,7 +938,8 @@ export function useMarketingTasks(filters?: {
   const qs = params.toString();
 
   return useQuery<MarketingTaskData[]>({
-    queryKey: ["marketing-tasks", filters],
+    staleTime: 30_000,
+    queryKey: ["marketing-tasks", filters?.status, filters?.priority, filters?.assigneeId, filters?.campaignId, filters?.serviceId],
     queryFn: async () => {
       return fetchApi<MarketingTaskData[]>(`/api/marketing/tasks${qs ? `?${qs}` : ""}`);
     },
@@ -936,6 +949,7 @@ export function useMarketingTasks(filters?: {
 
 export function useMarketingTask(id: string) {
   return useQuery<MarketingTaskData>({
+    staleTime: 30_000,
     queryKey: ["marketing-task", id],
     queryFn: async () => {
       return fetchApi<MarketingTaskData>(`/api/marketing/tasks/${id}`);
@@ -1046,6 +1060,7 @@ export interface MarketingTaskTemplateData {
 
 export function useMarketingTaskTemplates() {
   return useQuery<MarketingTaskTemplateData[]>({
+    staleTime: 30_000,
     queryKey: ["marketing-task-templates"],
     queryFn: async () => {
       return fetchApi<MarketingTaskTemplateData[]>("/api/marketing/task-templates");
@@ -1101,6 +1116,7 @@ export interface ActivationAssignmentData {
 
 export function useActivationAssignments(campaignId: string) {
   return useQuery<ActivationAssignmentData[]>({
+    staleTime: 30_000,
     queryKey: ["activation-assignments", campaignId],
     queryFn: async () => {
       return fetchApi<ActivationAssignmentData[]>(
@@ -1234,6 +1250,7 @@ export interface SocialPostData {
 
 export function useSocialConnections() {
   return useQuery<SocialConnectionData[]>({
+    staleTime: 30_000,
     queryKey: ["social-connections"],
     queryFn: async () => {
       return fetchApi<SocialConnectionData[]>("/api/marketing/social/status");
@@ -1274,6 +1291,7 @@ export function useDisconnectSocial() {
 
 export function useSocialAccounts() {
   return useQuery<SocialAccountData[]>({
+    staleTime: 30_000,
     queryKey: ["social-accounts"],
     queryFn: async () => {
       return fetchApi<SocialAccountData[]>("/api/marketing/social/accounts");
@@ -1308,6 +1326,7 @@ export function useLinkSocialPost() {
 
 export function useFetchSocialPosts(connectionId?: string) {
   return useQuery<SocialPostData[]>({
+    staleTime: 30_000,
     queryKey: ["social-posts", connectionId],
     queryFn: async () => {
       return fetchApi<SocialPostData[]>(
@@ -1348,6 +1367,7 @@ export interface TermCalendarData {
 
 export function useTermCalendar(year?: number, term?: number, serviceId?: string) {
   return useQuery<TermCalendarData>({
+    staleTime: 30_000,
     queryKey: ["term-calendar", year, term, serviceId],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -1386,6 +1406,7 @@ export interface PhotoComplianceData {
 
 export function usePhotoCompliance() {
   return useQuery<PhotoComplianceData>({
+    staleTime: 30_000,
     queryKey: ["photo-compliance"],
     queryFn: async () => {
       return fetchApi<PhotoComplianceData>("/api/marketing/photo-compliance");

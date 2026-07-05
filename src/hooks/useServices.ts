@@ -82,6 +82,7 @@ export function useServices(status?: string) {
 
 export function useService(id: string) {
   return useQuery<ServiceDetail>({
+    staleTime: 30_000,
     queryKey: ["service", id],
     queryFn: () => fetchApi<ServiceDetail>(`/api/services/${id}`),
     enabled: !!id,

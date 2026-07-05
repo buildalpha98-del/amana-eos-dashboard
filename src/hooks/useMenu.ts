@@ -38,6 +38,7 @@ export interface SaveMenuInput {
 
 export function useMenuWeek(serviceId: string, weekStart: string) {
   return useQuery<MenuWeekData | null>({
+    staleTime: 30_000,
     queryKey: ["menu-week", serviceId, weekStart],
     queryFn: () =>
       fetchApi<MenuWeekData | null>(

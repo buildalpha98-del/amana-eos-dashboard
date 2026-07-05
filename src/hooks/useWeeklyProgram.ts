@@ -42,6 +42,7 @@ export interface BulkUpsertInput {
 
 export function useWeeklyProgram(serviceId: string, weekStart: string) {
   return useQuery<ProgramActivity[]>({
+    staleTime: 30_000,
     queryKey: ["weekly-program", serviceId, weekStart],
     queryFn: () =>
       fetchApi<ProgramActivity[]>(

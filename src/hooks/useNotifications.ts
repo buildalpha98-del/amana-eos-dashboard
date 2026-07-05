@@ -32,7 +32,7 @@ export interface UnreadCountResponse {
 export function useNotifications(options?: { unread?: boolean; enabled?: boolean }) {
   const unread = options?.unread ?? false;
   return useQuery<NotificationsResponse>({
-    queryKey: ["notifications", { unread }],
+    queryKey: ["notifications", unread],
     queryFn: () =>
       fetchApi<NotificationsResponse>(
         unread ? "/api/notifications?unread=true" : "/api/notifications",

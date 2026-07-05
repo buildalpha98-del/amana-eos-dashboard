@@ -331,7 +331,9 @@ function CreateReferralModal({
       });
       onCreated();
     } catch (err) {
-      console.error(err);
+      if (process.env.NODE_ENV !== "production") {
+        console.error(err);
+      }
     } finally {
       setSaving(false);
     }

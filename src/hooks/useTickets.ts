@@ -92,7 +92,8 @@ export function useTickets(filters?: {
   const query = params.toString();
 
   return useQuery<TicketData[]>({
-    queryKey: ["tickets", filters],
+    staleTime: 30_000,
+    queryKey: ["tickets", filters?.status, filters?.priority, filters?.assignedToId, filters?.serviceId, filters?.search],
     queryFn: async () => {
       return fetchApi<TicketData[]>(`/api/tickets${query ? `?${query}` : ""}`);
     },
@@ -102,6 +103,7 @@ export function useTickets(filters?: {
 
 export function useTicket(id: string) {
   return useQuery<TicketDetail>({
+    staleTime: 30_000,
     queryKey: ["ticket", id],
     queryFn: async () => {
       return fetchApi<TicketDetail>(`/api/tickets/${id}`);
@@ -215,6 +217,7 @@ export function useSendMessage() {
 
 export function useTicketMessages(ticketId: string) {
   return useQuery<TicketMessageData[]>({
+    staleTime: 30_000,
     queryKey: ["ticket-messages", ticketId],
     queryFn: async () => {
       return fetchApi<TicketMessageData[]>(`/api/tickets/${ticketId}/messages`);

@@ -136,7 +136,9 @@ export function EnquiryDetailPanel({
       setEditing(false);
       setToast("Parent details updated");
     } catch (err) {
-      console.error("Save failed:", err);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Save failed:", err);
+      }
       setToast("Failed to save — please try again");
     } finally {
       setSaving(false);
@@ -266,7 +268,9 @@ export function EnquiryDetailPanel({
       };
       setToast(messages[action] || "Action completed");
     } catch (err) {
-      console.error("Quick action failed:", err);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Quick action failed:", err);
+      }
       setToast("Action failed — please try again");
     } finally {
       setActionLoading(null);

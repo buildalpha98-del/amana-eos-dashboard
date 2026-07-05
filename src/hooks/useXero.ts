@@ -7,6 +7,7 @@ import { toast } from "@/hooks/useToast";
 // Special error handling: returns default on failure — keep raw fetch
 export function useXeroStatus() {
   return useQuery<any>({
+    staleTime: 30_000,
     queryKey: ["xero-status"],
     queryFn: async () => {
       const res = await fetch("/api/xero/status");
@@ -55,6 +56,7 @@ export function useXeroDisconnect() {
 
 export function useXeroTrackingCategories(enabled = false) {
   return useQuery<any[]>({
+    staleTime: 30_000,
     queryKey: ["xero-tracking-categories"],
     queryFn: async () => {
       const data = await fetchApi<any[]>("/api/xero/tracking-categories");
@@ -79,6 +81,7 @@ export function useXeroTrackingCategories(enabled = false) {
 
 export function useXeroAccounts(enabled = false) {
   return useQuery<any[]>({
+    staleTime: 30_000,
     queryKey: ["xero-accounts"],
     queryFn: async () => {
       const data = await fetchApi<any[]>("/api/xero/accounts");
@@ -104,6 +107,7 @@ export function useXeroAccounts(enabled = false) {
 
 export function useXeroMappings(enabled = false) {
   return useQuery<any>({
+    staleTime: 30_000,
     queryKey: ["xero-mappings"],
     queryFn: async () => {
       return fetchApi("/api/xero/mappings");

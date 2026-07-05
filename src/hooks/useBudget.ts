@@ -93,6 +93,7 @@ export function useBudgetSummary(params: {
   asOf?: string;
 }) {
   return useQuery<BudgetSummary>({
+    staleTime: 30_000,
     queryKey: [
       "budget-summary",
       params.serviceId,
@@ -123,6 +124,7 @@ export function useEquipmentItems(params: {
   category?: string;
 }) {
   return useQuery<BudgetItemRecord[]>({
+    staleTime: 30_000,
     queryKey: ["equipment-items", params.serviceId, params.from, params.to, params.category],
     queryFn: () => {
       const sp = new URLSearchParams();

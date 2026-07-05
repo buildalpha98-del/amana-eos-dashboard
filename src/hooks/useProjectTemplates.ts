@@ -27,6 +27,7 @@ export interface ProjectTemplate {
 
 export function useProjectTemplates() {
   return useQuery<ProjectTemplate[]>({
+    staleTime: 30_000,
     queryKey: ["project-templates"],
     queryFn: () => fetchApi<ProjectTemplate[]>("/api/project-templates"),
     retry: 2,

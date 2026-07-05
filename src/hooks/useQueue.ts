@@ -60,7 +60,7 @@ export function useQueue(filters?: {
   const query = params.toString();
 
   return useQuery<QueueData>({
-    queryKey: ["queue", filters],
+    queryKey: ["queue", filters?.seat, filters?.serviceCode, filters?.status, filters?.view],
     queryFn: () => fetchApi<QueueData>(`/api/queue${query ? `?${query}` : ""}`),
     staleTime: 30_000,
     retry: 2,

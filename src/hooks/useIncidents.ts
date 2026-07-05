@@ -103,7 +103,8 @@ function buildParams(filters?: IncidentFilters, extra?: Record<string, string>):
 /** List incidents with filters */
 export function useIncidents(filters?: IncidentFilters) {
   return useQuery<IncidentListResponse>({
-    queryKey: ["incidents", filters],
+    staleTime: 30_000,
+    queryKey: ["incidents", filters?.serviceId, filters?.type, filters?.severity, filters?.from, filters?.to],
     queryFn: () => {
       const qs = buildParams(filters);
       return fetchApi<IncidentListResponse>(`/api/incidents${qs ? `?${qs}` : ""}`);
@@ -115,7 +116,8 @@ export function useIncidents(filters?: IncidentFilters) {
 /** Summary aggregates (total, reportable, follow-up pending, distributions) */
 export function useIncidentSummary(filters?: IncidentFilters) {
   return useQuery<IncidentSummary>({
-    queryKey: ["incidents-summary", filters],
+    staleTime: 30_000,
+    queryKey: ["incidents-summary", filters?.serviceId, filters?.type, filters?.severity, filters?.from, filters?.to],
     queryFn: () => {
       const qs = buildParams(filters, { summary: "true" });
       return fetchApi<IncidentSummary>(`/api/incidents?${qs}`);
@@ -127,6 +129,7 @@ export function useIncidentSummary(filters?: IncidentFilters) {
 /** Weekly trend analysis */
 export function useIncidentTrends(weeks?: number) {
   return useQuery<IncidentTrends>({
+    staleTime: 30_000,
     queryKey: ["incidents-trends", weeks],
     queryFn: () => {
       const params = new URLSearchParams();

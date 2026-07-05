@@ -46,6 +46,7 @@ export function useHolidayQuestDays(
   const query = params.toString();
 
   return useQuery<HolidayQuestDayData[]>({
+    staleTime: 30_000,
     queryKey: ["holiday-quest", serviceId, from, to, status],
     queryFn: () => fetchApi<HolidayQuestDayData[]>(`/api/holiday-quest?${query}`),
     enabled: !!serviceId,

@@ -90,7 +90,9 @@ export function EnquiryKanban({
         body: JSON.stringify({ stage: newStage }),
       });
     } catch (err) {
-      console.error("Failed to update stage:", err);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Failed to update stage:", err);
+      }
       fetchEnquiries(); // Revert on error
     }
   };

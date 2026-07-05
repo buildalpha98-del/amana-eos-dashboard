@@ -52,6 +52,7 @@ export interface CentrePerformance {
 
 export function usePerformance() {
   return useQuery<CentrePerformance[]>({
+    staleTime: 30_000,
     queryKey: ["performance"],
     queryFn: () => fetchApi<CentrePerformance[]>("/api/performance"),
     retry: 2,

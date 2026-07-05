@@ -58,7 +58,8 @@ export function useActivityTemplates(filters?: ActivityTemplateFilters) {
   if (filters?.limit) params.set("limit", String(filters.limit));
 
   return useQuery<{ templates: ActivityTemplate[]; total: number; page: number; limit: number }>({
-    queryKey: ["activity-templates", filters],
+    staleTime: 30_000,
+    queryKey: ["activity-templates", filters?.category, filters?.search, filters?.page, filters?.limit],
     queryFn: () => fetchApi(`/api/activity-templates?${params}`),
     retry: 2,
   });
@@ -66,6 +67,7 @@ export function useActivityTemplates(filters?: ActivityTemplateFilters) {
 
 export function useActivityTemplate(id: string | null) {
   return useQuery<ActivityTemplate>({
+    staleTime: 30_000,
     queryKey: ["activity-template", id],
     queryFn: () => fetchApi<ActivityTemplate>(`/api/activity-templates/${id}`),
     enabled: !!id,

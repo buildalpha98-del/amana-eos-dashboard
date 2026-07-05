@@ -40,7 +40,8 @@ export function useComplianceCerts(filters?: {
   const query = params.toString();
 
   return useQuery<ComplianceCertData[]>({
-    queryKey: ["compliance", filters],
+    staleTime: 30_000,
+    queryKey: ["compliance", filters?.serviceId, filters?.upcoming, filters?.scope],
     queryFn: () => fetchApi<ComplianceCertData[]>(`/api/compliance${query ? `?${query}` : ""}`),
     retry: 2,
   });

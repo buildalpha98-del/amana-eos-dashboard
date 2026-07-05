@@ -60,6 +60,7 @@ export interface TriggerSurveyResponse {
 
 export function useExitSurveySummary(filters?: { serviceId?: string; months?: number }) {
   return useQuery<ExitSurveySummary>({
+    staleTime: 30_000,
     queryKey: ["exit-survey-summary", filters?.serviceId, filters?.months],
     queryFn: () => {
       const params = new URLSearchParams();
