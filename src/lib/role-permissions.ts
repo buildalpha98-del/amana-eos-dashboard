@@ -136,8 +136,17 @@ export const allPages = [
   "/knowledge",
   // HR
   "/recruitment",
+  // 2026-07-05 (nav consolidation phase 1): consolidated D&I + WGEA hub.
+  // Owner/head_office/admin only (inherited via allPages — deliberately
+  // NOT added to the marketing/member/staff/EOS allowlists).
+  "/workforce-reports",
   // Tools
   "/tools/ccs-calculator",
+  // 2026-07-05 (nav consolidation phase 1): /handbook is the consolidated
+  // Handbook & Help hub. The old standalone routes below stay registered
+  // because they're now redirect stubs — middleware must let users through
+  // so the redirect can fire.
+  "/handbook",
   "/tools/the-amana-way",
     "/tools/handbook",
     "/tools/amana-way-one-pager",
@@ -217,6 +226,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/roster/me",
     "/roster/swaps",
     "/tools/ccs-calculator",
+    "/handbook",
     "/tools/the-amana-way",
     "/tools/handbook",
     "/tools/amana-way-one-pager",
@@ -283,6 +293,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/documents",
     "/knowledge",
     "/tools/ccs-calculator",
+    "/handbook",
     "/tools/the-amana-way",
     "/tools/handbook",
     "/tools/amana-way-one-pager",
@@ -327,6 +338,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/leave",
     "/contracts",
     "/tools/ccs-calculator",
+    "/handbook",
     "/tools/the-amana-way",
     "/tools/handbook",
     "/tools/amana-way-one-pager",
@@ -370,6 +382,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/meetings",
     "/accountability-chart",
     // Read-only org resources they may genuinely need to reference
+    "/handbook",
     "/guides",
     "/help",
     "/directory",
@@ -395,6 +408,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/meetings",
     "/accountability-chart",
     // Read-only org resources they may genuinely need to reference
+    "/handbook",
     "/guides",
     "/help",
     "/directory",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import {
@@ -47,6 +48,7 @@ import {
   Grid3X3,
   List,
   LayoutGrid,
+  ClipboardList,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -602,6 +604,26 @@ export default function CompliancePage() {
                   </button>
                 );
               })}
+              {/* 2026-07-05 (nav consolidation phase 1): Audit Templates &
+                  NQF Registers left the sidebar — they're reachable from
+                  here instead. Links (not embedded tabs): registers is a
+                  server-gated page with its own data loading. */}
+              <Link
+                href="/compliance/templates"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted hover:text-foreground hover:border-border transition-colors whitespace-nowrap"
+              >
+                <ClipboardList className="w-4 h-4" />
+                Audit Templates
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/compliance/registers"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted hover:text-foreground hover:border-border transition-colors whitespace-nowrap"
+              >
+                <ClipboardList className="w-4 h-4" />
+                NQF Registers
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
             </nav>
           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   useAuditTemplates,
   useAuditTemplateDetail,
@@ -24,6 +25,7 @@ import { useSession } from "next-auth/react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import {
+  ArrowLeft,
   Search,
   Upload,
   FileUp,
@@ -1061,6 +1063,13 @@ export default function AuditTemplatesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
+          <Link
+            href="/compliance"
+            className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground mb-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Compliance
+          </Link>
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-brand" />
             Audit Templates

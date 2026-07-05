@@ -1,9 +1,9 @@
-import { ParentFeedbackQueueContent } from "./ParentFeedbackQueueContent";
+import { FeedbackHubContent } from "./FeedbackHubContent";
 
 export const metadata = {
-  title: "Parent Feedback Queue | Amana EOS",
+  title: "Feedback | Amana EOS",
 };
 
-export default function ParentFeedbackQueuePage() {
-  return <ParentFeedbackQueueContent />;
+export default function FeedbackPage() {
+  return <FeedbackHubContent />;
 }

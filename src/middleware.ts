@@ -152,6 +152,8 @@ export const config = {
     "/audit-log/:path*",
     "/guides/:path*",
     "/help/:path*",
+    "/handbook/:path*",
+    "/workforce-reports/:path*",
     "/directory/:path*",
     "/enquiries/:path*",
     "/activity-library/:path*",

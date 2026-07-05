@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Printer, Link2, Check, ChevronDown } from "lucide-react";
 import { staffGuides, guideRoleKeys } from "@/lib/staff-guides";
 import { ROLE_DISPLAY_NAMES, ADMIN_ROLES } from "@/lib/role-permissions";
@@ -19,6 +19,11 @@ export function GuidesContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
+  // 2026-07-05: guides render both standalone (/guides redirect stub) and
+  // inside the /handbook hub's Guides tab — derive links from the current
+  // pathname instead of hard-coding /guides so the role switcher and share
+  // links stay on the hub (and keep its ?tab= param).
+  const pathname = usePathname();
 
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? "staff";
   const canSwitchRoles = ADMIN_ROLE_SET.has(userRole);
@@ -67,9 +72,9 @@ export function GuidesContent() {
     (role: string) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set("role", role);
-      router.push(`/guides?${params.toString()}`);
+      router.push(`${pathname}?${params.toString()}`);
     },
-    [searchParams, router]
+    [searchParams, router, pathname]
   );
 
   const handlePrint = useCallback(() => {
@@ -77,12 +82,14 @@ export function GuidesContent() {
   }, []);
 
   const handleShareLink = useCallback(() => {
-    const url = `${window.location.origin}/guides?role=${activeRole}`;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("role", activeRole);
+    const url = `${window.location.origin}${pathname}?${params.toString()}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [activeRole]);
+  }, [activeRole, pathname, searchParams]);
 
   return (
     <div className="p-6 md:p-10">
