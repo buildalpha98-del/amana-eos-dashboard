@@ -44,6 +44,7 @@ import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
+import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
 import { MyPayslipsCard } from "@/components/my-portal/MyPayslipsCard";
 import { MyLeaveRequestsCard } from "@/components/my-portal/MyLeaveRequestsCard";
 import { MyExpensesCard } from "@/components/my-portal/MyExpensesCard";
@@ -557,6 +558,12 @@ export default function MyPortalPage() {
           )}
         </div>
       </PageHeader>
+
+      {/* ============================================================ */}
+      {/* 1b. AI MORNING BRIEF (2026-07-05) — hidden until the daily    */}
+      {/* cron has composed today's brief for this user.                */}
+      {/* ============================================================ */}
+      <MorningBriefCard />
 
       {/* ============================================================ */}
       {/* 2. QUICK ACTIONS BANNER                                      */}

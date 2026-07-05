@@ -11,7 +11,7 @@ import {
   UserCheck,
   UserX,
 } from "lucide-react";
-import { useUpdateMeeting } from "@/hooks/useMeetings";
+import { useUpdateMeeting, usePrepareMeeting } from "@/hooks/useMeetings";
 import { useScorecard, useCreateEntry } from "@/hooks/useScorecard";
 import { useRocks, useUpdateRock } from "@/hooks/useRocks";
 import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
@@ -37,6 +37,7 @@ import { TodoReviewSection } from "./TodoReviewSection";
 import { IDSSection } from "./IDSSection";
 import { ConcludeSection } from "./ConcludeSection";
 import { MeetingOutcomesPanel } from "./MeetingOutcomesPanel";
+import { AiAgendaPanel } from "./AiAgendaPanel";
 
 export function ActiveMeetingView({
   meeting,
@@ -66,6 +67,7 @@ export function ActiveMeetingView({
   const timer = useTimer(section.duration);
 
   const updateMeeting = useUpdateMeeting();
+  const prepareMeeting = usePrepareMeeting();
   const updateTodo = useUpdateTodo();
   const updateIssue = useUpdateIssue();
   const updateRock = useUpdateRock();
@@ -553,18 +555,33 @@ export function ActiveMeetingView({
           {/* Section Content */}
           <div className="p-6">
             {currentSection === 0 && (
-              <SegueSection notes={segueNotes} onUpdate={setSegueNotes} />
+              <>
+                <AiAgendaPanel
+                  part="summary"
+                  draft={meeting.aiAgendaDraft}
+                  onGenerate={
+                    isCompleted ? undefined : () => prepareMeeting.mutate(meeting.id)
+                  }
+                  generating={prepareMeeting.isPending}
+                />
+                <SegueSection notes={segueNotes} onUpdate={setSegueNotes} />
+              </>
             )}
             {currentSection === 1 && (
-              <ScorecardSection
-                scorecard={filteredScorecard}
-                onDropToIDS={isCompleted ? undefined : handleDropToIDS}
-                onEntrySubmit={isCompleted ? undefined : handleScorecardEntry}
-                isCompleted={isCompleted}
-              />
+              <>
+                <AiAgendaPanel part="scorecard" draft={meeting.aiAgendaDraft} />
+                <ScorecardSection
+                  scorecard={filteredScorecard}
+                  onDropToIDS={isCompleted ? undefined : handleDropToIDS}
+                  onEntrySubmit={isCompleted ? undefined : handleScorecardEntry}
+                  isCompleted={isCompleted}
+                />
+              </>
             )}
             {currentSection === 2 && (
-              <RockReviewSection
+              <>
+                <AiAgendaPanel part="rocks" draft={meeting.aiAgendaDraft} />
+                <RockReviewSection
                 rocks={rocks}
                 onSendToIDS={isCompleted ? undefined : handleSendRockToIDS}
                 sendingRockIdToIDS={
@@ -575,7 +592,8 @@ export function ActiveMeetingView({
                       null)
                     : null
                 }
-              />
+                />
+              </>
             )}
             {currentSection === 3 && (
               <HeadlinesSection headlines={headlines} onUpdate={setHeadlines} />
@@ -587,16 +605,19 @@ export function ActiveMeetingView({
               />
             )}
             {currentSection === 5 && (
-              <IDSSection
-                issues={allIDSIssues}
-                onUpdateStatus={handleIssueStatus}
-                onCreateIssue={handleCreateIssue}
-                onCreateTodo={handleCreateTodoFromIssue}
-                onUpdatePriority={handleUpdatePriority}
-                onUpdateDescription={handleUpdateDescription}
-                onDropToLongTerm={handleDropToLongTerm}
-                users={users}
-              />
+              <>
+                <AiAgendaPanel part="ids" draft={meeting.aiAgendaDraft} />
+                <IDSSection
+                  issues={allIDSIssues}
+                  onUpdateStatus={handleIssueStatus}
+                  onCreateIssue={handleCreateIssue}
+                  onCreateTodo={handleCreateTodoFromIssue}
+                  onUpdatePriority={handleUpdatePriority}
+                  onUpdateDescription={handleUpdateDescription}
+                  onDropToLongTerm={handleDropToLongTerm}
+                  users={users}
+                />
+              </>
             )}
             {currentSection === 6 && (
               <ConcludeSection

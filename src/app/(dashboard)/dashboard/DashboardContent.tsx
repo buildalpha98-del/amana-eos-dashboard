@@ -25,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 
 // Command Centre components
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
 import { KeyMetricsBar } from "@/components/dashboard/KeyMetricsBar";
 import { DashboardRocks } from "@/components/dashboard/DashboardRocks";
 import { DashboardAnnouncements } from "@/components/dashboard/DashboardAnnouncements";
@@ -443,6 +444,12 @@ function CommandCentreDashboard({
         </div>
       ) : data ? (
         <div className="contents stagger-children">
+          {/* ── AI Morning Brief — the push surface. Hidden until the
+               cron has produced today's brief. ────────────────── */}
+          <WidgetErrorBoundary widgetName="Morning Brief">
+            <MorningBriefCard />
+          </WidgetErrorBoundary>
+
           {/* ── Alert Banner ────────────────────────────────── */}
           <WidgetErrorBoundary widgetName="Alert Banner">
             <AlertBanner
