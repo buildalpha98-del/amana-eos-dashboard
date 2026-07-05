@@ -205,6 +205,40 @@ export function useImportTimesheet() {
   });
 }
 
+// ── Generate timesheet from timeclock actuals ─────────────────
+
+export interface TimeclockGenerateResult {
+  timesheetId?: string;
+  created: number;
+  skipped: number;
+  unpriced: number;
+  incomplete: number;
+  message?: string;
+}
+
+export function useGenerateFromTimeclock() {
+  const qc = useQueryClient();
+  return useMutation<
+    TimeclockGenerateResult,
+    Error,
+    { serviceId: string; weekEnding: string }
+  >({
+    mutationFn: async (data) => {
+      return mutateApi<TimeclockGenerateResult>(
+        "/api/timesheets/generate-from-timeclock",
+        { method: "POST", body: data },
+      );
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["timesheets"] });
+      qc.invalidateQueries({ queryKey: ["timesheet"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
 // ── Add entries to timesheet ───────────────────────────────────
 
 export function useAddTimesheetEntries() {
