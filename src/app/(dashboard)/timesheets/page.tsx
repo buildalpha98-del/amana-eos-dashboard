@@ -15,6 +15,8 @@ import {
   useDeleteTimesheet,
   useAddTimesheetEntry,
   useTimesheetsSummary,
+  useGenerateFromTimeclock,
+  type TimeclockGenerateResult,
   type TimesheetData,
   type TimesheetEntryData,
 } from "@/hooks/useTimesheets";
@@ -499,6 +501,161 @@ function NewTimesheetModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* GenerateFromTimeclockModal                                          */
+/* ------------------------------------------------------------------ */
+
+function GenerateFromTimeclockModal({
+  services,
+  onClose,
+}: {
+  services: ServiceOption[];
+  onClose: () => void;
+}) {
+  const generate = useGenerateFromTimeclock();
+  const [serviceId, setServiceId] = useState("");
+  const [weekEnding, setWeekEnding] = useState("");
+  const [result, setResult] = useState<TimeclockGenerateResult | null>(null);
+
+  const handleGenerate = async () => {
+    try {
+      const res = await generate.mutateAsync({ serviceId, weekEnding });
+      setResult(res);
+    } catch {
+      // Error toast handled by the mutation
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground">
+            Generate from Timeclock
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1 text-muted hover:text-foreground rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {result === null ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted">
+              Creates draft timesheet entries from the hours staff actually
+              clocked at the kiosk or My Portal, priced from each person&apos;s
+              contract on the shift date. Existing entries are never
+              overwritten — re-running only adds what&apos;s missing.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
+                Service *
+              </label>
+              <select
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              >
+                <option value="">Select a service...</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
+                Week Ending (Sunday) *
+              </label>
+              <input
+                type="date"
+                value={weekEnding}
+                onChange={(e) => setWeekEnding(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGenerate}
+                disabled={!serviceId || !weekEnding || generate.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:opacity-50"
+              >
+                {generate.isPending ? "Generating..." : "Generate Entries"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-lg bg-emerald-50 p-3">
+                <p className="text-2xl font-bold text-emerald-700">
+                  {result.created}
+                </p>
+                <p className="text-xs text-emerald-700/80">Entries created</p>
+              </div>
+              <div className="rounded-lg bg-surface p-3">
+                <p className="text-2xl font-bold text-foreground">
+                  {result.skipped}
+                </p>
+                <p className="text-xs text-muted">Already present</p>
+              </div>
+              <div
+                className={`rounded-lg p-3 ${result.unpriced > 0 ? "bg-amber-50" : "bg-surface"}`}
+              >
+                <p
+                  className={`text-2xl font-bold ${result.unpriced > 0 ? "text-amber-700" : "text-foreground"}`}
+                >
+                  {result.unpriced}
+                </p>
+                <p
+                  className={`text-xs ${result.unpriced > 0 ? "text-amber-700/80" : "text-muted"}`}
+                >
+                  No pay rate
+                </p>
+              </div>
+            </div>
+            {result.incomplete > 0 && (
+              <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+                {result.incomplete} shift{result.incomplete === 1 ? "" : "s"}{" "}
+                in this week {result.incomplete === 1 ? "has" : "have"} a
+                clock-in but no clock-out — ask the staff member to fix it,
+                then re-run.
+              </p>
+            )}
+            {result.unpriced > 0 && (
+              <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+                {result.unpriced} entr{result.unpriced === 1 ? "y" : "ies"}{" "}
+                had no active contract on the shift date — set the pay rate
+                manually or issue a contract, then re-run.
+              </p>
+            )}
+            {result.message && (
+              <p className="text-sm text-muted">{result.message}</p>
+            )}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1275,6 +1432,7 @@ export default function TimesheetsPage() {
   // UI state
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showTimeclock, setShowTimeclock] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -1409,6 +1567,11 @@ export default function TimesheetsPage() {
             label: "Import from OWNA",
             icon: Upload,
             onClick: () => setShowImport(true),
+          },
+          {
+            label: "Generate from Timeclock",
+            icon: Clock,
+            onClick: () => setShowTimeclock(true),
           },
         ]}
       >
@@ -1646,6 +1809,13 @@ export default function TimesheetsPage() {
         <NewTimesheetModal
           services={services}
           onClose={() => setShowCreate(false)}
+        />
+      )}
+
+      {showTimeclock && services && (
+        <GenerateFromTimeclockModal
+          services={services}
+          onClose={() => setShowTimeclock(false)}
         />
       )}
     </div>
