@@ -1,14 +1,10 @@
 "use client";
 
 /**
- * ServiceTabBarV2 — pill-chip tab bar for the staff dashboard v2 services shell.
+ * ServiceTabBarV2 — pill-chip tab bar for the services detail shell.
  *
- * Replaces the v1 border-underline tab bar with grouped warm-pill chips.
- * Same API as v1 — group list + active group key + sub-tab list + active
- * sub-tab key + change handlers. Badge counts render inside the pill.
- *
- * Designed to be consumed behind `useStaffV2Flag()`; v1 tab bar stays in place
- * for flag-off builds.
+ * Grouped warm-pill chips: group list + active group key + sub-tab list +
+ * active sub-tab key + change handlers. Badge counts render inside the pill.
  */
 
 import { cn } from "@/lib/utils";

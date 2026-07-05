@@ -5,10 +5,8 @@ import {
   AlertTriangle,
   ChevronRight,
   CheckCircle2,
-  ClipboardList,
   Mountain,
   AlertCircle,
-  Inbox,
   Plus,
   ShieldAlert,
   UserPlus,
@@ -46,7 +44,6 @@ import { MobileQuickActions } from "@/components/dashboard/MobileQuickActions";
 import { AiDraftsWidget } from "@/components/dashboard/AiDraftsWidget";
 import { ServicesBelowRatioCard } from "@/components/dashboard/ServicesBelowRatioCard";
 import { DashboardTodayStrip } from "@/components/dashboard/DashboardTodayStrip";
-import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 // Role-specific widgets
 import { CentrePerformanceOverview } from "@/components/dashboard/CentrePerformanceOverview";
@@ -141,50 +138,6 @@ function formatTodayDate(): string {
     month: "long",
     year: "numeric",
   });
-}
-
-// ─── Priority Stats Row ─────────────────────────────────────
-
-function PriorityStats({
-  overdueTodos,
-  offTrackRocks,
-  openIssues,
-  pendingQueue,
-}: {
-  overdueTodos: number;
-  offTrackRocks: number;
-  openIssues: number;
-  pendingQueue: number;
-}) {
-  const stats = [
-    { label: "Overdue To-Dos", value: overdueTodos, icon: ClipboardList, href: "/todos", color: overdueTodos > 0 ? "text-danger" : "text-success" },
-    { label: "Off-Track Rocks", value: offTrackRocks, icon: Mountain, href: "/rocks", color: offTrackRocks > 0 ? "text-warning" : "text-success" },
-    { label: "Open Issues", value: openIssues, icon: AlertCircle, href: "/issues", color: openIssues > 0 ? "text-warning" : "text-success" },
-    { label: "Pending Queue", value: pendingQueue, icon: Inbox, href: "/queue", color: pendingQueue > 0 ? "text-brand" : "text-muted" },
-  ];
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {stats.map((s) => {
-        const Icon = s.icon;
-        return (
-          <Link
-            key={s.label}
-            href={s.href}
-            className="bg-card rounded-xl border border-border p-3 flex items-center gap-3 hover:border-brand/30 transition-colors shadow-[var(--shadow-warm-sm)]"
-          >
-            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
-              <Icon className={`w-4 h-4 ${s.color}`} />
-            </div>
-            <div className="min-w-0">
-              <div className={`text-lg font-bold leading-none ${s.color}`}>{s.value}</div>
-              <div className="text-[11px] text-muted mt-0.5 truncate">{s.label}</div>
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-  );
 }
 
 // ─── Quick Action Buttons ───────────────────────────────────
@@ -378,14 +331,12 @@ function CommandCentreDashboard({
   const isAdmin = role === "admin";
   const isCoordinator = role === "member";
 
-  const v2 = useStaffV2Flag();
-
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-7xl mx-auto space-y-8"
     >
-      {/* ── Greeting + Priority Stats + Quick Actions ──────── */}
+      {/* ── Greeting + Today Strip + Quick Actions ──────────── */}
       <div className="space-y-4 animate-widget-in">
         <div>
           <h2 className="text-3xl font-heading font-bold tracking-tight text-foreground">
@@ -394,8 +345,8 @@ function CommandCentreDashboard({
           <p className="text-muted text-sm mt-1">{todayDate}</p>
         </div>
 
-        {/* v2: compact "Today strip" at top */}
-        {v2 && data && (
+        {/* Compact "Today strip" at top */}
+        {data && (
           <DashboardTodayStrip
             counts={{
               overdueTodos: data.actionItems.overdueTodos.length,
@@ -403,15 +354,6 @@ function CommandCentreDashboard({
               openIssues: data.actionItems.idsIssues.length,
               pendingQueue: pendingQueueCount,
             }}
-          />
-        )}
-
-        {!v2 && data && (
-          <PriorityStats
-            overdueTodos={data.actionItems.overdueTodos.length}
-            offTrackRocks={data.actionItems.overdueRocks.length}
-            openIssues={data.actionItems.idsIssues.length}
-            pendingQueue={pendingQueueCount}
           />
         )}
 

@@ -15,11 +15,9 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 import { toast } from "@/hooks/useToast";
 
 export default function RocksPage() {
-  const v2 = useStaffV2Flag();
   const [quarter, setQuarter] = useState(getCurrentQuarter());
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [selectedRockId, setSelectedRockId] = useState<string | null>(null);
@@ -33,7 +31,7 @@ export default function RocksPage() {
 
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-7xl mx-auto"
     >
       {/* Header */}

@@ -26,10 +26,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
-import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 export default function ScorecardPage() {
-  const v2 = useStaffV2Flag();
   const { data: session } = useSession();
   const viewerRole = session?.user?.role as string | undefined;
   const viewerId = session?.user?.id;
@@ -159,7 +157,7 @@ export default function ScorecardPage() {
 
   return (
     <div
-      {...(v2 ? { "data-v2": "staff" } : {})}
+      data-v2="staff"
       className="max-w-full mx-auto"
     >
       {/* Selector row — multi-scorecard list, create + manage members.
