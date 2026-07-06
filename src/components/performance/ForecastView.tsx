@@ -208,9 +208,21 @@ export function ForecastView() {
 
       {/* Pipeline forecast */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <Target className="h-5 w-5 text-brand" />
           <h3 className="text-lg font-semibold text-foreground">Enquiry pipeline — expected enrolments</h3>
+          {data.pipeline.ratesSource === "observed" ? (
+            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              Observed rates · {data.pipeline.observedSampleSize} journeys
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center rounded-full border border-border bg-surface px-2 py-0.5 text-xs font-medium text-muted"
+              title="Real per-stage rates switch on automatically once 30 enquiry journeys resolve (stage events started logging 2026-07-06)."
+            >
+              Heuristic rates
+            </span>
+          )}
         </div>
         {data.pipeline.baseRate === null ? (
           <EmptyState icon={Target} title="No resolved enquiries yet" description="Conversion rates appear once enquiries have converted or gone cold." variant="inline" />

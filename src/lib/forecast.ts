@@ -174,10 +174,23 @@ export const STAGE_PROGRESSION_MULTIPLIER: Record<
 
 const MAX_STAGE_RATE = 0.95;
 
+/**
+ * Real per-stage conversion rates learned from ParentEnquiryStageEvent
+ * journeys (lib/funnel-rates.ts). When supplied, they override the
+ * fixed progression multipliers stage-by-stage.
+ */
+export interface StageRates {
+  /** Distinct resolved journeys the rates were learned from. */
+  sampleSize: number;
+  byStage: Partial<Record<(typeof OPEN_PIPELINE_STAGES)[number], number>>;
+}
+
 export interface PipelineStageForecast {
   stage: (typeof OPEN_PIPELINE_STAGES)[number];
   open: number;
   rate: number;
+  /** Where this stage's rate came from. */
+  source: "observed" | "heuristic";
   expected: number;
 }
 
@@ -186,6 +199,10 @@ export interface PipelineForecast {
   /** Blended historical conversion rate (converted / resolved). */
   baseRate: number | null;
   expectedEnrolments: number;
+  /** "observed" once enough stage-event journeys exist (per-stage
+   *  fallback to heuristic still possible — see byStage[].source). */
+  ratesSource: "observed" | "heuristic";
+  observedSampleSize: number | null;
   byStage: PipelineStageForecast[];
 }
 
@@ -200,20 +217,27 @@ export function forecastPipeline(
   openByStage: Partial<Record<string, number>>,
   historicalConverted: number,
   historicalCold: number,
+  observed: StageRates | null = null,
 ): PipelineForecast {
   const resolved = historicalConverted + historicalCold;
   const baseRate = resolved > 0 ? historicalConverted / resolved : null;
 
   const byStage: PipelineStageForecast[] = OPEN_PIPELINE_STAGES.map((stage) => {
     const open = openByStage[stage] ?? 0;
+    const observedRate = observed?.byStage[stage];
     const rate =
-      baseRate === null
-        ? 0
-        : Math.min(MAX_STAGE_RATE, baseRate * STAGE_PROGRESSION_MULTIPLIER[stage]);
+      observedRate !== undefined
+        ? Math.min(MAX_STAGE_RATE, observedRate)
+        : baseRate === null
+          ? 0
+          : Math.min(MAX_STAGE_RATE, baseRate * STAGE_PROGRESSION_MULTIPLIER[stage]);
     return {
       stage,
       open,
       rate: Math.round(rate * 100) / 100,
+      source: (observedRate !== undefined ? "observed" : "heuristic") as
+        | "observed"
+        | "heuristic",
       expected: Math.round(open * rate * 10) / 10,
     };
   });
@@ -223,6 +247,8 @@ export function forecastPipeline(
     baseRate: baseRate === null ? null : Math.round(baseRate * 100) / 100,
     expectedEnrolments:
       Math.round(byStage.reduce((s, x) => s + x.expected, 0) * 10) / 10,
+    ratesSource: observed ? "observed" : "heuristic",
+    observedSampleSize: observed?.sampleSize ?? null,
     byStage,
   };
 }
