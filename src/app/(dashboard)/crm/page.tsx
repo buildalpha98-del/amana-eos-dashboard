@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLeads } from "@/hooks/useCRM";
 import type { LeadSummary, LeadFilters } from "@/hooks/useCRM";
 import { CrmKanban } from "@/components/crm/CrmKanban";
@@ -96,6 +96,20 @@ export default function CrmPage() {
       return res.json();
     },
   });
+
+  // Deep-linkable: /crm?id=<leadId> opens the drawer once leads load —
+  // the ⌘K palette lands here (2026-07-06). One-shot via ref.
+  const deepLinkedId = useRef<string | null>(
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("id"),
+  );
+  useEffect(() => {
+    if (!deepLinkedId.current || !leads) return;
+    const target = leads.find((l) => l.id === deepLinkedId.current);
+    deepLinkedId.current = null;
+    if (target) setSelectedLead(target);
+  }, [leads]);
 
   const handleLeadClick = (lead: LeadSummary) => {
     setSelectedLead(lead);
