@@ -90,7 +90,7 @@ export function NotificationLogTab() {
           <select
             value={typeFilter}
             onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            className="text-sm border border-[#e5e7eb] rounded-lg px-3 py-1.5 bg-white text-[#1a1a2e]"
+            className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground"
           >
             <option value="">All Types</option>
             {data?.types.map((t) => (
@@ -102,7 +102,7 @@ export function NotificationLogTab() {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="text-sm border border-[#e5e7eb] rounded-lg px-3 py-1.5 bg-white text-[#1a1a2e]"
+          className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground"
         >
           <option value="">All Status</option>
           <option value="sent">Sent</option>

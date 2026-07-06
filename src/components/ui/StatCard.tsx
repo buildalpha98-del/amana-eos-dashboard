@@ -1,6 +1,26 @@
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function Sparkline({ points, color }: { points: number[]; color: string }) {
+  const w = 72;
+  const h = 20;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = max - min || 1;
+  const path = points
+    .map((v, i) => {
+      const x = (i / (points.length - 1)) * (w - 2) + 1;
+      const y = h - 2 - ((v - min) / span) * (h - 4);
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" className="mt-1.5">
+      <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+    </svg>
+  );
+}
+
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -8,6 +28,9 @@ interface StatCardProps {
   icon?: React.ComponentType<{ className?: string }>;
   iconColor?: string;
   trend?: "up" | "down" | "neutral";
+  /** Tiny trend line under the value (2026-07-06 design system) —
+   *  turns a number into a direction. 3+ points; older → newer. */
+  sparkline?: number[];
   valueColor?: string;
   size?: "sm" | "md" | "lg";
   loading?: boolean;
@@ -20,6 +43,7 @@ export function StatCard({
   icon: Icon,
   iconColor = "#004E64",
   trend,
+  sparkline,
   valueColor,
   size = "md",
   loading = false,
@@ -119,6 +143,9 @@ export function StatCard({
                 {subtitle}
               </p>
             </div>
+          )}
+          {sparkline && sparkline.length >= 3 && (
+            <Sparkline points={sparkline} color={iconColor} />
           )}
         </div>
         {Icon && (

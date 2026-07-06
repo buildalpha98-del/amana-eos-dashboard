@@ -36,9 +36,9 @@ export function MarketingTabs({ tabs, active, onChange }: MarketingTabsProps) {
   return (
     <div className="relative border-b border-border">
       {/* Left gradient fade (mobile only) */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white to-transparent z-10 md:hidden" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background to-transparent z-10 md:hidden" />
       {/* Right gradient fade (mobile only) */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent z-10 md:hidden" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent z-10 md:hidden" />
 
       <nav
         ref={navRef}

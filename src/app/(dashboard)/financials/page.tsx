@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFinancials } from "@/hooks/useFinancials";
 import { useServices } from "@/hooks/useServices";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -318,6 +318,24 @@ export default function FinancialsPage() {
   // Sort by total revenue descending
   const sortedData = [...latestData].sort((a, b) => b.totalRevenue - a.totalRevenue);
 
+  // Per-period org totals, oldest → newest, for the StatCard sparklines
+  // (2026-07-06 design system: numbers become directions).
+  const periodSeries = useMemo(() => {
+    const byPeriod = new Map<string, { revenue: number; costs: number }>();
+    for (const f of data?.financials ?? []) {
+      const key = String(f.periodStart);
+      const agg = byPeriod.get(key) ?? { revenue: 0, costs: 0 };
+      agg.revenue += f.totalRevenue;
+      agg.costs += f.totalCosts;
+      byPeriod.set(key, agg);
+    }
+    const ordered = [...byPeriod.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-8);
+    return {
+      revenue: ordered.map(([, v]) => v.revenue),
+      costs: ordered.map(([, v]) => v.costs),
+    };
+  }, [data?.financials]);
+
   const handleExport = () => {
     if (!data?.financials) return;
     exportToCSV(
@@ -442,6 +460,7 @@ export default function FinancialsPage() {
           subtitle={`${summary?.centreCount || 0} centres reporting`}
           icon={DollarSign}
           trend="neutral"
+          sparkline={periodSeries.revenue}
           iconColor="#004E64"
         />
         <StatCard
@@ -450,6 +469,7 @@ export default function FinancialsPage() {
           subtitle="all operating costs"
           icon={TrendingDown}
           trend="neutral"
+          sparkline={periodSeries.costs}
           iconColor="#EF4444"
         />
         <StatCard

@@ -155,6 +155,17 @@ export function useUpdateRock() {
       }
       toast({ variant: "destructive", description: _err.message || "Something went wrong" });
     },
+    onSuccess: (rock, vars) => {
+      // Celebration micro-moment (2026-07-06 design system): completing
+      // a rock is a quarter-level win — mark it warmly, once, no
+      // confetti. Only on the transition INTO complete.
+      if (vars.status === "complete") {
+        toast({
+          title: "Rock complete",
+          description: `"${rock.title}" is done — one more off the quarter. Nice work.`,
+        });
+      }
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["rocks"] });
       queryClient.invalidateQueries({ queryKey: ["rock"] });

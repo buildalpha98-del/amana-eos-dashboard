@@ -103,7 +103,7 @@ export function FilterBar({
               "bg-[color:var(--color-cream-deep)] border border-transparent",
               "text-[color:var(--color-foreground)] placeholder-[color:var(--color-muted)]/70",
               "focus:outline-none focus:border-[color:var(--color-brand)]/40",
-              "focus:bg-white transition-colors",
+              "focus:bg-card transition-colors",
             )}
             aria-label={search.placeholder ?? "Search"}
           />

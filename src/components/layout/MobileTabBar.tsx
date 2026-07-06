@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Sun,
   LayoutDashboard,
   CheckSquare,
   Building2,
-  UserPlus,
   MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
+  // 2026-07-06 design system: My Day leads — educators on phones land
+  // on their during-session surface (clock, roll call, checklists).
+  { href: "/my-day", label: "My Day", icon: Sun },
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/todos", label: "To-Dos", icon: CheckSquare },
   { href: "/services", label: "Services", icon: Building2 },
-  { href: "/enquiries", label: "Enquiries", icon: UserPlus },
 ] as const;
 
 interface MobileTabBarProps {
