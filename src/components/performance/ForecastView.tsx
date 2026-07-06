@@ -26,6 +26,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { StatCard } from "@/components/ui/StatCard";
 import { cn } from "@/lib/utils";
+import { StatusChip } from "@/components/ui/StatusChip";
+import { CentreDot } from "@/components/ui/CentreDot";
 
 const STAGE_LABELS: Record<string, string> = {
   new_enquiry: "New enquiry",
@@ -81,10 +83,13 @@ function ServiceRow({ s, weeksAhead }: { s: ServiceForecastData; weeksAhead: num
   return (
     <tr className="border-b border-border/50">
       <td className="py-2.5 pr-3">
-        <Link href={`/services/${s.serviceId}`} className="text-sm font-medium text-foreground hover:text-brand">
-          {s.serviceName}
-        </Link>
-        <span className="ml-1.5 text-xs text-muted">{s.code}</span>
+        <span className="inline-flex items-center gap-2">
+          <CentreDot code={s.code} />
+          <Link href={`/services/${s.serviceId}`} className="text-sm font-medium text-foreground hover:text-brand">
+            {s.serviceName}
+          </Link>
+          <span className="text-xs text-muted">{s.code}</span>
+        </span>
       </td>
       {f ? (
         <>
@@ -100,10 +105,9 @@ function ServiceRow({ s, weeksAhead }: { s: ServiceForecastData; weeksAhead: num
           <td className="py-2.5 pr-3"><UtilisationBar now={f.utilisationNow} horizon={f.utilisationAtHorizon} /></td>
           <td className="py-2.5 text-right">
             {f.weeksToCapacity !== null && f.weeksToCapacity <= weeksAhead ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-xs font-semibold text-red-700">
-                <AlertTriangle className="h-3 w-3" />
+              <StatusChip level={f.weeksToCapacity <= 2 ? "now" : "soon"} icon={AlertTriangle}>
                 {f.weeksToCapacity === 0 ? "at capacity" : `~${f.weeksToCapacity}w to capacity`}
-              </span>
+              </StatusChip>
             ) : (
               <span className="text-xs text-muted">—</span>
             )}

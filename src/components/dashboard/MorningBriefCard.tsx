@@ -13,6 +13,7 @@ import remarkGfm from "remark-gfm";
 import { Sunrise, Check, Sparkles } from "lucide-react";
 import { useMorningBrief, useMarkBriefRead } from "@/hooks/useMorningBrief";
 import { cn } from "@/lib/utils";
+import { AttentionCard } from "@/components/ui/AttentionCard";
 
 export function MorningBriefCard() {
   const { data, isLoading } = useMorningBrief();
@@ -31,10 +32,7 @@ export function MorningBriefCard() {
   }
 
   return (
-    <section
-      className="rounded-xl border border-brand/30 bg-gradient-to-br from-brand/5 to-transparent p-5"
-      data-testid="morning-brief-card"
-    >
+    <AttentionCard data-testid="morning-brief-card">
       <header className="mb-3 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Sunrise className="h-5 w-5 text-brand" />
@@ -71,6 +69,6 @@ export function MorningBriefCard() {
       <div className="prose prose-sm max-w-none text-sm text-foreground [&_ul]:my-1 [&_li]:my-0.5">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{brief.content}</ReactMarkdown>
       </div>
-    </section>
+    </AttentionCard>
   );
 }
