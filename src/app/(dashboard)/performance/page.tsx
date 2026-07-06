@@ -33,13 +33,14 @@ import { CentreComparison } from "@/components/performance/CentreComparison";
 import { RegionalRollup } from "@/components/performance/RegionalRollup";
 import { LayoutGrid, ListOrdered, BarChart3, FileBarChart } from "lucide-react";
 import { ReportsDashboard } from "@/components/reports/ReportsDashboard";
+import { ForecastView } from "@/components/performance/ForecastView";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AiButton } from "@/components/ui/AiButton";
 import { TrendInsightsWidget } from "@/components/trends/TrendInsightsWidget";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Download } from "lucide-react";
 
-type ViewMode = "centres" | "leaderboard" | "compare" | "reports";
+type ViewMode = "centres" | "leaderboard" | "compare" | "reports" | "forecast";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -88,7 +89,7 @@ export default function PerformancePage() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window === "undefined") return "centres";
     const v = new URLSearchParams(window.location.search).get("view");
-    return v === "reports" || v === "leaderboard" || v === "compare"
+    return v === "reports" || v === "leaderboard" || v === "compare" || v === "forecast"
       ? (v as ViewMode)
       : "centres";
   });
@@ -179,6 +180,7 @@ export default function PerformancePage() {
               { icon: ListOrdered, label: "Leaderboard", value: "leaderboard" },
               { icon: BarChart3, label: "Compare", value: "compare" },
               { icon: FileBarChart, label: "Reports", value: "reports" },
+              { icon: TrendingUp, label: "Forecast", value: "forecast" },
             ],
             value: viewMode,
             onChange: (v) => {
@@ -491,6 +493,11 @@ export default function PerformancePage() {
            used to live at /reports (folded in 2026-07-05; /reports
            redirects here). ═══ */}
       {viewMode === "reports" && <ReportsDashboard />}
+
+      {/* ═══ Forecast View — forward-looking occupancy + pipeline
+           projections (2026-07-06). The rest of this page reports the
+           past; this is where leadership manages the future. ═══ */}
+      {viewMode === "forecast" && <ForecastView />}
     </div>
   );
 }

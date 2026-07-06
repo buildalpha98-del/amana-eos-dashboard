@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Crown, Users, Building2, AlertCircle, MessageSquare, Mountain } from "lucide-react";
 import { LeadershipRecentIncidentsCard } from "@/components/leadership/LeadershipRecentIncidentsCard";
 import { LeadershipCertExpiryCard } from "@/components/leadership/LeadershipCertExpiryCard";
+import { LeadershipForecastAlerts } from "@/components/leadership/LeadershipForecastAlerts";
 import { PerformanceListCard } from "@/components/leadership/PerformanceListCard";
 import { cn } from "@/lib/utils";
 
@@ -95,6 +96,12 @@ export default function LeadershipPage() {
                certs. Org-wide complement to the per-service cert card
                on the Compliance tab (PR #69). */}
           <LeadershipCertExpiryCard />
+
+          {/* Section 1.7: Forecast projections — quiet by default,
+               chips only when a centre is projected to hit capacity or
+               slide under target. Full trajectories live on
+               /performance?view=forecast (2026-07-06). */}
+          <LeadershipForecastAlerts />
 
           {/* Section 2: Quarterly Rocks Rollup */}
           <section className="rounded-xl border border-border bg-card p-6">
