@@ -80,6 +80,9 @@ export function PageHeader({
           {description && (
             <p className="text-sm text-muted mt-0.5">{description}</p>
           )}
+          {/* Brand accent — the one warm mark on every page
+              (2026-07-06 design system). */}
+          <div aria-hidden="true" className="mt-2 h-0.5 w-8 rounded-full bg-brand/40" />
         </div>
 
         {/* Right: Actions */}
