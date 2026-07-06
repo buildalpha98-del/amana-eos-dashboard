@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { ServiceSummary } from "@/hooks/useServices";
+import { CentreDot } from "@/components/ui/CentreDot";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   active: { label: "Active", color: "bg-emerald-100 text-emerald-700" },
@@ -36,6 +37,7 @@ export function ServiceCard({
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
+            <CentreDot code={service.code} />
             <p className="text-xs font-semibold text-muted font-mono tracking-wide uppercase">
               {service.code}
             </p>

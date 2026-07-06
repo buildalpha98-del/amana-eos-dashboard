@@ -26,6 +26,7 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import type { CertStatus } from "@/lib/cert-expiry-summary";
+import { CentreDot } from "@/components/ui/CentreDot";
 
 const STATUS_TONE: Record<CertStatus, string> = {
   expired: "bg-red-100 text-red-800 border-red-300",
@@ -176,6 +177,7 @@ function ServiceRow({ service }: { service: ServiceRollupRowResponse }) {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-foreground truncate">
+            {service.code && <CentreDot code={service.code} className="mr-1.5" />}
             {service.name}
             {service.code ? (
               <span className="text-muted font-normal"> · {service.code}</span>

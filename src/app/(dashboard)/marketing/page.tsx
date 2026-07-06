@@ -24,6 +24,7 @@ import TeamContent from "@/components/marketing/team/TeamContent";
 import CoordinatorTodosContent from "@/components/marketing/coordinator-todos/CoordinatorTodosContent";
 import { MarketingCockpit } from "@/components/marketing/MarketingCockpit";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
+import { HubRail } from "@/components/ui/HubRail";
 import { CampaignsTab } from "@/components/marketing/CampaignsTab";
 import { CampaignDetailPanel } from "@/components/marketing/CampaignDetailPanel";
 import { PostsTab } from "@/components/marketing/PostsTab";
@@ -148,11 +149,23 @@ export default function MarketingPage() {
         />
       </PageHeader>
 
-      {/* Tabs */}
-      <MarketingTabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
+      {/* Tabs — horizontal swipeable bar on mobile/tablet, left rail
+          on lg+ (2026-07-06 design system: hub pages reclaim the
+          horizontal rows on wide screens). Same config, two views. */}
+      <div className="lg:hidden">
+        <MarketingTabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
+      </div>
 
-      {/* Tab Content */}
-      <div className="mt-6">
+      <div className="lg:flex lg:items-start lg:gap-6">
+        <HubRail
+          tabs={tabs}
+          active={activeTab}
+          onChange={setActiveTab}
+          className="hidden lg:block lg:sticky lg:top-20"
+        />
+
+        {/* Tab Content */}
+        <div className="mt-6 min-w-0 flex-1 lg:mt-0">
         {/* ---- Overview: Marketing Cockpit (Sprint 2) ---- */}
         {activeTab === "overview" && <MarketingCockpit />}
 
@@ -354,6 +367,7 @@ export default function MarketingPage() {
             )}
           </div>
         )}
+      </div>
       </div>
 
       {/* Detail Panels */}
