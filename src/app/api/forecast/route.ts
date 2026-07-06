@@ -23,6 +23,7 @@ import {
   OPEN_PIPELINE_STAGES,
 } from "@/lib/forecast";
 import { computeServiceForecasts } from "@/lib/forecast-data";
+import { computeObservedStageRates } from "@/lib/funnel-rates";
 
 export const GET = withApiAuth(async (req, session) => {
   if (!isAdminRole(session.user.role ?? "")) {
@@ -35,7 +36,7 @@ export const GET = withApiAuth(async (req, session) => {
     Math.max(4, Number(url.searchParams.get("weeks")) || 8),
   );
 
-  const [serviceForecasts, openEnquiries, convertedCount, coldCount] =
+  const [serviceForecasts, openEnquiries, convertedCount, coldCount, observedRates] =
     await Promise.all([
       computeServiceForecasts(weeksAhead),
       prisma.parentEnquiry.groupBy({
@@ -47,6 +48,9 @@ export const GET = withApiAuth(async (req, session) => {
         where: { stage: { in: [...CONVERTED_STAGES] } },
       }),
       prisma.parentEnquiry.count({ where: { stage: "cold" } }),
+      // Real per-stage rates from stage-event journeys — null until
+      // enough resolved history exists, then they take over per stage.
+      computeObservedStageRates().catch(() => null),
     ]);
 
   const openByStage: Record<string, number> = {};
@@ -57,7 +61,7 @@ export const GET = withApiAuth(async (req, session) => {
   return NextResponse.json({
     weeksAhead,
     services: serviceForecasts,
-    pipeline: forecastPipeline(openByStage, convertedCount, coldCount),
+    pipeline: forecastPipeline(openByStage, convertedCount, coldCount, observedRates),
     alerts: deriveAlerts(serviceForecasts, weeksAhead),
   });
 });
