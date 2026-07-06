@@ -11,7 +11,7 @@
 import Link from "next/link";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useForecast } from "@/hooks/useForecast";
-import { cn } from "@/lib/utils";
+import { StatusChip } from "@/components/ui/StatusChip";
 
 export function LeadershipForecastAlerts() {
   const { data, isLoading, error } = useForecast();
@@ -28,22 +28,14 @@ export function LeadershipForecastAlerts() {
           Projections
         </span>
         {data.alerts.map((a) => (
-          <Link
-            key={`${a.serviceId}-${a.kind}`}
-            href="/performance?view=forecast"
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-              a.kind === "capacity"
-                ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                : "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
-            )}
-          >
-            {a.kind === "capacity" ? (
-              <TrendingUp className="h-3 w-3" />
-            ) : (
-              <TrendingDown className="h-3 w-3" />
-            )}
-            <span className="font-semibold">{a.serviceName}</span> {a.detail}
+          <Link key={`${a.serviceId}-${a.kind}`} href="/performance?view=forecast">
+            <StatusChip
+              level={a.kind === "capacity" ? "now" : "soon"}
+              icon={a.kind === "capacity" ? TrendingUp : TrendingDown}
+              className="cursor-pointer px-2.5 py-1 transition-colors hover:brightness-95"
+            >
+              <span className="font-semibold">{a.serviceName}</span>&nbsp;{a.detail}
+            </StatusChip>
           </Link>
         ))}
       </div>
