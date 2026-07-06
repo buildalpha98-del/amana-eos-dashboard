@@ -1,4 +1,5 @@
 import {
+  Sun,
   LayoutDashboard,
   Eye,
   Mountain,
@@ -104,6 +105,7 @@ export const navItems: NavItem[] = [
   // ── Home — personal hub ───────────────────────────────────
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Home", tooltip: "Your command centre overview" },
   { href: "/my-portal", label: "My Portal", icon: UserCircle, section: "Home", tooltip: "Your personal HR hub — profile, leave, training & more" },
+  { href: "/my-day", label: "My Day", icon: Sun, section: "Home", tooltip: "Clock, roll call, and today's checklists in one place" },
   { href: "/queue", label: "My Queue", icon: Inbox, section: "Home", tooltip: "Reports and tasks assigned to you from automation" },
   { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "Home", tooltip: "Your onboarding checklist — get up to speed quickly" },
 

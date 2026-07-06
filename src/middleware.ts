@@ -64,6 +64,7 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/my-portal/:path*",
+    "/my-day/:path*",
     "/vision/:path*",
     "/rocks/:path*",
     "/todos/:path*",
