@@ -2,9 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import {
-  AlertTriangle,
   ChevronRight,
-  CheckCircle2,
   Mountain,
   AlertCircle,
   Plus,
@@ -26,6 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 // Command Centre components
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
+import { NeedsYouQueue } from "@/components/dashboard/NeedsYouQueue";
 import { KeyMetricsBar } from "@/components/dashboard/KeyMetricsBar";
 import { DashboardRocks } from "@/components/dashboard/DashboardRocks";
 import { DashboardAnnouncements } from "@/components/dashboard/DashboardAnnouncements";
@@ -60,65 +59,6 @@ function SectionDivider({ label }: { label: string }) {
     <div className="flex items-center gap-3 pt-2">
       <h3 className="text-xs font-heading font-semibold text-muted uppercase tracking-widest">{label}</h3>
       <div className="flex-1 h-px bg-border" />
-    </div>
-  );
-}
-
-// ─── Alert Banner ───────────────────────────────────────────
-
-function AlertBanner({
-  overdueTodos,
-  criticalIssues,
-  overdueRocks,
-}: {
-  overdueTodos: number;
-  criticalIssues: number;
-  overdueRocks: number;
-}) {
-  const alerts: { label: string; count: number; href: string }[] = [];
-  if (overdueTodos > 0) alerts.push({ label: "overdue to-do", count: overdueTodos, href: "/todos" });
-  if (criticalIssues > 0) alerts.push({ label: "critical issue", count: criticalIssues, href: "/issues" });
-  if (overdueRocks > 0) alerts.push({ label: "off-track rock", count: overdueRocks, href: "/rocks" });
-
-  if (alerts.length === 0) {
-    return (
-      <div className="rounded-2xl border border-success/20 bg-success/5 px-4 py-3 flex items-center gap-3 shadow-[var(--shadow-warm-sm)]">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
-          <CheckCircle2 className="w-4 h-4 text-success" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-success">
-            All clear — rocks on track, no overdue to-dos, no critical issues.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 flex items-center gap-3 shadow-[var(--shadow-warm-sm)]">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-danger/10 flex items-center justify-center">
-        <AlertTriangle className="w-4 h-4 text-danger" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-danger">
-          Attention needed:{" "}
-          {alerts.map((a, i) => (
-            <span key={a.href}>
-              {i > 0 && ", "}
-              <Link href={a.href} className="underline hover:opacity-80 font-semibold">
-                {a.count} {a.label}{a.count !== 1 ? "s" : ""}
-              </Link>
-            </span>
-          ))}
-        </p>
-      </div>
-      <Link
-        href={alerts[0].href}
-        className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-danger hover:opacity-80 transition-colors"
-      >
-        Review <ChevronRight className="w-3.5 h-3.5" />
-      </Link>
     </div>
   );
 }
@@ -444,20 +384,32 @@ function CommandCentreDashboard({
         </div>
       ) : data ? (
         <div className="contents stagger-children">
-          {/* ── AI Morning Brief — the push surface. Hidden until the
-               cron has produced today's brief. ────────────────── */}
-          <WidgetErrorBoundary widgetName="Morning Brief">
-            <MorningBriefCard />
-          </WidgetErrorBoundary>
-
-          {/* ── Alert Banner ────────────────────────────────── */}
-          <WidgetErrorBoundary widgetName="Alert Banner">
-            <AlertBanner
-              overdueTodos={data.actionItems.overdueTodos.length}
-              criticalIssues={data.actionItems.idsIssues.filter((i) => i.priority === "critical").length}
-              overdueRocks={data.actionItems.overdueRocks.length}
-            />
-          </WidgetErrorBoundary>
+          {/* ── Operator zone (2026-07-06 design system): what the
+               system decided needs a human, ranked — brief + queue on
+               the left, today's context on the right rail. Collapses
+               to one column on mobile in source order. ─────────── */}
+          <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr] lg:items-start">
+            <div className="min-w-0 space-y-6">
+              <WidgetErrorBoundary widgetName="Morning Brief">
+                <MorningBriefCard />
+              </WidgetErrorBoundary>
+              <WidgetErrorBoundary widgetName="Needs You">
+                <NeedsYouQueue actionItems={data.actionItems} />
+              </WidgetErrorBoundary>
+            </div>
+            <div className="min-w-0 space-y-6">
+              {data.todaysOps.length > 0 && (
+                <WidgetErrorBoundary widgetName="Today's Operations">
+                  <TodaysOps centres={data.todaysOps} />
+                </WidgetErrorBoundary>
+              )}
+              {isOwnerOrHO && (
+                <WidgetErrorBoundary widgetName="L10 Prep">
+                  <L10PrepWidget />
+                </WidgetErrorBoundary>
+              )}
+            </div>
+          </div>
 
           {/* ── State KPI Summary (admin only) ────────────────── */}
           {isAdmin && session?.user?.state && (
@@ -475,13 +427,6 @@ function CommandCentreDashboard({
           {isOwnerOrHO && (
             <WidgetErrorBoundary widgetName="Centre Performance Overview">
               <CentrePerformanceOverview centres={data.centreHealth} />
-            </WidgetErrorBoundary>
-          )}
-
-          {/* ── Owner/HO: L10 Prep Summary ───────────────────── */}
-          {isOwnerOrHO && (
-            <WidgetErrorBoundary widgetName="L10 Prep">
-              <L10PrepWidget />
             </WidgetErrorBoundary>
           )}
 
@@ -508,13 +453,6 @@ function CommandCentreDashboard({
           <WidgetErrorBoundary widgetName="Info Snippets">
             <InfoSnippets />
           </WidgetErrorBoundary>
-
-          {/* ── Today's Operations ────────────────────────────── */}
-          {data.todaysOps.length > 0 && (
-            <WidgetErrorBoundary widgetName="Today's Operations">
-              <TodaysOps centres={data.todaysOps} />
-            </WidgetErrorBoundary>
-          )}
 
           {/* ── Metrics Section Divider ──────────────────────── */}
           <SectionDivider label="Metrics" />
