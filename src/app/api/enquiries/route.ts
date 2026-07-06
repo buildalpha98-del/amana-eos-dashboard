@@ -6,6 +6,7 @@ import { parseJsonBody } from "@/lib/api-error";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { logger } from "@/lib/logger";
 import { resolveActivationFromUtm } from "@/lib/activation-attribution";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 const childSchema = z.object({
   name: z.string().min(1),
   age: z.number().int().min(3).max(16).optional().nullable(),
@@ -123,6 +124,9 @@ export const POST = withApiAuth(async (req) => {
   });
 
   // Trigger welcome nurture email for new enquiries
+  // Creation event for the pipeline history (fire-and-forget).
+  logEnquiryStageEvent(enquiry.id, null, enquiry.stage);
+
   scheduleNurtureFromStageChange(enquiry.id, "new").catch((err) =>
     logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
   );

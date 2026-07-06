@@ -20,7 +20,11 @@ import { toast } from "@/hooks/useToast";
 export default function RocksPage() {
   const [quarter, setQuarter] = useState(getCurrentQuarter());
   const [view, setView] = useState<"kanban" | "list">("kanban");
-  const [selectedRockId, setSelectedRockId] = useState<string | null>(null);
+  // Deep-linkable: /rocks?id=<rockId> opens the detail panel (⌘K).
+  const [selectedRockId, setSelectedRockId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("id");
+  });
   const [showCreate, setShowCreate] = useState(false);
 
   const { data: rocks, isLoading, error, refetch } = useRocks(quarter);

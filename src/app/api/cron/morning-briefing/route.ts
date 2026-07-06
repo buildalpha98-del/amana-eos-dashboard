@@ -30,6 +30,7 @@ import {
   totalSignalCount,
 } from "@/lib/morning-briefing";
 import { prepareMeetingAgenda } from "@/lib/l10-prep";
+import { computeForecastAlerts } from "@/lib/forecast-data";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 
 export const maxDuration = 300;
@@ -75,6 +76,24 @@ export const GET = withApiHandler(
       }
     }
 
+    // Occupancy projections needing action — computed ONCE (the
+    // aggregation walks 12 weeks of attendance) and shared across all
+    // admin-tier briefs. Failure degrades to no-alerts, never a crash.
+    const forecastAlerts = await computeForecastAlerts(8, now)
+      .then((alerts) =>
+        alerts.map((a) => ({
+          serviceName: a.serviceName,
+          kind: a.kind,
+          detail: a.detail,
+        })),
+      )
+      .catch((err) => {
+        logger.warn("Morning briefing: forecast alerts failed", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return [];
+      });
+
     // ── 2. Compose per-user briefs. ─────────────────────────────────
     const users = await prisma.user.findMany({
       where: { active: true, role: { in: [...BRIEFING_ROLES] } },
@@ -97,7 +116,7 @@ export const GET = withApiHandler(
           continue;
         }
 
-        const signals = await collectBriefingSignals(user, now);
+        const signals = await collectBriefingSignals(user, now, forecastAlerts);
         // Quiet mornings still get a row (the card shows "all clear")
         // but no notification — don't ping people about nothing.
         const { content, source } = await composeBriefing(

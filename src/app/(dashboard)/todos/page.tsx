@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, Suspense } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTodos, useUpdateTodo, useDeleteTodo, useCreateTodo, useBulkTodoAction, type TodoData } from "@/hooks/useTodos";
@@ -81,6 +81,13 @@ function TodosPageContent() {
   const [showCreate, setShowCreate] = useState(false);
   const [showBulkCreate, setShowBulkCreate] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<TodoData | null>(null);
+  // Deep-linkable: /todos?id=<todoId> opens the detail panel once
+  // todos load (⌘K). One-shot via ref.
+  const deepLinkedTodoId = useRef<string | null>(
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("id"),
+  );
 
   // Read filters from URL search params
   const groupByParam = searchParams.get("groupBy");
@@ -127,6 +134,13 @@ function TodosPageContent() {
     ...(filterAssignee ? { assigneeId: filterAssignee } : {}),
     ...(filterStatus ? { status: filterStatus } : {}),
   });
+
+  useEffect(() => {
+    if (!deepLinkedTodoId.current || !todos) return;
+    const target = todos.find((t) => t.id === deepLinkedTodoId.current);
+    deepLinkedTodoId.current = null;
+    if (target) setSelectedTodo(target);
+  }, [todos]);
 
   // Pull-to-refresh (mobile)
   const { isRefreshing, pullDistance } = usePullToRefresh({

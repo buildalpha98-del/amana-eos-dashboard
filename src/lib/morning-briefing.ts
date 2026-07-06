@@ -46,6 +46,9 @@ export interface BriefingSignals {
   staleEnquiries: number;
   /** Meetings scheduled today that the user attends or created. */
   meetingsToday: Array<{ id: string; title: string; prepared: boolean }>;
+  /** Admin-tier only: occupancy projections needing action (computed
+   *  once per cron run and passed in — see the cron). */
+  forecastAlerts: Array<{ serviceName: string; kind: string; detail: string }>;
 }
 
 export function totalSignalCount(s: BriefingSignals): number {
@@ -56,7 +59,8 @@ export function totalSignalCount(s: BriefingSignals): number {
     s.expiringCertsOnRoster.length +
     (s.incompleteClockOuts > 0 ? 1 : 0) +
     (s.staleEnquiries > 0 ? 1 : 0) +
-    s.meetingsToday.length
+    s.meetingsToday.length +
+    s.forecastAlerts.length
   );
 }
 
@@ -72,6 +76,7 @@ const ADMIN_TIER = new Set(["owner", "head_office", "admin"]);
 export async function collectBriefingSignals(
   user: { id: string; role: string; serviceId: string | null },
   now: Date,
+  orgForecastAlerts: BriefingSignals["forecastAlerts"] = [],
 ): Promise<BriefingSignals> {
   const todayStart = new Date(now);
   todayStart.setUTCHours(0, 0, 0, 0);
@@ -206,6 +211,7 @@ export async function collectBriefingSignals(
       title: m.title,
       prepared: m.aiAgendaDraft !== null,
     })),
+    forecastAlerts: ADMIN_TIER.has(user.role) ? orgForecastAlerts : [],
   };
 }
 
@@ -242,6 +248,9 @@ export function composeFallback(signals: BriefingSignals): string {
     lines.push(
       `- ${signals.staleEnquiries} active enquir${signals.staleEnquiries === 1 ? "y has" : "ies have"} had no movement in 5+ days.`,
     );
+  }
+  for (const a of signals.forecastAlerts) {
+    lines.push(`- **${a.serviceName}** ${a.detail}.`);
   }
   if (lines.length === 0) {
     return "Nothing needs you this morning — all clear.";

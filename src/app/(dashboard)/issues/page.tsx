@@ -50,7 +50,11 @@ const statusTabs = [
 
 export default function IssuesPage() {
   const [showCreate, setShowCreate] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Deep-linkable: /issues?id=<issueId> opens the detail panel (⌘K).
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("id");
+  });
   const [detailFocus, setDetailFocus] = useState<IssueCardOpenOpts["focus"] | undefined>(undefined);
 
   const openDetail = useCallback((id: string, opts?: IssueCardOpenOpts) => {
