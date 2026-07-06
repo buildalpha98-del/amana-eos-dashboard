@@ -686,9 +686,19 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
       {/* Demand Forecast Panel */}
       {forecast && (
         <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden">
-          <button
+          {/* role-button div, not <button>: the dismiss X inside is a
+              real <button> (invalid to nest). */}
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => setForecastExpanded((v) => !v)}
-            className="w-full flex items-center justify-between p-4 text-left"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setForecastExpanded((v) => !v);
+              }
+            }}
+            className="w-full flex items-center justify-between p-4 text-left cursor-pointer"
           >
             <h4 className="text-sm font-semibold text-purple-800 flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
@@ -710,7 +720,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 <ChevronDown className="w-4 h-4 text-purple-400" />
               )}
             </div>
-          </button>
+          </div>
           {forecastExpanded && (
             <div className="px-4 pb-4">
               <div className="text-sm text-purple-900 whitespace-pre-wrap prose prose-sm max-w-none">
@@ -729,9 +739,19 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
       {/* Roster Suggestions Panel */}
       {rosterSuggestion && (
         <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden">
-          <button
+          {/* role-button div, not <button>: the dismiss X inside is a
+              real <button> (invalid to nest). */}
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => setRosterExpanded((v) => !v)}
-            className="w-full flex items-center justify-between p-4 text-left"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setRosterExpanded((v) => !v);
+              }
+            }}
+            className="w-full flex items-center justify-between p-4 text-left cursor-pointer"
           >
             <h4 className="text-sm font-semibold text-purple-800 flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
@@ -753,7 +773,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 <ChevronDown className="w-4 h-4 text-purple-400" />
               )}
             </div>
-          </button>
+          </div>
           {rosterExpanded && (
             <div className="px-4 pb-4">
               <div className="text-sm text-purple-900 whitespace-pre-wrap prose prose-sm max-w-none">

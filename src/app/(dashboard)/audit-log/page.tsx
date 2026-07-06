@@ -217,7 +217,7 @@ export default function AuditLogPage() {
                   aria-label="Search audit log by email"
                   className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
-                <button
+                <button aria-label="Search audit log"
                   onClick={handleEmailSearch}
                   className="rounded-lg border border-border px-3 py-2 text-muted hover:bg-surface"
                 >

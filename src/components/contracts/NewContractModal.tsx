@@ -13,6 +13,7 @@ import {
 } from "./ContractFormFields";
 import { IssueFromTemplateModal } from "./IssueFromTemplateModal";
 import type { UserOption } from "./constants";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 type Mode = "template" | "blank";
 
@@ -40,6 +41,7 @@ export function NewContractModal({
   initialMode = "template",
   onClose,
 }: Props) {
+  useEscapeClose(onClose);
   const [mode, setMode] = useState<Mode>(initialMode);
 
   const [form, setForm] = useState<ContractFormValue>({

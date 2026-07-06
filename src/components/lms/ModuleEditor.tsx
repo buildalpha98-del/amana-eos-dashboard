@@ -237,7 +237,7 @@ function ModuleCard({
       </div>
 
       <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 opacity-60 transition-opacity">
-        <button onClick={onEdit} className="p-1.5 text-muted hover:text-brand rounded-md hover:bg-surface">
+        <button aria-label="Edit module" onClick={onEdit} className="p-1.5 text-muted hover:text-brand rounded-md hover:bg-surface">
           <Pencil className="w-3.5 h-3.5" />
         </button>
         {confirmDel ? (

@@ -366,7 +366,7 @@ function ConversationThread({
       {/* Thread header */}
       <div className="px-4 py-3 border-b border-[#e8e4df] flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <button
+          <button aria-label="Back to conversations"
             onClick={onBack}
             className="sm:hidden shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f8f5f2] transition-colors"
           >

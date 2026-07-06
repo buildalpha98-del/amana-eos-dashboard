@@ -95,11 +95,21 @@ export function SequenceTemplateList({ onSelect }: Props) {
             {/* Cards grid */}
             {sectionSequences.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Cards are role-button divs, not <button>s: the active-
+                    toggle switch inside is a real <button> (invalid to nest). */}
                 {sectionSequences.map((seq) => (
-                  <button
+                  <div
                     key={seq.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => onSelect(seq)}
-                    className="rounded-xl border border-border bg-background p-4 text-left transition-colors hover:bg-surface/50"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSelect(seq);
+                      }
+                    }}
+                    className="rounded-xl border border-border bg-background p-4 text-left transition-colors hover:bg-surface/50 cursor-pointer"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -146,7 +156,7 @@ export function SequenceTemplateList({ onSelect }: Props) {
                         {seq._count?.enrolments ?? 0} active enrolments
                       </span>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             ) : (

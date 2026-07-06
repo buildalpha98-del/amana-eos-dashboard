@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRecordPayment } from "@/hooks/useBilling";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -23,6 +24,8 @@ export function RecordPaymentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // Controlled dialog: only listen while open.
+  useEscapeClose(() => onOpenChange(false), open);
   const recordPayment = useRecordPayment();
 
   const [amount, setAmount] = useState("");

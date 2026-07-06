@@ -325,7 +325,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 placeholder="Add a subtask..."
                 className="flex-1 rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
-              <button
+              <button aria-label="Add subtask"
                 onClick={addSubtask}
                 disabled={!newSubtask.trim()}
                 className="shrink-0 rounded-lg p-1.5 text-brand hover:bg-brand/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"

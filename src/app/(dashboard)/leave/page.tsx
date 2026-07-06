@@ -917,7 +917,7 @@ function TeamCalendarTab({
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <button
+          <button aria-label="Previous month"
             onClick={goToPrevMonth}
             className="p-2 rounded-lg border border-border text-muted hover:bg-surface transition-colors"
           >
@@ -926,7 +926,7 @@ function TeamCalendarTab({
           <span className="text-sm font-semibold text-foreground min-w-[160px] text-center">
             {monthLabel}
           </span>
-          <button
+          <button aria-label="Next month"
             onClick={goToNextMonth}
             className="p-2 rounded-lg border border-border text-muted hover:bg-surface transition-colors"
           >

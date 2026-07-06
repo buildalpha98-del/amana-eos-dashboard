@@ -72,11 +72,21 @@ export function ServiceMultiSelect({
       )}
 
       {/* Trigger */}
-      <button
-        type="button"
+      {/* role-button div, not <button>: the chip-remove buttons inside are
+          real <button>s and nesting buttons is invalid HTML. */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
         onClick={() => setOpen(!open)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(!open);
+          }
+        }}
         className={cn(
-          "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-left flex items-center justify-between gap-2",
+          "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-left flex items-center justify-between gap-2 cursor-pointer",
           "focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         )}
       >
@@ -117,7 +127,7 @@ export function ServiceMultiSelect({
             )}
           />
         </div>
-      </button>
+      </div>
 
       {/* Dropdown Panel */}
       {open && (

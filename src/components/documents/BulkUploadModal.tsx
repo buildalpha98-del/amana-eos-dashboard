@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useBulkCreateDocuments } from "@/hooks/useDocuments";
 import { toast } from "@/hooks/useToast";
 import type { DocumentFolder } from "@/hooks/useDocuments";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const ALLOWED_EXTENSIONS =
   ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp";
@@ -60,6 +61,7 @@ export function BulkUploadModal({
   bulkCreate,
   formatFileSize,
 }: BulkUploadModalProps) {
+  useEscapeClose(onClose);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [category, setCategory] = useState("other");
   const [centreId, setCentreId] = useState("");

@@ -715,7 +715,7 @@ export function CampaignDetailPanel({
                   rows={2}
                   className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
-                <button
+                <button aria-label="Send comment"
                   type="submit"
                   disabled={!commentText.trim() || addComment.isPending}
                   className="self-end rounded-lg bg-brand p-2.5 text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
