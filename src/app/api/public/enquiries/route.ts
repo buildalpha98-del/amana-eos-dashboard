@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 import { resolveActivationFromUtm } from "@/lib/activation-attribution";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { clientIpFromRequest } from "@/lib/activation-qr";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
 const childSchema = z.object({
   name: z.string().min(1).max(100),
@@ -99,10 +100,13 @@ export const POST = withApiHandler(async (req) => {
         sourceActivationId,
         stageChangedAt: new Date(),
       },
-      select: { id: true },
+      select: { id: true, stage: true },
     });
 
-    scheduleNurtureFromStageChange(enquiry.id, "new").catch((err) =>
+    // Creation event for the pipeline history (fire-and-forget).
+  logEnquiryStageEvent(enquiry.id, null, enquiry.stage);
+
+  scheduleNurtureFromStageChange(enquiry.id, "new").catch((err) =>
       logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
     );
 

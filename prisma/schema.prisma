@@ -5071,6 +5071,8 @@ model ParentEnquiry {
   sourceCall   VapiCall?                 @relation("EnquiryFromCall")
 
   @@index([serviceId])
+  stageEvents ParentEnquiryStageEvent[]
+
   @@index([stage])
   @@index([assigneeId])
   @@index([nextActionDue])
@@ -5078,6 +5080,28 @@ model ParentEnquiry {
   @@index([stage, createdAt])
   @@index([serviceId, stage])
   @@index([waitlistServiceId, waitlistPosition])
+}
+
+// ============================================================
+// 2026-07-06: enquiry stage-transition events. The funnel forecast
+// (lib/forecast.ts) currently uses fixed per-stage multipliers because
+// only each enquiry's CURRENT stage is stored; this log makes true
+// per-stage conversion rates computable, powers time-in-stage SLA
+// nudges, and is the auditable pipeline history acquirers ask for in
+// due diligence.
+// ============================================================
+
+model ParentEnquiryStageEvent {
+  id        String        @id @default(cuid())
+  enquiryId String
+  enquiry   ParentEnquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  /// Null for the creation event.
+  fromStage String?
+  toStage   String
+  createdAt DateTime      @default(now())
+
+  @@index([enquiryId, createdAt])
+  @@index([toStage, createdAt])
 }
 
 model ParentEnquiryTouchpoint {

@@ -294,7 +294,7 @@ export function CommandPalette({
 
   // Types whose listing page opens the specific record from ?id=
   // (2026-07-06 UX polish). Others fall back to the listing page.
-  const DEEP_LINK_TYPES = new Set<SearchResult["type"]>(["child", "lead"]);
+  const DEEP_LINK_TYPES = new Set<SearchResult["type"]>(["child", "lead", "rock", "todo", "issue"]);
 
   const handleSelectResult = (result: SearchResult) => {
     if (query.trim().length >= 2) saveRecentSearch(query.trim());

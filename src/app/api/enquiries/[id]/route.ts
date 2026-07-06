@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { waitlistConfirmationEmail } from "@/lib/email-templates";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
 const childSchema = z.object({
   name: z.string(),
@@ -85,6 +86,10 @@ export const PATCH = withApiAuth(async (req, session, context) => {
           `[Enquiry] ${id}: stage ${existing.stage} → ${data.stage} (${daysInStage} days in previous stage)`,
         );
         updateData.stageChangedAt = new Date();
+
+        // Pipeline history (fire-and-forget) — powers true funnel
+        // rates, time-in-stage SLAs, and the DD audit trail.
+        logEnquiryStageEvent(id, existing.stage, data.stage);
 
         // Schedule nurture steps for the new stage (fire-and-forget)
         scheduleNurtureFromStageChange(id, data.stage).catch((err) =>
