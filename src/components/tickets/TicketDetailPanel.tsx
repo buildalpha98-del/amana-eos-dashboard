@@ -429,7 +429,7 @@ export function TicketDetailPanel({
                   rows={1}
                   className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-surface/50 disabled:text-muted"
                 />
-                <button
+                <button aria-label="Send reply"
                   onClick={handleSendReply}
                   disabled={!replyText.trim() || sendMessage.isPending || !isWindowOpen}
                   className="p-2.5 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"

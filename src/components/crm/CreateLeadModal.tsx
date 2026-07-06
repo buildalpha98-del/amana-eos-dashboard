@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useCreateLead } from "@/hooks/useCRM";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const AU_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
@@ -13,6 +14,7 @@ export function CreateLeadModal({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const createLead = useCreateLead();
   const [schoolName, setSchoolName] = useState("");
   const [contactName, setContactName] = useState("");

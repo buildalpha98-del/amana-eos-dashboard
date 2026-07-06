@@ -25,6 +25,7 @@ import { toast } from "@/hooks/useToast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AiButton } from "@/components/ui/AiButton";
 import type { PipelineStage, TouchpointType } from "@prisma/client";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const AU_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
@@ -88,6 +89,7 @@ export function LeadDetailDrawer({
   onClose: () => void;
   onSendEmail: () => void;
 }) {
+  useEscapeClose(onClose);
   const { data: lead, isLoading } = useLead(leadId);
   const { data: touchpoints } = useTouchpoints(leadId);
   const updateLead = useUpdateLead();

@@ -598,7 +598,7 @@ function ActivityCard({
     >
       {/* Actions */}
       <div className="absolute top-2 right-2 hidden group-hover:flex items-center gap-1">
-        <button
+        <button aria-label="Edit activity"
           onClick={onEdit}
           className="p-1 rounded bg-card/80 hover:bg-card text-muted hover:text-brand"
         >

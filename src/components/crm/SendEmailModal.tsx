@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { useSendLeadEmail } from "@/hooks/useCRM";
 import { useCrmEmailTemplates } from "@/hooks/useCrmEmailTemplates";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 export function SendEmailModal({
   open,
@@ -18,6 +19,7 @@ export function SendEmailModal({
   contactEmail: string;
   contactName: string | null;
 }) {
+  useEscapeClose(onClose);
   const sendEmail = useSendLeadEmail();
   const { data: templates } = useCrmEmailTemplates();
   const [selectedTemplateId, setSelectedTemplateId] = useState("");

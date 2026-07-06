@@ -134,9 +134,20 @@ function CentreSelector({
   return (
     <div className="relative">
       {/* Selected chips + trigger */}
-      <button
+      {/* role-button div, not <button>: chip-remove buttons inside are
+          real <button>s (invalid to nest). */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 min-w-[280px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-left hover:border-border focus:outline-none focus:ring-2 focus:ring-brand/20 transition-colors"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(!open);
+          }
+        }}
+        className="flex items-center gap-2 min-w-[280px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-left hover:border-border focus:outline-none focus:ring-2 focus:ring-brand/20 transition-colors cursor-pointer"
       >
         <BarChart3 className="w-4 h-4 text-muted flex-shrink-0" />
         <div className="flex-1 flex flex-wrap gap-1 min-h-[20px]">
@@ -163,7 +174,7 @@ function CentreSelector({
           )}
         </div>
         <ChevronDown className={cn("w-4 h-4 text-muted transition-transform", open && "rotate-180")} />
-      </button>
+      </div>
 
       {/* Dropdown */}
       {open && (

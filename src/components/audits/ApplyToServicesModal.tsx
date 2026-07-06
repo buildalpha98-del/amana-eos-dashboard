@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useAudits";
 import { fetchApi } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const monthNames = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -42,6 +43,7 @@ function ApplyToServicesModalInner({
   onClose,
   template,
 }: Omit<Props, "open" | "template"> & { template: AuditTemplateSummary }) {
+  useEscapeClose(onClose);
   const applyMut = useApplyTemplateToServices();
 
   const { data: services = [], isLoading: servicesLoading } = useQuery<ServiceOption[]>({

@@ -130,7 +130,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
         {viewMode === "calendar" ? (
           <>
             <div className="flex items-center gap-1">
-              <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-surface transition-colors">
+              <button aria-label="Previous month" onClick={prevMonth} className="p-2 rounded-lg hover:bg-surface transition-colors">
                 <ChevronLeft className="w-5 h-5 text-muted" />
               </button>
               <button
@@ -139,7 +139,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
               >
                 Today
               </button>
-              <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-surface transition-colors">
+              <button aria-label="Next month" onClick={nextMonth} className="p-2 rounded-lg hover:bg-surface transition-colors">
                 <ChevronRight className="w-5 h-5 text-muted" />
               </button>
             </div>

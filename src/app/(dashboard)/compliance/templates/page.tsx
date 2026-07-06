@@ -1220,9 +1220,21 @@ export default function AuditTemplatesPage() {
 
             return (
               <div key={template.id} className="border-b border-border/50 last:border-b-0">
-                <button
+                {/* role-button div, not <button>: the header holds a download
+                    <a> plus edit/apply/upload/delete <button>s — nesting
+                    interactive elements is invalid HTML. */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
                   onClick={() => setExpandedId(isExpanded ? null : template.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setExpandedId(isExpanded ? null : template.id);
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface transition-colors cursor-pointer"
                 >
                   {isExpanded ? (
                     <ChevronDown className="w-4 h-4 text-muted shrink-0" />
@@ -1328,7 +1340,7 @@ export default function AuditTemplatesPage() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
-                </button>
+                </div>
 
                 {isExpanded && (
                   <TemplateDetail

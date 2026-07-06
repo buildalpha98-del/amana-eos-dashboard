@@ -48,6 +48,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 /* xlsx (~800KB) is dynamically imported at point of use in parseFile() */
 
 /* ------------------------------------------------------------------ */
@@ -426,6 +427,7 @@ function NewTimesheetModal({
   services: ServiceOption[];
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const createTimesheet = useCreateTimesheet();
   const [serviceId, setServiceId] = useState("");
   const [weekEnding, setWeekEnding] = useState("");
@@ -517,6 +519,7 @@ function GenerateFromTimeclockModal({
   services: ServiceOption[];
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const generate = useGenerateFromTimeclock();
   const [serviceId, setServiceId] = useState("");
   const [weekEnding, setWeekEnding] = useState("");
@@ -672,6 +675,7 @@ function ImportFromOWNAModal({
   services: ServiceOption[];
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const importTimesheet = useImportTimesheet();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [serviceId, setServiceId] = useState("");

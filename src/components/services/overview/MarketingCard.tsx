@@ -84,7 +84,7 @@ export function MarketingCard({
           </button>
         ) : (
           <div className="flex gap-1">
-            <button onClick={handleSave} className="text-emerald-600 hover:text-emerald-700">
+            <button aria-label="Save marketing notes" onClick={handleSave} className="text-emerald-600 hover:text-emerald-700">
               <Save className="w-3.5 h-3.5" />
             </button>
             <button onClick={() => setEditing(false)} className="text-muted hover:text-red-500">

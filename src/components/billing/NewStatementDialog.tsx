@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCreateStatement } from "@/hooks/useBilling";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,6 +43,8 @@ export function NewStatementDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // Controlled dialog: only listen while open.
+  useEscapeClose(() => onOpenChange(false), open);
   const createStatement = useCreateStatement();
 
   // Form state

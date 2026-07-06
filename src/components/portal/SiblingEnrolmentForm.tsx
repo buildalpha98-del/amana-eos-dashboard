@@ -819,7 +819,7 @@ function TagInput({
           placeholder={placeholder}
           className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px] flex-1"
         />
-        <button
+        <button aria-label="Add another child"
           type="button"
           onClick={addTag}
           className="px-3 py-2 bg-[#f8f5f2] border border-[#e8e4df] rounded-lg hover:bg-[#e8e4df] transition-colors min-h-[44px]"
