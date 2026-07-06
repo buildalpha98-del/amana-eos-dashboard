@@ -8,6 +8,7 @@ import type { MarketingPlatform, MarketingCampaignType } from "@prisma/client";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
 import { CampaignGateModal, type CampaignGateBlocker } from "./CampaignGateModal";
 import { fetchApi } from "@/lib/fetch-api";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const CAMPAIGN_TYPES: MarketingCampaignType[] = [
   "campaign",
@@ -36,6 +37,7 @@ export function CreateCampaignModal({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose, open);
   const createCampaign = useCreateCampaign();
   const { data: session } = useSession();
   const isOwner = session?.user?.role === "owner";

@@ -24,6 +24,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useActivityTemplates,
   useCreateActivityTemplate,
@@ -303,6 +304,7 @@ function TemplateModal({
   isAdmin: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const isEdit = !!template;
   const [title, setTitle] = useState(template?.title || "");
   const [description, setDescription] = useState(template?.description || "");

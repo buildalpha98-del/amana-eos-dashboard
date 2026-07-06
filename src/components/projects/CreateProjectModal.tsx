@@ -6,6 +6,7 @@ import { useProjectTemplates, type ProjectTemplate } from "@/hooks/useProjectTem
 import { useServices } from "@/hooks/useServices";
 import { useQuery } from "@tanstack/react-query";
 import { X, FileText, Rocket, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface UserOption {
   id: string;
@@ -113,6 +114,7 @@ export function CreateProjectModal({
   defaultServiceId?: string;
   preselectedTemplateId?: string;
 }) {
+  useEscapeClose(onClose, open);
   const createProject = useCreateProject();
   const { data: templates } = useProjectTemplates();
   const { data: services } = useServices();

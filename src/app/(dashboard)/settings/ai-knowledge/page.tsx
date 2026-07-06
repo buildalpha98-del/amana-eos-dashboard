@@ -34,6 +34,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface KnowledgeEntrySummary {
   id: string;
@@ -734,6 +735,7 @@ function EntryModal({
   initialTitle?: string;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
   const isEdit = mode === "edit";
 

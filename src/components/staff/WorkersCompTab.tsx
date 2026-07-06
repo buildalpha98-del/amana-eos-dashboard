@@ -23,6 +23,7 @@ import {
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 type WCStatus =
   | "lodged"
@@ -308,6 +309,7 @@ function ClaimModal({
   targetUserName,
   onClose,
 }: ClaimModalProps) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
   const [status, setStatus] = useState<WCStatus>(existing?.status ?? "lodged");
   const [claimNumber, setClaimNumber] = useState(existing?.claimNumber ?? "");

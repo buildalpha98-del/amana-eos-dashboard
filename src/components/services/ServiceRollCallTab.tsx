@@ -39,6 +39,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { ServiceWeeklyRollCallGrid } from "./ServiceWeeklyRollCallGrid";
 import { ServiceMonthlyRollCallView } from "./ServiceMonthlyRollCallView";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 type RollCallView = "daily" | "weekly" | "monthly";
 
@@ -337,6 +338,7 @@ function AddChildDialog({
   onSignIn: (childId: string) => void;
   isPending: boolean;
 }) {
+  useEscapeClose(onClose);
   const [search, setSearch] = useState("");
   const { data, isLoading } = useChildren({
     serviceId,

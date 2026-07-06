@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
 import { exportToCsv } from "@/lib/csv-export";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 /* ------------------------------------------------------------------ */
 /* Constants                                                           */
@@ -339,6 +340,7 @@ function RequestLeaveModal({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose, open);
   const [leaveType, setLeaveType] = useState("annual");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");

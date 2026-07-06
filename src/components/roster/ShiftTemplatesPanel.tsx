@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useShiftTemplates,
   useCreateShiftTemplate,
@@ -39,6 +40,7 @@ export function ShiftTemplatesPanel({
   onClose,
   serviceId,
 }: ShiftTemplatesPanelProps) {
+  useEscapeClose(onClose, open);
   const { data, isLoading } = useShiftTemplates(open ? serviceId : undefined);
   const create = useCreateShiftTemplate();
   const remove = useDeleteShiftTemplate();

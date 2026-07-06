@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface NewVacancyModalProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface NewVacancyModalProps {
 }
 
 export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
+  useEscapeClose(onClose);
   const [form, setForm] = useState({
     serviceId: "",
     role: "educator",

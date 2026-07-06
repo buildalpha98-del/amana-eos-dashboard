@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const stageOptions = [
   { key: "", label: "No trigger (manual only)" },
@@ -55,6 +56,7 @@ export function CrmEmailTemplateForm({
   initialData,
   title,
 }: CrmEmailTemplateFormProps) {
+  useEscapeClose(onClose, open);
   const [name, setName] = useState(initialData?.name || "");
   const [subject, setSubject] = useState(initialData?.subject || "");
   const [body, setBody] = useState(initialData?.body || "");

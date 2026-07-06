@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { fetchApi } from "@/lib/fetch-api";
 import type { MeasurableData } from "@/hooks/useScorecard";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useScorecardMembers,
   type ScorecardSummary,
@@ -40,6 +41,7 @@ export function AddMeasurableModal({
   /** Used to include the scorecard's own owner in the picker. */
   scorecardOwner?: ScorecardSummary["owner"];
 }) {
+  useEscapeClose(onClose, open);
   const queryClient = useQueryClient();
   const isEditMode = !!editingMeasurable;
 

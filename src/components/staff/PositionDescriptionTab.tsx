@@ -26,6 +26,7 @@ import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 type PDStatus = "draft" | "published" | "archived";
 
@@ -212,6 +213,7 @@ function AssignPicker({
   currentPdId: string | null;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
   const [selected, setSelected] = useState<string | null>(currentPdId);
 

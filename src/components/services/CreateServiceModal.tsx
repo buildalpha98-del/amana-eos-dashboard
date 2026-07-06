@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCreateService } from "@/hooks/useServices";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface UserOption {
   id: string;
@@ -17,6 +18,7 @@ export function CreateServiceModal({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose, open);
   const createService = useCreateService();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");

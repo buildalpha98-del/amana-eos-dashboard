@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X, Loader2 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useAuditTemplates,
   useCreateAuditInstance,
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function AuditEditModal({ open, onClose, year, month, editing }: Props) {
+  useEscapeClose(onClose, open);
   const { data: templates = [] } = useAuditTemplates();
   const { data: services = [] } = useQuery<ServiceOption[]>({
     queryKey: ["services"],

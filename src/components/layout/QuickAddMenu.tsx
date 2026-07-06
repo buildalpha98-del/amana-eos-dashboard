@@ -6,6 +6,7 @@ import {
   Mountain,
 } from "lucide-react";
 import { useQuickAdd } from "@/components/quick-add/QuickAddProvider";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 export interface QuickAddMenuPosition {
   top: number;
@@ -21,6 +22,7 @@ export function QuickAddMenu({
   onClose: () => void;
   position: QuickAddMenuPosition;
 }) {
+  useEscapeClose(onClose, open);
   const { openTodoModal, openIssueModal, openRockModal } = useQuickAdd();
 
   if (!open) return null;

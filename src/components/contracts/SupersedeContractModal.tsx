@@ -10,6 +10,7 @@ import {
   type ContractFormValue,
 } from "./ContractFormFields";
 import type { UserOption } from "./constants";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Props {
   users: UserOption[];
@@ -29,6 +30,7 @@ export function SupersedeContractModal({
   onClose,
   onSuccess,
 }: Props) {
+  useEscapeClose(onClose);
   const [form, setForm] = useState<ContractFormValue>({
     userId: previousContract.userId,
     contractType: previousContract.contractType,

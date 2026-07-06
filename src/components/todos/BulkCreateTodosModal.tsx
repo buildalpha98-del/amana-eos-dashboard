@@ -13,6 +13,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useAiGenerate } from "@/hooks/useAiGenerate";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface UserOption {
   id: string;
@@ -48,6 +49,7 @@ const emptyRow = (weekOf: Date): BulkTodoRow => ({
 });
 
 export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
+  useEscapeClose(onClose, open);
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<BulkTodoRow[]>(() => [
     emptyRow(weekOf),

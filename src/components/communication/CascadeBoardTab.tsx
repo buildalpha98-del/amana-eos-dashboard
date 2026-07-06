@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useCommunication";
 import { useTeam } from "@/hooks/useTeam";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   Plus,
   X,
@@ -33,6 +34,7 @@ function PublishCascadeModal({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose, open);
   const publishCascade = usePublishCascade();
   const [meetingId, setMeetingId] = useState("");
   const [message, setMessage] = useState("");

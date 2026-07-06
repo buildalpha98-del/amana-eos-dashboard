@@ -21,6 +21,7 @@ import {
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface SafeReport {
   id: string;
@@ -229,6 +230,7 @@ function ReportDetail({
   report: SafeReport;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
   const [status, setStatus] = useState(report.status);
   const [reviewNotes, setReviewNotes] = useState(report.reviewNotes ?? "");

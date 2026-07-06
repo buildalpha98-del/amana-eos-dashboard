@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { getCurrentQuarter, getWeekStart } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 function getDefaultDueDate() {
   const d = new Date();
@@ -60,6 +61,7 @@ function QuickAddToDoModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");

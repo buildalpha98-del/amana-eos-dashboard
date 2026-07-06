@@ -30,6 +30,7 @@ import type { CockpitSummary } from "@/lib/cockpit/summary";
 import { nextTermWithin } from "@/lib/vendor-brief/term-dates";
 import type { RagStatus } from "@/lib/rag-status";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 /* ============================================================
  * RAG visuals
@@ -171,6 +172,7 @@ function ReportReviewDialog({
   report: WeeklyReportDetail;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const [wins, setWins] = useState(report.wins ?? "");
   const [blockers, setBlockers] = useState(report.blockers ?? "");
   const [nextWeekTop3, setNextWeekTop3] = useState(report.nextWeekTop3 ?? "");

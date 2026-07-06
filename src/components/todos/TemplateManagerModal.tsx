@@ -20,6 +20,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import type { RecurrenceRule } from "@prisma/client";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface UserOption {
   id: string;
@@ -67,6 +68,7 @@ const emptyForm: TemplateFormData = {
 };
 
 export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
+  useEscapeClose(onClose);
   const { data: templates, isLoading } = useTodoTemplates();
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();

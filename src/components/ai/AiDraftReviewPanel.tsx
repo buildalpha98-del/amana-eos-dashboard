@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { AiDraftData, AiDraftTaskType } from "@/hooks/useAiDrafts";
 import { useReviewDraft } from "@/hooks/useAiDrafts";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 type ReviewStatus = "accepted" | "edited" | "dismissed";
 
@@ -43,6 +44,7 @@ interface AiDraftReviewPanelProps {
 /* ── Component ────────────────────────────────────────── */
 
 export function AiDraftReviewPanel({ draft, onClose }: AiDraftReviewPanelProps) {
+  useEscapeClose(onClose);
   const reviewDraft = useReviewDraft();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(draft.content);

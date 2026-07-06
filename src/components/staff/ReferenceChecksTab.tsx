@@ -32,6 +32,7 @@ import {
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -315,6 +316,7 @@ function RefCheckModal({
   isOwner = false,
   onClose,
 }: RefCheckModalProps) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
   const [refereeName, setRefereeName] = useState(existing?.refereeName ?? "");
   const [refereeRelationship, setRefereeRelationship] = useState(

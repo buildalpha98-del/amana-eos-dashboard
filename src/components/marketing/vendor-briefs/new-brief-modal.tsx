@@ -15,6 +15,7 @@ import {
   VendorBriefType,
 } from "@prisma/client";
 import { toast } from "@/hooks/useToast";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const TYPE_OPTIONS: VendorBriefType[] = [
   "signage",
@@ -75,6 +76,7 @@ export function NewBriefModal({
   prefill?: NewBriefPrefill;
   onCreated?: (briefId: string) => void;
 }) {
+  useEscapeClose(onClose, open);
   const create = useCreateVendorBrief();
   const transition = useTransitionVendorBrief();
   const { data: services } = useServices();

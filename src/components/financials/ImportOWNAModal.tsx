@@ -15,6 +15,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface ColumnMapping {
   original: string;
@@ -84,6 +85,7 @@ function formatCurrency(value: number): string {
 type Step = "upload" | "preview" | "importing" | "result";
 
 export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  useEscapeClose(onClose, open);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 

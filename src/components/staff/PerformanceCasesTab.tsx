@@ -31,6 +31,7 @@ import {
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ─── Types (mirror the API shapes) ────────────────────────────────────
 
@@ -309,6 +310,7 @@ function CaseModal({
   isOwner,
   onClose,
 }: CaseModalProps) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
   const [type, setType] = useState<CaseType>(existing?.type ?? "conversation");
   const [status, setStatus] = useState<CaseStatus>(existing?.status ?? "open");

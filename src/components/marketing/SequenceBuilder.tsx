@@ -16,6 +16,7 @@ import type { SequenceData } from "@/hooks/useSequences";
 import type { EmailTemplateData } from "@/hooks/useEmailTemplates";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const TemplatePickerModal = dynamic(
   () => import("@/components/email/TemplatePickerModal"),
@@ -63,6 +64,7 @@ function formatStageLabel(stage: string) {
 }
 
 export function SequenceBuilder({ sequence, onClose }: Props) {
+  useEscapeClose(onClose);
   const updateSequence = useUpdateSequence();
 
   const [name, setName] = useState(sequence.name);

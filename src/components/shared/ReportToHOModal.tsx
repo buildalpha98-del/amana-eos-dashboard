@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface ReportToHOModalProps {
   open: boolean;
@@ -76,6 +77,7 @@ const CATEGORIES: CategoryOption[] = [
 ];
 
 export function ReportToHOModal({ open, onClose }: ReportToHOModalProps) {
+  useEscapeClose(onClose, open);
   const pathname = usePathname();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [message, setMessage] = useState("");

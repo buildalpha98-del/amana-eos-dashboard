@@ -7,6 +7,7 @@ import { getCurrentQuarter } from "@/lib/utils";
 import { Mountain, Plus, User, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface RockData {
   id: string;
@@ -273,6 +274,7 @@ function AddRockModal({
   users: UserOption[];
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

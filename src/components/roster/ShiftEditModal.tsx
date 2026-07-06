@@ -6,6 +6,7 @@ import { useTeam } from "@/hooks/useTeam";
 import { useShiftTemplates } from "@/hooks/useShiftTemplates";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface ShiftEditShift {
   id: string;
@@ -45,6 +46,7 @@ export function ShiftEditModal({
 }: ShiftEditModalProps) {
   // Form state — always declare hooks in the same order, and reset when a
   // different shift is loaded into edit mode.
+  useEscapeClose(onClose, open);
   const [userId, setUserId] = useState<string>(shift?.userId ?? "");
   const [date, setDate] = useState<string>(shift?.date ?? defaultDate ?? "");
   const [sessionType, setSessionType] = useState<string>(

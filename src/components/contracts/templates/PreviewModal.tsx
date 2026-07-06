@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { usePreviewContractTemplate } from "@/hooks/useContractTemplates";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 export function PreviewModal({
   templateId,
@@ -11,6 +12,7 @@ export function PreviewModal({
   templateId: string;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const preview = usePreviewContractTemplate();
   const [html, setHtml] = useState<string>("");
   const [missingTags, setMissingTags] = useState<string[]>([]);

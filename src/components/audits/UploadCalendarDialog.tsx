@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   usePreviewCalendar,
   useImportCalendar,
@@ -35,6 +36,7 @@ export function UploadCalendarDialog({
   onClose: () => void;
   currentYear: number;
 }) {
+  useEscapeClose(onClose, open);
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [generateInstances, setGenerateInstances] = useState(true);

@@ -34,6 +34,7 @@ import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SectionDivider } from "@/components/ui/SectionDivider";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const RevenueVsCostsChart = dynamic(() => import("@/components/charts/RevenueVsCostsChart").then((m) => m.RevenueVsCostsChart), { loading: () => <Skeleton className="h-64 w-full" /> });
 const MarginComparisonChart = dynamic(() => import("@/components/charts/MarginComparisonChart").then((m) => m.MarginComparisonChart), { loading: () => <Skeleton className="h-64 w-full" /> });
@@ -125,6 +126,7 @@ function AttendanceSyncBadge({ lastSync }: { lastSync: string | null }) {
 }
 
 function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  useEscapeClose(onClose, open);
   const queryClient = useQueryClient();
   const { data: services } = useServices("active");
   const [serviceId, setServiceId] = useState("");

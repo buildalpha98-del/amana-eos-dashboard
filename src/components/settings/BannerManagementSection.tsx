@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Banner {
   id: string;
@@ -107,6 +108,7 @@ function BannerFormModal({
   onClose: () => void;
   editBanner?: Banner | null;
 }) {
+  useEscapeClose(onClose, open);
   const queryClient = useQueryClient();
   const isEditing = !!editBanner;
 
