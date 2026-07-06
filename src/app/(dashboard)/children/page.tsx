@@ -46,7 +46,13 @@ function normaliseStatus(value: string): ChildStatusFilter {
 export default function ChildrenPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Deep-linkable: /children?id=<childId> opens the detail panel —
+  // the ⌘K palette lands here (2026-07-06). window.location, not
+  // useSearchParams, to avoid a Suspense boundary.
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("id");
+  });
   const { data, isLoading } = useChildren({
     status: normaliseStatus(activeTab),
     search: search || undefined,

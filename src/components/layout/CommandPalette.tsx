@@ -292,10 +292,17 @@ export function CommandPalette({
 
   // ---- Handlers ----
 
+  // Types whose listing page opens the specific record from ?id=
+  // (2026-07-06 UX polish). Others fall back to the listing page.
+  const DEEP_LINK_TYPES = new Set<SearchResult["type"]>(["child", "lead"]);
+
   const handleSelectResult = (result: SearchResult) => {
     if (query.trim().length >= 2) saveRecentSearch(query.trim());
     const config = typeConfig[result.type];
-    router.push(config.href);
+    const href = DEEP_LINK_TYPES.has(result.type)
+      ? `${config.href}?id=${result.id}`
+      : config.href;
+    router.push(href);
     onClose();
   };
 

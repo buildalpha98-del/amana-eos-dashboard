@@ -32,6 +32,8 @@ import { CentreSpendingBreakdown } from "@/components/financials/CentreSpendingB
 import { toast } from "@/hooks/useToast";
 import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { SectionDivider } from "@/components/ui/SectionDivider";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 
 const RevenueVsCostsChart = dynamic(() => import("@/components/charts/RevenueVsCostsChart").then((m) => m.RevenueVsCostsChart), { loading: () => <Skeleton className="h-64 w-full" /> });
 const MarginComparisonChart = dynamic(() => import("@/components/charts/MarginComparisonChart").then((m) => m.MarginComparisonChart), { loading: () => <Skeleton className="h-64 w-full" /> });
@@ -542,16 +544,26 @@ export default function FinancialsPage() {
         </div>
       </div>
 
-      {/* Charts */}
+      {/* Charts — primary pair stays visible; the breakdown moves
+          behind a disclosure (2026-07-06 UX polish: hierarchy, not a
+          wall of charts). */}
       {sortedData.length > 0 && (
         <>
+          <SectionDivider label="Trends" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <RevenueVsCostsChart data={sortedData} />
             <MarginComparisonChart data={sortedData} />
           </div>
-          <RevenueBreakdownChart data={sortedData} />
+          <CollapsibleSection
+            title="Revenue breakdown"
+            description="Per-stream split across the period"
+          >
+            <RevenueBreakdownChart data={sortedData} />
+          </CollapsibleSection>
         </>
       )}
+
+      <SectionDivider label="By centre" />
 
       {/* Revenue by Centre Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -708,11 +720,23 @@ export default function FinancialsPage() {
         )}
       </div>
 
-      {/* Centre spending breakdown — weekly groceries + monthly purchase budget */}
-      <CentreSpendingBreakdown />
+      <SectionDivider label="Deeper analysis" />
 
-      {/* Cash Flow Forecast */}
-      <CashFlowChart />
+      {/* Secondary blocks behind disclosure — collapsed children stay
+          unmounted, so their queries don't fire until opened. */}
+      <CollapsibleSection
+        title="Centre spending breakdown"
+        description="Weekly groceries + monthly purchase budget per centre"
+      >
+        <CentreSpendingBreakdown />
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Cash flow forecast"
+        description="Projected inflows and outflows"
+      >
+        <CashFlowChart />
+      </CollapsibleSection>
 
       <EnterDataModal open={showEnterData} onClose={() => setShowEnterData(false)} />
       <ImportOWNAModal open={showImportOWNA} onClose={() => setShowImportOWNA(false)} />
