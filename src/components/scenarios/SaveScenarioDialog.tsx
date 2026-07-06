@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useSaveScenario } from "@/hooks/useScenarios";
 import type { ScenarioInputs, ScenarioOutputs } from "@/lib/scenario-engine";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Props {
   open: boolean;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function SaveScenarioDialog({ open, onClose, inputs, outputs }: Props) {
+  useEscapeClose(onClose, open);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const save = useSaveScenario();

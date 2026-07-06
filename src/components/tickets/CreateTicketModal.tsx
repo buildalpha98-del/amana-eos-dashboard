@@ -6,6 +6,7 @@ import { useContacts, useCreateContact } from "@/hooks/useContacts";
 import { useQuery } from "@tanstack/react-query";
 import { X, Plus, UserPlus } from "lucide-react";
 import type { TicketPriority } from "@prisma/client";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface ServiceOption {
   id: string;
@@ -31,6 +32,7 @@ export function CreateTicketModal({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose, open);
   const createTicket = useCreateTicket();
   const { data: contacts = [] } = useContacts();
   const createContact = useCreateContact();

@@ -7,6 +7,7 @@ import { AiButton } from "@/components/ui/AiButton";
 import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
 import { CandidateDetailPanel } from "@/components/recruitment/CandidateDetailPanel";
 import { useAiScreenCandidate } from "@/hooks/useRecruitment";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
@@ -42,6 +43,7 @@ interface VacancyDetailPanelProps {
 }
 
 export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDetailPanelProps) {
+  useEscapeClose(onClose);
   const queryClient = useQueryClient();
   const aiScreen = useAiScreenCandidate();
   const [showAddCandidate, setShowAddCandidate] = useState(false);

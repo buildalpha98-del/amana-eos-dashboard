@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, ExternalLink, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 export type CampaignGateBlocker = {
   serviceId: string;
@@ -37,6 +38,7 @@ export function CampaignGateModal({
   onSkip: () => void;
   onRecheck?: () => Promise<void> | void;
 }) {
+  useEscapeClose(onClose, open);
   const [rechecking, setRechecking] = useState(false);
 
   const handleRecheck = async () => {

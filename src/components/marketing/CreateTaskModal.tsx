@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useCreateMarketingTask,
   useCampaigns,
@@ -35,6 +36,7 @@ export function CreateTaskModal({
   defaultCampaignId?: string;
   defaultPostId?: string;
 }) {
+  useEscapeClose(onClose, open);
   const createTask = useCreateMarketingTask();
   const { data: campaigns } = useCampaigns({});
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);

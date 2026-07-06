@@ -7,6 +7,7 @@ import { useCreatePost, useCampaigns } from "@/hooks/useMarketing";
 import { useUnsavedChangesWarning } from "@/hooks/useAutosave";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
 import { AiButton } from "@/components/ui/AiButton";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface CreatePostModalProps {
   open: boolean;
@@ -32,6 +33,7 @@ const RECURRING_OPTIONS = [
 ] as const;
 
 export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalProps) {
+  useEscapeClose(onClose, open);
   const createPost = useCreatePost();
   const { data: campaigns } = useCampaigns();
   const { data: users } = useQuery<{ id: string; name: string }[]>({

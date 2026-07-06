@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface NewEnquiryModalProps {
   onClose: () => void;
@@ -32,6 +33,7 @@ const DRIVERS = [
 ];
 
 export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
+  useEscapeClose(onClose);
   const [services, setServices] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [children, setChildren] = useState<ChildEntry[]>([{ name: "", age: "" }]);

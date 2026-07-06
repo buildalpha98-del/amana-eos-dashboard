@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { useCreateEmailTemplate } from "@/hooks/useEmailTemplates";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Props {
   open: boolean;
@@ -19,6 +20,7 @@ const CATEGORIES = [
 ] as const;
 
 export default function ImportTemplateModal({ open, onClose }: Props) {
+  useEscapeClose(onClose, open);
   const createTemplate = useCreateEmailTemplate();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<string>("newsletter");

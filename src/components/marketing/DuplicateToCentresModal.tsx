@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface DuplicateToCentresModalProps {
   postIds: string[];
@@ -17,6 +18,7 @@ export function DuplicateToCentresModal({
   onDuplicate,
   isLoading,
 }: DuplicateToCentresModalProps) {
+  useEscapeClose(onClose);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   function handleSubmit(e: React.FormEvent) {

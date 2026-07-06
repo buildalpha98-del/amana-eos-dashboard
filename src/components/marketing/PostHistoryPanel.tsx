@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, History, ArrowRight } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Revision {
   id: string;
@@ -52,6 +53,7 @@ export function PostHistoryPanel({
   postId: string;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const [revisions, setRevisions] = useState<Revision[]>([]);
   const [loading, setLoading] = useState(true);
 

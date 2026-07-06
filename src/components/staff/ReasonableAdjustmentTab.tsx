@@ -28,6 +28,7 @@ import {
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 type Status =
   | "under_assessment"
@@ -263,6 +264,7 @@ function AdjustmentModal({
   targetUserName,
   onClose,
 }: AdjustmentModalProps) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
 
   const [status, setStatus] = useState<Status>(

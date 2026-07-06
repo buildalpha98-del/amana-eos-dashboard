@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { X, Send, Loader2 } from "lucide-react";
 import EmailPreview from "@/components/email/EmailPreview";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useEmailTemplates,
   useEmailPreview,
@@ -63,6 +64,7 @@ export function SendWelcomeEmailModal({
   onClose,
   enquiry,
 }: Props) {
+  useEscapeClose(onClose, open);
   const { data: templates, isLoading: templatesLoading } =
     useEmailTemplates("welcome");
   const previewMutation = useEmailPreview();

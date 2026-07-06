@@ -28,6 +28,7 @@ import {
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ── Types (mirror the API) ───────────────────────────────────────────
 
@@ -373,6 +374,7 @@ function CreateReviewModal({
   targetUserName,
   onClose,
 }: CreateReviewModalProps) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
   const [type, setType] = useState<ReviewType>("annual");
   const [periodStart, setPeriodStart] = useState(addDaysISO(todayISO(), -365));

@@ -18,6 +18,7 @@ import {
 } from "@/lib/contract-templates/extract-merge-tags";
 import type { TipTapDoc } from "@/lib/contract-templates/render-html";
 import { MERGE_TAGS_BY_KEY } from "@/lib/contract-templates/merge-tag-catalog";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   CONTRACT_TYPES,
   CONTRACT_TYPE_LABELS,
@@ -57,6 +58,7 @@ export function IssueFromTemplateModal({
   /** When provided (i.e. rendered from NewContractModal), shows a "Use blank form" link */
   onSwitchToBlank?: () => void;
 }) {
+  useEscapeClose(onClose);
   const [step, setStep] = useState<Step>(1);
   const [templateId, setTemplateId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");

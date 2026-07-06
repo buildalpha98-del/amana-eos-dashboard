@@ -9,6 +9,7 @@ import { LinkSocialPostModal } from "./LinkSocialPostModal";
 import { toast } from "@/hooks/useToast";
 import { PostPreviewPanel } from "./PostPreviewPanel";
 import { PostHistoryPanel } from "./PostHistoryPanel";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface PostDetailPanelProps {
   postId: string;
@@ -34,6 +35,7 @@ const PLATFORM_OPTIONS = [
 ] as const;
 
 export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
+  useEscapeClose(onClose);
   const { data: post, isLoading } = usePost(postId);
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();

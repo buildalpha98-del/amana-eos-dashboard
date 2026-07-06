@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { useTeam } from "@/hooks/useTeam";
 import { toast } from "@/hooks/useToast";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface ShiftSwapDialogShift {
   id: string;
@@ -33,6 +34,7 @@ export function ShiftSwapDialog({
   currentUserId,
   onSubmitted,
 }: ShiftSwapDialogProps) {
+  useEscapeClose(onClose, open);
   const [targetId, setTargetId] = useState<string>("");
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);

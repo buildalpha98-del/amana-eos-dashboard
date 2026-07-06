@@ -1,6 +1,7 @@
 "use client";
 
 import { X, Facebook, Instagram, Linkedin, Globe, Mail, FileText } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface PostPreviewPanelProps {
   title: string;
@@ -36,6 +37,7 @@ export function PostPreviewPanel({
   assigneeName,
   onClose,
 }: PostPreviewPanelProps) {
+  useEscapeClose(onClose);
   const meta = PLATFORM_META[platform] || PLATFORM_META.website;
   const PlatformIcon = meta.icon;
 

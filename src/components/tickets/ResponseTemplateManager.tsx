@@ -7,6 +7,7 @@ import {
   useDeleteResponseTemplate,
 } from "@/hooks/useResponseTemplates";
 import { X, Plus, Trash2, FileText } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 export function ResponseTemplateManager({
   open,
@@ -15,6 +16,7 @@ export function ResponseTemplateManager({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose, open);
   const { data: templates = [], isLoading } = useResponseTemplates();
   const createTemplate = useCreateResponseTemplate();
   const deleteTemplate = useDeleteResponseTemplate();

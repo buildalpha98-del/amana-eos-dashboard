@@ -8,6 +8,7 @@ import {
   type AuditTemplateSummary,
 } from "@/hooks/useAudits";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const monthNames = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -34,6 +35,7 @@ function EditTemplateModalInner({
   onClose,
   template,
 }: Omit<Props, "open" | "template"> & { template: AuditTemplateSummary }) {
+  useEscapeClose(onClose);
   const updateMut = useUpdateTemplate();
 
   const sortedTemplateMonths = [...template.scheduledMonths].sort((a, b) => a - b);

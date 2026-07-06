@@ -8,6 +8,7 @@ import {
   type EmailTemplateData,
 } from "@/hooks/useEmailTemplates";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Props {
   open: boolean;
@@ -30,6 +31,7 @@ export default function TemplatePickerModal({
   onClose,
   onSelect,
 }: Props) {
+  useEscapeClose(onClose, open);
   const { data: templates, isLoading } = useEmailTemplates();
   const queryClient = useQueryClient();
   const [seeding, setSeeding] = useState(false);

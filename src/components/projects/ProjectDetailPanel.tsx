@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/hooks/useToast";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface UserOption {
   id: string;
@@ -36,6 +37,7 @@ export function ProjectDetailPanel({
   projectId: string;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const { data: project, isLoading } = useProject(projectId);
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();

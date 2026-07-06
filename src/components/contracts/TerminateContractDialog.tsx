@@ -8,6 +8,7 @@ import {
   type ContractData,
 } from "@/hooks/useContracts";
 import { CONTRACT_TYPE_LABELS } from "./constants";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Props {
   contract: ContractData;
@@ -20,6 +21,7 @@ interface Props {
  * empty the call matches the previous behaviour (`mutate(contract.id)`).
  */
 export function TerminateContractDialog({ contract, onClose }: Props) {
+  useEscapeClose(onClose);
   const [notes, setNotes] = useState("");
   const [endDate, setEndDate] = useState("");
   const terminate = useTerminateContract();

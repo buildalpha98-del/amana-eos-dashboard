@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useProjectTemplates, type ProjectTemplate } from "@/hooks/useProjectTemplates";
 import { X, Rocket, FileText, ChevronRight, Loader2 } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 export function TemplatePicker({
   open,
@@ -13,6 +14,7 @@ export function TemplatePicker({
   onClose: () => void;
   onSelect: (templateId: string) => void;
 }) {
+  useEscapeClose(onClose, open);
   const { data: templates, isLoading } = useProjectTemplates();
 
   // Sort: "Centre Launch" featured first

@@ -4,6 +4,7 @@ import { X, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useBillingStatementDetail } from "@/hooks/useBilling";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,6 +53,7 @@ export function StatementDetailPanel({
   statementId: string | null;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const { data, isLoading } = useBillingStatementDetail(statementId);
 
   if (!statementId) return null;

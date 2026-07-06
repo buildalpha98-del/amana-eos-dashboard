@@ -27,6 +27,7 @@ import {
   Copy,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ── Reason Colors ──────────────────────────────────────────────
 
@@ -191,6 +192,7 @@ function TriggerSurveyModal({
   onClose: () => void;
   services: { id: string; name: string; code: string }[];
 }) {
+  useEscapeClose(onClose);
   const trigger = useTriggerExitSurvey();
   const [serviceId, setServiceId] = useState("");
   const [childName, setChildName] = useState("");

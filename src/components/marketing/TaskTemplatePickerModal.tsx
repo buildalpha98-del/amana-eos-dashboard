@@ -17,6 +17,7 @@ import {
 } from "@/hooks/useMarketing";
 import { useServices } from "@/hooks/useServices";
 import { toast } from "@/hooks/useToast";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Props {
   open: boolean;
@@ -39,6 +40,7 @@ const PRIORITY_DOT: Record<string, string> = {
 };
 
 export function TaskTemplatePickerModal({ open, onClose }: Props) {
+  useEscapeClose(onClose, open);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [campaignId, setCampaignId] = useState("");

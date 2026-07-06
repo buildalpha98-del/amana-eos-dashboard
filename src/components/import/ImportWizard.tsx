@@ -13,6 +13,7 @@ import {
   Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 export interface ColumnConfig {
   key: string;
@@ -57,6 +58,7 @@ export function ImportWizard({
   onComplete,
   onClose,
 }: ImportWizardProps) {
+  useEscapeClose(onClose);
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);

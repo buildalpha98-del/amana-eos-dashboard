@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useHealthScore } from "@/hooks/useHealthScore";
 import { PILLAR_LABELS } from "@/lib/health-score";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   X,
   ArrowUp,
@@ -107,6 +108,7 @@ function getSeverityConfig(severity: "critical" | "warning" | "info") {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps) {
+  useEscapeClose(onClose);
   const { data, isLoading, error } = useHealthScore(serviceId);
   const [expandedPillars, setExpandedPillars] = useState<Set<string>>(new Set());
 

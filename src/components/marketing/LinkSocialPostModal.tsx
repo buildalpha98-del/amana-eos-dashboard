@@ -9,6 +9,7 @@ import {
   useLinkSocialPost,
 } from "@/hooks/useMarketing";
 import type { SocialPostData } from "@/hooks/useMarketing";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface LinkSocialPostModalProps {
   postId: string;
@@ -21,6 +22,7 @@ export function LinkSocialPostModal({
   platform,
   onClose,
 }: LinkSocialPostModalProps) {
+  useEscapeClose(onClose);
   const [tab, setTab] = useState<"browse" | "manual">("browse");
   const [manualPostId, setManualPostId] = useState("");
   const [manualUrl, setManualUrl] = useState("");

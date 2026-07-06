@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   Gift,
   Users,
@@ -298,6 +299,7 @@ function CreateReferralModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  useEscapeClose(onClose);
   const [services, setServices] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState({
     serviceId: "",

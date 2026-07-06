@@ -444,7 +444,7 @@ export function CommandPalette({
               <p className="text-sm text-muted">
                 No results found for &quot;{query}&quot;
               </p>
-              <p className="text-xs text-muted/50 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Try searching for people, services, or EOS items
               </p>
             </div>
@@ -579,7 +579,7 @@ export function CommandPalette({
                           <span className="flex-1 text-sm text-foreground/80 truncate">
                             {rp.title}
                           </span>
-                          <span className="text-[10px] text-muted/50 shrink-0">
+                          <span className="text-[10px] text-muted shrink-0">
                             {relativeTime(rp.timestamp)}
                           </span>
                           {idx === activeIndex && (
@@ -708,7 +708,7 @@ export function CommandPalette({
             </kbd>{" "}
             Close
           </span>
-          <span className="ml-auto text-muted/50">
+          <span className="ml-auto text-muted">
             {flatItems.length} item{flatItems.length !== 1 ? "s" : ""}
           </span>
         </div>

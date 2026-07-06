@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useMarkReferralPaid, type Referral } from "@/hooks/useRecruitment";
 import { X } from "lucide-react";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface Props {
   referral: Referral;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function MarkReferralPaidModal({ referral, onClose }: Props) {
+  useEscapeClose(onClose);
   const [paidAt, setPaidAt] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );

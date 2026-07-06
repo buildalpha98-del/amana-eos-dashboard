@@ -41,6 +41,7 @@ import {
   type ActivityTemplateFilters,
 } from "@/hooks/useActivityLibrary";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 // ── MTOP Outcome Config ──────────────────────────────────────
 const MTOP_OUTCOMES = [
@@ -683,6 +684,7 @@ function ActivityModal({
   onCreate: ReturnType<typeof useCreateActivity>;
   onUpdate: ReturnType<typeof useUpdateActivity>;
 }) {
+  useEscapeClose(onClose);
   const isEditing = !!activity;
   // When the user clicks "+ Add" inside a BSC or ASC section, pre-fill the
   // typical time window for that session so the form matches the column they

@@ -8,6 +8,7 @@ import {
   type BulkParseResult,
 } from "@/hooks/useAudits";
 import { toast } from "@/hooks/useToast";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -32,6 +33,7 @@ export function UploadAuditDocumentsDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose, open);
   const filesRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [rows, setRows] = useState<ParseRow[]>([]);

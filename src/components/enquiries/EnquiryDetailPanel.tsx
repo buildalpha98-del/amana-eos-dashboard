@@ -24,6 +24,7 @@ import { CCSCalculator } from "@/components/shared/CCSCalculator";
 import { AiButton } from "@/components/ui/AiButton";
 import { SendWelcomeEmailModal } from "./SendWelcomeEmailModal";
 import { EmailHistorySection } from "./EmailHistorySection";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface EnquiryDetailPanelProps {
   enquiryId: string;
@@ -58,6 +59,7 @@ export function EnquiryDetailPanel({
   onClose,
   onUpdated,
 }: EnquiryDetailPanelProps) {
+  useEscapeClose(onClose);
   const [enquiry, setEnquiry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showCCS, setShowCCS] = useState(false);

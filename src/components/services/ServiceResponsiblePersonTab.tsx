@@ -44,6 +44,7 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { cn, getWeekStart, toLocalIsoDate } from "@/lib/utils";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface ServiceResponsiblePersonTabProps {
   serviceId: string;
@@ -355,6 +356,7 @@ function AssignRpDialog({
   staffOptions: TeamMember[];
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const defaults = DEFAULT_SESSION_TIMES[sessionType];
   const [userId, setUserId] = useState<string>(existing?.userId ?? "");
   const [personName, setPersonName] = useState<string>(

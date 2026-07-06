@@ -6,6 +6,7 @@ import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import type { ParentAvatar } from "@/lib/centre-avatar/sections";
 import { ParentAvatarReadonlyPreview } from "./SectionReadonlyPreview";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 /**
  * AI parent-avatar generation modal.
@@ -29,6 +30,7 @@ export function AiGenerateModal({
   onApply: (proposed: Record<string, unknown>) => Promise<void>;
   isApplying: boolean;
 }) {
+  useEscapeClose(onClose, open);
   const [proposed, setProposed] = useState<ParentAvatar | null>(null);
   const [meta, setMeta] = useState<{
     cached: boolean;

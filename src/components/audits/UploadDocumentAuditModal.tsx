@@ -19,6 +19,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, Loader2, Upload } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 type Frequency =
   | "daily"
@@ -66,6 +67,7 @@ interface Props {
 }
 
 export function UploadDocumentAuditModal({ open, onClose }: Props) {
+  useEscapeClose(onClose, open);
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
