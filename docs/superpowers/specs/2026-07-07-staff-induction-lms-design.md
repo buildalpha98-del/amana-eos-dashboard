@@ -7,7 +7,7 @@
 ## Goals
 
 1. **Essential pre-start training** completed between contract signing and day 1, covering OWNA, document locations, introducing yourself to children/parents, the Amana Way, child safety, and key policies.
-2. **Hard gate**: a new starter cannot be rostered or clock in until essential training is complete AND a coordinator signs off their week-1 practical checklist.
+2. **Hard gate**: a new starter cannot be rostered or clock in until essential training is complete AND a State Manager or Admin signs off their week-1 practical checklist.
 3. **Verified learning**: quizzes with pass marks, not read-and-tick.
 4. **Monthly auto-assigned training** driven by an annual compliance calendar.
 5. **Backfill existing staff** to the same standard with a grace period.
@@ -24,7 +24,7 @@
 |---|---|
 | Access model | Dashboard account created at contract signing, locked-down "new starter" experience |
 | Gate strength | Hard gate: no roster assignment, no clock-in until cleared |
-| Verification | Module quizzes (80% pass, unlimited shuffled retries) + week-1 coordinator practical sign-off |
+| Verification | Module quizzes (80% pass, unlimited shuffled retries) + week-1 practical sign-off by a State Manager/Admin |
 | Monthly cadence | Annual compliance calendar (12 slots), executed by cron |
 | Content authoring | AI-drafted from existing Amana docs, human-reviewed, published course-by-course |
 | Existing staff | Backfilled with a 5-week grace period, then the same gate applies |
@@ -48,7 +48,7 @@ Each course: 3–5 modules of 5–10 minutes ending in a quiz. Scenario-based qu
 
 **"Ready to Work" readiness checklist** (computed, not stored): all published `essential` courses completed + WWCC certificate on file + Child Safe Code of Conduct and Privacy Policy acknowledged + profile complete (photo, phone, emergency contact).
 
-**Week-1 practical sign-off** (coordinator-observed, org-wide template, editable): OWNA sign in/out, self-introduction to a parent, locate first aid kit / evac plan / medical action plans, find a policy on the dashboard, incident report walkthrough, supervision positioning.
+**Week-1 practical sign-off** (org-wide template, editable; observed on-site, signed off by a State Manager or Admin): OWNA sign in/out, self-introduction to a parent, locate first aid kit / evac plan / medical action plans, find a policy on the dashboard, incident report walkthrough, supervision positioning.
 
 **Monthly calendar year-1 draft**: Feb child protection refresher · Mar anaphylaxis & medical · Apr behaviour guidance · May emergency procedures · Jun food safety · Jul supervision · Aug complaints & feedback · Sep inclusion & additional needs · Oct sun safety · Nov incident reporting quality · Dec reflective practice & QIP · Jan annual policy refresh. (Refined during content phase; slots are admin-editable.)
 
@@ -68,7 +68,7 @@ enum InductionStatus {
 inductionStatus       InductionStatus @default(cleared)  // migration default preserves existing staff
 inductionDueDate      DateTime?   // start date for new hires; grace deadline for backfill
 inductionClearedAt    DateTime?
-inductionClearedById  String?     // coordinator/admin who signed off
+inductionClearedById  String?     // State Manager / Admin who signed off
 inductionGraceUntil   DateTime?   // backfill only: works while in_training until this date
 inductionOverrideUntil DateTime?  // admin override exemption window (audited); reason written to ActivityLog
 ```
@@ -77,7 +77,7 @@ inductionOverrideUntil DateTime?  // admin override exemption window (audited); 
 
 Transitions: `new_starter → in_training` on first module interaction; `in_training → awaiting_signoff` automatic when `getInductionReadiness()` passes; `awaiting_signoff → cleared` via practical sign-off completion by a signer role (see below). Sign-off completion **re-checks readiness at that moment** — if a newly published essential course made readiness false again, the user drops back to `in_training` instead of clearing. Reverse transitions otherwise only via admin action (logged).
 
-**Signer roles** ("coordinator+"): `member` (OSHC Coordinator), `admin`, `head_office`, `owner`. A signer cannot sign off their own induction.
+**Signer roles**: only `head_office` (State Manager), `admin`, and `owner` may complete a practical sign-off — deliberately a level above the OSHC Coordinator (`member`) so a service cannot self-clear its own new starters. On-site observation of the tasks may be done by the service's coordinator, but the attesting sign-off is recorded against a State Manager or Admin. A signer cannot sign off their own induction.
 
 **Backfilled staff skip the practical sign-off**: users with `inductionGraceUntil` set move `awaiting_signoff → cleared` automatically when readiness passes. The practical checklist validates unknown newcomers; veterans demonstrably perform these tasks daily, and requiring observed sign-offs for 100+ existing staff (including the signers themselves) would stall the backfill.
 
@@ -124,7 +124,7 @@ model PracticalSignoff {
   id         String   @id @default(cuid())
   userId     String   // the new starter
   itemId     String   // → PracticalChecklistItem
-  signedById String   // the observing coordinator/admin
+  signedById String   // State Manager / Admin who signed off (head_office/admin/owner)
   signedAt   DateTime @default(now())
   notes      String?  @db.Text
   @@unique([userId, itemId])
@@ -185,7 +185,7 @@ The course/module editor gains: an **image-upload button** (calls `/api/upload`,
 
 **Admin additions to `/onboarding` (Staff Lifecycle)**:
 - Induction pipeline board: who is at which stage, days in stage, blockers.
-- Practical sign-off queue: coordinators tick observed items per new starter (phone-friendly).
+- Practical sign-off queue: State Managers / Admins tick observed items per new starter (phone-friendly).
 - Training calendar editor (12 slots → monthly-track courses).
 - Quiz question editor inside course/module editing.
 - Backfill launch action (one-time, confirmation gated).
@@ -196,7 +196,7 @@ The course/module editor gains: an **image-upload button** (calls `/api/upload`,
 
 **Reminder ladder** (email via existing template system + in-app notification, respecting suppression):
 - Monthly course: on assignment, T-7, T-2, overdue.
-- New starters: nudges keyed to `inductionDueDate` — day 1, then every 3 days, escalating to coordinator at T-3.
+- New starters: nudges keyed to `inductionDueDate` — day 1, then every 3 days, escalating to their State Manager at T-3.
 - Backfill: weekly nudge; final-week daily.
 - **Admin visibility**: Monday summary email to admins/coordinators — completion % per service, overdue list, pipeline stage counts.
 
@@ -224,7 +224,7 @@ Per existing route-test conventions (Vitest, prisma-mock, input-based mock routi
 - State machine: all legal transitions; illegal transitions rejected; backfill auto-clear (grace set, no practical needed); sign-off re-checks readiness; new-starter flag on user creation sets `new_starter` + due date, default flow stays `cleared`; self-sign-off rejected.
 - Quiz: scoring, pass boundary (exactly 80%), attempt numbering, shuffled options, quiz-gated module completion.
 - Crons: auth rejection, lock skip, happy path (monthly enrol dedup, grace expiry) for both crons.
-- Practical sign-off: completion triggers `cleared` only from `awaiting_signoff`; permission checks (coordinator+ only).
+- Practical sign-off: completion triggers `cleared` only from `awaiting_signoff`; permission checks (only `head_office`/`admin`/`owner` may sign off; `member`/`staff` rejected; self-sign-off rejected).
 - Player gating: content-module Next locked until min time-on-page; quiz-module Next locked until a passing attempt; progress resumes after tab close.
 - Sanitizer: widened `rehype-sanitize` schema renders whitelisted `<img>`/`<iframe>` but strips `<script>`, `on*` handlers, `javascript:` URLs, and non-whitelisted iframe hosts.
 
