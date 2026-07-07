@@ -77,8 +77,14 @@ export const UNSUBSCRIBE_URL_TOKEN = "{{UNSUBSCRIBE_URL}}";
  * Midnight Green header with the yellow sun-ray logo, warm Cosmic Latte
  * canvas, and a compliant footer: call button, reply-welcome note,
  * physical address, and an unsubscribe/preferences link (via token).
+ *
+ * `opts.preheader` sets the hidden inbox preview line — the text mail
+ * clients show after the subject in the message list.
  */
-export function parentEmailLayout(content: string) {
+export function parentEmailLayout(content: string, opts?: { preheader?: string }) {
+  const preheaderHtml = opts?.preheader
+    ? `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${opts.preheader}${"&nbsp;&zwnj;".repeat(30)}</div>`
+    : "";
   return `
 <!DOCTYPE html>
 <html>
@@ -87,6 +93,7 @@ export function parentEmailLayout(content: string) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body style="margin:0;padding:0;background-color:${COSMIC_LATTE};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  ${preheaderHtml}
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${COSMIC_LATTE};padding:32px 16px;">
     <tr>
       <td align="center">

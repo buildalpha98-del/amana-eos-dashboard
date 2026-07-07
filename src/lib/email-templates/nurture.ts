@@ -49,56 +49,64 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string,
   const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.welcome",
-    defaultSubject: "You've taken the first step! Welcome to {{centreName}}",
+    defaultSubject: "Assalamu Alaikum {{firstName}} — your {{centreName}} enquiry is in ✅",
     defaultBody: `
     <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
-      Assalamu Alaikum {{firstName}} — we're glad you found us!
+      Assalamu Alaikum {{firstName}} — we're so glad you found us!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Thank you for enquiring about {{centreName}}. Finding the right before and after school
-      care is a big decision, and we want to make it as easy as possible for you.
+      Thanks for enquiring about {{centreName}}. <strong>A real person from our team will
+      call you within one business day</strong> — no bots, no call centres.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      At Amana OSHC, your child won't just be supervised — right on the school grounds, they'll
-      be part of our signature programs: <strong>Rise &amp; Shine Club</strong> before school,
-      <strong>Amana Afternoons</strong> after the bell, <strong>Iqra Circle</strong> Qur'an and
-      Islamic learning, <strong>Homework Heroes</strong>, <strong>Little Champions</strong> sport,
-      <strong>Imagination Station</strong> art &amp; STEM, and our rotating
-      <strong>Fuel Up with Amana</strong> menu.
+      While you wait, here's what your child's afternoons could look like: homework
+      <strong>done before pickup</strong> with Homework Heroes, Qur'an and Islamic values
+      woven into every session through Iqra Circle, and a proper feed from our rotating
+      Fuel Up with Amana menu — all right on the school grounds.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      You're in good company — <strong>more than 1,000 children</strong> go Beyond The Bell
+      with us every week.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
-        <td style="padding:24px;">
-          <p style="margin:0 0 12px;color:#FECE00;font-size:15px;font-weight:700;">
-            Here's what happens next:
+        <td style="padding:24px;text-align:center;">
+          <p style="margin:0 0 8px;color:#FECE00;font-size:16px;font-weight:700;">
+            Want to skip the queue?
           </p>
-          <p style="margin:0;color:#ffffff;font-size:14px;line-height:2;">
-            1. We'll send you everything you need to know about fees and subsidies
-            (most families pay as little as $5 a day with CCS)<br/>
-            2. When you're ready, you'll complete a quick online enrolment form<br/>
-            3. Our team will confirm your child's spot and booking days<br/>
-            4. We'll help you get set up for a smooth first day
+          <p style="margin:0;color:#ffffff;font-size:14px;line-height:1.7;">
+            Your enrolment form takes about 10 minutes, saves as you go, and locks in
+            your child's spot. Days fill fastest at the start of term.
           </p>
         </td>
       </tr>
     </table>
     {{enrolButton}}
     <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      No pressure, no rush. We're here whenever you're ready to chat — just hit reply
-      or give the centre a call. We'd love to answer any questions you have.
+      Not ready yet? <strong>Just reply to this email</strong> with the days you're after
+      and your child's year — we'll check availability at {{centreName}} and get straight
+      back to you.
     </p>
-    <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
-      Looking forward to meeting your family,<br/>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Warmly,<br/>
       <strong>The {{centreName}} Team</strong>
+    </p>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.7;">
+      PS — keep an eye out tomorrow: we'll show you exactly how the Child Care Subsidy
+      gets most families to around <strong>$5 a day</strong>.
     </p>
   `,
     vars: {
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(url),
-      enrolButton: buttonHtml("Start Your Enrolment", url),
+      enrolButton: buttonHtml("Secure Your Child's Spot", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "A real person will call you within one business day — here's what happens next.",
+      }),
   });
 }
 
