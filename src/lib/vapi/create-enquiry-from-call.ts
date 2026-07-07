@@ -71,8 +71,9 @@ export async function createEnquiryFromCall(callId: string): Promise<string | nu
       data: { linkedEnquiryId: enquiry.id },
     });
 
-    // Fire-and-forget: enrol into nurture sequence. Errors shouldn't block the call webhook.
-    scheduleNurtureFromStageChange(enquiry.id, "new_enquiry").catch((err) =>
+    // Awaited: a bare fire-and-forget promise dies when the serverless
+    // response returns. Errors still shouldn't block the call webhook.
+    await scheduleNurtureFromStageChange(enquiry.id, "new_enquiry").catch((err) =>
       logger.error("VAPI: nurture scheduling failed for auto-created enquiry", {
         callId,
         enquiryId: enquiry.id,

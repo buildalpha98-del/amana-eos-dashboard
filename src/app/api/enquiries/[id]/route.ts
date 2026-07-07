@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { runAfter } from "@/lib/run-after";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
@@ -87,14 +88,18 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         );
         updateData.stageChangedAt = new Date();
 
-        // Pipeline history (fire-and-forget) — powers true funnel
-        // rates, time-in-stage SLAs, and the DD audit trail.
-        logEnquiryStageEvent(id, existing.stage, data.stage);
-
-        // Schedule nurture steps for the new stage (fire-and-forget)
-        scheduleNurtureFromStageChange(id, data.stage).catch((err) =>
-          logger.error("Enquiry: Nurture scheduling failed", { err }),
-        );
+        // Pipeline history + nurture scheduling run via after() — a bare
+        // promise dies when the serverless response returns. The history
+        // event powers true funnel rates, time-in-stage SLAs, and the DD
+        // audit trail; the scheduler cancels stale nudges + enrols the new
+        // stage's sequence.
+        const newStage = data.stage;
+        runAfter(async () => {
+          await logEnquiryStageEvent(id, existing.stage, newStage);
+          await scheduleNurtureFromStageChange(id, newStage).catch((err) =>
+            logger.error("Enquiry: Nurture scheduling failed", { err }),
+          );
+        });
 
         // ── Waitlist: moving TO "waitlisted" ──────────────────────
         if (data.stage === "waitlisted") {
