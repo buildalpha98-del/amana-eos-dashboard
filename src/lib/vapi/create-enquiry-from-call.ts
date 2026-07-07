@@ -72,7 +72,7 @@ export async function createEnquiryFromCall(callId: string): Promise<string | nu
     });
 
     // Fire-and-forget: enrol into nurture sequence. Errors shouldn't block the call webhook.
-    scheduleNurtureFromStageChange(enquiry.id, "new").catch((err) =>
+    scheduleNurtureFromStageChange(enquiry.id, "new_enquiry").catch((err) =>
       logger.error("VAPI: nurture scheduling failed for auto-created enquiry", {
         callId,
         enquiryId: enquiry.id,

@@ -106,7 +106,7 @@ export const POST = withApiHandler(async (req) => {
     // Creation event for the pipeline history (fire-and-forget).
   logEnquiryStageEvent(enquiry.id, null, enquiry.stage);
 
-  scheduleNurtureFromStageChange(enquiry.id, "new").catch((err) =>
+  scheduleNurtureFromStageChange(enquiry.id, "new_enquiry").catch((err) =>
       logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
     );
 

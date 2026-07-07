@@ -19,13 +19,18 @@ const NOW = new Date("2026-03-22T10:00:00Z");
  * for the requested stage. The cutover means the scheduler now drives the
  * SequenceEnrolment system only — no legacy ParentNurtureStep writes.
  */
-function setupEnquiry(overrides: Record<string, unknown> = {}, sequences?: unknown[]) {
+function setupEnquiry(
+  overrides: Record<string, unknown> = {},
+  sequences?: unknown[],
+  opts: { staleExecutions?: { id: string }[]; priorTemplateKeys?: string[] } = {},
+) {
   prismaMock.parentEnquiry.findUnique.mockResolvedValue({
     id: "enq-1",
     serviceId: "svc-1",
     parentEmail: "parent@test.com",
     parentName: "Jane Doe",
     firstSessionDate: null,
+    channel: "phone",
     ...overrides,
   });
   prismaMock.centreContact.findFirst.mockResolvedValue({ id: "contact-1" });
@@ -45,7 +50,18 @@ function setupEnquiry(overrides: Record<string, unknown> = {}, sequences?: unkno
   );
   prismaMock.sequenceEnrolment.create.mockResolvedValue({ id: "enrol-1" });
   prismaMock.sequenceStepExecution.create.mockResolvedValue({});
-  prismaMock.sequenceStepExecution.findMany.mockResolvedValue([]);
+  // Input-routed: the cancellation lookup filters on status: "pending"; the
+  // dedupe lookup filters on status: { in: [...] } and selects templateKeys.
+  prismaMock.sequenceStepExecution.findMany.mockImplementation(
+    ((args: { where?: { status?: unknown } }) => {
+      if (args?.where?.status === "pending") {
+        return Promise.resolve(opts.staleExecutions ?? []);
+      }
+      return Promise.resolve(
+        (opts.priorTemplateKeys ?? []).map((key) => ({ step: { templateKey: key } })),
+      );
+    }) as never,
+  );
   prismaMock.sequenceStepExecution.updateMany.mockResolvedValue({ count: 0 });
 }
 
@@ -197,16 +213,17 @@ describe("scheduleNurtureFromStageChange (sequence system)", () => {
   // ── Cancellation of stale executions on forward transitions ──
 
   it("cancels pending nudge executions when form_started is reached", async () => {
-    setupEnquiry({}, [
-      {
-        id: "seq-form", type: "parent_nurture", triggerStage: "form_started", isActive: true,
-        steps: [{ id: "s-fs", stepNumber: 1, delayHours: 4, templateKey: "form_support" }],
-      },
-    ]);
-    // pending executions from earlier stages that should be cancelled
-    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([
-      { id: "exec-nudge-1" }, { id: "exec-final" },
-    ]);
+    setupEnquiry(
+      {},
+      [
+        {
+          id: "seq-form", type: "parent_nurture", triggerStage: "form_started", isActive: true,
+          steps: [{ id: "s-fs", stepNumber: 1, delayHours: 4, templateKey: "form_support" }],
+        },
+      ],
+      // pending executions from earlier stages that should be cancelled
+      { staleExecutions: [{ id: "exec-nudge-1" }, { id: "exec-final" }] },
+    );
 
     await scheduleNurtureFromStageChange("enq-1", "form_started");
 
@@ -216,7 +233,7 @@ describe("scheduleNurtureFromStageChange (sequence system)", () => {
         where: expect.objectContaining({
           status: "pending",
           enrolment: { contactId: "contact-1", enquiryId: "enq-1" },
-          step: { templateKey: { in: ["nudge_1", "nudge_2", "final_nudge"] } },
+          step: { templateKey: { in: ["how_to_enrol", "nudge_1", "nudge_2", "final_nudge"] } },
         }),
       }),
     );
@@ -228,8 +245,9 @@ describe("scheduleNurtureFromStageChange (sequence system)", () => {
   });
 
   it("cancels form_support + abandonment + nudges when first_session is reached", async () => {
-    setupEnquiry({ firstSessionDate: new Date(NOW.getTime() + 7 * 86400000) }, []);
-    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([{ id: "exec-x" }]);
+    setupEnquiry({ firstSessionDate: new Date(NOW.getTime() + 7 * 86400000) }, [], {
+      staleExecutions: [{ id: "exec-x" }],
+    });
 
     await scheduleNurtureFromStageChange("enq-1", "first_session");
 
@@ -242,18 +260,92 @@ describe("scheduleNurtureFromStageChange (sequence system)", () => {
     );
   });
 
+  it("cancels welcome + ccs_assist too once the family is enrolled", async () => {
+    setupEnquiry({}, [], { staleExecutions: [{ id: "exec-welcome" }] });
+
+    await scheduleNurtureFromStageChange("enq-1", "enrolled");
+
+    expect(prismaMock.sequenceStepExecution.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "pending",
+          step: { templateKey: { in: expect.arrayContaining(["welcome", "ccs_assist", "final_nudge"]) } },
+        }),
+      }),
+    );
+    expect(prismaMock.sequenceStepExecution.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["exec-welcome"] } },
+      data: { status: "cancelled" },
+    });
+  });
+
   it("does not query for cancellations on stages with nothing to cancel", async () => {
-    setupEnquiry(); // "new" / "info_sent" have no cancel set
+    setupEnquiry(); // "new_enquiry" / "info_sent" have no cancel set
 
     await scheduleNurtureFromStageChange("enq-1", "info_sent");
 
-    expect(prismaMock.sequenceStepExecution.findMany).not.toHaveBeenCalled();
+    // The only findMany calls are the dedupe lookup (status: { in: [...] }) —
+    // never the cancellation-shaped query (status: "pending").
+    const pendingCalls = prismaMock.sequenceStepExecution.findMany.mock.calls.filter(
+      (c) => (c[0] as { where?: { status?: unknown } })?.where?.status === "pending",
+    );
+    expect(pendingCalls).toHaveLength(0);
+  });
+
+  // ── New Enquiry Journey (automated from creation) ──────────
+
+  it("enrols a new_enquiry into the journey immediately on creation", async () => {
+    setupEnquiry({}, [
+      {
+        id: "seq-journey", type: "parent_nurture", triggerStage: "new_enquiry", isActive: true,
+        steps: [
+          { id: "s-welcome", stepNumber: 1, delayHours: 0, templateKey: "welcome" },
+          { id: "s-ccs", stepNumber: 2, delayHours: 24, templateKey: "ccs_assist" },
+          { id: "s-n1", stepNumber: 3, delayHours: 72, templateKey: "nudge_1" },
+        ],
+      },
+    ]);
+
+    await scheduleNurtureFromStageChange("enq-1", "new_enquiry");
+
+    expect(prismaMock.sequenceEnrolment.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.sequenceStepExecution.create).toHaveBeenCalledTimes(3);
+  });
+
+  it("skips the 0h welcome for website-channel enquiries (site already auto-responds)", async () => {
+    setupEnquiry({ channel: "website" }, [
+      {
+        id: "seq-journey", type: "parent_nurture", triggerStage: "new_enquiry", isActive: true,
+        steps: [
+          { id: "s-welcome", stepNumber: 1, delayHours: 0, templateKey: "welcome" },
+          { id: "s-ccs", stepNumber: 2, delayHours: 24, templateKey: "ccs_assist" },
+        ],
+      },
+    ]);
+
+    await scheduleNurtureFromStageChange("enq-1", "new_enquiry");
+
+    const scheduledStepIds = prismaMock.sequenceStepExecution.create.mock.calls.map(
+      (c) => (c[0] as { data: { stepId: string } }).data.stepId,
+    );
+    expect(scheduledStepIds).toEqual(["s-ccs"]);
+  });
+
+  it("never schedules a templateKey the family already has pending or sent", async () => {
+    // Family entered via the New Enquiry Journey; staff later drag the card to
+    // info_sent, whose sequence re-covers ccs_assist + nudge_1.
+    setupEnquiry({}, undefined, { priorTemplateKeys: ["ccs_assist", "nudge_1"] });
+
+    await scheduleNurtureFromStageChange("enq-1", "info_sent");
+
+    expect(prismaMock.sequenceEnrolment.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.sequenceStepExecution.create).not.toHaveBeenCalled();
   });
 
   // ── Full journey ───────────────────────────────────────────
 
   it("runs the full lifecycle without throwing", async () => {
-    const stages = ["new", "info_sent", "nurturing", "form_started", "first_session"];
+    const stages = ["new_enquiry", "info_sent", "nurturing", "form_started", "first_session"];
     for (const stage of stages) {
       vi.clearAllMocks();
       const overrides: Record<string, unknown> = {};

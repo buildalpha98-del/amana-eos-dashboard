@@ -10,6 +10,7 @@ import { Prisma } from "@prisma/client";
 import type { SessionType } from "@prisma/client";
 import type { OwnaChild, OwnaIncident, OwnaClient } from "@/lib/owna";
 import { logger } from "@/lib/logger";
+import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -92,6 +93,46 @@ function mapEnquiryStage(status: string | null): string {
   if (lower === "enrolled") return "enrolled";
   if (lower === "waitlisted" || lower === "waitlist") return "waitlisted";
   return "new_enquiry";
+}
+
+/** Stages where a family hasn't enrolled yet — eligible for OWNA email matching. */
+const PRE_ENROLMENT_STAGES = [
+  "new_enquiry",
+  "info_sent",
+  "nurturing",
+  "form_started",
+  "waitlisted",
+  "cold",
+];
+
+/**
+ * Funnel ordering for stage comparisons — the sync only ever moves a card
+ * forward, never backwards (OWNA's status field is coarser than the pipeline).
+ */
+const STAGE_RANK: Record<string, number> = {
+  cold: 0,
+  new_enquiry: 1,
+  info_sent: 2,
+  nurturing: 3,
+  waitlisted: 4,
+  form_started: 5,
+  enrolled: 6,
+  first_session: 7,
+  day3: 8,
+  week2: 9,
+  month1: 10,
+  retained: 11,
+};
+
+function stageRank(stage: string): number {
+  return STAGE_RANK[stage] ?? 0;
+}
+
+/** True when the OWNA enquiry was added within the last 7 days. */
+function isRecentOwnaEnquiry(dateAdded: string): boolean {
+  const added = new Date(dateAdded);
+  if (Number.isNaN(added.getTime())) return false;
+  return Date.now() - added.getTime() < 7 * 24 * 60 * 60 * 1000;
 }
 
 /** Map OWNA incident fields to an incident type. */
@@ -351,14 +392,37 @@ export async function syncOwnaService(
         existingEnquiries.map((e) => [e.ownaEnquiryId, e])
       );
 
+      // Open enquiries from other channels (website form, phone) not yet
+      // linked to an OWNA record. Matching by email lets OWNA progress —
+      // including an enrolment — advance the original card instead of
+      // spawning a duplicate.
+      const unlinked = await prisma.parentEnquiry.findMany({
+        where: {
+          serviceId,
+          ownaEnquiryId: null,
+          parentEmail: { not: null },
+          stage: { in: PRE_ENROLMENT_STAGES },
+        },
+        select: { id: true, parentEmail: true, stage: true },
+      });
+      const unlinkedByEmail = new Map(
+        unlinked.map((e) => [e.parentEmail!.toLowerCase(), e])
+      );
+
       // Separate into creates and updates
       const creates: Prisma.ParentEnquiryCreateManyInput[] = [];
       const updates: Prisma.PrismaPromise<unknown>[] = [];
+      // Stage changes made by this sync — nurture side effects (cancelling
+      // stale nudges, starting onboarding) run after the writes land.
+      const stageChanges: { enquiryId: string; stage: string }[] = [];
+      const nurtureCreateOwnaIds: string[] = [];
 
       for (const enq of activeEnquiries) {
         const parentName = [enq.firstname, enq.surname].filter(Boolean).join(" ").trim() || "Unknown";
         const stage = mapEnquiryStage(enq.status);
         const existing = existingMap.get(enq.id);
+        const emailMatch =
+          !existing && enq.email ? unlinkedByEmail.get(enq.email.toLowerCase()) : undefined;
 
         if (existing) {
           // Only update if the stage hasn't been manually changed
@@ -379,6 +443,43 @@ export async function syncOwnaService(
                 },
               })
             );
+            if (stage !== existing.stage) {
+              stageChanges.push({ enquiryId: existing.id, stage });
+            }
+          } else if (stage === "enrolled" && stageRank(existing.stage) < stageRank("enrolled")) {
+            // OWNA marking a family enrolled is ground truth — apply it even
+            // over manual pipeline moves (never regressing post-enrolment
+            // stages like first_session).
+            updates.push(
+              prisma.parentEnquiry.update({
+                where: { ownaEnquiryId: enq.id },
+                data: { stage: "enrolled", formCompleted: true, stageChangedAt: new Date() },
+              })
+            );
+            stageChanges.push({ enquiryId: existing.id, stage: "enrolled" });
+          }
+        } else if (emailMatch) {
+          // Same parent already has an open card from another channel — link
+          // it and advance the stage if OWNA is further along.
+          const advance = stageRank(stage) > stageRank(emailMatch.stage);
+          updates.push(
+            prisma.parentEnquiry.update({
+              where: { id: emailMatch.id },
+              data: {
+                ownaEnquiryId: enq.id,
+                ...(advance
+                  ? {
+                      stage,
+                      stageChangedAt: new Date(),
+                      ...(stage === "enrolled" ? { formCompleted: true } : {}),
+                    }
+                  : {}),
+              },
+            })
+          );
+          unlinkedByEmail.delete(enq.email.toLowerCase());
+          if (advance) {
+            stageChanges.push({ enquiryId: emailMatch.id, stage });
           }
         } else {
           const childrenDetails: Prisma.InputJsonValue | undefined =
@@ -397,10 +498,17 @@ export async function syncOwnaService(
             parentPhone: enq.phone || null,
             childName: enq.child1 || null,
             childrenDetails,
-            channel: "website",
+            channel: "owna",
             stage,
             notes: enq.notes || enq.enquiry || null,
           });
+          // Enrol genuinely fresh enquiries in the nurture journey. The
+          // recency guard stops a first-time sync of a service from email-
+          // blasting its whole historical enquiry backlog; the unsubscribe
+          // flag is OWNA's own opt-out.
+          if (enq.email && !enq.unsubscribe && isRecentOwnaEnquiry(enq.dateAdded)) {
+            nurtureCreateOwnaIds.push(enq.id);
+          }
         }
       }
 
@@ -417,6 +525,31 @@ export async function syncOwnaService(
         const updateBatches = chunk(updates, BATCH_SIZE);
         for (const batch of updateBatches) {
           await prisma.$transaction(batch);
+        }
+      }
+
+      // Nurture side effects, now that the rows exist: new enquiries start
+      // the New Enquiry Journey; stage advances cancel stale nudges and (for
+      // first_session) start onboarding.
+      if (nurtureCreateOwnaIds.length > 0) {
+        const created = await prisma.parentEnquiry.findMany({
+          where: { ownaEnquiryId: { in: nurtureCreateOwnaIds } },
+          select: { id: true, stage: true },
+        });
+        for (const c of created) {
+          stageChanges.push({ enquiryId: c.id, stage: c.stage });
+        }
+      }
+      for (const change of stageChanges) {
+        try {
+          await scheduleNurtureFromStageChange(change.enquiryId, change.stage);
+        } catch (err) {
+          logger.error("OWNA sync: nurture scheduling failed", {
+            serviceCode,
+            enquiryId: change.enquiryId,
+            stage: change.stage,
+            err,
+          });
         }
       }
 

@@ -66,7 +66,7 @@ function buildSmsBody(templateKey: string, firstName: string, centreName: string
  */
 const TEMPLATE_MAP: Record<
   string,
-  (firstName: string, centreName: string) =>
+  (firstName: string, centreName: string, enrolUrl?: string) =>
     | { subject: string; html: string }
     | Promise<{ subject: string; html: string }>
 > = {
@@ -259,7 +259,12 @@ async function processSequenceExecutions(now: Date) {
           layoutOpts,
         );
       } else {
-        ({ subject, html } = await templateFn(name, centreName));
+        // Prefilled per-enquiry enrolment link: the parent's details carry
+        // over and submission auto-advances their pipeline card to enrolled.
+        const enrolUrl = isParent && exec.enrolment.enquiryId
+          ? `${BASE_URL}/enrol/${exec.enrolment.enquiryId}`
+          : `${BASE_URL}/enrol`;
+        ({ subject, html } = await templateFn(name, centreName, enrolUrl));
       }
     }
 
