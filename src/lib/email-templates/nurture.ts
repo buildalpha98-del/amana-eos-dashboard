@@ -530,39 +530,49 @@ export async function nurtureFormSupportEmail(firstName: string, centreName: str
     key: "nurture.formSupport",
     defaultSubject: "Stuck on the form? We can finish it together in 5 minutes",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      We noticed you started enrolling — nice!
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
+      You're closer than you think
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       You've started the enrolment form for {{centreName}} (great move!). If you got
-      interrupted or hit a tricky question, don't worry — your progress has been saved.
+      interrupted or hit a tricky question — don't worry, <strong>your progress is
+      saved</strong> and picks up right where you left off.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      The three places parents usually get stuck:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:24px;">
-          <p style="margin:0 0 8px;color:#FECE00;font-size:15px;font-weight:700;">
-            Three ways we can help:
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"What's a CRN?"</strong><br/>
+            Your Centrelink Customer Reference Number — you'll need <strong>yours and your
+            child's</strong>. Find them in the Centrelink app or myGov under
+            <em>My Family</em>, or on any Centrelink letter. Can't track them down? Call us
+            and we'll help.
           </p>
-          <p style="margin:0;color:#ffffff;font-size:14px;line-height:2;">
-            1. <strong>Reply to this email</strong> — tell us where you got stuck<br/>
-            2. <strong>Call the centre</strong> — we'll walk through it together on the phone<br/>
-            3. <strong>Message us on WhatsApp</strong> — send photos of documents if that's easier
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"Do I need documents right now?"</strong><br/>
+            No — birth certificate and immunisation history can be uploaded after enrolment.
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"Why card details?"</strong><br/>
+            Just to have everything ready for day one. <strong>Nothing is debited until
+            after your child attends — and only if they love their first days. That's our
+            guarantee.</strong>
           </p>
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      The most common questions we get: <em>"What's a CRN?"</em> (it's your Centrelink
-      Customer Reference Number), <em>"Do I need immunisation records right now?"</em>
-      (not immediately — we can sort that out later).
-    </p>
-    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
-      You're almost there. Let's get your child's spot secured!
-    </p>
     {{continueButton}}
+    <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
+      Prefer to knock it over together? Reply to this email or call
+      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> and
+      we'll walk through it with you on the phone.
+    </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
       <strong>The {{centreName}} Team</strong>
@@ -572,9 +582,12 @@ export async function nurtureFormSupportEmail(firstName: string, centreName: str
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(url),
-      continueButton: buttonHtml("Continue Your Enrolment", url),
+      continueButton: buttonHtml("Finish Your Enrolment — ~5 Minutes", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader: "Your progress is saved — you're about 5 minutes from done.",
+      }),
   });
 }
 
