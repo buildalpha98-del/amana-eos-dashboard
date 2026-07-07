@@ -1,3 +1,4 @@
+import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 
@@ -25,4 +26,4 @@ export async function requireQipAccess(
   return qip;
 }
 
-export const QIP_WRITE_ROLES = ["owner", "head_office", "admin", "member"];
+export const QIP_WRITE_ROLES: Role[] = ["owner", "head_office", "admin", "member"];

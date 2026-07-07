@@ -18,11 +18,18 @@ import {
 } from "@/hooks/useQipSuggestions";
 
 const FIELD_LABELS: Record<QipSuggestionItem["field"], string> = {
+  evidence: "Evidence and Key practices",
   strengths: "Strengths",
   areasForImprovement: "Areas for improvement",
   progressNotes: "Progress notes",
   evidenceCollected: "Evidence collected",
 };
+
+function suggestionLabel(s: QipSuggestionItem): string {
+  return s.elementCode
+    ? `Element ${s.elementCode} · new evidence entry`
+    : FIELD_LABELS[s.field] ?? s.field;
+}
 
 const QA_NAMES: Record<number, string> = {
   1: "Educational Program and Practice",
@@ -54,7 +61,7 @@ function SuggestionCard({
     <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-[color:var(--color-primary,#004E64)] bg-[color:var(--color-primary,#004E64)]/10 px-2 py-0.5 rounded">
-          {FIELD_LABELS[suggestion.field]}
+          {suggestionLabel(suggestion)}
         </span>
         <span className="text-[11px] text-gray-400">
           week of {new Date(suggestion.weekOf).toLocaleDateString("en-AU")}
@@ -64,7 +71,7 @@ function SuggestionCard({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">
-            Current
+            {suggestion.elementCode ? "Existing evidence" : "Current"}
           </p>
           <p className="text-sm text-gray-500 whitespace-pre-wrap bg-gray-50 rounded p-2 min-h-[3rem]">
             {suggestion.currentText || <em>Empty</em>}
@@ -72,7 +79,7 @@ function SuggestionCard({
         </div>
         <div>
           <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide mb-1">
-            Proposed
+            {suggestion.elementCode ? "New entry (fills next free box)" : "Proposed"}
           </p>
           {editing ? (
             <textarea

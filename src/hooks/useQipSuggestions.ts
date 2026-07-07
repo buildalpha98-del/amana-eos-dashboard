@@ -14,7 +14,13 @@ export interface QipSuggestionItem {
   id: string;
   qipId: string;
   qualityArea: number;
-  field: "strengths" | "areasForImprovement" | "progressNotes" | "evidenceCollected";
+  elementCode: string | null;
+  field:
+    | "evidence"
+    | "strengths"
+    | "areasForImprovement"
+    | "progressNotes"
+    | "evidenceCollected";
   currentText: string | null;
   proposedText: string;
   rationale: string;
