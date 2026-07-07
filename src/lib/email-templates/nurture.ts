@@ -459,41 +459,49 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
   const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.finalNudge",
-    defaultSubject: "No pressure — we'll be here when you're ready",
+    defaultSubject: "Our last email, {{firstName}} — your child's spot is still here",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       Just a quick note from us
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We know life gets busy, and choosing care for your child is something you want to
-      get right. This will be our last email for now — we don't want to clog your inbox.
+      We know life gets busy — and choosing care for your child is something you want to
+      get right, not rushed. So this is <strong>our last email</strong>; we don't want to
+      clog your inbox.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      One thing worth knowing: as our educator numbers and daily ratios are set, places at
-      {{centreName}} do become limited — enrolling sooner is the surest way to lock in the
-      days you want.
+      Before we go quiet, one thing worth knowing: as educator numbers and daily ratios
+      are set, places at {{centreName}} do become limited — enrolling sooner is the surest
+      way to lock in the days you want.
     </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      But if you ever want to revisit things — whether it's next week, next term, or next
-      year — our door at {{centreName}} is always open. You can:
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0;color:#374151;font-size:14px;line-height:2;">
-            &#8226; Reply to this email anytime<br/>
-            &#8226; Call the centre during business hours<br/>
-            &#8226; Pop in for a visit — no appointment needed<br/>
-            &#8226; Or <a href="{{enrolUrl}}" style="color:#004E64;font-weight:600;">enrol online</a> whenever it suits — the form saves your progress
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 12px;color:#004E64;font-size:15px;font-weight:700;">
+            Three ways to go from here:
+          </p>
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>1. Ready?</strong> Your form is prefilled and takes about 10 minutes —
+            and nothing is charged until after your child attends.
+          </p>
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>2. Right idea, wrong timing?</strong> Reply <strong>"next term"</strong>
+            and we'll check in closer to the date — no emails in between, promise.
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>3. Still deciding?</strong> Reply with any question, call
+            <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a>,
+            or pop in for a visit — no appointment needed.
           </p>
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We genuinely hope to welcome your family one day. Until then, we wish you all the best.
+    {{enrolButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Whatever you choose, we genuinely hope to welcome your family one day.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Take care,<br/>
@@ -504,8 +512,13 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(url),
+      enrolButton: buttonHtml("Secure Your Child's Spot", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "We'll stop emailing after today. Here are your three doors (one takes two words).",
+      }),
   });
 }
 
