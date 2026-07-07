@@ -844,12 +844,18 @@ export async function nurtureWhatToBringEmail(firstName: string, centreName: str
 
 // ─── Day 1 Check-in (first_session +1d) ──────────────────────
 
-export async function nurtureDay1CheckinEmail(firstName: string, centreName: string) {
+export async function nurtureDay1CheckinEmail(
+  firstName: string,
+  centreName: string,
+  _enrolUrl?: string,
+  feedbackUrl?: string,
+) {
+  const surveyUrl = feedbackUrl || fallbackFeedbackUrl();
   return applyEmailTemplateOverride({
     key: "nurture.day1Checkin",
     defaultSubject: "How did it go? We want to hear all about day one!",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       Day one is done!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -859,13 +865,13 @@ export async function nurtureDay1CheckinEmail(firstName: string, centreName: str
       Your child just had their first day at {{centreName}} — that's a big milestone for
       the whole family! We hope it went smoothly (and that you got a moment to breathe too).
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 8px;color:#004E64;font-size:14px;font-weight:700;">
             A few things that are totally normal:
           </p>
-          <p style="margin:0;color:#374151;font-size:14px;line-height:2;">
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:2;">
             &#8226; Some children take a few sessions to fully settle in<br/>
             &#8226; They might be extra tired — new environments are exciting but draining<br/>
             &#8226; They might not remember everything they did (but we promise they were busy!)
@@ -873,17 +879,35 @@ export async function nurtureDay1CheckinEmail(firstName: string, centreName: str
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      If anything felt off or you have questions, please tell us. We want to make sure your
-      child looks forward to coming back. Just hit reply — we read every message.
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      <strong>One question from us: did they come home happy?</strong> Tell us in our
+      30-second feedback form — what you loved, or what we can do better. It goes straight
+      to our leadership team, and if anything felt off we'll fix it before session two.
     </p>
-    <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+    {{feedbackButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Or just hit reply — we read every message.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Proud of your little one,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.7;">
+      PS — if they're already asking to go back, you can book more days or set up a
+      recurring schedule in the app anytime.
+    </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      feedbackUrl: escapeHtml(surveyUrl),
+      feedbackButton: buttonHtml("Tell Us How Day One Went (30 sec)", surveyUrl),
+    },
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "Three things that are totally normal after day one — and one question for you.",
+      }),
   });
 }
 
