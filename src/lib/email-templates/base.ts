@@ -17,7 +17,7 @@ export function baseLayout(content: string) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:32px 16px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
             <td style="background-color:${BRAND_COLOR};padding:24px 32px;text-align:center;">
@@ -90,7 +90,7 @@ export function parentEmailLayout(content: string) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${COSMIC_LATTE};padding:32px 16px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,78,100,0.12);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,78,100,0.12);">
           <!-- Jonquil accent bar -->
           <tr>
             <td style="background-color:${JONQUIL};height:6px;font-size:0;line-height:0;">&nbsp;</td>
@@ -236,7 +236,7 @@ export function appendUnsubscribeFooter(
 <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:0 16px 24px;">
   <tr>
     <td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;">
         <tr><td>${footer}</td></tr>
       </table>
     </td>
