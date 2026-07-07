@@ -66,7 +66,7 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string,
       <strong>Imagination Station</strong> art &amp; STEM, and our rotating
       <strong>Fuel Up with Amana</strong> menu.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;">
           <p style="margin:0 0 12px;color:#FECE00;font-size:15px;font-weight:700;">
@@ -440,7 +440,7 @@ export async function nurtureFormSupportEmail(firstName: string, centreName: str
       You've started the enrolment form for {{centreName}} (great move!). If you got
       interrupted or hit a tricky question, don't worry — your progress has been saved.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;">
           <p style="margin:0 0 8px;color:#FECE00;font-size:15px;font-weight:700;">
@@ -792,7 +792,7 @@ export async function nurtureAppSetupEmail(firstName: string, centreName: string
         </td>
       </tr>
     </table>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;">
           <p style="margin:0 0 12px;color:#FECE00;font-size:15px;font-weight:700;">
@@ -973,7 +973,7 @@ export async function nurtureNpsSurveyEmail(
       We have just one question for you. It's the single most important thing we track
       as a team, and it takes literally 10 seconds:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;text-align:center;">
           <p style="margin:0 0 8px;color:#FECE00;font-size:18px;font-weight:700;">
@@ -1022,7 +1022,7 @@ export async function nurtureMonth1ReferralEmail(firstName: string, centreName: 
       we hope you've been happy with the experience. If so, we'd love your help
       spreading the word!
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;text-align:center;">
           <p style="margin:0 0 8px;color:#FECE00;font-size:22px;font-weight:800;">
