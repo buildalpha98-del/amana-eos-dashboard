@@ -5,6 +5,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
 import { assertStaffCertsValidForShift } from "../_lib/cert-guard";
+import { assertUserCleared } from "@/lib/induction";
 
 // ---------------------------------------------------------------------------
 // GET /api/roster/shifts?serviceId=...&weekStart=YYYY-MM-DD
@@ -86,6 +87,8 @@ export const POST = withApiAuth(async (req, session) => {
       userId: data.userId,
       shiftDate: new Date(data.date),
     });
+    // Induction gate: an un-cleared new starter cannot be rostered.
+    await assertUserCleared(data.userId);
   }
 
   const shift = await prisma.rosterShift.create({

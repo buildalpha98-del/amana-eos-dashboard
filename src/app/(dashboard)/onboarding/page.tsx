@@ -23,6 +23,7 @@ import {
 import { ExitSurveyDashboard } from "@/components/exit-surveys/ExitSurveyDashboard";
 import { OnboardingPacksTab } from "@/components/onboarding/OnboardingPacksTab";
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
+import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GraduationCap,
@@ -32,6 +33,7 @@ import {
   ClipboardList,
   Sparkles,
   ClipboardCheck,
+  ShieldCheck,
   Download,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
@@ -63,7 +65,7 @@ export default function OnboardingPage() {
   const isStaff = role === "staff";
   const isServiceScoped = role === "staff" || role === "member";
 
-  const [activeTab, setActiveTab] = useState<"onboarding" | "lms" | "exit-surveys">("onboarding");
+  const [activeTab, setActiveTab] = useState<"onboarding" | "lms" | "induction" | "exit-surveys">("onboarding");
   const [showCreatePack, setShowCreatePack] = useState(false);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
@@ -366,6 +368,18 @@ export default function OnboardingPage() {
           <GraduationCap className="w-4 h-4" />
           Training / LMS
         </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab("induction")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "induction" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Induction
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("exit-surveys")}
           className={cn(
@@ -377,6 +391,11 @@ export default function OnboardingPage() {
           Exit Surveys
         </button>
       </div>
+
+      {/* Induction Tab */}
+      {activeTab === "induction" && (
+        <InductionAdminTab canBackfill={role === "owner" || role === "head_office"} />
+      )}
 
       {/* Seed Message */}
       {seedMessage && (

@@ -23,6 +23,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 import { inferSessionType } from "@/lib/timeclock-pick";
+import { assertUserCleared } from "@/lib/induction";
 
 const bodySchema = z
   .object({
@@ -49,6 +50,8 @@ export const POST = withApiAuth(async (req, session) => {
       "Cannot create an unscheduled clock-in: you have no service assigned.",
     );
   }
+  // Induction gate: an un-cleared new starter cannot clock in.
+  await assertUserCleared(session.user.id);
 
   const now = new Date();
   const sessionType = inferSessionType(now);

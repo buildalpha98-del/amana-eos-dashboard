@@ -75,12 +75,24 @@ function resetCommon() {
     if (select && "active" in select) {
       return Promise.resolve({ active: true });
     }
+    // Induction gate (assertUserCleared) selects inductionStatus — default cleared.
+    if (select && "inductionStatus" in select) {
+      return Promise.resolve({
+        inductionStatus: "cleared",
+        inductionGraceUntil: null,
+        inductionOverrideUntil: null,
+      });
+    }
     // Route handlers that select `name` for staffName hydration.
     if (select && "name" in select) {
       return Promise.resolve({ name: "Lookup User" });
     }
     // Fallback for any other shape.
-    return Promise.resolve({ active: true, name: "Lookup User" });
+    return Promise.resolve({
+      active: true,
+      name: "Lookup User",
+      inductionStatus: "cleared",
+    });
   });
   // 2026-05-02: cert-guard added to POST + PATCH. Default to "no expired
   // certs" so existing happy-path tests don't need to be re-stubbed.
@@ -226,6 +238,12 @@ describe("POST /api/roster/shifts", () => {
         select?: Record<string, boolean>;
       };
       if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "cleared",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
       if (where?.id === "u-1") return Promise.resolve({ name: "Alice" });
       return Promise.resolve(null);
     });
@@ -297,6 +315,60 @@ describe("POST /api/roster/shifts", () => {
     expect(body.error).not.toMatch(/Food Safety/);
   });
 
+  // ── Induction gate (2026-07-07) ────────────────────────────────────
+  it("returns 403 when assigning an un-cleared new starter", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.user.findUnique.mockImplementation((args: unknown) => {
+      const { select } = args as { select?: Record<string, boolean> };
+      if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "in_training",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
+      if (select && "name" in select) return Promise.resolve({ name: "Newbie" });
+      // readiness profile lookup — incomplete so the summary is non-empty.
+      return Promise.resolve({ avatar: null, phone: null, _count: { emergencyContacts: 0 } });
+    });
+    // readiness sub-queries: no published essentials, no wwcc.
+    prismaMock.lMSCourse.findMany.mockResolvedValue([]);
+    prismaMock.lMSEnrollment.findMany.mockResolvedValue([]);
+    prismaMock.complianceCertificate.findFirst.mockResolvedValue(null);
+    prismaMock.policyDocument.findMany.mockResolvedValue([]);
+
+    const res = await POST(
+      createRequest("POST", "/api/roster/shifts", { body: validBody }),
+    );
+    expect(res.status).toBe(403);
+    expect(prismaMock.rosterShift.create).not.toHaveBeenCalled();
+  });
+
+  it("passes the gate for a backfilled staffer within grace", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.user.findUnique.mockImplementation((args: unknown) => {
+      const { where, select } = args as {
+        where?: { id?: string };
+        select?: Record<string, boolean>;
+      };
+      if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "in_training",
+          inductionGraceUntil: new Date(Date.now() + 7 * 86400000),
+          inductionOverrideUntil: null,
+        });
+      if (where?.id === "u-1") return Promise.resolve({ name: "Alice" });
+      return Promise.resolve(null);
+    });
+    prismaMock.rosterShift.create.mockResolvedValue(makeShift({ staffName: "Alice" }));
+
+    const res = await POST(
+      createRequest("POST", "/api/roster/shifts", { body: validBody }),
+    );
+    expect(res.status).toBe(201);
+  });
+
   it("creates the shift when blocking certs are valid for the date", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     // Shift date 2026-04-20; everything expires after.
@@ -310,6 +382,12 @@ describe("POST /api/roster/shifts", () => {
         select?: Record<string, boolean>;
       };
       if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "cleared",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
       if (where?.id === "u-1") return Promise.resolve({ name: "Alice" });
       return Promise.resolve(null);
     });
@@ -390,6 +468,12 @@ describe("PATCH /api/roster/shifts/[id]", () => {
         select?: Record<string, boolean>;
       };
       if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "cleared",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
       if (where?.id === "u-2") return Promise.resolve({ name: "Bob" });
       return Promise.resolve(null);
     });
@@ -421,6 +505,12 @@ describe("PATCH /api/roster/shifts/[id]", () => {
         select?: Record<string, boolean>;
       };
       if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "cleared",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
       if (where?.id === "u-2") return Promise.resolve({ name: "Bob" });
       return Promise.resolve(null);
     });
