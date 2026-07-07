@@ -51,7 +51,7 @@ async function loadQuestions(moduleId: string): Promise<QuizQuestion[]> {
 
 // GET — start an attempt.
 export const GET = withApiAuth(async (_req, session, context) => {
-  const { id: moduleId } = await context!.params!;
+  const { moduleId } = await context!.params!;
   const userId = session!.user.id;
   const { enrollmentId } = await resolveEnrollment(moduleId, userId);
 
@@ -89,7 +89,7 @@ const submitSchema = z.object({
 
 // POST — submit an attempt.
 export const POST = withApiAuth(async (req, session, context) => {
-  const { id: moduleId } = await context!.params!;
+  const { moduleId } = await context!.params!;
   const userId = session!.user.id;
   const { enrollmentId } = await resolveEnrollment(moduleId, userId);
 

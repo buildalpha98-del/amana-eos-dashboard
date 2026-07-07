@@ -23,9 +23,9 @@ vi.mock("@/lib/logger", () => ({
   generateRequestId: () => "test-req-id",
 }));
 
-import { GET, POST } from "@/app/api/lms/modules/[id]/quiz/route";
+import { GET, POST } from "@/app/api/lms/modules/[moduleId]/quiz/route";
 
-const paramsOf = (id: string) => ({ params: Promise.resolve({ id }) });
+const paramsOf = (id: string) => ({ params: Promise.resolve({ moduleId: id }) });
 
 const QUESTION = {
   id: "q1",
