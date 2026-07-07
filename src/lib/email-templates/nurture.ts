@@ -284,25 +284,41 @@ export async function nurtureNudge1Email(firstName: string, centreName: string, 
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We sent through some info about {{centreName}} a few days ago and wanted to make
-      sure it all made sense. Choosing OSHC can throw up a lot of questions — here are
-      the ones we hear most:
+      We've sent a bit of info through this week and wanted to make sure it all made
+      sense. Here are the four questions we hear most — with the short answers:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0;color:#374151;font-size:14px;line-height:2.2;">
-            <strong>"What does a typical day look like?"</strong><br/>
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"What does a typical afternoon look like?"</strong><br/>
+            Afternoon tea together, then your child chooses — sport, art &amp; STEM,
+            Qur'an time with Iqra Circle, or knocking over homework with our educators.
+          </p>
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
             <strong>"How much will I actually pay after CCS?"</strong><br/>
+            Most families land between <strong>$3 and $10 a session</strong>.
+            <a href="https://amanaoshc.com.au/fees#calculator" style="color:#004E64;font-weight:700;">Your
+            exact number in 30 seconds &#8594;</a>
+          </p>
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
             <strong>"Can I change my days later?"</strong><br/>
-            <strong>"What if my child is nervous about starting?"</strong>
+            Yes — days can be adjusted with our team as your routine changes
+            (with 7 days' notice for recurring bookings).
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"What if my child is nervous about starting?"</strong><br/>
+            Completely normal — and they're welcome to visit with you before their first
+            session. On day one, our educators personally collect your child from their
+            classroom, you'll get a notification the moment they're signed in, and we'll
+            send you photos of how they're settling in.
           </p>
         </td>
       </tr>
     </table>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      If any of these are on your mind (or something else entirely), just hit reply.
-      We're real people and we read every email.
+      Something else on your mind? <strong>Just hit reply</strong> — we're real people
+      and we read every email.
     </p>
     <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
       Or if you're ready to lock in a spot, your enrolment form is waiting — it takes
@@ -320,7 +336,11 @@ export async function nurtureNudge1Email(firstName: string, centreName: string, 
       enrolUrl: escapeHtml(url),
       enrolButton: buttonHtml("Start Your Enrolment", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "The four things parents usually ask before enrolling — answered in one minute.",
+      }),
   });
 }
 
