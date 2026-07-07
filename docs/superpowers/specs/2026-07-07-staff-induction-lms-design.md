@@ -181,7 +181,9 @@ A focused, full-screen player **without the main dashboard chrome** — the lear
 ### Authoring (admin, inside `/onboarding` course editor)
 The course/module editor gains: an **image-upload button** (calls `/api/upload`, inserts the returned Blob URL as a markdown image), a **video embed field** (paste a YouTube/Loom/Vimeo link), and the quiz question editor (question, options, correct answer, explanation). A live preview renders the module exactly as the player will.
 
-**Security note**: supporting inline media requires widening the `rehype-sanitize` allow-list to permit `<img>` (Blob-host `src` only) and `<iframe>` (whitelisted video hosts: youtube.com/youtube-nocookie.com, loom.com, vimeo.com). This is a scoped, reviewed change to the sanitizer schema with an explicit host allow-list — not a blanket relaxation — and must be unit-tested against script-injection payloads.
+**Security note**: supporting inline media requires widening the `rehype-sanitize` allow-list to permit `<img>` (Blob-host `src` only) and `<iframe>` (whitelisted video hosts: youtube.com/youtube-nocookie.com, loom.com, vimeo.com). This is a scoped, reviewed change to the sanitizer schema with an explicit host allow-list — not a blanket relaxation — and must be unit-tested against script-injection payloads. Two hard constraints for the implementation:
+- **The widened schema is applied ONLY to the course-player/module renderer.** The other `rehypeSanitize` call sites (`ReportViewer`, `AiDraftReviewPanel`, `FloatingChatWidget`) use the bare default schema and take less-trusted input — the relaxed `<iframe>` allowance must never leak into them. Define the widened schema as a named local, not a global override.
+- **The sanitized, host-validated iframe renderer is net-new.** The only existing iframe embed (`help/HelpContent.tsx`) is a raw, unvalidated `<iframe src={videoUrl}>` — do NOT reuse it as the pattern. Build the host-allow-listed renderer fresh; it can later be back-applied to HelpContent.
 
 **Admin additions to `/onboarding` (Staff Lifecycle)**:
 - Induction pipeline board: who is at which stage, days in stage, blockers.
