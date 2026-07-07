@@ -155,17 +155,33 @@ Enforcement points:
 
 **Admin override**: owner/head_office only, requires a reason, writes an `ActivityLog` entry, and sets `inductionOverrideUntil` (e.g. end of the shift in question). `assertUserCleared()` passes while the window is active — expiry is a simple timestamp comparison in the check itself, no cron needed.
 
-**New-starter locked mode**: while `inductionStatus` is `new_starter`/`in_training` *without* grace, `canAccessPage()` is overlaid to permit only: `/my-training`, own profile, `/handbook`, `/policies`. Implemented as an overlay on the existing page-access system — **not** a new Role enum value (avoids the VALID_ROLES 401 class of bug). Backfilled staff with active grace keep full access.
+**New-starter locked mode**: while `inductionStatus` is `new_starter`/`in_training` *without* grace, `canAccessPage()` is overlaid to permit only: `/my-training`, `/learn/[enrollmentId]` (the course player), own profile, `/handbook`, `/policies`. Implemented as an overlay on the existing page-access system — **not** a new Role enum value (avoids the VALID_ROLES 401 class of bug). Backfilled staff with active grace keep full access.
 
 This means when a backfilled veteran's grace **expires** without completing the essentials, they drop into locked mode alongside the roster/clock-in gate — losing general dashboard access until they finish. This is deliberate: expiry is the point at which a backfilled user is treated exactly like an uncleared new starter. Because it is a mid-employment behaviour change for an existing staff member, the final-week daily reminders (see Automation) must make the consequence explicit, and the admin override remains available for genuine edge cases.
 
-## Learner Experience — `/my-training`
+## Learner Experience
 
-New page, People section, mobile-first (nav + `allPages` + every role's `rolePageAccess` list per the new-page checklist).
+Two surfaces: a **hub** (`/my-training`, inside the dashboard) and a dedicated **immersive course player** (`/learn/[enrollmentId]`, opens in a new tab). Both mobile-first, both added to `nav-config` + `allPages` + every role's `rolePageAccess` list (and to the locked-mode allow-list) per the new-page checklist.
 
-- **New starters**: journey view — progress ring, 7 courses as steps, blockers list ("2 courses left, WWCC not uploaded"), what happens next.
-- **Course player**: module list sidebar (accordion on mobile), content pane (markdown via existing react-markdown stack, video embed, linked documents), quiz UI with instant feedback + explanations, completion celebration.
-- **Cleared staff**: this month's course front and centre, overdue flags, training history, downloadable completion certificates (jsPDF, existing branding pattern).
+### Hub — `/my-training`
+- **New starters**: journey view — progress ring, courses as ordered steps, blockers list ("2 courses left, WWCC not uploaded"), what happens next. Each course card has a **Start / Continue** button that opens the player in a new tab (`target="_blank"`).
+- **Cleared staff**: this month's course front and centre, overdue flags, training history, downloadable completion certificates (jsPDF, existing branding pattern) — each also launching the player.
+
+### Immersive course player — `/learn/[enrollmentId]` (new tab)
+A focused, full-screen player **without the main dashboard chrome** — the learner does one thing: work through the course.
+
+- **Click-through, sequential flow**: one module at a time with a top progress bar and Prev/Next. **Next is gated** — a content module unlocks Next only after the minimum time-on-page (from `duration`, floor 60s); a quiz module unlocks Next only after a passing attempt. Read → then answer, module by module, exactly as described.
+- **Rich, interactive content per module** — rendered with the existing react-markdown + remark-gfm + rehype-sanitize stack, extended for media:
+  - **Photos**: uploaded through the existing authenticated `/api/upload` endpoint (Vercel Blob; already accepts png/jpeg/gif/webp/heic, 10MB limit), inserted as markdown images and placeable anywhere in a module. Multiple per module.
+  - **Videos**: embedded from YouTube, Loom, or Vimeo URLs, auto-rendered as responsive iframes (the established `resourceUrl`/`videoUrl` embed pattern). A module may carry a primary video plus additional embeds inline. No direct large-file video upload — embeds only (cost + bandwidth).
+  - Optional linked documents (`documentId`) render as download cards.
+- **Quiz UI**: one question at a time or a scrollable set, instant per-question feedback with the `explanation` shown after answering, score + pass/fail summary, retry on fail (fresh shuffle).
+- **Completion screen**: celebration, updated readiness ("1 course left before you're ready to work"), and a link back to the hub. Progress persists per module via the existing `LMSModuleProgress`, so closing the tab resumes where they left off.
+
+### Authoring (admin, inside `/onboarding` course editor)
+The course/module editor gains: an **image-upload button** (calls `/api/upload`, inserts the returned Blob URL as a markdown image), a **video embed field** (paste a YouTube/Loom/Vimeo link), and the quiz question editor (question, options, correct answer, explanation). A live preview renders the module exactly as the player will.
+
+**Security note**: supporting inline media requires widening the `rehype-sanitize` allow-list to permit `<img>` (Blob-host `src` only) and `<iframe>` (whitelisted video hosts: youtube.com/youtube-nocookie.com, loom.com, vimeo.com). This is a scoped, reviewed change to the sanitizer schema with an explicit host allow-list — not a blanket relaxation — and must be unit-tested against script-injection payloads.
 
 **Admin additions to `/onboarding` (Staff Lifecycle)**:
 - Induction pipeline board: who is at which stage, days in stage, blockers.
@@ -209,6 +225,8 @@ Per existing route-test conventions (Vitest, prisma-mock, input-based mock routi
 - Quiz: scoring, pass boundary (exactly 80%), attempt numbering, shuffled options, quiz-gated module completion.
 - Crons: auth rejection, lock skip, happy path (monthly enrol dedup, grace expiry) for both crons.
 - Practical sign-off: completion triggers `cleared` only from `awaiting_signoff`; permission checks (coordinator+ only).
+- Player gating: content-module Next locked until min time-on-page; quiz-module Next locked until a passing attempt; progress resumes after tab close.
+- Sanitizer: widened `rehype-sanitize` schema renders whitelisted `<img>`/`<iframe>` but strips `<script>`, `on*` handlers, `javascript:` URLs, and non-whitelisted iframe hosts.
 
 ## Risks
 
