@@ -664,27 +664,59 @@ export async function nurtureFormAbandonmentEmail(firstName: string, centreName:
 
 // ─── First Session Reminder (day before) ─────────────────────
 
+/**
+ * Website centre pages carry the service-specific detail this email can't:
+ * exact spot in the school (usually the hall), photos, and the centre's
+ * direct number for pickup dramas. Keyed by Service.code.
+ */
+const CENTRE_WEBSITE_SLUGS: Record<string, string> = {
+  "MFIS-GA": "mfis-greenacre",
+  "MFIS-HP": "mfis-hoxton-park",
+  "MFIS-BH": "mfis-beaumont-hills",
+  "UG": "unity-grammar",
+  "ARK": "arkana-college",
+  "MNC": "minarah-college",
+  "IRF": "irfan-college",
+  "AICS": "aics",
+  "ATC": "al-taqwa-college",
+  "MIN-OFF": "minaret-officer",
+  "MIN-SPR": "minaret-springvale",
+  "MIN-DOV": "minaret-doveton",
+  "AIA-COB": "aia-kkcc",
+};
+
+export function centreWebsiteUrl(serviceCode?: string | null): string | undefined {
+  const slug = serviceCode ? CENTRE_WEBSITE_SLUGS[serviceCode] : undefined;
+  return slug ? `https://amanaoshc.com.au/centres/${slug}` : undefined;
+}
+
 export function nurtureSessionReminderEmail(
   firstName: string,
   centreName: string,
   serviceAddress?: string,
   orientationVideoUrl?: string,
+  websiteUrl?: string,
 ) {
   // Escape untrusted text before it goes into the HTML body.
   firstName = escapeHtml(firstName);
   centreName = escapeHtml(centreName);
   if (serviceAddress) serviceAddress = escapeHtml(serviceAddress);
   const subject = `Tomorrow's the big day! Everything you need to know`;
-  const addressBlock = serviceAddress
-    ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#eff6ff;">
-        <tr>
-          <td style="padding:16px;">
-            <p style="margin:0 0 4px;color:#1e40af;font-size:13px;font-weight:600;">WHERE TO GO</p>
-            <p style="margin:0;color:#1e3a5f;font-size:15px;font-weight:700;">${serviceAddress}</p>
-          </td>
-        </tr>
-      </table>`
-    : "";
+  const whereBlock = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
+      <tr>
+        <td style="padding:16px 20px;">
+          <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">WHERE TO GO</p>
+          ${serviceAddress ? `<p style="margin:0 0 8px;color:#004E64;font-size:15px;font-weight:700;">${serviceAddress}</p>` : ""}
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            We're right inside the school — most of our services run from the school hall.
+            ${websiteUrl ? `Your centre's exact spot, photos, and the direct number to call if
+            you're ever stuck at pickup are all on
+            <a href="${websiteUrl}" style="color:#004E64;font-weight:700;">your centre's page &#8594;</a>` : "Reply to this email if you're not sure exactly where to find us."}
+          </p>
+        </td>
+      </tr>
+    </table>`;
   const videoBlock = orientationVideoUrl
     ? `<p style="margin:16px 0 8px;color:#374151;font-size:14px;line-height:1.7;">
         One more thing — our 2-minute orientation video covers everything your child needs
@@ -693,54 +725,60 @@ export function nurtureSessionReminderEmail(
       ${buttonHtml("Watch Orientation Video", orientationVideoUrl)}`
     : "";
   const html = parentEmailLayout(`
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       See you tomorrow, ${firstName}!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Your child's first day at ${centreName} is tomorrow and we couldn't be more excited!
       Here's your quick-reference cheat sheet:
     </p>
-    ${addressBlock}
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+    ${whereBlock}
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #FFF2BF;border-radius:12px;overflow:hidden;">
       <tr>
-        <td style="padding:16px;background-color:#f0fdf4;border-bottom:1px solid #dcfce7;">
-          <p style="margin:0 0 4px;color:#065f46;font-size:13px;font-weight:600;">PACK THE BAG</p>
-          <p style="margin:0;color:#047857;font-size:14px;line-height:1.8;">
-            Water bottle (labelled) &#8226; Hat &#8226; Comfy clothes &#8226; Spare outfit &#8226;
-            Sunscreen (applied before drop-off)
+        <td style="padding:16px 20px;background-color:#ffffff;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">PREP THE KIDDO</p>
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.8;">
+            They'll already be in their school clothes — just let them know they'll knock
+            over their homework and have some fun before you arrive.
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#fefce8;border-bottom:1px solid #fde68a;">
-          <p style="margin:0 0 4px;color:#854d0e;font-size:13px;font-weight:600;">KNOW THE TIMES</p>
-          <p style="margin:0;color:#92400e;font-size:14px;line-height:1.8;">
-            <strong>BSC:</strong> Drop off from 6:30 AM &nbsp;|&nbsp;
-            <strong>ASC:</strong> Pick up by 6:00 PM
+        <td style="padding:16px 20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">KNOW THE TIMES</p>
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.8;">
+            <strong>Before School Care:</strong> drop off from 6:30 AM &nbsp;&#8226;&nbsp;
+            <strong>Afternoons:</strong> pick up whenever suits you, latest 6:30 PM
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#eff6ff;">
-          <p style="margin:0 0 4px;color:#1e40af;font-size:13px;font-weight:600;">DON'T FORGET</p>
-          <p style="margin:0;color:#1e3a5f;font-size:14px;line-height:1.8;">
-            Sign in/out at the front desk &#8226; Only authorised people can collect your child &#8226;
-            Any medication needs a signed form
+        <td style="padding:16px 20px;background-color:#ffffff;">
+          <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">DON'T FORGET</p>
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.8;">
+            Sign in/out on arrival and pickup &#8226; Only authorised people can collect
+            your child &#8226; Any medication needs a signed form
           </p>
         </td>
       </tr>
     </table>
+    <p style="margin:16px 0 16px;color:#004E64;font-size:14px;line-height:1.7;">
+      <strong>And here's how you'll know they're doing great:</strong> our educators collect
+      your child straight from their classroom, you'll get a notification the moment they're
+      signed in, and we'll send you photos of how they're settling in during the session.
+    </p>
     ${videoBlock}
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
-      Last-minute nerves (yours or theirs) are totally normal! Our educators are pros at
-      helping children settle in. If you have any questions tonight, reply and we'll get
-      back to you first thing.
+      Last-minute nerves — yours or theirs — are totally normal. Our educators are pros at
+      helping children settle in. Any questions tonight? Just reply.
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
-      See you soon!<br/>
+      See you tomorrow!<br/>
       <strong>The ${centreName} Team</strong>
     </p>
-  `);
+  `, {
+    preheader: "Where to find us, first-day prep, and how you'll know they're settled — all here.",
+  });
   return { subject, html };
 }
 
