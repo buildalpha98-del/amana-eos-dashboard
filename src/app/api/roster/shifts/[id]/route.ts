@@ -5,6 +5,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
 import { assertStaffCertsValidForShift } from "../../_lib/cert-guard";
+import { assertUserCleared } from "@/lib/induction";
 
 // ---------------------------------------------------------------------------
 // Partial-update schema mirrors the create schema but every field optional.
@@ -85,6 +86,10 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     (data.date && newDate.getTime() !== existing.date.getTime());
   if (newUserId && userOrDateChanged) {
     await assertStaffCertsValidForShift({ userId: newUserId, shiftDate: newDate });
+  }
+  // Induction gate: reassigning a shift to an un-cleared user is blocked.
+  if (data.userId) {
+    await assertUserCleared(data.userId);
   }
 
   const shift = await prisma.rosterShift.update({

@@ -24,6 +24,7 @@ import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
+import { assertUserCleared } from "@/lib/induction";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -49,6 +50,8 @@ export const POST = withApiAuth(async (_req, session, context) => {
       "You can only clock in to a shift assigned to you.",
     );
   }
+  // Induction gate: an un-cleared new starter cannot clock in.
+  await assertUserCleared(session.user.id);
 
   // Idempotent: already clocked in → return as-is.
   if (shift.actualStart) {
