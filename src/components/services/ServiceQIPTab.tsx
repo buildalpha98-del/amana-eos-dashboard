@@ -12,12 +12,58 @@ import {
   AlertCircle,
   Clock,
   X,
+  Sparkles,
+  Copy,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AiButton } from "@/components/ui/AiButton";
 import { toast } from "@/hooks/useToast";
 import { useService } from "@/hooks/useServices";
+import { useQipSuggestions } from "@/hooks/useQipSuggestions";
+import { QipSuggestionsPanel } from "@/components/services/QipSuggestionsPanel";
+import { QipEvidenceBrowser } from "@/components/services/QipEvidenceBrowser";
+
+/**
+ * Plain-text render of the document for pasting into the government portal
+ * (NSW SAT portal / VIC QIP submission). Field names follow the API payload;
+ * empty sections are skipped.
+ */
+function qipToPlainText(
+  docLabel: string,
+  areas: Array<Record<string, unknown>>,
+): string {
+  const sectionOrder: Array<[string, string]> = [
+    ["strengths", "Strengths"],
+    ["areasForImprovement", "Areas for improvement"],
+    ["improvementGoal", "Improvement goal"],
+    ["strategies", "Strategies"],
+    ["timeline", "Timeline"],
+    ["responsiblePerson", "Responsible person"],
+    ["evidenceCollected", "Evidence collected"],
+    ["progressNotes", "Progress notes"],
+  ];
+  const blocks = [...areas]
+    .sort((a, b) => Number(a.qualityArea ?? 0) - Number(b.qualityArea ?? 0))
+    .map((area) => {
+      const qaNum = area.qualityArea;
+      const qaName = area.qualityAreaName ?? "";
+      const lines = sectionOrder
+        .map(([key, label]) => {
+          const value = area[key];
+          return typeof value === "string" && value.trim()
+            ? `${label}:\n${value.trim()}`
+            : null;
+        })
+        .filter(Boolean);
+      return [`Quality Area ${qaNum}: ${qaName}`, ...lines].join("\n\n");
+    });
+  return [
+    `${docLabel} — exported ${new Date().toLocaleDateString("en-AU")}`,
+    ...blocks,
+  ].join("\n\n────────────────────\n\n");
+}
 
 // 2026-04-30: NSW services use the SAT (Self-Assessment Tool) terminology
 // instead of QIP (Quality Improvement Plan). Same underlying model — just
@@ -142,6 +188,27 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
 
   const qip = data?.[0];
 
+  // Suggestion review + evidence browser state. Hooks live above the early
+  // returns; the suggestions query no-ops until a QIP exists.
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [showEvidence, setShowEvidence] = useState(false);
+  const { data: suggestionData } = useQipSuggestions(qip?.id);
+  const pendingCount = suggestionData?.count ?? 0;
+
+  async function copyForPortal() {
+    if (!qip) return;
+    const text = qipToPlainText(
+      docLabels.long,
+      qip.qualityAreas as unknown as Array<Record<string, unknown>>,
+    );
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ description: `Copied — paste into the ${docLabels.short} portal` });
+    } catch {
+      toast({ variant: "destructive", description: "Couldn't copy to clipboard" });
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -193,6 +260,59 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Pending AI suggestions banner */}
+      {pendingCount > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-violet-800">
+            <Sparkles className="w-4 h-4" />
+            <span>
+              <strong>{pendingCount}</strong> AI-proposed {docLabels.short} update
+              {pendingCount === 1 ? "" : "s"} awaiting your review — nothing changes
+              until you approve.
+            </span>
+          </div>
+          <button
+            onClick={() => setReviewOpen(true)}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition"
+          >
+            Review
+          </button>
+        </div>
+      )}
+
+      {/* Evidence + export actions */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setShowEvidence((s) => !s)}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition",
+            showEvidence
+              ? "bg-brand text-white border-transparent"
+              : "bg-card text-foreground border-border hover:bg-surface/60",
+          )}
+        >
+          <Search className="w-3.5 h-3.5" />
+          Evidence browser
+        </button>
+        <button
+          onClick={copyForPortal}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-surface/60 transition"
+        >
+          <Copy className="w-3.5 h-3.5" />
+          Copy for portal
+        </button>
+      </div>
+
+      {showEvidence && <QipEvidenceBrowser serviceId={serviceId} />}
+
+      <QipSuggestionsPanel
+        qipId={qip.id}
+        serviceId={serviceId}
+        documentLabel={docLabels.short}
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+      />
+
       {/* QIP Header */}
       <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center justify-between">
