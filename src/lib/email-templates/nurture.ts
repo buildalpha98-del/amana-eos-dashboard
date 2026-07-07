@@ -1105,7 +1105,7 @@ export async function nurtureWeek2FeedbackEmail(
     key: "nurture.week2Feedback",
     defaultSubject: "Two weeks in — we'd love a quick word from you",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       How's everything going?
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -1116,13 +1116,13 @@ export async function nurtureWeek2FeedbackEmail(
       to know how you're finding things. Your feedback — good or bad — helps us get better
       for every family.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0 0 12px;color:#111827;font-size:14px;font-weight:600;">
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;font-weight:700;">
             A few things we'd love to hear about:
           </p>
-          <p style="margin:0;color:#374151;font-size:14px;line-height:2;">
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:2;">
             &#8226; Is your child enjoying their time here?<br/>
             &#8226; Has the drop-off/pickup process been smooth?<br/>
             &#8226; Is there anything we could be doing differently?<br/>
@@ -1137,6 +1137,10 @@ export async function nurtureWeek2FeedbackEmail(
     </p>
     {{feedbackButton}}
     <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Loved something? Tell us — with your permission, kind words from parents like you
+      help other families find us.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Or just hit reply — even a one-liner is incredibly helpful. We read and respond to
       every message personally.
     </p>
@@ -1151,7 +1155,11 @@ export async function nurtureWeek2FeedbackEmail(
       feedbackUrl: escapeHtml(surveyUrl),
       feedbackButton: buttonHtml("Share Your Feedback (30 sec)", surveyUrl),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "Tap a face, tell us what you loved (or what we should fix). 30 seconds.",
+      }),
   });
 }
 
