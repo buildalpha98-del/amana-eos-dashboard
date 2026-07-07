@@ -1226,40 +1226,59 @@ export async function nurtureNpsSurveyEmail(
 export async function nurtureMonth1ReferralEmail(firstName: string, centreName: string) {
   return applyEmailTemplateOverride({
     key: "nurture.month1Referral",
-    defaultSubject: "Know another family? We'll thank you with $50",
+    defaultSubject: "Know another family? A free day for you — and for them",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      Share the love (and earn a reward)
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
+      Share the love (and both get rewarded)
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Your child has been part of the {{centreName}} family for over a month now, and
-      we hope you've been happy with the experience. If so, we'd love your help
-      spreading the word!
+      Your child's been part of the {{centreName}} family for over a month now — and word
+      of mouth from parents like you is how most families find us.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;text-align:center;">
           <p style="margin:0 0 8px;color:#FECE00;font-size:22px;font-weight:800;">
-            $50 Referral Reward
+            A Free Day — For You AND Your Friend
           </p>
           <p style="margin:0;color:#ffffff;font-size:14px;line-height:1.6;">
-            For every family you refer who enrols at {{centreName}},<br/>
-            you'll receive a <strong>$50 credit</strong> on your account.
+            Refer a family who enrols at {{centreName}} and you <strong>both</strong> get a
+            free session day, added to your accounts once their child attends their
+            first session.
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      <strong>Three easy ways to refer:</strong>
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
+      <tr>
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>1. Reply</strong> with your friend's name and number — we'll reach out
+            personally. No hard sell, just a friendly hello.
+          </p>
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>2. Forward this note</strong> to a friend or your school's group chat:<br/>
+            <em>"Salam! Our kids go to {{centreName}} — before &amp; after school care with
+            Qur'an time, homework help and a proper feed, right on school grounds. With CCS
+            it can be a few dollars a session. They're taking enrolments:
+            amanaoshc.com.au"</em>
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>3. Tell them to mention your name</strong> when they enrol so we know
+            who to thank.
           </p>
         </td>
       </tr>
     </table>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      It's simple: just reply to this email with your friend's name and email (or phone
-      number), and we'll reach out to them personally. No hard sell — just a friendly hello
-      and an offer to answer any questions.
-    </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Word of mouth from families like yours is the best way new families find us.
-      Thank you for being part of our community!
+      And your friend risks nothing — nothing is charged until after their child attends,
+      and only if they love it.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       With gratitude,<br/>
@@ -1267,7 +1286,11 @@ export async function nurtureMonth1ReferralEmail(firstName: string, centreName: 
     </p>
   `,
     vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "A free day for you — and your friend's first days are covered by our guarantee.",
+      }),
   });
 }
 
