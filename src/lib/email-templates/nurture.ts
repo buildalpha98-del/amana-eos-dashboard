@@ -187,23 +187,23 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
     key: "nurture.howToEnrol",
     defaultSubject: "3 steps, 10 minutes — here's how to secure your child's spot",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       Enrolling is easier than you think
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We've designed our enrolment form to be as painless as possible. Most families
-      finish it in about 10 minutes (yes, really). Here's a quick preview of what you'll need:
+      We've designed our enrolment form to be as painless as possible — most families
+      finish in about 10 minutes. Here's what you'll need:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border:1px solid #FFF2BF;border-radius:12px;overflow:hidden;">
       <tr>
-        <td style="padding:20px;background-color:#eff6ff;border-bottom:1px solid #dbeafe;">
-          <p style="margin:0 0 4px;color:#1e40af;font-size:14px;font-weight:700;">
-            Step 1: Your child's details
+        <td style="padding:20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0 0 4px;color:#004E64;font-size:14px;font-weight:700;">
+            <span style="color:#B78F00;">Step 1</span> — Your child's details
           </p>
-          <p style="margin:0;color:#3b82f6;font-size:13px;line-height:1.6;">
+          <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
             Name, date of birth, medical info, and allergies. Tip: have your Medicare card and
             both CRNs (yours and your child's) handy. Birth certificate and immunisation
             history can be uploaded later. Enrolling siblings? Add all your children in the
@@ -212,35 +212,43 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
         </td>
       </tr>
       <tr>
-        <td style="padding:20px;background-color:#f0fdf4;border-bottom:1px solid #dcfce7;">
-          <p style="margin:0 0 4px;color:#065f46;font-size:14px;font-weight:700;">
-            Step 2: Emergency contacts &amp; authorised pickups
+        <td style="padding:20px;background-color:#ffffff;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0 0 4px;color:#004E64;font-size:14px;font-weight:700;">
+            <span style="color:#B78F00;">Step 2</span> — Emergency contacts &amp; authorised pickups
           </p>
-          <p style="margin:0;color:#047857;font-size:13px;line-height:1.6;">
+          <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
             Who can we call in an emergency? Who's allowed to collect your child? (You'll need
             their names and phone numbers.)
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:20px;background-color:#fefce8;">
-          <p style="margin:0 0 4px;color:#854d0e;font-size:14px;font-weight:700;">
-            Step 3: Choose your days
+        <td style="padding:20px;background-color:#FFFAE6;">
+          <p style="margin:0 0 4px;color:#004E64;font-size:14px;font-weight:700;">
+            <span style="color:#B78F00;">Step 3</span> — Days &amp; payment
           </p>
-          <p style="margin:0;color:#a16207;font-size:13px;line-height:1.6;">
-            Before School Care, After School Care, or both — pick the days that work for your family.
+          <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
+            Pick Before School Care, After School Care, or both — and set up your direct
+            debit so everything's ready for day one. <strong style="color:#004E64;">And no,
+            we won't charge you anything now</strong> — nothing is debited until after your
+            child attends, and only if they love their first days. That's our guarantee.
           </p>
         </td>
       </tr>
     </table>
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;text-align:center;">
+      <em>Spots are confirmed in enrolment order — the earlier you're in, the better your
+      pick of days.</em>
+    </p>
     {{startButton}}
     <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">
       Don't worry if you can't finish in one go — your progress is automatically saved
       and you can come back anytime.
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
-      Need a hand? Reply to this email or call the centre. We can even fill it in together
-      over the phone.
+      Need a hand? Reply to this email or call
+      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> —
+      we can even fill it in together over the phone.
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
@@ -251,9 +259,13 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(enrolUrl),
-      startButton: buttonHtml("Start Your Enrolment", enrolUrl),
+      startButton: buttonHtml("Start Now — Takes 10 Minutes", enrolUrl),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "Medicare card and CRNs handy? You're 10 minutes from locking in your child's spot.",
+      }),
   });
 }
 
