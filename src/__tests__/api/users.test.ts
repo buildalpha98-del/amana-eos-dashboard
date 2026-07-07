@@ -247,6 +247,48 @@ describe("POST /api/users", () => {
     expect(body.name).toBe("New User");
     expect(body.email).toBe("new@test.com");
   });
+
+  it("creates a normal account with inductionStatus cleared (default)", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.user.create.mockResolvedValue({
+      id: "n1", name: "Admin User", email: "a@test.com", role: "admin",
+      active: true, serviceId: null, state: null, service: null, createdAt: new Date(),
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    await POST(
+      createRequest("POST", "/api/users", {
+        body: { name: "Admin User", email: "a@test.com", password: "StrongPass123!!", role: "admin" },
+      }),
+    );
+    const createArg = prismaMock.user.create.mock.calls[0][0];
+    // No newStarter flag → induction fields untouched (DB default is `cleared`).
+    expect(createArg.data.inductionStatus).toBeUndefined();
+  });
+
+  it("creates a new starter locked in induction (new_starter + due date)", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.user.create.mockResolvedValue({
+      id: "n2", name: "Educator", email: "edu@test.com", role: "staff",
+      active: true, serviceId: "svc-1", state: null,
+      service: { id: "svc-1", name: "Centre", code: "MFIS" }, createdAt: new Date(),
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const res = await POST(
+      createRequest("POST", "/api/users", {
+        body: {
+          name: "Educator", email: "edu@test.com", password: "StrongPass123!!",
+          role: "staff", serviceId: "svc-1",
+          newStarter: true, startDate: "2026-08-01T00:00:00.000Z",
+        },
+      }),
+    );
+    expect(res.status).toBe(201);
+    const createArg = prismaMock.user.create.mock.calls[0][0];
+    expect(createArg.data.inductionStatus).toBe("new_starter");
+    expect(createArg.data.inductionDueDate).toBeInstanceOf(Date);
+  });
 });
 
 describe("PATCH /api/users/[id]", () => {
