@@ -98,6 +98,39 @@ describe("reflections API", () => {
         }),
       );
     });
+
+    it("filters by from/to date range", async () => {
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
+      prismaMock.staffReflection.findMany.mockResolvedValue([]);
+      const res = await GET(
+        createRequest(
+          "GET",
+          "/api/services/s1/reflections?type=daily&from=2026-07-06&to=2026-07-10",
+        ),
+        await ctx(),
+      );
+      expect(res.status).toBe(200);
+      expect(prismaMock.staffReflection.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            type: "daily",
+            createdAt: {
+              gte: new Date("2026-07-06"),
+              lte: new Date("2026-07-10"),
+            },
+          }),
+        }),
+      );
+    });
+
+    it("400 on invalid from date", async () => {
+      mockSession({ id: "u1", name: "C", role: "member", serviceId: "s1" });
+      const res = await GET(
+        createRequest("GET", "/api/services/s1/reflections?from=not-a-date"),
+        await ctx(),
+      );
+      expect(res.status).toBe(400);
+    });
   });
 
   describe("POST /api/services/[id]/reflections", () => {

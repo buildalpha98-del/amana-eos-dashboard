@@ -25,6 +25,7 @@ import {
   type ReflectionItem,
 } from "@/hooks/useReflections";
 import { useReflectionAiContext } from "@/hooks/useAiContext";
+import { DailyReflectionCard } from "@/components/services/DailyReflectionCard";
 import {
   Dialog,
   DialogContent,
@@ -45,11 +46,85 @@ const QA_OPTIONS: readonly { value: number; label: string }[] = [
 
 const TYPE_OPTIONS = [
   { value: "all", label: "All types" },
+  { value: "daily", label: "Daily" },
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
   { value: "critical", label: "Critical" },
   { value: "team", label: "Team" },
 ];
+
+/** Monday 00:00 of the current week in Australia/Sydney, as a Date. */
+function sydneyWeekStart(): Date {
+  const now = new Date();
+  const syd = new Date(now.toLocaleString("en-US", { timeZone: "Australia/Sydney" }));
+  const offsetMs = syd.getTime() - now.getTime();
+  syd.setHours(0, 0, 0, 0);
+  syd.setDate(syd.getDate() - ((syd.getDay() + 6) % 7));
+  return new Date(syd.getTime() - offsetMs);
+}
+
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"] as const;
+
+/**
+ * Mon–Fri strip showing which days have a daily reflection this week.
+ * "Staff must do daily reflections" — this makes the gap visible without nagging.
+ */
+function DailyStatusStrip({ serviceId }: { serviceId: string }) {
+  const weekStart = useMemo(() => sydneyWeekStart(), []);
+  const { data } = useReflections(serviceId, {
+    type: "daily",
+    from: weekStart.toISOString(),
+  });
+
+  const doneDays = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of data?.items ?? []) {
+      set.add(
+        new Date(r.createdAt).toLocaleDateString("en-AU", {
+          timeZone: "Australia/Sydney",
+          weekday: "short",
+        }),
+      );
+    }
+    return set;
+  }, [data]);
+
+  const todayLabel = new Date().toLocaleDateString("en-AU", {
+    timeZone: "Australia/Sydney",
+    weekday: "short",
+  });
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+      <span className="text-[11px] font-medium text-[color:var(--color-muted)] uppercase tracking-wide">
+        This week
+      </span>
+      <div className="flex items-center gap-2">
+        {WEEKDAY_LABELS.map((day) => {
+          const done = doneDays.has(day);
+          const isToday = day === todayLabel;
+          return (
+            <div key={day} className="flex flex-col items-center gap-0.5">
+              <span
+                className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold border",
+                  done
+                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                    : "bg-gray-50 text-gray-400 border-gray-200",
+                  isToday && "ring-2 ring-[color:var(--color-primary,#004E64)]/40",
+                )}
+                title={done ? `${day}: daily reflection logged` : `${day}: no daily reflection yet`}
+              >
+                {done ? "✓" : "·"}
+              </span>
+              <span className="text-[9px] text-gray-400">{day}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const QA_FILTER_OPTIONS = [
   { value: "all", label: "All QAs" },
@@ -88,6 +163,8 @@ export function ServiceReflectionsTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-4">
+      <DailyReflectionCard serviceId={serviceId} />
+      <DailyStatusStrip serviceId={serviceId} />
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Reflections

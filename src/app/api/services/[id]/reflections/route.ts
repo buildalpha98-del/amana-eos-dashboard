@@ -19,7 +19,7 @@ function ensureServiceAccess(
   }
 }
 
-// GET /api/services/[id]/reflections?type=&qa=&authorId=&cursor=&limit=
+// GET /api/services/[id]/reflections?type=&qa=&authorId=&from=&to=&cursor=&limit=
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
   ensureServiceAccess(session.user.role, session.user.serviceId, id);
@@ -32,12 +32,28 @@ export const GET = withApiAuth(async (req, session, context) => {
   const cursor = url.searchParams.get("cursor") ?? undefined;
   const limit = safeLimit(url.searchParams.get("limit"), 20, 50);
 
+  const fromParam = url.searchParams.get("from");
+  const toParam = url.searchParams.get("to");
+  const from = fromParam ? new Date(fromParam) : undefined;
+  const to = toParam ? new Date(toParam) : undefined;
+  if ((from && isNaN(from.getTime())) || (to && isNaN(to.getTime()))) {
+    throw ApiError.badRequest("from/to must be valid dates");
+  }
+
   const items = await prisma.staffReflection.findMany({
     where: {
       serviceId: id,
       ...(type ? { type } : {}),
       ...(authorId ? { authorId } : {}),
       ...(qa && qa >= 1 && qa <= 7 ? { qualityAreas: { has: qa } } : {}),
+      ...(from || to
+        ? {
+            createdAt: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     take: limit + 1,
