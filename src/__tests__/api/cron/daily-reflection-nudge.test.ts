@@ -77,10 +77,10 @@ describe("/api/cron/daily-reflection-nudge", () => {
       { id: "s-done", name: "Sunny OSHC" },
       { id: "s-missing", name: "Moon OSHC" },
     ]);
-    prismaMock.staffReflection.count.mockImplementation(({ where }: any) =>
+    prismaMock.staffReflection.count.mockImplementation(({ where }: { where: { serviceId: string } }) =>
       Promise.resolve(where.serviceId === "s-done" ? 1 : 0),
     );
-    prismaMock.user.findMany.mockImplementation(({ where }: any) =>
+    prismaMock.user.findMany.mockImplementation(({ where }: { where: { serviceId: string } }) =>
       Promise.resolve(
         where.serviceId === "s-missing"
           ? [
@@ -90,7 +90,7 @@ describe("/api/cron/daily-reflection-nudge", () => {
           : [],
       ),
     );
-    prismaMock.pushSubscription.findMany.mockImplementation(({ where }: any) =>
+    prismaMock.pushSubscription.findMany.mockImplementation(({ where }: { where: { userId?: { in?: string[] } } }) =>
       Promise.resolve(
         where.userId?.in?.includes("u1")
           ? [{ id: "ps1", userId: "u1", endpoint: "https://push", p256dh: "k", auth: "a" }]

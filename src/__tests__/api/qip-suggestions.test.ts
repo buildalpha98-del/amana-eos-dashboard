@@ -125,7 +125,7 @@ describe("QIP suggestions API", () => {
       prismaMock.qipSuggestion.findFirst.mockResolvedValue(sugg);
       prismaMock.qIPQualityArea.update.mockResolvedValue({});
       prismaMock.qualityImprovementPlan.update.mockResolvedValue({});
-      prismaMock.qipSuggestion.update.mockImplementation(({ data }: any) =>
+      prismaMock.qipSuggestion.update.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
         Promise.resolve({ ...sugg, ...data }),
       );
       prismaMock.activityLog.create.mockResolvedValue({});

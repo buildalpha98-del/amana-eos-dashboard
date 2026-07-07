@@ -44,7 +44,7 @@ function primeBase() {
   prismaMock.cronRun.create.mockResolvedValue({ id: "run-1", status: "running" });
   prismaMock.cronRun.update.mockResolvedValue({});
 
-  prismaMock.aiPromptTemplate.findUnique.mockImplementation(({ where }: any) =>
+  prismaMock.aiPromptTemplate.findUnique.mockImplementation(({ where }: { where: { slug: string } }) =>
     Promise.resolve(
       where.slug === "nqs/tag-content"
         ? TAG_TEMPLATE
@@ -142,7 +142,7 @@ describe("/api/cron/qip-weekly-update", () => {
   it("backfills tags on untagged content with aiTagged=true", async () => {
     prismaMock.qualityImprovementPlan.findMany.mockResolvedValue([QIP]);
     // Untagged reflection in phase 1; nothing tagged for phase 2
-    prismaMock.staffReflection.findMany.mockImplementation(({ where }: any) =>
+    prismaMock.staffReflection.findMany.mockImplementation(({ where }: { where: { qualityAreas?: { isEmpty?: boolean } } }) =>
       Promise.resolve(
         where.qualityAreas?.isEmpty
           ? [{ id: "r-untagged", content: "We tidied the shed", createdAt: new Date() }]
@@ -170,7 +170,7 @@ describe("/api/cron/qip-weekly-update", () => {
 
   it("creates suggestions with evidence refs and notifies reviewers", async () => {
     prismaMock.qualityImprovementPlan.findMany.mockResolvedValue([QIP]);
-    prismaMock.staffReflection.findMany.mockImplementation(({ where }: any) =>
+    prismaMock.staffReflection.findMany.mockImplementation(({ where }: { where: { qualityAreas?: { isEmpty?: boolean } } }) =>
       Promise.resolve(where.qualityAreas?.isEmpty ? [] : [taggedReflection]),
     );
     vi.mocked(generateText).mockResolvedValue(
@@ -212,7 +212,7 @@ describe("/api/cron/qip-weekly-update", () => {
 
   it("creates nothing when the AI returns no changes", async () => {
     prismaMock.qualityImprovementPlan.findMany.mockResolvedValue([QIP]);
-    prismaMock.staffReflection.findMany.mockImplementation(({ where }: any) =>
+    prismaMock.staffReflection.findMany.mockImplementation(({ where }: { where: { qualityAreas?: { isEmpty?: boolean } } }) =>
       Promise.resolve(where.qualityAreas?.isEmpty ? [] : [taggedReflection]),
     );
     vi.mocked(generateText).mockResolvedValue('{"changes":[]}');
@@ -231,7 +231,7 @@ describe("/api/cron/qip-weekly-update", () => {
 
   it("survives malformed AI output (skips, still succeeds)", async () => {
     prismaMock.qualityImprovementPlan.findMany.mockResolvedValue([QIP]);
-    prismaMock.staffReflection.findMany.mockImplementation(({ where }: any) =>
+    prismaMock.staffReflection.findMany.mockImplementation(({ where }: { where: { qualityAreas?: { isEmpty?: boolean } } }) =>
       Promise.resolve(where.qualityAreas?.isEmpty ? [] : [taggedReflection]),
     );
     vi.mocked(generateText).mockResolvedValue("SORRY I CANNOT DO JSON TODAY");
@@ -249,7 +249,7 @@ describe("/api/cron/qip-weekly-update", () => {
 
   it("uses the AiGenerationCache on hit (no model call)", async () => {
     prismaMock.qualityImprovementPlan.findMany.mockResolvedValue([QIP]);
-    prismaMock.staffReflection.findMany.mockImplementation(({ where }: any) =>
+    prismaMock.staffReflection.findMany.mockImplementation(({ where }: { where: { qualityAreas?: { isEmpty?: boolean } } }) =>
       Promise.resolve(where.qualityAreas?.isEmpty ? [] : [taggedReflection]),
     );
     prismaMock.aiGenerationCache.findUnique.mockResolvedValue({

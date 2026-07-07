@@ -206,9 +206,9 @@ describe("reflections API", () => {
     function mockFanOutHappyPath() {
       mockSession({ id: "u1", name: "Edu", role: "staff", serviceId: "s1" });
       prismaMock.service.findUnique.mockResolvedValue({ id: "s1" });
-      prismaMock.child.findMany.mockImplementation(({ where }: any) =>
+      prismaMock.child.findMany.mockImplementation(({ where }: { where: { id: { in: string[] } } }) =>
         Promise.resolve(
-          (where.id.in as string[])
+          where.id.in
             .filter((id) => [CHILD_A, CHILD_B].includes(id))
             .map((id) => ({ id, firstName: "Kid" })),
         ),
@@ -220,11 +220,11 @@ describe("reflections API", () => {
         author: { id: "u1", name: "Edu", avatar: null },
       });
       prismaMock.learningObservation.createManyAndReturn.mockImplementation(
-        ({ data }: any) =>
-          Promise.resolve(data.map((_: unknown, i: number) => ({ id: `obs-${i + 1}` }))),
+        ({ data }: { data: Array<Record<string, unknown>> }) =>
+          Promise.resolve(data.map((_, i) => ({ id: `obs-${i + 1}` }))),
       );
       prismaMock.parentPost.create.mockResolvedValue({ id: "post-1" });
-      prismaMock.staffReflection.update.mockImplementation(({ data }: any) =>
+      prismaMock.staffReflection.update.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
         Promise.resolve({
           id: "r-daily",
           type: "daily",
