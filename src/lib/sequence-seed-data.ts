@@ -38,8 +38,9 @@ export const SEED_SEQUENCES: SeedSequence[] = [
     steps: [
       { name: "Welcome", delayHours: 0, templateKey: "welcome" },
       { name: "CCS Assist", delayHours: 24, templateKey: "ccs_assist" },
-      { name: "Nudge 1", delayHours: 72, templateKey: "nudge_1" },
-      { name: "Nudge 2", delayHours: 168, templateKey: "nudge_2" },
+      { name: "How to Enrol", delayHours: 48, templateKey: "how_to_enrol" },
+      { name: "Nudge 1", delayHours: 120, templateKey: "nudge_1" },
+      { name: "Nudge 2", delayHours: 216, templateKey: "nudge_2" },
       { name: "Final Nudge", delayHours: 336, templateKey: "final_nudge" },
     ],
   },

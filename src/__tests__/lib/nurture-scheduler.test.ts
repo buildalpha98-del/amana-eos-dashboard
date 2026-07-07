@@ -233,7 +233,7 @@ describe("scheduleNurtureFromStageChange (sequence system)", () => {
         where: expect.objectContaining({
           status: "pending",
           enrolment: { contactId: "contact-1", enquiryId: "enq-1" },
-          step: { templateKey: { in: ["nudge_1", "nudge_2", "final_nudge"] } },
+          step: { templateKey: { in: ["how_to_enrol", "nudge_1", "nudge_2", "final_nudge"] } },
         }),
       }),
     );

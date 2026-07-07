@@ -84,6 +84,7 @@ export async function scheduleNurtureFromStageChange(
 const PRE_ENROLMENT_KEYS = [
   "welcome",
   "ccs_assist",
+  "how_to_enrol",
   "form_support",
   "form_abandonment",
   "nudge_1",
@@ -93,8 +94,8 @@ const PRE_ENROLMENT_KEYS = [
 
 const STAGE_CANCEL_MAP: Record<string, string[]> = {
   // ccs_assist stays live during form_started — CCS help is still relevant
-  // while the family is mid-form.
-  form_started: ["nudge_1", "nudge_2", "final_nudge"],
+  // while the family is mid-form. how_to_enrol isn't: they've started.
+  form_started: ["how_to_enrol", "nudge_1", "nudge_2", "final_nudge"],
   first_session: PRE_ENROLMENT_KEYS,
   enrolled: PRE_ENROLMENT_KEYS,
   withdrawn: PRE_ENROLMENT_KEYS,

@@ -20,9 +20,22 @@
 import { parentEmailLayout, buttonHtml, escapeHtml } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
+/**
+ * Amana's own enrolment wizard — the form we push in every nurture email
+ * (NOT the OWNA portal). Callers that know the enquiry pass the prefilled
+ * per-enquiry link (`/enrol/<enquiryId>`) so the parent's details carry over
+ * and submission auto-advances their pipeline card to enrolled.
+ */
+function fallbackEnrolUrl(): string {
+  return process.env.NEXTAUTH_URL
+    ? `${process.env.NEXTAUTH_URL}/enrol`
+    : "https://amanaoshc.company/enrol";
+}
+
 // ─── Parent Nurture: Welcome ────────────────────────────────
 
-export async function nurtureWelcomeEmail(firstName: string, centreName: string) {
+export async function nurtureWelcomeEmail(firstName: string, centreName: string, enrolUrl?: string) {
+  const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.welcome",
     defaultSubject: "You've taken the first step! Welcome to {{centreName}}",
@@ -54,7 +67,8 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string)
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+    {{enrolButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       No pressure, no rush. We're here whenever you're ready to chat — just hit reply
       or give the centre a call. We'd love to answer any questions you have.
     </p>
@@ -63,7 +77,12 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string)
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(url),
+      enrolButton: buttonHtml("Start Your Enrolment", url),
+    },
     wrap: parentEmailLayout,
   });
 }
@@ -120,10 +139,8 @@ export async function nurtureCcsAssistEmail(firstName: string, centreName: strin
 
 // ─── Parent Nurture: How to Enrol (info_sent +48h) ──────────
 
-export async function nurtureHowToEnrolEmail(firstName: string, centreName: string) {
-  const enrolUrl = process.env.NEXTAUTH_URL
-    ? `${process.env.NEXTAUTH_URL}/enrol`
-    : "https://amanaoshc.company/enrol";
+export async function nurtureHowToEnrolEmail(firstName: string, centreName: string, prefilledEnrolUrl?: string) {
+  const enrolUrl = prefilledEnrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.howToEnrol",
     defaultSubject: "3 steps, 10 minutes — here's how to secure your child's spot",
@@ -197,7 +214,8 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
 
 // ─── Parent Nurture: Nudge 1 (info_sent +3d) ───────────────
 
-export async function nurtureNudge1Email(firstName: string, centreName: string) {
+export async function nurtureNudge1Email(firstName: string, centreName: string, enrolUrl?: string) {
+  const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.nudge1",
     defaultSubject: "Quick question, {{firstName}} — anything we can help with?",
@@ -229,19 +247,30 @@ export async function nurtureNudge1Email(firstName: string, centreName: string) 
       If any of these are on your mind (or something else entirely), just hit reply.
       We're real people and we read every email.
     </p>
-    <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      Or if you're ready to lock in a spot, your enrolment form is waiting — it takes
+      about 10 minutes and saves your progress as you go:
+    </p>
+    {{enrolButton}}
+    <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Talk soon,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(url),
+      enrolButton: buttonHtml("Start Your Enrolment", url),
+    },
     wrap: parentEmailLayout,
   });
 }
 
 // ─── Parent Nurture: Nudge 2 (nurturing +5d) ───────────────
 
-export async function nurtureNudge2Email(firstName: string, centreName: string) {
+export async function nurtureNudge2Email(firstName: string, centreName: string, enrolUrl?: string) {
+  const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.nudge2",
     defaultSubject: "A peek inside a day at {{centreName}}",
@@ -293,19 +322,29 @@ export async function nurtureNudge2Email(firstName: string, centreName: string) 
       Want to see it in person? We'd love to show you around. Just reply and we'll set up
       a quick visit at a time that works for you.
     </p>
-    <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      Or skip straight to securing your child's spot:
+    </p>
+    {{enrolButton}}
+    <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Warmly,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(url),
+      enrolButton: buttonHtml("Enrol Online Now", url),
+    },
     wrap: parentEmailLayout,
   });
 }
 
 // ─── Parent Nurture: Final Nudge (nurturing +12d) ──────────
 
-export async function nurtureFinalNudgeEmail(firstName: string, centreName: string) {
+export async function nurtureFinalNudgeEmail(firstName: string, centreName: string, enrolUrl?: string) {
+  const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.finalNudge",
     defaultSubject: "No pressure — we'll be here when you're ready",
@@ -330,7 +369,8 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
           <p style="margin:0;color:#374151;font-size:14px;line-height:2;">
             &#8226; Reply to this email anytime<br/>
             &#8226; Call the centre during business hours<br/>
-            &#8226; Pop in for a visit — no appointment needed
+            &#8226; Pop in for a visit — no appointment needed<br/>
+            &#8226; Or <a href="{{enrolUrl}}" style="color:#004E64;font-weight:600;">enrol online</a> whenever it suits — the form saves your progress
           </p>
         </td>
       </tr>
@@ -343,14 +383,19 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(url),
+    },
     wrap: parentEmailLayout,
   });
 }
 
 // ─── Parent Nurture: Form Support (form_started +4h) ────────
 
-export async function nurtureFormSupportEmail(firstName: string, centreName: string) {
+export async function nurtureFormSupportEmail(firstName: string, centreName: string, enrolUrl?: string) {
+  const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.formSupport",
     defaultSubject: "Stuck on the form? We can finish it together in 5 minutes",
@@ -384,15 +429,21 @@ export async function nurtureFormSupportEmail(firstName: string, centreName: str
       Customer Reference Number), <em>"Do I need immunisation records right now?"</em>
       (not immediately — we can sort that out later).
     </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
       You're almost there. Let's get your child's spot secured!
     </p>
-    <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+    {{continueButton}}
+    <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(url),
+      continueButton: buttonHtml("Continue Your Enrolment", url),
+    },
     wrap: parentEmailLayout,
   });
 }
@@ -400,10 +451,8 @@ export async function nurtureFormSupportEmail(firstName: string, centreName: str
 // ─── Form Abandonment Follow-up (form_started +3d) ──────────
 // Second nudge for families who started but haven't completed after 3 days
 
-export async function nurtureFormAbandonmentEmail(firstName: string, centreName: string) {
-  const enrolUrl = process.env.NEXTAUTH_URL
-    ? `${process.env.NEXTAUTH_URL}/enrol`
-    : "https://amanaoshc.company/enrol";
+export async function nurtureFormAbandonmentEmail(firstName: string, centreName: string, prefilledEnrolUrl?: string) {
+  const enrolUrl = prefilledEnrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.formAbandonment",
     defaultSubject: "Your enrolment is 80% done — let's finish it together",
