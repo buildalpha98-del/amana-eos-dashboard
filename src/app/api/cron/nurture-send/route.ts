@@ -19,6 +19,7 @@ import {
   nurtureWeek2FeedbackEmail,
   nurtureMonth1ReferralEmail,
   nurtureSessionReminderEmail,
+  centreWebsiteUrl,
   retentionCasualReengageEmail,
   retentionDayChangeReminderEmail,
   retentionWithdrawalInterceptEmail,
@@ -245,6 +246,7 @@ async function processSequenceExecutions(now: Date) {
         centreName,
         serviceAddress || undefined,
         svc?.orientationVideoUrl || undefined,
+        centreWebsiteUrl(svc?.code),
       ));
     } else {
       const templateFn = TEMPLATE_MAP[exec.step.templateKey];
