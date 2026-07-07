@@ -10,20 +10,26 @@ import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { parseJsonBody } from "@/lib/api-error";
 import { resolveActivationFromUtm } from "@/lib/activation-attribution";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
-const createEnquirySchema = z.object({
-  serviceId: z.string().min(1),
-  parentName: z.string().min(1),
-  parentEmail: z.string().email().optional().nullable(),
-  parentPhone: z.string().optional().nullable(),
-  childName: z.string().optional().nullable(),
-  childAge: z.number().int().optional().nullable(),
-  channel: z.enum(["phone", "email", "whatsapp", "walkin", "referral", "website"]),
-  parentDriver: z.string().optional().nullable(),
-  assigneeId: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  /** Optional QR short code for activation attribution. */
-  utmCampaign: z.string().max(64).optional().nullable(),
-});
+const createEnquirySchema = z
+  .object({
+    serviceId: z.string().min(1).optional(),
+    /** Alternative to serviceId: the Service.code (e.g. "MFIS-GA"). */
+    serviceCode: z.string().min(1).optional(),
+    parentName: z.string().min(1),
+    parentEmail: z.string().email().optional().nullable(),
+    parentPhone: z.string().optional().nullable(),
+    childName: z.string().optional().nullable(),
+    childAge: z.number().int().optional().nullable(),
+    channel: z.enum(["phone", "email", "whatsapp", "walkin", "referral", "website"]),
+    parentDriver: z.string().optional().nullable(),
+    assigneeId: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    /** Optional QR short code for activation attribution. */
+    utmCampaign: z.string().max(64).optional().nullable(),
+  })
+  .refine((data) => Boolean(data.serviceId) !== Boolean(data.serviceCode), {
+    message: "Provide exactly one of serviceId or serviceCode",
+  });
 
 /**
  * GET /api/cowork/enquiries — List active enquiries for pipeline scan
@@ -92,11 +98,27 @@ export const POST = withApiHandler(async (req) => {
     const body = await parseJsonBody(req);
     const data = createEnquirySchema.parse(body);
 
+    // Resolve serviceCode → serviceId (Service.code is @unique).
+    let serviceId = data.serviceId;
+    if (!serviceId && data.serviceCode) {
+      const service = await prisma.service.findUnique({
+        where: { code: data.serviceCode },
+        select: { id: true },
+      });
+      if (!service) {
+        return NextResponse.json(
+          { success: false, error: `Unknown serviceCode: ${data.serviceCode}` },
+          { status: 400 },
+        );
+      }
+      serviceId = service.id;
+    }
+
     const sourceActivationId = await resolveActivationFromUtm(data.utmCampaign ?? null);
 
     const enquiry = await prisma.parentEnquiry.create({
       data: {
-        serviceId: data.serviceId,
+        serviceId: serviceId!,
         parentName: data.parentName,
         parentEmail: data.parentEmail || null,
         parentPhone: data.parentPhone || null,
