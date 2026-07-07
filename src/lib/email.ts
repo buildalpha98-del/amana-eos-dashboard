@@ -15,7 +15,7 @@ export function getResend(): Resend | null {
 }
 
 export const FROM_EMAIL =
-  process.env.EMAIL_FROM || "Amana OSHC <noreply@amanaoshc.com.au>";
+  process.env.EMAIL_FROM || "Amana OSHC <contact@amanaoshc.com.au>";
 
 // ── Suppression-aware send wrapper ─────────────────────────
 
