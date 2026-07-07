@@ -124,8 +124,13 @@ model QipSuggestion {
   reviewedAt    DateTime?
   weekOf        DateTime // Monday of the evidence week
   createdAt     DateTime @default(now())
+
+  @@index([qipId, status])
+  @@index([weekOf])
 }
 ```
+
+Note: `reviewedById` needs a **named** User relation (User already carries many relations) — e.g., `reviewedBy User? @relation("QipSuggestionReviewer", ...)`.
 
 Accepted/edited/rejected rows are never deleted — they are the audit trail ("what changed, when, on what evidence, approved by whom").
 
@@ -137,7 +142,9 @@ Per service that has a `QualityImprovementPlan`:
 2. For each quality area with ≥1 new evidence item this week: call new Sonnet template `compliance/qip-weekly-update` with the QA's current field values + the week's evidence excerpts. The template instructs: propose an update ONLY if the evidence materially adds to or contradicts the current text; otherwise return a no-change marker. Quiet areas produce no suggestions.
 3. Parse the response (JSON-shaped output with `onMalformed`-style validation; malformed → log and skip that QA, do not create a garbage suggestion).
 4. Create `QipSuggestion` rows (one per field the AI wants to change), with `currentText` snapshotted and `evidenceRefs` pointing at the source items.
-5. If any suggestions were created for a service: notify the service's director/coordinator + admins via `sendNotificationEmail` (subject: "N SAT/QIP updates ready for review"). Deep link to the QIP tab.
+5. If any suggestions were created for a service: notify service-assigned `member` users (coordinators/directors in this system's role terms) plus `admin`/`head_office`/`owner` via `sendNotificationEmail` (subject: "N SAT/QIP updates ready for review"). Deep link to the QIP tab.
+
+Evidence-week window: Monday 00:00 Australia/Sydney → cron start. Content created after the Friday run (e.g., Friday evening) rolls into the following week's `weekOf` — nothing is ever skipped, only deferred one week.
 
 Guard: if a QA already has pending suggestions from a prior week, still generate this week's (the review panel groups by week); do not silently skip — but the prompt includes pending proposals so the AI doesn't re-propose the same change.
 
@@ -148,7 +155,7 @@ Cost note: ≤7 Sonnet calls per service per week + Haiku tagging — cents per 
 On the QIP tab:
 - "Pending updates (n)" banner when pending `QipSuggestion` rows exist.
 - Review panel (slide-over, matching existing ReportViewer pattern): suggestions grouped by quality area and week. Each shows current text vs. proposed text (visual diff highlight is a nice-to-have; side-by-side is the v1 requirement), the rationale, and evidence excerpts linking to source items.
-- Actions per suggestion: **Accept** (patch the `QIPQualityArea` field with `proposedText`), **Edit & accept** (editable textarea, patch with edited text, status `edited`), **Reject** (status `rejected`, no document change). Accepting any suggestion bumps `QualityImprovementPlan.lastReviewDate` and `reviewedById`.
+- Actions per suggestion: **Accept** (patch the `QIPQualityArea` field with `proposedText`), **Edit & accept** (editable textarea, patch with edited text, status `edited`), **Reject** (status `rejected`, no document change). Accepting any suggestion bumps `QualityImprovementPlan.lastReviewDate` and `reviewedById`. (Deliberate: this lets `member`-level users update the review timestamp as a side-effect of an area-level change — consistent with the existing areas PATCH route, which is already member-accessible, and not privilege creep relative to the admin-only QIP-level PATCH.)
 - Endpoints: `GET /api/qip/[qipId]/suggestions`, `PATCH /api/qip/[qipId]/suggestions/[suggestionId]` (`withApiAuth`, roles: member and above — matches existing QIP edit access; Zod-validated `{ action: "accept"|"edit"|"reject", text? }`).
 - **"Copy for portal"**: button on the QIP tab producing a plain-text rendering of the full document (or a single QA) — heading per quality area, then strengths / areas for improvement / goal / strategies / progress — copied to clipboard. Client-side only; no new endpoint.
 
