@@ -30,25 +30,21 @@ import { QipEvidenceBrowser } from "@/components/services/QipEvidenceBrowser";
  * (NSW SAT portal / VIC QIP submission). Field names follow the API payload;
  * empty sections are skipped.
  */
-function qipToPlainText(
-  docLabel: string,
-  areas: Array<Record<string, unknown>>,
-): string {
-  const sectionOrder: Array<[string, string]> = [
+function qipToPlainText(docLabel: string, areas: QIPQualityArea[]): string {
+  const sectionOrder: Array<[keyof QIPQualityArea, string]> = [
     ["strengths", "Strengths"],
     ["areasForImprovement", "Areas for improvement"],
     ["improvementGoal", "Improvement goal"],
     ["strategies", "Strategies"],
     ["timeline", "Timeline"],
     ["responsiblePerson", "Responsible person"],
+    ["evidenceIndicators", "Evidence indicators"],
     ["evidenceCollected", "Evidence collected"],
     ["progressNotes", "Progress notes"],
   ];
   const blocks = [...areas]
-    .sort((a, b) => Number(a.qualityArea ?? 0) - Number(b.qualityArea ?? 0))
+    .sort((a, b) => a.qualityArea - b.qualityArea)
     .map((area) => {
-      const qaNum = area.qualityArea;
-      const qaName = area.qualityAreaName ?? "";
       const lines = sectionOrder
         .map(([key, label]) => {
           const value = area[key];
@@ -57,7 +53,10 @@ function qipToPlainText(
             : null;
         })
         .filter(Boolean);
-      return [`Quality Area ${qaNum}: ${qaName}`, ...lines].join("\n\n");
+      return [
+        `Quality Area ${area.qualityArea}: ${area.qualityAreaName}`,
+        ...lines,
+      ].join("\n\n");
     });
   return [
     `${docLabel} — exported ${new Date().toLocaleDateString("en-AU")}`,
@@ -77,57 +76,52 @@ function getDocLabels(state: string | null | undefined) {
   };
 }
 
+// Mirrors the Prisma QIPQualityArea row returned by GET /api/qip. Kept exact:
+// this interface previously drifted (phantom `rating`/`goals`, `qualityArea`
+// as a name string) and the edit form silently lost fields for months.
 interface QIPQualityArea {
   id: string;
-  qualityArea: string;
-  rating: string | null;
+  qualityArea: number; // 1-7
+  qualityAreaName: string;
   strengths: string | null;
   areasForImprovement: string | null;
-  goals: string | null;
+  improvementGoal: string | null;
   strategies: string | null;
   timeline: string | null;
   responsiblePerson: string | null;
+  evidenceIndicators: string | null;
+  evidenceCollected: string | null;
   progressNotes: string | null;
+  progressStatus: string; // not_started | in_progress | achieved | ongoing
 }
 
 interface QIP {
   id: string;
   serviceId: string;
   documentType: string;
-  status: string;
-  currentRating: string | null;
+  status: string; // draft | in_review | current | archived
   lastReviewDate: string | null;
-  nextReviewDate: string | null;
   reviewedById: string | null;
   qualityAreas: QIPQualityArea[];
   createdAt: string;
   updatedAt: string;
 }
 
-const NQS_AREA_LABELS: Record<string, string> = {
-  "Educational Program and Practice": "QA1",
-  "Children's Health and Safety": "QA2",
-  "Physical Environment": "QA3",
-  "Staffing Arrangements": "QA4",
-  "Relationships with Children": "QA5",
-  "Collaborative Partnerships": "QA6",
-  "Governance and Leadership": "QA7",
-};
-
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
-  active: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
+  current: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
   draft: { bg: "bg-gray-100", text: "text-gray-600", icon: Clock },
-  under_review: { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle },
+  in_review: { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle },
   archived: { bg: "bg-gray-100", text: "text-gray-400", icon: Clock },
 };
 
-const RATING_COLORS: Record<string, string> = {
-  exceeding: "bg-emerald-100 text-emerald-700",
-  meeting: "bg-blue-100 text-blue-700",
-  working_towards: "bg-amber-100 text-amber-700",
-  requires_improvement: "bg-red-100 text-red-700",
-  not_assessed: "bg-gray-100 text-gray-500",
+const PROGRESS_STYLES: Record<string, string> = {
+  not_started: "bg-gray-100 text-gray-500",
+  in_progress: "bg-amber-100 text-amber-700",
+  achieved: "bg-emerald-100 text-emerald-700",
+  ongoing: "bg-blue-100 text-blue-700",
 };
+
+const PROGRESS_OPTIONS = ["not_started", "in_progress", "achieved", "ongoing"];
 
 export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
   const queryClient = useQueryClient();
@@ -197,10 +191,7 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
 
   async function copyForPortal() {
     if (!qip) return;
-    const text = qipToPlainText(
-      docLabels.long,
-      qip.qualityAreas as unknown as Array<Record<string, unknown>>,
-    );
+    const text = qipToPlainText(docLabels.long, qip.qualityAreas);
     try {
       await navigator.clipboard.writeText(text);
       toast({ description: `Copied — paste into the ${docLabels.short} portal` });
@@ -334,11 +325,6 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {qip.currentRating && (
-              <span className={cn("px-2.5 py-1 text-xs font-medium rounded-full capitalize", RATING_COLORS[qip.currentRating] || RATING_COLORS.not_assessed)}>
-                {qip.currentRating.replace(/_/g, " ")}
-              </span>
-            )}
             <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full capitalize", statusStyle.bg, statusStyle.text)}>
               <StatusIcon className="w-3.5 h-3.5" />
               {qip.status.replace(/_/g, " ")}
@@ -349,17 +335,14 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
 
       {/* Quality Areas */}
       <div className="space-y-3">
-        {qip.qualityAreas
-          .sort((a, b) => {
-            const aNum = parseInt(NQS_AREA_LABELS[a.qualityArea]?.replace("QA", "") || "0");
-            const bNum = parseInt(NQS_AREA_LABELS[b.qualityArea]?.replace("QA", "") || "0");
-            return aNum - bNum;
-          })
+        {[...qip.qualityAreas]
+          .sort((a, b) => a.qualityArea - b.qualityArea)
           .map((area) => {
-            const label = NQS_AREA_LABELS[area.qualityArea] || "";
+            const label = `QA${area.qualityArea}`;
             const isExpanded = expandedArea === area.id;
             const isEditing = editingArea === area.id;
-            const ratingClass = RATING_COLORS[area.rating || "not_assessed"] || RATING_COLORS.not_assessed;
+            const progressClass =
+              PROGRESS_STYLES[area.progressStatus] || PROGRESS_STYLES.not_started;
 
             return (
               <div key={area.id} className="bg-card rounded-xl border border-border overflow-hidden">
@@ -372,13 +355,13 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                       {label}
                     </span>
                     <span className="font-medium text-foreground text-sm">
-                      {area.qualityArea}
+                      {area.qualityAreaName}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {area.rating && (
-                      <span className={cn("px-2 py-0.5 text-xs font-medium rounded-full capitalize", ratingClass)}>
-                        {area.rating.replace(/_/g, " ")}
+                    {area.progressStatus !== "not_started" && (
+                      <span className={cn("px-2 py-0.5 text-xs font-medium rounded-full capitalize", progressClass)}>
+                        {area.progressStatus.replace(/_/g, " ")}
                       </span>
                     )}
                     {isExpanded ? (
@@ -394,13 +377,15 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                     {isEditing ? (
                       <div className="space-y-4 pt-4">
                         {[
-                          { key: "rating", label: "Rating", type: "select", options: ["not_assessed", "requires_improvement", "working_towards", "meeting", "exceeding"] },
+                          { key: "progressStatus", label: "Progress Status", type: "select", options: PROGRESS_OPTIONS },
                           { key: "strengths", label: "Strengths", type: "textarea" },
                           { key: "areasForImprovement", label: "Areas for Improvement", type: "textarea" },
-                          { key: "goals", label: "Goals", type: "textarea" },
+                          { key: "improvementGoal", label: "Improvement Goal", type: "textarea" },
                           { key: "strategies", label: "Strategies", type: "textarea" },
                           { key: "timeline", label: "Timeline", type: "input" },
                           { key: "responsiblePerson", label: "Responsible Person", type: "input" },
+                          { key: "evidenceIndicators", label: "Evidence Indicators", type: "textarea" },
+                          { key: "evidenceCollected", label: "Evidence Collected", type: "textarea" },
                           { key: "progressNotes", label: "Progress Notes", type: "textarea" },
                         ].map((field) => (
                           <div key={field.key}>
@@ -457,10 +442,12 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                         {[
                           { label: "Strengths", value: area.strengths },
                           { label: "Areas for Improvement", value: area.areasForImprovement },
-                          { label: "Goals", value: area.goals },
+                          { label: "Improvement Goal", value: area.improvementGoal },
                           { label: "Strategies", value: area.strategies },
                           { label: "Timeline", value: area.timeline },
                           { label: "Responsible Person", value: area.responsiblePerson },
+                          { label: "Evidence Indicators", value: area.evidenceIndicators },
+                          { label: "Evidence Collected", value: area.evidenceCollected },
                           { label: "Progress Notes", value: area.progressNotes },
                         ].map((field) => (
                           <div key={field.label}>
@@ -477,13 +464,15 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                             onClick={() => {
                               setEditingArea(area.id);
                               setEditForm({
-                                rating: area.rating || "not_assessed",
+                                progressStatus: area.progressStatus || "not_started",
                                 strengths: area.strengths || "",
                                 areasForImprovement: area.areasForImprovement || "",
-                                goals: area.goals || "",
+                                improvementGoal: area.improvementGoal || "",
                                 strategies: area.strategies || "",
                                 timeline: area.timeline || "",
                                 responsiblePerson: area.responsiblePerson || "",
+                                evidenceIndicators: area.evidenceIndicators || "",
+                                evidenceCollected: area.evidenceCollected || "",
                                 progressNotes: area.progressNotes || "",
                               });
                             }}
@@ -494,15 +483,15 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                           <AiButton
                             templateSlug="compliance/qip-action-plan"
                             variables={{
-                              qipArea: `${label} — ${area.qualityArea}`,
+                              qipArea: `${label} — ${area.qualityAreaName}`,
                               findings: [
                                 area.areasForImprovement && `Areas for Improvement: ${area.areasForImprovement}`,
                                 area.strengths && `Strengths: ${area.strengths}`,
-                                area.goals && `Goals: ${area.goals}`,
+                                area.improvementGoal && `Improvement Goal: ${area.improvementGoal}`,
                                 area.progressNotes && `Progress Notes: ${area.progressNotes}`,
                               ].filter(Boolean).join("\n") || "No findings recorded yet",
                               centreContext: [
-                                area.rating && `Current rating: ${area.rating.replace(/_/g, " ")}`,
+                                `Progress status: ${area.progressStatus.replace(/_/g, " ")}`,
                                 area.strategies && `Existing strategies: ${area.strategies}`,
                                 area.timeline && `Timeline: ${area.timeline}`,
                                 area.responsiblePerson && `Responsible: ${area.responsiblePerson}`,
