@@ -1176,35 +1176,36 @@ export async function nurtureNpsSurveyEmail(
     key: "nurture.npsSurvey",
     defaultSubject: "One question, 10 seconds — would you recommend us?",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      A month already!
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
+      Two months already!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      It's been a month since your child started at {{centreName}}. Time flies when kids
-      are having fun (and parents get their afternoons back!).
+      It's been a couple of months since your child started at {{centreName}}. Time flies
+      when kids are having fun (and parents get their afternoons back!).
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We have just one question for you. It's the single most important thing we track
-      as a team, and it takes literally 10 seconds:
+      We have just one question — it's the single most important thing we track as a team:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;text-align:center;">
           <p style="margin:0 0 8px;color:#FECE00;font-size:18px;font-weight:700;">
-            How likely are you to recommend us to a friend?
+            How's Amana going for your family?
           </p>
-          <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px;">
-            Rate from 0 (not likely) to 10 (absolutely!)
+          <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">
+            Tap a face — from &#128546; to &#128525; — and add a line about why, if you
+            have 10 more seconds.
           </p>
         </td>
       </tr>
     </table>
     {{ratingButton}}
     <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">
-      Anonymous. 10 seconds. Helps us improve for every family at {{centreName}}.
+      Every response goes straight to our leadership team and shapes what we improve next.
+      (Rather stay anonymous? Just clear your name on the form.)
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Thank you for being part of our community,<br/>
@@ -1215,9 +1216,12 @@ export async function nurtureNpsSurveyEmail(
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       surveyUrl: escapeHtml(surveyUrl),
-      ratingButton: buttonHtml("Share Your Rating", surveyUrl),
+      ratingButton: buttonHtml("Tap a Face — 10 Seconds", surveyUrl),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader: "Two months in — tap a face and tell us how we're really doing.",
+      }),
   });
 }
 

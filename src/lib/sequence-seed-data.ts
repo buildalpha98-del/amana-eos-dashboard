@@ -79,7 +79,8 @@ export const SEED_SEQUENCES: SeedSequence[] = [
       { name: "Day 1 Check-in", delayHours: 24, templateKey: "day1_checkin" },
       { name: "Day 3 Check-in", delayHours: 72, templateKey: "day3_checkin" },
       { name: "Week 2 Feedback", delayHours: 336, templateKey: "week2_feedback" },
-      { name: "Month 1 Referral", delayHours: 720, templateKey: "month1_referral" },
+      { name: "Referral Invite", delayHours: 1080, templateKey: "month1_referral" },
+      { name: "NPS Pulse", delayHours: 1440, templateKey: "nps_survey" },
     ],
   },
   // ── CRM outreach sequences ────────────────────────────────
