@@ -27,6 +27,23 @@ export interface SeedSequence {
 export const SEED_SEQUENCES: SeedSequence[] = [
   // ── Parent nurture sequences ──────────────────────────────
   {
+    // The full enquiry→enrolment chain, triggered the moment an enquiry is
+    // created — no manual stage move required. Website-channel enquiries skip
+    // the 0h welcome (the website already sends an instant auto-response);
+    // see WEBSITE_SKIP_TEMPLATE_KEYS in nurture-scheduler.ts. Later stage
+    // moves (info_sent/nurturing) dedupe against these steps by templateKey.
+    name: "New Enquiry Journey",
+    type: "parent_nurture",
+    triggerStage: "new_enquiry",
+    steps: [
+      { name: "Welcome", delayHours: 0, templateKey: "welcome" },
+      { name: "CCS Assist", delayHours: 24, templateKey: "ccs_assist" },
+      { name: "Nudge 1", delayHours: 72, templateKey: "nudge_1" },
+      { name: "Nudge 2", delayHours: 168, templateKey: "nudge_2" },
+      { name: "Final Nudge", delayHours: 336, templateKey: "final_nudge" },
+    ],
+  },
+  {
     name: "Info Sent Follow-up",
     type: "parent_nurture",
     triggerStage: "info_sent",

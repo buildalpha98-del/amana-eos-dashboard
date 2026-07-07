@@ -23,6 +23,7 @@ export async function scheduleNurtureFromStageChange(
       parentEmail: true,
       parentName: true,
       firstSessionDate: true,
+      channel: true,
     },
   });
 
@@ -80,12 +81,33 @@ export async function scheduleNurtureFromStageChange(
  * inappropriate. Map the new stage → the template keys whose pending
  * executions should be cancelled.
  */
+const PRE_ENROLMENT_KEYS = [
+  "welcome",
+  "ccs_assist",
+  "form_support",
+  "form_abandonment",
+  "nudge_1",
+  "nudge_2",
+  "final_nudge",
+];
+
 const STAGE_CANCEL_MAP: Record<string, string[]> = {
+  // ccs_assist stays live during form_started — CCS help is still relevant
+  // while the family is mid-form.
   form_started: ["nudge_1", "nudge_2", "final_nudge"],
-  first_session: ["form_support", "form_abandonment", "nudge_1", "nudge_2", "final_nudge"],
-  enrolled: ["form_support", "form_abandonment", "nudge_1", "nudge_2", "final_nudge"],
-  withdrawn: ["form_support", "form_abandonment", "nudge_1", "nudge_2", "final_nudge"],
+  first_session: PRE_ENROLMENT_KEYS,
+  enrolled: PRE_ENROLMENT_KEYS,
+  withdrawn: PRE_ENROLMENT_KEYS,
+  waitlisted: PRE_ENROLMENT_KEYS,
+  cold: PRE_ENROLMENT_KEYS,
 };
+
+/**
+ * Website enquiries already receive an instant auto-response from the
+ * marketing site (centre details + AI-drafted answer), so the sequence's
+ * 0-hour welcome would double up. Every later step still applies.
+ */
+const WEBSITE_SKIP_TEMPLATE_KEYS = new Set(["welcome"]);
 
 /**
  * Cancel pending SequenceStepExecutions for this contact+enquiry whose step
@@ -118,7 +140,7 @@ async function cancelStaleExecutions(
  * sequences whose `triggerStage` matches the new stage.
  */
 async function createSequenceEnrolment(
-  enquiry: { id: string; serviceId: string; firstSessionDate: Date | null },
+  enquiry: { id: string; serviceId: string; firstSessionDate: Date | null; channel: string | null },
   contactId: string,
   stage: string,
 ): Promise<void> {
@@ -129,6 +151,19 @@ async function createSequenceEnrolment(
     });
 
     if (sequences.length === 0) return;
+
+    // Sequences for different stages share template keys (the New Enquiry
+    // Journey covers the whole chain; Info Sent / Nurturing re-cover parts of
+    // it when staff move the card manually). Never schedule a template this
+    // family already has pending or sent.
+    const priorExecutions = await prisma.sequenceStepExecution.findMany({
+      where: {
+        enrolment: { contactId, enquiryId: enquiry.id },
+        status: { in: ["pending", "sent"] },
+      },
+      select: { step: { select: { templateKey: true } } },
+    });
+    const alreadyScheduled = new Set(priorExecutions.map((e) => e.step.templateKey));
 
     const now = new Date();
 
@@ -158,6 +193,10 @@ async function createSequenceEnrolment(
 
       // Create execution records for each step
       for (const step of seq.steps) {
+        if (alreadyScheduled.has(step.templateKey)) continue;
+        if (enquiry.channel === "website" && WEBSITE_SKIP_TEMPLATE_KEYS.has(step.templateKey)) {
+          continue;
+        }
         const scheduledFor = new Date(anchorDate.getTime() + step.delayHours * 60 * 60 * 1000);
         // Skip steps whose send time has already passed (e.g. a day-before
         // reminder for a session that's today), but always honour a 0-delay
@@ -171,6 +210,7 @@ async function createSequenceEnrolment(
               status: "pending",
             },
           });
+          alreadyScheduled.add(step.templateKey);
         }
       }
     }
