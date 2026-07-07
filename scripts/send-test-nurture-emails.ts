@@ -23,7 +23,7 @@ import {
 } from "../src/lib/email-templates/nurture";
 
 const TO = "jayden@amanaoshc.com.au";
-const FROM = process.env.EMAIL_FROM || "Amana OSHC <noreply@amanaoshc.com.au>";
+const FROM = process.env.EMAIL_FROM || "Amana OSHC <contact@amanaoshc.com.au>";
 const FIRST_NAME = "Jayden";
 const CENTRE = "Amana OSHC MFIS Greenacre";
 // Real sends use the prefilled per-enquiry link /enrol/<enquiryId>
