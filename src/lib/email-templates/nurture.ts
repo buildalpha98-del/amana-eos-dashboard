@@ -352,7 +352,7 @@ export async function nurtureNudge2Email(firstName: string, centreName: string, 
     key: "nurture.nudge2",
     defaultSubject: "A peek inside a day at {{centreName}}",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       What actually happens at OSHC?
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -362,37 +362,66 @@ export async function nurtureNudge2Email(firstName: string, centreName: string, 
       We know that "Out of School Hours Care" can sound a bit abstract. So here's what a
       typical afternoon actually looks like at {{centreName}}:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #FFF2BF;border-radius:12px;overflow:hidden;">
       <tr>
-        <td style="padding:16px;background-color:#fefce8;border-bottom:1px solid #fde68a;">
-          <p style="margin:0;color:#92400e;font-size:14px;line-height:1.7;">
-            <strong>3:00 PM</strong> — Our educators collect children from their classrooms (no stressful
-            pickup queues for you!)
+        <td style="padding:16px 20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">3:00 PM</strong> — Our educators collect children straight
+            from their classrooms (no stressful pickup queues for you!)
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#f0fdf4;border-bottom:1px solid #bbf7d0;">
-          <p style="margin:0;color:#065f46;font-size:14px;line-height:1.7;">
-            <strong>3:15 PM</strong> — Fuel Up with Amana: afternoon tea from our rotating
-            menu, catching up about the day
+        <td style="padding:16px 20px;background-color:#ffffff;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">3:15 PM</strong> — Fuel Up with Amana: afternoon tea from
+            our rotating menu, catching up about the day
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#eff6ff;border-bottom:1px solid #bfdbfe;">
-          <p style="margin:0;color:#1e40af;font-size:14px;line-height:1.7;">
-            <strong>3:45 PM</strong> — Choice time: Imagination Station art &amp; STEM,
-            Little Champions sport, Iqra Circle Qur'an time, or Homework Heroes support.
-            Your child picks what excites them.
+        <td style="padding:16px 20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">3:45 PM</strong> — Homework Heroes or Iqra Circle Qur'an
+            time — homework handled and hearts full, before you even arrive
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#fdf4ff;">
-          <p style="margin:0;color:#86198f;font-size:14px;line-height:1.7;">
-            <strong>5:00–6:00 PM</strong> — Wind-down activities and pick-up time. You'll get a
-            quick rundown of what your child got up to.
+        <td style="padding:16px 20px;background-color:#ffffff;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">4:30 PM</strong> — Structured group fun or free play —
+            Little Champions sport, Imagination Station art &amp; STEM, or simply running around
+            with friends
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 20px;background-color:#FFFAE6;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">Until 6:30 PM</strong> — Pick up whenever suits you —
+            swing by any time; latest pickup is 6:30 PM
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      And mornings? <strong>Rise &amp; Shine Club</strong> gives them a calm, positive start
+      before the bell.
+    </p>
+    <p style="margin:0 0 16px;color:#004E64;font-size:14px;line-height:1.7;font-weight:600;">
+      Fair warning: our most common complaint from parents is that the kids don't want
+      to go home.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
+      <tr>
+        <td style="padding:22px 24px;text-align:center;">
+          <p style="margin:0 0 8px;color:#FFFAE6;font-size:15px;line-height:1.7;font-style:italic;">
+            "My daughter loves the variety of programs, from arts and crafts to outdoor play.
+            She asks to go every day."
+          </p>
+          <p style="margin:0;color:#FECE00;font-size:13px;font-weight:700;">
+            — Mariam S, parent at Al-Taqwa College
           </p>
         </td>
       </tr>
@@ -414,9 +443,13 @@ export async function nurtureNudge2Email(firstName: string, centreName: string, 
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(url),
-      enrolButton: buttonHtml("Enrol Online Now", url),
+      enrolButton: buttonHtml("Give Them Afternoons Like This", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "3:00pm — collected from class. 6:30pm — fed, homework done, happy. Here's the middle.",
+      }),
   });
 }
 
