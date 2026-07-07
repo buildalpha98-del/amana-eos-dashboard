@@ -53,6 +53,7 @@ export const GET = withApiAuth(async (req, session) => {
       email: true,
       role: true,
       active: true,
+      notificationsMuted: true,
       avatar: true,
       serviceId: true,
       state: true,

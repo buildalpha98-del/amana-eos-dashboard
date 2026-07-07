@@ -782,6 +782,7 @@ model User {
   // ── Onboarding & Preferences ──────────────────────
   gettingStartedProgress Json? // Tracks completed checklist items per role
   notificationPrefs      Json? // { overdueTodos: true, newAssignments: true, ... }
+  notificationsMuted     Boolean @default(false) // master mute — no external pings (email/push); in-app kept
   systemBanners          SystemBannerDismissal[] @relation("BannerDismissals")
   internalFeedback       InternalFeedback[]      @relation("FeedbackAuthor")
 
