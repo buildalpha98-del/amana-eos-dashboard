@@ -112,56 +112,70 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string,
 
 // ─── Parent Nurture: CCS Assist (info_sent +24h) ───────────
 
-export async function nurtureCcsAssistEmail(firstName: string, centreName: string) {
+export async function nurtureCcsAssistEmail(firstName: string, centreName: string, enrolUrl?: string) {
+  const url = enrolUrl || fallbackEnrolUrl();
+  const calculatorUrl = "https://amanaoshc.com.au/fees#calculator";
   return applyEmailTemplateOverride({
     key: "nurture.ccsAssist",
-    defaultSubject: "Most families pay less than you'd think — here's how",
+    defaultSubject: "$5 a day OSHC? Here's how the subsidy works, {{firstName}}",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       The fee you see isn't the fee you pay
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      One of the best-kept secrets about OSHC? The Australian Government's
-      <strong>Child Care Subsidy (CCS)</strong> covers 50&#8211;90% of fees for most
-      families — care can cost as little as <strong>$5 a day</strong>.
+      One of the best-kept secrets about OSHC: the Australian Government's
+      <strong>Child Care Subsidy (CCS)</strong> covers <strong>50&#8211;90%</strong> of fees
+      for most families. An after school session is $36 before CCS at most of our centres —
+      at the maximum subsidy that's about <strong>$3.60</strong>.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      And no — <strong>you do NOT need to be on Centrelink benefits</strong> to get CCS.
-      It's available to all working families; it's simply claimed through myGov.
+      And no — <strong>you do NOT need to be on Centrelink benefits.</strong> CCS is for
+      all working families; it's simply claimed through myGov.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;">
       <tr>
-        <td style="padding:20px;background-color:#f0fdf4;border-left:4px solid #10b981;">
-          <p style="margin:0 0 8px;color:#065f46;font-size:15px;font-weight:700;">
+        <td style="padding:20px;background-color:#FFF2BF;">
+          <p style="margin:0 0 8px;color:#004E64;font-size:15px;font-weight:700;">
             How it works (in plain English):
           </p>
-          <p style="margin:0;color:#047857;font-size:14px;line-height:1.8;">
-            <strong>Step 1:</strong> Check your eligibility on myGov or Centrelink<br/>
-            <strong>Step 2:</strong> Get your CRN (Customer Reference Number) ready<br/>
-            <strong>Step 3:</strong> Include it when you enrol — we handle the rest
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.8;">
+            <strong>Step 1:</strong> Check your eligibility on myGov<br/>
+            <strong>Step 2:</strong> Have your CRN (Customer Reference Number) handy<br/>
+            <strong>Step 3:</strong> Pop it in when you enrol — <strong>we handle all the
+            paperwork with the government from there.</strong>
           </p>
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Not sure where to start? Our team at {{centreName}} helps families navigate CCS every week.
-      We can even give you a quick estimate of what you'd actually pay out of pocket.
+    {{calculatorButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Prefer a human? Reply with your situation or call
+      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> and
+      we'll crunch your numbers with you — no obligation.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Just reply to this email with your situation, or call us on
-      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> and
-      we'll walk you through it step by step — no obligation, no paperwork.
+      Already convinced? <a href="{{enrolUrl}}" style="color:#004E64;font-weight:700;">Your
+      enrolment form is right here</a> — about 10 minutes, and it saves as you go.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Here to help,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(url),
+      calculatorButton: buttonHtml("See What You'd Pay — 30-Second Calculator", calculatorUrl),
+    },
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "CCS covers 50–90% for most families — and no, you don't need to be on Centrelink.",
+      }),
   });
 }
 
