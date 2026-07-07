@@ -2618,6 +2618,62 @@ DOCUMENT EXCERPTS:
 
 QUESTION: {{question}}`,
     },
+    // ── Daily reflections → SAT/QIP evidence engine ──
+    {
+      slug: "nqs/tag-content",
+      name: "NQS / MTOP content tagger",
+      model: "claude-haiku-4-5-20251001",
+      maxTokens: 1024,
+      variables: JSON.stringify(["items"]),
+      promptTemplate: `You tag Australian OSHC educator content against the NQS and MTOP frameworks.
+
+NQS Quality Areas: 1 Educational Program and Practice, 2 Children's Health and Safety, 3 Physical Environment, 4 Staffing Arrangements, 5 Relationships with Children, 6 Collaborative Partnerships, 7 Governance and Leadership.
+MTOP Outcomes: Identity, Community, Wellbeing, Learners, Communicators.
+
+Content items:
+{{items}}
+
+For each item, pick ONLY the areas/outcomes genuinely evidenced (max 3 quality areas, max 2 outcomes; empty arrays if nothing clearly applies).
+Respond with ONLY valid JSON, no markdown fences:
+{"items":[{"index":1,"qualityAreas":[5],"mtopOutcomes":["Wellbeing"]}]}`,
+    },
+    {
+      slug: "compliance/qip-weekly-update",
+      name: "Weekly SAT/QIP update proposer",
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 1500,
+      variables: JSON.stringify([
+        "documentType",
+        "qualityArea",
+        "qualityAreaName",
+        "currentFields",
+        "evidence",
+        "pendingProposals",
+      ]),
+      promptTemplate: `You maintain the {{documentType}} (a regulator-facing quality document) for an Australian OSHC service. You are reviewing Quality Area {{qualityArea}}: {{qualityAreaName}}.
+
+CURRENT DOCUMENT TEXT for this quality area:
+{{currentFields}}
+
+THIS WEEK'S EVIDENCE (staff reflections and child observations):
+{{evidence}}
+
+PROPOSALS ALREADY PENDING REVIEW (do NOT re-propose these):
+{{pendingProposals}}
+
+Rules:
+- Propose a change ONLY if the week's evidence materially adds to or contradicts the current text. A quiet week means no changes.
+- NEVER invent evidence, outcomes, or events not present above.
+- proposedText must be the FULL replacement text for that field (not a diff), preserving everything in the current text that is still true.
+- Valid field values: "strengths", "areasForImprovement", "progressNotes", "evidenceCollected".
+- Write in professional Australian English suitable for a regulator.
+- Each rationale is one sentence naming which evidence items justify the change.
+
+Respond with ONLY valid JSON, no markdown fences:
+{"changes":[{"field":"strengths","proposedText":"...","rationale":"..."}]}
+or, if nothing warrants a change:
+{"changes":[]}`,
+    },
     // ── NQS / Staff Dashboard v2 templates (Phase 6 spec) ──
     {
       slug: "nqs/reflection-draft",
