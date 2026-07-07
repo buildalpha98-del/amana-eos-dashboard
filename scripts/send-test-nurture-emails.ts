@@ -19,6 +19,7 @@ import {
   nurtureDay3CheckinEmail,
   nurtureWeek2FeedbackEmail,
   nurtureMonth1ReferralEmail,
+  nurtureNpsSurveyEmail,
 } from "../src/lib/email-templates/nurture";
 
 const TO = "jayden@amanaoshc.com.au";
@@ -27,6 +28,9 @@ const FIRST_NAME = "Jayden";
 const CENTRE = "Amana OSHC MFIS Greenacre";
 // Real sends use the prefilled per-enquiry link /enrol/<enquiryId>
 const ENROL_URL = "https://amanaoshc.company/enrol";
+// Real sends build this per contact; tests use MFIS Greenacre with prefill so
+// the button lands on the live smiley form.
+const FEEDBACK_URL = `https://amanaoshc.company/survey/feedback/cmnk77pua000wobx41hjy2oxi?name=${encodeURIComponent(FIRST_NAME)}&email=${encodeURIComponent(TO)}`;
 
 async function main() {
   const resend = new Resend(process.env.RESEND_API_KEY);
@@ -47,8 +51,9 @@ async function main() {
     },
     { tag: "1st session +1d · day1_checkin", t: nurtureDay1CheckinEmail(FIRST_NAME, CENTRE) },
     { tag: "1st session +3d · day3_checkin", t: nurtureDay3CheckinEmail(FIRST_NAME, CENTRE) },
-    { tag: "week 2 · week2_feedback", t: nurtureWeek2FeedbackEmail(FIRST_NAME, CENTRE) },
+    { tag: "week 2 · week2_feedback", t: nurtureWeek2FeedbackEmail(FIRST_NAME, CENTRE, undefined, FEEDBACK_URL) },
     { tag: "month 1 · month1_referral", t: nurtureMonth1ReferralEmail(FIRST_NAME, CENTRE) },
+    { tag: "bonus · nps_survey", t: nurtureNpsSurveyEmail(FIRST_NAME, CENTRE, undefined, FEEDBACK_URL) },
   ];
 
   let n = 0;

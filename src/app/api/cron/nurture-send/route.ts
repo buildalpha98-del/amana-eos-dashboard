@@ -66,7 +66,7 @@ function buildSmsBody(templateKey: string, firstName: string, centreName: string
  */
 const TEMPLATE_MAP: Record<
   string,
-  (firstName: string, centreName: string, enrolUrl?: string) =>
+  (firstName: string, centreName: string, enrolUrl?: string, feedbackUrl?: string) =>
     | { subject: string; html: string }
     | Promise<{ subject: string; html: string }>
 > = {
@@ -153,6 +153,7 @@ async function processSequenceExecutions(now: Date) {
               smsOptIn: true,
               service: {
                 select: {
+                  id: true,
                   name: true,
                   code: true,
                   address: true,
@@ -264,7 +265,16 @@ async function processSequenceExecutions(now: Date) {
         const enrolUrl = isParent && exec.enrolment.enquiryId
           ? `${BASE_URL}/enrol/${exec.enrolment.enquiryId}`
           : `${BASE_URL}/enrol`;
-        ({ subject, html } = await templateFn(name, centreName, enrolUrl));
+        // Per-service quick-feedback form, prefilled with the parent's
+        // identity so responses land attributed in the Feedback Hub and the
+        // Monday sentiment-analysis report.
+        const feedbackParams = new URLSearchParams();
+        if (name) feedbackParams.set("name", name);
+        if (email) feedbackParams.set("email", email);
+        const feedbackUrl = isParent && svc?.id
+          ? `${BASE_URL}/survey/feedback/${svc.id}?${feedbackParams.toString()}`
+          : `${BASE_URL}/survey/feedback`;
+        ({ subject, html } = await templateFn(name, centreName, enrolUrl, feedbackUrl));
       }
     }
 

@@ -32,6 +32,17 @@ function fallbackEnrolUrl(): string {
     : "https://amanaoshc.company/enrol";
 }
 
+/**
+ * Generic quick-feedback form (smiley rating → QuickFeedback → Feedback Hub
+ * + Monday sentiment-analysis AI report). Callers that know the service pass
+ * the per-service prefilled link via the `feedbackUrl` template argument.
+ */
+function fallbackFeedbackUrl(): string {
+  return process.env.NEXTAUTH_URL
+    ? `${process.env.NEXTAUTH_URL}/survey/feedback`
+    : "https://amanaoshc.company/survey/feedback";
+}
+
 // ─── Parent Nurture: Welcome ────────────────────────────────
 
 export async function nurtureWelcomeEmail(firstName: string, centreName: string, enrolUrl?: string) {
@@ -874,7 +885,13 @@ export async function nurtureFirstWeekEmail(firstName: string, centreName: strin
 
 // ─── Week 2 Feedback (first_session +14d) ────────────────────
 
-export async function nurtureWeek2FeedbackEmail(firstName: string, centreName: string) {
+export async function nurtureWeek2FeedbackEmail(
+  firstName: string,
+  centreName: string,
+  _enrolUrl?: string,
+  feedbackUrl?: string,
+) {
+  const surveyUrl = feedbackUrl || fallbackFeedbackUrl();
   return applyEmailTemplateOverride({
     key: "nurture.week2Feedback",
     defaultSubject: "Two weeks in — we'd love a quick word from you",
@@ -905,24 +922,39 @@ export async function nurtureWeek2FeedbackEmail(firstName: string, centreName: s
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Just hit reply — even a one-liner is incredibly helpful. We read and respond to every
-      message personally.
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      The quickest way to tell us: tap a face on our 30-second feedback form —
+      it goes straight to our leadership team.
+    </p>
+    {{feedbackButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Or just hit reply — even a one-liner is incredibly helpful. We read and respond to
+      every message personally.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Thank you for trusting us with your family,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      feedbackUrl: escapeHtml(surveyUrl),
+      feedbackButton: buttonHtml("Share Your Feedback (30 sec)", surveyUrl),
+    },
     wrap: parentEmailLayout,
   });
 }
 
 // ─── NPS Survey (first_session +30d) ─────────────────────────
 
-export async function nurtureNpsSurveyEmail(firstName: string, centreName: string) {
-  const surveyUrl = process.env.NPS_SURVEY_URL || "https://amanaoshc.company/survey/nps";
+export async function nurtureNpsSurveyEmail(
+  firstName: string,
+  centreName: string,
+  _enrolUrl?: string,
+  feedbackUrl?: string,
+) {
+  const surveyUrl = process.env.NPS_SURVEY_URL || feedbackUrl || fallbackFeedbackUrl();
   return applyEmailTemplateOverride({
     key: "nurture.npsSurvey",
     defaultSubject: "One question, 10 seconds — would you recommend us?",
