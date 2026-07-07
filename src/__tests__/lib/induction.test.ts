@@ -12,6 +12,8 @@ import {
   getInductionReadiness,
   assertUserCleared,
   isInductionLocked,
+  recomputeInductionState,
+  onModuleProgressed,
 } from "@/lib/induction";
 import { ApiError } from "@/lib/api-error";
 
@@ -179,6 +181,106 @@ describe("assertUserCleared", () => {
       _count: { emergencyContacts: 0 },
     });
     await expect(assertUserCleared("u1")).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("recomputeInductionState", () => {
+  it("leaves a cleared user untouched (no update)", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      inductionStatus: "cleared",
+      inductionGraceUntil: null,
+    });
+    const status = await recomputeInductionState("u1");
+    expect(status).toBe("cleared");
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("clears a backfilled staffer (grace set) when ready", async () => {
+    // ready world + status in_training + grace set = backfilled
+    prismaMock.user.findUnique.mockResolvedValue({
+      inductionStatus: "in_training",
+      inductionGraceUntil: new Date(Date.now() + 86400000),
+      avatar: "x",
+      phone: "y",
+      _count: { emergencyContacts: 1 },
+    });
+    const status = await recomputeInductionState("u1");
+    expect(status).toBe("cleared");
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ inductionStatus: "cleared" }),
+      }),
+    );
+  });
+
+  it("sends a ready genuine new hire (no grace) to awaiting_signoff", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      inductionStatus: "in_training",
+      inductionGraceUntil: null,
+      avatar: "x",
+      phone: "y",
+      _count: { emergencyContacts: 1 },
+    });
+    const status = await recomputeInductionState("u1");
+    expect(status).toBe("awaiting_signoff");
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ inductionStatus: "awaiting_signoff" }),
+      }),
+    );
+  });
+
+  it("regresses awaiting_signoff → in_training when readiness drops", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      inductionStatus: "awaiting_signoff",
+      inductionGraceUntil: null,
+      avatar: "x",
+      phone: "y",
+      _count: { emergencyContacts: 1 },
+    });
+    prismaMock.complianceCertificate.findFirst.mockResolvedValue(null); // WWCC gone
+    const status = await recomputeInductionState("u1");
+    expect(status).toBe("in_training");
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ inductionStatus: "in_training" }),
+      }),
+    );
+  });
+
+  it("leaves an in_training user in place when not yet ready", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      inductionStatus: "in_training",
+      inductionGraceUntil: null,
+      avatar: "x",
+      phone: "y",
+      _count: { emergencyContacts: 1 },
+    });
+    prismaMock.complianceCertificate.findFirst.mockResolvedValue(null); // not ready
+    const status = await recomputeInductionState("u1");
+    expect(status).toBe("in_training");
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("onModuleProgressed", () => {
+  it("bumps new_starter → in_training on first interaction", async () => {
+    // First findUnique (status read) returns new_starter; then recompute reads
+    // status+grace and readiness fields. Return a combined object each call.
+    prismaMock.user.findUnique.mockResolvedValue({
+      inductionStatus: "new_starter",
+      inductionGraceUntil: null,
+      avatar: null,
+      phone: null,
+      _count: { emergencyContacts: 0 },
+    });
+    prismaMock.complianceCertificate.findFirst.mockResolvedValue(null);
+    await onModuleProgressed("u1");
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ inductionStatus: "in_training" }),
+      }),
+    );
   });
 });
 

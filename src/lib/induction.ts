@@ -145,3 +145,75 @@ export async function assertUserCleared(userId: string): Promise<void> {
     `Induction not complete — cannot roster or clock in. Outstanding: ${summary}. Finish at /my-training.`,
   );
 }
+
+/**
+ * Re-evaluate a user's induction status after something changed (a module
+ * completed, a policy acknowledged, a course published). Idempotent.
+ *
+ * - cleared → untouched.
+ * - ready + backfilled (grace set) → cleared (backfill skips the practical).
+ * - ready + genuine new hire → awaiting_signoff (waiting on the practical).
+ * - not-ready + awaiting_signoff → back to in_training (readiness regressed,
+ *   e.g. a newly published essential course).
+ * - not-ready + new_starter/in_training → no change.
+ *
+ * Returns the resulting status.
+ */
+export async function recomputeInductionState(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { inductionStatus: true, inductionGraceUntil: true },
+  });
+  if (!user) throw ApiError.notFound("User not found");
+  if (user.inductionStatus === "cleared") return "cleared";
+
+  const { ready } = await getInductionReadiness(userId);
+  const isBackfilled = Boolean(user.inductionGraceUntil);
+
+  if (ready) {
+    if (isBackfilled) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { inductionStatus: "cleared", inductionClearedAt: new Date() },
+      });
+      return "cleared";
+    }
+    if (user.inductionStatus !== "awaiting_signoff") {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { inductionStatus: "awaiting_signoff" },
+      });
+    }
+    return "awaiting_signoff";
+  }
+
+  // Not ready: only meaningful transition is regressing out of awaiting_signoff.
+  if (user.inductionStatus === "awaiting_signoff") {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { inductionStatus: "in_training" },
+    });
+    return "in_training";
+  }
+  return user.inductionStatus;
+}
+
+/**
+ * Single choke-point called whenever a learner makes course progress (a module
+ * completed, a quiz passed). Bumps a brand-new starter into `in_training` on
+ * first interaction, then recomputes state. Called by BOTH the quiz-submit and
+ * module-progress endpoints so the transition can never be skipped.
+ */
+export async function onModuleProgressed(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { inductionStatus: true },
+  });
+  if (user?.inductionStatus === "new_starter") {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { inductionStatus: "in_training" },
+    });
+  }
+  return recomputeInductionState(userId);
+}
