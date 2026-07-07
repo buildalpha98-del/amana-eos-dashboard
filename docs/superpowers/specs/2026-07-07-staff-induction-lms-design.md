@@ -70,7 +70,7 @@ inductionDueDate      DateTime?   // start date for new hires; grace deadline fo
 inductionClearedAt    DateTime?
 inductionClearedById  String?     // coordinator/admin who signed off
 inductionGraceUntil   DateTime?   // backfill only: works while in_training until this date
-inductionOverrideUntil DateTime?  // admin override exemption window (audited); reason in AuditLog
+inductionOverrideUntil DateTime?  // admin override exemption window (audited); reason written to ActivityLog
 ```
 
 **Creating a new starter**: the user-create flows (`/api/users` POST, bulk-invite, and the `/onboarding` admin UI) gain a "New starter" option — when set, the account is created with `inductionStatus: new_starter` and `inductionDueDate` = their start date, and the welcome email uses induction-specific copy ("complete your training before day 1"). Without the flag, user creation behaves exactly as today (`cleared`) — for admin/head-office accounts and corrections.
@@ -153,9 +153,11 @@ Enforcement points:
 2. **Clock-in** — reject with "finish your induction" message across all clock paths (`roster/shifts/[id]/clock-in`, `roster/clock-in/auto`, `roster/unscheduled-clock-in`, `kiosk/clock`); kiosk shows a coordinator-readable reason.
 3. **Backfill grace**: while `inductionGraceUntil` is in the future, `in_training` staff pass both checks. A daily cron flips expired-grace staff into full gating.
 
-**Admin override**: owner/head_office only, requires a reason, creates an audit log entry, and sets `inductionOverrideUntil` (e.g. end of the shift in question). `assertUserCleared()` passes while the window is active — expiry is a simple timestamp comparison in the check itself, no cron needed.
+**Admin override**: owner/head_office only, requires a reason, writes an `ActivityLog` entry, and sets `inductionOverrideUntil` (e.g. end of the shift in question). `assertUserCleared()` passes while the window is active — expiry is a simple timestamp comparison in the check itself, no cron needed.
 
 **New-starter locked mode**: while `inductionStatus` is `new_starter`/`in_training` *without* grace, `canAccessPage()` is overlaid to permit only: `/my-training`, own profile, `/handbook`, `/policies`. Implemented as an overlay on the existing page-access system — **not** a new Role enum value (avoids the VALID_ROLES 401 class of bug). Backfilled staff with active grace keep full access.
+
+This means when a backfilled veteran's grace **expires** without completing the essentials, they drop into locked mode alongside the roster/clock-in gate — losing general dashboard access until they finish. This is deliberate: expiry is the point at which a backfilled user is treated exactly like an uncleared new starter. Because it is a mid-employment behaviour change for an existing staff member, the final-week daily reminders (see Automation) must make the consequence explicit, and the admin override remains available for genuine edge cases.
 
 ## Learner Experience — `/my-training`
 
