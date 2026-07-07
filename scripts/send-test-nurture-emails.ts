@@ -30,7 +30,7 @@ const CENTRE = "Amana OSHC MFIS Greenacre";
 const ENROL_URL = "https://amanaoshc.company/enrol";
 // Real sends build this per contact; tests use MFIS Greenacre with prefill so
 // the button lands on the live smiley form.
-const FEEDBACK_URL = `https://amanaoshc.company/survey/feedback/cmnk77pua000wobx41hjy2oxi?name=${encodeURIComponent(FIRST_NAME)}&email=${encodeURIComponent(TO)}`;
+const FEEDBACK_URL = `https://amanaoshc.company/survey/feedback/cmraivoq5000xm0bnr7g57uc0?name=${encodeURIComponent(FIRST_NAME)}&email=${encodeURIComponent(TO)}`;
 
 async function main() {
   const resend = new Resend(process.env.RESEND_API_KEY);

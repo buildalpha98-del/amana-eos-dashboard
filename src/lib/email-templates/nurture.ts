@@ -918,32 +918,52 @@ export async function nurtureDay3CheckinEmail(firstName: string, centreName: str
     key: "nurture.day3Checkin",
     defaultSubject: "Getting into the groove at {{centreName}}",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       Quick check-in from us
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      A few days in and your child is starting to find their rhythm at {{centreName}}.
-      By now they're probably beginning to recognise faces, find their favourite activities,
-      and settle into the routine.
+      A few days in and your child is starting to find their rhythm at {{centreName}} —
+      recognising faces, finding favourite activities, settling into the routine.
     </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We just wanted to check: <strong>is everything going well from your end?</strong>
-      Whether it's a small concern or a big question, we want to hear it now rather than later.
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      Three quick things from us:
     </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Things like pickup logistics, dietary needs, or how your child is going socially —
-      nothing is too small to bring up. Reply anytime.
-    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
+      <tr>
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>1. Anything we should tweak?</strong><br/>
+            Pickup logistics, dietary needs, how your child is going socially — nothing is
+            too small. Just reply; we'd rather hear it now than later.
+          </p>
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>2. Are you set up on the OWNA app?</strong><br/>
+            Daily updates, photos from their sessions, and booking extra days all live
+            there. Your username and password were emailed when your enrolment was
+            confirmed — can't find them? Just reply and we'll resend.
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>3. Join the Amana parent community</strong><br/>
+            Updates, reminders and what's-on, straight to your phone —
+            <a href="https://chat.whatsapp.com/JU9ab3hMupbHzrfa5eS8Ko" style="color:#004E64;font-weight:700;">join
+            our WhatsApp community &#8594;</a> (there's a group for your centre too).
+          </p>
+        </td>
+      </tr>
+    </table>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Here for you,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
     vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader: "A few sessions in — anything we should tweak? Nothing's too small.",
+      }),
   });
 }
 
