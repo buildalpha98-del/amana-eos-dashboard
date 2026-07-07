@@ -152,29 +152,29 @@ export const POST = withApiAuth(
       if (childIds.length > 0) {
         const valid = await tx.child.findMany({
           where: { id: { in: childIds }, serviceId: id },
-          select: { id: true, firstName: true },
+          select: { id: true },
         });
         if (valid.length !== childIds.length) {
           throw ApiError.badRequest(
             "One or more tagged children do not belong to this service",
           );
         }
-        for (const child of valid) {
-          const obs = await tx.learningObservation.create({
-            data: {
-              childId: child.id,
-              serviceId: id,
-              authorId: session.user.id,
-              title: data.title,
-              narrative: data.content,
-              mtopOutcomes: data.mtopOutcomes ?? [],
-              visibleToParent: data.shareWithParents === true,
-              sourceReflectionId: reflection.id,
-            },
-            select: { id: true },
-          });
-          observationIds.push(obs.id);
-        }
+        // One round-trip for all children — sequential per-child creates blew
+        // Prisma's 5s interactive-transaction timeout on high-latency links.
+        const obs = await tx.learningObservation.createManyAndReturn({
+          data: valid.map((child) => ({
+            childId: child.id,
+            serviceId: id,
+            authorId: session.user.id,
+            title: data.title,
+            narrative: data.content,
+            mtopOutcomes: data.mtopOutcomes ?? [],
+            visibleToParent: data.shareWithParents === true,
+            sourceReflectionId: reflection.id,
+          })),
+          select: { id: true },
+        });
+        observationIds.push(...obs.map((o) => o.id));
       }
 
       if (data.shareWithParents) {
@@ -211,7 +211,9 @@ export const POST = withApiAuth(
         reflection: updated,
         fanOutChildIds: parentPostId ? childIds : [],
       };
-    });
+      // 15s headroom: the fan-out is ~6 queries and the Prisma default (5s)
+      // is too tight on high-latency DB links.
+    }, { timeout: 15_000 });
 
     // Fire-and-forget: notify parents of tagged children about the new post.
     const { reflection, fanOutChildIds } = created;

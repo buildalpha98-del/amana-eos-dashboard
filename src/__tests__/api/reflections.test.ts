@@ -219,9 +219,9 @@ describe("reflections API", () => {
         title: "Daily reflection",
         author: { id: "u1", name: "Edu", avatar: null },
       });
-      let obsCount = 0;
-      prismaMock.learningObservation.create.mockImplementation(() =>
-        Promise.resolve({ id: `obs-${++obsCount}` }),
+      prismaMock.learningObservation.createManyAndReturn.mockImplementation(
+        ({ data }: any) =>
+          Promise.resolve(data.map((_: unknown, i: number) => ({ id: `obs-${i + 1}` }))),
       );
       prismaMock.parentPost.create.mockResolvedValue({ id: "post-1" });
       prismaMock.staffReflection.update.mockImplementation(({ data }: any) =>
@@ -256,18 +256,19 @@ describe("reflections API", () => {
       );
       expect(res.status).toBe(201);
 
-      expect(prismaMock.learningObservation.create).toHaveBeenCalledTimes(2);
-      expect(prismaMock.learningObservation.create).toHaveBeenCalledWith(
+      expect(prismaMock.learningObservation.createManyAndReturn).toHaveBeenCalledTimes(1);
+      const obsArgs =
+        prismaMock.learningObservation.createManyAndReturn.mock.calls[0][0];
+      expect(obsArgs.data).toHaveLength(2);
+      expect(obsArgs.data[0]).toEqual(
         expect.objectContaining({
-          data: expect.objectContaining({
-            childId: CHILD_A,
-            serviceId: "s1",
-            authorId: "u1",
-            narrative: "We built a cubby and practised sharing.",
-            mtopOutcomes: ["Wellbeing"],
-            visibleToParent: true,
-            sourceReflectionId: "r-daily",
-          }),
+          childId: CHILD_A,
+          serviceId: "s1",
+          authorId: "u1",
+          narrative: "We built a cubby and practised sharing.",
+          mtopOutcomes: ["Wellbeing"],
+          visibleToParent: true,
+          sourceReflectionId: "r-daily",
         }),
       );
 
@@ -306,7 +307,7 @@ describe("reflections API", () => {
         await ctx(),
       );
       expect(res.status).toBe(201);
-      expect(prismaMock.learningObservation.create).not.toHaveBeenCalled();
+      expect(prismaMock.learningObservation.createManyAndReturn).not.toHaveBeenCalled();
       const postArgs = prismaMock.parentPost.create.mock.calls[0][0];
       expect(postArgs.data.isCommunity).toBe(true);
       expect(postArgs.data.tags).toBeUndefined();
@@ -322,10 +323,10 @@ describe("reflections API", () => {
         await ctx(),
       );
       expect(res.status).toBe(201);
-      expect(prismaMock.learningObservation.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ visibleToParent: false }),
-        }),
+      const privateObsArgs =
+        prismaMock.learningObservation.createManyAndReturn.mock.calls[0][0];
+      expect(privateObsArgs.data[0]).toEqual(
+        expect.objectContaining({ visibleToParent: false }),
       );
       expect(prismaMock.parentPost.create).not.toHaveBeenCalled();
       expect(notifyParentNewPost).not.toHaveBeenCalled();
@@ -346,7 +347,7 @@ describe("reflections API", () => {
         await ctx(),
       );
       expect(res.status).toBe(201);
-      expect(prismaMock.learningObservation.create).not.toHaveBeenCalled();
+      expect(prismaMock.learningObservation.createManyAndReturn).not.toHaveBeenCalled();
       expect(prismaMock.parentPost.create).not.toHaveBeenCalled();
     });
 
@@ -362,7 +363,7 @@ describe("reflections API", () => {
         await ctx(),
       );
       expect(res.status).toBe(400);
-      expect(prismaMock.learningObservation.create).not.toHaveBeenCalled();
+      expect(prismaMock.learningObservation.createManyAndReturn).not.toHaveBeenCalled();
       expect(prismaMock.parentPost.create).not.toHaveBeenCalled();
     });
   });
