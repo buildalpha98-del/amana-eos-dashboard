@@ -30,6 +30,7 @@ import {
   MapPin,
   FileSpreadsheet,
   Lock,
+  BellOff,
   CheckCircle2,
   XCircle,
   Key,
@@ -87,6 +88,7 @@ interface UserData {
   email: string;
   role: Role;
   active: boolean;
+  notificationsMuted: boolean;
   createdAt: string;
 }
 
@@ -390,6 +392,26 @@ function UserRow({
     },
   });
 
+  const toggleMute = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationsMuted: !user.notificationsMuted }),
+      });
+      if (!res.ok) throw new Error("Failed to update notifications");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setShowMenu(false);
+      toast({ description: user.notificationsMuted ? "Notifications unmuted" : "Notifications muted — no emails or push" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+
   const updateRole = useMutation({
     mutationFn: async (newRole: Role) => {
       const res = await fetch(`/api/users/${user.id}`, {
@@ -565,6 +587,14 @@ function UserRow({
                   >
                     <Lock className="w-3.5 h-3.5" />
                     Reset Password
+                  </button>
+                  <button
+                    onClick={() => toggleMute.mutate()}
+                    disabled={toggleMute.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <BellOff className="w-3.5 h-3.5" />
+                    {user.notificationsMuted ? "Unmute notifications" : "Mute notifications"}
                   </button>
                   {isOwner && (
                     <>

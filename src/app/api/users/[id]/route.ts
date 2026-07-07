@@ -9,6 +9,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { applyNotificationMute } from "@/lib/notification-mute";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
@@ -19,6 +20,7 @@ const updateUserSchema = z.object({
   active: z.boolean().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
   state: z.string().optional().nullable(),
+  notificationsMuted: z.boolean().optional(),
 });
 
 // PATCH /api/users/:id — update a user (owner + admin)
@@ -62,8 +64,8 @@ const { id } = await context!.params!;
     );
   }
 
-  // Build update payload — handle password separately
-  const { newPassword, ...rest } = parsed.data;
+  // Build update payload — password + notification mute handled separately
+  const { newPassword, notificationsMuted, ...rest } = parsed.data;
   const updateData: Record<string, unknown> = { ...rest };
   if (newPassword) {
     const breachCount = await checkPasswordBreach(newPassword);
@@ -86,9 +88,17 @@ const { id } = await context!.params!;
       role: true,
       active: true,
       state: true,
+      notificationsMuted: true,
       createdAt: true,
     },
   });
+
+  // Notification mute goes through the shared helper (syncs email suppression,
+  // clears push subscriptions, sets prefs) — not a plain column write.
+  if (notificationsMuted !== undefined) {
+    await applyNotificationMute(id, notificationsMuted);
+    updated.notificationsMuted = notificationsMuted;
+  }
 
   await prisma.activityLog.create({
     data: {
@@ -96,7 +106,11 @@ const { id } = await context!.params!;
       action: newPassword ? "reset_password" : "update",
       entityType: "User",
       entityId: id,
-      details: { ...rest, passwordReset: !!newPassword },
+      details: {
+        ...rest,
+        ...(notificationsMuted !== undefined ? { notificationsMuted } : {}),
+        passwordReset: !!newPassword,
+      },
     },
   });
 

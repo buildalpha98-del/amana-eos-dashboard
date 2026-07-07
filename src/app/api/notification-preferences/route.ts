@@ -6,22 +6,24 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { applyNotificationMute } from "@/lib/notification-mute";
 const updatePrefsSchema = z.object({
   prefs: z.record(z.string(), z.boolean()),
 });
+const muteSchema = z.object({ muted: z.boolean() });
 
 // GET /api/notification-preferences — return current user's prefs
 export const GET = withApiAuth(async (req, session) => {
 const user = await prisma.user.findUnique({
     where: { id: session!.user.id },
-    select: { notificationPrefs: true, role: true },
+    select: { notificationPrefs: true, role: true, notificationsMuted: true },
   });
 
   const defaults = getDefaultNotificationPrefs(user?.role ?? "staff");
   const stored = parseJsonField(user?.notificationPrefs, notificationPrefsSchema, {});
   const prefs = Object.keys(stored).length > 0 ? stored : defaults;
 
-  return NextResponse.json({ prefs });
+  return NextResponse.json({ prefs, muted: user?.notificationsMuted ?? false });
 });
 
 // PUT /api/notification-preferences — update prefs
@@ -48,4 +50,15 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json({ prefs: merged });
+});
+
+// PATCH /api/notification-preferences — flip the master "mute everything" switch
+export const PATCH = withApiAuth(async (req, session) => {
+  const body = await parseJsonBody(req);
+  const parsed = muteSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+  await applyNotificationMute(session!.user.id, parsed.data.muted);
+  return NextResponse.json({ muted: parsed.data.muted });
 });
