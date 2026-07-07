@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { runAfter } from "@/lib/run-after";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
@@ -143,13 +144,14 @@ export const POST = withApiHandler(async (req) => {
       details: { via: "cowork_api", keyName: "Cowork Automation" },
     });
 
-    // Trigger welcome nurture email for new enquiries
-    // Creation event for the pipeline history (fire-and-forget).
-  logEnquiryStageEvent(enquiry.id, null, enquiry.stage);
-
-  scheduleNurtureFromStageChange(enquiry.id, "new_enquiry").catch((err) =>
-      logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
-    );
+    // Stage event + nurture scheduling run via after() — a bare promise dies
+    // when the serverless response returns, silently skipping the journey.
+    runAfter(async () => {
+      await logEnquiryStageEvent(enquiry.id, null, enquiry.stage);
+      await scheduleNurtureFromStageChange(enquiry.id, "new_enquiry").catch((err) =>
+        logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
+      );
+    });
 
     return NextResponse.json({ success: true, enquiry }, { status: 201 });
   } catch (err) {
