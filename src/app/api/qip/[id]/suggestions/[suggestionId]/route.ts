@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { EVIDENCE_SLOTS } from "@/lib/nqs-taxonomy";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office", "admin"]);
 
@@ -56,12 +57,43 @@ export const PATCH = withApiAuth(
 
       if (action !== "reject") {
         const finalText = action === "edit" ? text! : suggestion.proposedText;
-        await tx.qIPQualityArea.update({
-          where: {
-            qipId_qualityArea: { qipId, qualityArea: suggestion.qualityArea },
-          },
-          data: { [suggestion.field]: finalText },
-        });
+
+        if (suggestion.field === "evidence" && suggestion.elementCode) {
+          // Element-level evidence: fill the first empty of the 5 slots.
+          const existing = await tx.satElementAssessment.findUnique({
+            where: {
+              qipId_elementCode: { qipId, elementCode: suggestion.elementCode },
+            },
+            select: { evidence: true },
+          });
+          const evidence = [...(existing?.evidence ?? [])];
+          const emptyIdx = evidence.findIndex((e) => !e.trim());
+          if (emptyIdx >= 0) {
+            evidence[emptyIdx] = finalText;
+          } else if (evidence.length < EVIDENCE_SLOTS) {
+            evidence.push(finalText);
+          } else {
+            throw ApiError.conflict(
+              `Element ${suggestion.elementCode} already has ${EVIDENCE_SLOTS} evidence entries — edit the element to free a slot first`,
+            );
+          }
+          await tx.satElementAssessment.upsert({
+            where: {
+              qipId_elementCode: { qipId, elementCode: suggestion.elementCode },
+            },
+            create: { qipId, elementCode: suggestion.elementCode, evidence },
+            update: { evidence },
+          });
+        } else {
+          // Legacy per-QA-field suggestion (pre-element rows).
+          await tx.qIPQualityArea.update({
+            where: {
+              qipId_qualityArea: { qipId, qualityArea: suggestion.qualityArea },
+            },
+            data: { [suggestion.field]: finalText },
+          });
+        }
+
         await tx.qualityImprovementPlan.update({
           where: { id: qipId },
           data: { lastReviewDate: new Date(), reviewedById: session.user.id },

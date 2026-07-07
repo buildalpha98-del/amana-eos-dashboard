@@ -30,10 +30,10 @@ const TAG_TEMPLATE = {
 };
 const UPDATE_TEMPLATE = {
   slug: "compliance/qip-weekly-update",
-  model: "claude-sonnet-4-20250514",
+  model: "claude-sonnet-5",
   maxTokens: 1500,
   promptTemplate:
-    "QA {{qualityArea}} {{qualityAreaName}} of {{documentType}}\nCURRENT:{{currentFields}}\nEVIDENCE:{{evidence}}\nPENDING:{{pendingProposals}}",
+    "QA {{qualityArea}} {{qualityAreaName}} of {{documentType}}\nELEMENTS:{{elementContext}}\nEVIDENCE:{{evidence}}\nPENDING:{{pendingProposals}}",
 };
 
 function primeBase() {
@@ -65,6 +65,7 @@ function primeBase() {
   prismaMock.learningObservation.update.mockResolvedValue({});
   prismaMock.qipSuggestion.findMany.mockResolvedValue([]);
   prismaMock.qipSuggestion.create.mockResolvedValue({ id: "sg-new" });
+  prismaMock.satElementAssessment.findMany.mockResolvedValue([]);
   prismaMock.user.findMany.mockResolvedValue([]);
 }
 
@@ -73,17 +74,6 @@ const QIP = {
   serviceId: "s1",
   documentType: "sat",
   service: { id: "s1", name: "Sunny OSHC", state: "NSW" },
-  qualityAreas: [
-    {
-      id: "qa5",
-      qualityArea: 5,
-      qualityAreaName: "Relationships with Children",
-      strengths: "Existing strengths text",
-      areasForImprovement: null,
-      progressNotes: null,
-      evidenceCollected: null,
-    },
-  ],
 };
 
 const taggedReflection = {
@@ -173,8 +163,12 @@ describe("/api/cron/qip-weekly-update", () => {
     prismaMock.staffReflection.findMany.mockImplementation(({ where }: { where: { qualityAreas?: { isEmpty?: boolean } } }) =>
       Promise.resolve(where.qualityAreas?.isEmpty ? [] : [taggedReflection]),
     );
+    // Existing evidence on 5.1.1: one filled slot (4 free); 5.1.2 untouched.
+    prismaMock.satElementAssessment.findMany.mockResolvedValue([
+      { elementCode: "5.1.1", evidence: ["Existing evidence entry"] },
+    ]);
     vi.mocked(generateText).mockResolvedValue(
-      '{"changes":[{"field":"strengths","proposedText":"Updated strengths incl. restorative practice.","rationale":"Evidence 1"}]}',
+      '{"changes":[{"elementCode":"5.1.1","proposedText":"Educators guided a restorative conversation between children, supporting secure and confident relationships.","rationale":"Evidence 1"}]}',
     );
     prismaMock.user.findMany.mockResolvedValue([
       { id: "dir1", name: "Dir", email: "dir@amana.test" },
@@ -194,9 +188,11 @@ describe("/api/cron/qip-weekly-update", () => {
         data: expect.objectContaining({
           qipId: "q1",
           qualityArea: 5,
-          field: "strengths",
-          currentText: "Existing strengths text",
-          proposedText: "Updated strengths incl. restorative practice.",
+          elementCode: "5.1.1",
+          field: "evidence",
+          currentText: "Existing evidence entry",
+          proposedText:
+            "Educators guided a restorative conversation between children, supporting secure and confident relationships.",
           evidenceRefs: expect.arrayContaining([
             expect.objectContaining({ type: "reflection", id: "r1" }),
           ]),

@@ -142,6 +142,44 @@ describe("QIP suggestions API", () => {
       expect(res.status).toBe(401);
     });
 
+    it("accept on an evidence suggestion fills the first empty slot", async () => {
+      mockReviewPath(suggestion({ field: "evidence", elementCode: "5.1.1" }));
+      prismaMock.satElementAssessment.findUnique.mockResolvedValue({
+        evidence: ["kept", ""],
+      });
+      prismaMock.satElementAssessment.upsert.mockResolvedValue({});
+
+      const res = await PATCH(
+        createRequest("PATCH", "/api/qip/q1/suggestions/sg1", {
+          body: { action: "accept" },
+        }),
+        await subCtx(),
+      );
+      expect(res.status).toBe(200);
+      expect(prismaMock.satElementAssessment.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { qipId_elementCode: { qipId: "q1", elementCode: "5.1.1" } },
+          update: { evidence: ["kept", "new proposed text"] },
+        }),
+      );
+      expect(prismaMock.qIPQualityArea.update).not.toHaveBeenCalled();
+    });
+
+    it("409 when the element's five slots are full", async () => {
+      mockReviewPath(suggestion({ field: "evidence", elementCode: "5.1.1" }));
+      prismaMock.satElementAssessment.findUnique.mockResolvedValue({
+        evidence: ["a", "b", "c", "d", "e"],
+      });
+      const res = await PATCH(
+        createRequest("PATCH", "/api/qip/q1/suggestions/sg1", {
+          body: { action: "accept" },
+        }),
+        await subCtx(),
+      );
+      expect(res.status).toBe(409);
+      expect(prismaMock.satElementAssessment.upsert).not.toHaveBeenCalled();
+    });
+
     it("accept patches the QA field and bumps review metadata", async () => {
       mockReviewPath();
       const res = await PATCH(

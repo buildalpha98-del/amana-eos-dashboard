@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   mondayOfWeekSydney,
   buildEvidenceExcerpts,
+  buildElementContext,
+  elementCodesWithFreeSlot,
   parseTagResponse,
   parseChangesResponse,
 } from "@/lib/qip-weekly";
@@ -86,26 +88,53 @@ describe("parseTagResponse", () => {
 });
 
 describe("parseChangesResponse", () => {
-  it("parses valid changes", () => {
+  it("parses valid element-targeted changes", () => {
     const r = parseChangesResponse(
-      '{"changes":[{"field":"strengths","proposedText":"We now...","rationale":"Evidence 1-2"}]}',
+      '{"changes":[{"elementCode":"5.1.1","proposedText":"Educators...","rationale":"Evidence 1-2"}]}',
     );
-    expect(r?.changes[0].field).toBe("strengths");
+    expect(r?.changes[0].elementCode).toBe("5.1.1");
   });
 
   it("parses the empty-changes marker", () => {
     expect(parseChangesResponse('{"changes":[]}')?.changes).toEqual([]);
   });
 
-  it("rejects invalid field names", () => {
+  it("rejects unknown or malformed element codes", () => {
     expect(
       parseChangesResponse(
-        '{"changes":[{"field":"improvementGoal","proposedText":"x","rationale":"y"}]}',
+        '{"changes":[{"elementCode":"9.9.9","proposedText":"x","rationale":"y"}]}',
+      ),
+    ).toBeNull();
+    expect(
+      parseChangesResponse(
+        '{"changes":[{"field":"strengths","proposedText":"x","rationale":"y"}]}',
       ),
     ).toBeNull();
   });
 
   it("returns null on malformed JSON", () => {
     expect(parseChangesResponse("oops")).toBeNull();
+  });
+});
+
+describe("buildElementContext / elementCodesWithFreeSlot", () => {
+  const stored = [
+    { elementCode: "5.1.1", evidence: ["a", "b", "c", "d", "e"] }, // full
+    { elementCode: "5.1.2", evidence: ["one", ""] }, // 1 used
+  ];
+
+  it("lists every element of the QA with free-slot counts", () => {
+    const block = buildElementContext(5, stored);
+    expect(block).toContain("5.1.1 [Positive educator to child interactions]");
+    expect(block).toContain("Free evidence slots: 0");
+    expect(block).toContain("5.2.2 [Self-regulation]");
+    expect(block).toContain("(no evidence recorded yet)");
+  });
+
+  it("excludes full elements from the free-slot set", () => {
+    const free = elementCodesWithFreeSlot(5, stored);
+    expect(free.has("5.1.1")).toBe(false);
+    expect(free.has("5.1.2")).toBe(true);
+    expect(free.has("5.2.1")).toBe(true);
   });
 });

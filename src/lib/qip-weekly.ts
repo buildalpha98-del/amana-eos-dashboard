@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MTOP_OUTCOMES } from "@/lib/schemas/staff-reflection";
+import { ELEMENT_BY_CODE, EVIDENCE_SLOTS, elementsForQa } from "@/lib/nqs-taxonomy";
 
 /**
  * Pure helpers for the Friday qip-weekly-update cron: evidence-week windowing,
@@ -73,12 +74,10 @@ export type TagResponse = z.infer<typeof tagResponseSchema>;
 const changesResponseSchema = z.object({
   changes: z.array(
     z.object({
-      field: z.enum([
-        "strengths",
-        "areasForImprovement",
-        "progressNotes",
-        "evidenceCollected",
-      ]),
+      elementCode: z
+        .string()
+        .regex(/^[1-7]\.[1-3]\.[1-3]$/)
+        .refine((code) => ELEMENT_BY_CODE.has(code), "unknown NQS element"),
       proposedText: z.string().min(1),
       rationale: z.string().min(1),
     }),
@@ -101,4 +100,43 @@ export function parseTagResponse(text: string): TagResponse | null {
 
 export function parseChangesResponse(text: string): ChangesResponse | null {
   return parseJson(changesResponseSchema, text);
+}
+
+/**
+ * Prompt block describing a quality area's NQS elements with their current
+ * evidence state, so the model targets specific elements and never proposes
+ * for a full one. `stored` is the service's SatElementAssessment rows.
+ */
+export function buildElementContext(
+  qa: number,
+  stored: Array<{ elementCode: string; evidence: string[] }>,
+): string {
+  const byCode = new Map(stored.map((r) => [r.elementCode, r]));
+  return elementsForQa(qa)
+    .map((el) => {
+      const evidence = (byCode.get(el.code)?.evidence ?? []).filter((e) => e.trim());
+      const free = EVIDENCE_SLOTS - evidence.length;
+      const current =
+        evidence.length > 0
+          ? evidence.map((e, i) => `    ${i + 1}) ${excerptOf(e)}`).join("\n")
+          : "    (no evidence recorded yet)";
+      return `${el.code} [${el.concept}] — ${el.description}\n  Free evidence slots: ${free}\n  Current evidence:\n${current}`;
+    })
+    .join("\n\n");
+}
+
+/** Elements of a QA that still have at least one free evidence slot. */
+export function elementCodesWithFreeSlot(
+  qa: number,
+  stored: Array<{ elementCode: string; evidence: string[] }>,
+): Set<string> {
+  const byCode = new Map(stored.map((r) => [r.elementCode, r]));
+  return new Set(
+    elementsForQa(qa)
+      .filter((el) => {
+        const used = (byCode.get(el.code)?.evidence ?? []).filter((e) => e.trim()).length;
+        return used < EVIDENCE_SLOTS;
+      })
+      .map((el) => el.code),
+  );
 }

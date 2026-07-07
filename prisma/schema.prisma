@@ -5357,13 +5357,70 @@ model QualityImprovementPlan {
   state          String
   documentType   String           @default("qip") // qip | sat
   status         String           @default("draft") // draft | in_review | current | archived
+  /// Document-level service philosophy statement (first section of the NSW SAT form).
+  servicePhilosophy String?       @db.Text
+  /// Per-QA comments for the Law & Regulations checklist: { "1": "...", ... }
+  legalComments  Json?
   lastReviewDate DateTime?
   reviewedById   String?
   reviewedBy     User?            @relation("QIPReviewer", fields: [reviewedById], references: [id])
   qualityAreas   QIPQualityArea[]
+  elements       SatElementAssessment[]
+  legalChecks    SatLegalCheck[]
+  improvements   SatImprovement[]
   suggestions    QipSuggestion[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+}
+
+/// Per-NQS-element assessment: the core of the official SAT/QIP structure.
+/// One row per element (40 per document); the fixed taxonomy (concept,
+/// description, standard) lives in src/lib/nqs-taxonomy.ts, only per-service
+/// content lives here. `evidence` holds up to 5 "Evidence and Key practices"
+/// entries, mirroring the NSW form's five text boxes.
+model SatElementAssessment {
+  id          String                 @id @default(cuid())
+  qipId       String
+  qip         QualityImprovementPlan @relation(fields: [qipId], references: [id], onDelete: Cascade)
+  elementCode String // "1.1.1" … "7.2.3"
+  evidence    String[]               @default([])
+  assessment  String                 @default("not_assessed") // not_assessed | met | not_met
+  updatedAt   DateTime               @updatedAt
+
+  @@unique([qipId, elementCode])
+}
+
+/// Per-QA Law & Regulations checklist answers (questions are fixed taxonomy).
+model SatLegalCheck {
+  id         String                 @id @default(cuid())
+  qipId      String
+  qip        QualityImprovementPlan @relation(fields: [qipId], references: [id], onDelete: Cascade)
+  checkKey   String // taxonomy key, e.g. "qa1-01"
+  assessment String                 @default("not_assessed") // not_assessed | compliant | non_compliant | not_applicable
+  updatedAt  DateTime               @updatedAt
+
+  @@unique([qipId, checkKey])
+}
+
+/// Continuous Improvement Opportunities rows (per element/standard), matching
+/// the NSW SAT form's improvement table.
+model SatImprovement {
+  id             String                 @id @default(cuid())
+  qipId          String
+  qip            QualityImprovementPlan @relation(fields: [qipId], references: [id], onDelete: Cascade)
+  elementCode    String // element ("1.1.1") or standard ("1.1") ref
+  issue          String                 @db.Text
+  outcomeGoal    String                 @db.Text
+  priority       String                 @default("medium") // low | medium | high
+  steps          String                 @db.Text
+  successMeasure String                 @db.Text
+  byWhen         String?
+  progressNotes  String?                @db.Text
+  status         String                 @default("not_started") // not_started | in_progress | completed
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([qipId, status])
 }
 
 model QIPQualityArea {
@@ -5395,7 +5452,10 @@ model QipSuggestion {
   qipId        String
   qip          QualityImprovementPlan @relation(fields: [qipId], references: [id], onDelete: Cascade)
   qualityArea  Int // 1-7
-  field        String // "strengths" | "areasForImprovement" | "progressNotes" | "evidenceCollected"
+  /// Target NQS element for evidence suggestions ("1.1.1"). Null on legacy
+  /// per-QA-field rows created before the element-level restructure.
+  elementCode  String?
+  field        String // "evidence" (element-level) | legacy: "strengths" | "areasForImprovement" | "progressNotes" | "evidenceCollected"
   currentText  String?                @db.Text
   proposedText String                 @db.Text
   rationale    String                 @db.Text

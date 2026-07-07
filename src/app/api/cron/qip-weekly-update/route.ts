@@ -9,24 +9,17 @@ import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import {
   mondayOfWeekSydney,
   buildEvidenceExcerpts,
+  buildElementContext,
+  elementCodesWithFreeSlot,
   parseTagResponse,
   parseChangesResponse,
   excerptOf,
   type EvidenceItem,
 } from "@/lib/qip-weekly";
+import { ELEMENT_BY_CODE, QA_NAMES } from "@/lib/nqs-taxonomy";
 
 const TAG_BATCH_SIZE = 10;
 const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks — covers reruns without going stale
-
-const QA_NAMES: Record<number, string> = {
-  1: "Educational Program and Practice",
-  2: "Children's Health and Safety",
-  3: "Physical Environment",
-  4: "Staffing Arrangements",
-  5: "Relationships with Children",
-  6: "Collaborative Partnerships",
-  7: "Governance and Leadership",
-};
 
 /**
  * Cached AI call: sha256 the rendered prompt, reuse a fresh cache row when
@@ -136,7 +129,6 @@ export const GET = withApiHandler(async (req) => {
     const qips = await prisma.qualityImprovementPlan.findMany({
       include: {
         service: { select: { id: true, name: true, state: true } },
-        qualityAreas: true,
       },
     });
 
@@ -271,9 +263,15 @@ export const GET = withApiHandler(async (req) => {
       const documentType = qip.documentType === "sat" ? "SAT" : "QIP";
       let serviceSuggestions = 0;
 
-      for (const area of qip.qualityAreas) {
+      // Element rows are lazy — fetch what exists once per service.
+      const elementRows = await prisma.satElementAssessment.findMany({
+        where: { qipId: qip.id },
+        select: { elementCode: true, evidence: true },
+      });
+
+      for (let qa = 1; qa <= 7; qa++) {
         const qaReflections = weekReflections.filter((r) =>
-          r.qualityAreas.includes(area.qualityArea),
+          r.qualityAreas.includes(qa),
         );
         if (qaReflections.length === 0) continue;
 
@@ -299,25 +297,15 @@ export const GET = withApiHandler(async (req) => {
           return [own, ...rides];
         });
 
-        const currentFields = [
-          `strengths: ${area.strengths || "(empty)"}`,
-          `areasForImprovement: ${area.areasForImprovement || "(empty)"}`,
-          `progressNotes: ${area.progressNotes || "(empty)"}`,
-          `evidenceCollected: ${area.evidenceCollected || "(empty)"}`,
-        ].join("\n");
-
         const prompt = updateTemplate.promptTemplate
           .replaceAll("{{documentType}}", documentType)
-          .replaceAll("{{qualityArea}}", String(area.qualityArea))
-          .replaceAll(
-            "{{qualityAreaName}}",
-            area.qualityAreaName || QA_NAMES[area.qualityArea] || "",
-          )
-          .replaceAll("{{currentFields}}", currentFields)
+          .replaceAll("{{qualityArea}}", String(qa))
+          .replaceAll("{{qualityAreaName}}", QA_NAMES[qa] || "")
+          .replaceAll("{{elementContext}}", buildElementContext(qa, elementRows))
           .replaceAll("{{evidence}}", buildEvidenceExcerpts(evidence))
           .replaceAll(
             "{{pendingProposals}}",
-            pendingByQa.get(area.qualityArea)?.join("\n") || "(none)",
+            pendingByQa.get(qa)?.join("\n") || "(none)",
           );
 
         let response: string;
@@ -329,7 +317,7 @@ export const GET = withApiHandler(async (req) => {
         } catch (err) {
           logger.warn("qip-weekly-update: QA generation failed", {
             serviceId,
-            qualityArea: area.qualityArea,
+            qualityArea: qa,
             err,
           });
           continue;
@@ -339,25 +327,43 @@ export const GET = withApiHandler(async (req) => {
         if (!parsed) {
           logger.warn("qip-weekly-update: malformed changes response", {
             serviceId,
-            qualityArea: area.qualityArea,
+            qualityArea: qa,
           });
           continue;
         }
 
-        const currentByField: Record<string, string | null> = {
-          strengths: area.strengths,
-          areasForImprovement: area.areasForImprovement,
-          progressNotes: area.progressNotes,
-          evidenceCollected: area.evidenceCollected,
-        };
+        // Guard the model's output: element must belong to this QA and still
+        // have a free evidence slot (counting this run's earlier proposals).
+        const freeSlotCodes = elementCodesWithFreeSlot(qa, elementRows);
+        const elementEvidence = new Map(
+          elementRows.map((r) => [r.elementCode, r.evidence.filter((e) => e.trim())]),
+        );
 
         for (const change of parsed.changes) {
+          const element = ELEMENT_BY_CODE.get(change.elementCode);
+          if (!element || element.qualityArea !== qa) {
+            logger.warn("qip-weekly-update: change targets wrong QA", {
+              serviceId,
+              qualityArea: qa,
+              elementCode: change.elementCode,
+            });
+            continue;
+          }
+          if (!freeSlotCodes.has(change.elementCode)) {
+            logger.warn("qip-weekly-update: element evidence full, skipping", {
+              serviceId,
+              elementCode: change.elementCode,
+            });
+            continue;
+          }
           await prisma.qipSuggestion.create({
             data: {
               qipId: qip.id,
-              qualityArea: area.qualityArea,
-              field: change.field,
-              currentText: currentByField[change.field] ?? null,
+              qualityArea: qa,
+              elementCode: change.elementCode,
+              field: "evidence",
+              currentText:
+                elementEvidence.get(change.elementCode)?.join("\n— ") || null,
               proposedText: change.proposedText,
               rationale: change.rationale,
               evidenceRefs: evidence.map((e) => ({

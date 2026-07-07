@@ -2646,31 +2646,31 @@ Respond with ONLY valid JSON, no markdown fences:
         "documentType",
         "qualityArea",
         "qualityAreaName",
-        "currentFields",
+        "elementContext",
         "evidence",
         "pendingProposals",
       ]),
-      promptTemplate: `You maintain the {{documentType}} (a regulator-facing quality document) for an Australian OSHC service. You are reviewing Quality Area {{qualityArea}}: {{qualityAreaName}}.
+      promptTemplate: `You maintain the {{documentType}} (a regulator-facing NQS quality document) for an Australian OSHC service. You are reviewing Quality Area {{qualityArea}}: {{qualityAreaName}}.
 
-CURRENT DOCUMENT TEXT for this quality area:
-{{currentFields}}
+The document is structured by NQS ELEMENT. Each element holds up to 5 "Evidence and Key practices" entries. This quality area's elements, with their current evidence:
+{{elementContext}}
 
-THIS WEEK'S EVIDENCE (staff reflections and child observations):
-{{evidence}}
-
-PROPOSALS ALREADY PENDING REVIEW (do NOT re-propose these):
+PROPOSALS ALREADY PENDING REVIEW (do NOT duplicate these):
 {{pendingProposals}}
 
+THIS WEEK'S NEW EVIDENCE (staff reflections and child observations):
+{{evidence}}
+
 Rules:
-- Propose a change ONLY if the week's evidence materially adds to or contradicts the current text. A quiet week means no changes.
+- Propose an entry ONLY where the week's evidence genuinely demonstrates a specific element. A quiet week means no changes.
+- Only target elements that have at least 1 free evidence slot.
 - NEVER invent evidence, outcomes, or events not present above.
-- proposedText must be the FULL replacement text for that field (not a diff), preserving everything in the current text that is still true.
-- Valid field values: "strengths", "areasForImprovement", "progressNotes", "evidenceCollected".
-- Write in professional Australian English suitable for a regulator.
-- Each rationale is one sentence naming which evidence items justify the change.
+- Each proposedText is ONE self-contained "Evidence and Key practices" paragraph (60-120 words): concrete practice plus what it demonstrates, in professional Australian English. Reference MTOP outcomes where relevant. Use only first names already present in the evidence.
+- Do not duplicate an element's existing evidence entries — genuinely new practices only.
+- Each rationale is one sentence naming which evidence items justify the entry.
 
 Respond with ONLY valid JSON, no markdown fences:
-{"changes":[{"field":"strengths","proposedText":"...","rationale":"..."}]}
+{"changes":[{"elementCode":"1.1.1","proposedText":"...","rationale":"..."}]}
 or, if nothing warrants a change:
 {"changes":[]}`,
     },
