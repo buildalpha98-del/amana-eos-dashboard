@@ -35,11 +35,13 @@ export function QipEvidenceBrowser({ serviceId }: { serviceId: string }) {
   const [qa, setQa] = useState<number | undefined>(undefined);
   const [mtop, setMtop] = useState<string | undefined>(undefined);
   const [rangeKey, setRangeKey] = useState<(typeof RANGE_PRESETS)[number]["key"]>("term");
+  // Anchor "now" once per mount so render stays pure (react-hooks/purity).
+  const [mountedAt] = useState(() => Date.now());
 
   const from = useMemo(() => {
     const weeks = RANGE_PRESETS.find((r) => r.key === rangeKey)?.weeks ?? 10;
-    return new Date(Date.now() - weeks * 7 * 86400000).toISOString();
-  }, [rangeKey]);
+    return new Date(mountedAt - weeks * 7 * 86400000).toISOString();
+  }, [rangeKey, mountedAt]);
 
   const { data, isLoading } = useQipEvidence(serviceId, { qa, mtop, from });
   const items = data?.items ?? [];

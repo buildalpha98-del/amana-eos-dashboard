@@ -11,7 +11,6 @@
 
 import { useState } from "react";
 import { X, Check, Pencil, Ban, Loader2, FileText, Eye } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   useQipSuggestions,
   useReviewQipSuggestion,
