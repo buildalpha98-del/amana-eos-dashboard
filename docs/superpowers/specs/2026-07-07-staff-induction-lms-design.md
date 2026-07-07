@@ -65,14 +65,21 @@ enum InductionStatus {
 }
 
 // on User:
-inductionStatus      InductionStatus @default(cleared)  // migration default preserves existing staff
-inductionDueDate     DateTime?   // start date for new hires; grace deadline for backfill
-inductionClearedAt   DateTime?
-inductionClearedById String?     // coordinator/admin who signed off
-inductionGraceUntil  DateTime?   // backfill only: works while in_training until this date
+inductionStatus       InductionStatus @default(cleared)  // migration default preserves existing staff
+inductionDueDate      DateTime?   // start date for new hires; grace deadline for backfill
+inductionClearedAt    DateTime?
+inductionClearedById  String?     // coordinator/admin who signed off
+inductionGraceUntil   DateTime?   // backfill only: works while in_training until this date
+inductionOverrideUntil DateTime?  // admin override exemption window (audited); reason in AuditLog
 ```
 
-Transitions: `new_starter → in_training` on first module interaction; `in_training → awaiting_signoff` automatic when `getInductionReadiness()` passes; `awaiting_signoff → cleared` only via practical sign-off completion by coordinator+ (or audited admin override). Reverse transitions only via admin action (logged).
+**Creating a new starter**: the user-create flows (`/api/users` POST, bulk-invite, and the `/onboarding` admin UI) gain a "New starter" option — when set, the account is created with `inductionStatus: new_starter` and `inductionDueDate` = their start date, and the welcome email uses induction-specific copy ("complete your training before day 1"). Without the flag, user creation behaves exactly as today (`cleared`) — for admin/head-office accounts and corrections.
+
+Transitions: `new_starter → in_training` on first module interaction; `in_training → awaiting_signoff` automatic when `getInductionReadiness()` passes; `awaiting_signoff → cleared` via practical sign-off completion by a signer role (see below). Sign-off completion **re-checks readiness at that moment** — if a newly published essential course made readiness false again, the user drops back to `in_training` instead of clearing. Reverse transitions otherwise only via admin action (logged).
+
+**Signer roles** ("coordinator+"): `member` (OSHC Coordinator), `admin`, `head_office`, `owner`. A signer cannot sign off their own induction.
+
+**Backfilled staff skip the practical sign-off**: users with `inductionGraceUntil` set move `awaiting_signoff → cleared` automatically when readiness passes. The practical checklist validates unknown newcomers; veterans demonstrably perform these tasks daily, and requiring observed sign-offs for 100+ existing staff (including the signers themselves) would stall the backfill.
 
 ### LMS extensions
 
@@ -132,7 +139,7 @@ model TrainingCalendarSlot {
 }
 ```
 
-Quiz rules: pass mark 80%, unlimited attempts, option order shuffled per attempt, per-question explanation revealed after answering. A `quiz` module completes only via a passing attempt. `document`/`video` modules require minimum time-on-page (from `duration`, floor 60s) before "mark complete" activates; time recorded in existing `LMSModuleProgress.timeSpent`.
+Quiz rules: pass mark 80%, unlimited attempts, option order shuffled per attempt, per-question explanation revealed after answering. **Shuffling and scoring are server-side**: the attempt-start endpoint returns questions with a persisted per-attempt option permutation (correct answers never sent to the client), and the submit endpoint maps submitted indices back through that permutation to score against `correctIndex`. A `quiz` module completes only via a passing attempt. `document`/`video` modules require minimum time-on-page (from `duration`, floor 60s) before "mark complete" activates; time recorded in existing `LMSModuleProgress.timeSpent`.
 
 ## Gate Enforcement
 
@@ -142,11 +149,11 @@ Single source of truth: `src/lib/induction.ts`
 - `assertUserCleared(userId)` → throws `ApiError.forbidden` with blocker summary.
 
 Enforcement points:
-1. **Roster assignment APIs** — reject adding a non-`cleared` user to a shift; error names outstanding blockers.
-2. **Clock-in (self-service + kiosk)** — reject with "finish your induction" message; kiosk shows a coordinator-readable reason.
+1. **Roster assignment APIs** — reject adding a non-`cleared` user to a shift; error names outstanding blockers. The implementation plan must enumerate every surface: shift create/assign, open-shift claim (`shifts/[id]/release`/claim), and any bulk-assignment path.
+2. **Clock-in** — reject with "finish your induction" message across all clock paths (`roster/shifts/[id]/clock-in`, `roster/clock-in/auto`, `roster/unscheduled-clock-in`, `kiosk/clock`); kiosk shows a coordinator-readable reason.
 3. **Backfill grace**: while `inductionGraceUntil` is in the future, `in_training` staff pass both checks. A daily cron flips expired-grace staff into full gating.
 
-**Admin override**: owner/head_office only, requires a reason, creates an audit log entry, sets a temporary exemption window (e.g. single shift). Exists so a staffing emergency produces an audited record instead of a workaround.
+**Admin override**: owner/head_office only, requires a reason, creates an audit log entry, and sets `inductionOverrideUntil` (e.g. end of the shift in question). `assertUserCleared()` passes while the window is active — expiry is a simple timestamp comparison in the check itself, no cron needed.
 
 **New-starter locked mode**: while `inductionStatus` is `new_starter`/`in_training` *without* grace, `canAccessPage()` is overlaid to permit only: `/my-training`, own profile, `/handbook`, `/policies`. Implemented as an overlay on the existing page-access system — **not** a new Role enum value (avoids the VALID_ROLES 401 class of bug). Backfilled staff with active grace keep full access.
 
@@ -187,14 +194,16 @@ All 7 essential courses drafted (modules + quiz banks) from existing sources (Am
 2. Publish essential courses as review completes.
 3. **Backfill launch** (admin action): enrol all active staff in the essential track, set `in_training` + `inductionGraceUntil` = +5 weeks, notify. Weekly completion reports run.
 4. Grace expiry: uncompleted staff become gated (cron).
-5. New hires from launch: account at contract signing → full journey.
+5. New hires from launch: account created with the "New starter" flag at contract signing → full journey.
+
+The implementation plan should mirror these phases (schema + gate machinery → learner/admin UI → crons + backfill → seed content) rather than one monolithic pass.
 
 ## Testing
 
 Per existing route-test conventions (Vitest, prisma-mock, input-based mock routing):
-- Gate: roster reject / clock-in reject / kiosk reject for each non-cleared status; grace-window pass; override path + audit record.
+- Gate: roster reject / clock-in reject / kiosk reject for each non-cleared status; grace-window pass; override window pass + expiry + audit record.
 - Readiness: each blocker type individually; unpublished-course exclusion; empty-curriculum inert gate.
-- State machine: all legal transitions; illegal transitions rejected.
+- State machine: all legal transitions; illegal transitions rejected; backfill auto-clear (grace set, no practical needed); sign-off re-checks readiness; new-starter flag on user creation sets `new_starter` + due date, default flow stays `cleared`; self-sign-off rejected.
 - Quiz: scoring, pass boundary (exactly 80%), attempt numbering, shuffled options, quiz-gated module completion.
 - Crons: auth rejection, lock skip, happy path (monthly enrol dedup, grace expiry) for both crons.
 - Practical sign-off: completion triggers `cleared` only from `awaiting_signoff`; permission checks (coordinator+ only).
