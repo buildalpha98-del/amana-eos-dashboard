@@ -28,7 +28,12 @@ vi.mock("@/lib/logger", () => ({
   generateRequestId: () => "test-req-id",
 }));
 
+vi.mock("@/lib/parent-notifications", () => ({
+  notifyParentNewPost: vi.fn(() => Promise.resolve()),
+}));
+
 import { _clearUserActiveCache } from "@/lib/server-auth";
+import { notifyParentNewPost } from "@/lib/parent-notifications";
 import { GET, POST } from "@/app/api/services/[id]/reflections/route";
 import { PATCH, DELETE } from "@/app/api/services/[id]/reflections/[reflectionId]/route";
 
@@ -158,6 +163,174 @@ describe("reflections API", () => {
       expect(body.id).toBe("r-existing");
       // Create must NOT have been called for dedup path
       expect(prismaMock.staffReflection.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("POST daily reflection fan-out", () => {
+    const CHILD_A = "cjld2cjxh0000qzrmn831i7rn";
+    const CHILD_B = "cjld2cjxh0001qzrmn831i7rn";
+
+    function mockFanOutHappyPath() {
+      mockSession({ id: "u1", name: "Edu", role: "staff", serviceId: "s1" });
+      prismaMock.service.findUnique.mockResolvedValue({ id: "s1" });
+      prismaMock.child.findMany.mockImplementation(({ where }: any) =>
+        Promise.resolve(
+          (where.id.in as string[])
+            .filter((id) => [CHILD_A, CHILD_B].includes(id))
+            .map((id) => ({ id, firstName: "Kid" })),
+        ),
+      );
+      prismaMock.staffReflection.create.mockResolvedValue({
+        id: "r-daily",
+        type: "daily",
+        title: "Daily reflection",
+        author: { id: "u1", name: "Edu", avatar: null },
+      });
+      let obsCount = 0;
+      prismaMock.learningObservation.create.mockImplementation(() =>
+        Promise.resolve({ id: `obs-${++obsCount}` }),
+      );
+      prismaMock.parentPost.create.mockResolvedValue({ id: "post-1" });
+      prismaMock.staffReflection.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({
+          id: "r-daily",
+          type: "daily",
+          ...data,
+          author: { id: "u1", name: "Edu", avatar: null },
+        }),
+      );
+      prismaMock.activityLog.create.mockResolvedValue({});
+    }
+
+    function dailyBody(overrides: Record<string, unknown> = {}) {
+      return {
+        type: "daily",
+        title: "Daily reflection",
+        content: "We built a cubby and practised sharing.",
+        mtopOutcomes: ["Wellbeing"],
+        qualityAreas: [5],
+        ...overrides,
+      };
+    }
+
+    it("fans out to observations + parent post + notification", async () => {
+      mockFanOutHappyPath();
+      const res = await POST(
+        createRequest("POST", "/api/services/s1/reflections", {
+          body: dailyBody({ childIds: [CHILD_A, CHILD_B], shareWithParents: true }),
+        }),
+        await ctx(),
+      );
+      expect(res.status).toBe(201);
+
+      expect(prismaMock.learningObservation.create).toHaveBeenCalledTimes(2);
+      expect(prismaMock.learningObservation.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            childId: CHILD_A,
+            serviceId: "s1",
+            authorId: "u1",
+            narrative: "We built a cubby and practised sharing.",
+            mtopOutcomes: ["Wellbeing"],
+            visibleToParent: true,
+            sourceReflectionId: "r-daily",
+          }),
+        }),
+      );
+
+      expect(prismaMock.parentPost.create).toHaveBeenCalledTimes(1);
+      const postArgs = prismaMock.parentPost.create.mock.calls[0][0];
+      expect(postArgs.data.type).toBe("observation");
+      expect(postArgs.data.isCommunity).toBe(false);
+      expect(postArgs.data.tags.create).toHaveLength(2);
+
+      expect(prismaMock.staffReflection.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "r-daily" },
+          data: expect.objectContaining({
+            linkedObservationIds: ["obs-1", "obs-2"],
+            parentPostId: "post-1",
+          }),
+        }),
+      );
+
+      expect(notifyParentNewPost).toHaveBeenCalledWith(
+        "post-1",
+        "Daily reflection",
+        "observation",
+        [CHILD_A, CHILD_B],
+      );
+      // activity log still written on the fan-out path
+      expect(prismaMock.activityLog.create).toHaveBeenCalled();
+    });
+
+    it("no children + share → community post, no observations, no notify", async () => {
+      mockFanOutHappyPath();
+      const res = await POST(
+        createRequest("POST", "/api/services/s1/reflections", {
+          body: dailyBody({ shareWithParents: true }),
+        }),
+        await ctx(),
+      );
+      expect(res.status).toBe(201);
+      expect(prismaMock.learningObservation.create).not.toHaveBeenCalled();
+      const postArgs = prismaMock.parentPost.create.mock.calls[0][0];
+      expect(postArgs.data.isCommunity).toBe(true);
+      expect(postArgs.data.tags).toBeUndefined();
+      expect(notifyParentNewPost).not.toHaveBeenCalled();
+    });
+
+    it("children without share → private observations, no post, no notify", async () => {
+      mockFanOutHappyPath();
+      const res = await POST(
+        createRequest("POST", "/api/services/s1/reflections", {
+          body: dailyBody({ childIds: [CHILD_A], shareWithParents: false }),
+        }),
+        await ctx(),
+      );
+      expect(res.status).toBe(201);
+      expect(prismaMock.learningObservation.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ visibleToParent: false }),
+        }),
+      );
+      expect(prismaMock.parentPost.create).not.toHaveBeenCalled();
+      expect(notifyParentNewPost).not.toHaveBeenCalled();
+    });
+
+    it("weekly reflections never fan out", async () => {
+      mockFanOutHappyPath();
+      prismaMock.staffReflection.create.mockResolvedValue({
+        id: "r-weekly",
+        type: "weekly",
+        title: "Week",
+        author: { id: "u1", name: "Edu", avatar: null },
+      });
+      const res = await POST(
+        createRequest("POST", "/api/services/s1/reflections", {
+          body: { type: "weekly", title: "Week", content: "recap" },
+        }),
+        await ctx(),
+      );
+      expect(res.status).toBe(201);
+      expect(prismaMock.learningObservation.create).not.toHaveBeenCalled();
+      expect(prismaMock.parentPost.create).not.toHaveBeenCalled();
+    });
+
+    it("400 when a tagged child is not in this service", async () => {
+      mockFanOutHappyPath();
+      const res = await POST(
+        createRequest("POST", "/api/services/s1/reflections", {
+          body: dailyBody({
+            childIds: [CHILD_A, "cjld2cjxh0002qzrmn831i7rz"],
+            shareWithParents: true,
+          }),
+        }),
+        await ctx(),
+      );
+      expect(res.status).toBe(400);
+      expect(prismaMock.learningObservation.create).not.toHaveBeenCalled();
+      expect(prismaMock.parentPost.create).not.toHaveBeenCalled();
     });
   });
 

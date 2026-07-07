@@ -4,6 +4,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { safeLimit } from "@/lib/pagination";
 import { createReflectionSchema } from "@/lib/schemas/staff-reflection";
+import { notifyParentNewPost } from "@/lib/parent-notifications";
+import { logger } from "@/lib/logger";
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
 
@@ -100,6 +102,7 @@ export const POST = withApiAuth(
           qualityAreas: data.qualityAreas ?? [],
           linkedObservationIds: data.linkedObservationIds ?? [],
           mood: data.mood ?? null,
+          mtopOutcomes: data.mtopOutcomes ?? [],
           clientMutationId: data.clientMutationId ?? null,
         },
         include: {
@@ -121,10 +124,96 @@ export const POST = withApiAuth(
         },
       });
 
-      return reflection;
+      // Daily reflections fan out: one LearningObservation per tagged child,
+      // plus a ParentPost when shared with parents. Same transaction — no
+      // partial fan-out states.
+      if (data.type !== "daily") return { reflection, fanOutChildIds: [] };
+
+      const childIds = data.childIds ?? [];
+      const observationIds: string[] = [];
+      let parentPostId: string | null = null;
+
+      if (childIds.length > 0) {
+        const valid = await tx.child.findMany({
+          where: { id: { in: childIds }, serviceId: id },
+          select: { id: true, firstName: true },
+        });
+        if (valid.length !== childIds.length) {
+          throw ApiError.badRequest(
+            "One or more tagged children do not belong to this service",
+          );
+        }
+        for (const child of valid) {
+          const obs = await tx.learningObservation.create({
+            data: {
+              childId: child.id,
+              serviceId: id,
+              authorId: session.user.id,
+              title: data.title,
+              narrative: data.content,
+              mtopOutcomes: data.mtopOutcomes ?? [],
+              visibleToParent: data.shareWithParents === true,
+              sourceReflectionId: reflection.id,
+            },
+            select: { id: true },
+          });
+          observationIds.push(obs.id);
+        }
+      }
+
+      if (data.shareWithParents) {
+        const post = await tx.parentPost.create({
+          data: {
+            serviceId: id,
+            authorId: session.user.id,
+            title: data.title,
+            content: data.content,
+            type: "observation",
+            isCommunity: childIds.length === 0,
+            tags:
+              childIds.length > 0
+                ? { create: childIds.map((childId) => ({ childId })) }
+                : undefined,
+          },
+          select: { id: true },
+        });
+        parentPostId = post.id;
+      }
+
+      if (observationIds.length === 0 && !parentPostId) {
+        return { reflection, fanOutChildIds: [] };
+      }
+
+      const updated = await tx.staffReflection.update({
+        where: { id: reflection.id },
+        data: { linkedObservationIds: observationIds, parentPostId },
+        include: {
+          author: { select: { id: true, name: true, avatar: true } },
+        },
+      });
+      return {
+        reflection: updated,
+        fanOutChildIds: parentPostId ? childIds : [],
+      };
     });
 
-    return NextResponse.json(created, { status: 201 });
+    // Fire-and-forget: notify parents of tagged children about the new post.
+    const { reflection, fanOutChildIds } = created;
+    if (reflection.parentPostId && fanOutChildIds.length > 0) {
+      notifyParentNewPost(
+        reflection.parentPostId,
+        data.title,
+        "observation",
+        fanOutChildIds,
+      ).catch((err) =>
+        logger.error("Reflection fan-out notification failed", {
+          postId: reflection.parentPostId,
+          err,
+        }),
+      );
+    }
+
+    return NextResponse.json(reflection, { status: 201 });
   },
   { roles: ["owner", "head_office", "admin", "member", "staff"] },
 );
