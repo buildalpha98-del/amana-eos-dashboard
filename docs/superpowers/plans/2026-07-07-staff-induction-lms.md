@@ -131,12 +131,16 @@ model LMSQuizAttempt {
   enrollment    LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   moduleId      String
   module        LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  answers       Json     // [{questionId, selectedIndex}]
-  score         Float
-  passed        Boolean
+  answers       Json     @default("[]") // [{questionId, selectedIndex}]
+  score         Float    @default(0)
+  passed        Boolean  @default(false)
   attemptNumber Int
+  submittedAt   DateTime? // null = in-progress (created at GET); set on POST submit
   createdAt     DateTime @default(now())
 
+  // Seed for the per-attempt option shuffle is derived deterministically
+  // from (enrollmentId + moduleId + attemptNumber) — all persisted here —
+  // so submit re-derives the exact permutation start returned. No seed column needed.
   @@index([enrollmentId, moduleId])
 }
 
@@ -359,17 +363,18 @@ git add src/lib/induction.ts src/__tests__/lib/induction.test.ts
 git commit -m "feat(induction): readiness + gate library (src/lib/induction.ts)"
 ```
 
-### Task 3: Insert the gate at all 6 roster/clock surfaces
+### Task 3: Insert the gate at all 7 roster/clock surfaces
 
 **Files (modify + a test each):**
 - `src/app/api/roster/shifts/route.ts` (POST, inside `if (data.userId)` after `assertStaffCertsValidForShift`)
+- `src/app/api/roster/shifts/[id]/route.ts` (**PATCH — reassignment path**; after `assertStaffCertsValidForShift({ userId: newUserId, ... })` at ~line 87, gate `newUserId` when `data.userId` is present. This is the 7th surface the first plan draft missed — a non-cleared user could otherwise be attached to an existing shift via edit.)
 - `src/app/api/roster/shifts/[id]/claim/route.ts` (after cert check, using `session.user.id`)
 - `src/app/api/roster/shifts/[id]/clock-in/route.ts` (after the `shift.userId !== session.user.id` check)
 - `src/app/api/roster/clock-in/auto/route.ts` (top, after `const userId = session.user.id`)
 - `src/app/api/roster/unscheduled-clock-in/route.ts` (after serviceId resolution)
 - `src/app/api/kiosk/clock/route.ts` (after `if (!pinOk) return fail;`)
 
-For each of the 5 `withApiAuth` routes, the insertion is identical:
+For each of the 6 `withApiAuth` routes, the insertion is identical:
 
 ```typescript
 import { assertUserCleared } from "@/lib/induction";
@@ -414,7 +419,9 @@ git commit -am "feat(induction): enforce clearance gate at roster assignment, cl
 - Modify: `src/lib/role-permissions.ts` (export `INDUCTION_ALLOWED_PATHS` matcher; add `/my-training`)
 - Test: `src/__tests__/lib/induction-lock.test.ts`
 
-- [ ] **Step 1: Add `inductionStatus` + `inductionGraceUntil` to the JWT and session.** In `src/lib/auth.ts`, the `jwt` callback already loads the user; extend the `select` to include `inductionStatus` and `inductionGraceUntil`, and set them on the token (refresh on the same cadence as `rolePageOverride`). In the `session` callback, copy them onto `session.user`. Update the `next-auth.d.ts` type augmentation to include both fields.
+- [ ] **Step 1: Add `inductionStatus` + `inductionGraceUntil` to the JWT and session.** In `src/lib/auth.ts`: (a) the `if (user)` login block (~line 69) sets token fields — add `inductionStatus`/`inductionGraceUntil` there; (b) the periodic `tokenVersion` refresh block (~lines 103–132) does a DB `select` — add both fields to that `select` and re-set them on the token so they refresh on the ~5-min cadence. In the `session` callback, copy them onto `session.user`. **Type augmentation lives in `src/types/index.ts`** (NOT a `next-auth.d.ts` file — that doesn't exist): add `inductionStatus`/`inductionGraceUntil` to the `Session["user"]` interface (`declare module "next-auth"`, ~line 3) and the `JWT` interface (`declare module "next-auth/jwt"`, ~line 26).
+
+> **Documented behaviour (not a bug):** because the token refreshes on the ~5-min `tokenVersion` cadence, a new starter who finishes induction mid-session may stay in UI locked-mode (redirected to `/my-training`, restricted nav) for up to ~5 minutes. The **gate APIs read the DB directly** via `assertUserCleared`, so clock-in/roster is never stale — only the UI lock lags. To make clearing feel instant, bump `tokenVersion` (via the existing mechanism) on the `→ cleared` transition in `recomputeInductionState`/sign-off so the next request force-refreshes the token. Note this in rollout docs.
 
 - [ ] **Step 2: Enforce locked-mode in `src/middleware.ts`.** After the existing `canAccessPage` block, add:
 
@@ -438,7 +445,7 @@ if (locked && !pathname.startsWith("/api/")) {
 
 > Why middleware and not `rolePageAccess`: locked-mode is **per-user** (keyed on `inductionStatus`), while the existing override system is **per-role**. Reusing the role override would lock every user of that role. Keep them separate. This also avoids adding a Role enum value (the `VALID_ROLES` 401 class of bug — see memory `project_eos-roles`).
 
-- [ ] **Step 3: Client sidebar parity.** In the sidebar/nav filter that calls `canAccessPage`, also read `session.user.inductionStatus`/`inductionGraceUntil` and, when `isInductionLocked` is true, show only the induction nav items. (Find the component rendering the sidebar from `nav-config`; apply the same `INDUCTION_ALLOWED_PREFIXES` filter.)
+- [ ] **Step 3: Client sidebar parity.** In `src/components/layout/Sidebar.tsx` (the component that maps `nav-config` through `canAccessPage`), also read `session.user.inductionStatus`/`inductionGraceUntil`; when `isInductionLocked` is true, filter nav items to those whose `href` starts with an `INDUCTION_ALLOWED_PREFIXES` entry. Check `src/components/layout/TopNav.tsx` too if it renders nav links.
 
 - [ ] **Step 4: Tests** for `isInductionLocked`: new_starter → locked; in_training no grace → locked; in_training future grace → unlocked; cleared → unlocked; awaiting_signoff → unlocked (they've done the training, just waiting on sign-off — they should see the dashboard). Verify a locked user hitting `/rocks` redirects, `/my-training` and `/learn/x` pass.
 
@@ -471,8 +478,12 @@ Pure functions (no DB) so they're trivially testable and the correct answers nev
 **Files:**
 - Create route + `src/__tests__/api/lms/quiz.test.ts`
 
-- [ ] **GET** (start attempt): auth user must own an enrollment covering this module's course. Load active `LMSQuizQuestion`s, compute the next `attemptNumber`, apply `shuffleQuestion` per question, return `{ attemptNumber, questions: [{ id, question, options(shuffled) }] }` — **never** `correctIndex` or `explanation`. Persist nothing yet (or persist the permutation seed = attemptNumber so submit can re-derive it).
-- [ ] **POST** (submit): body `{ answers: [{questionId, selectedIndex}] }` (Zod). Re-derive each question's permutation from the same seed, map indices, call `scoreAttempt`, create `LMSQuizAttempt` with `score/passed/attemptNumber/answers`. If `passed`, upsert `LMSModuleProgress.completed = true` for this module, then **recalculate enrollment status** using the existing pattern from `enrollments/route.ts` (required-modules-complete → `completed`). Return `{ score, passed, explanations: [{questionId, correctIndex, explanation}] }` (explanations returned only AFTER submit — the teaching moment).
+> **Route conventions**: this is a NEW route — use `withApiAuth` + `parseJsonBody` + `ApiError` + Zod, even though the legacy `enrollments/route.ts` you copy recalc logic from uses raw `req.json()`/`NextResponse.json({error})`. Do not copy the legacy non-conforming style.
+
+> **Seed persistence — commit to ONE approach (no ambiguity):** GET **creates** an in-progress `LMSQuizAttempt` row immediately with `attemptNumber`, `answers: []`, `score: 0`, `passed: false`, and returns its `id` as the attempt handle. The permutation seed is derived deterministically from `enrollmentId + moduleId + attemptNumber` (persisted on the row), so POST re-reads that exact row and re-derives the identical permutation. This removes the "two concurrent GETs / seed drift" hazard.
+
+- [ ] **GET** (start attempt): auth user must own an enrollment covering this module's course (403 otherwise). Compute `attemptNumber = count(existing attempts for this enrollment+module) + 1`. Create the `LMSQuizAttempt` row (in-progress). Load active `LMSQuizQuestion`s, apply `shuffleQuestion(q, seed)` per question, return `{ attemptId, attemptNumber, questions: [{ id, question, options(shuffled) }] }` — **never** `correctIndex` or `explanation`.
+- [ ] **POST** (submit): body `{ attemptId, answers: [{questionId, selectedIndex}] }` (Zod). Load the attempt row (must belong to caller's enrollment; must be unsubmitted), re-derive each question's permutation from the persisted seed, map displayed→original indices, call `scoreAttempt`, update the `LMSQuizAttempt` with `score/passed/answers`. If `passed`: upsert `LMSModuleProgress.completed = true`, recalculate enrollment status (required-modules-complete → `completed`; **completion requires ≥1 required module** — see seeding note), then call `onModuleProgressed(userId, enrollmentId)` (Task 8) to bump `new_starter → in_training` and `recomputeInductionState`. Return `{ score, passed, explanations: [{questionId, correctIndex, explanation}] }` (explanations only AFTER submit — the teaching moment).
 - [ ] Tests: pass path completes the module; fail path records attempt but leaves module incomplete; attemptNumber increments; non-owner 403; unknown module 404; a passing quiz that completes the last required module flips enrollment to `completed` and (if this is the last essential course) leaves the user eligible for `awaiting_signoff` (verified in Task 8).
 - [ ] Commit.
 
@@ -491,11 +502,16 @@ Pure functions (no DB) so they're trivially testable and the correct answers nev
 - Create: `src/app/api/induction/readiness/route.ts` + test
 - Modify: `src/lib/induction.ts` — add `recomputeInductionState(userId)`
 
-- [ ] **Step 1: `recomputeInductionState(userId)`** (add to `induction.ts`, unit-tested): loads the user; if status `cleared` do nothing; compute readiness; then:
+- [ ] **Step 1: `recomputeInductionState(userId)` and `onModuleProgressed(userId, enrollmentId)`** (add to `induction.ts`, unit-tested).
+
+`recomputeInductionState(userId)`: loads the user; if status `cleared` do nothing; compute readiness; then:
   - If not ready and status is `awaiting_signoff` → set back to `in_training` (a newly-published essential course regressed readiness).
-  - If ready and user has `inductionGraceUntil` set (backfilled) → set `cleared` + `inductionClearedAt` (backfill skips practical).
+  - If ready and user has `inductionGraceUntil` set (backfilled) → set `cleared` + `inductionClearedAt`, and bump `tokenVersion` (force token refresh so locked-mode lifts immediately).
   - If ready and NOT backfilled → set `awaiting_signoff` (waiting on practical).
-  - On first module interaction elsewhere, `new_starter → in_training` (handled in quiz/module-progress submit: if status `new_starter`, bump to `in_training`).
+
+`onModuleProgressed(userId, enrollmentId)`: if the user's status is `new_starter`, bump to `in_training` first (covers the case where a learner completes a `document`/`video` module and never touches a quiz), then call `recomputeInductionState(userId)`. **This is the single choke-point** called by BOTH the quiz submit route (Task 6) AND the module-progress endpoint (below) — the transition can never be skipped.
+
+- [ ] **Step 1b: Conforming module-progress endpoint** `POST /api/lms/module-progress` (`withApiAuth` + `ApiError` + Zod) — the player uses this to mark `document`/`video` modules complete (the legacy `enrollments/route.ts` progress mode stays untouched). Body `{ enrollmentId, moduleId, completed, timeSpent? }`; caller must own the enrollment. Upsert `LMSModuleProgress`, recalc enrollment status (same required-modules logic), then call `onModuleProgressed`. Test: non-owner 403; completion recalc; new_starter bump.
 - [ ] **Step 2: `GET /api/induction/readiness`** — returns `getInductionReadiness` for the current user, or for `?userId=` if caller `isAdminRole`. Include current `inductionStatus` and practical checklist completion.
 - [ ] **Step 3: `POST /api/induction/signoff`** — signer roles (`head_office`/`admin`/`owner`) only; body `{ userId, itemId, notes? }` (Zod). Reject `signedById === userId` (no self-sign-off). Upsert `PracticalSignoff`. After each, check if ALL active `PracticalChecklistItem`s are signed AND readiness passes AND status is `awaiting_signoff` → set `cleared` + `inductionClearedAt` + `inductionClearedById`. Return updated status.
 - [ ] **Step 4: Tests** — signer role matrix (`member`/`staff` → 403; `head_office`/`admin`/`owner` → 200); self-sign-off rejected; completing the last item from `awaiting_signoff` clears; from `in_training` does NOT clear (readiness must pass first); backfilled user auto-clears on readiness without any practical rows; sign-off re-checks readiness (regression drop-back).
@@ -529,7 +545,7 @@ Pure functions (no DB) so they're trivially testable and the correct answers nev
 
 - [ ] **Step 1: Failing tests** feeding hostile input through `rehype-sanitize` with the widened schema: `<script>`, `<img src=x onerror=alert(1)>`, `<iframe src="javascript:...">`, `<iframe src="https://evil.com">` are all stripped/neutralised; `<img src="https://<blob-host>/x.png">` and `<iframe src="https://www.youtube.com/embed/x">`, loom.com, player.vimeo.com survive.
 - [ ] **Step 2: Run → fail.**
-- [ ] **Step 3: Implement** by cloning `defaultSchema` from `rehype-sanitize` and extending: allow `img` (`src`, `alt`), allow `iframe` (`src`, `allow`, `allowfullscreen`, `width`, `height`), and add `protocols.src`/host constraints. Since `rehype-sanitize` can't host-filter by itself, add a tiny companion `rehype` plugin (or a pre-pass) that drops `img`/`iframe` whose `src` host isn't in the allow-list (`BLOB_HOST`, `youtube.com`, `youtube-nocookie.com`, `loom.com`, `vimeo.com`, `player.vimeo.com`). Export both the schema and the host-filter plugin as a pair `LMS_MARKDOWN_PLUGINS`.
+- [ ] **Step 3: Implement** by cloning `defaultSchema` from `rehype-sanitize` and extending: allow `img` (`src`, `alt`), allow `iframe` (`src`, `allow`, `allowfullscreen`, `width`, `height`). Since `rehype-sanitize` can't host-filter by itself, add a tiny companion `rehype` plugin (a `unist-util-visit` pass) that drops any `img`/`iframe` whose `src` host isn't allowed. **Blob URLs are wildcard subdomains** — match with `hostname.endsWith(".public.blob.vercel-storage.com")` (reuse the constant/helper in `src/lib/trusted-urls.ts` — `BLOB_HOSTNAME_SUFFIX`; do NOT hardcode a single host). Video hosts: `www.youtube.com`, `youtube.com`, `www.youtube-nocookie.com`, `youtube-nocookie.com`, `www.loom.com`, `loom.com`, `player.vimeo.com`, `vimeo.com`. Export the schema + host-filter plugin as a pair `LMS_MARKDOWN_PLUGINS`.
 
 > HARD CONSTRAINT (from spec): this schema/plugin pair is imported ONLY by the course player module renderer. Do NOT modify `ReportViewer.tsx`, `AiDraftReviewPanel.tsx`, or `FloatingChatWidget.tsx` — they keep the bare default schema. Do NOT reuse the unvalidated `help/HelpContent.tsx` iframe. Add an ESLint-style comment marking the export as player-only.
 
@@ -636,7 +652,9 @@ Sub-tasks (each TDD'd + committed):
 ### Task 22: Seed the essential curriculum, practical checklist, calendar (draft)
 
 **Files:** `prisma/seed-induction.ts` (invoked from `prisma/seed.ts` behind an idempotency guard) + AI-drafted content.
-- [ ] Create the 7 essential `LMSCourse`s (`track: essential`, `status: draft`), each with 3–5 `LMSModule`s (markdown content drafted from `AmanaWayContent`, `AmanaHandbookContent`, top `PolicyDocument`s, `KnowledgeBaseArticle`s) and a quiz module with `LMSQuizQuestion`s. Seed the `PracticalChecklistItem`s (OWNA sign in/out, parent intro, locate first-aid/evac/medical, find a policy, incident walkthrough, supervision positioning). Seed 12 `TrainingCalendarSlot`s (draft monthly courses for Feb–Jan). **Idempotent**: guard on a well-known course title/`upsert` so re-running seed doesn't duplicate.
+- [ ] Create the 7 essential `LMSCourse`s (`track: essential`, `status: draft`), each with 3–5 `LMSModule`s — **at least one `isRequired: true` module per course** (the enrollment-completion recalc only flips to `completed` when `requiredModuleIds.length > 0`; a course of all-optional modules can never complete and would permanently block readiness). Each course ends in a quiz module (`type: quiz`, `isRequired: true`) with `LMSQuizQuestion`s. Seed the `PracticalChecklistItem`s (OWNA sign in/out, parent intro, locate first-aid/evac/medical, find a policy, incident walkthrough, supervision positioning). Seed 12 `TrainingCalendarSlot`s (draft monthly courses for Feb–Jan). **Idempotent**: `upsert` on a stable key (e.g. a `category` tag + title) so re-running seed doesn't duplicate.
+
+> **Per user (2026-07-07): seed the courses as working DRAFTS with minimal placeholder module content + a couple of real quiz questions each — just enough that the end-to-end flow (open player → read → pass quiz → complete) is testable. The full curriculum content will be authored collaboratively in a follow-up session.**
 - [ ] Content is drafted but courses stay `draft` — the gate only counts `published`. A human publishes course-by-course after review. Document the publish step in the plan's rollout notes.
 - [ ] Commit (content can land in follow-up commits as review completes).
 
@@ -648,7 +666,7 @@ Sub-tasks (each TDD'd + committed):
 - [ ] `npm run build` passes.
 - [ ] `npm test` — all green (new + existing). Confirm no regression in roster/kiosk/users suites.
 - [ ] `npm run lint`.
-- [ ] Preview-server smoke test (preview_* tools): create a new-starter user → confirm locked-mode redirects to `/my-training`; open a course in a new tab → step through a module (Next gated) → pass a quiz → complete a course; as admin, sign off practicals → user clears; confirm a non-cleared user is blocked at clock-in.
+- [ ] Preview-server smoke test (preview_* tools). **Prerequisite: publish at least one seeded essential course** (set `status: published`) — otherwise readiness hits the inert empty-curriculum path and the gate proves nothing. Then: create a new-starter user → confirm locked-mode redirects to `/my-training`; open the course in a new tab → step through a module (Next gated) → pass a quiz → complete the course; as an admin, sign off practicals → user clears; confirm a non-cleared user is blocked at clock-in.
 - [ ] Verify migration applies cleanly (local) and the generated SQL keeps the `cleared` default.
 
 ### Task 24: Docs + CLAUDE.md
