@@ -40,17 +40,20 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string,
     key: "nurture.welcome",
     defaultSubject: "You've taken the first step! Welcome to {{centreName}}",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      Hello {{firstName}}! We're glad you found us.
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
+      Assalamu Alaikum {{firstName}} — we're glad you found us!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Thank you for enquiring about {{centreName}}. Finding the right before and after school
       care is a big decision, and we want to make it as easy as possible for you.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      At Amana OSHC, your child won't just be supervised — they'll build friendships, discover
-      new interests, and have a place that feels like a second home. Our educators are passionate
-      about creating an environment where every child feels safe, valued, and excited to be here.
+      At Amana OSHC, your child won't just be supervised — right on the school grounds, they'll
+      be part of our signature programs: <strong>Rise &amp; Shine Club</strong> before school,
+      <strong>Amana Afternoons</strong> after the bell, <strong>Iqra Circle</strong> Qur'an and
+      Islamic learning, <strong>Homework Heroes</strong>, <strong>Little Champions</strong> sport,
+      <strong>Imagination Station</strong> art &amp; STEM, and our rotating
+      <strong>Fuel Up with Amana</strong> menu.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
       <tr>
@@ -59,7 +62,8 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string,
             Here's what happens next:
           </p>
           <p style="margin:0;color:#ffffff;font-size:14px;line-height:2;">
-            1. We'll send you everything you need to know about fees and subsidies<br/>
+            1. We'll send you everything you need to know about fees and subsidies
+            (most families pay as little as $5 a day with CCS)<br/>
             2. When you're ready, you'll complete a quick online enrolment form<br/>
             3. Our team will confirm your child's spot and booking days<br/>
             4. We'll help you get set up for a smooth first day
@@ -102,8 +106,12 @@ export async function nurtureCcsAssistEmail(firstName: string, centreName: strin
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       One of the best-kept secrets about OSHC? The Australian Government's
-      <strong>Child Care Subsidy (CCS)</strong> can cover up to <strong>90%</strong> of your
-      session fees. That means a $30 session could cost you as little as $3.
+      <strong>Child Care Subsidy (CCS)</strong> covers 50&#8211;90% of fees for most
+      families — care can cost as little as <strong>$5 a day</strong>.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      And no — <strong>you do NOT need to be on Centrelink benefits</strong> to get CCS.
+      It's available to all working families; it's simply claimed through myGov.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;">
       <tr>
@@ -124,8 +132,9 @@ export async function nurtureCcsAssistEmail(firstName: string, centreName: strin
       We can even give you a quick estimate of what you'd actually pay out of pocket.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Just reply to this email with your situation and we'll crunch the numbers for you — no
-      obligation, no paperwork.
+      Just reply to this email with your situation, or call us on
+      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> and
+      we'll walk you through it step by step — no obligation, no paperwork.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Here to help,<br/>
@@ -162,7 +171,10 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
             Step 1: Your child's details
           </p>
           <p style="margin:0;color:#3b82f6;font-size:13px;line-height:1.6;">
-            Name, date of birth, medical info, and allergies. Tip: have your Medicare card handy.
+            Name, date of birth, medical info, and allergies. Tip: have your Medicare card and
+            both CRNs (yours and your child's) handy. Birth certificate and immunisation
+            history can be uploaded later. Enrolling siblings? Add all your children in the
+            one form.
           </p>
         </td>
       </tr>
@@ -297,15 +309,17 @@ export async function nurtureNudge2Email(firstName: string, centreName: string, 
       <tr>
         <td style="padding:16px;background-color:#f0fdf4;border-bottom:1px solid #bbf7d0;">
           <p style="margin:0;color:#065f46;font-size:14px;line-height:1.7;">
-            <strong>3:15 PM</strong> — Afternoon tea together, catching up about the day
+            <strong>3:15 PM</strong> — Fuel Up with Amana: afternoon tea from our rotating
+            menu, catching up about the day
           </p>
         </td>
       </tr>
       <tr>
         <td style="padding:16px;background-color:#eff6ff;border-bottom:1px solid #bfdbfe;">
           <p style="margin:0;color:#1e40af;font-size:14px;line-height:1.7;">
-            <strong>3:45 PM</strong> — Choice time: art, sport, cooking, STEM challenges, outdoor play,
-            or quiet reading. Your child picks what excites them.
+            <strong>3:45 PM</strong> — Choice time: Imagination Station art &amp; STEM,
+            Little Champions sport, Iqra Circle Qur'an time, or Homework Heroes support.
+            Your child picks what excites them.
           </p>
         </td>
       </tr>
@@ -358,6 +372,11 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       We know life gets busy, and choosing care for your child is something you want to
       get right. This will be our last email for now — we don't want to clog your inbox.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      One thing worth knowing: as our educator numbers and daily ratios are set, places at
+      {{centreName}} do become limited — enrolling sooner is the surest way to lock in the
+      days you want.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       But if you ever want to revisit things — whether it's next week, next term, or next

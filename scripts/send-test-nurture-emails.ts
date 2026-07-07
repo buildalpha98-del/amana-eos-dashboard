@@ -54,7 +54,11 @@ async function main() {
   let n = 0;
   for (const { tag, t } of emails) {
     n += 1;
-    const { subject, html } = await t;
+    const { subject, html: rawHtml } = await t;
+    // Real sends substitute the contact-specific preferences URL; tests get a sample.
+    const html = rawHtml
+      .split("{{UNSUBSCRIBE_URL}}")
+      .join("https://amanaoshc.company/notifications/preferences/sample?token=test");
     const res = await resend.emails.send({
       from: FROM,
       to: [TO],
