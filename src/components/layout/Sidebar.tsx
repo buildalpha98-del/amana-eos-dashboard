@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems, filterNavItems } from "@/lib/nav-config";
+import { isInductionLocked, isInductionAllowedPath } from "@/lib/induction-lock";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NavLayoutToggle } from "@/components/layout/NavLayoutToggle";
 import { useBookingRequestCount } from "@/hooks/useBookingRequests";
@@ -40,12 +41,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     onMobileClose?.();
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Induction locked-mode: a new starter (or expired-grace backfill) only sees
+  // the induction surfaces in the sidebar, mirroring the middleware redirect.
+  const inductionLocked = isInductionLocked(
+    session?.user?.inductionStatus,
+    session?.user?.inductionGraceUntil
+  );
+
   // Group filtered nav items by section, preserving order
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
-    );
+    ).filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
     const sections: { key: string; items: typeof navItems }[] = [];
     for (const item of filtered) {
       const last = sections[sections.length - 1];
@@ -56,7 +64,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       }
     }
     return sections;
-  }, [session?.user?.role]);
+  }, [session?.user?.role, inductionLocked]);
 
   // Build favourited items list from the filtered nav items
   const favouriteItems = useMemo(() => {
@@ -64,9 +72,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
-    ).filter((item) => favourites.has(item.href));
+    )
+      .filter((item) => !inductionLocked || isInductionAllowedPath(item.href))
+      .filter((item) => favourites.has(item.href));
     return filtered;
-  }, [favourites, session?.user?.role]);
+  }, [favourites, session?.user?.role, inductionLocked]);
 
   return (
     <>

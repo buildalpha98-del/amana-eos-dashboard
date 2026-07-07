@@ -55,6 +55,8 @@ export const authOptions: NextAuthOptions = {
           serviceId: user.serviceId,
           state: user.state,
           tokenVersion: user.tokenVersion,
+          inductionStatus: user.inductionStatus,
+          inductionGraceUntil: user.inductionGraceUntil,
           mfaRequired: !!user.mfaEnabledAt,
         };
       },
@@ -73,6 +75,13 @@ export const authOptions: NextAuthOptions = {
         token.state = user.state;
         token.loginAt = Date.now();
         token.tokenVersion = (user as unknown as Record<string, unknown>).tokenVersion ?? 0;
+        token.inductionStatus =
+          ((user as unknown as Record<string, unknown>).inductionStatus as string) ?? "cleared";
+        token.inductionGraceUntil =
+          ((user as unknown as Record<string, unknown>).inductionGraceUntil as
+            | string
+            | Date
+            | null) ?? null;
         token.mfaRequired = (user as unknown as Record<string, unknown>).mfaRequired ?? false;
         token.mfaVerified = false;
 
@@ -107,12 +116,22 @@ export const authOptions: NextAuthOptions = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { id: token.id as string },
-              select: { tokenVersion: true, active: true },
+              select: {
+                tokenVersion: true,
+                active: true,
+                inductionStatus: true,
+                inductionGraceUntil: true,
+              },
             });
             if (!dbUser || !dbUser.active || dbUser.tokenVersion !== token.tokenVersion) {
               return { ...token, exp: 0 }; // Force token expiry
             }
             token.tokenVersionCheckedAt = Date.now();
+            // Refresh induction fields so locked-mode lifts within ~5 min of
+            // a learner clearing (the gate APIs read the DB live, so clock-in
+            // is never stale — only the UI nav lock lags by this window).
+            token.inductionStatus = dbUser.inductionStatus;
+            token.inductionGraceUntil = dbUser.inductionGraceUntil;
 
             // Refresh the page-access override for this user's role.
             // Null = use compile-time defaults (kept in token so the
@@ -140,6 +159,9 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.serviceId = token.serviceId;
         session.user.state = token.state;
+        session.user.inductionStatus = token.inductionStatus as string | undefined;
+        session.user.inductionGraceUntil =
+          (token.inductionGraceUntil as string | null | undefined) ?? null;
       }
       return session;
     },

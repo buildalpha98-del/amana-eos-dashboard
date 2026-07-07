@@ -17,16 +17,15 @@
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 
-export type Blocker = { kind: string; label: string; href: string };
+// Pure, edge-safe helpers live in induction-lock.ts (imported by middleware).
+// Re-exported here so server code can import everything from "@/lib/induction".
+export {
+  INDUCTION_ALLOWED_PREFIXES,
+  isInductionLocked,
+  isInductionAllowedPath,
+} from "@/lib/induction-lock";
 
-/** Path prefixes a locked (new_starter / in_training-without-grace) user may reach. */
-export const INDUCTION_ALLOWED_PREFIXES = [
-  "/my-training",
-  "/learn",
-  "/profile",
-  "/handbook",
-  "/policies",
-] as const;
+export type Blocker = { kind: string; label: string; href: string };
 
 const WWCC_TYPE = "wwcc";
 
@@ -145,18 +144,4 @@ export async function assertUserCleared(userId: string): Promise<void> {
   throw ApiError.forbidden(
     `Induction not complete — cannot roster or clock in. Outstanding: ${summary}. Finish at /my-training.`,
   );
-}
-
-/**
- * Middleware/sidebar helper: is this user in locked (restricted-nav) mode?
- * `now` is injectable so callers/tests stay deterministic.
- */
-export function isInductionLocked(
-  status: string | undefined | null,
-  graceUntil: Date | string | null | undefined,
-  now: Date = new Date(),
-): boolean {
-  if (status !== "new_starter" && status !== "in_training") return false;
-  if (graceUntil && new Date(graceUntil) > now) return false; // backfilled w/ active grace
-  return true;
 }

@@ -1,6 +1,7 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { canAccessPage, parseRole } from "@/lib/role-permissions";
+import { isInductionLocked, isInductionAllowedPath } from "@/lib/induction-lock";
 
 // Public API routes that bypass auth middleware (they handle their own auth or are intentionally public)
 const PUBLIC_API_ROUTES = [
@@ -29,6 +30,23 @@ export default withAuth(
     // it replaces the compile-time default for THIS user's role. The
     // JWT callback refreshes it every 5 min so changes propagate without
     // a forced logout.
+    // Induction locked-mode (per-user, driven by inductionStatus on the token —
+    // NOT the per-role override system). A new starter, or a backfilled staffer
+    // whose grace has expired, may only reach their training, profile, handbook
+    // and policies. Runs before the role check so a locked user is funnelled to
+    // /my-training regardless of what their role would otherwise permit.
+    if (
+      isInductionLocked(
+        token?.inductionStatus as string | undefined,
+        token?.inductionGraceUntil as string | null | undefined,
+      ) &&
+      !isInductionAllowedPath(pathname)
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/my-training";
+      return NextResponse.redirect(url);
+    }
+
     const role = parseRole(token?.role);
     if (role) {
       const override = token?.rolePageOverride as readonly string[] | null | undefined;
@@ -162,5 +180,8 @@ export const config = {
     "/data-room/:path*",
     "/reports/:path*",
     "/assistant/:path*",
+    "/my-training/:path*",
+    "/learn/:path*",
+    "/api/induction/:path*",
   ],
 };
