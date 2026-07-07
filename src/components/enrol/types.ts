@@ -284,6 +284,33 @@ export const AUSTRALIAN_STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT",
  *  what gets stored. */
 export const COUNTRY_OF_BIRTH_QUICK_PICKS = ["Australia", "New Zealand"] as const;
 
+/**
+ * Multi-campus schools we service. The picker on the enrolment form
+ * shows these as a grouped dropdown so parents pick the exact campus
+ * (Malek Fahd Greenacre, not just "Malek Fahd") — otherwise coordinators
+ * downstream have to disambiguate manually.
+ *
+ * Single-campus schools are entered via the "Other school" text input.
+ * Keep this list in sync with the schools we actually serve — adding a
+ * new campus here immediately surfaces it as an option.
+ */
+export const KNOWN_SCHOOLS: { name: string; campuses: string[] }[] = [
+  {
+    name: "Malek Fahd",
+    campuses: ["Greenacre", "Hoxton Park", "Beaumont Hills"],
+  },
+  {
+    name: "Minaret College",
+    campuses: ["Springvale", "Officer", "Doveton"],
+  },
+];
+
+/** Flat list of "School Campus" strings the picker offers. Derived so
+ *  adding a campus above automatically shows up in the dropdown. */
+export const KNOWN_SCHOOL_OPTIONS: string[] = KNOWN_SCHOOLS.flatMap((s) =>
+  s.campuses.map((c) => `${s.name} ${c}`),
+);
+
 export const RELATIONSHIP_OPTIONS = [
   "Mum",
   "Dad",
