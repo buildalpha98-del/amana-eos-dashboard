@@ -12,6 +12,24 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  // ── Production guard ─────────────────────────────────────────
+  // This script TRUNCATEs every table. It must NEVER run against a
+  // production/pooled database. Mirrors src/lib/test-utils/cleanup.ts.
+  // On 2026-07-07 an unguarded reset wiped the live Neon DB — hence this.
+  const dbUrl = process.env.DATABASE_URL ?? "";
+  const looksProd =
+    dbUrl.includes("neon.tech") ||
+    dbUrl.includes("production") ||
+    (!dbUrl.includes("localhost") && !dbUrl.includes("127.0.0.1") && !dbUrl.includes("test"));
+  if (looksProd && process.env.ALLOW_DESTRUCTIVE_RESET !== "yes-wipe-this-db") {
+    console.error(
+      "\n⛔ Refusing to run: DATABASE_URL does not look like a local/test database.\n" +
+        `   Host: ${dbUrl.replace(/:\/\/[^@]*@/, "://***@").split("?")[0]}\n` +
+        "   If you REALLY mean to wipe this database, set ALLOW_DESTRUCTIVE_RESET=yes-wipe-this-db\n",
+    );
+    process.exit(1);
+  }
+
   console.log("\n⚠️  FULL DATABASE RESET");
   console.log("━".repeat(50));
   console.log("This will DELETE ALL DATA and re-seed with fresh users.\n");
