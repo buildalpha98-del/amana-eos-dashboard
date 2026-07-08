@@ -21,6 +21,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
     targetFillDate: "",
     notes: "",
     positionDescriptionId: "",
+    publishToWebsite: false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -62,10 +63,14 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          serviceId: form.serviceId,
+          role: form.role,
+          employmentType: form.employmentType,
+          notes: form.notes,
           qualificationRequired: form.qualificationRequired || null,
           targetFillDate: form.targetFillDate || null,
           positionDescriptionId: form.positionDescriptionId || null,
+          postedChannels: form.publishToWebsite ? ["website"] : [],
         }),
       });
       if (!res.ok) throw new Error("Failed to create vacancy");
@@ -206,6 +211,22 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
               placeholder="Any additional details..."
             />
           </div>
+
+          <label className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.publishToWebsite}
+              onChange={(e) => setForm({ ...form, publishToWebsite: e.target.checked })}
+              className="mt-0.5 h-4 w-4"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-foreground/90">Show on public careers page</span>
+              <span className="block text-xs text-muted mt-0.5">
+                Lists this role at amanaoshc.com.au/careers with an apply link. The
+                Notes above become the public job ad. You can toggle this off any time.
+              </span>
+            </span>
+          </label>
 
           <div className="flex justify-end gap-3 pt-2">
             <button
