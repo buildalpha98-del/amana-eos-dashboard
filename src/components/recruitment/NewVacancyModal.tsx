@@ -84,15 +84,15 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-card rounded-xl shadow-xl w-full max-w-lg mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
+      <div className="bg-card rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+        <div className="flex-none flex items-center justify-between px-6 py-4 border-b">
           <h3 className="text-lg font-semibold text-foreground">New Vacancy</h3>
-          <button onClick={onClose} className="text-muted hover:text-foreground">
+          <button type="button" onClick={onClose} className="text-muted hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-foreground/80 mb-1">Centre *</label>
             <select
