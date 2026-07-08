@@ -69,6 +69,7 @@ export function AiButton({
   if (isLoading) {
     return (
       <button
+        type="button"
         onClick={cancel}
         className={cn(
           "inline-flex items-center font-medium rounded-lg border transition-colors",
@@ -86,6 +87,7 @@ export function AiButton({
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       disabled={disabled}
       className={cn(
