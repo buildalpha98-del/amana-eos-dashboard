@@ -103,15 +103,15 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-card rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
-        <div className="flex-none flex items-center justify-between px-6 py-4 border-b">
+      <div className="bg-card rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-card flex items-center justify-between px-6 py-4 border-b">
           <h3 className="text-lg font-semibold text-foreground">New Vacancy</h3>
           <button type="button" onClick={onClose} className="text-muted hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground/80 mb-1">Centre *</label>
             <select
@@ -230,8 +230,8 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
             <textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              rows={12}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg font-mono leading-relaxed"
+              rows={6}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg leading-relaxed"
               placeholder="Any additional details..."
             />
           </div>
