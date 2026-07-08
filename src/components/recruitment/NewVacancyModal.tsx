@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { buildJobAdTemplate } from "@/lib/recruitment/job-ad-templates";
 
 interface NewVacancyModalProps {
   onClose: () => void;
@@ -52,6 +53,24 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
     },
     staleTime: 5 * 60_000,
   });
+
+  // Pre-fill the Notes (public job ad) with a role-based template whenever the
+  // role, centre or employment type changes — but never clobber a manual edit.
+  // We only overwrite when Notes is empty or still equals the template we last
+  // inserted (tracked via the ref).
+  const lastTemplateRef = useRef("");
+  useEffect(() => {
+    const centreName = services.find((s) => s.id === form.serviceId)?.name;
+    const template = buildJobAdTemplate(form.role, centreName, form.employmentType);
+    setForm((prev) => {
+      if (prev.notes === "" || prev.notes === lastTemplateRef.current) {
+        lastTemplateRef.current = template;
+        return { ...prev, notes: template };
+      }
+      return prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.role, form.serviceId, form.employmentType, services]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +207,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-foreground/80">Notes</label>
+              <label className="block text-sm font-medium text-foreground/80">Notes / job ad</label>
               <AiButton
                 templateSlug="recruitment/job-ad"
                 variables={{
@@ -198,16 +217,21 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
                   serviceName: services.find((s: { id: string; name: string }) => s.id === form.serviceId)?.name || "Amana OSHC",
                 }}
                 onResult={(text) => setForm({ ...form, notes: text })}
-                label="Draft Job Ad"
+                label="Draft with AI"
                 size="sm"
                 section="recruitment"
               />
             </div>
+            <p className="text-xs text-muted mb-1">
+              Pre-filled from a template for this role. Just replace the{" "}
+              <span className="font-medium">[BRACKETED]</span> blanks (pay rate, hours, etc.).
+              This becomes the public job ad if you publish to the website.
+            </p>
             <textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg"
+              rows={12}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg font-mono leading-relaxed"
               placeholder="Any additional details..."
             />
           </div>
