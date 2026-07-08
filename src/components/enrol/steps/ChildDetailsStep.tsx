@@ -9,6 +9,8 @@ import {
   AUSTRALIAN_STATES,
   COUNTRY_OF_BIRTH_QUICK_PICKS,
   DOCUMENT_TYPES,
+  KNOWN_SCHOOLS,
+  KNOWN_SCHOOL_OPTIONS,
 } from "../types";
 import { stateFromPostcode } from "@/lib/au-postcodes";
 
@@ -137,6 +139,84 @@ function CountryOfBirthPicker({
           value={otherSelected ? value : ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Type the country of birth"
+          autoFocus={showOther && !otherSelected}
+          className="mt-2 w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Multi-campus school picker. Renders a grouped <select> so parents pick
+ * the exact campus (e.g. "Malek Fahd Greenacre") instead of typing a
+ * bare "Malek Fahd" that a coordinator later has to disambiguate.
+ *
+ * Value shape (stored on ChildDetails.schoolName as a single string):
+ *   - Empty       → no selection
+ *   - Quick-pick  → e.g. "Malek Fahd Greenacre" — exact match against
+ *                   KNOWN_SCHOOL_OPTIONS
+ *   - Other       → whatever the parent typed into the "Other school"
+ *                   text input
+ * Derivation: if `value` matches a known option we render the select
+ * with that option chosen; otherwise if non-empty we render the "Other"
+ * mode with the text input pre-filled.
+ */
+function SchoolPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const isKnown = KNOWN_SCHOOL_OPTIONS.includes(value);
+  const otherSelected = !isKnown && value !== "";
+  const [showOther, setShowOther] = useState(otherSelected);
+
+  const selectValue = otherSelected || showOther
+    ? "__other"
+    : isKnown
+      ? value
+      : "";
+
+  return (
+    <div>
+      <FieldLabel label="School" />
+      <select
+        value={selectValue}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "__other") {
+            setShowOther(true);
+            if (isKnown) onChange("");
+          } else {
+            setShowOther(false);
+            onChange(v);
+          }
+        }}
+        className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
+      >
+        <option value="">Select school...</option>
+        {KNOWN_SCHOOLS.map((school) => (
+          <optgroup key={school.name} label={school.name}>
+            {school.campuses.map((campus) => {
+              const optionValue = `${school.name} ${campus}`;
+              return (
+                <option key={campus} value={optionValue}>
+                  {campus}
+                </option>
+              );
+            })}
+          </optgroup>
+        ))}
+        <option value="__other">Other school…</option>
+      </select>
+      {(showOther || otherSelected) && (
+        <input
+          type="text"
+          value={otherSelected ? value : ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Type your child's school"
           autoFocus={showOther && !otherSelected}
           className="mt-2 w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
         />
@@ -302,8 +382,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
 
           <h4 className="text-sm font-semibold text-muted mt-6 mb-3">School</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="School Name"
+            <SchoolPicker
               value={child.schoolName}
               onChange={(v) => updateChild(i, "schoolName", v)}
             />
