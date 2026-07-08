@@ -24,9 +24,13 @@ type Enrollment = {
     title: string;
     description: string | null;
     track?: "essential" | "monthly" | "library";
+    sortOrder?: number;
     modules: { id: string }[];
   };
 };
+
+const bySortOrder = (a: Enrollment, b: Enrollment) =>
+  (a.course.sortOrder ?? 0) - (b.course.sortOrder ?? 0);
 
 function statusIcon(status: string) {
   if (status === "completed") return <CheckCircle2 className="h-5 w-5 text-green-600" />;
@@ -81,11 +85,11 @@ export function MyTrainingContent() {
   }
 
   const all = (enrollments ?? []) as unknown as Enrollment[];
-  const essential = all.filter((e) => e.course.track === "essential");
-  const monthly = all.filter((e) => e.course.track === "monthly");
-  const other = all.filter(
-    (e) => e.course.track !== "essential" && e.course.track !== "monthly",
-  );
+  const essential = all.filter((e) => e.course.track === "essential").sort(bySortOrder);
+  const monthly = all.filter((e) => e.course.track === "monthly").sort(bySortOrder);
+  const other = all
+    .filter((e) => e.course.track !== "essential" && e.course.track !== "monthly")
+    .sort(bySortOrder);
 
   const status = readiness?.status ?? "cleared";
   const inInduction = status === "new_starter" || status === "in_training" || status === "awaiting_signoff";

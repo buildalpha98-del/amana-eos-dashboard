@@ -705,16 +705,24 @@ export async function seedInduction(prisma: PrismaClient): Promise<void> {
       sortOrder: i,
     });
 
-    for (let m = 0; m < course.modules.length; m++) {
-      const mod = course.modules[m];
-      await ensureModule(prisma, courseId, {
-        title: mod.title,
-        description: mod.description,
-        type: mod.type,
-        content: mod.content,
-        sortOrder: m,
-        questions: mod.questions,
-      });
+    // Only seed placeholder modules when the course has NONE. Once a course
+    // has modules — whether from a prior seed or real authored content whose
+    // titles differ from these placeholders — leave it untouched. (Without
+    // this guard, re-seeding re-adds the placeholder-titled modules alongside
+    // renamed real content, duplicating them on every deploy.)
+    const existingModuleCount = await prisma.lMSModule.count({ where: { courseId } });
+    if (existingModuleCount === 0) {
+      for (let m = 0; m < course.modules.length; m++) {
+        const mod = course.modules[m];
+        await ensureModule(prisma, courseId, {
+          title: mod.title,
+          description: mod.description,
+          type: mod.type,
+          content: mod.content,
+          sortOrder: m,
+          questions: mod.questions,
+        });
+      }
     }
   }
   console.log(`  Ensured ${ESSENTIAL_COURSES.length} essential courses`);
@@ -749,20 +757,24 @@ export async function seedInduction(prisma: PrismaClient): Promise<void> {
       sortOrder: monthly.month,
     });
 
-    await ensureModule(prisma, courseId, {
-      title: monthly.document.title,
-      description: monthly.description,
-      type: "document",
-      content: monthly.document.content,
-      sortOrder: 0,
-    });
-    await ensureModule(prisma, courseId, {
-      title: monthly.quiz.title,
-      description: `Quick check for ${monthly.title}.`,
-      type: "quiz",
-      sortOrder: 1,
-      questions: monthly.quiz.questions,
-    });
+    // Only seed modules when the course has NONE (see the essential loop note).
+    const existingModuleCount = await prisma.lMSModule.count({ where: { courseId } });
+    if (existingModuleCount === 0) {
+      await ensureModule(prisma, courseId, {
+        title: monthly.document.title,
+        description: monthly.description,
+        type: "document",
+        content: monthly.document.content,
+        sortOrder: 0,
+      });
+      await ensureModule(prisma, courseId, {
+        title: monthly.quiz.title,
+        description: `Quick check for ${monthly.title}.`,
+        type: "quiz",
+        sortOrder: 1,
+        questions: monthly.quiz.questions,
+      });
+    }
 
     // Calendar slot — unique on (month, courseId). Guard so re-runs skip.
     const existingSlot = await prisma.trainingCalendarSlot.findFirst({
