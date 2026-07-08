@@ -39,12 +39,17 @@ export default withAuth(
       isInductionLocked(
         token?.inductionStatus as string | undefined,
         token?.inductionGraceUntil as string | null | undefined,
-      ) &&
-      !isInductionAllowedPath(pathname)
+      )
     ) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/my-training";
-      return NextResponse.redirect(url);
+      if (!isInductionAllowedPath(pathname)) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/my-training";
+        return NextResponse.redirect(url);
+      }
+      // On an induction-allowed path — let it through WITHOUT the role-page
+      // check below. The player (/learn) and other induction surfaces must be
+      // reachable for a locked new starter regardless of their role's page list.
+      return NextResponse.next();
     }
 
     const role = parseRole(token?.role);
