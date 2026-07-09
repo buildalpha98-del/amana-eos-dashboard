@@ -4286,6 +4286,12 @@ model OffboardingPack {
   serviceId   String?
   service     Service? @relation("ServiceOffboardingPacks", fields: [serviceId], references: [id], onDelete: SetNull)
   isDefault   Boolean  @default(false)
+  // 2026-07-08: employment-type-aware packs. When set, the assign
+  // endpoint auto-picks this pack for departing staff whose active
+  // contract has a matching type. Empty array = fallback / manual only.
+  // Introduced with the MA000120 Casual + Permanent packs so casuals
+  // don't get the full-time NES notice checklist and vice versa.
+  applicableEmploymentTypes EmploymentType[] @default([])
   deleted     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
