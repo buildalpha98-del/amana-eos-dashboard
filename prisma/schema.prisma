@@ -7748,6 +7748,15 @@ model SeparationRecord {
   eligibleForRehire Boolean        @default(true)
   rehireNotes       String?        @db.Text
 
+  // Employment Hero termination sync (2026-07-08).
+  // When a Separation record is created / updated with a lastWorkingDay
+  // and the user has employmentHeroEmployeeId, we push the termination
+  // date to EH so payroll doesn't keep the person active. We stamp the
+  // sync timestamp here on success and the error message on failure so
+  // the SeparationTab can show a status badge + retry button.
+  ehTerminationSyncedAt DateTime?
+  ehTerminationError    String?    @db.Text
+
   // Exit interview — separate from the offboarding pack so it's an
   // explicit fact, not just one task in a list.
   exitInterviewCompleted Boolean   @default(false)

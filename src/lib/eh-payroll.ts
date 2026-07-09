@@ -490,6 +490,57 @@ export interface CreateLeaveRequestInput {
   notes?: string;
 }
 
+// ─────────────────────────────────────────────────────────────
+// Termination (2026-07-08)
+// ─────────────────────────────────────────────────────────────
+//
+// When a SeparationRecord is created / updated in the dashboard with a
+// lastWorkingDay, we push the termination to Employment Hero so
+// payroll stops treating the employee as active. EH accepts a
+// `terminationDate` on the employee itself — we PATCH the employee
+// record rather than calling a dedicated /termination endpoint, which
+// works consistently across EH Aus API versions and lets us re-sync
+// (correct a date, reopen, etc.) without extra endpoints.
+//
+// Failure mode is soft: local Separation record is authoritative. If
+// EH rejects (date in the past, invalid employeeId, EH down), the
+// caller stamps SeparationRecord.ehTerminationError with the message
+// and surfaces a "Retry" button in the UI.
+
+export interface TerminateEmployeeInput {
+  /** ISO YYYY-MM-DD. EH normalises to a date-only field. */
+  terminationDate: string;
+  /** Free-text reason mirrored into the EH employee record. */
+  terminationReason?: string;
+}
+
+/**
+ * Sets the `terminationDate` on the EH employee record. Idempotent —
+ * calling with a new date updates it; calling with the existing date
+ * is a no-op on the EH side.
+ *
+ * Throws `EhPayrollError` on non-2xx so callers can catch, log the
+ * message onto SeparationRecord.ehTerminationError, and keep going.
+ */
+export async function terminateEmployee(
+  employeeId: number,
+  input: TerminateEmployeeInput,
+): Promise<{ ok: true; terminationDate: string }> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.terminationDate)) {
+    throw new EhPayrollError(400, "terminationDate must be YYYY-MM-DD");
+  }
+  await request<unknown>(`/employee/${employeeId}`, {
+    method: "PUT",
+    body: {
+      // EH ignores fields it doesn't recognise on PUT; sending only
+      // termination-related fields avoids clobbering unrelated data.
+      terminationDate: input.terminationDate,
+      terminationReason: input.terminationReason ?? "",
+    },
+  });
+  return { ok: true, terminationDate: input.terminationDate };
+}
+
 export async function createLeaveRequest(
   employeeId: number,
   input: CreateLeaveRequestInput,
