@@ -81,11 +81,26 @@ export const GET = withApiAuth(async (req, session) => {
         serviceId: true,
         employmentType: true,
         active: true,
+        // 2026-07-08: also include active service memberships so
+        // "by_service" surveys reach staff attached to a centre via
+        // the Services → Staff tab (not just primary-service).
+        serviceMemberships: {
+          where: { status: "active" },
+          select: { serviceId: true },
+        },
       },
     });
     if (!me) throw ApiError.notFound("User not found");
 
-    const filtered = surveys.filter((s) => isInAudience(s, me));
+    const audienceUser = {
+      id: me.id,
+      role: me.role,
+      serviceId: me.serviceId,
+      membershipServiceIds: me.serviceMemberships.map((m) => m.serviceId),
+      employmentType: me.employmentType,
+      active: me.active,
+    };
+    const filtered = surveys.filter((s) => isInAudience(s, audienceUser));
 
     // Attach "I have already responded" flag per survey. For anonymous
     // surveys we can't tell (respondentId is nulled), so we surface a

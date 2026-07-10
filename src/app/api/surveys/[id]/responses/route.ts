@@ -101,10 +101,24 @@ export const POST = withApiAuth(async (req, session, context) => {
       serviceId: true,
       employmentType: true,
       active: true,
+      // 2026-07-08: include active service memberships so by_service
+      // audience matches memberships, not just primary service.
+      serviceMemberships: {
+        where: { status: "active" },
+        select: { serviceId: true },
+      },
     },
   });
   if (!me) throw ApiError.notFound("User not found");
-  if (!isInAudience(survey, me)) {
+  const audienceUser = {
+    id: me.id,
+    role: me.role,
+    serviceId: me.serviceId,
+    membershipServiceIds: me.serviceMemberships.map((m) => m.serviceId),
+    employmentType: me.employmentType,
+    active: me.active,
+  };
+  if (!isInAudience(survey, audienceUser)) {
     throw ApiError.forbidden("You are not in this survey's audience.");
   }
 
