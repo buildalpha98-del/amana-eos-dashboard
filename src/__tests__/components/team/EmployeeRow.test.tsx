@@ -26,6 +26,7 @@ const ALICE = {
   phone: "0400000001",
   role: "staff",
   service: { id: "svc-1", name: "Mawson Lakes" },
+  additionalServices: [] as Array<{ id: string; name: string }>,
   status: "active" as const,
   tags: [] as string[],
   payrollLinked: true,
