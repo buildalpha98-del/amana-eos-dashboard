@@ -26,7 +26,14 @@ export interface EmployeeRowInput {
   active: boolean;
   lastLoginAt: Date | null;
   tags: string[];
+  /** Primary/home service (User.serviceId). Null when the user was
+   *  invited without a service. */
   service: { id: string; name: string } | null;
+  /** 2026-07-08 — additional service memberships (UserServiceMembership
+   *  rows, status=active). Populated when a staff was added to a
+   *  centre via /services/[id]/staff without being their home service.
+   *  Excludes the primary service (deduplicated at the API layer). */
+  additionalServices: Array<{ id: string; name: string }>;
   /** 2026-06-03 — null when the user hasn't been linked to their
    *  Employment Hero Payroll employee record. Drives the red
    *  "needs payroll link" badge on the /team list. */
@@ -48,6 +55,10 @@ export interface EmployeeRow {
   role: string;
   tags: string[];
   service: { id: string; name: string } | null;
+  /** 2026-07-08: additional centres this user is a member of via
+   *  UserServiceMembership. Empty for users whose only service is
+   *  their primary one (or who have no service at all). */
+  additionalServices: Array<{ id: string; name: string }>;
   status: EmployeeStatus;
   /** True when the user is linked to an EH Payroll employee record.
    *  Drives a red "needs payroll link" indicator in the /team list. */
@@ -76,6 +87,7 @@ export function formatEmployeeRow(
     role: input.role,
     tags: input.tags ?? [],
     service: input.service,
+    additionalServices: input.additionalServices ?? [],
     status: deriveStatus(input),
     payrollLinked: input.employmentHeroEmployeeId !== null,
     hasActiveContract: input.hasActiveContract,

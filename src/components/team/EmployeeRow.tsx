@@ -246,7 +246,28 @@ export function EmployeeRow({
           </div>
         </td>
         <td className="px-4 py-3 text-sm text-foreground/80">
-          {employee.service?.name ?? "—"}
+          {/* 2026-07-08: show primary + any additional service memberships.
+              Primary renders solid; additional services render in a lighter
+              tone so the home service is still visually distinct. */}
+          {employee.service ? (
+            <div className="space-y-0.5">
+              <div>{employee.service.name}</div>
+              {employee.additionalServices.length > 0 && (
+                <div className="text-xs text-muted">
+                  + {employee.additionalServices.map((s) => s.name).join(", ")}
+                </div>
+              )}
+            </div>
+          ) : employee.additionalServices.length > 0 ? (
+            <div className="text-sm">
+              {employee.additionalServices.map((s) => s.name).join(", ")}
+              <span className="ml-1 text-xs text-muted italic">
+                (via service assignment)
+              </span>
+            </div>
+          ) : (
+            "—"
+          )}
         </td>
         <td className="px-4 py-3">
           <span
