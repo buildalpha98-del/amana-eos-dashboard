@@ -200,7 +200,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 {groupIndex > 0 && (
                   <div
                     className={cn(
-                      "my-2",
+                      // 2026-07-08: bigger top gap + faint separator line
+                      // so each section pops as a distinct block. Prior
+                      // headers rendered as text-white/30 with no divider
+                      // and blended into the item list — Daniel couldn't
+                      // scan to a section quickly.
+                      "mt-4 mb-1 pt-2 border-t border-white/[0.08]",
                       collapsed ? "px-2" : "px-3"
                     )}
                   >
@@ -212,14 +217,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                         onClick={() => toggleSection(group.key)}
                         aria-label={`${isSectionCollapsed ? "Expand" : "Collapse"} ${group.key} section`}
                         aria-expanded={!isSectionCollapsed}
-                        className="flex items-center justify-between w-full group"
+                        className="flex items-center justify-between w-full group py-1"
                       >
-                        <h3 className="text-[11px] font-semibold text-white/30 uppercase tracking-widest pl-1">
+                        <h3 className="text-xs font-bold text-accent uppercase tracking-widest pl-1">
                           {group.key}
                         </h3>
                         <ChevronDown
                           className={cn(
-                            "w-3 h-3 text-white/20 transition-transform duration-200 group-hover:text-white/40",
+                            "w-3.5 h-3.5 text-white/40 transition-transform duration-200 group-hover:text-white/70",
                             isSectionCollapsed && "-rotate-90"
                           )}
                         />

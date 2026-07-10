@@ -123,26 +123,40 @@ export async function extractText(
   fileUrl: string,
   mimeType: string,
 ): Promise<string> {
-  // Text-based types: download and return raw text
+  const res = await fetch(fileUrl);
+  if (!res.ok) {
+    throw new Error(
+      `Failed to download file: ${res.status} ${res.statusText}`,
+    );
+  }
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return extractTextFromBuffer(buffer, mimeType);
+}
+
+/**
+ * Extract text from an in-memory buffer. Split out so ZIP archives
+ * can extract each contained file without a round-trip to storage.
+ *
+ * Supported: PDF (unpdf), DOCX (mammoth), text (utf-8), ZIP
+ * (recurses through supported entries, prefixes each with a
+ * ## <filename> heading so chunk boundaries survive).
+ *
+ * `filename` is only used to skip likely-binary entries inside a
+ * ZIP (images, spreadsheets, etc.) — the caller ignores it for
+ * top-level files where mimeType is authoritative.
+ */
+async function extractTextFromBuffer(
+  buffer: Buffer,
+  mimeType: string,
+  filename?: string,
+): Promise<string> {
+  // Text-based types
   if (TEXT_MIME_TYPES.has(mimeType)) {
-    const res = await fetch(fileUrl);
-    if (!res.ok) {
-      throw new Error(
-        `Failed to download file: ${res.status} ${res.statusText}`,
-      );
-    }
-    return res.text();
+    return buffer.toString("utf-8");
   }
 
   // PDF
   if (mimeType === "application/pdf") {
-    const res = await fetch(fileUrl);
-    if (!res.ok) {
-      throw new Error(
-        `Failed to download file: ${res.status} ${res.statusText}`,
-      );
-    }
-    const buffer = Buffer.from(await res.arrayBuffer());
     // 2026-06-17: switched to unpdf — purpose-built for serverless
     // Node. No worker file (the issue that took down pdf-parse v2)
     // and no debug-PDF require at module init (the issue that took
@@ -160,19 +174,86 @@ export async function extractText(
     mimeType ===
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   ) {
-    const res = await fetch(fileUrl);
-    if (!res.ok) {
-      throw new Error(
-        `Failed to download file: ${res.status} ${res.statusText}`,
-      );
-    }
-    const buffer = Buffer.from(await res.arrayBuffer());
     const mammoth = (await import("mammoth")).default;
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   }
 
-  throw new Error(`Unsupported MIME type for text extraction: ${mimeType}`);
+  // ZIP — 2026-07-08. Unpack, extract each supported entry, and
+  // concatenate the results with per-file H2 headings so chunking
+  // preserves file boundaries. Unknown / binary entries are skipped
+  // (with a debug log so we can see what got dropped).
+  if (
+    mimeType === "application/zip" ||
+    mimeType === "application/x-zip-compressed"
+  ) {
+    const JSZip = (await import("jszip")).default;
+    const archive = await JSZip.loadAsync(buffer);
+    const parts: string[] = [];
+    // Sort entries by path for deterministic chunk output.
+    const entries = Object.values(archive.files)
+      .filter((f) => !f.dir)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      // macOS __MACOSX metadata + hidden dotfiles: skip. They're
+      // never document content and pollute the extracted text.
+      if (
+        entry.name.startsWith("__MACOSX/") ||
+        entry.name.split("/").pop()?.startsWith(".")
+      ) {
+        continue;
+      }
+      const inferred = inferMimeFromFilename(entry.name);
+      if (!inferred) continue; // skip unknown extensions silently
+      try {
+        const nested = await entry.async("nodebuffer");
+        const nestedText = await extractTextFromBuffer(
+          nested,
+          inferred,
+          entry.name,
+        );
+        if (nestedText.trim()) {
+          parts.push(`## ${entry.name}\n\n${nestedText.trim()}`);
+        }
+      } catch (err) {
+        // One bad entry shouldn't kill the whole archive.
+        parts.push(
+          `## ${entry.name}\n\n_[extraction failed: ${
+            err instanceof Error ? err.message : "unknown error"
+          }]_`,
+        );
+      }
+    }
+    if (parts.length === 0) {
+      throw new Error(
+        "ZIP archive contained no supported documents (accepted: PDF, DOCX, TXT, MD, CSV, HTML).",
+      );
+    }
+    return parts.join("\n\n");
+  }
+
+  throw new Error(
+    `Unsupported MIME type for text extraction: ${mimeType}${
+      filename ? ` (from ${filename})` : ""
+    }`,
+  );
+}
+
+/**
+ * Best-effort MIME inference from a filename extension. Used only when
+ * iterating ZIP archive entries where the archive itself carries no
+ * per-entry MIME. Returns null for anything we can't index.
+ */
+function inferMimeFromFilename(name: string): string | null {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".docx"))
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (lower.endsWith(".txt")) return "text/plain";
+  if (lower.endsWith(".md")) return "text/markdown";
+  if (lower.endsWith(".csv")) return "text/csv";
+  if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html";
+  return null;
 }
 
 // ─── chunkText ────────────────────────────────────────────────
