@@ -1037,6 +1037,12 @@ model Todo {
   service     Service?   @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   projectId   String?
   project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  // 2026-07-08: correlates a survey-generated todo with its source
+  // Survey so the response-submit endpoint can auto-complete the
+  // todo when the user submits. Populated only for todos created
+  // by /api/surveys/[id]/publish; null for every other todo.
+  surveyId    String?
+  survey      Survey?    @relation("SurveyTodos", fields: [surveyId], references: [id], onDelete: SetNull)
   dueDate     DateTime
   status      TodoStatus @default(pending)
   weekOf      DateTime
@@ -8126,6 +8132,7 @@ model Survey {
 
   questions       SurveyQuestion[]
   responses       SurveyResponse[]
+  todos           Todo[]           @relation("SurveyTodos")
 
   @@index([status])
   @@index([createdById])
