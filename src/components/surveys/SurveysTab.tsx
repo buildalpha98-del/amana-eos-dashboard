@@ -242,6 +242,18 @@ function SurveyCard({
           <>
             <button
               type="button"
+              onClick={onEdit}
+              className="text-xs px-2.5 py-1 rounded border border-border hover:bg-surface"
+              title={
+                (survey._count?.responses ?? 0) > 0
+                  ? "Title, description, audience, and closing date can be edited. Questions are locked once responses exist."
+                  : undefined
+              }
+            >
+              Edit
+            </button>
+            <button
+              type="button"
               onClick={onResults}
               className="text-xs px-2.5 py-1 rounded border border-border hover:bg-surface"
             >
