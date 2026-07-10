@@ -160,6 +160,35 @@ export function usePublishSurvey() {
   });
 }
 
+export function useResendSurvey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      mutateApi<{ nudged: number; newTodos?: number; message?: string }>(
+        `/api/surveys/${id}/resend`,
+        { method: "POST" },
+      ),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["surveys"] });
+      if (data.nudged === 0) {
+        toast({
+          description:
+            data.message ?? "Everyone in the audience has already responded.",
+        });
+      } else {
+        toast({
+          description: `Reminder sent to ${data.nudged} ${
+            data.nudged === 1 ? "person" : "people"
+          } who haven't responded yet.`,
+        });
+      }
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message });
+    },
+  });
+}
+
 export function useCloseSurvey() {
   const qc = useQueryClient();
   return useMutation({

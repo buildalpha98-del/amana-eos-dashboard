@@ -12,12 +12,13 @@
  */
 
 import { useState } from "react";
-import { Plus, ClipboardList, Users, Lock, Loader2 } from "lucide-react";
+import { Plus, ClipboardList, Users, Lock, Loader2, Send } from "lucide-react";
 import {
   useSurveys,
   useDeleteSurvey,
   usePublishSurvey,
   useCloseSurvey,
+  useResendSurvey,
   type SurveyListItem,
 } from "@/hooks/useSurveys";
 import { SurveyBuilder } from "./SurveyBuilder";
@@ -81,6 +82,7 @@ function SurveyList({
   const del = useDeleteSurvey();
   const publish = usePublishSurvey();
   const close = useCloseSurvey();
+  const resend = useResendSurvey();
 
   if (isLoading) {
     return (
@@ -143,8 +145,19 @@ function SurveyList({
               }}
               onPublish={() => publish.mutate(s.id)}
               onClose={() => close.mutate(s.id)}
+              onResend={() => {
+                if (
+                  confirm(
+                    `Send a reminder to everyone in "${s.title}" who hasn't responded yet?`,
+                  )
+                )
+                  resend.mutate(s.id);
+              }}
               actionsBusy={
-                publish.isPending || close.isPending || del.isPending
+                publish.isPending ||
+                close.isPending ||
+                del.isPending ||
+                resend.isPending
               }
             />
           ))}
@@ -161,6 +174,7 @@ function SurveyCard({
   onDelete,
   onPublish,
   onClose,
+  onResend,
   actionsBusy,
 }: {
   survey: SurveyListItem;
@@ -169,6 +183,7 @@ function SurveyCard({
   onDelete: () => void;
   onPublish: () => void;
   onClose: () => void;
+  onResend: () => void;
   actionsBusy: boolean;
 }) {
   const statusColor: Record<string, string> = {
@@ -259,6 +274,18 @@ function SurveyCard({
             >
               View results
             </button>
+            {!survey.anonymous && (
+              <button
+                type="button"
+                onClick={onResend}
+                disabled={actionsBusy}
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded border border-brand/30 text-brand hover:bg-brand/5 disabled:opacity-50"
+                title="Nudge everyone in the audience who hasn't responded yet"
+              >
+                <Send className="w-3 h-3" />
+                Resend
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
