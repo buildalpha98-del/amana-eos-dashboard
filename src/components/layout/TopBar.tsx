@@ -51,6 +51,10 @@ const pageTitles: Record<string, string> = {
   "/tickets": "Tickets",
   "/documents": "Documents",
   "/team": "Team",
+  // 2026-07-08: /staff renamed to /team; the redirect page keeps
+  // old URLs working, this line makes the breadcrumb read "Team"
+  // instead of "Staff" when someone is on /staff/[id].
+  "/staff": "Team",
   "/settings": "Settings",
   "/communication": "Communication",
   "/marketing": "Marketing",
