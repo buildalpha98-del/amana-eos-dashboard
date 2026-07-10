@@ -244,5 +244,25 @@ export const POST = withApiAuth(async (req, session, context) => {
     include: { answers: true },
   });
 
+  // 2026-07-08: auto-complete the Todo that was created on publish so
+  // the survey drops out of the user's task list once they've done
+  // it. Safe on anonymous surveys because the todo was still created
+  // with a real assigneeId at publish time (assignment isn't the same
+  // as identifying the response). We match by (assigneeId, surveyId)
+  // and only flip status=complete rows that were still pending.
+  try {
+    await prisma.todo.updateMany({
+      where: {
+        assigneeId: me.id,
+        surveyId: id,
+        status: { in: ["pending", "in_progress"] },
+      },
+      data: { status: "complete", completedAt: new Date() },
+    });
+  } catch {
+    // Non-fatal — the response is already saved. If todo completion
+    // fails the user can complete it manually in /todos.
+  }
+
   return NextResponse.json(response, { status: 201 });
 });
