@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyBudget } from "@/lib/budget-helpers";
+import { getOrgSettings } from "@/lib/org-settings";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 
@@ -46,20 +47,23 @@ export const GET = withApiAuth(async (req, session, context) => {
     : now;
   const period = url.searchParams.get("period") || "monthly";
 
-  // Fetch service grocery rates
+  // 2026-07-08: grocery rates now live on OrgSettings (editable from
+  // /settings/organisation), not on the Service row. Per-service
+  // rate columns still exist on Service for backwards compat but are
+  // no longer read anywhere. All services share the same rates.
   const service = await prisma.service.findUnique({
     where: { id },
-    select: {
-      id: true,
-      bscGroceryRate: true,
-      ascGroceryRate: true,
-      vcGroceryRate: true,
-    },
+    select: { id: true },
   });
-
   if (!service) {
     return NextResponse.json({ error: "Service not found" }, { status: 404 });
   }
+  const { groceryRates } = await getOrgSettings();
+  const rates = {
+    bscGroceryRate: groceryRates.bsc,
+    ascGroceryRate: groceryRates.asc,
+    vcGroceryRate: groceryRates.vc,
+  };
 
   // Aggregate attendance by session type.
   // `enrolled` stores permanent bookings, `attended` stores casual bookings —
@@ -107,9 +111,9 @@ export const GET = withApiAuth(async (req, session, context) => {
     attendanceMap.vc = (weeklyAgg._sum.vcAttendance ?? 0) * 5;
   }
 
-  const bscCost = attendanceMap.bsc * service.bscGroceryRate;
-  const ascCost = attendanceMap.asc * service.ascGroceryRate;
-  const vcCost = attendanceMap.vc * service.vcGroceryRate;
+  const bscCost = attendanceMap.bsc * rates.bscGroceryRate;
+  const ascCost = attendanceMap.asc * rates.ascGroceryRate;
+  const vcCost = attendanceMap.vc * rates.vcGroceryRate;
   const groceryTotal = bscCost + ascCost + vcCost;
 
   // Aggregate equipment items by category
@@ -142,7 +146,7 @@ export const GET = withApiAuth(async (req, session, context) => {
     period,
     id,
     equipmentItems,
-    service
+    rates
   );
 
   // We need attendance per period too — query all daily records.
@@ -163,13 +167,13 @@ export const GET = withApiAuth(async (req, session, context) => {
       const bookings = rec.enrolled + rec.attended;
       if (rec.sessionType === "bsc") {
         bucket.bscAttendance += bookings;
-        bucket.groceryCost += bookings * service.bscGroceryRate;
+        bucket.groceryCost += bookings * rates.bscGroceryRate;
       } else if (rec.sessionType === "asc") {
         bucket.ascAttendance += bookings;
-        bucket.groceryCost += bookings * service.ascGroceryRate;
+        bucket.groceryCost += bookings * rates.ascGroceryRate;
       } else if (rec.sessionType === "vc") {
         bucket.vcAttendance += bookings;
-        bucket.groceryCost += bookings * service.vcGroceryRate;
+        bucket.groceryCost += bookings * rates.vcGroceryRate;
       }
       bucket.total = bucket.groceryCost + bucket.equipmentCost;
     }
@@ -212,9 +216,9 @@ export const GET = withApiAuth(async (req, session, context) => {
         bucket.ascAttendance += ascWeek;
         bucket.vcAttendance += vcWeek;
         bucket.groceryCost +=
-          bscWeek * service.bscGroceryRate +
-          ascWeek * service.ascGroceryRate +
-          vcWeek * service.vcGroceryRate;
+          bscWeek * rates.bscGroceryRate +
+          ascWeek * rates.ascGroceryRate +
+          vcWeek * rates.vcGroceryRate;
         bucket.total = bucket.groceryCost + bucket.equipmentCost;
       }
     }
@@ -262,18 +266,18 @@ export const GET = withApiAuth(async (req, session, context) => {
         period: currentBucket.period,
         bsc: {
           attended: currentBucket.bscAttendance,
-          rate: service.bscGroceryRate,
-          cost: currentBucket.bscAttendance * service.bscGroceryRate,
+          rate: rates.bscGroceryRate,
+          cost: currentBucket.bscAttendance * rates.bscGroceryRate,
         },
         asc: {
           attended: currentBucket.ascAttendance,
-          rate: service.ascGroceryRate,
-          cost: currentBucket.ascAttendance * service.ascGroceryRate,
+          rate: rates.ascGroceryRate,
+          cost: currentBucket.ascAttendance * rates.ascGroceryRate,
         },
         vc: {
           attended: currentBucket.vcAttendance,
-          rate: service.vcGroceryRate,
-          cost: currentBucket.vcAttendance * service.vcGroceryRate,
+          rate: rates.vcGroceryRate,
+          cost: currentBucket.vcAttendance * rates.vcGroceryRate,
         },
         groceryTotal: currentBucket.groceryCost,
         groceryActualSpend,
@@ -286,9 +290,9 @@ export const GET = withApiAuth(async (req, session, context) => {
       }
     : {
         period: currentBucketKey,
-        bsc: { attended: 0, rate: service.bscGroceryRate, cost: 0 },
-        asc: { attended: 0, rate: service.ascGroceryRate, cost: 0 },
-        vc: { attended: 0, rate: service.vcGroceryRate, cost: 0 },
+        bsc: { attended: 0, rate: rates.bscGroceryRate, cost: 0 },
+        asc: { attended: 0, rate: rates.ascGroceryRate, cost: 0 },
+        vc: { attended: 0, rate: rates.vcGroceryRate, cost: 0 },
         groceryTotal: 0,
         groceryActualSpend,
         groceryRemaining: 0,
@@ -319,9 +323,9 @@ export const GET = withApiAuth(async (req, session, context) => {
     // figure (e.g. the year-average calculation on the client).
     groceryBudget: {
       total: groceryTotal,
-      bsc: { attended: attendanceMap.bsc, rate: service.bscGroceryRate, cost: bscCost },
-      asc: { attended: attendanceMap.asc, rate: service.ascGroceryRate, cost: ascCost },
-      vc: { attended: attendanceMap.vc, rate: service.vcGroceryRate, cost: vcCost },
+      bsc: { attended: attendanceMap.bsc, rate: rates.bscGroceryRate, cost: bscCost },
+      asc: { attended: attendanceMap.asc, rate: rates.ascGroceryRate, cost: ascCost },
+      vc: { attended: attendanceMap.vc, rate: rates.vcGroceryRate, cost: vcCost },
     },
     // 2026-06-05: current-period aggregate (this week / this month).
     // What the Grocery Spend card + Grocery Budget Breakdown should
@@ -340,9 +344,9 @@ export const GET = withApiAuth(async (req, session, context) => {
     periods: periods.sort((a, b) => a.period.localeCompare(b.period)),
     range: { from: from.toISOString(), to: to.toISOString() },
     rates: {
-      bsc: service.bscGroceryRate,
-      asc: service.ascGroceryRate,
-      vc: service.vcGroceryRate,
+      bsc: rates.bscGroceryRate,
+      asc: rates.ascGroceryRate,
+      vc: rates.vcGroceryRate,
     },
   });
 }, {
