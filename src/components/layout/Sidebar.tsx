@@ -48,22 +48,30 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     session?.user?.inductionGraceUntil
   );
 
-  // Group filtered nav items by section, preserving order
+  // Group filtered nav items by section.
+  //
+  // 2026-07-08: switched from consecutive-run grouping to global Map
+  // dedup so a section that appears twice in nav-config (e.g. "Admin"
+  // with the Settings run in between) renders as ONE section header,
+  // not two. Same fix that landed in TopNav on 2026-06-26 — this
+  // closes the parity gap where the sidebar was still rendering
+  // "ADMIN › Leadership" then another "ADMIN" further down. Order =
+  // first-seen section wins.
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
     ).filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
-    const sections: { key: string; items: typeof navItems }[] = [];
+    const byKey = new Map<string, typeof navItems>();
+    const order: string[] = [];
     for (const item of filtered) {
-      const last = sections[sections.length - 1];
-      if (last && last.key === item.section) {
-        last.items.push(item);
-      } else {
-        sections.push({ key: item.section, items: [item] });
+      if (!byKey.has(item.section)) {
+        byKey.set(item.section, []);
+        order.push(item.section);
       }
+      byKey.get(item.section)!.push(item);
     }
-    return sections;
+    return order.map((key) => ({ key, items: byKey.get(key)! }));
   }, [session?.user?.role, inductionLocked]);
 
   // Build favourited items list from the filtered nav items
