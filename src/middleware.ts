@@ -186,6 +186,7 @@ export const config = {
     "/reports/:path*",
     "/assistant/:path*",
     "/my-training/:path*",
+    "/surveys/:path*",
     "/learn/:path*",
     "/api/induction/:path*",
   ],

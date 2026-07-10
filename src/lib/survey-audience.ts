@@ -25,6 +25,15 @@ export interface AudienceUser {
   id: string;
   role: Role;
   serviceId: string | null;
+  /**
+   * 2026-07-08: additional service memberships (status=active).
+   * "by_service" now matches EITHER the user's primary serviceId OR
+   * any active UserServiceMembership. Previously it only checked
+   * primary, so staff added to a centre via /services/[id]/staff
+   * (which creates a membership, not a primary-service change)
+   * silently fell out of surveys targeted at that centre.
+   */
+  membershipServiceIds: string[];
   employmentType: EmploymentType | null;
   active: boolean;
 }
@@ -43,8 +52,11 @@ export function isInAudience(
       return true;
     case "by_role":
       return survey.audienceRoles.includes(user.role);
-    case "by_service":
-      return !!user.serviceId && survey.audienceServiceIds.includes(user.serviceId);
+    case "by_service": {
+      const targeted = new Set(survey.audienceServiceIds);
+      if (user.serviceId && targeted.has(user.serviceId)) return true;
+      return user.membershipServiceIds.some((id) => targeted.has(id));
+    }
     case "by_employment_type":
       return (
         !!user.employmentType &&
