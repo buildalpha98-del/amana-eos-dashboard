@@ -888,6 +888,11 @@ model User {
   shiftTemplatesCreated                ShiftTemplate[]                  @relation("ShiftTemplateCreator")
   // 2026-07-05 (AI morning briefing v1): one AI-composed brief per day.
   dailyBriefings                       DailyBriefing[]                  @relation("UserDailyBriefings")
+  // 2026-07-08 (staff surveys v1): surveys the user has authored and
+  // responses they have submitted. Responses are 1:1 with (survey,user)
+  // via a unique constraint on SurveyResponse.
+  surveysCreated                       Survey[]                         @relation("SurveyCreator")
+  surveyResponses                      SurveyResponse[]                 @relation("SurveyRespondent")
 
   // 2026-05-14 (service-staff v1): additional service memberships layered on
   // top of User.serviceId (which stays as the primary/home service). Lets a
@@ -8056,4 +8061,137 @@ model DailyBriefing {
   @@unique([userId, date])
   @@index([userId, date])
   @@index([date])
+}
+
+// ============================================================
+// STAFF SURVEYS (2026-07-08)
+// Generic survey builder — admins compose a survey with mixed-type
+// questions (yes/no, single/multi-choice, short/long text, rating)
+// and distribute it to a filtered staff audience. Sits under
+// /onboarding as a new "Surveys" tab alongside Onboarding · LMS ·
+// Induction · Exit Surveys. Not tied to any specific lifecycle
+// event — that's what the Exit Surveys dashboard is for.
+// ============================================================
+
+enum SurveyStatus {
+  draft
+  published
+  closed
+}
+
+enum SurveyQuestionType {
+  yes_no
+  single_choice
+  multi_choice
+  short_text
+  long_text
+  rating           // 1-5 stars
+}
+
+enum SurveyAudience {
+  all_staff              // every active User
+  by_role                // filter to specific Role values
+  by_service             // filter to specific service IDs
+  by_employment_type     // filter to specific EmploymentType values
+}
+
+model Survey {
+  id              String       @id @default(cuid())
+  title           String
+  description     String?      @db.Text
+  status          SurveyStatus @default(draft)
+
+  // When true, SurveyResponse.respondentId is nullified before storage
+  // (so results can still be aggregated but individuals can't be
+  // identified — critical for satisfaction / feedback surveys).
+  anonymous       Boolean      @default(false)
+
+  audience        SurveyAudience @default(all_staff)
+  // Filters used when the audience type demands them. Empty arrays for
+  // the other types. We deliberately don't join on User at the schema
+  // level — audience is evaluated at read time in /api/surveys so
+  // adding a new staff mid-survey picks them up automatically.
+  audienceRoles           Role[]           @default([])
+  audienceServiceIds      String[]         @default([])
+  audienceEmploymentTypes EmploymentType[] @default([])
+
+  closesAt        DateTime?
+  publishedAt     DateTime?
+
+  createdById     String
+  createdBy       User         @relation("SurveyCreator", fields: [createdById], references: [id])
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deleted         Boolean      @default(false)
+
+  questions       SurveyQuestion[]
+  responses       SurveyResponse[]
+
+  @@index([status])
+  @@index([createdById])
+}
+
+model SurveyQuestion {
+  id            String             @id @default(cuid())
+  surveyId      String
+  survey        Survey             @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  type          SurveyQuestionType
+  title         String
+  description   String?            @db.Text
+  required      Boolean            @default(true)
+  // Options for single_choice / multi_choice. Empty for other types.
+  // Order preserved from the array; option index is stable so answer
+  // rows can reference by integer position.
+  options       String[]           @default([])
+  sortOrder     Int                @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  answers       SurveyAnswer[]
+
+  @@index([surveyId])
+}
+
+model SurveyResponse {
+  id            String    @id @default(cuid())
+  surveyId      String
+  survey        Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  // Null when the survey is anonymous. We still enforce one-response-
+  // per-user via a separate anonymous-cookie fingerprint (not stored
+  // here) — anonymous surveys accept unlimited responses per browser
+  // in this MVP; deferring anti-brigading to a later iteration.
+  respondentId  String?
+  respondent    User?     @relation("SurveyRespondent", fields: [respondentId], references: [id], onDelete: SetNull)
+  submittedAt   DateTime  @default(now())
+
+  answers       SurveyAnswer[]
+
+  // Enforced only for non-anonymous surveys — a non-null respondentId
+  // uniquely maps to at most one response per survey. Anonymous
+  // responses all share NULL respondentId; the unique constraint on
+  // Postgres allows multiple NULL rows so anonymous surveys can accept
+  // many responses per anonymous slot.
+  @@unique([surveyId, respondentId])
+  @@index([surveyId])
+  @@index([respondentId])
+}
+
+model SurveyAnswer {
+  id           String         @id @default(cuid())
+  responseId   String
+  response     SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  // Exactly one of these fields is populated based on the question's
+  // type. Kept as separate typed columns rather than a JSON blob so
+  // aggregation queries (count per option, avg rating) stay cheap.
+  yesNo         Boolean?           // yes_no
+  choiceIndexes Int[]     @default([]) // single_choice (1 elem) / multi_choice
+  textValue     String?   @db.Text     // short_text / long_text
+  ratingValue   Int?                    // rating 1-5
+
+  @@unique([responseId, questionId])
+  @@index([responseId])
+  @@index([questionId])
 }

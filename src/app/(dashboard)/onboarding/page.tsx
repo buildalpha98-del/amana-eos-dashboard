@@ -24,6 +24,7 @@ import { ExitSurveyDashboard } from "@/components/exit-surveys/ExitSurveyDashboa
 import { OnboardingPacksTab } from "@/components/onboarding/OnboardingPacksTab";
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
+import { SurveysTab } from "@/components/surveys/SurveysTab";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GraduationCap,
@@ -65,7 +66,9 @@ export default function OnboardingPage() {
   const isStaff = role === "staff";
   const isServiceScoped = role === "staff" || role === "member";
 
-  const [activeTab, setActiveTab] = useState<"onboarding" | "lms" | "induction" | "exit-surveys">("onboarding");
+  const [activeTab, setActiveTab] = useState<
+    "onboarding" | "lms" | "induction" | "surveys" | "exit-surveys"
+  >("onboarding");
   const [showCreatePack, setShowCreatePack] = useState(false);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
@@ -380,6 +383,18 @@ export default function OnboardingPage() {
             Induction
           </button>
         )}
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab("surveys")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "surveys" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <ClipboardList className="w-4 h-4" />
+            Surveys
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("exit-surveys")}
           className={cn(
@@ -464,6 +479,9 @@ export default function OnboardingPage() {
           handleModuleProgress={handleModuleProgress}
         />
       )}
+      {/* Surveys Tab (generic Microsoft-Forms-style builder) */}
+      {activeTab === "surveys" && isAdmin && <SurveysTab />}
+
       {/* Exit Surveys Tab */}
       {activeTab === "exit-surveys" && (
         <ExitSurveyDashboard />
