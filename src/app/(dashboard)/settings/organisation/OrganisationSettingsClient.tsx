@@ -534,6 +534,97 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
         </Field>
       </Section>
 
+      {/* Grocery rates */}
+      <Section
+        title="Grocery rates per head"
+        description="Per-child grocery cost used by the Financial Dashboard and each centre's Budget tab to forecast weekly grocery spend. One set applies to every centre. Attendance × rate = forecast."
+        onReset={() => resetSection("groceryRates")}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field
+            label="Rise & Shine (before school care)"
+            valid={config.groceryRates.bsc > 0}
+            error="Must be > $0"
+          >
+            <div className="relative">
+              <span className="absolute inset-y-0 left-2 flex items-center text-sm text-muted pointer-events-none">
+                $
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.05}
+                value={config.groceryRates.bsc}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    groceryRates: {
+                      ...c.groceryRates,
+                      bsc: Number(e.target.value),
+                    },
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-card pl-6 pr-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+          </Field>
+          <Field
+            label="Minor Afternoons (after school care)"
+            valid={config.groceryRates.asc > 0}
+            error="Must be > $0"
+          >
+            <div className="relative">
+              <span className="absolute inset-y-0 left-2 flex items-center text-sm text-muted pointer-events-none">
+                $
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.05}
+                value={config.groceryRates.asc}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    groceryRates: {
+                      ...c.groceryRates,
+                      asc: Number(e.target.value),
+                    },
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-card pl-6 pr-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+          </Field>
+          <Field
+            label="Holiday Quest (vacation care)"
+            valid={config.groceryRates.vc > 0}
+            error="Must be > $0"
+          >
+            <div className="relative">
+              <span className="absolute inset-y-0 left-2 flex items-center text-sm text-muted pointer-events-none">
+                $
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.05}
+                value={config.groceryRates.vc}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    groceryRates: {
+                      ...c.groceryRates,
+                      vc: Number(e.target.value),
+                    },
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-card pl-6 pr-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+          </Field>
+        </div>
+      </Section>
+
       {/* Health Score */}
       <Section
         title="Centre Health Score"

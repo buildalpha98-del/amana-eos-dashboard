@@ -177,6 +177,18 @@ export const orgSettingsConfigSchema = z.object({
   ratios: z.object({
     federalDefaultMinRatio: ratioStringSchema,
   }),
+  // 2026-07-08: per-head grocery cost rates, editable from
+  // /settings/organisation. Rise & Shine (before school care), Minor
+  // Afternoons (after school care), Holiday Quest (vacation care).
+  // Multiplied by attendance to produce grocery-cost forecasts on
+  // /financials and the per-service Budget tab. Previously stored
+  // per-service on Service.{bsc,asc,vc}GroceryRate; those columns
+  // are kept in the schema but no longer read.
+  groceryRates: z.object({
+    bsc: z.number().positive().max(1000),
+    asc: z.number().positive().max(1000),
+    vc: z.number().positive().max(1000),
+  }),
   healthScore: z.object({
     pillarWeights: pillarWeightsSchema,
     thresholds: thresholdsSchema,
@@ -249,6 +261,14 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
   },
   ratios: {
     federalDefaultMinRatio: "1:15",
+  },
+  groceryRates: {
+    // Rise & Shine (before school care)
+    bsc: 0.8,
+    // Minor Afternoons (after school care)
+    asc: 1.2,
+    // Holiday Quest (vacation care)
+    vc: 4.5,
   },
   healthScore: {
     pillarWeights: {
@@ -360,6 +380,9 @@ export function mergeOrgSettings(
     string,
     unknown
   >;
+  const gr = (safe.groceryRates && typeof safe.groceryRates === "object"
+    ? safe.groceryRates
+    : {}) as Record<string, unknown>;
   const hs = (safe.healthScore && typeof safe.healthScore === "object"
     ? safe.healthScore
     : {}) as Record<string, unknown>;
@@ -394,6 +417,20 @@ export function mergeOrgSettings(
         /^\d+:\d+$/.test(ratios.federalDefaultMinRatio)
           ? (ratios.federalDefaultMinRatio as string)
           : defaults.ratios.federalDefaultMinRatio,
+    },
+    groceryRates: {
+      bsc:
+        typeof gr.bsc === "number" && gr.bsc > 0
+          ? (gr.bsc as number)
+          : defaults.groceryRates.bsc,
+      asc:
+        typeof gr.asc === "number" && gr.asc > 0
+          ? (gr.asc as number)
+          : defaults.groceryRates.asc,
+      vc:
+        typeof gr.vc === "number" && gr.vc > 0
+          ? (gr.vc as number)
+          : defaults.groceryRates.vc,
     },
     healthScore: {
       pillarWeights: {
