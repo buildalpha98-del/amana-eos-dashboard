@@ -9,12 +9,15 @@ export interface ReflectionItem {
   id: string;
   serviceId: string;
   authorId: string;
-  type: "weekly" | "monthly" | "critical" | "team";
+  type: "daily" | "weekly" | "monthly" | "critical" | "team";
   title: string;
   content: string;
   qualityAreas: number[];
   linkedObservationIds: string[];
   mood: "positive" | "neutral" | "concern" | null;
+  mtopOutcomes: string[];
+  parentPostId: string | null;
+  aiTagged: boolean;
   createdAt: string;
   updatedAt: string;
   author: { id: string; name: string; avatar: string | null };
@@ -26,9 +29,12 @@ interface Listing {
 }
 
 export interface ReflectionFilters {
-  type?: "weekly" | "monthly" | "critical" | "team";
+  type?: "daily" | "weekly" | "monthly" | "critical" | "team";
   qa?: number;
   authorId?: string;
+  /** ISO date strings — filter createdAt range (used by the Mon–Fri strip). */
+  from?: string;
+  to?: string;
 }
 
 export function useReflections(
@@ -39,6 +45,8 @@ export function useReflections(
   if (filters?.type) qs.set("type", filters.type);
   if (filters?.qa) qs.set("qa", String(filters.qa));
   if (filters?.authorId) qs.set("authorId", filters.authorId);
+  if (filters?.from) qs.set("from", filters.from);
+  if (filters?.to) qs.set("to", filters.to);
 
   return useQuery<Listing>({
     queryKey: [
@@ -47,6 +55,8 @@ export function useReflections(
       filters?.type,
       filters?.qa,
       filters?.authorId,
+      filters?.from,
+      filters?.to,
     ],
     queryFn: () =>
       fetchApi<Listing>(
@@ -65,6 +75,11 @@ export interface CreateReflectionArgs {
   qualityAreas?: number[];
   mood?: ReflectionItem["mood"];
   linkedObservationIds?: string[];
+  mtopOutcomes?: string[];
+  /** Daily-type fan-out: children to mint LearningObservations for. */
+  childIds?: string[];
+  /** Daily-type fan-out: also publish a ParentPost. */
+  shareWithParents?: boolean;
   clientMutationId?: string;
 }
 

@@ -290,9 +290,17 @@ export default function ServiceDetailPage() {
         if (g.key === "daily" && canSeeCasualBookings) {
           subTabs = [...subTabs, CASUAL_BOOKINGS_SUBTAB];
         }
+        // NSW services keep a SAT (Self-Assessment Tool), not a QIP — the
+        // pill label follows the regulator-facing terminology like the tab
+        // content already does.
+        if (g.key === "compliance" && service?.state === "NSW") {
+          subTabs = subTabs.map((s) =>
+            s.key === "qip" ? { ...s, label: "SAT" } : s,
+          );
+        }
         return subTabs === g.subTabs ? g : { ...g, subTabs };
       });
-  }, [isAdminPlus, canSeeCasualBookings]);
+  }, [isAdminPlus, canSeeCasualBookings, service?.state]);
 
   const currentGroup = visibleGroups.find((g) => g.key === activeGroup) || visibleGroups[0];
   const currentSubKey = activeSubTab[activeGroup] || currentGroup?.subTabs[0]?.key;

@@ -2,6 +2,14 @@
   "buildCommand": "npx prisma generate && (npx prisma db execute --file scripts/clean-stale-migrations.sql --schema prisma/schema.prisma || true) && npx prisma migrate deploy && npx tsx prisma/seed.ts && next build",
   "crons": [
     {
+      "path": "/api/cron/daily-reflection-nudge",
+      "schedule": "0 7 * * 1-5"
+    },
+    {
+      "path": "/api/cron/qip-weekly-update",
+      "schedule": "0 6 * * 5"
+    },
+    {
       "path": "/api/cron/unsigned-in-alert",
       "schedule": "0 22 * * 1-5"
     },

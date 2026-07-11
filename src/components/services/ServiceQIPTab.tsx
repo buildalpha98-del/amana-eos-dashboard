@@ -4,20 +4,24 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCheck,
-  ChevronDown,
-  ChevronRight,
   Plus,
   Loader2,
   CheckCircle2,
   AlertCircle,
   Clock,
-  X,
+  Sparkles,
+  Copy,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { AiButton } from "@/components/ui/AiButton";
 import { toast } from "@/hooks/useToast";
 import { useService } from "@/hooks/useServices";
+import { useQipSuggestions } from "@/hooks/useQipSuggestions";
+import { QipSuggestionsPanel } from "@/components/services/QipSuggestionsPanel";
+import { QipEvidenceBrowser } from "@/components/services/QipEvidenceBrowser";
+import { SatDocument, type SatDocumentQip } from "@/components/services/SatDocument";
+import { NQS_STANDARDS, QA_NAMES } from "@/lib/nqs-taxonomy";
 
 // 2026-04-30: NSW services use the SAT (Self-Assessment Tool) terminology
 // instead of QIP (Quality Improvement Plan). Same underlying model — just
@@ -27,70 +31,102 @@ function getDocLabels(state: string | null | undefined) {
   return {
     short: isNSW ? "SAT" : "QIP",
     long: isNSW ? "Self-Assessment Tool" : "Quality Improvement Plan",
-    article: isNSW ? "a" : "a", // both "a SAT" / "a QIP"
+    article: "a",
   };
 }
 
-interface QIPQualityArea {
-  id: string;
-  qualityArea: string;
-  rating: string | null;
-  strengths: string | null;
-  areasForImprovement: string | null;
-  goals: string | null;
-  strategies: string | null;
-  timeline: string | null;
-  responsiblePerson: string | null;
-  progressNotes: string | null;
-}
-
-interface QIP {
-  id: string;
-  serviceId: string;
-  documentType: string;
-  status: string;
-  currentRating: string | null;
+interface QIP extends SatDocumentQip {
+  status: string; // draft | in_review | current | archived
   lastReviewDate: string | null;
-  nextReviewDate: string | null;
-  reviewedById: string | null;
-  qualityAreas: QIPQualityArea[];
   createdAt: string;
   updatedAt: string;
 }
 
-const NQS_AREA_LABELS: Record<string, string> = {
-  "Educational Program and Practice": "QA1",
-  "Children's Health and Safety": "QA2",
-  "Physical Environment": "QA3",
-  "Staffing Arrangements": "QA4",
-  "Relationships with Children": "QA5",
-  "Collaborative Partnerships": "QA6",
-  "Governance and Leadership": "QA7",
-};
-
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
-  active: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
+  current: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
   draft: { bg: "bg-gray-100", text: "text-gray-600", icon: Clock },
-  under_review: { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle },
+  in_review: { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle },
   archived: { bg: "bg-gray-100", text: "text-gray-400", icon: Clock },
 };
 
-const RATING_COLORS: Record<string, string> = {
-  exceeding: "bg-emerald-100 text-emerald-700",
-  meeting: "bg-blue-100 text-blue-700",
-  working_towards: "bg-amber-100 text-amber-700",
-  requires_improvement: "bg-red-100 text-red-700",
-  not_assessed: "bg-gray-100 text-gray-500",
+const LEGAL_LABELS: Record<string, string> = {
+  compliant: "Compliant",
+  non_compliant: "Non-compliant",
+  not_applicable: "Not Applicable",
+  not_assessed: "Not assessed",
 };
+
+/**
+ * Plain-text render mirroring the government form's section order:
+ * philosophy → per QA (Law & Regulations + comments → standards → elements
+ * with evidence + Met/Not Met) → Continuous Improvement Opportunities.
+ */
+function qipToPlainText(docLabel: string, qip: SatDocumentQip): string {
+  const divider = "────────────────────";
+  const blocks: string[] = [
+    `${docLabel} — exported ${new Date().toLocaleDateString("en-AU")}`,
+  ];
+
+  if (qip.servicePhilosophy?.trim()) {
+    blocks.push(`Service philosophy\n\n${qip.servicePhilosophy.trim()}`);
+  }
+
+  const legalComments = (qip.legalComments ?? {}) as Record<string, string>;
+
+  for (let qa = 1; qa <= 7; qa++) {
+    const lines: string[] = [`Quality Area ${qa} — ${QA_NAMES[qa]}`];
+
+    const checks = qip.legalChecks.filter((c) => c.qualityArea === qa);
+    if (checks.length > 0) {
+      lines.push(
+        "Law and Regulations:",
+        ...checks.map(
+          (c) =>
+            `- ${c.lawRef} (${c.nqsRef}): ${c.question}\n  Assessment: ${LEGAL_LABELS[c.assessment]}`,
+        ),
+      );
+      const comment = legalComments[String(qa)];
+      if (comment?.trim()) lines.push(`Comments:\n${comment.trim()}`);
+    }
+
+    for (const standard of NQS_STANDARDS.filter((s) => s.qualityArea === qa)) {
+      lines.push(`\nStandard ${standard.code} — ${standard.title}`);
+      for (const el of qip.elements.filter((e) => e.standardCode === standard.code)) {
+        const evidence = el.evidence.filter((e) => e.trim());
+        lines.push(
+          `\nElement ${el.code} [${el.concept}] — ${el.description}`,
+          `Assessment: ${el.assessment === "met" ? "Met" : el.assessment === "not_met" ? "Not Met" : "Not assessed"}`,
+        );
+        if (evidence.length > 0) {
+          lines.push(
+            "Evidence and Key practices:",
+            ...evidence.map((entry, i) => `${i + 1}. ${entry}`),
+          );
+        }
+      }
+    }
+    blocks.push(lines.join("\n"));
+  }
+
+  if (qip.improvements.length > 0) {
+    blocks.push(
+      [
+        "Continuous Improvement Opportunities",
+        ...qip.improvements.map(
+          (r) =>
+            `\nStandard/Element: ${r.elementCode}\nIssue: ${r.issue}\nOutcome/goal: ${r.outcomeGoal}\nPriority: ${r.priority}\nSteps: ${r.steps}\nSuccess measure: ${r.successMeasure}\nBy when: ${r.byWhen || "—"}\nStatus: ${r.status.replace(/_/g, " ")}${r.progressNotes ? `\nProgress notes: ${r.progressNotes}` : ""}`,
+        ),
+      ].join("\n"),
+    );
+  }
+
+  return blocks.join(`\n\n${divider}\n\n`);
+}
 
 export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
   const queryClient = useQueryClient();
   const { data: service } = useService(serviceId);
   const docLabels = getDocLabels(service?.state);
-  const [expandedArea, setExpandedArea] = useState<string | null>(null);
-  const [editingArea, setEditingArea] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<QIPQualityArea>>({});
-  const [aiResult, setAiResult] = useState<Record<string, string | null>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["qip", serviceId],
@@ -100,6 +136,8 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
       const json = await res.json();
       return json.qips as QIP[];
     },
+    retry: 2,
+    staleTime: 30_000,
   });
 
   const createQIP = useMutation({
@@ -120,27 +158,22 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
     },
   });
 
-  const updateArea = useMutation({
-    mutationFn: async ({ qipId, areaId, data }: { qipId: string; areaId: string; data: Partial<QIPQualityArea> }) => {
-      const res = await fetch(`/api/qip/${qipId}/areas/${areaId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update quality area");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["qip", serviceId] });
-      setEditingArea(null);
-      setEditForm({});
-    },
-    onError: (err: Error) => {
-      toast({ variant: "destructive", description: err.message || "Something went wrong" });
-    },
-  });
-
   const qip = data?.[0];
+
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [showEvidence, setShowEvidence] = useState(false);
+  const { data: suggestionData } = useQipSuggestions(qip?.id);
+  const pendingCount = suggestionData?.count ?? 0;
+
+  async function copyForPortal() {
+    if (!qip) return;
+    try {
+      await navigator.clipboard.writeText(qipToPlainText(docLabels.long, qip));
+      toast({ description: `Copied — paste into the ${docLabels.short} portal` });
+    } catch {
+      toast({ variant: "destructive", description: "Couldn't copy to clipboard" });
+    }
+  }
 
   if (isLoading) {
     return (
@@ -169,8 +202,8 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
           No {docLabels.short} Found
         </h3>
         <p className="text-sm text-muted max-w-md mb-4">
-          Create {docLabels.article} {docLabels.long} to track NQS quality
-          areas, strengths, and improvement strategies for this service.
+          Create {docLabels.article} {docLabels.long} to track NQS elements,
+          evidence, and improvement plans for this service.
         </p>
         <button
           onClick={() => createQIP.mutate()}
@@ -193,7 +226,60 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* QIP Header */}
+      {/* Pending AI suggestions banner */}
+      {pendingCount > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-violet-800">
+            <Sparkles className="w-4 h-4" />
+            <span>
+              <strong>{pendingCount}</strong> AI-proposed {docLabels.short} update
+              {pendingCount === 1 ? "" : "s"} awaiting your review — nothing changes
+              until you approve.
+            </span>
+          </div>
+          <button
+            onClick={() => setReviewOpen(true)}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition"
+          >
+            Review
+          </button>
+        </div>
+      )}
+
+      {/* Evidence + export actions */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setShowEvidence((s) => !s)}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition",
+            showEvidence
+              ? "bg-brand text-white border-transparent"
+              : "bg-card text-foreground border-border hover:bg-surface/60",
+          )}
+        >
+          <Search className="w-3.5 h-3.5" />
+          Evidence browser
+        </button>
+        <button
+          onClick={copyForPortal}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-surface/60 transition"
+        >
+          <Copy className="w-3.5 h-3.5" />
+          Copy for portal
+        </button>
+      </div>
+
+      {showEvidence && <QipEvidenceBrowser serviceId={serviceId} />}
+
+      <QipSuggestionsPanel
+        qipId={qip.id}
+        serviceId={serviceId}
+        documentLabel={docLabels.short}
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+      />
+
+      {/* Document header */}
       <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -203,9 +289,6 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
             <div>
               <h3 className="font-semibold text-foreground">{docLabels.long}</h3>
               <p className="text-sm text-muted">
-                {/* Reflect the row's stored documentType (in case it diverges
-                    from the service's current state — e.g. a service was
-                    re-located and the row hasn't been re-issued yet). */}
                 {qip.documentType === "sat" ? "SAT" : "QIP"} •{" "}
                 {qip.lastReviewDate
                   ? `Last reviewed ${new Date(qip.lastReviewDate).toLocaleDateString()}`
@@ -213,215 +296,14 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {qip.currentRating && (
-              <span className={cn("px-2.5 py-1 text-xs font-medium rounded-full capitalize", RATING_COLORS[qip.currentRating] || RATING_COLORS.not_assessed)}>
-                {qip.currentRating.replace(/_/g, " ")}
-              </span>
-            )}
-            <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full capitalize", statusStyle.bg, statusStyle.text)}>
-              <StatusIcon className="w-3.5 h-3.5" />
-              {qip.status.replace(/_/g, " ")}
-            </span>
-          </div>
+          <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full capitalize", statusStyle.bg, statusStyle.text)}>
+            <StatusIcon className="w-3.5 h-3.5" />
+            {qip.status.replace(/_/g, " ")}
+          </span>
         </div>
       </div>
 
-      {/* Quality Areas */}
-      <div className="space-y-3">
-        {qip.qualityAreas
-          .sort((a, b) => {
-            const aNum = parseInt(NQS_AREA_LABELS[a.qualityArea]?.replace("QA", "") || "0");
-            const bNum = parseInt(NQS_AREA_LABELS[b.qualityArea]?.replace("QA", "") || "0");
-            return aNum - bNum;
-          })
-          .map((area) => {
-            const label = NQS_AREA_LABELS[area.qualityArea] || "";
-            const isExpanded = expandedArea === area.id;
-            const isEditing = editingArea === area.id;
-            const ratingClass = RATING_COLORS[area.rating || "not_assessed"] || RATING_COLORS.not_assessed;
-
-            return (
-              <div key={area.id} className="bg-card rounded-xl border border-border overflow-hidden">
-                <button
-                  onClick={() => setExpandedArea(isExpanded ? null : area.id)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface/50 transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-brand bg-brand/10 px-2 py-1 rounded">
-                      {label}
-                    </span>
-                    <span className="font-medium text-foreground text-sm">
-                      {area.qualityArea}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {area.rating && (
-                      <span className={cn("px-2 py-0.5 text-xs font-medium rounded-full capitalize", ratingClass)}>
-                        {area.rating.replace(/_/g, " ")}
-                      </span>
-                    )}
-                    {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-muted" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-muted" />
-                    )}
-                  </div>
-                </button>
-
-                {isExpanded && (
-                  <div className="px-5 pb-5 border-t border-border/50">
-                    {isEditing ? (
-                      <div className="space-y-4 pt-4">
-                        {[
-                          { key: "rating", label: "Rating", type: "select", options: ["not_assessed", "requires_improvement", "working_towards", "meeting", "exceeding"] },
-                          { key: "strengths", label: "Strengths", type: "textarea" },
-                          { key: "areasForImprovement", label: "Areas for Improvement", type: "textarea" },
-                          { key: "goals", label: "Goals", type: "textarea" },
-                          { key: "strategies", label: "Strategies", type: "textarea" },
-                          { key: "timeline", label: "Timeline", type: "input" },
-                          { key: "responsiblePerson", label: "Responsible Person", type: "input" },
-                          { key: "progressNotes", label: "Progress Notes", type: "textarea" },
-                        ].map((field) => (
-                          <div key={field.key}>
-                            <label className="block text-sm font-medium text-foreground/80 mb-1">
-                              {field.label}
-                            </label>
-                            {field.type === "select" ? (
-                              <select
-                                value={(editForm as Record<string, string>)[field.key] || ""}
-                                onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
-                              >
-                                {field.options?.map((opt) => (
-                                  <option key={opt} value={opt}>
-                                    {opt.replace(/_/g, " ")}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : field.type === "textarea" ? (
-                              <textarea
-                                value={(editForm as Record<string, string>)[field.key] || ""}
-                                onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
-                                rows={3}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
-                              />
-                            ) : (
-                              <input
-                                type="text"
-                                value={(editForm as Record<string, string>)[field.key] || ""}
-                                onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
-                              />
-                            )}
-                          </div>
-                        ))}
-                        <div className="flex justify-end gap-2 pt-2">
-                          <button
-                            onClick={() => { setEditingArea(null); setEditForm({}); }}
-                            className="px-3 py-1.5 text-sm text-muted hover:text-foreground"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => updateArea.mutate({ qipId: qip.id, areaId: area.id, data: editForm })}
-                            disabled={updateArea.isPending}
-                            className="px-3 py-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-lg transition disabled:opacity-50"
-                          >
-                            {updateArea.isPending ? "Saving..." : "Save"}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 pt-4">
-                        {[
-                          { label: "Strengths", value: area.strengths },
-                          { label: "Areas for Improvement", value: area.areasForImprovement },
-                          { label: "Goals", value: area.goals },
-                          { label: "Strategies", value: area.strategies },
-                          { label: "Timeline", value: area.timeline },
-                          { label: "Responsible Person", value: area.responsiblePerson },
-                          { label: "Progress Notes", value: area.progressNotes },
-                        ].map((field) => (
-                          <div key={field.label}>
-                            <dt className="text-xs font-medium text-muted uppercase tracking-wide">
-                              {field.label}
-                            </dt>
-                            <dd className="text-sm text-foreground mt-0.5 whitespace-pre-wrap">
-                              {field.value || <span className="text-muted italic">Not set</span>}
-                            </dd>
-                          </div>
-                        ))}
-                        <div className="flex items-center gap-3 pt-2">
-                          <button
-                            onClick={() => {
-                              setEditingArea(area.id);
-                              setEditForm({
-                                rating: area.rating || "not_assessed",
-                                strengths: area.strengths || "",
-                                areasForImprovement: area.areasForImprovement || "",
-                                goals: area.goals || "",
-                                strategies: area.strategies || "",
-                                timeline: area.timeline || "",
-                                responsiblePerson: area.responsiblePerson || "",
-                                progressNotes: area.progressNotes || "",
-                              });
-                            }}
-                            className="text-sm font-medium text-brand hover:text-brand-hover transition"
-                          >
-                            Edit Quality Area
-                          </button>
-                          <AiButton
-                            templateSlug="compliance/qip-action-plan"
-                            variables={{
-                              qipArea: `${label} — ${area.qualityArea}`,
-                              findings: [
-                                area.areasForImprovement && `Areas for Improvement: ${area.areasForImprovement}`,
-                                area.strengths && `Strengths: ${area.strengths}`,
-                                area.goals && `Goals: ${area.goals}`,
-                                area.progressNotes && `Progress Notes: ${area.progressNotes}`,
-                              ].filter(Boolean).join("\n") || "No findings recorded yet",
-                              centreContext: [
-                                area.rating && `Current rating: ${area.rating.replace(/_/g, " ")}`,
-                                area.strategies && `Existing strategies: ${area.strategies}`,
-                                area.timeline && `Timeline: ${area.timeline}`,
-                                area.responsiblePerson && `Responsible: ${area.responsiblePerson}`,
-                              ].filter(Boolean).join("\n") || "No additional context",
-                            }}
-                            onResult={(text) => setAiResult((prev) => ({ ...prev, [area.id]: text }))}
-                            label="AI Action Plan"
-                            size="sm"
-                            section="compliance"
-                          />
-                        </div>
-
-                        {/* AI Action Plan Result Panel */}
-                        {aiResult[area.id] && (
-                          <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-medium text-purple-800">
-                                AI-Generated Action Plan
-                              </h4>
-                              <button
-                                onClick={() => setAiResult((prev) => ({ ...prev, [area.id]: null }))}
-                                className="text-purple-400 hover:text-purple-600"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <div className="text-sm text-purple-900 whitespace-pre-wrap">
-                              {aiResult[area.id]}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-      </div>
+      <SatDocument qip={qip} serviceId={serviceId} />
     </div>
   );
 }

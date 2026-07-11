@@ -64,6 +64,10 @@
 - `src/lib/owna.ts` — OWNA childcare API client (x-api-key auth, NOT Bearer)
 - `src/lib/onboarding-seed.ts` — auto-seeds 7 onboarding todos + welcome announcement on user creation
 - `src/app/api/cron/owna-sync/route.ts` — syncs children, attendance, enquiries, incidents from OWNA
+- `src/lib/qip-weekly.ts` — SAT/QIP evidence engine helpers (Sydney week windowing, evidence excerpts, strict AI JSON parsing)
+- `src/app/api/cron/qip-weekly-update/route.ts` — Friday cron: AI tag sweep (NQS/MTOP) + review-gated QipSuggestion proposals + reviewer notify
+- `src/app/api/cron/daily-reflection-nudge/route.ts` — weekday 5pm AEST email+push nudge for services with no daily reflection
+- Daily reflections: `type: "daily"` StaffReflection fans out server-side to per-child LearningObservations + a ParentPost (see `POST /api/services/[id]/reflections`); tags ARE the SAT/QIP evidence ledger (no evidence table)
 - `vercel.json` — cron schedules and build config
 
 ## Services Section Architecture

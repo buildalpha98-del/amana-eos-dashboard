@@ -4,6 +4,7 @@ import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
+import { mondayOfWeekSydney } from "@/lib/qip-weekly";
 
 /**
  * GET /api/cron/compliance-risk-report
@@ -105,6 +106,34 @@ export const GET = withApiHandler(async (req) => {
 
     const servicesText = services.map((s) => `${s.name} (${s.code})`).join(", ");
 
+    // 4. Daily reflection gaps — services that logged fewer than 5 daily
+    // reflections (distinct weekdays) last Mon–Fri Sydney week. Feeds the
+    // SAT/QIP evidence engine: no reflections → no evidence.
+    const thisMonday = mondayOfWeekSydney(now);
+    const lastMonday = new Date(thisMonday.getTime() - 7 * 86400000);
+    const lastWeekRows = await prisma.staffReflection.findMany({
+      where: {
+        type: "daily",
+        createdAt: { gte: lastMonday, lt: thisMonday },
+      },
+      select: { serviceId: true, createdAt: true },
+    });
+    const daysByService = new Map<string, Set<string>>();
+    for (const row of lastWeekRows) {
+      const day = row.createdAt.toLocaleDateString("en-AU", {
+        timeZone: "Australia/Sydney",
+      });
+      if (!daysByService.has(row.serviceId)) daysByService.set(row.serviceId, new Set());
+      daysByService.get(row.serviceId)!.add(day);
+    }
+    const reflectionGaps = services
+      .map((s) => ({ name: s.name, days: daysByService.get(s.id)?.size ?? 0 }))
+      .filter((s) => s.days < 5);
+    const reflectionGapsText =
+      reflectionGaps.length > 0
+        ? reflectionGaps.map((g) => `- ${g.name}: ${g.days}/5 weekdays`).join("\n")
+        : "All services logged daily reflections every weekday.";
+
     // ── Load template ─────────────────────────────────────────
 
     const template = await prisma.aiPromptTemplate.findUnique({
@@ -123,6 +152,7 @@ export const GET = withApiHandler(async (req) => {
     prompt = prompt.replaceAll("{{overdueAudits}}", overdueAuditsText);
     prompt = prompt.replaceAll("{{qualificationGaps}}", qualificationGapsText);
     prompt = prompt.replaceAll("{{servicesData}}", servicesText);
+    prompt += `\n\nDaily reflection gaps last week (target: every weekday — these gaps weaken SAT/QIP evidence):\n${reflectionGapsText}`;
 
     // ── Generate ─────────────────────────────────────────────
 
