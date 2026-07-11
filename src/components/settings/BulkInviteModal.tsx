@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { Button } from "@/components/ui/Button";
 import { useQueryClient } from "@tanstack/react-query";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
 import { ROLES } from "@/lib/role-enum";
@@ -464,6 +465,7 @@ export function BulkInviteModal({
           </div>
           <button
             onClick={handleClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
@@ -525,13 +527,14 @@ export function BulkInviteModal({
                     </p>
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={downloadTemplate}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border text-foreground/80 hover:bg-card transition-colors"
+                  iconLeft={<Download className="w-4 h-4" />}
                 >
-                  <Download className="w-4 h-4" />
                   Download Template
-                </button>
+                </Button>
               </div>
 
               {/* Expected format */}
@@ -784,36 +787,26 @@ export function BulkInviteModal({
           {step === "upload" && (
             <>
               <div />
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors"
-              >
+              <Button variant="secondary" size="sm" onClick={handleClose}>
                 Cancel
-              </button>
+              </Button>
             </>
           )}
 
           {step === "preview" && (
             <>
-              <button
-                onClick={reset}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors"
-              >
+              <Button variant="secondary" size="sm" onClick={reset}>
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleInvite}
                 disabled={validCount === 0}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                  validCount > 0
-                    ? "bg-brand text-white hover:bg-brand-hover"
-                    : "bg-surface text-muted cursor-not-allowed",
-                )}
+                iconLeft={<Users className="w-4 h-4" />}
               >
-                <Users className="w-4 h-4" />
                 Invite {validCount} Valid User{validCount !== 1 ? "s" : ""}
-              </button>
+              </Button>
             </>
           )}
 
@@ -829,12 +822,9 @@ export function BulkInviteModal({
           {step === "result" && (
             <>
               <div />
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-              >
+              <Button variant="primary" size="sm" onClick={handleClose}>
                 Done
-              </button>
+              </Button>
             </>
           )}
         </div>

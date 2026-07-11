@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface StatusResponse {
   configured: boolean;
@@ -113,14 +114,12 @@ export function PayrollSettingsClient() {
           <ArrowLeft className="w-4 h-4" />
           Settings
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
-          Payroll integration
-        </h1>
-        <p className="text-sm text-muted mt-1">
-          Employment Hero Payroll. Connects staff to their payslip, leave,
-          and expense data on My Portal. Per-staff mapping happens on the
-          staff profile (Pay & compensation → Payroll link).
-        </p>
+        <div className="mt-2">
+          <PageHeader
+            title="Payroll integration"
+            description="Employment Hero Payroll. Connects staff to their payslip, leave, and expense data on My Portal. Per-staff mapping happens on the staff profile (Pay & compensation → Payroll link)."
+          />
+        </div>
       </div>
 
       {/* 1. Connection status */}

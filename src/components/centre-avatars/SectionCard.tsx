@@ -5,6 +5,7 @@ import { Code2, Pencil, X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
+import { Button } from "@/components/ui/Button";
 import type { SectionKey } from "@/lib/centre-avatar/sections";
 import { SnapshotForm } from "./forms/SnapshotForm";
 import { ParentAvatarForm } from "./forms/ParentAvatarForm";
@@ -122,23 +123,27 @@ export function SectionCard({
             {editing && !readOnly && !isMobile && (
               <>
                 {modeToggle}
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="xs"
                   onClick={cancel}
-                  className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+                  iconLeft={<X className="h-3.5 w-3.5" />}
                 >
-                  <X className="h-3.5 w-3.5" /> Cancel
-                </button>
+                  Cancel
+                </Button>
               </>
             )}
             {!editing && !readOnly && (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="xs"
                 onClick={startEdit}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+                iconLeft={<Pencil className="h-3.5 w-3.5" />}
               >
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </button>
+                Edit
+              </Button>
             )}
           </div>
         </div>
@@ -320,28 +325,21 @@ function RawJsonEditor({
           <kbd className="rounded bg-surface px-1 py-0.5 font-mono">Esc</kbd> cancel
         </p>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={format}
-            className="rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground/80 hover:bg-surface"
-          >
+          <Button type="button" variant="secondary" size="xs" onClick={format}>
             Format
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-          >
+          </Button>
+          <Button type="button" variant="secondary" size="xs" onClick={onCancel}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="xs"
             onClick={save}
             disabled={isSaving}
-            className="rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50"
           >
             {isSaving ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       </div>
       {error && (

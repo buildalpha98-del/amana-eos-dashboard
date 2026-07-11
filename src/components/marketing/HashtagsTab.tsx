@@ -10,6 +10,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   useHashtagSets,
   useCreateHashtagSet,
@@ -87,13 +88,14 @@ export function HashtagsTab() {
           })}
         </div>
 
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90 transition-colors"
+          iconLeft={<Plus className="h-4 w-4" />}
         >
-          <Plus className="h-4 w-4" />
           New Set
-        </button>
+        </Button>
       </div>
 
       {/* ── Loading State ────────────────────────────── */}
@@ -146,6 +148,7 @@ export function HashtagsTab() {
                       if (confirm("Delete this hashtag set?"))
                         deleteHashtagSet.mutate(set.id);
                     }}
+                    aria-label="Delete hashtag set"
                     className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -196,6 +199,7 @@ export function HashtagsTab() {
               </h2>
               <button
                 onClick={() => setShowCreate(false)}
+                aria-label="Close"
                 className="p-1 rounded-lg hover:bg-surface"
               >
                 <X className="h-5 w-5 text-muted" />
@@ -254,26 +258,18 @@ export function HashtagsTab() {
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setShowCreate(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-muted hover:bg-surface transition-colors"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleCreate}
-                disabled={
-                  !form.name.trim() ||
-                  !form.tags.trim() ||
-                  createHashtagSet.isPending
-                }
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand hover:bg-brand/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                disabled={!form.name.trim() || !form.tags.trim()}
+                loading={createHashtagSet.isPending}
               >
-                {createHashtagSet.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
                 Create Set
-              </button>
+              </Button>
             </div>
           </div>
         </div>

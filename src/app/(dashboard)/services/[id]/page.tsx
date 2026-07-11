@@ -359,7 +359,7 @@ export default function ServiceDetailPage() {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
+              <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground truncate">
                 {service.name}
               </h1>
               <span className="px-2 py-0.5 text-xs font-mono font-medium bg-surface text-muted rounded-md border border-border shrink-0">

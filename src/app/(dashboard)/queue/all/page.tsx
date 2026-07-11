@@ -6,8 +6,9 @@ import { useAllQueues, useQueue, type QueueUserSummary } from "@/hooks/useQueue"
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Inbox, Users, FileText, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Inbox, FileText, CheckCircle2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 function statusIndicator(total: number) {
   if (total === 0) return { color: "bg-muted/30", label: "Clear" };
@@ -93,15 +94,10 @@ export default function AllQueuesPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-          <Users className="w-5 h-5 text-brand" />
-          All Queues
-        </h1>
-        <p className="text-sm text-muted mt-0.5">
-          Overview of pending reports and tasks across all team members
-        </p>
-      </div>
+      <PageHeader
+        title="All Queues"
+        description="Overview of pending reports and tasks across all team members"
+      />
 
       {isLoading ? (
         <div className="space-y-3">

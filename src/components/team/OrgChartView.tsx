@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useAccountabilityChart";
 import { SeatEditModal } from "./SeatEditModal";
 import { Plus, Pencil, Trash2, User, ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 // ---------- Seat Card ----------
@@ -38,6 +39,7 @@ function SeatCard({
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               className="p-1 text-white/70 hover:text-white rounded"
               title="Edit seat"
+              aria-label="Edit seat"
             >
               <Pencil className="w-3 h-3" />
             </button>
@@ -45,6 +47,7 @@ function SeatCard({
               onClick={(e) => { e.stopPropagation(); onAddChild(); }}
               className="p-1 text-white/70 hover:text-white rounded"
               title="Add child seat"
+              aria-label="Add child seat"
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -52,6 +55,7 @@ function SeatCard({
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               className="p-1 text-white/70 hover:text-red-300 rounded"
               title="Delete seat"
+              aria-label="Delete seat"
             >
               <Trash2 className="w-3 h-3" />
             </button>
@@ -148,6 +152,7 @@ function TreeNode({
         {hasChildren && (
           <button
             onClick={() => setCollapsed((c) => !c)}
+            aria-label={collapsed ? "Expand seats" : "Collapse seats"}
             className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 w-5 h-5 bg-card border border-border rounded-full flex items-center justify-center shadow-sm hover:bg-surface"
           >
             {collapsed ? (
@@ -253,13 +258,14 @@ export function OrgChartView() {
           {/* Add root seat button */}
           {canEdit && (
             <div className="flex justify-end w-full mb-4">
-              <button
+              <Button
+                variant="outline"
+                size="xs"
                 onClick={() => setCreatingParentId("root")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand border border-brand/30 rounded-lg hover:bg-brand/5 transition-colors"
+                iconLeft={<Plus className="w-3.5 h-3.5" />}
               >
-                <Plus className="w-3.5 h-3.5" />
                 Add Root Seat
-              </button>
+              </Button>
             </div>
           )}
 
@@ -316,19 +322,21 @@ export function OrgChartView() {
               </p>
             )}
             <div className="flex justify-end gap-3 mt-4">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={handleDelete}
-                disabled={deleteSeat.isPending}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+                loading={deleteSeat.isPending}
               >
                 {deleteSeat.isPending ? "Deleting..." : "Delete"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

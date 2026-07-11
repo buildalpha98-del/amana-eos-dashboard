@@ -22,6 +22,7 @@ import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface SafeReport {
   id: string;
@@ -113,19 +114,10 @@ export function SafeReportsClient() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-          <Shield className="w-6 h-6 text-brand" />
-          Safe reports
-        </h1>
-        <p className="text-sm text-muted mt-1 max-w-3xl">
-          Anonymous reports submitted via the public Safe Reporting channel.
-          Visible only to owner + head office. The reporter&apos;s identity is
-          never recorded — only the report content and category. Statute of
-          limitations on harassment claims can be 6+ years; keep records
-          accordingly.
-        </p>
-      </header>
+      <PageHeader
+        title="Safe reports"
+        description="Anonymous reports submitted via the public Safe Reporting channel. Visible only to owner + head office. The reporter's identity is never recorded — only the report content and category. Statute of limitations on harassment claims can be 6+ years; keep records accordingly."
+      />
 
       {isLoading ? (
         <p className="text-sm text-muted">Loading…</p>

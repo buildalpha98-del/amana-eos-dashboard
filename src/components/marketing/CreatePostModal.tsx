@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useQuery } from "@tanstack/react-query";
 import { useCreatePost, useCampaigns } from "@/hooks/useMarketing";
 import { useUnsavedChangesWarning } from "@/hooks/useAutosave";
@@ -172,6 +173,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
             <h2 className="text-lg font-semibold text-foreground">New Post</h2>
             <button
               onClick={handleClose}
+              aria-label="Close"
               className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
@@ -400,20 +402,17 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
 
             {/* Submit */}
             <div className="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
-              >
+              <Button type="button" variant="secondary" size="sm" onClick={handleClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                variant="primary"
+                size="sm"
                 disabled={createPost.isPending}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
               >
                 {createPost.isPending ? "Creating..." : "Create Post"}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

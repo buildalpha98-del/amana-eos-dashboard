@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Save } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   useActivationAssignments,
   useUpdateActivationAssignments,
@@ -318,14 +319,15 @@ export function ActivationAssignmentGrid({
 
       {/* Save button */}
       <div className="flex justify-end">
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={handleSave}
           disabled={!dirty || updateAssignments.isPending}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
+          iconLeft={<Save className="h-3.5 w-3.5" />}
         >
-          <Save className="h-3.5 w-3.5" />
           {updateAssignments.isPending ? "Saving..." : "Save All"}
-        </button>
+        </Button>
       </div>
     </div>
   );

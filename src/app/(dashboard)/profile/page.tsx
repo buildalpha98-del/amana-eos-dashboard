@@ -276,7 +276,7 @@ export default function ProfilePage() {
             <ArrowLeft className="w-5 h-5 text-muted" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
+            <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground">Edit Profile</h1>
             <p className="text-sm text-muted mt-0.5">
               Update your personal details and superannuation information
             </p>
@@ -319,7 +319,7 @@ export default function ProfilePage() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
+              <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground">Edit Profile</h1>
               {hasChanges && <UnsavedBadge />}
             </div>
             <p className="text-sm text-muted mt-0.5">

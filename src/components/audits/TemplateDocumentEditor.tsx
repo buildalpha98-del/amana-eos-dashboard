@@ -42,6 +42,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   templateId: string;
@@ -71,6 +72,7 @@ function ToolbarBtn({
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       disabled={disabled}
       className={cn(
@@ -185,38 +187,37 @@ export function TemplateDocumentEditor({ templateId, templateName }: Props) {
         <div className="flex items-center gap-2">
           {editing ? (
             <>
-              <button
+              <Button
+                variant="primary"
+                size="xs"
                 onClick={() => saveMut.mutate()}
-                disabled={saveMut.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-md hover:bg-brand/90 disabled:opacity-50"
+                loading={saveMut.isPending}
+                iconLeft={<Save className="w-3.5 h-3.5" />}
               >
-                {saveMut.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Save className="w-3.5 h-3.5" />
-                )}
                 Save template
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="xs"
                 onClick={() => {
                   if (editor && docQuery.data) {
                     editor.commands.setContent(docQuery.data.html || "<p></p>");
                   }
                   setEditing(false);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted rounded-md border border-border hover:bg-surface"
               >
                 Cancel
-              </button>
+              </Button>
             </>
           ) : (
-            <button
+            <Button
+              variant="outline"
+              size="xs"
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand border border-brand/30 rounded-md hover:bg-brand/5"
+              iconLeft={<Pencil className="w-3.5 h-3.5" />}
             >
-              <Pencil className="w-3.5 h-3.5" />
               Edit master
-            </button>
+            </Button>
           )}
         </div>
       </div>

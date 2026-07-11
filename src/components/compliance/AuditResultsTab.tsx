@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuditInstances, type AuditInstanceSummary } from "@/hooks/useAudits";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle2,
@@ -141,6 +142,7 @@ export function AuditResultsTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYear((y) => y - 1)}
+            aria-label="Previous year"
             className="p-1.5 rounded-lg border border-border hover:bg-surface"
           >
             <ChevronLeft className="w-4 h-4 text-muted" />
@@ -148,6 +150,7 @@ export function AuditResultsTab() {
           <span className="text-sm font-semibold text-foreground min-w-[4rem] text-center">{year}</span>
           <button
             onClick={() => setYear((y) => y + 1)}
+            aria-label="Next year"
             className="p-1.5 rounded-lg border border-border hover:bg-surface"
           >
             <ChevronRight className="w-4 h-4 text-muted" />
@@ -200,14 +203,16 @@ export function AuditResultsTab() {
           ))}
         </select>
 
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleExport}
           disabled={filteredInstances.length === 0}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50 ml-auto"
+          iconLeft={<Download className="w-4 h-4" />}
+          className="ml-auto"
         >
-          <Download className="w-4 h-4" />
           Export CSV
-        </button>
+        </Button>
       </div>
 
       {/* Table */}

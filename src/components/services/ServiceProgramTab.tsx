@@ -608,7 +608,7 @@ function ActivityCard({
         <button
           onClick={onDelete}
           className="p-1 rounded bg-card/80 hover:bg-card text-muted hover:text-red-500"
-        >
+         aria-label="Delete">
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
@@ -753,7 +753,7 @@ function ActivityModal({
           <h3 className="text-lg font-semibold text-foreground">
             {isEditing ? "Edit Activity" : prefillTemplate ? "Add Activity (from Library)" : "Add Activity"}
           </h3>
-          <button onClick={onClose} className="text-muted hover:text-muted">
+          <button onClick={onClose} className="text-muted hover:text-muted" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1031,7 +1031,7 @@ function ActivityLibraryPickerModal({
             <Library className="w-5 h-5 text-brand" />
             Browse Activity Library
           </h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-surface">
+          <button onClick={onClose} className="p-1 rounded hover:bg-surface" aria-label="Close">
             <X className="w-5 h-5 text-muted" />
           </button>
         </div>

@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 /**
  * Shared form-shell primitives for the 4 Centre Avatar section editors.
@@ -334,21 +335,18 @@ export function FormActions({
         <kbd className="rounded bg-surface px-1 py-0.5 font-mono">Esc</kbd> cancel
       </p>
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-        >
+        <Button type="button" variant="secondary" size="xs" onClick={onCancel}>
           {cancelLabel}
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          variant="primary"
+          size="xs"
           onClick={onSave}
           disabled={isSaving}
-          className="rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50"
         >
           {isSaving ? "Saving..." : saveLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );

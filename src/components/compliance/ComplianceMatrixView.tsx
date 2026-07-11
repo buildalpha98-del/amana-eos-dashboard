@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -181,6 +182,7 @@ function CertDetailModal({
           </h3>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 rounded-lg hover:bg-surface transition-colors"
           >
             <X className="w-5 h-5 text-muted" />
@@ -450,13 +452,14 @@ export default function ComplianceMatrixView({
             </button>
           )}
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleExport}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
+          iconLeft={<Download className="w-4 h-4" />}
         >
-          <Download className="w-4 h-4" />
           Export CSV
-        </button>
+        </Button>
       </div>
 
       {/* Desktop Table */}

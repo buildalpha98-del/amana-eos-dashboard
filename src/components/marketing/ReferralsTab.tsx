@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   Gift,
@@ -408,13 +409,9 @@ function CreateReferralModal({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
-            >
+            <Button type="submit" size="sm" loading={saving}>
               {saving ? "Saving..." : "Create Referral"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -198,7 +198,7 @@ export function SequenceBuilder({ sequence, onClose }: Props) {
           <button
             onClick={onClose}
             className="ml-4 rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-surface hover:text-foreground"
-          >
+           aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>

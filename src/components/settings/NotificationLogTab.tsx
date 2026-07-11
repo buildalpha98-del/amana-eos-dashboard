@@ -214,7 +214,8 @@ export function NotificationLogTab() {
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="p-1.5 rounded-lg border border-[#e5e7eb] disabled:opacity-40 hover:bg-[#f9fafb]"
+              aria-label="Previous page"
+              className="p-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-surface"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -224,7 +225,8 @@ export function NotificationLogTab() {
             <button
               disabled={page >= data.totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="p-1.5 rounded-lg border border-[#e5e7eb] disabled:opacity-40 hover:bg-[#f9fafb]"
+              aria-label="Next page"
+              className="p-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-surface"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

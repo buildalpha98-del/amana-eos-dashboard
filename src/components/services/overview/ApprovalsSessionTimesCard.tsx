@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { useUpdateService } from "@/hooks/useServices";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { toast } from "@/hooks/useToast";
 import type { SessionTimes } from "@/lib/service-settings";
-import { Edit3, Clock, Loader2 } from "lucide-react";
+import { Edit3, Clock } from "lucide-react";
 
 const SESSION_TYPES = [
   { key: "bsc", label: "BSC" },
@@ -227,15 +228,9 @@ export function ApprovalsSessionTimesCard({
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="text-xs px-3 py-1.5 bg-brand text-white rounded-md hover:bg-brand/90 disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
-                {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+              <Button type="button" size="xs" onClick={handleSave} loading={saving}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         </DialogContent>

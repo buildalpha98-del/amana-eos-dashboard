@@ -240,11 +240,13 @@ export function CampaignDetailPanel({
                   : "text-muted hover:bg-surface hover:text-danger"
               }`}
               title={confirmDelete ? "Click again to confirm delete" : "Delete campaign"}
+              aria-label="Delete campaign"
             >
               <Trash2 className="h-4 w-4" />
             </button>
             <button
               onClick={onClose}
+              aria-label="Close"
               className="rounded-lg p-2 text-muted transition-colors hover:bg-surface hover:text-foreground"
             >
               <X className="h-5 w-5" />
@@ -281,7 +283,7 @@ export function CampaignDetailPanel({
               <span className="text-xs font-semibold text-purple-700 flex items-center gap-1">
                 <Sparkles className="h-3.5 w-3.5" /> AI Campaign Brief
               </span>
-              <button onClick={() => setAiBrief(null)} className="text-purple-400 hover:text-purple-600">
+              <button onClick={() => setAiBrief(null)} aria-label="Dismiss AI brief" className="text-purple-400 hover:text-purple-600">
                 <X className="h-4 w-4" />
               </button>
             </div>

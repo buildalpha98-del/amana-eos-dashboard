@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { generateReportPdf } from "@/lib/report-pdf";
 import type { QueueReport } from "@/hooks/useQueue";
 import { AiButton } from "@/components/ui/AiButton";
+import { Button } from "@/components/ui/Button";
 
 /* ── Brand colours ────────────────────────────────── */
 const SEAT_COLOURS: Record<string, { bg: string; text: string }> = {
@@ -253,6 +254,7 @@ export function ReportViewer({
             />
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 text-muted hover:text-foreground rounded-lg hover:bg-surface transition-colors"
           >
             <X className="w-5 h-5" />
@@ -265,7 +267,7 @@ export function ReportViewer({
           <div className="mx-6 mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiSummary}</div>
-              <button onClick={() => setAiSummary("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
+              <button onClick={() => setAiSummary("")} aria-label="Dismiss summary" className="text-purple-400 hover:text-purple-600 flex-shrink-0">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -381,6 +383,11 @@ export function ReportViewer({
                       onClick={() =>
                         toggleActionItem(item.id, !item.completed)
                       }
+                      aria-label={
+                        item.completed
+                          ? "Mark action item incomplete"
+                          : "Mark action item complete"
+                      }
                       className={cn(
                         "mt-0.5 h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors",
                         item.completed
@@ -477,14 +484,15 @@ export function ReportViewer({
         {/* ── Actions Bar ── */}
         <div className="border-t border-border bg-card px-6 py-4 flex items-center gap-3">
           {report.status === "pending" && onReview && (
-            <button
+            <Button
               onClick={onReview}
-              disabled={reviewPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-[#003d50] transition-colors disabled:opacity-50"
+              loading={reviewPending}
+              variant="primary"
+              size="sm"
+              iconLeft={<CheckCircle2 className="w-4 h-4" />}
             >
-              <CheckCircle2 className="w-4 h-4" />
               {reviewPending ? "Marking..." : "Mark Reviewed"}
-            </button>
+            </Button>
           )}
           <button
             onClick={handleExportPdf}

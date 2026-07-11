@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
 import { CheckSquare, Plus, X, Calendar, ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
@@ -202,13 +203,14 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
             <option value="title">Title A-Z</option>
             <option value="assignee">Assignee</option>
           </select>
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-brand text-white rounded-md hover:bg-brand/90 transition-colors"
+            iconLeft={<Plus className="w-3.5 h-3.5" />}
           >
-            <Plus className="w-3.5 h-3.5" />
             Add To-Do
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -245,6 +247,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                   }
                 }}
                 disabled={todo.status === "complete" || todo.status === "cancelled"}
+                aria-label="Advance to-do status"
                 className="flex-shrink-0"
               >
                 <CheckSquare
@@ -323,6 +326,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                 </h4>
                 <button
                   onClick={() => setShowModal(false)}
+                  aria-label="Close"
                   className="p-1 text-muted hover:text-muted"
                 >
                   <X className="w-4 h-4" />
@@ -406,29 +410,24 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => { setShowModal(false); setError(null); }}
-                  className="text-xs px-4 py-2 text-muted hover:text-foreground/80"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="xs"
                   onClick={handleCreate}
                   disabled={
-                    !formData.title ||
-                    !formData.assigneeId ||
-                    !formData.dueDate ||
-                    createTodo.isPending
+                    !formData.title || !formData.assigneeId || !formData.dueDate
                   }
-                  className={cn(
-                    "text-xs px-4 py-2 rounded-lg font-medium transition-colors",
-                    formData.title && formData.assigneeId && formData.dueDate
-                      ? "bg-brand text-white hover:bg-brand/90"
-                      : "bg-surface text-muted cursor-not-allowed"
-                  )}
+                  loading={createTodo.isPending}
                 >
                   {createTodo.isPending ? "Creating..." : "Create To-Do"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

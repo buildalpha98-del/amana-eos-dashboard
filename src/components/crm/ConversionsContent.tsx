@@ -12,6 +12,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
 import {
   Repeat,
   Phone,
@@ -263,7 +264,9 @@ function OpportunityRow({
               placeholder="Add notes about this conversion opportunity..."
               className="flex-1 px-3 py-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
-            <button
+            <Button
+              variant="primary"
+              size="xs"
               onClick={() => {
                 updateConversion.mutate({
                   id: opp.id,
@@ -273,10 +276,10 @@ function OpportunityRow({
                 setShowNotes(false);
               }}
               disabled={updateConversion.isPending}
-              className="px-3 py-1 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 self-end"
+              className="self-end"
             >
               Save
-            </button>
+            </Button>
           </div>
         </div>
       )}

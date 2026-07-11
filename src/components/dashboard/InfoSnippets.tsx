@@ -7,8 +7,8 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
-  Loader2,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 
 interface Snippet {
@@ -178,16 +178,14 @@ function SnippetCard({
             Done
           </span>
         ) : (
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={onAcknowledge}
-            disabled={isAcknowledging}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-brand text-white text-xs font-medium hover:bg-brand/90 transition-colors disabled:opacity-50"
+            loading={isAcknowledging}
           >
-            {isAcknowledging ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : null}
             Acknowledge
-          </button>
+          </Button>
         )}
       </div>
     </div>

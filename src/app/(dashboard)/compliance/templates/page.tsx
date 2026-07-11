@@ -1070,11 +1070,11 @@ export default function AuditTemplatesPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to Compliance
           </Link>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-brand" />
             Audit Templates
           </h1>
-          <p className="text-sm text-muted mt-0.5">
+          <p className="text-sm text-muted mt-1">
             Manage checklist items for {templates.length} audit templates
           </p>
         </div>

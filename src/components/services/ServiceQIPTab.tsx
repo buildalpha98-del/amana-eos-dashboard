@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AiButton } from "@/components/ui/AiButton";
 import { toast } from "@/hooks/useToast";
@@ -172,18 +173,15 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
           Create {docLabels.article} {docLabels.long} to track NQS quality
           areas, strengths, and improvement strategies for this service.
         </p>
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => createQIP.mutate()}
-          disabled={createQIP.isPending}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-lg transition disabled:opacity-50"
+          loading={createQIP.isPending}
+          iconLeft={<Plus className="w-4 h-4" />}
         >
-          {createQIP.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Plus className="w-4 h-4" />
-          )}
           Create {docLabels.short}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -317,19 +315,21 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                           </div>
                         ))}
                         <div className="flex justify-end gap-2 pt-2">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => { setEditingArea(null); setEditForm({}); }}
-                            className="px-3 py-1.5 text-sm text-muted hover:text-foreground"
                           >
                             Cancel
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
                             onClick={() => updateArea.mutate({ qipId: qip.id, areaId: area.id, data: editForm })}
-                            disabled={updateArea.isPending}
-                            className="px-3 py-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-lg transition disabled:opacity-50"
+                            loading={updateArea.isPending}
                           >
                             {updateArea.isPending ? "Saving..." : "Save"}
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : (
@@ -404,6 +404,7 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                               </h4>
                               <button
                                 onClick={() => setAiResult((prev) => ({ ...prev, [area.id]: null }))}
+                                aria-label="Dismiss action plan"
                                 className="text-purple-400 hover:text-purple-600"
                               >
                                 <X className="w-4 h-4" />

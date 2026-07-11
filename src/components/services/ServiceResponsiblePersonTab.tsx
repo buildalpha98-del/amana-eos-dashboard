@@ -557,14 +557,15 @@ function AssignRpDialog({
 
           <div className="flex items-center justify-between gap-2 pt-2">
             {existing ? (
-              <button
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 onClick={handleClear}
                 disabled={busy}
-                className="px-3 py-2 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
               >
                 {clearRp.isPending ? "Clearing…" : "Clear"}
-              </button>
+              </Button>
             ) : (
               <span />
             )}
@@ -576,13 +577,9 @@ function AssignRpDialog({
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                disabled={busy}
-                className="px-3 py-2 rounded-md text-sm font-medium bg-brand text-white hover:opacity-90 disabled:opacity-50"
-              >
+              <Button type="submit" size="sm" disabled={busy}>
                 {setRp.isPending ? "Saving…" : "Save"}
-              </button>
+              </Button>
             </div>
           </div>
         </form>
@@ -717,13 +714,9 @@ function ExportPdfDialog({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={busy}
-              className="px-3 py-2 rounded-md text-sm font-medium bg-brand text-white hover:opacity-90 disabled:opacity-50"
-            >
+            <Button type="submit" size="sm" disabled={busy}>
               {busy ? "Generating…" : "Download PDF"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCreateService } from "@/hooks/useServices";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface UserOption {
@@ -94,6 +95,7 @@ export function CreateServiceModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-muted"
           >
             <X className="w-5 h-5" />
@@ -265,20 +267,24 @@ export function CreateServiceModal({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface/50 transition-colors"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={createService.isPending}
-              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              variant="primary"
+              size="sm"
+              loading={createService.isPending}
+              className="flex-1"
             >
               {createService.isPending ? "Adding..." : "Add Centre"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

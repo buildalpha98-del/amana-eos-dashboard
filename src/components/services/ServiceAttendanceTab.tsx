@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState, useMemo, useCallback, useEffect } from "react";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   Users,
@@ -1094,18 +1095,14 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                   )}
                   Propagate to Future Weeks
                 </button>
-                <button
+                <Button
+                  size="sm"
                   onClick={handleSave}
-                  disabled={batchUpdate.isPending}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  loading={batchUpdate.isPending}
+                  iconLeft={<Save className="w-4 h-4" />}
                 >
-                  {batchUpdate.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
                   Save Week
-                </button>
+                </Button>
               </div>
             </div>
           </>

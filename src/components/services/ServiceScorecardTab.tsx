@@ -12,6 +12,7 @@ import {
   Target,
   X,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
@@ -198,13 +199,14 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
             Service Scorecard
           </h3>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="xs"
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-hover transition-colors"
+          iconLeft={<Plus className="w-3.5 h-3.5" />}
         >
-          <Plus className="w-3.5 h-3.5" />
           Add Measurable
-        </button>
+        </Button>
       </div>
 
       {/* Empty state */}
@@ -217,13 +219,15 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
           <p className="text-xs text-muted mt-1">
             Add a measurable to start tracking service KPIs weekly.
           </p>
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={() => setShowAddModal(true)}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-hover transition-colors"
+            iconLeft={<Plus className="w-3.5 h-3.5" />}
+            className="mt-4"
           >
-            <Plus className="w-3.5 h-3.5" />
             Add Measurable
-          </button>
+          </Button>
         </div>
       ) : (
         <>
@@ -593,6 +597,7 @@ function AddMeasurableForm({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-muted"
           >
             <X className="w-5 h-5" />
@@ -711,20 +716,24 @@ function AddMeasurableForm({
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface/50 transition-colors"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isPending}
-              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              variant="primary"
+              size="sm"
+              loading={isPending}
+              className="flex-1"
             >
               {isPending ? "Adding..." : "Add Measurable"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

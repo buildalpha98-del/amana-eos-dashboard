@@ -44,6 +44,7 @@ export function TemplatePicker({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />

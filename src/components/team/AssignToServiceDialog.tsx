@@ -12,7 +12,8 @@
  */
 
 import { useMemo, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   Dialog,
   DialogContent,
@@ -198,23 +199,25 @@ export function AssignToServiceDialog({
         ) : null}
 
         <div className="mt-6 flex justify-end gap-2">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={onClose}
             disabled={bulk.isPending}
-            className="px-4 py-2 text-sm font-medium text-foreground/80 bg-surface rounded-[var(--radius-sm)] hover:bg-border transition-colors"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={handleSubmit}
-            disabled={!canSubmit || bulk.isPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[color:var(--color-brand)] rounded-[var(--radius-sm)] hover:bg-[color:var(--color-brand-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!canSubmit}
+            loading={bulk.isPending}
           >
-            {bulk.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Save assignments
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

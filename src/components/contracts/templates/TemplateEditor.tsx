@@ -23,6 +23,7 @@ import { MergeTagPanel } from "./MergeTagPanel";
 import { ManualFieldsPanel } from "./ManualFieldsPanel";
 import { PreviewModal } from "./PreviewModal";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 // ── Autosave state label ───────────────────────────────────────────────────────
 function AutosaveLabel({
@@ -67,6 +68,7 @@ function ToolbarBtn({
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       className={cn(
         "p-1.5 rounded text-sm hover:bg-surface",
@@ -246,14 +248,15 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
             </button>
 
             {/* Preview */}
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={() => setShowPreview(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand text-white rounded hover:bg-brand/90 transition-colors"
+              iconLeft={<Eye className="w-4 h-4" />}
             >
-              <Eye className="w-4 h-4" />
               Preview
-            </button>
+            </Button>
           </div>
         </header>
 

@@ -24,7 +24,8 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Loader2, AlertTriangle, FileText } from "lucide-react";
+import { X, Upload, AlertTriangle, FileText } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export interface StaffCertUploadModalProps {
   open: boolean;
@@ -271,28 +272,27 @@ export function StaffCertUploadModal({
           className="border-t border-border bg-card shrink-0 p-4 flex flex-wrap items-center justify-end gap-2"
           style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
         >
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={onClose}
             disabled={submitting}
-            className="px-4 py-2 text-sm text-muted hover:text-foreground rounded-md border border-border disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90 transition-colors disabled:opacity-50"
+            loading={submitting}
+            iconLeft={<Upload className="w-4 h-4" />}
             data-testid="staff-cert-upload-submit"
           >
-            {submitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
             {submitting ? "Uploading…" : "Upload"}
-          </button>
+          </Button>
         </footer>
       </div>
     </div>,

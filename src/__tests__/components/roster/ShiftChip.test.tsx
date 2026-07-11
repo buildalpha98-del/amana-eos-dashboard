@@ -48,11 +48,11 @@ describe("ShiftChip", () => {
     const vcClass = (vc.firstChild as HTMLElement | null)?.className ?? "";
     const otherClass = (other.firstChild as HTMLElement | null)?.className ?? "";
 
-    // BSC = blue, ASC = green, VC = purple, other = gray
+    // BSC = blue, ASC = green, VC = purple, other = neutral tokens
     expect(bscClass).toMatch(/blue/);
     expect(ascClass).toMatch(/green/);
     expect(vcClass).toMatch(/purple/);
-    expect(otherClass).toMatch(/gray/);
+    expect(otherClass).toMatch(/bg-surface/); // neutral token styling
 
     // and they are not identical
     expect(bscClass).not.toBe(ascClass);

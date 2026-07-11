@@ -20,6 +20,7 @@ import {
   AlertCircle,
   FileUp,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 type ParseRow = BulkParseResult["results"][number] & {
   /** User may override the auto-matched template */
@@ -147,7 +148,7 @@ export function UploadAuditDocumentsDialog({
             <FileUp className="w-5 h-5 text-brand" />
             <h2 className="text-lg font-semibold text-foreground">Upload Audit Documents</h2>
           </div>
-          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-surface">
+          <button onClick={handleClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-surface">
             <X className="w-4 h-4 text-muted" />
           </button>
         </div>
@@ -341,28 +342,23 @@ export function UploadAuditDocumentsDialog({
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-surface/50">
           {saved ? (
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90"
-            >
+            <Button variant="primary" size="sm" onClick={handleClose}>
               Done
-            </button>
+            </Button>
           ) : (
             <>
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface"
-              >
+              <Button variant="secondary" size="sm" onClick={handleClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleSave}
-                disabled={savableRows.length === 0 || saveMutation.isPending}
-                className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={savableRows.length === 0}
+                loading={saveMutation.isPending}
               >
-                {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 Save {savableRows.length} Audit Template{savableRows.length !== 1 ? "s" : ""}
-              </button>
+              </Button>
             </>
           )}
         </div>

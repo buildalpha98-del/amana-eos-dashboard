@@ -33,6 +33,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { Button } from "@/components/ui/Button";
 import { AuditEditModal } from "@/components/audits/AuditEditModal";
 import { UploadCalendarDialog } from "@/components/audits/UploadCalendarDialog";
 import { UploadAuditDocumentsDialog } from "@/components/audits/UploadAuditDocumentsDialog";
@@ -256,6 +257,7 @@ export function AuditCalendarTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYear((y) => y - 1)}
+            aria-label="Previous year"
             className="p-1.5 rounded-lg border border-border hover:bg-surface transition-colors"
           >
             <ChevronLeft className="w-4 h-4 text-muted" />
@@ -263,6 +265,7 @@ export function AuditCalendarTab() {
           <span className="text-sm font-semibold text-foreground min-w-[4rem] text-center">{year}</span>
           <button
             onClick={() => setYear((y) => y + 1)}
+            aria-label="Next year"
             className="p-1.5 rounded-lg border border-border hover:bg-surface transition-colors"
           >
             <ChevronRight className="w-4 h-4 text-muted" />
@@ -296,31 +299,34 @@ export function AuditCalendarTab() {
         </select>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setEditingAudit(null);
               setEditModalMonth(undefined);
               setEditModalOpen(true);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground border border-border rounded-lg hover:bg-surface transition-colors"
+            iconLeft={<PlusCircle className="w-4 h-4" />}
           >
-            <PlusCircle className="w-4 h-4" />
             Add Audit
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setShowUploadDocuments(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground border border-border rounded-lg hover:bg-surface transition-colors"
+            iconLeft={<FileUp className="w-4 h-4" />}
           >
-            <FileUp className="w-4 h-4" />
             Upload Audit Documents
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setShowUploadCalendar(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 transition-colors"
+            iconLeft={<Upload className="w-4 h-4" />}
           >
-            <Upload className="w-4 h-4" />
             Upload Calendar
-          </button>
+          </Button>
         </div>
       </div>
 

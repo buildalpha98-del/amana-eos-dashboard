@@ -29,6 +29,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 import type { StaffRegisterRow } from "@/lib/nqf-registers";
 
 export interface RegistersClientProps {
@@ -90,14 +91,12 @@ export function RegistersClient({
           <ArrowLeft className="w-4 h-4" />
           Compliance
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
-          NQF compliance registers
-        </h1>
-        <p className="text-sm text-muted mt-1 max-w-3xl">
-          Registers required under the Education and Care Services National
-          Regulations. Available for ACECQA inspection on demand. Each tab
-          covers a specific regulation.
-        </p>
+        <div className="mt-2">
+          <PageHeader
+            title="NQF compliance registers"
+            description="Registers required under the Education and Care Services National Regulations. Available for ACECQA inspection on demand. Each tab covers a specific regulation."
+          />
+        </div>
       </div>
 
       {/* Tabs (hidden on print — printed register shows only its own table) */}

@@ -9,6 +9,7 @@ import {
   Target,
   Check,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   useKPIs,
   useCreateKPI,
@@ -244,17 +245,18 @@ export function KPIsTab() {
         ))}
 
         <div className="ml-auto">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => {
               setCreateForm(emptyForm);
               setFormError("");
               setShowCreateModal(true);
             }}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover"
+            iconLeft={<Plus className="h-4 w-4" />}
           >
-            <Plus className="h-4 w-4" />
             New KPI
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -397,22 +399,19 @@ export function KPIsTab() {
                     )}
 
                     <div className="flex items-center justify-end gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={cancelEdit}
-                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-surface"
-                      >
+                      <Button type="button" variant="secondary" size="xs" onClick={cancelEdit}>
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="primary"
+                        size="xs"
                         onClick={() => handleSaveEdit(kpi.id)}
                         disabled={updateKPI.isPending}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
+                        iconLeft={<Check className="h-3.5 w-3.5" />}
                       >
-                        <Check className="h-3.5 w-3.5" />
                         {updateKPI.isPending ? "Saving..." : "Save"}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -456,6 +455,7 @@ export function KPIsTab() {
                       onClick={() => startEdit(kpi)}
                       className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-foreground"
                       title="Edit"
+                      aria-label="Edit KPI"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -463,6 +463,7 @@ export function KPIsTab() {
                       onClick={() => setDeleteConfirmId(kpi.id)}
                       className="rounded-lg p-1.5 text-muted transition-colors hover:bg-red-50 hover:text-danger"
                       title="Delete"
+                      aria-label="Delete KPI"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -511,21 +512,23 @@ export function KPIsTab() {
                       Delete this KPI? This action cannot be undone.
                     </p>
                     <div className="flex items-center justify-end gap-2">
-                      <button
+                      <Button
                         type="button"
+                        variant="secondary"
+                        size="xs"
                         onClick={() => setDeleteConfirmId(null)}
-                        className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground/80 transition-colors hover:bg-surface"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="destructive"
+                        size="xs"
                         onClick={() => handleDelete(kpi.id)}
                         disabled={deleteKPI.isPending}
-                        className="rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                       >
                         {deleteKPI.isPending ? "Deleting..." : "Delete"}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -563,6 +566,7 @@ export function KPIsTab() {
                     setShowCreateModal(false);
                     setFormError("");
                   }}
+                  aria-label="Close"
                   className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-foreground"
                 >
                   <X className="h-5 w-5" />
@@ -704,23 +708,25 @@ export function KPIsTab() {
 
                 {/* Footer */}
                 <div className="mt-6 flex items-center justify-end gap-3">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     onClick={() => {
                       setShowCreateModal(false);
                       setFormError("");
                     }}
-                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant="primary"
+                    size="sm"
                     disabled={createKPI.isPending}
-                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
                   >
                     {createKPI.isPending ? "Creating..." : "Create KPI"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>

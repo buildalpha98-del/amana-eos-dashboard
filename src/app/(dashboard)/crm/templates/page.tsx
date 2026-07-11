@@ -14,6 +14,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Plus, Pencil, Trash2, Mail } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const stageLabels: Record<string, string> = {
   new_lead: "New Lead",
@@ -83,21 +84,15 @@ export default function CrmTemplatesPage() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Email Templates</h2>
-          <p className="text-muted mt-1">
-            Manage CRM email templates for automated touchpoints
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Template
-        </button>
-      </div>
+      <PageHeader
+        title="Email Templates"
+        description="Manage CRM email templates for automated touchpoints"
+        primaryAction={{
+          label: "New Template",
+          icon: Plus,
+          onClick: () => setShowCreate(true),
+        }}
+      />
 
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">

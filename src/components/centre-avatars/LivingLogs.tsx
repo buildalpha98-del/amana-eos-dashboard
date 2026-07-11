@@ -22,6 +22,7 @@ import {
   type UpdateLogRow,
 } from "@/hooks/useCentreAvatars";
 import type { CentreAvatarInsightSource } from "@prisma/client";
+import { Button } from "@/components/ui/Button";
 
 const INSIGHT_SOURCES: CentreAvatarInsightSource[] = [
   "coordinator_checkin",
@@ -224,20 +225,18 @@ function InsightAddForm({
         className="w-full rounded-md border border-border bg-card px-2 py-1 text-xs"
       />
       <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md border border-border bg-card px-3 py-1 text-xs text-foreground/80 hover:bg-surface"
-        >
+        <Button type="button" variant="secondary" size="xs" onClick={onCancel}>
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
-          disabled={isSaving || !insight.trim()}
-          className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+          variant="primary"
+          size="xs"
+          disabled={!insight.trim()}
+          loading={isSaving}
         >
-          {isSaving && <Loader2 className="h-3 w-3 animate-spin" />} Add
-        </button>
+          Add
+        </Button>
       </div>
     </form>
   );
@@ -348,10 +347,10 @@ function CampaignAddForm({
       <textarea value={result} onChange={(e) => setResult(e.target.value)} placeholder="Result" rows={2} className="w-full rounded-md border border-border bg-card px-2 py-1 text-xs" />
       <textarea value={learnings} onChange={(e) => setLearnings(e.target.value)} placeholder="Learnings" rows={2} className="w-full rounded-md border border-border bg-card px-2 py-1 text-xs" />
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-md border border-border bg-card px-3 py-1 text-xs hover:bg-surface">Cancel</button>
-        <button type="submit" disabled={isSaving || !campaignName.trim()} className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50">
-          {isSaving && <Loader2 className="h-3 w-3 animate-spin" />} Add
-        </button>
+        <Button type="button" variant="secondary" size="xs" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" variant="primary" size="xs" disabled={!campaignName.trim()} loading={isSaving}>
+          Add
+        </Button>
       </div>
     </form>
   );
@@ -458,10 +457,10 @@ function CheckInAddForm({
         <input type="date" value={followUp} onChange={(e) => setFollowUp(e.target.value)} className="rounded-md border border-border bg-card px-2 py-1 text-xs" />
       </div>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-md border border-border bg-card px-3 py-1 text-xs hover:bg-surface">Cancel</button>
-        <button type="submit" disabled={isSaving || !topics.trim()} className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50">
-          {isSaving && <Loader2 className="h-3 w-3 animate-spin" />} Add
-        </button>
+        <Button type="button" variant="secondary" size="xs" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" variant="primary" size="xs" disabled={!topics.trim()} loading={isSaving}>
+          Add
+        </Button>
       </div>
     </form>
   );
@@ -571,10 +570,16 @@ function LiaisonAddForm({
       <textarea value={outcome} onChange={(e) => setOutcome(e.target.value)} placeholder="Outcome" rows={2} className="w-full rounded-md border border-border bg-card px-2 py-1 text-xs" />
       <textarea value={nextStep} onChange={(e) => setNextStep(e.target.value)} placeholder="Next step" rows={2} className="w-full rounded-md border border-border bg-card px-2 py-1 text-xs" />
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-md border border-border bg-card px-3 py-1 text-xs hover:bg-surface">Cancel</button>
-        <button type="submit" disabled={isSaving || !contactName.trim() || !purpose.trim()} className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50">
-          {isSaving && <Loader2 className="h-3 w-3 animate-spin" />} Add
-        </button>
+        <Button type="button" variant="secondary" size="xs" onClick={onCancel}>Cancel</Button>
+        <Button
+          type="submit"
+          variant="primary"
+          size="xs"
+          disabled={!contactName.trim() || !purpose.trim()}
+          loading={isSaving}
+        >
+          Add
+        </Button>
       </div>
     </form>
   );
@@ -648,13 +653,15 @@ function LogSection({
           <p className="mt-0.5 text-xs text-muted">{description}</p>
         </div>
         {!readOnly && (
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="xs"
             onClick={onAdd}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+            iconLeft={<Plus className="h-3.5 w-3.5" />}
           >
-            <Plus className="h-3.5 w-3.5" /> {adding ? "Close" : "Add"}
-          </button>
+            {adding ? "Close" : "Add"}
+          </Button>
         )}
       </div>
       <div className="mt-4 space-y-3">{children}</div>

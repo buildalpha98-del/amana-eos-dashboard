@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, ArrowRight, ArrowLeft, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useQuery } from "@tanstack/react-query";
 import {
   useContractTemplates,
@@ -388,33 +389,36 @@ export function IssueFromTemplateModal({
           </button>
 
           {step < 5 ? (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={handleNext}
               disabled={
                 (step === 1 && (!templateId || !userId)) ||
                 (step === 2 && (!previewData || hasBlockingMissingTags)) ||
                 (step === 3 && !allCustomFieldsFilled)
               }
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              iconRight={<ArrowRight className="w-4 h-4" />}
             >
-              Next <ArrowRight className="w-4 h-4" />
-            </button>
+              Next
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={handleIssue}
-              disabled={issueMut.isPending || !adminSignatureDataUrl}
+              disabled={!adminSignatureDataUrl}
+              loading={issueMut.isPending}
               title={
                 !adminSignatureDataUrl
                   ? "Sign the contract first using the signature pad below."
                   : undefined
               }
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {issueMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {issueMut.isPending ? "Issuing…" : "Sign & Issue"}
-            </button>
+            </Button>
           )}
         </footer>
       </div>

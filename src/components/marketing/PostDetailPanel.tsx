@@ -196,13 +196,13 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                   : "text-red-500 hover:bg-red-50"
               }`}
               title={confirmDelete ? "Click again to confirm" : "Delete post"}
-            >
+             aria-label="Delete">
               <Trash2 className="h-4 w-4" />
             </button>
             <button
               onClick={onClose}
               className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
-            >
+             aria-label="Close">
               <X className="h-5 w-5" />
             </button>
           </div>

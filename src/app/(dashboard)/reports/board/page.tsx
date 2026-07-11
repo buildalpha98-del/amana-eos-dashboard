@@ -198,7 +198,7 @@ export default function BoardReportsPage() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="text-xl font-bold text-foreground">{monthLabel} Board Report</h2>
+              <h2 className="text-xl font-heading font-semibold tracking-tight text-foreground">{monthLabel} Board Report</h2>
               <div className="flex items-center gap-2 mt-1">
                 <StatusBadge status={report.status as "draft" | "final" | "sent"} />
                 <span className="text-xs text-muted">
@@ -545,7 +545,7 @@ export default function BoardReportsPage() {
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Board Reports</h2>
+              <h2 className="text-xl font-heading font-semibold tracking-tight text-foreground">Board Reports</h2>
               <p className="text-sm text-muted mt-0.5">
                 Monthly board & investor report generator
               </p>
@@ -573,7 +573,7 @@ export default function BoardReportsPage() {
             <FileSpreadsheet className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Board Reports</h2>
+            <h2 className="text-xl font-heading font-semibold tracking-tight text-foreground">Board Reports</h2>
             <p className="text-sm text-muted mt-0.5">
               Monthly board & investor report generator
             </p>

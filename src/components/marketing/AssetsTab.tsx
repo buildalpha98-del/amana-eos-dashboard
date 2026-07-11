@@ -15,6 +15,7 @@ import {
   Loader2,
   FolderOpen,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   useAssets,
   useCreateAsset,
@@ -117,13 +118,14 @@ export function AssetsTab() {
           </div>
         </div>
 
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90 transition-colors"
+          iconLeft={<Plus className="h-4 w-4" />}
         >
-          <Plus className="h-4 w-4" />
           New Asset
-        </button>
+        </Button>
       </div>
 
       {/* ── Loading State ────────────────────────────── */}
@@ -179,6 +181,7 @@ export function AssetsTab() {
                       if (confirm("Delete this asset?"))
                         deleteAsset.mutate(asset.id);
                     }}
+                    aria-label="Delete asset"
                     className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -225,6 +228,7 @@ export function AssetsTab() {
               </h2>
               <button
                 onClick={() => setShowCreate(false)}
+                aria-label="Close"
                 className="p-1 rounded-lg hover:bg-surface"
               >
                 <X className="h-5 w-5 text-muted" />
@@ -301,26 +305,18 @@ export function AssetsTab() {
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setShowCreate(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-muted hover:bg-surface transition-colors"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleCreate}
-                disabled={
-                  !form.name.trim() ||
-                  !form.url.trim() ||
-                  createAsset.isPending
-                }
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand hover:bg-brand/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                disabled={!form.name.trim() || !form.url.trim()}
+                loading={createAsset.isPending}
               >
-                {createAsset.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
                 Create Asset
-              </button>
+              </Button>
             </div>
           </div>
         </div>

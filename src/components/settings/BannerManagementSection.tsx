@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
@@ -182,6 +183,7 @@ function BannerFormModal({
           </h3>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
@@ -366,19 +368,18 @@ function BannerFormModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 p-6 pt-4 border-t border-border/50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-foreground/80 rounded-lg border border-border hover:bg-surface"
-          >
+          <Button variant="secondary" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => saveMutation.mutate(form)}
-            disabled={!form.title.trim() || !form.body.trim() || saveMutation.isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!form.title.trim() || !form.body.trim()}
+            loading={saveMutation.isPending}
           >
             {saveMutation.isPending ? "Saving..." : isEditing ? "Update Banner" : "Create Banner"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -450,13 +451,14 @@ export function BannerManagementSection() {
             {banners.length}
           </span>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
+          iconLeft={<Plus className="w-4 h-4" />}
         >
-          <Plus className="w-4 h-4" />
           New Banner
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -527,6 +529,7 @@ export function BannerManagementSection() {
                       onClick={() => toggleMutation.mutate({ id: banner.id, active: !banner.active })}
                       className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors"
                       title={banner.active ? "Deactivate" : "Activate"}
+                      aria-label={banner.active ? "Deactivate banner" : "Activate banner"}
                     >
                       {banner.active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -534,6 +537,7 @@ export function BannerManagementSection() {
                       onClick={() => setEditBanner(banner)}
                       className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors"
                       title="Edit"
+                      aria-label="Edit banner"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -541,6 +545,7 @@ export function BannerManagementSection() {
                       onClick={() => setDeleteId(banner.id)}
                       className="p-1.5 rounded-md text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
                       title="Delete"
+                      aria-label="Delete banner"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

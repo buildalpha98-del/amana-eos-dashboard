@@ -47,6 +47,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 interface DocumentAuditEditorProps {
   auditId: string;
@@ -89,6 +90,7 @@ function ToolbarBtn({
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       disabled={disabled}
       className={cn(
@@ -329,22 +331,26 @@ export function DocumentAuditEditor({
 
       {!isCompleted && (
         <div className="sticky bottom-4 z-10 mx-auto max-w-fit bg-card border border-border rounded-full shadow-lg px-3 py-2 flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => saveDraft.mutate()}
-            disabled={saveDraft.isPending || completeMut.isPending}
-            className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-foreground border border-border rounded-full hover:bg-surface disabled:opacity-50"
+            disabled={completeMut.isPending}
+            loading={saveDraft.isPending}
+            iconLeft={<Save className="w-4 h-4" />}
           >
-            {saveDraft.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save draft
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleComplete}
-            disabled={saveDraft.isPending || completeMut.isPending}
-            className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-brand rounded-full hover:bg-brand/90 disabled:opacity-50"
+            disabled={saveDraft.isPending}
+            loading={completeMut.isPending}
+            iconLeft={<CheckCircle2 className="w-4 h-4" />}
           >
-            {completeMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             Complete audit
-          </button>
+          </Button>
         </div>
       )}
     </div>

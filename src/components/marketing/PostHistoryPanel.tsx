@@ -91,7 +91,7 @@ export function PostHistoryPanel({
           <button
             onClick={onClose}
             className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-foreground transition-colors"
-          >
+           aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>

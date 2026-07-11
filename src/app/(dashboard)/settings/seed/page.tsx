@@ -203,7 +203,7 @@ export default function SeedPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Database className="w-5 h-5 text-brand" />
-              <h1 className="text-xl font-bold text-foreground">
+              <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground">
                 Seed Template Data
               </h1>
             </div>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface Article {
   id: string;
@@ -98,14 +99,10 @@ export function HelpContent() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-          Help Centre
-        </h2>
-        <p className="text-sm text-muted mt-1">
-          Find answers to common questions
-        </p>
-      </div>
+      <PageHeader
+        title="Help Centre"
+        description="Find answers to common questions"
+      />
 
       {/* Search Bar */}
       <div className="mb-6">

@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useAudits";
 import { fetchApi } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const monthNames = [
@@ -334,22 +335,19 @@ function ApplyToServicesModalInner({
         </div>
 
         <div className="flex items-center justify-end gap-2 px-6 py-3 border-t bg-surface/30">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-surface"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             disabled={!canSubmit}
+            loading={applyMut.isPending}
             onClick={handleApply}
-            className="px-3 py-1.5 text-sm rounded-lg bg-brand text-white hover:bg-brand/90 disabled:opacity-60 flex items-center gap-1.5"
           >
-            {applyMut.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Apply to {selectedIds.length} service{selectedIds.length === 1 ? "" : "s"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

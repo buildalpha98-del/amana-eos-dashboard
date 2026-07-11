@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useCampaigns } from "@/hooks/useMarketing";
 import type { CampaignData } from "@/hooks/useMarketing";
 import { StatusBadge } from "./StatusBadge";
@@ -75,13 +76,14 @@ export function CampaignsTab({
         </select>
 
         <div className="ml-auto">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover"
+            iconLeft={<Plus className="h-4 w-4" />}
           >
-            <Plus className="h-4 w-4" />
             New Campaign
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -126,6 +126,7 @@ export function DashboardProjectTodos({
                         disabled={toggleTodo.isPending}
                         className="w-4.5 h-4.5 rounded border-2 border-border hover:border-brand flex items-center justify-center flex-shrink-0 transition-colors"
                         title="Mark complete"
+                        aria-label="Mark complete"
                       >
                         <CheckSquare className="w-0 h-0 group-hover:w-3 group-hover:h-3 text-brand transition-all" />
                       </button>

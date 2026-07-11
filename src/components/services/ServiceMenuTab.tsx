@@ -16,6 +16,7 @@ import {
   Copy,
   ShieldAlert,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { AiButton } from "@/components/ui/AiButton";
@@ -243,6 +244,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekOffset((o) => o + 1)}
+              aria-label="Previous week"
               className="p-2 rounded-lg border border-border hover:bg-surface/50 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -252,6 +254,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             </span>
             <button
               onClick={() => setWeekOffset((o) => o - 1)}
+              aria-label="Next week"
               className="p-2 rounded-lg border border-border hover:bg-surface/50 transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
@@ -265,18 +268,16 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
               </button>
             )}
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={handleSave}
-            disabled={!dirty || saveMutation.isPending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+            disabled={!dirty}
+            loading={saveMutation.isPending}
+            iconLeft={<Save className="w-3.5 h-3.5" />}
           >
-            {saveMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Save className="w-3.5 h-3.5" />
-            )}
             Save
-          </button>
+          </Button>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <input
@@ -286,27 +287,25 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             onChange={handleFileUpload}
             className="hidden"
           />
-          <button
+          <Button
+            variant="secondary"
+            size="xs"
             onClick={handleCopyPrevWeek}
             disabled={!prevMenuWeek?.items?.length}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Copy menu from previous week"
+            iconLeft={<Copy className="w-3.5 h-3.5" />}
           >
-            <Copy className="w-3.5 h-3.5" />
             Copy Last Week
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="xs"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploadMutation.isPending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors disabled:opacity-50"
+            loading={uploadMutation.isPending}
+            iconLeft={<Upload className="w-3.5 h-3.5" />}
           >
-            {uploadMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Upload className="w-3.5 h-3.5" />
-            )}
             Upload Menu
-          </button>
+          </Button>
           <a
             href={`/services/${serviceId}/menu/print?weekStart=${weekKey}`}
             target="_blank"
@@ -424,6 +423,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             </h4>
             <button
               onClick={() => setAllergenCheckResult(null)}
+              aria-label="Dismiss allergen check"
               className="text-amber-400 hover:text-amber-600"
             >
               <X className="w-4 h-4" />

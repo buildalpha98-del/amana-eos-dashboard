@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, getWeekStart } from "@/lib/utils";
 import { AlertCircle, Plus, X, ArrowRight, CheckSquare } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
@@ -215,13 +216,14 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
               </option>
             ))}
           </select>
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-brand text-white rounded-md hover:bg-brand/90 transition-colors"
+            iconLeft={<Plus className="w-3.5 h-3.5" />}
           >
-            <Plus className="w-3.5 h-3.5" />
             Raise Issue
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -341,6 +343,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                 </h4>
                 <button
                   onClick={() => setShowModal(false)}
+                  aria-label="Close"
                   className="p-1 text-muted hover:text-muted"
                 >
                   <X className="w-4 h-4" />
@@ -422,24 +425,22 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => setShowModal(false)}
-                  className="text-xs px-4 py-2 text-muted hover:text-foreground/80"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="xs"
                   onClick={handleCreate}
-                  disabled={!formData.title || createIssue.isPending}
-                  className={cn(
-                    "text-xs px-4 py-2 rounded-lg font-medium transition-colors",
-                    formData.title
-                      ? "bg-brand text-white hover:bg-brand/90"
-                      : "bg-surface text-muted cursor-not-allowed"
-                  )}
+                  disabled={!formData.title}
+                  loading={createIssue.isPending}
                 >
                   {createIssue.isPending ? "Creating..." : "Raise Issue"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

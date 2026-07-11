@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { MERGE_TAGS, type MergeTagDef } from "@/lib/contract-templates/merge-tag-catalog";
 import { toCustomTagKey } from "@/lib/contract-templates/custom-tag-key";
 import type { ManualField } from "@/lib/contract-templates/manual-fields-schema";
@@ -227,21 +228,19 @@ function CustomTagsSection({
             </p>
           )}
           <div className="flex gap-1">
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="xs"
               disabled={!canSave}
-              className="flex-1 px-2 py-1 text-[11px] font-medium bg-brand text-white rounded hover:bg-brand/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1"
               data-testid="custom-tags-save"
             >
               {create.isPending ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-2 py-1 text-[11px] text-muted rounded hover:bg-surface transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="ghost" size="xs" onClick={handleCancel}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

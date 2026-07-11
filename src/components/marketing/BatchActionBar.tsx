@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Trash2, Calendar, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 interface BatchActionBarProps {
   selectedCount: number;
@@ -93,33 +94,37 @@ export function BatchActionBar({
         />
 
         {/* Duplicate to Centres */}
-        <button
+        <Button
+          variant="primary"
+          size="sm"
+          className="shrink-0"
           onClick={() => onAction("duplicate_to_centres", {})}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
+          iconLeft={<Copy className="h-4 w-4" />}
         >
-          <Copy className="h-4 w-4" />
           Duplicate to Centres
-        </button>
+        </Button>
 
         {/* Delete */}
         {showDeleteConfirm ? (
           <div className="inline-flex shrink-0 items-center gap-2">
             <span className="text-sm text-red-600 font-medium">Confirm?</span>
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={() => {
                 onAction("delete", {});
                 setShowDeleteConfirm(false);
               }}
-              className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
             >
               Delete
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setShowDeleteConfirm(false)}
-              className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         ) : (
           <button
@@ -139,6 +144,7 @@ export function BatchActionBar({
           onClick={onClear}
           className="shrink-0 rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
           title="Clear Selection"
+          aria-label="Clear selection"
         >
           <X className="h-5 w-5" />
         </button>

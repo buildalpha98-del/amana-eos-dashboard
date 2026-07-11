@@ -34,6 +34,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import type { LMSModuleData } from "@/hooks/useLMS";
 import { useCreateModule, useUpdateModule, useDeleteModule, useReorderModules } from "@/hooks/useLMS";
 
@@ -172,13 +173,12 @@ function ModuleCard({
             Required
           </label>
           <div className="flex gap-2">
-            <button
-              onClick={onCancelEdit}
-              className="px-3 py-1.5 text-sm text-muted hover:bg-surface rounded-lg"
-            >
+            <Button variant="ghost" size="sm" onClick={onCancelEdit}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() =>
                 onSaveEdit({
                   title: editTitle,
@@ -189,11 +189,10 @@ function ModuleCard({
                   isRequired: editRequired,
                 })
               }
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover"
+              iconLeft={<Save className="w-3.5 h-3.5" />}
             >
-              <Save className="w-3.5 h-3.5" />
               Save
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -242,15 +241,23 @@ function ModuleCard({
         </button>
         {confirmDel ? (
           <div className="flex items-center gap-1">
-            <button onClick={onDelete} className="px-2 py-1 text-2xs font-medium text-white bg-red-600 rounded hover:bg-red-700">
+            <Button variant="destructive" size="xs" onClick={onDelete}>
               Delete
-            </button>
-            <button onClick={() => setConfirmDel(false)} className="p-1 text-muted hover:text-foreground">
+            </Button>
+            <button
+              onClick={() => setConfirmDel(false)}
+              aria-label="Cancel delete"
+              className="p-1 text-muted hover:text-foreground"
+            >
               <X className="w-3 h-3" />
             </button>
           </div>
         ) : (
-          <button onClick={() => setConfirmDel(true)} className="p-1.5 text-muted hover:text-danger rounded-md hover:bg-surface">
+          <button
+            onClick={() => setConfirmDel(true)}
+            aria-label="Delete module"
+            className="p-1.5 text-muted hover:text-danger rounded-md hover:bg-surface"
+          >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         )}
@@ -453,20 +460,18 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
               Required
             </label>
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowAdd(false)}
-                className="px-3 py-1.5 text-sm text-muted hover:bg-surface rounded-lg"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleAdd}
                 disabled={!newTitle.trim() || createModule.isPending}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
+                iconLeft={<Plus className="w-3.5 h-3.5" />}
               >
-                <Plus className="w-3.5 h-3.5" />
                 {createModule.isPending ? "Adding..." : "Add Module"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -79,7 +79,7 @@ export function MarketingCard({
           </label>
         </div>
         {!editing ? (
-          <button onClick={startEdit} className="text-muted hover:text-brand">
+          <button onClick={startEdit} className="text-muted hover:text-brand" aria-label="Edit">
             <Edit3 className="w-3.5 h-3.5" />
           </button>
         ) : (

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface LeaveRequest {
   id: number;
@@ -131,14 +132,12 @@ export function LeavePayrollClient() {
           <ArrowLeft className="w-4 h-4" />
           Back to internal leave
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
-          Leave (Employment Hero)
-        </h1>
-        <p className="text-sm text-muted mt-1 max-w-3xl">
-          Live data from Employment Hero Payroll. Read-only — to approve or
-          reject a request, click through to EH. The 21-day Fair Work
-          response window applies to pending requests.
-        </p>
+        <div className="mt-2">
+          <PageHeader
+            title="Leave (Employment Hero)"
+            description="Live data from Employment Hero Payroll. Read-only — to approve or reject a request, click through to EH. The 21-day Fair Work response window applies to pending requests."
+          />
+        </div>
       </div>
 
       {/* Tabs */}

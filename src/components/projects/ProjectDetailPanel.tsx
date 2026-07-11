@@ -14,6 +14,7 @@ import {
   Plus,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
@@ -174,7 +175,7 @@ export function ProjectDetailPanel({
       <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-card shadow-2xl border-l border-border z-50 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h3 className="text-base font-semibold text-foreground">Project Details</h3>
-          <button onClick={onClose} className="p-1 rounded-md text-muted hover:text-foreground">
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded-md text-muted hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -293,12 +294,12 @@ export function ProjectDetailPanel({
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" disabled={addTask.isPending} className="px-3 py-1.5 text-xs bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50">
+                  <Button type="submit" variant="primary" size="xs" disabled={addTask.isPending}>
                     {addTask.isPending ? "Adding..." : "Add"}
-                  </button>
-                  <button type="button" onClick={() => setShowAddTask(false)} className="px-3 py-1.5 text-xs text-muted hover:text-foreground">
+                  </Button>
+                  <Button type="button" variant="ghost" size="xs" onClick={() => setShowAddTask(false)}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
@@ -351,7 +352,11 @@ export function ProjectDetailPanel({
         </div>
 
         <div className="border-t border-border px-6 py-3 flex justify-between">
-          <button onClick={() => setShowDelete(true)} className="text-muted hover:text-danger transition-colors">
+          <button
+            onClick={() => setShowDelete(true)}
+            aria-label="Delete project"
+            className="text-muted hover:text-danger transition-colors"
+          >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>

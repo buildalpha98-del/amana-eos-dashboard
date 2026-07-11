@@ -9,6 +9,7 @@ import {
   type AuditItemResponseData,
 } from "@/hooks/useAudits";
 import { DocumentAuditEditor } from "@/components/audits/DocumentAuditEditor";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -519,13 +520,14 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
         <ClipboardList className="w-16 h-16 text-muted/50 mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-1">Audit Not Found</h2>
         <p className="text-muted text-sm mb-6">This audit may have been deleted.</p>
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => router.push("/compliance")}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
+          iconLeft={<ArrowLeft className="w-4 h-4" />}
         >
-          <ArrowLeft className="w-4 h-4" />
           Back to Compliance
-        </button>
+        </Button>
       </div>
     );
   }
@@ -620,22 +622,24 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
         {/* Action buttons for scheduled/overdue */}
         {canStart && (
           <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-3">
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleStart}
               disabled={updateAudit.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              iconLeft={<Play className="w-4 h-4" />}
             >
-              <Play className="w-4 h-4" />
               Start Audit
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleSkip}
               disabled={updateAudit.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-muted text-sm font-medium rounded-lg border border-border hover:bg-surface transition-colors disabled:opacity-50"
+              iconLeft={<SkipForward className="w-4 h-4" />}
             >
-              <SkipForward className="w-4 h-4" />
               Skip
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -874,14 +878,15 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
+                loading={saving}
+                iconLeft={<Save className="w-4 h-4" />}
               >
-                <Save className="w-4 h-4" />
                 {saving ? "Saving..." : "Save Progress"}
-              </button>
+              </Button>
               <button
                 onClick={handleComplete}
                 disabled={saving}

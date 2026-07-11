@@ -238,6 +238,7 @@ export function ActiveSequencesView() {
                             disabled={pauseMutation.isPending}
                             className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-amber-50 hover:text-amber-600"
                             title="Pause"
+                            aria-label="Pause sequence"
                           >
                             <Pause className="h-4 w-4" />
                           </button>
@@ -250,6 +251,7 @@ export function ActiveSequencesView() {
                             disabled={resumeMutation.isPending}
                             className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-green-50 hover:text-green-600"
                             title="Resume"
+                            aria-label="Resume sequence"
                           >
                             <Play className="h-4 w-4" />
                           </button>
@@ -263,6 +265,7 @@ export function ActiveSequencesView() {
                             disabled={cancelMutation.isPending}
                             className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-red-50 hover:text-danger"
                             title="Cancel"
+                            aria-label="Cancel sequence"
                           >
                             <XCircle className="h-4 w-4" />
                           </button>

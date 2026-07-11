@@ -9,6 +9,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import type { ContractData } from "@/hooks/useContracts";
 import { useResendIssueEmail } from "@/hooks/useContractTemplates";
 import {
@@ -61,13 +62,14 @@ function ActionButtons({
   return (
     <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border">
       {canSupersede && onSupersede && (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => onSupersede(contract)}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors"
+          iconLeft={<ArrowRightLeft className="w-4 h-4" />}
         >
-          <ArrowRightLeft className="w-4 h-4" />
           Supersede
-        </button>
+        </Button>
       )}
       {canTerminate && onTerminate && (
         <button
@@ -80,18 +82,15 @@ function ActionButtons({
       )}
       {/* Resend issue email — admin only, only for contracts with a PDF document */}
       {canEdit && contract.documentUrl && (
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => resendMut.mutate(contract.id)}
-          disabled={resendMut.isPending}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground/70 border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
+          loading={resendMut.isPending}
+          iconLeft={<Mail className="w-4 h-4" />}
         >
-          {resendMut.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Mail className="w-4 h-4" />
-          )}
           {resendMut.isPending ? "Sending…" : "Resend email"}
-        </button>
+        </Button>
       )}
     </div>
   );

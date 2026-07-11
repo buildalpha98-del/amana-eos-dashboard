@@ -680,7 +680,7 @@ function EquipmentRow({
           onClick={onEdit}
           className="p-1 text-muted hover:text-brand transition-colors"
           title="Edit"
-        >
+         aria-label="Edit">
           <Pencil className="w-3.5 h-3.5" />
         </button>
         <button
@@ -808,7 +808,7 @@ function EquipmentModal({
           <button
             onClick={onClose}
             className="p-1 text-muted hover:text-muted transition-colors"
-          >
+           aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>

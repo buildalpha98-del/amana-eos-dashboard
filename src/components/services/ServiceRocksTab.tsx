@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { getCurrentQuarter } from "@/lib/utils";
 import { Mountain, Plus, User, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
@@ -140,13 +141,14 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
               </option>
             ))}
           </select>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+            iconLeft={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4" />
             Add Rock
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -335,6 +337,7 @@ function AddRockModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-muted"
           >
             <X className="w-5 h-5" />
@@ -423,20 +426,24 @@ function AddRockModal({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface/50 transition-colors"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={createRock.isPending}
-              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              variant="primary"
+              size="sm"
+              loading={createRock.isPending}
+              className="flex-1"
             >
               {createRock.isPending ? "Adding..." : "Add Rock"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

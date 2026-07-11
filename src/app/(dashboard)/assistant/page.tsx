@@ -86,7 +86,7 @@ export default function AssistantPage() {
             <Bot className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">AI Assistant</h2>
+            <h2 className="text-xl font-heading font-semibold tracking-tight text-foreground">AI Assistant</h2>
             <p className="text-sm text-muted">Ask questions about your dashboard data</p>
           </div>
         </div>
