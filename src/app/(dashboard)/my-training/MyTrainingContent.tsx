@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   GraduationCap,
   CheckCircle2,
@@ -10,6 +12,8 @@ import {
   ShieldCheck,
   Clock,
   ArrowRight,
+  Award,
+  Loader2,
 } from "lucide-react";
 import { useMyEnrollments } from "@/hooks/useLMS";
 import { useInductionReadiness } from "@/hooks/useInduction";
@@ -19,6 +23,8 @@ type Enrollment = {
   id: string;
   status: "enrolled" | "in_progress" | "completed" | "expired";
   dueDate: string | null;
+  completedAt?: string | null;
+  score?: number | null;
   course: {
     id: string;
     title: string;
@@ -38,8 +44,26 @@ function statusIcon(status: string) {
   return <Circle className="h-5 w-5 text-muted" />;
 }
 
-function CourseCard({ e }: { e: Enrollment }) {
+function CourseCard({ e, learnerName }: { e: Enrollment; learnerName: string }) {
   const done = e.status === "completed";
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleCertificate() {
+    setDownloading(true);
+    try {
+      const { downloadCertificateSafe } = await import("@/lib/certificate-pdf");
+      await downloadCertificateSafe({
+        learnerName,
+        courseTitle: e.course.title,
+        completedAt: e.completedAt ?? null,
+        score: e.score ?? null,
+        reference: e.id,
+      });
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <div className="flex items-center gap-4 rounded-xl border border-border bg-surface/50 p-4">
       <div className="shrink-0">{statusIcon(e.status)}</div>
@@ -53,6 +77,18 @@ function CourseCard({ e }: { e: Enrollment }) {
           {e.dueDate && !done ? ` · due ${new Date(e.dueDate).toLocaleDateString()}` : ""}
         </p>
       </div>
+      {done && (
+        <button
+          onClick={handleCertificate}
+          disabled={downloading}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-semibold text-foreground hover:bg-surface disabled:opacity-60"
+          title="Download certificate of completion"
+        >
+          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Award className="h-4 w-4" />}
+          {/* Icon-only on phones so the title keeps breathing room. */}
+          <span className="hidden sm:inline">Certificate</span>
+        </button>
+      )}
       <a
         href={`/learn/${e.id}`}
         target="_blank"
@@ -71,6 +107,8 @@ function CourseCard({ e }: { e: Enrollment }) {
 }
 
 export function MyTrainingContent() {
+  const { data: session } = useSession();
+  const learnerName = session?.user?.name ?? "Staff Member";
   const { data: readiness, isLoading: rLoading } = useInductionReadiness();
   const { data: enrollments, isLoading: eLoading } = useMyEnrollments();
 
@@ -167,7 +205,7 @@ export function MyTrainingContent() {
           </h3>
           <div className="space-y-3">
             {essential.map((e) => (
-              <CourseCard key={e.id} e={e} />
+              <CourseCard key={e.id} e={e} learnerName={learnerName} />
             ))}
           </div>
         </section>
@@ -182,7 +220,7 @@ export function MyTrainingContent() {
           </h3>
           <div className="space-y-3">
             {monthly.map((e) => (
-              <CourseCard key={e.id} e={e} />
+              <CourseCard key={e.id} e={e} learnerName={learnerName} />
             ))}
           </div>
         </section>
@@ -196,7 +234,7 @@ export function MyTrainingContent() {
           </h3>
           <div className="space-y-3">
             {other.map((e) => (
-              <CourseCard key={e.id} e={e} />
+              <CourseCard key={e.id} e={e} learnerName={learnerName} />
             ))}
           </div>
         </section>

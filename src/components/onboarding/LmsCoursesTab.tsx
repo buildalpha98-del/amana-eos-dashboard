@@ -36,9 +36,95 @@ import {
   ListChecks,
   Play,
   Trash2,
+  Award,
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
+import { fetchApi } from "@/lib/fetch-api";
+
+/**
+ * Certificate (for completed enrolments) + full training-transcript download
+ * buttons on an admin staff row. PDFs are generated client-side (jsPDF) via
+ * dynamic import so the library only loads when actually used.
+ */
+function StaffRecordButtons({
+  enrollment,
+  courseTitle,
+}: {
+  enrollment: {
+    id: string;
+    status: string;
+    completedAt?: string | null;
+    score?: number | null;
+    user: { id: string; name: string };
+  };
+  courseTitle: string;
+}) {
+  const [busy, setBusy] = useState<null | "cert" | "transcript">(null);
+
+  async function certificate(ev: React.MouseEvent) {
+    ev.stopPropagation();
+    setBusy("cert");
+    try {
+      const { downloadCertificateSafe } = await import("@/lib/certificate-pdf");
+      await downloadCertificateSafe({
+        learnerName: enrollment.user.name,
+        courseTitle,
+        completedAt: enrollment.completedAt ?? null,
+        score: enrollment.score ?? null,
+        reference: enrollment.id,
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transcript(ev: React.MouseEvent) {
+    ev.stopPropagation();
+    setBusy("transcript");
+    try {
+      const data = await fetchApi<{
+        learnerName: string;
+        learnerEmail: string | null;
+        generatedAt: string;
+        rows: import("@/lib/transcript-pdf").TranscriptRow[];
+      }>(`/api/lms/transcript?userId=${enrollment.user.id}`);
+      const { downloadTranscript } = await import("@/lib/transcript-pdf");
+      await downloadTranscript(data);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Couldn't generate the transcript.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <>
+      {enrollment.status === "completed" && (
+        <button
+          onClick={certificate}
+          disabled={busy !== null}
+          title="Download certificate"
+          className="p-1 text-muted hover:text-brand transition-colors disabled:opacity-50"
+        >
+          {busy === "cert" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Award className="w-3.5 h-3.5" />}
+        </button>
+      )}
+      <button
+        onClick={transcript}
+        disabled={busy !== null}
+        title="Download full training transcript"
+        className="p-1 text-muted hover:text-brand transition-colors disabled:opacity-50"
+      >
+        {busy === "transcript" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+      </button>
+    </>
+  );
+}
 
 const MODULE_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   document: FileText,
@@ -459,6 +545,8 @@ interface SelectedCourseData {
     userId: string;
     status: string;
     dueDate?: string | null;
+    completedAt?: string | null;
+    score?: number | null;
     user: { id: string; name: string; email: string };
     moduleProgress: LMSModuleProgressData[];
   }[];
@@ -686,6 +774,10 @@ export function LmsCoursesTab({
                                     {new Date(enrollment.dueDate).toLocaleDateString("en-AU", { month: "short", day: "numeric" })}
                                   </span>
                                 )}
+                                <StaffRecordButtons
+                                  enrollment={enrollment}
+                                  courseTitle={selectedCourseData.title}
+                                />
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
