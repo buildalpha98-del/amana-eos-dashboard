@@ -173,6 +173,15 @@ async function createSequenceEnrolment(
         ? enquiry.firstSessionDate
         : now;
 
+      // Pre-check the common "returning enquirer already enrolled" case so we
+      // don't trip the (sequenceId, contactId) unique constraint — which Prisma
+      // logs as a noisy `prisma:error` even though we catch it below.
+      const already = await prisma.sequenceEnrolment.findUnique({
+        where: { sequenceId_contactId: { sequenceId: seq.id, contactId } },
+        select: { id: true },
+      });
+      if (already) continue;
+
       let enrolment;
       try {
         enrolment = await prisma.sequenceEnrolment.create({
@@ -187,7 +196,7 @@ async function createSequenceEnrolment(
           },
         });
       } catch (err: unknown) {
-        // Unique constraint violation = already enrolled, safe to skip
+        // Race fallback: a concurrent insert won the unique constraint. Skip.
         if (err && typeof err === "object" && "code" in err && err.code === "P2002") continue;
         throw err;
       }
