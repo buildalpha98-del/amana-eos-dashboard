@@ -151,7 +151,7 @@ export function WeeklyDataEntry({
             Week of {weekLabel}
           </p>
           {weekOffset === 0 && (
-            <p className="text-[10px] text-brand font-medium">Current Week</p>
+            <p className="text-2xs text-brand font-medium">Current Week</p>
           )}
         </div>
         <button
@@ -186,7 +186,7 @@ export function WeeklyDataEntry({
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">
+            <label className="text-2xs text-muted block mb-0.5">
               Permanent (per day)
             </label>
             <input
@@ -198,7 +198,7 @@ export function WeeklyDataEntry({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">
+            <label className="text-2xs text-muted block mb-0.5">
               Casual (per day)
             </label>
             <input
@@ -229,7 +229,7 @@ export function WeeklyDataEntry({
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">
+            <label className="text-2xs text-muted block mb-0.5">
               Permanent (per day)
             </label>
             <input
@@ -241,7 +241,7 @@ export function WeeklyDataEntry({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">
+            <label className="text-2xs text-muted block mb-0.5">
               Casual (per day)
             </label>
             <input
@@ -274,7 +274,7 @@ export function WeeklyDataEntry({
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">
+            <label className="text-2xs text-muted block mb-0.5">
               Permanent (per day)
             </label>
             <input
@@ -286,7 +286,7 @@ export function WeeklyDataEntry({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">
+            <label className="text-2xs text-muted block mb-0.5">
               Casual (per day)
             </label>
             <input
@@ -319,7 +319,7 @@ export function WeeklyDataEntry({
         </h4>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">Staff</label>
+            <label className="text-2xs text-muted block mb-0.5">Staff</label>
             <input
               type="number"
               min={0}
@@ -329,7 +329,7 @@ export function WeeklyDataEntry({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">Food</label>
+            <label className="text-2xs text-muted block mb-0.5">Food</label>
             <input
               type="number"
               min={0}
@@ -339,7 +339,7 @@ export function WeeklyDataEntry({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">Supplies</label>
+            <label className="text-2xs text-muted block mb-0.5">Supplies</label>
             <input
               type="number"
               min={0}
@@ -349,7 +349,7 @@ export function WeeklyDataEntry({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">Other</label>
+            <label className="text-2xs text-muted block mb-0.5">Other</label>
             <input
               type="number"
               min={0}

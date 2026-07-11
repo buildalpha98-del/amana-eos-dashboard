@@ -86,7 +86,7 @@ export function ExitReadinessScore({ overallScore, sections, loading }: Props) {
             <span className="text-2xl font-bold tabular-nums" style={{ color }}>
               {overallScore}%
             </span>
-            <span className="text-[10px] text-muted font-medium uppercase tracking-wider">
+            <span className="text-2xs text-muted font-medium uppercase tracking-wider">
               Ready
             </span>
           </div>

@@ -43,7 +43,7 @@ export function WeekGrid({ grid, flaggedServiceIds, onOpenHistory }: WeekGridPro
               {grid.days.map((d) => (
                 <th key={d.date} className="p-3 text-center font-medium text-muted">
                   <div>{d.dayLabel}</div>
-                  <div className="text-[10px] font-normal">{d.date.slice(5)}</div>
+                  <div className="text-2xs font-normal">{d.date.slice(5)}</div>
                 </th>
               ))}
               <th className="p-3 text-right font-medium text-muted w-8"></th>

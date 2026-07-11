@@ -187,7 +187,7 @@ function Badge({ count, inverted = false }: { count: number; inverted?: boolean 
     <span
       className={cn(
         "inline-flex items-center justify-center min-w-[16px] h-[16px] px-1",
-        "rounded-full text-[10px] font-bold",
+        "rounded-full text-2xs font-bold",
         inverted
           ? "bg-white/20 text-white"
           : "bg-[color:var(--color-brand)]/10 text-[color:var(--color-brand)]",

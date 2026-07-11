@@ -258,7 +258,7 @@ function ServiceRow({
       {assignedLabel ? (
         <span
           className={cn(
-            "inline-flex items-center rounded-full border px-2 py-0 text-[10px] font-bold uppercase tracking-wide",
+            "inline-flex items-center rounded-full border px-2 py-0 text-2xs font-bold uppercase tracking-wide",
             assignedLabel === "Primary"
               ? "border-emerald-300 bg-emerald-100 text-emerald-800"
               : "border-blue-300 bg-blue-100 text-blue-800",

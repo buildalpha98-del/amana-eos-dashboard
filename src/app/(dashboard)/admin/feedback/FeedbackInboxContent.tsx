@@ -36,7 +36,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   bug: "bg-rose-100 text-rose-700",
   feature_request: "bg-violet-100 text-violet-700",
   question: "bg-sky-100 text-sky-700",
-  general: "bg-gray-100 text-gray-700",
+  general: "bg-surface text-foreground/80",
 };
 
 function formatDate(d: string) {

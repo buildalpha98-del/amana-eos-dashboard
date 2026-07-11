@@ -15,7 +15,7 @@ export function PrintActions() {
       <button
         type="button"
         onClick={() => window.print()}
-        className="inline-flex items-center gap-1.5 rounded-md bg-[#004E64] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#003a4a] transition-colors"
+        className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-[#003a4a] transition-colors"
       >
         <Printer className="h-4 w-4" />
         Print
@@ -23,7 +23,7 @@ export function PrintActions() {
       <button
         type="button"
         onClick={() => window.close()}
-        className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
       >
         Close
       </button>

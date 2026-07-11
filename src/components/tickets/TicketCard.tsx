@@ -24,7 +24,7 @@ const statusConfig = {
   open: { label: "Open", color: "text-amber-600", bg: "bg-amber-50", dot: "bg-amber-500" },
   pending_parent: { label: "Pending", color: "text-purple-600", bg: "bg-purple-50", dot: "bg-purple-500" },
   resolved: { label: "Resolved", color: "text-emerald-600", bg: "bg-emerald-50", dot: "bg-emerald-500" },
-  closed: { label: "Closed", color: "text-muted", bg: "bg-surface/50", dot: "bg-gray-400" },
+  closed: { label: "Closed", color: "text-muted", bg: "bg-surface/50", dot: "bg-muted/60" },
 };
 
 function timeAgo(dateString: string): string {

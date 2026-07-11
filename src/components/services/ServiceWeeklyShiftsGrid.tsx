@@ -672,7 +672,7 @@ function CertExpiryBadge({ status }: { status: UserCertStatus }) {
     <span
       title={tooltip || verdictText}
       className={cn(
-        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-[10px] font-medium",
+        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-2xs font-medium",
         palette,
       )}
     >

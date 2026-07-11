@@ -68,7 +68,7 @@ function statusPill(s: ApprovalStatus): string {
     case "rejected":
       return "bg-red-50 text-red-700 border-red-200";
     case "cancelled":
-      return "bg-gray-50 text-gray-700 border-gray-200";
+      return "bg-surface text-foreground/80 border-border";
     default:
       return "bg-amber-50 text-amber-700 border-amber-200";
   }

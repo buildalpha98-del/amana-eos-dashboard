@@ -169,11 +169,11 @@ export function KeyboardShortcuts() {
     <>
       {/* G-pending indicator */}
       {gPending && (
-        <div className="fixed bottom-4 right-4 z-50 hidden md:flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg shadow-lg text-sm text-muted-foreground animate-in fade-in duration-150">
+        <div className="fixed bottom-4 right-4 z-50 hidden md:flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg shadow-lg text-sm text-muted animate-in fade-in duration-150">
           <kbd className="px-1.5 py-0.5 bg-surface border border-border rounded text-xs font-mono font-medium">
             g
           </kbd>
-          <span className="text-muted-foreground/70">...</span>
+          <span className="text-muted/70">...</span>
         </div>
       )}
 
@@ -189,7 +189,7 @@ export function KeyboardShortcuts() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-5 pb-3">
               <div className="flex items-center gap-2.5">
-                <Keyboard className="w-5 h-5 text-muted-foreground" />
+                <Keyboard className="w-5 h-5 text-muted" />
                 <h2 className="text-base font-semibold text-foreground">
                   Keyboard Shortcuts
                 </h2>
@@ -197,7 +197,7 @@ export function KeyboardShortcuts() {
               <button
                 onClick={() => setOverlayOpen(false)}
                 aria-label="Close keyboard shortcuts"
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface transition-colors"
+                className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-surface transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -207,7 +207,7 @@ export function KeyboardShortcuts() {
             <div className="px-6 pb-4 space-y-5 max-h-[60vh] overflow-y-auto">
               {shortcutGroups.map((group) => (
                 <div key={group.title}>
-                  <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
+                  <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2.5">
                     {group.title}
                   </h3>
                   <div className="space-y-1.5">
@@ -223,11 +223,11 @@ export function KeyboardShortcuts() {
                           {shortcut.keys.map((key, i) => (
                             <span key={i} className="flex items-center gap-1">
                               {i > 0 && (
-                                <span className="text-xs text-muted-foreground/50 mx-0.5">
+                                <span className="text-xs text-muted/50 mx-0.5">
                                   then
                                 </span>
                               )}
-                              <kbd className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 bg-surface border border-border rounded-md text-xs font-mono font-medium text-muted-foreground">
+                              <kbd className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 bg-surface border border-border rounded-md text-xs font-mono font-medium text-muted">
                                 {key}
                               </kbd>
                             </span>
@@ -242,9 +242,9 @@ export function KeyboardShortcuts() {
 
             {/* Footer */}
             <div className="border-t border-border px-6 py-3 flex items-center justify-center">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 Press{" "}
-                <kbd className="px-1.5 py-0.5 bg-surface border border-border rounded text-[10px] font-mono font-medium">
+                <kbd className="px-1.5 py-0.5 bg-surface border border-border rounded text-2xs font-mono font-medium">
                   ?
                 </kbd>{" "}
                 to toggle this help

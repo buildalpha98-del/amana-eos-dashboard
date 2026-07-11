@@ -203,7 +203,7 @@ export default function ProjectsPage() {
                   </div>
                   <span
                     className={cn(
-                      "px-2 py-0.5 text-[10px] font-medium rounded-full",
+                      "px-2 py-0.5 text-2xs font-medium rounded-full",
                       status.color
                     )}
                   >
@@ -211,7 +211,7 @@ export default function ProjectsPage() {
                   </span>
                   <div className="w-24">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-muted">
+                      <span className="text-2xs text-muted">
                         {project.progress.percent}%
                       </span>
                     </div>

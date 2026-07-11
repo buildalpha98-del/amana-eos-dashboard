@@ -70,9 +70,9 @@ const NQS_AREA_LABELS: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
   active: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
-  draft: { bg: "bg-gray-100", text: "text-gray-600", icon: Clock },
+  draft: { bg: "bg-surface", text: "text-muted", icon: Clock },
   under_review: { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle },
-  archived: { bg: "bg-gray-100", text: "text-gray-400", icon: Clock },
+  archived: { bg: "bg-surface", text: "text-muted/70", icon: Clock },
 };
 
 const RATING_COLORS: Record<string, string> = {
@@ -80,7 +80,7 @@ const RATING_COLORS: Record<string, string> = {
   meeting: "bg-blue-100 text-blue-700",
   working_towards: "bg-amber-100 text-amber-700",
   requires_improvement: "bg-red-100 text-red-700",
-  not_assessed: "bg-gray-100 text-gray-500",
+  not_assessed: "bg-surface text-muted",
 };
 
 export function ServiceQIPTab({ serviceId }: { serviceId: string }) {

@@ -23,7 +23,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   in_progress: { label: "In Progress", color: "bg-amber-100 text-amber-700", icon: Play },
   completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle2 },
   overdue: { label: "Overdue", color: "bg-red-100 text-red-700", icon: AlertTriangle },
-  skipped: { label: "Skipped", color: "bg-gray-100 text-gray-500", icon: SkipForward },
+  skipped: { label: "Skipped", color: "bg-surface text-muted", icon: SkipForward },
 };
 
 function scoreColor(score: number | null) {

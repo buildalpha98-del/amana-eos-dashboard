@@ -232,7 +232,7 @@ export function ServiceMonthlyRollCallView({
                         {day!.attended}/{day!.booked}
                       </span>
                       {day!.absent > 0 && (
-                        <span className="text-[10px] text-muted">
+                        <span className="text-2xs text-muted">
                           {day!.absent} absent
                         </span>
                       )}

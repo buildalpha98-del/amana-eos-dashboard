@@ -119,7 +119,7 @@ export function TrendInsightsWidget({ serviceId, category, className }: TrendIns
                         key={i}
                         className={cn(
                           "w-2 rounded-t-sm",
-                          i >= (t.dataPoints as number[]).length - 2 ? "bg-blue-400" : "bg-gray-300"
+                          i >= (t.dataPoints as number[]).length - 2 ? "bg-blue-400" : "bg-muted/30"
                         )}
                         style={{ height: `${Math.max(height, 8)}%` }}
                       />

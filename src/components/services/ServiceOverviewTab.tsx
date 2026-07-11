@@ -151,7 +151,7 @@ export function ServiceOverviewTab({
               <Icon className="w-4 h-4 text-brand" />
               <div>
                 <p className="text-lg font-semibold text-foreground">{value}</p>
-                <p className="text-[10px] text-muted uppercase tracking-wider">{label}</p>
+                <p className="text-2xs text-muted uppercase tracking-wider">{label}</p>
               </div>
             </div>
           ))}
@@ -183,7 +183,7 @@ export function ServiceOverviewTab({
                   </span>
                   <span
                     className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded-full border font-medium capitalize",
+                      "text-2xs px-1.5 py-0.5 rounded-full border font-medium capitalize",
                       project.status === "active"
                         ? "bg-emerald-100 text-emerald-700 border-emerald-300"
                         : project.status === "onboarding"
@@ -191,8 +191,8 @@ export function ServiceOverviewTab({
                         : project.status === "closing"
                         ? "bg-amber-100 text-amber-700 border-amber-300"
                         : project.status === "closed"
-                        ? "bg-gray-100 text-gray-500 border-gray-300"
-                        : "bg-gray-100 text-gray-500 border-gray-300"
+                        ? "bg-surface text-muted border-border"
+                        : "bg-surface text-muted border-border"
                     )}
                   >
                     {project.status.replace(/_/g, " ")}

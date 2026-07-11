@@ -43,7 +43,7 @@ export function ParentFeedbackCard({ serviceId }: { serviceId: string }) {
         <div className="flex items-center gap-1">
           <button
             onClick={copyLink}
-            className="text-[10px] text-muted hover:text-foreground/80 flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border hover:border-border"
+            className="text-2xs text-muted hover:text-foreground/80 flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border hover:border-border"
             title="Copy survey link"
           >
             {copied ? "Copied!" : <><Copy className="w-3 h-3" /> Survey Link</>}
@@ -52,7 +52,7 @@ export function ParentFeedbackCard({ serviceId }: { serviceId: string }) {
             href={surveyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] text-muted hover:text-foreground/80 flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border hover:border-border"
+            className="text-2xs text-muted hover:text-foreground/80 flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border hover:border-border"
           >
             <ExternalLink className="w-3 h-3" /> Preview
           </a>
@@ -94,7 +94,7 @@ export function ParentFeedbackCard({ serviceId }: { serviceId: string }) {
           {/* Weekly trend (sparkline using bars) */}
           {data.weeklyData?.length > 1 && (
             <div>
-              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">
+              <p className="text-2xs text-muted uppercase tracking-wider mb-1">
                 Weekly Trend
               </p>
               <div className="flex items-end gap-1 h-8">

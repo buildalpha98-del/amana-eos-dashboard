@@ -36,7 +36,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 const PRIORITY_DOT: Record<string, string> = {
   high: "bg-red-400",
   medium: "bg-amber-400",
-  low: "bg-gray-300",
+  low: "bg-muted/30",
 };
 
 export function TaskTemplatePickerModal({ open, onClose }: Props) {
@@ -161,7 +161,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                           </h3>
                           {template.category && (
                             <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold ${
                                 CATEGORY_COLORS[template.category] ??
                                 "bg-surface text-muted"
                               }`}
@@ -178,7 +178,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
+                        <span className="rounded-full bg-surface px-2 py-0.5 text-2xs font-semibold text-muted">
                           {template.items.length} tasks
                         </span>
                         <button
@@ -212,7 +212,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                             </span>
                             <span
                               className={`shrink-0 h-1.5 w-1.5 rounded-full ${
-                                PRIORITY_DOT[item.priority] ?? "bg-gray-300"
+                                PRIORITY_DOT[item.priority] ?? "bg-muted/30"
                               }`}
                             />
                             <span className="flex-1 text-foreground/80 truncate">

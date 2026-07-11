@@ -99,14 +99,14 @@ export function InfoSnippets() {
             New Information
           </h3>
           {unacknowledgedCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-[10px] font-bold">
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-2xs font-bold">
               {unacknowledgedCount}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {unacknowledgedCount === 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-2xs font-semibold">
               <CheckCircle2 className="w-3 h-3" />
               All caught up
             </span>
@@ -162,11 +162,11 @@ function SnippetCard({
         </p>
         <div className="flex items-center gap-2 mt-1.5">
           {snippet.category && (
-            <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
+            <span className="text-2xs font-medium text-muted uppercase tracking-wider">
               {snippet.category}
             </span>
           )}
-          <span className="text-[10px] text-muted/50">
+          <span className="text-2xs text-muted/50">
             {snippet.totalAcks}/{snippet.totalUsers} acknowledged
           </span>
         </div>

@@ -20,7 +20,7 @@ export interface RatioBadgeProps {
  */
 
 const STATUS_STYLES: Record<RatioStatus, string> = {
-  none: "bg-gray-100 text-gray-700 border-gray-300",
+  none: "bg-surface text-foreground/80 border-border",
   ok: "bg-green-100 text-green-800 border-green-400",
   warning: "bg-amber-100 text-amber-800 border-amber-400",
   breach: "bg-red-100 text-red-800 border-red-400",

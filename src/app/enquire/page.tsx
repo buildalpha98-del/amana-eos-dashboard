@@ -8,12 +8,12 @@ export const metadata = {
 
 export default function ParentEnquirePage() {
   return (
-    <main className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
+    <main className="min-h-screen bg-background flex items-center justify-center p-4">
       <Suspense
         fallback={
-          <div className="w-full max-w-md rounded-2xl border-2 border-[#e8e4df] bg-white p-8 shadow-sm">
-            <div className="h-6 w-2/3 bg-[#e8e4df] rounded animate-pulse mb-4" />
-            <div className="h-4 w-full bg-[#e8e4df] rounded animate-pulse" />
+          <div className="w-full max-w-md rounded-2xl border-2 border-border bg-card p-8 shadow-sm">
+            <div className="h-6 w-2/3 bg-border rounded animate-pulse mb-4" />
+            <div className="h-4 w-full bg-border rounded animate-pulse" />
           </div>
         }
       >

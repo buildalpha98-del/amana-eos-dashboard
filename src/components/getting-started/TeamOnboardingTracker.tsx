@@ -63,7 +63,7 @@ const roleBadge: Record<string, { label: string; className: string }> = {
   },
   member: {
     label: ROLE_DISPLAY_NAMES.member,
-    className: "bg-gray-100 text-gray-700",
+    className: "bg-surface text-foreground/80",
   },
   staff: {
     label: ROLE_DISPLAY_NAMES.staff,
@@ -92,7 +92,7 @@ function getStatusLabel(pct: number): {
     return { text: "Complete", className: "text-emerald-700 bg-emerald-50" };
   if (pct > 0)
     return { text: "In Progress", className: "text-amber-700 bg-amber-50" };
-  return { text: "Not Started", className: "text-gray-500 bg-gray-100" };
+  return { text: "Not Started", className: "text-muted bg-surface" };
 }
 
 // ---------------------------------------------------------------------------
@@ -121,8 +121,8 @@ export function TeamOnboardingTracker() {
       label: "Total Staff",
       value: summary?.totalUsers ?? 0,
       icon: Users,
-      color: "text-gray-700",
-      bg: "bg-gray-50",
+      color: "text-foreground/80",
+      bg: "bg-surface",
     },
     {
       label: "Fully Onboarded",
@@ -212,7 +212,7 @@ export function TeamOnboardingTracker() {
                       <div className="flex items-center gap-2 mt-0.5">
                         <span
                           className={cn(
-                            "inline-block px-2 py-0.5 rounded-full text-[10px] font-medium",
+                            "inline-block px-2 py-0.5 rounded-full text-2xs font-medium",
                             badge.className,
                           )}
                         >
@@ -220,7 +220,7 @@ export function TeamOnboardingTracker() {
                         </span>
                         <span
                           className={cn(
-                            "inline-block px-2 py-0.5 rounded-full text-[10px] font-medium",
+                            "inline-block px-2 py-0.5 rounded-full text-2xs font-medium",
                             status.className,
                           )}
                         >
@@ -238,7 +238,7 @@ export function TeamOnboardingTracker() {
                             ? "bg-emerald-500"
                             : user.percentage > 0
                               ? "bg-amber-400"
-                              : "bg-gray-200",
+                              : "bg-border",
                         )}
                         style={{ width: `${user.percentage}%` }}
                       />
@@ -361,7 +361,7 @@ export function TeamOnboardingTracker() {
                                     ? "bg-emerald-500"
                                     : user.percentage > 0
                                       ? "bg-amber-400"
-                                      : "bg-gray-200",
+                                      : "bg-border",
                                 )}
                                 style={{
                                   width: `${user.percentage}%`,

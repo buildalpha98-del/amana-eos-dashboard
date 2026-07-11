@@ -146,7 +146,7 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
             type="button"
             onClick={() => markAll.mutate()}
             disabled={markAll.isPending}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-muted hover:text-foreground hover:bg-surface transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-medium text-muted hover:text-foreground hover:bg-surface transition-colors disabled:opacity-50"
             title="Mark all as read"
           >
             <CheckCheck className="w-3 h-3" />
@@ -199,7 +199,7 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
                         >
                           {n.title}
                         </span>
-                        <span className="text-[10px] text-muted flex-shrink-0">
+                        <span className="text-2xs text-muted flex-shrink-0">
                           {timeAgo(n.createdAt)}
                         </span>
                       </div>

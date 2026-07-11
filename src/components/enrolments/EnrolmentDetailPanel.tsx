@@ -41,7 +41,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   under_review: { label: "Reviewing", color: "text-amber-700", bg: "bg-amber-50" },
   processed: { label: "Confirmed", color: "text-green-700", bg: "bg-green-50" },
   needs_info: { label: "Needs Info", color: "text-orange-700", bg: "bg-orange-50" },
-  archived: { label: "Archived", color: "text-gray-500", bg: "bg-gray-50" },
+  archived: { label: "Archived", color: "text-muted", bg: "bg-surface" },
 };
 
 function Section({
@@ -174,7 +174,7 @@ function PaymentReveal({ enrolmentId }: { enrolmentId: string }) {
 
       {revealed && payment && (
         <div className="mt-2 space-y-1.5 bg-amber-50/50 border border-amber-200 rounded-lg p-3">
-          <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide">
+          <p className="text-2xs font-semibold text-amber-600 uppercase tracking-wide">
             Decrypted — auto-hides in 30s
           </p>
           {payment.method === "credit_card" ? (
@@ -363,7 +363,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
               <button
                 onClick={() => handleStatusChange("archived")}
                 disabled={updateMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-surface text-muted rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
               >
                 <Archive className="h-3.5 w-3.5" />
                 Archive

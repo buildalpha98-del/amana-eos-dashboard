@@ -233,7 +233,7 @@ export function WeeklyPulseTab() {
                   title={m.label}
                 >
                   <span className="text-2xl">{m.emoji}</span>
-                  <span className="text-[10px] text-muted">{m.label}</span>
+                  <span className="text-2xs text-muted">{m.label}</span>
                 </button>
               );
             })}
@@ -271,7 +271,7 @@ export function WeeklyPulseTab() {
               "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors",
               canSubmit && !submitPulse.isPending
                 ? "bg-brand hover:bg-brand/90"
-                : "bg-gray-300 cursor-not-allowed"
+                : "bg-muted/30 cursor-not-allowed"
             )}
           >
             <Send className="h-4 w-4" />
@@ -407,13 +407,13 @@ export function WeeklyPulseTab() {
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pulse.wins && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Wins</p>
+                      <p className="text-2xs uppercase tracking-wider font-semibold text-muted mb-0.5">Wins</p>
                       <p className="text-sm text-foreground/80 line-clamp-2">{pulse.wins}</p>
                     </div>
                   )}
                   {pulse.priorities && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Priorities</p>
+                      <p className="text-2xs uppercase tracking-wider font-semibold text-muted mb-0.5">Priorities</p>
                       <p className="text-sm text-foreground/80 line-clamp-2">{pulse.priorities}</p>
                     </div>
                   )}
@@ -421,14 +421,14 @@ export function WeeklyPulseTab() {
 
                 {pulse.blockers && pulse.blockers.trim() && (
                   <div className="mt-2">
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Blockers</p>
+                    <p className="text-2xs uppercase tracking-wider font-semibold text-muted mb-0.5">Blockers</p>
                     <p className="text-sm text-red-700 bg-red-50 rounded px-2 py-1 line-clamp-2">{pulse.blockers}</p>
                   </div>
                 )}
 
                 {pulse.notes && (
                   <div className="mt-2">
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Notes</p>
+                    <p className="text-2xs uppercase tracking-wider font-semibold text-muted mb-0.5">Notes</p>
                     <p className="text-sm text-muted line-clamp-2">{pulse.notes}</p>
                   </div>
                 )}

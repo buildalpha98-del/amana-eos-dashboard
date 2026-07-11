@@ -28,7 +28,7 @@ function TemplateCategoryBadges({ tasks }: { tasks: ProjectTemplate["tasks"] }) 
       {categories.map(([cat, count]) => (
         <span
           key={cat}
-          className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-surface text-muted"
+          className="inline-flex items-center px-1.5 py-0.5 text-2xs font-medium rounded bg-surface text-muted"
         >
           {cat} ({count})
         </span>
@@ -80,7 +80,7 @@ function TemplateTaskPreview({ template }: { template: ProjectTemplate }) {
       >
         {grouped.map(([category, tasks]) => (
           <div key={category}>
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
+            <p className="text-2xs font-semibold text-muted uppercase tracking-widest mb-1">
               {category}
             </p>
             <div className="space-y-0.5">
@@ -306,7 +306,7 @@ export function CreateProjectModal({
                             {t.name}
                           </p>
                           {isFeatured && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-brand text-white">
+                            <span className="px-1.5 py-0.5 text-2xs font-semibold rounded bg-brand text-white">
                               FEATURED
                             </span>
                           )}

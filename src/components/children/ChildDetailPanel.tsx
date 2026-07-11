@@ -409,7 +409,7 @@ function MedicalSection({
         action={
           <button
             onClick={() => setShowEdit(true)}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-brand bg-brand/10 rounded-md hover:bg-brand/20 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-2xs font-medium text-brand bg-brand/10 rounded-md hover:bg-brand/20 transition-colors"
           >
             <Pencil className="w-3 h-3" />
             Edit
@@ -491,7 +491,7 @@ function MedicalSection({
         {/* Legacy doctor/practice fields from enrolment JSON */}
         {med && (
           <div className="pt-2 mt-2 border-t border-border space-y-1.5">
-            <p className="text-[10px] text-foreground/40 uppercase tracking-wider font-semibold">GP Details</p>
+            <p className="text-2xs text-foreground/40 uppercase tracking-wider font-semibold">GP Details</p>
             <Field label="Doctor" value={med.doctorName as string} />
             <Field label="Practice" value={med.doctorPractice as string} />
             <Field label="Doctor Phone" value={med.doctorPhone as string} />
@@ -787,7 +787,7 @@ function AuthorisedPickupsSection({ childId }: { childId: string }) {
         action={
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-brand bg-brand/10 rounded-md hover:bg-brand/20 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-2xs font-medium text-brand bg-brand/10 rounded-md hover:bg-brand/20 transition-colors"
           >
             <Plus className="w-3 h-3" />
             Add
@@ -811,7 +811,7 @@ function AuthorisedPickupsSection({ childId }: { childId: string }) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-foreground truncate">{p.name}</span>
-                    <span className="text-[10px] text-foreground/50">({p.relationship})</span>
+                    <span className="text-2xs text-foreground/50">({p.relationship})</span>
                     {p.isEmergencyContact && (
                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[9px] font-semibold">
                         <Shield className="w-2.5 h-2.5" />
@@ -819,7 +819,7 @@ function AuthorisedPickupsSection({ childId }: { childId: string }) {
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-foreground/50 flex items-center gap-1 mt-0.5">
+                  <p className="text-2xs text-foreground/50 flex items-center gap-1 mt-0.5">
                     <Phone className="w-2.5 h-2.5" />
                     {p.phone}
                   </p>

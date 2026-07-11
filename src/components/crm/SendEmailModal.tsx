@@ -119,7 +119,7 @@ export function SendEmailModal({
               placeholder="Compose your email..."
               required
             />
-            <p className="text-[10px] text-muted mt-1">
+            <p className="text-2xs text-muted mt-1">
               Available merge tags: {"{{schoolName}}"}, {"{{contactName}}"}, {"{{senderName}}"}, {"{{companyName}}"}
             </p>
           </div>

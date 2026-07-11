@@ -86,21 +86,21 @@ export function StaffOnboardingWidget() {
             <CheckCircle2 className="w-3.5 h-3.5 text-success" />
           </div>
           <div className="text-lg font-bold text-success">{summary.fullyOnboarded}</div>
-          <div className="text-[10px] text-muted">Complete</div>
+          <div className="text-2xs text-muted">Complete</div>
         </div>
         <div className="text-center p-2 rounded-lg bg-surface">
           <div className="flex items-center justify-center gap-1 mb-0.5">
             <Clock className="w-3.5 h-3.5 text-warning" />
           </div>
           <div className="text-lg font-bold text-warning">{summary.inProgress}</div>
-          <div className="text-[10px] text-muted">In Progress</div>
+          <div className="text-2xs text-muted">In Progress</div>
         </div>
         <div className="text-center p-2 rounded-lg bg-surface">
           <div className="flex items-center justify-center gap-1 mb-0.5">
             <XCircle className="w-3.5 h-3.5 text-danger" />
           </div>
           <div className="text-lg font-bold text-danger">{summary.notStarted}</div>
-          <div className="text-[10px] text-muted">Not Started</div>
+          <div className="text-2xs text-muted">Not Started</div>
         </div>
       </div>
 
@@ -125,7 +125,7 @@ export function StaffOnboardingWidget() {
           {incomplete.map((user) => (
             <div key={user.id} className="flex items-center justify-between py-1.5">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-surface flex items-center justify-center text-[10px] font-bold text-muted flex-shrink-0">
+                <div className="w-6 h-6 rounded-full bg-surface flex items-center justify-center text-2xs font-bold text-muted flex-shrink-0">
                   {user.name.charAt(0)}
                 </div>
                 <span className="text-sm text-foreground truncate">{user.name}</span>

@@ -113,7 +113,7 @@ function RevenueCalculator({
               /year
             </span>
           </p>
-          <p className="text-[10px] text-emerald-500 mt-1">
+          <p className="text-2xs text-emerald-500 mt-1">
             Based on {WEEKS_PER_YEAR} school weeks. BSC $
             {RATES.bsc.regular}/session, ASC ${RATES.asc.regular}/session
             (regular rates).
@@ -153,12 +153,12 @@ function OpportunityRow({
             <p className="text-sm font-semibold text-foreground">
               {opp.service.name}
             </p>
-            <span className="text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
+            <span className="text-2xs font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
               {opp.service.code}
             </span>
             <span
               className={cn(
-                "px-2 py-0.5 text-[10px] font-medium rounded-full",
+                "px-2 py-0.5 text-2xs font-medium rounded-full",
                 config.bg,
                 config.color
               )}
@@ -423,12 +423,12 @@ export function ConversionsContent() {
               { label: "Identified", count: stats.identified, color: "bg-blue-500" },
               { label: "Contacted", count: stats.contacted, color: "bg-amber-500" },
               { label: "Converted", count: stats.converted, color: "bg-emerald-500" },
-              { label: "Declined", count: stats.declined, color: "bg-gray-400" },
+              { label: "Declined", count: stats.declined, color: "bg-muted/60" },
             ].map((step, i) => (
               <div key={step.label} className="flex items-center gap-2 flex-1">
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-medium text-foreground/60">{step.label}</span>
+                    <span className="text-2xs font-medium text-foreground/60">{step.label}</span>
                     <span className="text-xs font-bold text-foreground">{step.count}</span>
                   </div>
                   <div className="h-2 bg-surface rounded-full overflow-hidden">
@@ -443,7 +443,7 @@ export function ConversionsContent() {
             ))}
           </div>
           {stats.total > 0 && (
-            <p className="text-[10px] text-foreground/40 mt-2 text-right">
+            <p className="text-2xs text-foreground/40 mt-2 text-right">
               Conversion rate: {((stats.converted / stats.total) * 100).toFixed(1)}%
             </p>
           )}
@@ -465,7 +465,7 @@ export function ConversionsContent() {
                 <h3 className="text-sm font-semibold text-foreground/80">
                   {serviceName}
                 </h3>
-                <span className="text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
+                <span className="text-2xs font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
                   {opps.length} opportunit{opps.length === 1 ? "y" : "ies"}
                 </span>
               </div>

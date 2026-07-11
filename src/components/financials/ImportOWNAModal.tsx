@@ -270,7 +270,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                   "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
                   dragOver
                     ? "border-brand bg-brand/5"
-                    : "border-border hover:border-gray-400 hover:bg-surface"
+                    : "border-border hover:border-muted/60 hover:bg-surface"
                 )}
               >
                 <input
@@ -335,7 +335,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                     "Period End",
                   ].map((col) => (
                     <p key={col} className="text-xs text-muted flex items-center gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-gray-400" />
+                      <span className="w-1 h-1 rounded-full bg-muted/60" />
                       {col}
                     </p>
                   ))}
@@ -458,7 +458,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-border/50">
                       {preview.rows.map((row) => {
                         const totalRev =
                           row.data.totalRevenue ||
@@ -612,7 +612,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                       Imported Records
                     </h4>
                   </div>
-                  <div className="divide-y divide-gray-50 max-h-48 overflow-y-auto">
+                  <div className="divide-y divide-border/50 max-h-48 overflow-y-auto">
                     {result.results.map((r, i) => (
                       <div
                         key={i}

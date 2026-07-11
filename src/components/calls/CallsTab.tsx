@@ -142,16 +142,16 @@ const CALL_TYPE_LABELS: Record<string, string> = {
 
 const CALL_TYPE_COLORS: Record<string, string> = {
   new_enquiry: "bg-emerald-100 text-emerald-800",
-  booking_change: "bg-[#004E64]/10 text-[#004E64]",
+  booking_change: "bg-brand/10 text-brand",
   billing_issue: "bg-orange-100 text-orange-800",
   escalation: "bg-red-100 text-red-800",
   holiday_quest: "bg-purple-100 text-purple-800",
-  general_message: "bg-gray-100 text-gray-700",
+  general_message: "bg-surface text-foreground/80",
 };
 
 const URGENCY_COLORS: Record<string, string> = {
-  routine: "bg-gray-100 text-gray-700",
-  urgent: "bg-[#FECE00]/20 text-amber-900",
+  routine: "bg-surface text-foreground/80",
+  urgent: "bg-accent/20 text-amber-900",
   critical: "bg-red-100 text-red-800",
 };
 
@@ -159,7 +159,7 @@ const STATUS_COLORS: Record<string, string> = {
   new: "bg-blue-100 text-blue-800",
   in_progress: "bg-amber-100 text-amber-800",
   actioned: "bg-emerald-100 text-emerald-800",
-  closed: "bg-gray-100 text-gray-700",
+  closed: "bg-surface text-foreground/80",
 };
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -388,7 +388,7 @@ export function CallsTab() {
       <>
       {/* ── Summary Cards ─────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Calls Today" value={stats?.todayTotal ?? 0} icon={Phone} color="text-[#004E64]" />
+        <StatCard label="Calls Today" value={stats?.todayTotal ?? 0} icon={Phone} color="text-brand" />
         <StatCard label="Awaiting Action" value={stats?.awaitingAction ?? 0} icon={PhoneIncoming} color="text-blue-600" />
         <StatCard label="Urgent / Critical" value={stats?.urgentCritical ?? 0} icon={AlertTriangle} color="text-red-600" />
         <StatCard label="Actioned Today" value={stats?.actionedToday ?? 0} icon={CheckCircle} color="text-emerald-600" />
@@ -470,17 +470,17 @@ export function CallsTab() {
               <button
                 key={call.id}
                 onClick={() => setSelectedCall(call)}
-                className="w-full text-left bg-card border border-border rounded-xl p-3 hover:border-[#004E64]/40 active:scale-[0.99] transition"
+                className="w-full text-left bg-card border border-border rounded-xl p-3 hover:border-brand/40 active:scale-[0.99] transition"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex flex-wrap gap-1.5">
-                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-gray-100 text-gray-700")}>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-surface text-foreground/80")}>
                       {CALL_TYPE_LABELS[call.callType] ?? call.callType}
                     </span>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", URGENCY_COLORS[call.urgency] ?? "bg-gray-100")}>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", URGENCY_COLORS[call.urgency] ?? "bg-surface")}>
                       {call.urgency}
                     </span>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", STATUS_COLORS[call.status] ?? "bg-gray-100")}>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", STATUS_COLORS[call.status] ?? "bg-surface")}>
                       {call.status.replace("_", " ")}
                     </span>
                   </div>
@@ -496,16 +496,16 @@ export function CallsTab() {
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-500" aria-label="Call did not capture key details" />
                   )}
                   {call.linkedEnquiryId && (
-                    <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">Enquiry</span>
+                    <span className="ml-auto px-1.5 py-0.5 rounded text-2xs font-medium bg-emerald-50 text-emerald-700">Enquiry</span>
                   )}
                   {call.linkedTodoId && (
-                    <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700", !call.linkedEnquiryId && "ml-auto")}>Todo</span>
+                    <span className={cn("px-1.5 py-0.5 rounded text-2xs font-medium bg-blue-50 text-blue-700", !call.linkedEnquiryId && "ml-auto")}>Todo</span>
                   )}
                   {call.slaAlertedAt && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700">SLA</span>
+                    <span className="px-1.5 py-0.5 rounded text-2xs font-medium bg-red-50 text-red-700">SLA</span>
                   )}
                   {call.repeatCaller && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-50 text-orange-700">Repeat</span>
+                    <span className="px-1.5 py-0.5 rounded text-2xs font-medium bg-orange-50 text-orange-700">Repeat</span>
                   )}
                 </div>
                 {call.summary && (
@@ -548,12 +548,12 @@ export function CallsTab() {
                       )}
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-gray-100 text-gray-700")}>
+                      <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-surface text-foreground/80")}>
                         {CALL_TYPE_LABELS[call.callType] ?? call.callType}
                       </span>
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", URGENCY_COLORS[call.urgency] ?? "bg-gray-100")}>
+                      <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", URGENCY_COLORS[call.urgency] ?? "bg-surface")}>
                         {call.urgency}
                       </span>
                     </td>
@@ -563,7 +563,7 @@ export function CallsTab() {
                     </td>
                     <td className="px-3 py-2.5 hidden lg:table-cell">
                       {call.parentPhone ? (
-                        <a href={`tel:${call.parentPhone}`} className="text-[#004E64] hover:underline">{call.parentPhone}</a>
+                        <a href={`tel:${call.parentPhone}`} className="text-brand hover:underline">{call.parentPhone}</a>
                       ) : "—"}
                     </td>
                     <td className="px-3 py-2.5 hidden md:table-cell text-xs">{call.centreName || "—"}</td>
@@ -573,7 +573,7 @@ export function CallsTab() {
                         onChange={(e) => handleStatusChange(call.id, e.target.value)}
                         className={cn(
                           "px-2 py-0.5 rounded text-xs font-medium border-0 focus:ring-2 focus:ring-brand cursor-pointer",
-                          STATUS_COLORS[call.status] ?? "bg-gray-100",
+                          STATUS_COLORS[call.status] ?? "bg-surface",
                         )}
                       >
                         <option value="new">New</option>
@@ -609,7 +609,7 @@ export function CallsTab() {
                     <td className="px-3 py-2.5">
                       <button
                         onClick={() => setSelectedCall(call)}
-                        className="px-2.5 py-1 text-xs font-medium text-[#004E64] hover:bg-[#004E64]/5 rounded transition-colors"
+                        className="px-2.5 py-1 text-xs font-medium text-brand hover:bg-brand/5 rounded transition-colors"
                       >
                         View
                       </button>
@@ -685,7 +685,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
       <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col">
         <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-shrink-0">
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Phone className="w-5 h-5 text-[#004E64]" />
+            <Phone className="w-5 h-5 text-brand" />
             Call Details
           </SheetTitle>
           <button
@@ -725,7 +725,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
           {call.summary && (
             <section>
               <h3 className="text-sm font-semibold text-foreground mb-2">Summary</h3>
-              <div className="bg-[#004E64]/5 border-l-4 border-[#004E64] rounded-r-lg p-3 text-sm text-foreground/90 leading-relaxed">
+              <div className="bg-brand/5 border-l-4 border-brand rounded-r-lg p-3 text-sm text-foreground/90 leading-relaxed">
                 {call.summary}
               </div>
             </section>
@@ -810,7 +810,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
                   href={`/api/calls/${call.id}/welcome-pack`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-[#004E64] text-[#004E64] rounded-lg text-sm font-medium hover:bg-[#004E64]/5 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-brand text-brand rounded-lg text-sm font-medium hover:bg-brand/5 transition-colors"
                 >
                   <ChevronDown className="w-4 h-4" />
                   Welcome Pack PDF
@@ -828,10 +828,10 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
               <div className="bg-surface rounded-lg p-3 space-y-1.5 text-sm">
                 {call.parentName && <Row label="Name" value={call.parentName} />}
                 {call.parentPhone && (
-                  <Row label="Phone" value={<a href={`tel:${call.parentPhone}`} className="text-[#004E64] hover:underline">{call.parentPhone}</a>} />
+                  <Row label="Phone" value={<a href={`tel:${call.parentPhone}`} className="text-brand hover:underline">{call.parentPhone}</a>} />
                 )}
                 {call.parentEmail && (
-                  <Row label="Email" value={<a href={`mailto:${call.parentEmail}`} className="text-[#004E64] hover:underline">{call.parentEmail}</a>} />
+                  <Row label="Email" value={<a href={`mailto:${call.parentEmail}`} className="text-brand hover:underline">{call.parentEmail}</a>} />
                 )}
                 {call.childName && <Row label="Child" value={call.childName} />}
                 {call.centreName && <Row label="Centre" value={call.centreName} />}
@@ -869,7 +869,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
             <section>
               <button
                 onClick={() => setTranscriptOpen(!transcriptOpen)}
-                className="flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-[#004E64] transition-colors"
+                className="flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-brand transition-colors"
               >
                 {transcriptOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 Transcript
@@ -888,7 +888,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
               href={call.recordingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[#004E64]/5 text-[#004E64] rounded-lg hover:bg-[#004E64]/10 transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-brand/5 text-brand rounded-lg hover:bg-brand/10 transition-colors text-sm font-medium"
             >
               <Play className="w-4 h-4" /> Play Recording
             </a>
@@ -1000,7 +1000,7 @@ function ConvertToEnquiryButton({ callId, onSuccess }: { callId: string; onSucce
     <button
       onClick={handleConvert}
       disabled={loading}
-      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg text-sm font-medium hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-brand text-white rounded-lg text-sm font-medium hover:bg-[#003d4f] transition-colors disabled:opacity-50"
     >
       <UserPlus className="w-4 h-4" />
       {loading ? "Creating enquiry..." : "Convert to Enquiry"}

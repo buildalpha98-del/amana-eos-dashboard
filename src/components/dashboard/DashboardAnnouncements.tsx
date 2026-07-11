@@ -125,7 +125,7 @@ export function DashboardAnnouncements() {
                   </h4>
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium flex-shrink-0",
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium flex-shrink-0",
                       priority.bg,
                       priority.text
                     )}

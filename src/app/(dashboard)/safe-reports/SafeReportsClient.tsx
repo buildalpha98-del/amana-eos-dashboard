@@ -76,11 +76,11 @@ function statusPill(status: string): { class: string; label: string } {
       };
     case "closed_no_action":
       return {
-        class: "bg-gray-100 text-gray-700 border-gray-200",
+        class: "bg-surface text-foreground/80 border-border",
         label: "Closed (no action)",
       };
     default:
-      return { class: "bg-gray-100 text-gray-800", label: status };
+      return { class: "bg-surface text-foreground", label: status };
   }
 }
 
@@ -266,7 +266,7 @@ function ReportDetail({
             <p className="text-xs text-muted mt-0.5">
               Received {formatDate(report.createdAt)}
               {report.service && ` · ${report.service.name}`} · id{" "}
-              <code className="text-[10px]">{report.id}</code>
+              <code className="text-2xs">{report.id}</code>
             </p>
           </div>
           <button

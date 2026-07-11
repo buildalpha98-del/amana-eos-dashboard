@@ -147,7 +147,7 @@ export function RegionalRollup({
                     >
                       {group.state}
                     </p>
-                    <p className="text-[10px] text-muted leading-tight">
+                    <p className="text-2xs text-muted leading-tight">
                       {fullName}
                     </p>
                   </div>

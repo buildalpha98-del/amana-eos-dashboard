@@ -88,7 +88,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         className={cn(
           "fixed left-0 top-0 h-screen text-white flex flex-col transition-all duration-300 z-50 backdrop-blur-xl",
           // Rich gradient background
-          "bg-gradient-to-b from-[#002E3D] to-[#001824]",
+          "bg-gradient-to-b from-brand-dark to-[#001824]",
           // Mobile: off-canvas drawer via translate
           "w-64 -translate-x-full md:translate-x-0",
           // Desktop: collapse toggle
@@ -111,7 +111,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               <h1 className="text-sm font-semibold tracking-tight truncate">
                 Amana OSHC
               </h1>
-              <p className="text-[10px] text-white/50 uppercase tracking-wider">
+              <p className="text-2xs text-white/50 uppercase tracking-wider">
                 EOS Dashboard
               </p>
             </div>
@@ -147,7 +147,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                         isActive
-                          ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
+                          ? "bg-white/[0.08] text-white border-l-2 border-accent ml-0.5"
                           : "text-white/70 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
                       )}
                       title={item.tooltip ?? undefined}
@@ -240,7 +240,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                           className={cn(
                             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                             isActive
-                              ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
+                              ? "bg-white/[0.08] text-white border-l-2 border-accent ml-0.5"
                               : "text-white/70 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
                           )}
                           title={
@@ -263,19 +263,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                                 {item.label}
                               </span>
                               {item.href === "/bookings" && bookingRequestCount != null && bookingRequestCount > 0 && (
-                                <span className="ml-auto flex-shrink-0 rounded-full bg-[#FECE00] px-1.5 py-0.5 text-[10px] font-bold text-[#004E64] leading-none min-w-[18px] text-center">
+                                <span className="ml-auto flex-shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-2xs font-bold text-brand leading-none min-w-[18px] text-center">
                                   {bookingRequestCount > 99 ? "99+" : bookingRequestCount}
                                 </span>
                               )}
                               {item.href === "/messaging" && unreadMessageCount != null && unreadMessageCount > 0 && (
-                                <span className="ml-auto flex-shrink-0 rounded-full bg-[#FECE00] px-1.5 py-0.5 text-[10px] font-bold text-[#004E64] leading-none min-w-[18px] text-center">
+                                <span className="ml-auto flex-shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-2xs font-bold text-brand leading-none min-w-[18px] text-center">
                                   {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
                                 </span>
                               )}
                               {item.href === "/policies" && pendingPoliciesCount?.count != null && pendingPoliciesCount.count > 0 && (
                                 <span
                                   aria-label={`${pendingPoliciesCount.count} acknowledgements required`}
-                                  className="ml-auto flex-shrink-0 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none min-w-[18px] text-center"
+                                  className="ml-auto flex-shrink-0 rounded-full bg-rose-600 px-1.5 py-0.5 text-2xs font-bold text-white leading-none min-w-[18px] text-center"
                                 >
                                   {pendingPoliciesCount.count > 99 ? "99+" : pendingPoliciesCount.count}
                                 </span>
@@ -329,7 +329,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <div className="border-t border-white/[0.06] p-3">
           {session?.user && (
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#002E3D] to-[#004D6D] flex items-center justify-center text-xs font-medium ring-1 ring-white/10">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-brand-dark to-[#004D6D] flex items-center justify-center text-xs font-medium ring-1 ring-white/10">
                 {session.user.name
                   ?.split(" ")
                   .map((n) => n[0])
@@ -342,7 +342,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   <p className="text-sm font-medium truncate">
                     {session.user.name}
                   </p>
-                  <p className="text-[10px] text-white/40 capitalize">
+                  <p className="text-2xs text-white/40 capitalize">
                     {session.user.role}
                   </p>
                 </div>
@@ -363,7 +363,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <button
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute -right-3.5 top-20 w-7 h-5 rounded-full bg-[#002E3D]/90 backdrop-blur-sm border border-white/15 hidden md:flex items-center justify-center text-white/50 hover:text-white hover:bg-[#002E3D] transition-all duration-200"
+          className="absolute -right-3.5 top-20 w-7 h-5 rounded-full bg-brand-dark/90 backdrop-blur-sm border border-white/15 hidden md:flex items-center justify-center text-white/50 hover:text-white hover:bg-brand-dark transition-all duration-200"
         >
           {collapsed ? (
             <ChevronRight className="w-3 h-3" />

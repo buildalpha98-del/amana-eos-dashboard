@@ -48,11 +48,11 @@ function StatusBadge({ status }: { status: SwapItem["status"] }) {
     accepted: "bg-blue-100 text-blue-900",
     approved: "bg-green-100 text-green-900",
     rejected: "bg-red-100 text-red-900",
-    cancelled: "bg-gray-100 text-gray-700",
+    cancelled: "bg-surface text-foreground/80",
   };
   return (
     <span
-      className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ${styles[status]}`}
+      className={`inline-block px-2 py-0.5 rounded-full text-2xs font-medium uppercase tracking-wide ${styles[status]}`}
     >
       {status}
     </span>

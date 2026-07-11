@@ -490,7 +490,7 @@ function Step2PickDates({
                     : "bg-[color:var(--color-cream-soft)] border-[color:var(--color-border)] text-[color:var(--color-foreground)]/80",
                 )}
               >
-                <div className="text-[10px] font-bold tracking-wider">{d.weekday.toUpperCase()}</div>
+                <div className="text-2xs font-bold tracking-wider">{d.weekday.toUpperCase()}</div>
                 <div className="text-base font-bold leading-none mt-0.5">{d.day}</div>
               </button>
             );

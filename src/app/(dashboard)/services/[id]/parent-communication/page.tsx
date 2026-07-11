@@ -119,7 +119,7 @@ export default function ParentCommunicationPage() {
                     <TypeIcon className="w-4 h-4 text-muted shrink-0" />
                     <h3 className="font-semibold text-foreground">{post.title}</h3>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeBadgeColors[post.type] ?? "bg-gray-100 text-gray-700"}`}
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeBadgeColors[post.type] ?? "bg-surface text-foreground/80"}`}
                     >
                       {typeLabels[post.type] ?? post.type}
                     </span>
@@ -288,7 +288,7 @@ function CommentThread({ serviceId, postId }: { serviceId: string; postId: strin
                 <div className="flex items-baseline gap-2">
                   <span className="text-xs font-semibold">{c.authorName}</span>
                   {c.authorType === "staff" && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-semibold">
+                    <span className="text-2xs px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-semibold">
                       Staff
                     </span>
                   )}

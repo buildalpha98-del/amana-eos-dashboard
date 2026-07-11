@@ -238,7 +238,7 @@ export function IDSSection({
                 {/* Inline Create To-Do */}
                 {showCreateTodo === issue.id ? (
                   <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
-                    <p className="text-[10px] font-medium text-emerald-700 uppercase tracking-wider">Create To-Do from Issue</p>
+                    <p className="text-2xs font-medium text-emerald-700 uppercase tracking-wider">Create To-Do from Issue</p>
                     <input
                       autoFocus
                       value={newTodoTitle}
@@ -264,7 +264,7 @@ export function IDSSection({
                     />
                     {/* Multi-select assignees */}
                     <div>
-                      <p className="text-[10px] font-medium text-muted mb-1">Assign to ({newTodoAssignees.length} selected)</p>
+                      <p className="text-2xs font-medium text-muted mb-1">Assign to ({newTodoAssignees.length} selected)</p>
                       <div className="max-h-32 overflow-y-auto border border-border rounded-md divide-y divide-border/50">
                         {users?.map((u) => {
                           const isSelected = newTodoAssignees.includes(u.id);

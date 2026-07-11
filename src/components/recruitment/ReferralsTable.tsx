@@ -8,7 +8,7 @@ const STATUS_COLORS: Record<Referral["status"], string> = {
   pending: "bg-amber-100 text-amber-700",
   hired: "bg-blue-100 text-blue-700",
   bonus_paid: "bg-emerald-100 text-emerald-700",
-  expired: "bg-gray-100 text-gray-600",
+  expired: "bg-surface text-muted",
 };
 
 const STATUS_LABELS: Record<Referral["status"], string> = {

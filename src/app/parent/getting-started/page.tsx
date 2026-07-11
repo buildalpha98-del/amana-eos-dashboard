@@ -92,7 +92,7 @@ export default function GettingStartedPage() {
       title: "Add the app to your phone",
       description: "Install the Amana Parents app for quick access from your home screen.",
       icon: Smartphone,
-      iconColor: "text-[#004E64]",
+      iconColor: "text-brand",
       isInstallStep: true,
     },
   ];
@@ -169,8 +169,8 @@ export default function GettingStartedPage() {
             return (
               <div key={item.key} className="space-y-2">
                 <div className="flex items-center gap-3 px-1">
-                  <div className={cn("w-5 h-5 rounded-full border-2 shrink-0", "border-[#e8e4df]")} />
-                  <p className="text-sm font-semibold text-[#1a1a2e]">{item.title}</p>
+                  <div className={cn("w-5 h-5 rounded-full border-2 shrink-0", "border-border")} />
+                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
                 </div>
                 <InstallPrompt
                   onInstalled={() => markStep.mutate({ installed: true })}
@@ -207,7 +207,7 @@ export default function GettingStartedPage() {
           return (
             <div
               key={item.key}
-              className="flex items-center gap-3 bg-white/50 rounded-xl p-4 border border-[#e8e4df]/50"
+              className="flex items-center gap-3 bg-white/50 rounded-xl p-4 border border-border/50"
             >
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
               <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">

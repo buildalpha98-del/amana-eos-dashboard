@@ -111,7 +111,7 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
                 className={`${colors.bg} ${colors.border} border rounded-lg p-3 hover:shadow-md transition-shadow group relative`}
               >
                 {/* Rank badge */}
-                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-gray-700 text-white text-[9px] font-bold shadow-sm">
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-foreground text-background text-[9px] font-bold shadow-sm">
                   #{rank}
                 </span>
 
@@ -155,7 +155,7 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
                     </div>
                   ))}
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-muted">
+                <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-2xs text-muted">
                   <span>Occ {centre.metrics.occupancy}%</span>
                   <span>Comp {centre.metrics.compliance}%</span>
                   <span>NPS {centre.metrics.nps}</span>

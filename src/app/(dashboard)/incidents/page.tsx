@@ -54,7 +54,7 @@ const INCIDENT_TYPES = [
 ];
 
 const SEVERITY_LEVELS = [
-  { value: "minor", label: "Minor", color: "bg-gray-100 text-gray-700" },
+  { value: "minor", label: "Minor", color: "bg-surface text-foreground/80" },
   { value: "moderate", label: "Moderate", color: "bg-yellow-100 text-yellow-700" },
   { value: "reportable", label: "Reportable", color: "bg-orange-100 text-orange-700" },
   { value: "serious", label: "Serious", color: "bg-red-100 text-red-700" },
@@ -713,7 +713,7 @@ function TrendsTab() {
                   style={{ height: `${Math.max(height, 3)}%` }}
                   title={`${weekLabel}: ${w.total} incidents`}
                 />
-                <span className="text-[10px] text-foreground/40 whitespace-nowrap">{weekLabel}</span>
+                <span className="text-2xs text-foreground/40 whitespace-nowrap">{weekLabel}</span>
               </div>
             );
           })}

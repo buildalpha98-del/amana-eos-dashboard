@@ -143,7 +143,7 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
               })}
             </span>
             {observation.visibleToParent && (
-              <span className="text-[10px] font-medium bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] px-1.5 py-0.5 rounded-[var(--radius-xs)]">
+              <span className="text-2xs font-medium bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] px-1.5 py-0.5 rounded-[var(--radius-xs)]">
                 Parent-visible
               </span>
             )}
@@ -162,7 +162,7 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
           {observation.mtopOutcomes.map((m) => (
             <span
               key={m}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]"
+              className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]"
             >
               {m}
             </span>
@@ -170,7 +170,7 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
           {observation.interests.map((i) => (
             <span
               key={i}
-              className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)]"
+              className="text-2xs px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)]"
             >
               {i}
             </span>

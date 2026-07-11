@@ -55,8 +55,8 @@ const stageColors: Record<string, string> = {
   submitted: "bg-orange-100 text-orange-700 border-orange-300",
   negotiating: "bg-red-100 text-red-700 border-red-300",
   won: "bg-emerald-100 text-emerald-700 border-emerald-300",
-  lost: "bg-gray-100 text-gray-600 border-gray-300",
-  on_hold: "bg-gray-100 text-gray-500 border-gray-300",
+  lost: "bg-surface text-muted border-border",
+  on_hold: "bg-surface text-muted border-border",
 };
 
 const touchpointTypeOptions: { key: string; label: string }[] = [
@@ -491,7 +491,7 @@ export function LeadDetailDrawer({
                       key={s.key}
                       onClick={() => updateLead.mutate({ id: leadId, pipelineStage: s.key })}
                       className={cn(
-                        "px-2 py-1 text-[10px] font-medium rounded-md border transition-colors",
+                        "px-2 py-1 text-2xs font-medium rounded-md border transition-colors",
                         lead.pipelineStage === s.key
                           ? stageColors[s.key] || "bg-surface text-muted border-border"
                           : "bg-card border-border text-muted hover:border-border"
@@ -593,7 +593,7 @@ export function LeadDetailDrawer({
                         {scoreFactors.map((factor, i) => (
                           <span
                             key={i}
-                            className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-muted"
+                            className="text-2xs px-2 py-0.5 rounded-full bg-surface text-muted"
                           >
                             {factor}
                           </span>
@@ -883,7 +883,7 @@ export function LeadDetailDrawer({
                           <span className="text-xs font-medium text-foreground/80 capitalize">
                             {tp.type.replace(/_/g, " ")}
                           </span>
-                          <span className="text-[10px] text-muted">
+                          <span className="text-2xs text-muted">
                             {new Date(tp.sentAt).toLocaleDateString("en-AU", {
                               day: "numeric",
                               month: "short",
@@ -903,7 +903,7 @@ export function LeadDetailDrawer({
                           </p>
                         )}
                         {tp.sentBy && (
-                          <p className="text-[10px] text-muted mt-0.5">
+                          <p className="text-2xs text-muted mt-0.5">
                             by {tp.sentBy.name}
                           </p>
                         )}
@@ -926,7 +926,7 @@ export function LeadDetailDrawer({
           >
             <Trash2 className="w-4 h-4" />
           </button>
-          <p className="text-[10px] text-muted">
+          <p className="text-2xs text-muted">
             Created{" "}
             {new Date(lead.createdAt).toLocaleDateString("en-AU", {
               day: "numeric",

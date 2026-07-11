@@ -59,14 +59,14 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-[70vh] bg-white rounded-xl shadow-2xl border border-[#e8e4df] z-50 overflow-hidden flex flex-col">
+        <div className="absolute right-0 top-full mt-2 w-80 max-h-[70vh] bg-card rounded-xl shadow-2xl border border-border z-50 overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#e8e4df]">
-            <h3 className="text-sm font-semibold text-[#1a1a2e]">Notifications</h3>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
             {unreadCount > 0 && (
               <button
                 onClick={() => markRead.mutate({ markAllRead: true })}
-                className="flex items-center gap-1 text-xs text-[#004E64] hover:text-[#006B87] font-medium"
+                className="flex items-center gap-1 text-xs text-brand hover:text-[#006B87] font-medium"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
                 Mark all read
@@ -78,7 +78,7 @@ export function NotificationBell() {
           <div className="overflow-y-auto flex-1">
             {notifications.length === 0 ? (
               <div className="py-10 text-center">
-                <Bell className="w-8 h-8 text-[#e8e4df] mx-auto mb-2" />
+                <Bell className="w-8 h-8 text-border mx-auto mb-2" />
                 <p className="text-sm text-muted">No notifications yet</p>
               </div>
             ) : (
@@ -113,22 +113,22 @@ function NotificationRow({
     <Link
       href={n.link}
       onClick={onRead}
-      className={`flex items-start gap-3 px-4 py-3 hover:bg-[#f8f5f2] transition-colors border-b border-[#e8e4df]/50 ${
-        !n.read ? "bg-[#004E64]/5" : ""
+      className={`flex items-start gap-3 px-4 py-3 hover:bg-[#f8f5f2] transition-colors border-b border-border/50 ${
+        !n.read ? "bg-brand/5" : ""
       }`}
     >
-      <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon className="w-4 h-4 text-[#004E64]" />
+      <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center shrink-0 mt-0.5">
+        <Icon className="w-4 h-4 text-brand" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={`text-sm truncate ${!n.read ? "font-semibold text-[#1a1a2e]" : "text-[#1a1a2e]"}`}>
+          <p className={`text-sm truncate ${!n.read ? "font-semibold text-foreground" : "text-foreground"}`}>
             {n.title}
           </p>
-          {!n.read && <span className="w-2 h-2 rounded-full bg-[#004E64] shrink-0" />}
+          {!n.read && <span className="w-2 h-2 rounded-full bg-brand shrink-0" />}
         </div>
         <p className="text-xs text-muted truncate mt-0.5">{n.body}</p>
-        <p className="text-[10px] text-muted mt-1">{timeAgo(n.createdAt)}</p>
+        <p className="text-2xs text-muted mt-1">{timeAgo(n.createdAt)}</p>
       </div>
     </Link>
   );

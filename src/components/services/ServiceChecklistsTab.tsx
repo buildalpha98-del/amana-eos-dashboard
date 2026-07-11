@@ -63,7 +63,7 @@ function statusBadge(status: string) {
     <span
       className={cn(
         "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-        styles[status] || "bg-gray-100 text-gray-500"
+        styles[status] || "bg-surface text-muted"
       )}
     >
       {status.replace(/_/g, " ")}
@@ -205,7 +205,7 @@ function ChecklistCard({
                 markAllComplete.mutate();
               }}
               disabled={markAllComplete.isPending}
-              className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-2 py-1 text-2xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors disabled:opacity-50"
             >
               {markAllComplete.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -269,7 +269,7 @@ function ChecklistCard({
                       {item.label}
                     </span>
                     {item.isRequired && !item.checked && (
-                      <span className="text-[10px] text-amber-600 font-medium">
+                      <span className="text-2xs text-amber-600 font-medium">
                         Required
                       </span>
                     )}

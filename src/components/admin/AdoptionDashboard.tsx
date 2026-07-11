@@ -146,14 +146,14 @@ function StatCard({
         <div className={cn("p-1.5 rounded-lg", color)}>
           <Icon className="w-4 h-4" />
         </div>
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <span className="text-xs font-medium text-muted uppercase tracking-wider">
           {label}
         </span>
       </div>
       <div className="text-2xl font-bold text-foreground">{value}</div>
-      <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+      <p className="text-xs text-muted mt-1">{subtitle}</p>
       {progress !== undefined && (
-        <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="mt-3 h-2 bg-surface rounded-full overflow-hidden">
           <div
             className="h-full bg-brand rounded-full transition-all"
             style={{ width: `${Math.min(progress, 100)}%` }}
@@ -173,7 +173,7 @@ function UserCard({ user }: { user: AdoptionUser }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-foreground">{user.name}</p>
-          <p className="text-xs text-muted-foreground">{user.email}</p>
+          <p className="text-xs text-muted">{user.email}</p>
         </div>
         <span
           className={cn(
@@ -184,16 +184,16 @@ function UserCard({ user }: { user: AdoptionUser }) {
           {status.label}
         </span>
       </div>
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-xs text-muted">
         <span>{ROLE_LABELS[user.role] ?? user.role}</span>
         <span>Last login: {relativeTime(user.lastLoginAt)}</span>
       </div>
       <div>
         <div className="flex items-center justify-between text-xs mb-1">
-          <span className="text-muted-foreground">Onboarding</span>
+          <span className="text-muted">Onboarding</span>
           <span className="font-medium text-foreground">{user.onboardingPct}%</span>
         </div>
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-surface rounded-full overflow-hidden">
           <div
             className={cn(
               "h-full rounded-full transition-all",
@@ -313,7 +313,7 @@ export function AdoptionDashboard() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none" />
             </div>
             {/* Status filter */}
             <div className="relative">
@@ -328,7 +328,7 @@ export function AdoptionDashboard() {
                 <option value="inactive">Inactive</option>
                 <option value="never">Never Logged In</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none" />
             </div>
           </div>
         </div>
@@ -338,19 +338,19 @@ export function AdoptionDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                   Name
                 </th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                   Role
                 </th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                   Last Login
                 </th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                   Onboarding
                 </th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                   Status
                 </th>
                 <th className="w-10"></th>
@@ -369,18 +369,18 @@ export function AdoptionDashboard() {
                     <td className="py-2.5 px-3">
                       <div>
                         <p className="font-medium text-foreground">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                        <p className="text-xs text-muted">{user.email}</p>
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 text-muted-foreground">
+                    <td className="py-2.5 px-3 text-muted">
                       {ROLE_LABELS[user.role] ?? user.role}
                     </td>
-                    <td className="py-2.5 px-3 text-muted-foreground">
+                    <td className="py-2.5 px-3 text-muted">
                       {relativeTime(user.lastLoginAt)}
                     </td>
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="w-16 h-1.5 bg-surface rounded-full overflow-hidden">
                           <div
                             className={cn(
                               "h-full rounded-full",
@@ -391,7 +391,7 @@ export function AdoptionDashboard() {
                             style={{ width: `${user.onboardingPct}%` }}
                           />
                         </div>
-                        <span className="text-xs text-muted-foreground w-8 text-right">
+                        <span className="text-xs text-muted w-8 text-right">
                           {user.onboardingPct}%
                         </span>
                       </div>
@@ -424,7 +424,7 @@ export function AdoptionDashboard() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="py-8 text-center text-sm text-muted-foreground"
+                    className="py-8 text-center text-sm text-muted"
                   >
                     No users match the selected filters.
                   </td>
@@ -437,7 +437,7 @@ export function AdoptionDashboard() {
         {/* Mobile card layout */}
         <div className="sm:hidden space-y-3">
           {filteredUsers.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
+            <p className="py-8 text-center text-sm text-muted">
               No users match the selected filters.
             </p>
           ) : (

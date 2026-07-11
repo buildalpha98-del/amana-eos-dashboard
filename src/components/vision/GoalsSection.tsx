@@ -236,7 +236,7 @@ function GoalRow({
                   Linked rocks are off-track — consider updating goal status
                 </div>
               )}
-              <p className="text-[10px] uppercase tracking-wider text-muted font-medium">
+              <p className="text-2xs uppercase tracking-wider text-muted font-medium">
                 Linked Rocks
               </p>
               {goal.rocks.map((rock) => (
@@ -252,7 +252,7 @@ function GoalRow({
                     {rock.title}
                   </span>
                   <span className={cn(
-                    "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                    "text-2xs font-medium px-1.5 py-0.5 rounded-full",
                     rock.status === "on_track" ? "bg-emerald-100 text-emerald-700" :
                     rock.status === "off_track" ? "bg-red-100 text-red-700" :
                     rock.status === "complete" ? "bg-blue-100 text-blue-700" :
@@ -265,7 +265,7 @@ function GoalRow({
             </div>
           )}
           {goal.targetDate && (
-            <p className="text-[10px] text-muted">
+            <p className="text-2xs text-muted">
               Target:{" "}
               {new Date(goal.targetDate).toLocaleDateString("en-AU", {
                 day: "numeric",

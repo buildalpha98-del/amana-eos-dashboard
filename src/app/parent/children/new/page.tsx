@@ -28,12 +28,12 @@ export default function NewChildPage() {
       <div className="space-y-4">
         <Link
           href="/parent/children"
-          className="inline-flex items-center gap-1 text-sm text-[#004E64] hover:text-[#0A7E9E] font-medium transition-colors min-h-[44px]"
+          className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-light font-medium transition-colors min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to children
         </Link>
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
+        <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
           <p className="text-muted text-sm">
             Unable to load your profile. Please try again.
           </p>
@@ -72,14 +72,14 @@ export default function NewChildPage() {
     <div className="space-y-5">
       <Link
         href="/parent/children"
-        className="inline-flex items-center gap-1 text-sm text-[#004E64] hover:text-[#0A7E9E] font-medium transition-colors min-h-[44px]"
+        className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-light font-medium transition-colors min-h-[44px]"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to children
       </Link>
 
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
+        <h1 className="text-2xl font-heading font-bold text-foreground">
           Enrol a Sibling
         </h1>
         <p className="text-sm text-muted mt-1">

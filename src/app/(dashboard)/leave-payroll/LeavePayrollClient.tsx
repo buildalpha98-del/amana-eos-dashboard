@@ -74,7 +74,7 @@ function statusPill(status: string): string {
   if (s.startsWith("reject"))
     return "bg-red-50 text-red-800 border-red-200";
   if (s.startsWith("cancel"))
-    return "bg-gray-100 text-gray-700 border-gray-200";
+    return "bg-surface text-foreground/80 border-border";
   return "bg-amber-50 text-amber-800 border-amber-200"; // pending
 }
 
@@ -218,7 +218,7 @@ export function LeavePayrollClient() {
                       <span className="font-medium">{r.employee}</span>
                     )}
                     {!r.dashboardUser && (
-                      <span className="block text-[10px] text-amber-700 mt-0.5">
+                      <span className="block text-2xs text-amber-700 mt-0.5">
                         Not linked to a dashboard user
                       </span>
                     )}

@@ -92,12 +92,12 @@ function WeeklyRollCallCellImpl({
         {shift.sessionType}
       </div>
       {shift.signInTime && (
-        <div className="text-[10px] leading-tight truncate">
+        <div className="text-2xs leading-tight truncate">
           In: {formatHourMinute(shift.signInTime)}
         </div>
       )}
       {shift.signOutTime && (
-        <div className="text-[10px] leading-tight truncate">
+        <div className="text-2xs leading-tight truncate">
           Out: {formatHourMinute(shift.signOutTime)}
         </div>
       )}

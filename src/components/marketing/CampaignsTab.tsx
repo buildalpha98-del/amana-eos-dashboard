@@ -128,7 +128,7 @@ export function CampaignsTab({
                     <td className="px-4 py-3 text-muted">
                       <span className="capitalize">{campaign.type}</span>
                       {campaign.type === "activation" && (
-                        <span className="ml-1.5 inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-700">
                           ACT
                         </span>
                       )}
@@ -149,7 +149,7 @@ export function CampaignsTab({
                           {campaign.services.map((s) => (
                             <span
                               key={s.service.id}
-                              className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
+                              className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-2xs font-medium text-brand"
                             >
                               {s.service.code}
                             </span>

@@ -155,7 +155,7 @@ export function AddServiceStaffDialog({
                             </p>
                           </div>
                           {selected ? (
-                            <span className="text-[10px] font-bold uppercase tracking-wide text-[color:var(--color-brand)]">
+                            <span className="text-2xs font-bold uppercase tracking-wide text-[color:var(--color-brand)]">
                               Selected
                             </span>
                           ) : null}

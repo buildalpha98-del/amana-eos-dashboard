@@ -84,7 +84,7 @@ const leaveTypeBadgeColors: Record<string, string> = {
   annual: "bg-blue-100 text-blue-700",
   sick: "bg-red-100 text-red-700",
   personal: "bg-purple-100 text-purple-700",
-  unpaid: "bg-gray-100 text-gray-700",
+  unpaid: "bg-surface text-foreground/80",
   long_service: "bg-teal-100 text-teal-700",
   parental: "bg-pink-100 text-pink-700",
   compassionate: "bg-amber-100 text-amber-700",
@@ -138,13 +138,13 @@ function statusBadge(status: string) {
     case "leave_cancelled":
       return {
         label: "Cancelled",
-        className: "bg-gray-100 text-gray-500",
+        className: "bg-surface text-muted",
         icon: Ban,
       };
     default:
       return {
         label: status,
-        className: "bg-gray-100 text-gray-500",
+        className: "bg-surface text-muted",
         icon: AlertCircle,
       };
   }
@@ -193,7 +193,7 @@ function LeaveTypeBadge({ type }: { type: string }) {
     <span
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-        leaveTypeBadgeColors[type] || "bg-gray-100 text-gray-700"
+        leaveTypeBadgeColors[type] || "bg-surface text-foreground/80"
       )}
     >
       {leaveTypeLabels[type] || type}
@@ -1011,7 +1011,7 @@ function TeamCalendarTab({
                       <div
                         key={j}
                         className={cn(
-                          "text-[10px] leading-tight px-1 py-0.5 rounded truncate",
+                          "text-2xs leading-tight px-1 py-0.5 rounded truncate",
                           entry.status === "leave_approved"
                             ? "bg-emerald-100 text-emerald-700"
                             : "bg-amber-100 text-amber-700"
@@ -1022,7 +1022,7 @@ function TeamCalendarTab({
                       </div>
                     ))}
                     {entries.length > 3 && (
-                      <span className="text-[10px] text-muted px-1">
+                      <span className="text-2xs text-muted px-1">
                         +{entries.length - 3} more
                       </span>
                     )}
@@ -1280,7 +1280,7 @@ export default function LeavePage() {
                 <Icon className="w-4 h-4" />
                 {tab.label}
                 {tab.key === "approvals" && pendingCount > 0 && (
-                  <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-amber-500 text-white rounded-full">
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-2xs font-bold bg-amber-500 text-white rounded-full">
                     {pendingCount}
                   </span>
                 )}

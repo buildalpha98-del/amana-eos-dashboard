@@ -209,7 +209,7 @@ export function EmailTemplateEditorClient({ manifest, initialOverride }: Props) 
             <strong className="text-foreground">Subject:</strong> {previewSubject}
           </div>
           <div
-            className="rounded-md border border-border bg-white p-4 max-w-2xl"
+            className="rounded-md border border-border bg-card p-4 max-w-2xl"
             // Body is preview-only; admin-authored. Saved at PATCH-time only by owner/admin.
             dangerouslySetInnerHTML={{ __html: previewBody }}
           />

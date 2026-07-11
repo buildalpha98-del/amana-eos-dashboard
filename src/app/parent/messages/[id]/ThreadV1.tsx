@@ -52,12 +52,12 @@ export default function ThreadV1() {
       <div className="space-y-4">
         <Link
           href="/parent/messages"
-          className="inline-flex items-center gap-1 text-sm text-[#004E64] hover:text-[#0A7E9E] font-medium transition-colors min-h-[44px]"
+          className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-light font-medium transition-colors min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to messages
         </Link>
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
+        <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
           <p className="text-muted text-sm">Conversation not found.</p>
         </div>
       </div>
@@ -72,13 +72,13 @@ export default function ThreadV1() {
       <div className="space-y-2 mb-4">
         <Link
           href="/parent/messages"
-          className="inline-flex items-center gap-1 text-sm text-[#004E64] hover:text-[#0A7E9E] font-medium transition-colors min-h-[44px]"
+          className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-light font-medium transition-colors min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to messages
         </Link>
         <div>
-          <h1 className="text-lg font-heading font-bold text-[#1a1a2e]">
+          <h1 className="text-lg font-heading font-bold text-foreground">
             {conversation.subject}
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
@@ -100,9 +100,9 @@ export default function ThreadV1() {
         {groupMessagesByDate(conversation.messages).map(({ dateLabel, messages }) => (
           <div key={dateLabel}>
             <div className="flex items-center gap-3 my-4">
-              <div className="flex-1 h-px bg-[#e8e4df]" />
-              <span className="text-[10px] text-muted font-medium uppercase">{dateLabel}</span>
-              <div className="flex-1 h-px bg-[#e8e4df]" />
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-2xs text-muted font-medium uppercase">{dateLabel}</span>
+              <div className="flex-1 h-px bg-border" />
             </div>
             {messages.map((msg) => (
               <MessageBubble key={msg.id} message={msg} />
@@ -114,14 +114,14 @@ export default function ThreadV1() {
 
       {/* Reply input */}
       {isResolved && (
-        <div className="bg-[#F2EDE8] rounded-xl p-4 text-center mb-2">
+        <div className="bg-surface rounded-xl p-4 text-center mb-2">
           <p className="text-sm text-muted">
             This conversation has been resolved. Send a reply to reopen it.
           </p>
         </div>
       )}
 
-      <div className="sticky bottom-20 sm:bottom-4 bg-white rounded-xl border border-[#e8e4df] shadow-lg p-3">
+      <div className="sticky bottom-20 sm:bottom-4 bg-card rounded-xl border border-border shadow-lg p-3">
         <div className="flex items-end gap-2">
           <textarea
             value={replyText}
@@ -129,13 +129,13 @@ export default function ThreadV1() {
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 px-3 py-2.5 border-0 bg-transparent text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none resize-none min-h-[44px] max-h-32"
+            className="flex-1 px-3 py-2.5 border-0 bg-transparent text-sm text-foreground placeholder-muted/60 focus:outline-none resize-none min-h-[44px] max-h-32"
             style={{ fieldSizing: "content" } as React.CSSProperties}
           />
           <button
             onClick={handleSend}
             disabled={!replyText.trim() || sendReply.isPending}
-            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-[#004E64] hover:bg-[#003D52] text-white transition-all disabled:opacity-50 active:scale-[0.95]"
+            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-brand hover:bg-brand-hover text-white transition-all disabled:opacity-50 active:scale-[0.95]"
           >
             {sendReply.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -160,19 +160,19 @@ function MessageBubble({ message: msg }: { message: ConversationMessage }) {
         className={cn(
           "max-w-[80%] rounded-2xl px-4 py-2.5",
           isParent
-            ? "bg-[#004E64] text-white rounded-br-md"
-            : "bg-[#F2EDE8] text-[#1a1a2e] rounded-bl-md"
+            ? "bg-brand text-white rounded-br-md"
+            : "bg-surface text-foreground rounded-bl-md"
         )}
       >
         {!isParent && msg.senderName && (
-          <p className="text-[10px] font-semibold text-[#004E64] mb-0.5">
+          <p className="text-2xs font-semibold text-brand mb-0.5">
             {msg.senderName}
           </p>
         )}
         <p className="text-sm whitespace-pre-wrap break-words">{msg.body}</p>
         <p
           className={cn(
-            "text-[10px] mt-1",
+            "text-2xs mt-1",
             isParent ? "text-white/60" : "text-muted"
           )}
         >

@@ -438,13 +438,13 @@ export function EnrolmentWizard({
                   i < step
                     ? "bg-green-500 text-white"
                     : i === step
-                    ? "bg-[#FECE00] text-[#002E3D]"
+                    ? "bg-accent text-brand-dark"
                     : "bg-card/20 text-white/60"
                 }`}
               >
                 {i < step ? <Check className="h-4 w-4" /> : i + 1}
               </div>
-              <span className="text-[10px] sm:text-xs text-white/80 hidden sm:block font-medium">
+              <span className="text-2xs sm:text-xs text-white/80 hidden sm:block font-medium">
                 {s.label}
               </span>
             </button>
@@ -452,7 +452,7 @@ export function EnrolmentWizard({
         </div>
         <div className="h-1.5 bg-card/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#FECE00] rounded-full transition-all duration-500"
+            className="h-full bg-accent rounded-full transition-all duration-500"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>
@@ -460,8 +460,8 @@ export function EnrolmentWizard({
 
       {/* Resume banner */}
       {showResumeBanner && (
-        <div className="mb-4 p-4 bg-[#FECE00]/10 backdrop-blur border border-[#FECE00]/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <RotateCcw className="h-5 w-5 text-[#FECE00] shrink-0 mt-0.5 sm:mt-0" />
+        <div className="mb-4 p-4 bg-accent/10 backdrop-blur border border-accent/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <RotateCcw className="h-5 w-5 text-accent shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex-1">
             <p className="text-white text-sm font-medium">
               You have saved progress from a previous session
@@ -473,7 +473,7 @@ export function EnrolmentWizard({
           <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={handleResumeProgress}
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-[#FECE00] text-[#002E3D] text-sm font-semibold hover:bg-[#e5b900] transition-colors"
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-accent text-brand-dark text-sm font-semibold hover:bg-[#e5b900] transition-colors"
             >
               Resume
             </button>
@@ -546,7 +546,7 @@ export function EnrolmentWizard({
           </button>
           <button
             onClick={handleNext}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FECE00] text-[#002E3D] font-semibold hover:bg-[#e5b900] transition-colors"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-brand-dark font-semibold hover:bg-[#e5b900] transition-colors"
           >
             Next
             <ChevronRight className="h-4 w-4" />

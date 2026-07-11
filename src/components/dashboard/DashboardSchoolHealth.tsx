@@ -121,7 +121,7 @@ export function DashboardSchoolHealth() {
               <div className="flex items-center justify-between mb-2">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">{s.serviceName}</p>
-                  <p className="text-[10px] text-muted">{s.serviceCode}</p>
+                  <p className="text-2xs text-muted">{s.serviceCode}</p>
                 </div>
                 <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold shrink-0 ml-2", scoreColor(s.healthScore))}>
                   {s.healthScore}

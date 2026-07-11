@@ -273,7 +273,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
               title="Contract content"
               srcDoc={styledHtml}
               sandbox="allow-same-origin"
-              className="w-full h-full bg-white border-0"
+              className="w-full h-full bg-card border-0"
               data-testid="contract-viewer-iframe"
             />
           )}
@@ -282,7 +282,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
             <iframe
               title="Contract PDF"
               src={contract.documentUrl}
-              className="w-full h-full bg-white border-0"
+              className="w-full h-full bg-card border-0"
               data-testid="contract-viewer-iframe"
             />
           )}

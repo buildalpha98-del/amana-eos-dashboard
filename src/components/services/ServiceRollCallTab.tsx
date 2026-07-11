@@ -574,7 +574,7 @@ function RollCallRow({
               {entry.child.firstName} {entry.child.surname}
             </p>
             {entry.bookingType === "casual" && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">
+              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">
                 Casual
               </span>
             )}
@@ -595,7 +595,7 @@ function RollCallRow({
             </div>
           )}
           {entry.child.anaphylaxisActionPlan && (
-            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold uppercase tracking-wide">
+            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-2xs font-bold uppercase tracking-wide">
               Anaphylaxis
             </span>
           )}

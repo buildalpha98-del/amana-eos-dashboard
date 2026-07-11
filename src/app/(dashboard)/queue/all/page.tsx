@@ -10,7 +10,7 @@ import { Inbox, Users, FileText, CheckCircle2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function statusIndicator(total: number) {
-  if (total === 0) return { color: "bg-gray-300", label: "Clear" };
+  if (total === 0) return { color: "bg-muted/30", label: "Clear" };
   if (total <= 5) return { color: "bg-emerald-500", label: "Low" };
   if (total <= 15) return { color: "bg-amber-500", label: "Medium" };
   return { color: "bg-red-500", label: "High" };
@@ -173,7 +173,7 @@ export default function AllQueuesPage() {
                   </td>
                   <td className="py-3 px-4">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-muted/30" />
                       <span className="text-xs text-muted">—</span>
                     </span>
                   </td>

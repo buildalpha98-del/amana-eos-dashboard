@@ -137,7 +137,7 @@ export function DocumentAuditEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose max-w-none focus:outline-none min-h-[60vh] px-6 py-8 bg-white rounded-b-xl",
+          "prose prose-sm sm:prose max-w-none focus:outline-none min-h-[60vh] px-6 py-8 bg-card rounded-b-xl",
       },
     },
     immediatelyRender: false,
@@ -323,7 +323,7 @@ export function DocumentAuditEditor({
         </div>
       )}
 
-      <div className={cn("border border-border bg-white", editor && !isCompleted ? "border-t-0 rounded-b-xl" : "rounded-xl")}>
+      <div className={cn("border border-border bg-card", editor && !isCompleted ? "border-t-0 rounded-b-xl" : "rounded-xl")}>
         <EditorContent editor={editor} />
       </div>
 

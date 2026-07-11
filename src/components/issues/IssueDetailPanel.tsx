@@ -272,7 +272,7 @@ export function IssueDetailPanel({
                     )}
                   >
                     <Icon className="w-5 h-5" />
-                    <span className="text-[10px] font-medium">{step.label}</span>
+                    <span className="text-2xs font-medium">{step.label}</span>
                   </button>
                 );
               })}

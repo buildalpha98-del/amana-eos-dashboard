@@ -79,7 +79,7 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
         <div className="flex items-center gap-2 mt-0.5">
           <span
             className={cn(
-              "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider",
+              "inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-semibold uppercase tracking-wider",
               priority.bg,
               priority.text
             )}
@@ -92,7 +92,7 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
 
       {/* Status badge */}
       <span
-        className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white flex-shrink-0"
+        className="px-2 py-0.5 rounded-full text-2xs font-semibold text-white flex-shrink-0"
         style={{ backgroundColor: color }}
       >
         {statusLabels[rock.status] || rock.status}
@@ -156,7 +156,7 @@ function RockSection({
       </div>
 
       {/* Rocks list */}
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y divide-border/50">
         {rocks.length > 0 ? (
           rocks.map((rock) => (
             <RockRow

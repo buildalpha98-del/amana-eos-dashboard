@@ -115,12 +115,12 @@ export function CentreSpendingBreakdown() {
               Week of {weekLabel}
             </p>
             {weekOffset === 0 ? (
-              <p className="text-[10px] text-brand font-medium">Current Week</p>
+              <p className="text-2xs text-brand font-medium">Current Week</p>
             ) : (
               <button
                 type="button"
                 onClick={() => setWeekOffset(0)}
-                className="text-[10px] text-muted hover:text-foreground underline"
+                className="text-2xs text-muted hover:text-foreground underline"
               >
                 Jump to current week
               </button>

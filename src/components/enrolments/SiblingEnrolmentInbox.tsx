@@ -28,7 +28,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   pending: { label: "Pending", color: "bg-amber-50 text-amber-700" },
   approved: { label: "Approved", color: "bg-green-50 text-green-700" },
   declined: { label: "Declined", color: "bg-red-50 text-red-700" },
-  withdrawn: { label: "Withdrawn", color: "bg-gray-50 text-gray-500" },
+  withdrawn: { label: "Withdrawn", color: "bg-surface text-muted" },
 };
 
 const SESSION_LABELS: Record<string, string> = {
@@ -223,7 +223,7 @@ function ApplicationCard({
               {app.sessionTypes.map((st) => (
                 <span
                   key={st}
-                  className="px-1.5 py-0.5 bg-brand/10 text-brand text-[10px] font-medium rounded"
+                  className="px-1.5 py-0.5 bg-brand/10 text-brand text-2xs font-medium rounded"
                 >
                   {SESSION_LABELS[st] || st}
                 </span>

@@ -192,7 +192,7 @@ export function ScorecardSection({
                   {!isOnTrack && latestEntry && onDropToIDS ? (
                     <button
                       onClick={() => onDropToIDS(`Off-track: ${m.title}`)}
-                      className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors font-medium whitespace-nowrap"
+                      className="text-2xs px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors font-medium whitespace-nowrap"
                     >
                       → IDS
                     </button>

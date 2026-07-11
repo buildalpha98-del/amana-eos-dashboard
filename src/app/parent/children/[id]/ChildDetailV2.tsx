@@ -339,7 +339,7 @@ function ActionButton({
       className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-[var(--radius-md)] text-[color:var(--color-brand)] bg-[color:var(--color-brand-soft)] hover:bg-[color:var(--color-brand-soft)]/80 transition-colors min-h-[44px]"
     >
       <Icon className="w-5 h-5" />
-      <span className="text-[10px] font-semibold">{label}</span>
+      <span className="text-2xs font-semibold">{label}</span>
     </Link>
   );
 }

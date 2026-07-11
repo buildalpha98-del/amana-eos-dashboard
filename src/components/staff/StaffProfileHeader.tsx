@@ -73,7 +73,7 @@ function deriveStatus(
 const STATUS_TONE: Record<ReturnType<typeof deriveStatus>, string> = {
   active: "bg-emerald-100 text-emerald-800 border-emerald-300",
   pending: "bg-amber-100 text-amber-800 border-amber-300",
-  deactivated: "bg-gray-100 text-gray-700 border-gray-300",
+  deactivated: "bg-surface text-foreground/80 border-border",
 };
 
 export function StaffProfileHeader({
@@ -195,7 +195,7 @@ export function StaffProfileHeader({
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span
                 className={cn(
-                  "inline-flex items-center rounded-full border px-2 py-0 text-[10px] font-bold uppercase tracking-wide",
+                  "inline-flex items-center rounded-full border px-2 py-0 text-2xs font-bold uppercase tracking-wide",
                   STATUS_TONE[status],
                 )}
               >

@@ -76,7 +76,7 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
         <div className="space-y-5 mt-4">
           {/* Child selector */}
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-2">
+            <label className="block text-xs font-medium text-foreground/70 mb-2">
               Child
             </label>
             <div className="space-y-2">
@@ -88,16 +88,16 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
                   className={cn(
                     "w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all min-h-[44px]",
                     selectedChild?.id === child.id
-                      ? "border-[#004E64] bg-[#004E64]/5"
-                      : "border-[#e8e4df] hover:border-[#004E64]/30"
+                      ? "border-brand bg-brand/5"
+                      : "border-border hover:border-brand/30"
                   )}
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#004E64]/10 flex items-center justify-center text-xs font-bold text-[#004E64]">
+                  <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-xs font-bold text-brand">
                     {child.firstName[0]}
                     {child.lastName[0]}
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-medium text-[#1a1a2e]">
+                    <p className="text-sm font-medium text-foreground">
                       {child.firstName} {child.lastName}
                     </p>
                     <p className="text-xs text-muted">{child.serviceName}</p>
@@ -109,7 +109,7 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
 
           {/* Date picker */}
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+            <label className="block text-xs font-medium text-foreground/70 mb-1">
               Date
             </label>
             <input
@@ -117,13 +117,13 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
               value={date}
               min={minDate}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-background/50 text-sm text-foreground focus:outline-none focus:border-brand transition-colors min-h-[44px]"
             />
           </div>
 
           {/* Session type */}
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-2">
+            <label className="block text-xs font-medium text-foreground/70 mb-2">
               Session Type
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -135,8 +135,8 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
                   className={cn(
                     "py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all min-h-[44px]",
                     sessionType === opt.value
-                      ? "border-[#004E64] bg-[#004E64] text-white"
-                      : "border-[#e8e4df] text-[#1a1a2e] hover:border-[#004E64]/30"
+                      ? "border-brand bg-brand text-white"
+                      : "border-border text-foreground hover:border-brand/30"
                   )}
                 >
                   {opt.label}
@@ -149,7 +149,7 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!isValid || requestBooking.isPending}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >
             {requestBooking.isPending ? (
               <>

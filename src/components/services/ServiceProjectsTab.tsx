@@ -20,8 +20,8 @@ const statusConfig: Record<
 > = {
   not_started: {
     label: "Not Started",
-    color: "text-gray-600",
-    bg: "bg-gray-100",
+    color: "text-muted",
+    bg: "bg-surface",
   },
   in_progress: {
     label: "In Progress",
@@ -113,7 +113,7 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
                       </h4>
                       <span
                         className={cn(
-                          "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0",
+                          "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium shrink-0",
                           status.bg,
                           status.color
                         )}
@@ -155,7 +155,7 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
                   {/* Progress */}
                   <div className="w-28 shrink-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-muted">
+                      <span className="text-2xs text-muted">
                         {project.progress.completed}/{project.progress.total}{" "}
                         tasks
                       </span>

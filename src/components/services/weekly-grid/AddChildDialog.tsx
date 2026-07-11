@@ -176,7 +176,7 @@ export function AddChildDialog({
                             toggle({ childId: child.id, date, sessionType: st })
                           }
                           className={cn(
-                            "w-7 h-7 rounded border text-[10px] font-semibold flex items-center justify-center transition-colors",
+                            "w-7 h-7 rounded border text-2xs font-semibold flex items-center justify-center transition-colors",
                             selected
                               ? "bg-brand border-brand text-white"
                               : "bg-surface border-border text-muted hover:bg-card",

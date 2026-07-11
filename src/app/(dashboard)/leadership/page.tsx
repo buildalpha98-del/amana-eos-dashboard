@@ -127,7 +127,7 @@ export default function LeadershipPage() {
                 <p className="text-xs text-blue-700/80">Complete</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-muted/10">
-                <p className="text-2xl font-bold text-muted-foreground">{data.rocksRollup.dropped}</p>
+                <p className="text-2xl font-bold text-muted">{data.rocksRollup.dropped}</p>
                 <p className="text-xs text-muted">Dropped</p>
               </div>
             </div>

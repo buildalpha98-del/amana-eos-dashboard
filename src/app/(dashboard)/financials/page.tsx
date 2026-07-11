@@ -223,7 +223,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
                 { label: "Other", val: otherRevenue, set: setOtherRevenue },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-[10px] text-muted">{f.label}</label>
+                  <label className="text-2xs text-muted">{f.label}</label>
                   <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
                 </div>
               ))}
@@ -243,7 +243,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
                 { label: "Other", val: otherCosts, set: setOtherCosts },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-[10px] text-muted">{f.label}</label>
+                  <label className="text-2xs text-muted">{f.label}</label>
                   <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
                 </div>
               ))}
@@ -255,11 +255,11 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
             <label className="text-xs font-medium text-muted block mb-1">Budget (optional)</label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-muted">Budget Revenue</label>
+                <label className="text-2xs text-muted">Budget Revenue</label>
                 <input type="number" min={0} value={budgetRevenue || ""} onChange={(e) => setBudgetRevenue(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
-                <label className="text-[10px] text-muted">Budget Costs</label>
+                <label className="text-2xs text-muted">Budget Costs</label>
                 <input type="number" min={0} value={budgetCosts || ""} onChange={(e) => setBudgetCosts(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
             </div>
@@ -642,7 +642,7 @@ export default function FinancialsPage() {
                       {row.dataSource === "xero" ? (
                         <span title="Synced from Xero"><RefreshCw className="w-3.5 h-3.5 text-[#13B5EA] inline-block" /></span>
                       ) : row.dataSource === "auto_attendance" ? (
-                        <span title="Auto-calculated from attendance" className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">AUTO</span>
+                        <span title="Auto-calculated from attendance" className="text-2xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">AUTO</span>
                       ) : row.dataSource === "owna_import" ? (
                         <span title="Imported from OWNA"><FileSpreadsheet className="w-3.5 h-3.5 text-amber-500 inline-block" /></span>
                       ) : (

@@ -111,7 +111,7 @@ export function NotificationLogTab() {
 
         <button
           onClick={() => refetch()}
-          className="ml-auto flex items-center gap-1.5 text-sm text-[#004E64] hover:underline"
+          className="ml-auto flex items-center gap-1.5 text-sm text-brand hover:underline"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh
@@ -157,15 +157,15 @@ export function NotificationLogTab() {
                     className="border-b border-[#e5e7eb] hover:bg-[#f9fafb]/50"
                   >
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-[#004E64]/10 px-2 py-0.5 text-xs font-medium text-[#004E64]">
+                      <span className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
                         {formatType(log.type)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[#1a1a2e]">
+                    <td className="px-4 py-3 text-foreground">
                       <div>{log.recipientName || "—"}</div>
                       <div className="text-xs text-muted">{log.recipientEmail}</div>
                     </td>
-                    <td className="px-4 py-3 text-[#1a1a2e] max-w-[200px] truncate">
+                    <td className="px-4 py-3 text-foreground max-w-[200px] truncate">
                       {log.subject}
                     </td>
                     <td className="px-4 py-3">
@@ -218,7 +218,7 @@ export function NotificationLogTab() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-sm text-[#1a1a2e]">
+            <span className="text-sm text-foreground">
               {page} / {data.totalPages}
             </span>
             <button

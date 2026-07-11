@@ -39,7 +39,7 @@ export function ProjectCard({
             </h3>
             <span
               className={cn(
-                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium",
+                "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium",
                 status.bg,
                 status.color
               )}
@@ -110,7 +110,7 @@ export function ProjectCard({
       </div>
 
       {project.template && (
-        <p className="text-[10px] text-muted mt-2">
+        <p className="text-2xs text-muted mt-2">
           Template: {project.template.name}
         </p>
       )}

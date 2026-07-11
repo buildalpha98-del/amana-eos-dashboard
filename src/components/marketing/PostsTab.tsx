@@ -279,13 +279,13 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                             {post.services.slice(0, 3).map((s) => (
                               <span
                                 key={s.service.id}
-                                className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
+                                className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-2xs font-medium text-brand"
                               >
                                 {s.service.code}
                               </span>
                             ))}
                             {post.services.length > 3 && (
-                              <span className="text-[10px] text-muted">
+                              <span className="text-2xs text-muted">
                                 +{post.services.length - 3}
                               </span>
                             )}

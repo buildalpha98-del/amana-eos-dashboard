@@ -485,10 +485,10 @@ export default function HolidayQuestPage() {
                       <span className="font-medium text-muted">PM:</span> {day.afternoonActivity.slice(0, 60)}{day.afternoonActivity.length > 60 ? "..." : ""}
                     </p>
                     <div className="flex items-center justify-between">
-                      <span className={`inline-block text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${statusColors[day.status] || statusColors.draft}`}>
+                      <span className={`inline-block text-2xs font-semibold uppercase px-1.5 py-0.5 rounded ${statusColors[day.status] || statusColors.draft}`}>
                         {day.status}
                       </span>
-                      <span className="text-[10px] text-muted">
+                      <span className="text-2xs text-muted">
                         {day.currentBookings}/{day.maxCapacity}
                       </span>
                     </div>
@@ -661,7 +661,7 @@ export default function HolidayQuestPage() {
                         <span><strong>Transport:</strong> Confirm bus booking; ensure seatbelts for all children</span>
                       </li>
                     </ul>
-                    <p className="text-[10px] text-amber-600 mt-2">
+                    <p className="text-2xs text-amber-600 mt-2">
                       Ensure risk assessment form is completed and signed off before the excursion.
                     </p>
                   </div>

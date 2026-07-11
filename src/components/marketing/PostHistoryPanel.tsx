@@ -122,7 +122,7 @@ export function PostHistoryPanel({
                       <span className="text-xs font-medium text-foreground/80">
                         {group.user}
                       </span>
-                      <span className="text-[10px] text-muted">
+                      <span className="text-2xs text-muted">
                         {new Date(group.time).toLocaleDateString("en-AU", {
                           day: "numeric",
                           month: "short",
@@ -139,7 +139,7 @@ export function PostHistoryPanel({
                           key={rev.id}
                           className="rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
                         >
-                          <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
+                          <span className="text-2xs font-medium text-muted uppercase tracking-wider">
                             {FIELD_LABELS[rev.field] || rev.field}
                           </span>
                           <div className="flex items-center gap-1.5 mt-0.5 text-xs">

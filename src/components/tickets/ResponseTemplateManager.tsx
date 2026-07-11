@@ -153,7 +153,7 @@ export function ResponseTemplateManager({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-foreground">{t.title}</span>
                         {t.category && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface text-muted">
+                          <span className="text-2xs px-1.5 py-0.5 rounded-full bg-surface text-muted">
                             {t.category}
                           </span>
                         )}

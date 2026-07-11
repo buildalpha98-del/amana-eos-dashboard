@@ -956,7 +956,7 @@ export default function MyPortalPage() {
                     </span>
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full",
+                        "inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider rounded-full",
                         c.status === "superseded"
                           ? "bg-amber-50 text-amber-700 border border-amber-200"
                           : "bg-surface text-muted border border-border",

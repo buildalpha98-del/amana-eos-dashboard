@@ -357,7 +357,7 @@ function RoleHeader({
           <button
             type="button"
             onClick={() => onReset(role)}
-            className="text-[10px] font-normal text-muted hover:text-foreground normal-case"
+            className="text-2xs font-normal text-muted hover:text-foreground normal-case"
             title="Reset this column to defaults"
           >
             <RotateCcw className="w-3 h-3 inline" /> Reset

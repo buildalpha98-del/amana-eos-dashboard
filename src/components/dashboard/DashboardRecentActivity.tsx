@@ -137,7 +137,7 @@ export function DashboardRecentActivity() {
                     )}
                   </p>
                 </div>
-                <span className="text-[10px] text-muted shrink-0 mt-0.5 whitespace-nowrap">
+                <span className="text-2xs text-muted shrink-0 mt-0.5 whitespace-nowrap">
                   {formatTimeAgo(log.createdAt)}
                 </span>
               </div>

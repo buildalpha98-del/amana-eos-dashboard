@@ -73,7 +73,7 @@ export function ReportSection({
             <button
               onClick={onAiGenerate}
               disabled={aiGenerating}
-              className="no-print inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md
+              className="no-print inline-flex items-center gap-1 px-2 py-1 text-2xs font-medium rounded-md
                          text-brand bg-brand/5 hover:bg-brand/10 disabled:opacity-50 transition-colors"
               title="Generate narrative with AI"
             >

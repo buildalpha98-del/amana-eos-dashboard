@@ -33,7 +33,7 @@ function getPriorityConfig(priority: string) {
     case "important":
       return { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle, label: "Important" };
     default:
-      return { bg: "bg-gray-100", text: "text-gray-600", icon: Info, label: "Normal" };
+      return { bg: "bg-surface", text: "text-muted", icon: Info, label: "Normal" };
   }
 }
 

@@ -545,7 +545,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">My Compliance</p>
-            <p className="text-[10px] text-muted">Upload certificates</p>
+            <p className="text-2xs text-muted">Upload certificates</p>
           </div>
         </Link>
         <Link href="/leave" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -554,7 +554,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Leave</p>
-            <p className="text-[10px] text-muted">Request time off</p>
+            <p className="text-2xs text-muted">Request time off</p>
           </div>
         </Link>
         <Link href="/my-portal" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -563,7 +563,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">My Portal</p>
-            <p className="text-[10px] text-muted">Profile & payslips</p>
+            <p className="text-2xs text-muted">Profile & payslips</p>
           </div>
         </Link>
         <Link href="/onboarding" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -572,7 +572,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Training</p>
-            <p className="text-[10px] text-muted">Courses & modules</p>
+            <p className="text-2xs text-muted">Courses & modules</p>
           </div>
         </Link>
         <button onClick={() => setShowReportModal(true)} className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-amber-300 hover:shadow-sm transition-all group text-left">
@@ -581,7 +581,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Report Issue</p>
-            <p className="text-[10px] text-muted">Contact Head Office</p>
+            <p className="text-2xs text-muted">Contact Head Office</p>
           </div>
         </button>
       </div>

@@ -162,7 +162,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                 {post.services.map((s) => (
                   <span
                     key={s.service.id}
-                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
+                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-2xs font-medium text-brand"
                   >
                     {s.service.code}
                   </span>
@@ -573,7 +573,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                   {/* Live metrics indicator */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-2xs font-semibold text-green-700">
                         Live
                       </span>
                       {post.engagementSyncedAt && (
@@ -636,7 +636,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                         <p className="text-lg font-bold text-green-700">
                           {m.value.toLocaleString()}
                         </p>
-                        <p className="text-[10px] text-green-600">{m.label}</p>
+                        <p className="text-2xs text-green-600">{m.label}</p>
                       </div>
                     ))}
                   </div>

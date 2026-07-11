@@ -110,7 +110,7 @@ function DraggableAudit({
           <p className={cn("text-xs font-medium truncate", cfg.color)}>
             {audit.template.name}
           </p>
-          <p className="text-[10px] text-muted truncate">
+          <p className="text-2xs text-muted truncate">
             {audit.service.code} · QA{audit.template.qualityArea}
             {audit.complianceScore != null && ` · ${audit.complianceScore}%`}
           </p>

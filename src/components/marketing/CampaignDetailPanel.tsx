@@ -214,7 +214,7 @@ export function CampaignDetailPanel({
                 {campaign.services.map((s) => (
                   <span
                     key={s.service.id}
-                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
+                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-2xs font-medium text-brand"
                   >
                     {s.service.code}
                   </span>
@@ -227,7 +227,7 @@ export function CampaignDetailPanel({
           </div>
           <div className="ml-3 flex items-center gap-2">
             {hasUnsavedTextChanges && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700" title="Click outside the field or press Tab to save.">
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-2xs font-medium text-amber-700" title="Click outside the field or press Tab to save.">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                 Unsaved
               </span>
@@ -624,12 +624,12 @@ export function CampaignDetailPanel({
                         </span>
                         <div className="flex items-center gap-2">
                           {task.assignee && (
-                            <span className="text-[10px] text-muted">
+                            <span className="text-2xs text-muted">
                               {task.assignee?.name ?? "Unassigned"}
                             </span>
                           )}
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            className={`rounded-full px-2 py-0.5 text-2xs font-medium ${
                               statusColors[task.status] ?? "bg-surface text-muted"
                             }`}
                           >

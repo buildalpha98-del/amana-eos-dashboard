@@ -188,14 +188,14 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
       {/* ASC / BSC */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-card/60 rounded p-2">
-          <div className="text-[10px] text-muted uppercase">ASC</div>
+          <div className="text-2xs text-muted uppercase">ASC</div>
           <div className="text-lg font-bold text-foreground">
             {centre.ascEnrolled}
             <span className="text-sm text-muted font-normal"> / {centre.ascTarget}</span>
           </div>
         </div>
         <div className="bg-card/60 rounded p-2">
-          <div className="text-[10px] text-muted uppercase">BSC</div>
+          <div className="text-2xs text-muted uppercase">BSC</div>
           <div className="text-lg font-bold text-foreground">
             {centre.bscEnrolled}
             <span className="text-sm text-muted font-normal"> / {centre.bscTarget}</span>
@@ -205,7 +205,7 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
 
       {/* Sparkline */}
       <div>
-        <div className="text-[10px] text-muted mb-1">Weekly Attendance Trend</div>
+        <div className="text-2xs text-muted mb-1">Weekly Attendance Trend</div>
         <div className="flex items-end gap-px h-8">
           {centre.weeklyTrend.map((val, i) => (
             <div

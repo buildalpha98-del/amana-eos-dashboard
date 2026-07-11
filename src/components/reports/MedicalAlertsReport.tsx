@@ -82,13 +82,13 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
             placeholder="Search by name or condition..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-white"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card"
           />
         </div>
 
         <a
           href={`/api/reports/medical-alerts/export?${params}`}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003d50] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
         >
           <Download className="w-4 h-4" />
           Export CSV

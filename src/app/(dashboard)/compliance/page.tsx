@@ -78,7 +78,7 @@ const typeBadgeColors: Record<string, string> = {
   anaphylaxis: "bg-orange-100 text-orange-700",
   asthma: "bg-teal-100 text-teal-700",
   cpr: "bg-rose-100 text-rose-700",
-  police_check: "bg-slate-100 text-slate-700",
+  police_check: "bg-surface text-foreground/80",
   annual_review: "bg-violet-100 text-violet-700",
   child_protection: "bg-blue-100 text-blue-700",
   geccko: "bg-emerald-100 text-emerald-700",

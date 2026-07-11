@@ -105,7 +105,7 @@ export function CallAnalytics() {
     <div className="space-y-6">
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat icon={Phone} label="Total Calls" value={data.total} color="text-[#004E64]" sub={`Last ${data.days} days`} />
+        <Stat icon={Phone} label="Total Calls" value={data.total} color="text-brand" sub={`Last ${data.days} days`} />
         <Stat icon={TrendingUp} label="Conversion Rate" value={data.conversionRate != null ? `${data.conversionRate}%` : "—"} color="text-emerald-600" sub="Enquiry → pipeline" />
         <Stat icon={Clock} label="Avg Response" value={data.avgTimeToAction != null ? `${data.avgTimeToAction}m` : "—"} color="text-blue-600" sub="Time to action" />
         <Stat icon={Shield} label="SLA Compliance" value={data.slaComplianceRate != null ? `${data.slaComplianceRate}%` : "—"} color="text-purple-600" sub="Urgent/critical" />
@@ -113,7 +113,7 @@ export function CallAnalytics() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat icon={CheckCircle} label="Success Rate" value={data.successRate != null ? `${data.successRate}%` : "—"} color="text-emerald-600" sub="Key details captured" />
-        <Stat icon={UserPlus} label="Enquiries Created" value={data.enquiriesCreated} color="text-[#004E64]" sub="Auto + manual" />
+        <Stat icon={UserPlus} label="Enquiries Created" value={data.enquiriesCreated} color="text-brand" sub="Auto + manual" />
         <Stat icon={RefreshCw} label="Repeat Callers" value={data.repeatCallers} color="text-orange-600" sub="Called twice in 7 days" />
         <Stat icon={AlertTriangle} label="SLA Breaches" value={data.slaBreaches} color="text-red-600" sub="Escalated" />
       </div>

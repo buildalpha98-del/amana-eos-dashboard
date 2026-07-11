@@ -24,7 +24,7 @@ export function LeadCard({
     <div
       onClick={onClick}
       className={`bg-card rounded-lg border border-border p-3 cursor-pointer hover:shadow-md transition-all ${
-        isDragging ? "shadow-lg ring-2 ring-[#FECE00] opacity-90" : ""
+        isDragging ? "shadow-lg ring-2 ring-accent opacity-90" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -32,7 +32,7 @@ export function LeadCard({
           {lead.schoolName}
         </h4>
         <span
-          className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+          className={`text-2xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${
             sourceColors[lead.source] || "bg-surface text-muted"
           }`}
         >
@@ -77,7 +77,7 @@ export function LeadCard({
           )}
           {lead.assignedTo && (
             <div
-              className="w-5 h-5 rounded-full bg-brand-dark text-white flex items-center justify-center text-[10px] font-medium"
+              className="w-5 h-5 rounded-full bg-brand-dark text-white flex items-center justify-center text-2xs font-medium"
               title={lead.assignedTo.name}
             >
               {lead.assignedTo.name

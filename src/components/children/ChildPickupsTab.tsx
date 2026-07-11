@@ -162,7 +162,7 @@ function PickupCard({
         </div>
         <div className="flex items-center gap-1.5">
           {pickup.isEmergencyContact && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-2xs font-semibold">
               <Shield className="w-3 h-3" />
               Emergency
             </span>

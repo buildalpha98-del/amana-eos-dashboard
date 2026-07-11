@@ -75,7 +75,7 @@ export function LearningJournalSection({ childId }: { childId: string }) {
                       {obs.mtopOutcomes.map((m) => (
                         <span
                           key={m}
-                          className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]"
+                          className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]"
                         >
                           {m}
                         </span>
@@ -83,7 +83,7 @@ export function LearningJournalSection({ childId }: { childId: string }) {
                       {obs.interests.slice(0, 3).map((i) => (
                         <span
                           key={i}
-                          className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)]"
+                          className="text-2xs px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)]"
                         >
                           {i}
                         </span>

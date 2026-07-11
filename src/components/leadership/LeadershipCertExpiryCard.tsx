@@ -33,7 +33,7 @@ const STATUS_TONE: Record<CertStatus, string> = {
   critical: "bg-red-50 text-red-700 border-red-200",
   warning: "bg-amber-50 text-amber-800 border-amber-200",
   upcoming: "bg-yellow-50 text-yellow-800 border-yellow-200",
-  valid: "bg-gray-50 text-gray-600 border-gray-200",
+  valid: "bg-surface text-muted border-border",
 };
 
 const STATUS_LABEL: Record<CertStatus, string> = {
@@ -169,7 +169,7 @@ function ServiceRow({ service }: { service: ServiceRollupRowResponse }) {
       <div className="flex items-center gap-3">
         <span
           className={cn(
-            "inline-flex items-center rounded-full border px-2 py-0 text-[10px] font-bold uppercase tracking-wide flex-shrink-0",
+            "inline-flex items-center rounded-full border px-2 py-0 text-2xs font-bold uppercase tracking-wide flex-shrink-0",
             STATUS_TONE[service.status],
           )}
         >
@@ -204,7 +204,7 @@ function CompactCounts({
   totals: { expired: number; critical: number; warning: number; upcoming: number };
 }) {
   return (
-    <div className="hidden sm:flex items-center gap-1 text-[10px] font-medium flex-shrink-0">
+    <div className="hidden sm:flex items-center gap-1 text-2xs font-medium flex-shrink-0">
       {totals.expired > 0 ? (
         <span className="rounded bg-red-100 text-red-800 px-1.5 py-0.5">
           {totals.expired}E

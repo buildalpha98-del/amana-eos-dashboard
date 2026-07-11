@@ -158,24 +158,24 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMonthOffset((p) => p - 1)}
-            className="p-1.5 rounded-lg hover:bg-[#F2EDE8] transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface transition-colors"
             aria-label="Previous month"
           >
             <ChevronLeft className="w-4 h-4 text-muted" />
           </button>
-          <span className="text-sm font-semibold text-[#1a1a2e] min-w-[140px] text-center">
+          <span className="text-sm font-semibold text-foreground min-w-[140px] text-center">
             {monthLabel}
           </span>
           <button
             onClick={() => setMonthOffset((p) => p + 1)}
-            className="p-1.5 rounded-lg hover:bg-[#F2EDE8] transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface transition-colors"
             aria-label="Next month"
           >
             <ChevronRight className="w-4 h-4 text-muted" />
           </button>
         </div>
 
-        <div className="flex rounded-lg border border-[#e8e4df] overflow-hidden">
+        <div className="flex rounded-lg border border-border overflow-hidden">
           {(["bsc", "asc", "vc"] as const).map((st) => (
             <button
               key={st}
@@ -183,8 +183,8 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
               className={cn(
                 "px-3 py-1.5 text-xs font-medium transition-colors",
                 selectedSession === st
-                  ? "bg-[#004E64] text-white"
-                  : "bg-white text-muted hover:bg-[#F2EDE8]",
+                  ? "bg-brand text-white"
+                  : "bg-card text-muted hover:bg-surface",
               )}
             >
               {SESSION_LABELS[st]}
@@ -196,7 +196,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
       {/* Weekday headers */}
       <div className="grid grid-cols-7 gap-1 text-center">
         {WEEKDAY_NAMES.map((d) => (
-          <span key={d} className="text-[10px] font-semibold text-muted uppercase py-1">
+          <span key={d} className="text-2xs font-semibold text-muted uppercase py-1">
             {d}
           </span>
         ))}
@@ -216,7 +216,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
           const isSelected = dateStr === selectedDate;
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
-          let bgClass = "bg-white hover:bg-[#F2EDE8]";
+          let bgClass = "bg-card hover:bg-surface";
           let dotColor = "";
 
           if (booking) {
@@ -231,7 +231,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
             bgClass = "bg-red-50";
             dotColor = "bg-red-400";
           } else if (avail && avail.available > 0 && !isPast && !isWeekend) {
-            dotColor = "bg-gray-300";
+            dotColor = "bg-muted/30";
           }
 
           return (
@@ -242,12 +242,12 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
               className={cn(
                 "aspect-square rounded-lg flex flex-col items-center justify-center text-xs relative transition-all",
                 bgClass,
-                isToday && "ring-2 ring-[#004E64]",
-                isSelected && "ring-2 ring-[#FECE00]",
+                isToday && "ring-2 ring-brand",
+                isSelected && "ring-2 ring-accent",
                 (isPast || isWeekend) && "opacity-40 cursor-default",
               )}
             >
-              <span className={cn("font-medium", isToday ? "text-[#004E64]" : "text-[#1a1a2e]")}>
+              <span className={cn("font-medium", isToday ? "text-brand" : "text-foreground")}>
                 {day.getDate()}
               </span>
               {dotColor && (
@@ -259,17 +259,17 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 justify-center text-[10px] text-muted">
+      <div className="flex items-center gap-3 justify-center text-2xs text-muted">
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" />Confirmed</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" />Requested</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300" />Available</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted/30" />Available</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" />Full</span>
       </div>
 
       {/* Day detail + book action */}
       {selectedDate && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
-          <p className="text-sm font-semibold text-[#1a1a2e]">
+        <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
+          <p className="text-sm font-semibold text-foreground">
             {new Date(selectedDate).toLocaleDateString("en-AU", {
               weekday: "long",
               day: "numeric",

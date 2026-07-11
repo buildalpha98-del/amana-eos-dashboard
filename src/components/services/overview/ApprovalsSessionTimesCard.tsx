@@ -104,13 +104,13 @@ export function ApprovalsSessionTimesCard({
       <div className="p-4 border border-border rounded-xl bg-card space-y-3">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <div>
-            <span className="text-[10px] text-muted block">Service Approval #</span>
+            <span className="text-2xs text-muted block">Service Approval #</span>
             <span className="text-foreground">
               {service.serviceApprovalNumber ? service.serviceApprovalNumber : "—"}
             </span>
           </div>
           <div>
-            <span className="text-[10px] text-muted block">Provider Approval #</span>
+            <span className="text-2xs text-muted block">Provider Approval #</span>
             <span className="text-foreground">
               {service.providerApprovalNumber ? service.providerApprovalNumber : "—"}
             </span>
@@ -119,7 +119,7 @@ export function ApprovalsSessionTimesCard({
 
         {populatedSessions.length > 0 && (
           <div className="pt-2 border-t border-border/60">
-            <span className="text-[10px] text-muted block mb-1 uppercase tracking-wider">
+            <span className="text-2xs text-muted block mb-1 uppercase tracking-wider">
               Session Times
             </span>
             <ul className="space-y-1">
@@ -153,7 +153,7 @@ export function ApprovalsSessionTimesCard({
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5 uppercase tracking-wider">
+                <label className="text-2xs text-muted block mb-0.5 uppercase tracking-wider">
                   Service Approval #
                 </label>
                 <input
@@ -166,7 +166,7 @@ export function ApprovalsSessionTimesCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5 uppercase tracking-wider">
+                <label className="text-2xs text-muted block mb-0.5 uppercase tracking-wider">
                   Provider Approval #
                 </label>
                 <input
@@ -180,7 +180,7 @@ export function ApprovalsSessionTimesCard({
             </div>
 
             <div>
-              <span className="text-[10px] text-muted block mb-2 uppercase tracking-wider">
+              <span className="text-2xs text-muted block mb-2 uppercase tracking-wider">
                 Session Times (HH:MM)
               </span>
               <div className="space-y-2">

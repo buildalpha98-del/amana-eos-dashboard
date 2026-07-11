@@ -315,7 +315,7 @@ function DayColumn({
             {dayNumber}
           </span>
         </div>
-        <span className="text-[10px] text-muted bg-surface px-1.5 py-0.5 rounded-full flex items-center gap-1">
+        <span className="text-2xs text-muted bg-surface px-1.5 py-0.5 rounded-full flex items-center gap-1">
           <Users className="w-3 h-3" />
           {children.length}
         </span>

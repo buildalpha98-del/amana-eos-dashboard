@@ -39,7 +39,7 @@ const statusConfig = {
     bg: "bg-surface/50",
     border: "border-border",
     text: "text-muted",
-    dot: "bg-gray-400",
+    dot: "bg-muted/60",
     icon: Users,
     label: "No Data",
   },
@@ -86,7 +86,7 @@ export function StaffingAlerts() {
           </h3>
         </div>
         {hasAlerts && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-2xs font-semibold">
             <AlertTriangle className="w-3 h-3" />
             {alerts.length} alert{alerts.length !== 1 ? "s" : ""}
           </span>
@@ -101,7 +101,7 @@ export function StaffingAlerts() {
               <p className="text-lg font-bold text-amber-700">
                 ${summary.totalWaste.toFixed(0)}
               </p>
-              <p className="text-[10px] text-amber-600 uppercase tracking-wider">
+              <p className="text-2xs text-amber-600 uppercase tracking-wider">
                 Overstaffing Waste
               </p>
             </div>
@@ -111,7 +111,7 @@ export function StaffingAlerts() {
               <p className="text-lg font-bold text-red-700">
                 ${summary.totalRisk.toFixed(0)}
               </p>
-              <p className="text-[10px] text-red-600 uppercase tracking-wider">
+              <p className="text-2xs text-red-600 uppercase tracking-wider">
                 Revenue at Risk
               </p>
             </div>
@@ -147,7 +147,7 @@ export function StaffingAlerts() {
                   <p className={`text-sm font-medium ${config.text} truncate`}>
                     {svc.serviceName}
                   </p>
-                  <p className="text-[10px] text-muted">
+                  <p className="text-2xs text-muted">
                     {svc.sessions
                       .filter((s) => s.variance !== 0)
                       .map(

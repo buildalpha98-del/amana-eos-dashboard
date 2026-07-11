@@ -144,7 +144,7 @@ function statusPill(s: ReviewStatus): string {
     case "completed":
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
     case "cancelled":
-      return "bg-gray-50 text-gray-700 border-gray-200";
+      return "bg-surface text-foreground/80 border-border";
     case "awaiting_acknowledgement":
       return "bg-amber-50 text-amber-700 border-amber-200";
     case "manager_review":
@@ -152,7 +152,7 @@ function statusPill(s: ReviewStatus): string {
     case "self_assessment":
       return "bg-blue-50 text-blue-700 border-blue-200";
     default:
-      return "bg-slate-50 text-slate-700 border-slate-200";
+      return "bg-surface text-foreground/80 border-border";
   }
 }
 
@@ -295,7 +295,7 @@ export function PerformanceReviewsTab({
                   {r.overallRating && (
                     <span
                       className={cn(
-                        "inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border",
+                        "inline-flex items-center gap-0.5 text-2xs font-semibold uppercase px-1.5 py-0.5 rounded border",
                         ratingPill(r.overallRating),
                       )}
                     >

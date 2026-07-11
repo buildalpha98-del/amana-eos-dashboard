@@ -52,7 +52,7 @@ export function ManualFieldsPanel({
       </div>
 
       {value.length === 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           No manual fields. Add fields the issuer must fill in at issue time
           (e.g. probation period, custom clauses).
         </p>

@@ -31,7 +31,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   on_track: { label: "On Track", color: "bg-emerald-100 text-emerald-700" },
   off_track: { label: "Off Track", color: "bg-red-100 text-red-700" },
   complete: { label: "Complete", color: "bg-blue-100 text-blue-700" },
-  dropped: { label: "Dropped", color: "bg-gray-100 text-gray-500" },
+  dropped: { label: "Dropped", color: "bg-surface text-muted" },
 };
 
 const statusCycle = ["on_track", "off_track", "complete", "dropped"];
@@ -185,7 +185,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                         className="w-6 h-6 rounded-full object-cover"
                       />
                     ) : (
-                      <span className="text-[10px] font-medium text-white">
+                      <span className="text-2xs font-medium text-white">
                         {getInitials(rock.owner?.name ?? "Unassigned")}
                       </span>
                     )}
@@ -197,7 +197,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                 <div className="flex items-center gap-1.5 mb-3">
                   <span
                     className={cn(
-                      "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium",
+                      "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium",
                       priority.color
                     )}
                   >
@@ -206,7 +206,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                   <button
                     onClick={() => handleStatusCycle(rock)}
                     className={cn(
-                      "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80 transition-opacity",
+                      "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium cursor-pointer hover:opacity-80 transition-opacity",
                       status.color
                     )}
                     title="Click to update status"
@@ -218,8 +218,8 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                 {/* Progress Bar */}
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-muted">Progress</span>
-                    <span className="text-[10px] font-medium text-foreground/80">
+                    <span className="text-2xs text-muted">Progress</span>
+                    <span className="text-2xs font-medium text-foreground/80">
                       {rock.percentComplete}%
                     </span>
                   </div>
@@ -233,13 +233,13 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
 
                 {/* Counts */}
                 <div className="flex items-center gap-3 pt-2 border-t border-border/50">
-                  <span className="text-[10px] text-muted">
+                  <span className="text-2xs text-muted">
                     <span className="font-semibold text-foreground/80">{rock._count.todos}</span> to-dos
                   </span>
-                  <span className="text-[10px] text-muted">
+                  <span className="text-2xs text-muted">
                     <span className="font-semibold text-foreground/80">{rock._count.issues}</span> issues
                   </span>
-                  <span className="text-[10px] text-muted">
+                  <span className="text-2xs text-muted">
                     <span className="font-semibold text-foreground/80">{rock._count.milestones}</span>{" "}
                     milestones
                   </span>

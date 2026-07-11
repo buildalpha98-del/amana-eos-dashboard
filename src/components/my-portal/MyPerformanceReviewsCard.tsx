@@ -135,11 +135,11 @@ function statusPill(s: ReviewStatus): string {
     case "completed":
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
     case "cancelled":
-      return "bg-gray-50 text-gray-700 border-gray-200";
+      return "bg-surface text-foreground/80 border-border";
     case "manager_review":
       return "bg-purple-50 text-purple-700 border-purple-200";
     default:
-      return "bg-slate-50 text-slate-700 border-slate-200";
+      return "bg-surface text-foreground/80 border-border";
   }
 }
 
@@ -264,7 +264,7 @@ function ReviewRow({ review }: { review: PerformanceReview }) {
             {review.overallRating && (
               <span
                 className={cn(
-                  "inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border",
+                  "inline-flex items-center gap-0.5 text-2xs font-semibold uppercase px-1.5 py-0.5 rounded border",
                   ratingPill(review.overallRating),
                 )}
               >
@@ -414,7 +414,7 @@ function SelfAssessmentForm({ review }: { review: PerformanceReview }) {
             {review.goals.map((g) => (
               <li key={g.id} className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-foreground">{g.title}</span>
-                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border bg-card">
+                <span className="text-2xs uppercase tracking-wide px-1.5 py-0.5 rounded border bg-card">
                   {GOAL_STATUS_LABEL[g.status]}
                 </span>
               </li>
@@ -619,7 +619,7 @@ function ManagerAssessmentBlock({ review }: { review: PerformanceReview }) {
         {review.overallRating && (
           <span
             className={cn(
-              "inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border",
+              "inline-flex items-center gap-0.5 text-2xs font-semibold uppercase px-1.5 py-0.5 rounded border",
               ratingPill(review.overallRating),
             )}
           >
@@ -662,7 +662,7 @@ function GoalsList({ goals }: { goals: ReviewGoal[] }) {
           <li key={g.id} className="text-sm">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium text-foreground">{g.title}</span>
-              <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border bg-card text-muted">
+              <span className="text-2xs uppercase tracking-wide px-1.5 py-0.5 rounded border bg-card text-muted">
                 {GOAL_STATUS_LABEL[g.status]}
               </span>
               {g.dueDate && (

@@ -97,7 +97,7 @@ export function DashboardProjectTodos({
                   {first.projectName}
                 </Link>
                 {first.serviceName && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded-md">
+                  <span className="inline-flex items-center gap-1 text-2xs font-medium text-muted bg-surface px-1.5 py-0.5 rounded-md">
                     <Building2 className="w-3 h-3" />
                     {first.serviceName}
                   </span>
@@ -135,7 +135,7 @@ export function DashboardProjectTodos({
                         <p className="text-sm text-foreground/80 truncate">
                           {todo.title}
                         </p>
-                        <p className="text-[10px] text-muted">
+                        <p className="text-2xs text-muted">
                           {todo.assigneeName} &middot;{" "}
                           <span className={st.color}>{st.label}</span>
                         </p>

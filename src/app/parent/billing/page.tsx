@@ -83,11 +83,11 @@ export default function BillingPage() {
         <SectionLabel label="Statements" />
 
         {statements.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-            <div className="w-12 h-12 rounded-full bg-[#FECE00]/20 flex items-center justify-center mx-auto mb-3">
-              <FileText className="w-6 h-6 text-[#004E64]" />
+          <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
+            <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3">
+              <FileText className="w-6 h-6 text-brand" />
             </div>
-            <h3 className="text-base font-heading font-semibold text-[#1a1a2e] mb-1">
+            <h3 className="text-base font-heading font-semibold text-foreground mb-1">
               No statements yet
             </h3>
             <p className="text-sm text-muted">
@@ -196,20 +196,20 @@ function StatementCard({
 
         <div className="grid grid-cols-3 gap-2 mt-3 text-center">
           <div>
-            <p className="text-[10px] text-muted uppercase">Fees</p>
-            <p className="text-sm font-semibold text-[#1a1a2e]">
+            <p className="text-2xs text-muted uppercase">Fees</p>
+            <p className="text-sm font-semibold text-foreground">
               ${statement.totalFees.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-muted uppercase">CCS</p>
+            <p className="text-2xs text-muted uppercase">CCS</p>
             <p className="text-sm font-semibold text-green-600">
               -${statement.totalCcs.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-muted uppercase">Gap</p>
-            <p className="text-sm font-semibold text-[#1a1a2e]">
+            <p className="text-2xs text-muted uppercase">Gap</p>
+            <p className="text-sm font-semibold text-foreground">
               ${statement.gapFee.toFixed(2)}
             </p>
           </div>
@@ -218,13 +218,13 @@ function StatementCard({
         {/* Paid / Balance row */}
         <div className="grid grid-cols-2 gap-2 mt-2 text-center">
           <div>
-            <p className="text-[10px] text-muted uppercase">Paid</p>
-            <p className="text-sm font-semibold text-[#1a1a2e]">
+            <p className="text-2xs text-muted uppercase">Paid</p>
+            <p className="text-sm font-semibold text-foreground">
               ${statement.amountPaid.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-muted uppercase">Balance</p>
+            <p className="text-2xs text-muted uppercase">Balance</p>
             <p
               className={cn(
                 "text-sm font-semibold",
@@ -245,14 +245,14 @@ function StatementCard({
       </button>
 
       {/* Download PDF */}
-      <div className="px-4 pb-3 pt-0 border-t border-[#e8e4df] mx-4 mt-0">
+      <div className="px-4 pb-3 pt-0 border-t border-border mx-4 mt-0">
         <div className="pt-3">
           {statement.pdfUrl ? (
             <a
               href={statement.pdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] transition-colors min-h-[44px]"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-light transition-colors min-h-[44px]"
               onClick={(e) => e.stopPropagation()}
             >
               <Download className="w-3.5 h-3.5" />
@@ -304,7 +304,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
   };
 
   return (
-    <div className="px-4 pb-4 border-t border-[#e8e4df] mx-4">
+    <div className="px-4 pb-4 border-t border-border mx-4">
       <div className="pt-3">
         <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
           Line Items
@@ -312,7 +312,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
         <div className="overflow-x-auto -mx-1">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-muted border-b border-[#e8e4df]">
+              <tr className="text-left text-muted border-b border-border">
                 <th className="pb-1.5 px-1 font-medium">Child</th>
                 <th className="pb-1.5 px-1 font-medium">Date</th>
                 <th className="pb-1.5 px-1 font-medium">Session</th>
@@ -325,9 +325,9 @@ function StatementDetail({ statementId }: { statementId: string }) {
               {data.lineItems.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-[#e8e4df] last:border-0"
+                  className="border-b border-border last:border-0"
                 >
-                  <td className="py-1.5 px-1 text-[#1a1a2e]">
+                  <td className="py-1.5 px-1 text-foreground">
                     {item.child.firstName}
                   </td>
                   <td className="py-1.5 px-1 text-muted">
@@ -336,13 +336,13 @@ function StatementDetail({ statementId }: { statementId: string }) {
                   <td className="py-1.5 px-1 text-muted">
                     {SESSION_LABELS[item.sessionType] ?? item.sessionType}
                   </td>
-                  <td className="py-1.5 px-1 text-right text-[#1a1a2e]">
+                  <td className="py-1.5 px-1 text-right text-foreground">
                     ${item.grossFee.toFixed(2)}
                   </td>
                   <td className="py-1.5 px-1 text-right text-green-600">
                     -${item.ccsAmount.toFixed(2)}
                   </td>
-                  <td className="py-1.5 px-1 text-right text-[#1a1a2e]">
+                  <td className="py-1.5 px-1 text-right text-foreground">
                     ${item.gapAmount.toFixed(2)}
                   </td>
                 </tr>

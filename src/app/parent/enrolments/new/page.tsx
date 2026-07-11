@@ -10,12 +10,12 @@ export default function NewSiblingEnrolmentPage() {
       <div>
         <Link
           href="/parent/enrolments"
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-[#004E64] mb-2 min-h-[44px]"
+          className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand mb-2 min-h-[44px]"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to Enrolments
         </Link>
-        <h1 className="text-xl font-heading font-bold text-[#1a1a2e]">
+        <h1 className="text-xl font-heading font-bold text-foreground">
           Enrol a Sibling
         </h1>
         <p className="text-sm text-muted mt-0.5">

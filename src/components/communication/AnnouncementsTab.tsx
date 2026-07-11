@@ -338,7 +338,7 @@ export function AnnouncementsTab() {
                         className="h-5 w-5 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-[10px] font-medium text-white">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-2xs font-medium text-white">
                         {announcement.author?.name?.charAt(0) || "?"}
                       </div>
                     )}

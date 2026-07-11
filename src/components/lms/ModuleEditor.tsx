@@ -218,17 +218,17 @@ function ModuleCard({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground truncate">{module.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", config.bg, config.color)}>
+          <span className={cn("text-2xs font-medium px-1.5 py-0.5 rounded", config.bg, config.color)}>
             {config.label}
           </span>
           {module.duration && (
-            <span className="text-[10px] text-muted flex items-center gap-0.5">
+            <span className="text-2xs text-muted flex items-center gap-0.5">
               <Clock className="w-2.5 h-2.5" />
               {module.duration}min
             </span>
           )}
           {module.isRequired && (
-            <span className="text-[10px] text-emerald-600 flex items-center gap-0.5">
+            <span className="text-2xs text-emerald-600 flex items-center gap-0.5">
               <ShieldCheck className="w-2.5 h-2.5" />
               Required
             </span>
@@ -242,7 +242,7 @@ function ModuleCard({
         </button>
         {confirmDel ? (
           <div className="flex items-center gap-1">
-            <button onClick={onDelete} className="px-2 py-1 text-[10px] font-medium text-white bg-red-600 rounded hover:bg-red-700">
+            <button onClick={onDelete} className="px-2 py-1 text-2xs font-medium text-white bg-red-600 rounded hover:bg-red-700">
               Delete
             </button>
             <button onClick={() => setConfirmDel(false)} className="p-1 text-muted hover:text-foreground">

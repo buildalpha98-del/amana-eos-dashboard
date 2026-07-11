@@ -76,7 +76,7 @@ function statusPill(s: PDStatus): string {
     case "draft":
       return "bg-amber-50 text-amber-700 border-amber-200";
     case "archived":
-      return "bg-gray-50 text-gray-700 border-gray-200";
+      return "bg-surface text-foreground/80 border-border";
   }
 }
 
@@ -261,7 +261,7 @@ function Group({
                     {pd.title}
                   </span>
                   {pd.targetRole && (
-                    <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-surface text-muted">
+                    <span className="text-2xs uppercase font-semibold px-1.5 py-0.5 rounded bg-surface text-muted">
                       {ROLE_LABEL[pd.targetRole]}
                     </span>
                   )}
@@ -530,11 +530,11 @@ function PDModal({ mode, id, isAdmin = true, isOwner = false, onClose }: PDModal
                     {existing.assignedUsers.map((u) => (
                       <li key={u.id} className="flex items-center gap-2">
                         <span className="text-foreground">{u.name}</span>
-                        <span className="text-[10px] uppercase tracking-wide bg-surface px-1.5 py-0.5 rounded">
+                        <span className="text-2xs uppercase tracking-wide bg-surface px-1.5 py-0.5 rounded">
                           {ROLE_LABEL[u.role]}
                         </span>
                         {!u.active && (
-                          <span className="text-[10px] uppercase tracking-wide bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                          <span className="text-2xs uppercase tracking-wide bg-surface text-muted px-1.5 py-0.5 rounded">
                             Inactive
                           </span>
                         )}

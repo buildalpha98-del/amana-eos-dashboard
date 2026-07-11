@@ -948,7 +948,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                           <div className="grid grid-cols-2 gap-2">
                             {(["permanent", "casual"] as const).map((field) => (
                               <div key={field}>
-                                <label className="text-[10px] text-muted uppercase">
+                                <label className="text-2xs text-muted uppercase">
                                   {BOOKING_TYPE_LABELS[field]}
                                 </label>
                                 <BookingInput
@@ -965,7 +965,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                         </div>
                       );
                     })}
-                    <div className="text-[10px] text-muted">
+                    <div className="text-2xs text-muted">
                       Approved places:{" "}
                       <span className="font-medium text-foreground">
                         {approvedPlaces ?? "—"}
@@ -992,7 +992,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                         <div className="font-semibold text-foreground">
                           {formatDayLabel(d)}
                         </div>
-                        <div className="text-[10px] text-muted font-normal">
+                        <div className="text-2xs text-muted font-normal">
                           {formatDateLabel(d)}
                         </div>
                       </th>

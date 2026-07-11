@@ -294,7 +294,7 @@ function ResetPasswordForm() {
                       minLength={12}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 pr-12 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                      className="w-full px-4 py-3 pr-12 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-muted focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                       placeholder="At least 12 characters"
                       autoComplete="new-password"
                       autoFocus
@@ -367,7 +367,7 @@ function ResetPasswordForm() {
                       minLength={12}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:ring-0 transition-colors duration-200 ${
+                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl bg-surface/30 text-base text-foreground placeholder-muted focus:outline-none focus:ring-0 transition-colors duration-200 ${
                         confirmPassword.length > 0
                           ? passwordsMatch
                             ? "border-emerald-300 focus:border-emerald-400"

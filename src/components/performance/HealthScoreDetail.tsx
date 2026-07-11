@@ -327,7 +327,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                       <span className="text-xs text-muted">Centre</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-sm bg-gray-300" />
+                      <div className="w-3 h-3 rounded-sm bg-muted/30" />
                       <span className="text-xs text-muted">Network Avg</span>
                     </div>
                   </div>
@@ -338,7 +338,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                       <div className="flex gap-2 items-center">
                         <div className="flex-1 h-3 bg-surface rounded-full relative overflow-hidden">
                           <div
-                            className="absolute h-full bg-gray-300 rounded-full"
+                            className="absolute h-full bg-muted/30 rounded-full"
                             style={{ width: `${vals.networkAvg}%` }}
                           />
                           <div

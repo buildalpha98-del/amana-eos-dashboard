@@ -97,7 +97,7 @@ export function ActivationsListTable({ activations, onSelect }: ActivationsListT
               <td className={`p-3 text-xs ${RECAP_LABEL[a.recapStatus].className}`}>
                 {RECAP_LABEL[a.recapStatus].text}
                 {a.daysSinceDelivered !== null && (
-                  <div className="text-[10px] text-muted flex items-center gap-1 mt-0.5">
+                  <div className="text-2xs text-muted flex items-center gap-1 mt-0.5">
                     <Clock className="w-2.5 h-2.5" aria-hidden />
                     {a.daysSinceDelivered}d ago
                   </div>

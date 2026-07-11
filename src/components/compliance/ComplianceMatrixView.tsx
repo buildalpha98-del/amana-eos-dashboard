@@ -120,7 +120,7 @@ function StatusCell({
       {cert.status === "expiring" && (
         <div className="relative">
           <AlertTriangle className="w-5 h-5 text-amber-500" />
-          <span className="absolute -top-1 -right-3 text-[10px] font-bold text-amber-600">
+          <span className="absolute -top-1 -right-3 text-2xs font-bold text-amber-600">
             {cert.daysLeft}d
           </span>
         </div>
@@ -310,7 +310,7 @@ function MobileStaffCard({
             {cert.status === "missing" && (
               <Minus className="w-4 h-4 text-muted/50" />
             )}
-            <span className="text-[10px] font-medium text-muted text-center leading-tight">
+            <span className="text-2xs font-medium text-muted text-center leading-tight">
               {SHORT_LABELS[cert.type] || cert.type}
             </span>
           </button>

@@ -8,7 +8,7 @@ const statusOptions = [
   { key: "onboarding", label: "Onboarding", color: "bg-blue-100 text-blue-700 border-blue-300" },
   { key: "pipeline", label: "Pipeline", color: "bg-purple-100 text-purple-700 border-purple-300" },
   { key: "closing", label: "Closing", color: "bg-amber-100 text-amber-700 border-amber-300" },
-  { key: "closed", label: "Closed", color: "bg-gray-100 text-gray-500 border-gray-300" },
+  { key: "closed", label: "Closed", color: "bg-surface text-muted border-border" },
 ] as const;
 
 export function OverviewHeader({

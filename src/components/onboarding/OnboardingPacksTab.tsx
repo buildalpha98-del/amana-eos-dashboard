@@ -194,7 +194,7 @@ export function OnboardingPacksTab({
                             )}
                           </div>
                           {p.task.isRequired && (
-                            <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+                            <span className="text-2xs font-medium text-red-500 uppercase">Required</span>
                           )}
                         </div>
                       ))}
@@ -228,7 +228,7 @@ export function OnboardingPacksTab({
                       <ClipboardList className="w-5 h-5 text-cyan-700" />
                     </div>
                     {pack.isDefault && (
-                      <span className="text-[10px] font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
+                      <span className="text-2xs font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
                     )}
                   </div>
                   <h4 className="font-semibold text-foreground mb-1">{pack.name}</h4>
@@ -288,7 +288,7 @@ export function OnboardingPacksTab({
                           {selectedPackData?.name ?? packs.find(p => p.id === selectedPackId)?.name ?? "Pack Details"}
                         </h4>
                         {selectedPackData?.isDefault && (
-                          <span className="text-[10px] font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
+                          <span className="text-2xs font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
                         )}
                       </div>
                     )}
@@ -364,11 +364,11 @@ export function OnboardingPacksTab({
                                 <p className="text-sm text-foreground">{task.title}</p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-[10px] font-medium bg-border text-muted px-2 py-0.5 rounded-full capitalize">
+                                <span className="text-2xs font-medium bg-border text-muted px-2 py-0.5 rounded-full capitalize">
                                   {task.category.replace("_", " ")}
                                 </span>
                                 {task.isRequired && (
-                                  <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+                                  <span className="text-2xs font-medium text-red-500 uppercase">Required</span>
                                 )}
                               </div>
                             </div>

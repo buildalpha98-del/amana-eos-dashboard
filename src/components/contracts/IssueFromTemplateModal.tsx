@@ -604,7 +604,7 @@ function Step2({
           title="Tag resolution preview"
           sandbox="allow-same-origin"
           srcDoc={previewData.html}
-          className="w-full h-64 bg-white rounded border border-border/50"
+          className="w-full h-64 bg-card rounded border border-border/50"
         />
       </div>
     </div>
@@ -640,7 +640,7 @@ function Step3({
           <label className="block text-sm font-medium text-foreground mb-1.5">
             {field.label}
             <span className="text-red-500 ml-1">*</span>
-            <code className="ml-2 text-[10px] font-normal text-muted bg-surface px-1 py-0.5 rounded">
+            <code className="ml-2 text-2xs font-normal text-muted bg-surface px-1 py-0.5 rounded">
               {`{{${field.key}}}`}
             </code>
           </label>
@@ -883,7 +883,7 @@ function Step5({
           title="Final contract preview"
           sandbox="allow-same-origin"
           srcDoc={previewData.html}
-          className="w-full h-full bg-white"
+          className="w-full h-full bg-card"
         />
       </div>
 

@@ -131,7 +131,7 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
                   <Circle className="w-3.5 h-3.5" aria-hidden />
                 )}
               </div>
-              <div className="text-[10px] leading-tight truncate">{STAGE_LABEL_SHORT[stage]}</div>
+              <div className="text-2xs leading-tight truncate">{STAGE_LABEL_SHORT[stage]}</div>
               {ts && <div className="text-[9px] text-muted mt-0.5 truncate">{fmt(ts)}</div>}
             </li>
           );
@@ -220,7 +220,7 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
               placeholder="cmnk..."
               className="w-full rounded-md border border-border bg-card p-1.5 text-sm font-mono"
             />
-            <p className="text-[10px] text-muted mt-1">
+            <p className="text-2xs text-muted mt-1">
               The post must already exist in MarketingPost. Sprint 6&apos;s recap cron drafts one automatically 48h after delivery.
             </p>
           </div>

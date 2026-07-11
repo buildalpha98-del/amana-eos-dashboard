@@ -111,7 +111,7 @@ export function TemplateDocumentEditor({ templateId, templateName }: Props) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose max-w-none focus:outline-none min-h-[40vh] px-6 py-6 bg-white",
+          "prose prose-sm sm:prose max-w-none focus:outline-none min-h-[40vh] px-6 py-6 bg-card",
       },
     },
     immediatelyRender: false,
@@ -281,7 +281,7 @@ export function TemplateDocumentEditor({ templateId, templateName }: Props) {
         </div>
       )}
 
-      <div className="bg-white max-h-[600px] overflow-y-auto border-t border-border">
+      <div className="bg-card max-h-[600px] overflow-y-auto border-t border-border">
         <EditorContent editor={editor} />
       </div>
     </div>

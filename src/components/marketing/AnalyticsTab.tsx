@@ -131,7 +131,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                 const pct = (item._count.id / platformMax) * 100;
                 const barColor =
                   platformBarColors[item.platform.toLowerCase()] ??
-                  "bg-gray-400";
+                  "bg-muted/60";
                 return (
                   <div key={item.platform}>
                     <div className="flex items-center justify-between mb-1.5">
@@ -367,7 +367,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                 const barPct = (centre.totalEngagement / maxEngagement) * 100;
                 const medalColor = idx < 3 ? medalColors[idx] : undefined;
                 const platformBadgeColor =
-                  platformBarColors[centre.topPlatform?.toLowerCase()] ?? "bg-gray-400";
+                  platformBarColors[centre.topPlatform?.toLowerCase()] ?? "bg-muted/60";
 
                 return (
                   <div
@@ -392,7 +392,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-white",
+                        "shrink-0 rounded px-1.5 py-0.5 text-2xs font-medium text-white",
                         platformBadgeColor
                       )}
                     >

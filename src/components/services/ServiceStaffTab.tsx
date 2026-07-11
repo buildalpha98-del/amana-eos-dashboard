@@ -350,7 +350,7 @@ function StaffMobileCard({
 function PrimaryBadge() {
   return (
     <span
-      className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-1.5 py-0 text-[10px] font-bold uppercase tracking-wide text-emerald-800"
+      className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-1.5 py-0 text-2xs font-bold uppercase tracking-wide text-emerald-800"
       title="This is the staff member's primary service. Manage on their profile."
     >
       Primary

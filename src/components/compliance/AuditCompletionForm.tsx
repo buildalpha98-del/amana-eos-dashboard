@@ -75,7 +75,7 @@ function YesNoInput({
                   ? "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
                   : val === "no"
                   ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
-                  : "bg-surface text-muted border-border ring-2 ring-gray-400"
+                  : "bg-surface text-muted border-border ring-2 ring-muted/60"
                 : "bg-card text-muted border-border hover:bg-surface"
             )}
           >
@@ -176,7 +176,7 @@ function CompliantInput({
                   ? "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
                   : val === "no"
                   ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
-                  : "bg-surface text-muted border-border ring-2 ring-gray-400"
+                  : "bg-surface text-muted border-border ring-2 ring-muted/60"
                 : "bg-card text-muted border-border hover:bg-surface"
             )}
           >
@@ -252,7 +252,7 @@ function ReverseYesNoInput({
           className={cn(
             "px-4 py-2 text-sm font-medium rounded-lg border transition-all",
             result === "na"
-              ? "bg-surface text-muted border-border ring-2 ring-gray-400"
+              ? "bg-surface text-muted border-border ring-2 ring-muted/60"
               : "bg-card text-muted border-border hover:bg-surface"
           )}
         >

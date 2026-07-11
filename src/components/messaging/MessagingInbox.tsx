@@ -77,31 +77,31 @@ export function MessagingInbox() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] overflow-hidden rounded-xl border border-[#e8e4df] bg-white shadow-sm">
+    <div className="flex h-[calc(100vh-7rem)] overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       {/* ── Left panel: conversation list ─────────────── */}
       <div
         className={cn(
-          "w-full sm:w-[35%] sm:min-w-[320px] sm:max-w-[420px] border-r border-[#e8e4df] flex flex-col",
+          "w-full sm:w-[35%] sm:min-w-[320px] sm:max-w-[420px] border-r border-border flex flex-col",
           mobileThread ? "hidden sm:flex" : "flex",
         )}
       >
         {/* Header */}
-        <div className="p-4 border-b border-[#e8e4df] space-y-3">
+        <div className="p-4 border-b border-border space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-heading font-bold text-[#1a1a2e]">
+            <h2 className="text-lg font-heading font-bold text-foreground">
               Messages
             </h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setBroadcastOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#004E64] hover:bg-[#004E64]/5 rounded-lg transition-colors min-h-[36px]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand/5 rounded-lg transition-colors min-h-[36px]"
               >
                 <Megaphone className="w-4 h-4" />
                 <span className="hidden sm:inline">Broadcast</span>
               </button>
               <button
                 onClick={() => setNewMsgOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-lg transition-colors min-h-[36px]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-lg transition-colors min-h-[36px]"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">New</span>
@@ -117,7 +117,7 @@ export function MessagingInbox() {
               placeholder="Search by name or subject..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 focus:outline-none focus:border-[#004E64] transition-colors"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-[#f8f5f2]/50 focus:outline-none focus:border-brand transition-colors"
             />
           </div>
 
@@ -126,7 +126,7 @@ export function MessagingInbox() {
             <select
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 focus:outline-none focus:border-[#004E64] transition-colors"
+              className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-[#f8f5f2]/50 focus:outline-none focus:border-brand transition-colors"
             >
               <option value="">All services</option>
               {services.map((s) => (
@@ -146,8 +146,8 @@ export function MessagingInbox() {
                 className={cn(
                   "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all min-h-[32px]",
                   status === tab.value
-                    ? "bg-white text-[#004E64] shadow-sm"
-                    : "text-muted hover:text-[#1a1a2e]",
+                    ? "bg-card text-brand shadow-sm"
+                    : "text-muted hover:text-foreground",
                 )}
               >
                 {tab.label}
@@ -239,28 +239,28 @@ function ConversationRow({
     <button
       onClick={onClick}
       className={cn(
-        "w-full text-left px-4 py-3 border-b border-[#e8e4df]/50 hover:bg-[#f8f5f2]/50 transition-colors",
-        isActive && "bg-[#f8f5f2] border-l-2 border-l-[#004E64]",
+        "w-full text-left px-4 py-3 border-b border-border/50 hover:bg-[#f8f5f2]/50 transition-colors",
+        isActive && "bg-[#f8f5f2] border-l-2 border-l-brand",
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-[#1a1a2e] truncate">
+            <span className="text-sm font-semibold text-foreground truncate">
               {familyName}
             </span>
             {conv.unreadCount > 0 && (
-              <span className="shrink-0 w-5 h-5 flex items-center justify-center rounded-full bg-[#FECE00] text-[10px] font-bold text-[#1a1a2e]">
+              <span className="shrink-0 w-5 h-5 flex items-center justify-center rounded-full bg-accent text-2xs font-bold text-foreground">
                 {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
               </span>
             )}
           </div>
           <p className="text-xs text-muted mt-0.5">{conv.service.name}</p>
-          <p className="text-xs text-[#1a1a2e]/70 mt-0.5 truncate">
+          <p className="text-xs text-foreground/70 mt-0.5 truncate">
             {conv.subject}
           </p>
         </div>
-        <span className="text-[10px] text-muted shrink-0 mt-0.5">
+        <span className="text-2xs text-muted shrink-0 mt-0.5">
           {formatRelativeTime(conv.lastMessageAt)}
         </span>
       </div>
@@ -364,16 +364,16 @@ function ConversationThread({
   return (
     <>
       {/* Thread header */}
-      <div className="px-4 py-3 border-b border-[#e8e4df] flex items-center justify-between gap-3">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <button aria-label="Back to conversations"
             onClick={onBack}
             className="sm:hidden shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f8f5f2] transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 text-[#1a1a2e]" />
+            <ArrowLeft className="w-4 h-4 text-foreground" />
           </button>
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-[#1a1a2e] truncate">
+            <h3 className="text-sm font-semibold text-foreground truncate">
               {conversation.subject}
             </h3>
             <p className="text-xs text-muted">
@@ -422,16 +422,16 @@ function ConversationThread({
                 className={cn(
                   "max-w-[75%] rounded-2xl px-4 py-2.5",
                   msg.senderType === "staff"
-                    ? "bg-[#004E64] text-white rounded-br-md"
-                    : "bg-white border border-[#004E64]/20 text-[#1a1a2e] rounded-bl-md",
+                    ? "bg-brand text-white rounded-br-md"
+                    : "bg-card border border-brand/20 text-foreground rounded-bl-md",
                 )}
               >
                 <p
                   className={cn(
-                    "text-[10px] font-semibold mb-0.5",
+                    "text-2xs font-semibold mb-0.5",
                     msg.senderType === "staff"
                       ? "text-white/70"
-                      : "text-[#004E64]",
+                      : "text-brand",
                   )}
                 >
                   {msg.senderName}
@@ -449,7 +449,7 @@ function ConversationThread({
                 )}
                 <p
                   className={cn(
-                    "text-[10px] mt-1",
+                    "text-2xs mt-1",
                     msg.senderType === "staff"
                       ? "text-white/50"
                       : "text-muted",
@@ -468,7 +468,7 @@ function ConversationThread({
       </div>
 
       {/* Reply box */}
-      <div className="p-3 border-t border-[#e8e4df] space-y-2">
+      <div className="p-3 border-t border-border space-y-2">
         {attachments.length > 0 && (
           <AttachmentThumbnails
             attachments={attachments}
@@ -488,7 +488,7 @@ function ConversationThread({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={!canAddMore || sendMessage.isPending}
-            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-[#004E64] hover:bg-[#004E64]/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] min-w-[44px]"
+            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-brand hover:bg-brand/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] min-w-[44px]"
             aria-label="Add image attachment"
             title={
               canAddMore
@@ -507,7 +507,7 @@ function ConversationThread({
                 attachments.length > 0 ? "Add a caption…" : "Type a message..."
               }
               rows={3}
-              className="w-full px-3 py-2.5 border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+              className="w-full px-3 py-2.5 border border-border rounded-lg bg-[#f8f5f2]/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors resize-none"
             />
             <div className="flex justify-end">
               <AiButton
@@ -548,7 +548,7 @@ function ConversationThread({
           <button
             onClick={handleSend}
             disabled={!canSend}
-            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-[#004E64] hover:bg-[#003D52] text-white transition-all disabled:opacity-50 active:scale-[0.95] min-h-[44px] min-w-[44px]"
+            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-brand hover:bg-brand-hover text-white transition-all disabled:opacity-50 active:scale-[0.95] min-h-[44px] min-w-[44px]"
             aria-label="Send message"
           >
             {sendMessage.isPending || isAttachmentUploading ? (
@@ -660,7 +660,7 @@ function NewMessageDialog({
         <div className="space-y-4 mt-4">
           {/* Service selector */}
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+            <label className="block text-xs font-medium text-foreground/70 mb-1">
               Service
             </label>
             <select
@@ -669,7 +669,7 @@ function NewMessageDialog({
                 setServiceId(e.target.value);
                 setFamilyId("");
               }}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-[#f8f5f2]/50 text-sm text-foreground focus:outline-none focus:border-brand transition-colors min-h-[44px]"
             >
               <option value="">Select a service</option>
               {services?.map((s) => (
@@ -683,7 +683,7 @@ function NewMessageDialog({
           {/* Family selector */}
           {serviceId && (
             <div>
-              <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+              <label className="block text-xs font-medium text-foreground/70 mb-1">
                 Family
               </label>
               <input
@@ -691,9 +691,9 @@ function NewMessageDialog({
                 placeholder="Search families..."
                 value={familySearch}
                 onChange={(e) => setFamilySearch(e.target.value)}
-                className="w-full px-3 py-2 text-sm border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 focus:outline-none focus:border-[#004E64] transition-colors mb-1 min-h-[44px]"
+                className="w-full px-3 py-2 text-sm border-2 border-border rounded-lg bg-[#f8f5f2]/50 focus:outline-none focus:border-brand transition-colors mb-1 min-h-[44px]"
               />
-              <div className="max-h-32 overflow-y-auto border border-[#e8e4df] rounded-lg">
+              <div className="max-h-32 overflow-y-auto border border-border rounded-lg">
                 {filteredFamilies.length === 0 ? (
                   <p className="text-xs text-muted p-3 text-center">
                     No families found
@@ -709,7 +709,7 @@ function NewMessageDialog({
                         onClick={() => setFamilyId(f.id)}
                         className={cn(
                           "w-full text-left px-3 py-2 text-sm hover:bg-[#f8f5f2] transition-colors min-h-[40px]",
-                          familyId === f.id && "bg-[#004E64]/5 font-medium",
+                          familyId === f.id && "bg-brand/5 font-medium",
                         )}
                       >
                         {name || f.email}
@@ -728,7 +728,7 @@ function NewMessageDialog({
 
           {/* Subject */}
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+            <label className="block text-xs font-medium text-foreground/70 mb-1">
               Subject
             </label>
             <input
@@ -737,13 +737,13 @@ function NewMessageDialog({
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Enrolment update"
               maxLength={200}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-[#f8f5f2]/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors min-h-[44px]"
             />
           </div>
 
           {/* Body */}
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+            <label className="block text-xs font-medium text-foreground/70 mb-1">
               Message
             </label>
             <textarea
@@ -752,7 +752,7 @@ function NewMessageDialog({
               placeholder={attachments.length > 0 ? "Add a caption (optional)…" : "Type your message..."}
               maxLength={5000}
               rows={4}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-[#f8f5f2]/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors resize-none"
             />
           </div>
 
@@ -776,7 +776,7 @@ function NewMessageDialog({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={!canAddMore || createConversation.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#004E64] hover:bg-[#004E64]/5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-brand hover:bg-brand/5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
               aria-label="Add image attachment"
               title={canAddMore ? "Add photo" : `Maximum ${MAX_ATTACHMENTS} images per message`}
             >
@@ -793,7 +793,7 @@ function NewMessageDialog({
           <button
             onClick={handleSend}
             disabled={!canSubmit}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >
             {createConversation.isPending || isAttachmentUploading ? (
               <>
@@ -878,13 +878,13 @@ function BroadcastDialog({
 
         <div className="space-y-4 mt-4">
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+            <label className="block text-xs font-medium text-foreground/70 mb-1">
               Service
             </label>
             <select
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-[#f8f5f2]/50 text-sm text-foreground focus:outline-none focus:border-brand transition-colors min-h-[44px]"
             >
               <option value="">Select a service</option>
               {services?.map((s) => (
@@ -896,7 +896,7 @@ function BroadcastDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+            <label className="block text-xs font-medium text-foreground/70 mb-1">
               Subject
             </label>
             <input
@@ -905,12 +905,12 @@ function BroadcastDialog({
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Important update"
               maxLength={200}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-[#f8f5f2]/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors min-h-[44px]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+            <label className="block text-xs font-medium text-foreground/70 mb-1">
               Message
             </label>
             <textarea
@@ -919,30 +919,30 @@ function BroadcastDialog({
               placeholder="Type your broadcast message..."
               maxLength={10000}
               rows={5}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-[#f8f5f2]/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1.5">
+            <label className="block text-xs font-medium text-foreground/70 mb-1.5">
               Channels
             </label>
             <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-sm text-[#1a1a2e]">
+              <label className="inline-flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
                   checked={emailChecked}
                   onChange={(e) => setEmailChecked(e.target.checked)}
-                  className="h-4 w-4 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+                  className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                 />
                 Email
               </label>
-              <label className="inline-flex items-center gap-2 text-sm text-[#1a1a2e]">
+              <label className="inline-flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
                   checked={smsChecked}
                   onChange={(e) => setSmsChecked(e.target.checked)}
-                  className="h-4 w-4 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+                  className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                 />
                 SMS
                 {smsChecked && serviceId && (
@@ -961,8 +961,8 @@ function BroadcastDialog({
           </div>
 
           {serviceId && (
-            <div className="bg-[#FECE00]/10 border border-[#FECE00]/30 rounded-lg p-3">
-              <p className="text-xs text-[#1a1a2e]">
+            <div className="bg-accent/10 border border-accent/30 rounded-lg p-3">
+              <p className="text-xs text-foreground">
                 <Megaphone className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
                 This will be sent to <strong>{familyCount}</strong> families at{" "}
                 <strong>{serviceName}</strong>
@@ -986,7 +986,7 @@ function BroadcastDialog({
               (!emailChecked && !smsChecked) ||
               sendBroadcast.isPending
             }
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >
             {sendBroadcast.isPending ? (
               <>

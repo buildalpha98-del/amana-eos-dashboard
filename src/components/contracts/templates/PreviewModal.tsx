@@ -54,7 +54,7 @@ export function PreviewModal({
 
         <div className="flex-1 overflow-hidden">
           {preview.isPending ? (
-            <div className="p-8 text-center text-muted-foreground">
+            <div className="p-8 text-center text-muted">
               Rendering preview…
             </div>
           ) : (
@@ -62,7 +62,7 @@ export function PreviewModal({
               title="Contract preview"
               sandbox="allow-same-origin"
               srcDoc={html}
-              className="w-full h-full bg-white"
+              className="w-full h-full bg-card"
             />
           )}
         </div>

@@ -709,7 +709,7 @@ export function MarketingCockpit() {
         <div className="mt-1">{(summaryQuery.error as Error)?.message ?? "Unknown error"}</div>
         <button
           onClick={() => summaryQuery.refetch()}
-          className="mt-3 rounded-md border border-red-300 bg-white px-3 py-1 text-xs font-medium hover:bg-red-100"
+          className="mt-3 rounded-md border border-red-300 bg-card px-3 py-1 text-xs font-medium hover:bg-red-100"
         >
           Retry
         </button>

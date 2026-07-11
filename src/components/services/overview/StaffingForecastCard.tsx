@@ -41,7 +41,7 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
           Staffing — This Week
         </label>
         {monthlyOverstaffingCost > 0 && (
-          <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+          <span className="text-2xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
             ${monthlyOverstaffingCost.toFixed(0)} overstaffing this month
           </span>
         )}
@@ -57,7 +57,7 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
 
           return (
             <div key={day.date} className="flex items-center gap-2">
-              <span className="text-[10px] text-muted w-7 text-right font-medium">
+              <span className="text-2xs text-muted w-7 text-right font-medium">
                 {label}
               </span>
               <div className="flex-1 flex gap-1">
@@ -69,7 +69,7 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
                     <div
                       key={s.sessionType}
                       className={cn(
-                        "flex-1 flex items-center justify-between px-2 py-1 rounded text-[10px] border",
+                        "flex-1 flex items-center justify-between px-2 py-1 rounded text-2xs border",
                         isUnder
                           ? "bg-red-50 border-red-200 text-red-700"
                           : isOver
@@ -113,7 +113,7 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
               <p className="text-sm font-bold text-amber-700">
                 ${week.totalWaste.toFixed(0)}
               </p>
-              <p className="text-[10px] text-amber-600 uppercase tracking-wider">
+              <p className="text-2xs text-amber-600 uppercase tracking-wider">
                 Weekly Waste
               </p>
             </div>
@@ -123,7 +123,7 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
               <p className="text-sm font-bold text-red-700">
                 ${week.totalRisk.toFixed(0)}
               </p>
-              <p className="text-[10px] text-red-600 uppercase tracking-wider">
+              <p className="text-2xs text-red-600 uppercase tracking-wider">
                 Revenue at Risk
               </p>
             </div>

@@ -103,7 +103,7 @@ function AttendanceBar({
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[10px] text-muted">
+      <p className="text-2xs text-muted">
         {pct}% of {session.capacity} capacity
       </p>
     </div>
@@ -198,7 +198,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
           {/* Card grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             {/* Attendance Today */}
-            <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+            <div className="bg-surface rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-4 h-4 text-brand" />
                 <h4 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
@@ -248,7 +248,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                           className="w-7 h-7 rounded-full object-cover border border-white shadow-sm"
                         />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-medium border border-white shadow-sm">
+                        <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-white text-2xs font-medium border border-white shadow-sm">
                           {getInitials(staff.name)}
                         </div>
                       )}
@@ -299,7 +299,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                         <p className="text-xs text-foreground truncate leading-tight">
                           {todo.title}
                         </p>
-                        <p className="text-[10px] text-muted">
+                        <p className="text-2xs text-muted">
                           {todo.assigneeName}
                         </p>
                       </div>
@@ -309,7 +309,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                     <li>
                       <button
                         onClick={() => navigateToTab("eos", "todos")}
-                        className="text-[10px] text-brand hover:underline font-medium"
+                        className="text-2xs text-brand hover:underline font-medium"
                       >
                         +{data.todosToday.length - 3} more &rarr; View all
                       </button>
@@ -357,7 +357,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                         <p className="text-xs text-foreground truncate leading-tight">
                           {ticket.title}
                         </p>
-                        <p className="text-[10px] text-muted">
+                        <p className="text-2xs text-muted">
                           {new Date(ticket.createdAt).toLocaleDateString(
                             "en-AU",
                             { day: "numeric", month: "short" }
@@ -370,7 +370,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                     <li>
                       <button
                         onClick={() => navigateToTab("eos", "issues")}
-                        className="text-[10px] text-brand hover:underline font-medium"
+                        className="text-2xs text-brand hover:underline font-medium"
                       >
                         +{data.openTickets.length - 3} more &rarr; View all
                       </button>

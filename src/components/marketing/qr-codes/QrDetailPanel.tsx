@@ -168,14 +168,14 @@ export function QrDetailPanel({ qrId, onClose }: QrDetailPanelProps) {
               {/* QR + actions */}
               <div className="rounded-md border border-border bg-card p-3 flex gap-3 items-start">
                 <div
-                  className="shrink-0 w-28 h-28 rounded border border-border bg-white p-0.5 [&_svg]:w-full [&_svg]:h-full"
+                  className="shrink-0 w-28 h-28 rounded border border-border bg-card p-0.5 [&_svg]:w-full [&_svg]:h-full"
                   dangerouslySetInnerHTML={{ __html: data.svg }}
                   aria-label={`QR code for ${data.name}`}
                   role="img"
                 />
                 <div className="flex-1 min-w-0 space-y-2 text-sm">
                   <div className="min-w-0">
-                    <div className="text-[10px] text-muted uppercase tracking-wide mb-0.5">Scan URL</div>
+                    <div className="text-2xs text-muted uppercase tracking-wide mb-0.5">Scan URL</div>
                     <a
                       href={data.scanUrl}
                       target="_blank"
@@ -263,7 +263,7 @@ export function QrDetailPanel({ qrId, onClose }: QrDetailPanelProps) {
                     ))}
                   </ul>
                   {data.countryCounts.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+                    <div className="mt-2 flex flex-wrap gap-1.5 text-2xs">
                       {data.countryCounts.map((c) => (
                         <span key={c.country} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border bg-surface">
                           <Globe className="w-2.5 h-2.5" />
@@ -291,7 +291,7 @@ export function QrDetailPanel({ qrId, onClose }: QrDetailPanelProps) {
                           <span className="text-muted">{deviceFromUa(s.userAgent)}</span>
                         </div>
                         {(s.city || s.region || s.country) && (
-                          <div className="text-[10px] text-muted mt-0.5">
+                          <div className="text-2xs text-muted mt-0.5">
                             {[s.city, s.region, s.country].filter(Boolean).join(", ")}
                           </div>
                         )}
@@ -325,7 +325,7 @@ function Stat({ label, value, highlight }: { label: string; value: number | stri
   return (
     <div className={`rounded-md border p-2 ${highlight ? "border-brand/40 bg-brand/5" : "border-border bg-card"}`}>
       <div className="text-base font-semibold text-foreground">{value}</div>
-      <div className="text-[10px] text-muted uppercase tracking-wide">{label}</div>
+      <div className="text-2xs text-muted uppercase tracking-wide">{label}</div>
     </div>
   );
 }
@@ -333,7 +333,7 @@ function Stat({ label, value, highlight }: { label: string; value: number | stri
 function DataRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[10px] text-muted uppercase tracking-wide">{label}</dt>
+      <dt className="text-2xs text-muted uppercase tracking-wide">{label}</dt>
       <dd className="text-sm text-foreground">{children}</dd>
     </div>
   );

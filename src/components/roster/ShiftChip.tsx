@@ -38,7 +38,7 @@ const SESSION_STYLES: Record<string, string> = {
   asc: "bg-green-100 text-green-900 border-green-400",
   vc: "bg-purple-100 text-purple-900 border-purple-400",
 };
-const SESSION_DEFAULT = "bg-gray-100 text-gray-900 border-gray-400";
+const SESSION_DEFAULT = "bg-surface text-foreground border-muted/60";
 
 function styleFor(sessionType: string): string {
   return SESSION_STYLES[sessionType] ?? SESSION_DEFAULT;
@@ -109,7 +109,7 @@ export function ShiftChip({
 // missing). 2026-05-04: timeclock v1, sub-PR 5.
 
 const VARIANCE_STYLES: Record<VarianceStatus, string> = {
-  none: "bg-gray-100 text-gray-500 border-gray-300",
+  none: "bg-surface text-muted border-border",
   active: "bg-blue-100 text-blue-800 border-blue-300",
   "on-time": "bg-green-100 text-green-800 border-green-400",
   early: "bg-blue-100 text-blue-800 border-blue-300",
@@ -140,7 +140,7 @@ function VarianceBadge(props: VarianceBadgeProps) {
     <span
       title={tooltip}
       className={cn(
-        "inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-medium",
+        "inline-flex items-center rounded-full border px-1.5 py-0 text-2xs font-medium",
         VARIANCE_STYLES[v.status],
       )}
     >

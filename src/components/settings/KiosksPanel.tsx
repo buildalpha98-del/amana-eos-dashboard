@@ -111,7 +111,7 @@ function KioskRowItem({ kiosk }: { kiosk: KioskRow }) {
             {kiosk.label}
           </span>
           {isRevoked && (
-            <span className="text-[10px] uppercase tracking-wide font-medium text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+            <span className="text-2xs uppercase tracking-wide font-medium text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
               revoked
             </span>
           )}

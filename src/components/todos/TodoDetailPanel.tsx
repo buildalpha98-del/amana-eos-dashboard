@@ -100,7 +100,7 @@ export function TodoDetailPanel({
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-foreground">To-Do Detail</h3>
             {isPrivate && (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+              <span className="flex items-center gap-1 text-2xs font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
                 <Lock className="w-3 h-3" />
                 Private
               </span>
@@ -279,7 +279,7 @@ export function TodoDetailPanel({
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-card shadow-sm transition-transform ${
                   isPrivate ? "translate-x-5" : ""
                 }`}
               />

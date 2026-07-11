@@ -84,13 +84,13 @@ export function InstallPrompt({ onInstalled }: Props) {
   // Android with native prompt available
   if (platform === "android" && deferredPrompt) {
     return (
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+      <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#004E64]/10 flex items-center justify-center shrink-0">
-            <Download className="w-5 h-5 text-[#004E64]" />
+          <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+            <Download className="w-5 h-5 text-brand" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-[#1a1a2e]">Install the app</p>
+            <p className="text-sm font-semibold text-foreground">Install the app</p>
             <p className="text-xs text-muted mt-0.5">
               Add Amana Parents to your home screen for quick access.
             </p>
@@ -99,7 +99,7 @@ export function InstallPrompt({ onInstalled }: Props) {
         <button
           onClick={handleInstallClick}
           disabled={installing}
-          className="w-full mt-3 flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
+          className="w-full mt-3 flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
         >
           <Download className="w-4 h-4" />
           {installing ? "Installing..." : "Install App"}
@@ -111,13 +111,13 @@ export function InstallPrompt({ onInstalled }: Props) {
   // iOS instructions
   if (platform === "ios") {
     return (
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+      <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-[#004E64]/10 flex items-center justify-center shrink-0">
-            <Smartphone className="w-5 h-5 text-[#004E64]" />
+          <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+            <Smartphone className="w-5 h-5 text-brand" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#1a1a2e]">Add to Home Screen</p>
+            <p className="text-sm font-semibold text-foreground">Add to Home Screen</p>
             <p className="text-xs text-muted mt-0.5">
               Follow these steps in Safari to add the app to your iPhone.
             </p>
@@ -138,7 +138,7 @@ export function InstallPrompt({ onInstalled }: Props) {
 
         <button
           onClick={() => onInstalled?.()}
-          className="w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 bg-[#F2EDE8] hover:bg-[#e8e4df] text-[#1a1a2e] text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[48px]"
+          className="w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 bg-surface hover:bg-border text-foreground text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[48px]"
         >
           <CheckCircle2 className="w-4 h-4" />
           I&apos;ve added it
@@ -149,13 +149,13 @@ export function InstallPrompt({ onInstalled }: Props) {
 
   // Android without prompt / Desktop
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+    <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-[#004E64]/10 flex items-center justify-center shrink-0">
-          <Smartphone className="w-5 h-5 text-[#004E64]" />
+        <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+          <Smartphone className="w-5 h-5 text-brand" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-[#1a1a2e]">Add to Home Screen</p>
+          <p className="text-sm font-semibold text-foreground">Add to Home Screen</p>
           <p className="text-xs text-muted mt-0.5">
             {platform === "android"
               ? "Open this page in Chrome, then follow these steps."
@@ -180,7 +180,7 @@ export function InstallPrompt({ onInstalled }: Props) {
 
       <button
         onClick={() => onInstalled?.()}
-        className="w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 bg-[#F2EDE8] hover:bg-[#e8e4df] text-[#1a1a2e] text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[48px]"
+        className="w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 bg-surface hover:bg-border text-foreground text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[48px]"
       >
         <CheckCircle2 className="w-4 h-4" />
         I&apos;ve added it
@@ -200,10 +200,10 @@ function Step({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-6 h-6 rounded-full bg-[#004E64] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+      <div className="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
         {number}
       </div>
-      <div className="flex items-start gap-2 text-sm text-[#1a1a2e]">
+      <div className="flex items-start gap-2 text-sm text-foreground">
         <Icon className="w-4 h-4 text-muted shrink-0 mt-0.5" />
         <p>{children}</p>
       </div>

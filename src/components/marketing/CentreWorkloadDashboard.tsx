@@ -209,7 +209,7 @@ export function CentreWorkloadDashboard({
                         <span className="font-medium text-foreground">{c.name}</span>
                         <span className="text-muted text-xs ml-1.5">({c.code})</span>
                         {c.state && (
-                          <span className="text-muted text-[10px] ml-1.5 uppercase">
+                          <span className="text-muted text-2xs ml-1.5 uppercase">
                             {c.state}
                           </span>
                         )}
@@ -263,7 +263,7 @@ function SummaryCard({
         warn ? "border-red-200 bg-red-50" : "border-border bg-card"
       }`}
     >
-      <p className="text-[10px] uppercase tracking-wider text-muted mb-1">
+      <p className="text-2xs uppercase tracking-wider text-muted mb-1">
         {label}
       </p>
       <div className="flex items-center gap-1.5">

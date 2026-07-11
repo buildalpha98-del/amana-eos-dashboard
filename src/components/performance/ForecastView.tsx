@@ -57,7 +57,7 @@ function UtilisationBar({ now, horizon }: { now: number | null; horizon: number 
   const horizonPct = horizon === null ? nowPct : Math.min(100, Math.round(horizon * 100));
   return (
     <div className="w-full min-w-[120px]">
-      <div className="mb-0.5 flex justify-between text-[10px] text-muted">
+      <div className="mb-0.5 flex justify-between text-2xs text-muted">
         <span>{nowPct}% now</span>
         <span className={cn(horizonPct >= 95 && "font-semibold text-red-600")}>{horizonPct}% projected</span>
       </div>

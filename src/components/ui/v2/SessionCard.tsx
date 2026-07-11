@@ -27,7 +27,7 @@ export function SessionCard({
     return (
       <div className={cn("warm-card min-w-[128px] flex flex-col gap-2", className)}>
         <div className="flex items-baseline gap-2">
-          <span className="text-[10px] font-bold tracking-wider text-[color:var(--color-brand)]">
+          <span className="text-2xs font-bold tracking-wider text-[color:var(--color-brand)]">
             {dayName}
           </span>
           <span className="text-xl font-bold text-[color:var(--color-brand)] leading-none">
@@ -38,7 +38,7 @@ export function SessionCard({
           {label}
         </div>
         {sublabel && (
-          <div className="text-[10px] text-[color:var(--color-muted)] truncate">{sublabel}</div>
+          <div className="text-2xs text-[color:var(--color-muted)] truncate">{sublabel}</div>
         )}
         <StatusBadge variant={status} />
       </div>

@@ -41,7 +41,7 @@ import { AssignToServiceDialog } from "./AssignToServiceDialog";
 const STATUS_TONE: Record<EmployeeListItem["status"], string> = {
   active: "bg-emerald-100 text-emerald-800 border-emerald-300",
   pending: "bg-amber-100 text-amber-800 border-amber-300",
-  deactivated: "bg-gray-100 text-gray-700 border-gray-300",
+  deactivated: "bg-surface text-foreground/80 border-border",
 };
 
 const STATUS_LABEL: Record<EmployeeListItem["status"], string> = {
@@ -251,7 +251,7 @@ export function EmployeeRow({
         <td className="px-4 py-3">
           <span
             className={cn(
-              "inline-flex items-center rounded-full border px-2 py-0 text-[10px] font-bold uppercase tracking-wide",
+              "inline-flex items-center rounded-full border px-2 py-0 text-2xs font-bold uppercase tracking-wide",
               STATUS_TONE[employee.status],
             )}
           >

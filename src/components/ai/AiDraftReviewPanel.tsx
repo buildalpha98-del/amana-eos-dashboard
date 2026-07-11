@@ -31,7 +31,7 @@ const TASK_TYPE_CONFIG: Record<
   communication: { label: "Communication", bg: "bg-blue-50", text: "text-blue-700" },
   research: { label: "Research", bg: "bg-purple-50", text: "text-purple-700" },
   document: { label: "Document", bg: "bg-emerald-50", text: "text-emerald-700" },
-  admin: { label: "Admin", bg: "bg-gray-100", text: "text-gray-700" },
+  admin: { label: "Admin", bg: "bg-surface", text: "text-foreground/80" },
 };
 
 /* ── Props ────────────────────────────────────────────── */

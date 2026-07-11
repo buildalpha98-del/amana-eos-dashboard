@@ -81,7 +81,7 @@ export function ReportsDashboard() {
         <select
           value={serviceId}
           onChange={(e) => setServiceId(e.target.value)}
-          className="text-sm border border-border rounded-lg px-3 py-2 bg-white text-foreground"
+          className="text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground"
         >
           <option value="">All Services</option>
           {services?.map((s) => (
@@ -97,8 +97,8 @@ export function ReportsDashboard() {
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors",
                 dateRange.from === p.getValue().from
-                  ? "bg-[#004E64] text-white"
-                  : "bg-surface text-muted hover:bg-[#004E64]/10",
+                  ? "bg-brand text-white"
+                  : "bg-surface text-muted hover:bg-brand/10",
               )}
             >
               {p.label}
@@ -111,14 +111,14 @@ export function ReportsDashboard() {
             type="date"
             value={dateRange.from}
             onChange={(e) => setDateRange((r) => ({ ...r, from: e.target.value }))}
-            className="text-sm border border-border rounded-lg px-2 py-1.5 bg-white"
+            className="text-sm border border-border rounded-lg px-2 py-1.5 bg-card"
           />
           <span className="text-muted text-xs">to</span>
           <input
             type="date"
             value={dateRange.to}
             onChange={(e) => setDateRange((r) => ({ ...r, to: e.target.value }))}
-            className="text-sm border border-border rounded-lg px-2 py-1.5 bg-white"
+            className="text-sm border border-border rounded-lg px-2 py-1.5 bg-card"
           />
         </div>
       </div>
@@ -132,7 +132,7 @@ export function ReportsDashboard() {
             className={cn(
               "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors -mb-px",
               tab === t
-                ? "border-[#004E64] text-[#004E64]"
+                ? "border-brand text-brand"
                 : "border-transparent text-muted hover:text-foreground",
             )}
           >

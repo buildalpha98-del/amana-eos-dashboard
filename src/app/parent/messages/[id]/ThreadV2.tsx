@@ -235,7 +235,7 @@ export default function ThreadV2() {
             }}
             placeholder={hasAttachments ? "Add a caption…" : "Message"}
             rows={1}
-            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-white text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
+            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-card text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
           />
           <button
             type="submit"
@@ -283,7 +283,7 @@ function Bubble({ message }: { message: OptimisticMessage }) {
           />
         )}
         {isParent && (
-          <div className="flex items-center justify-end gap-1 mt-0.5 text-[10px] opacity-70">
+          <div className="flex items-center justify-end gap-1 mt-0.5 text-2xs opacity-70">
             {message.__failed ? (
               <span className="text-red-200">Failed</span>
             ) : message.__optimistic ? (

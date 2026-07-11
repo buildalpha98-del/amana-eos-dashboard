@@ -107,17 +107,17 @@ export function ActivationQrLink({ activationId, serviceId, title }: ActivationQ
               <div className="min-w-0 flex-1">
                 <div className="font-medium text-foreground truncate">
                   {c.name}
-                  {!c.active && <span className="ml-1 text-[10px] text-muted">· archived</span>}
+                  {!c.active && <span className="ml-1 text-2xs text-muted">· archived</span>}
                 </div>
-                <div className="font-mono text-[10px] text-muted truncate">{c.scanUrl.replace(/^https?:\/\//, "")}</div>
+                <div className="font-mono text-2xs text-muted truncate">{c.scanUrl.replace(/^https?:\/\//, "")}</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="font-semibold text-foreground">{c.totals.uniqueVisitors}</div>
-                <div className="text-[10px] text-muted">unique · {c.totals.scans} total</div>
+                <div className="text-2xs text-muted">unique · {c.totals.scans} total</div>
               </div>
               <Link
                 href={`/marketing/qr-codes?id=${c.id}`}
-                className="text-[10px] text-brand hover:underline shrink-0"
+                className="text-2xs text-brand hover:underline shrink-0"
               >
                 Manage
               </Link>

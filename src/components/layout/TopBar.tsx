@@ -207,7 +207,7 @@ export function TopBar() {
           >
             <Search className="w-4 h-4" />
             <span className="hidden md:inline">Search...</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-muted bg-card rounded border-border border">
+            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-2xs font-medium text-muted bg-card rounded border-border border">
               ⌘K
             </kbd>
           </button>

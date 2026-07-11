@@ -34,7 +34,7 @@ function AutosaveLabel({
 }) {
   if (state === "saving") {
     return (
-      <span className="text-xs text-muted-foreground animate-pulse">Saving…</span>
+      <span className="text-xs text-muted animate-pulse">Saving…</span>
     );
   }
   if (state === "error") {
@@ -48,7 +48,7 @@ function AutosaveLabel({
     const label = secs < 5 ? "just now" : `${secs}s ago`;
     return <span className="text-xs text-green-600">Saved {label}</span>;
   }
-  return <span className="text-xs text-muted-foreground">Saved</span>;
+  return <span className="text-xs text-muted">Saved</span>;
 }
 
 // ── Toolbar button helper ──────────────────────────────────────────────────────
@@ -239,7 +239,7 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
                 "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
                 status === "active"
                   ? "bg-green-100 text-green-800 hover:bg-green-200"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  : "bg-surface text-muted hover:bg-border"
               )}
             >
               {status === "active" ? "Active" : "Disabled"}

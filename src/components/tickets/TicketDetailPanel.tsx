@@ -55,7 +55,7 @@ const statusSteps: { key: TicketStatus; label: string; color: string; activeColo
   { key: "open", label: "Open", color: "bg-amber-100 text-amber-700", activeColor: "bg-amber-500 text-white" },
   { key: "pending_parent", label: "Pending", color: "bg-purple-100 text-purple-700", activeColor: "bg-purple-500 text-white" },
   { key: "resolved", label: "Resolved", color: "bg-emerald-100 text-emerald-700", activeColor: "bg-emerald-500 text-white" },
-  { key: "closed", label: "Closed", color: "bg-surface text-muted", activeColor: "bg-gray-500 text-white" },
+  { key: "closed", label: "Closed", color: "bg-surface text-muted", activeColor: "bg-muted text-white" },
 ];
 
 const priorityOptions: { key: TicketPriority; label: string; color: string }[] = [
@@ -344,7 +344,7 @@ export function TicketDetailPanel({
                             msg.direction === "outbound" ? "justify-end" : "justify-start"
                           )}>
                             <span className={cn(
-                              "text-[10px]",
+                              "text-2xs",
                               msg.direction === "outbound" ? "text-white/50" : "text-muted"
                             )}>
                               {formatTime(msg.createdAt)}

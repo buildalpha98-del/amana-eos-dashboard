@@ -64,7 +64,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#FFFAE6] flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="animate-spin h-8 w-8 border-4 border-brand border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -77,7 +77,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div data-v2="parent" className="parent-portal min-h-screen bg-[#FFFAE6]">
       {/* ─── Header ─────────────────────────────────────────── */}
-      <header className="fixed top-0 inset-x-0 h-14 bg-[#004E64] z-30 flex items-center justify-between px-4 shadow-md">
+      <header className="fixed top-0 inset-x-0 h-14 bg-brand z-30 flex items-center justify-between px-4 shadow-md">
         <Link href="/parent" className="flex items-center gap-2">
           <Image
             src="/logo-icon-white.svg"
@@ -107,7 +107,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                 className={cn(
                   "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-white/15 text-[#FECE00]"
+                    ? "bg-white/15 text-accent"
                     : "text-white/70 hover:text-white hover:bg-white/10",
                 )}
               >
@@ -143,7 +143,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
 
       {/* ─── Bottom Tab Bar (mobile only) ───────────────────── */}
       <nav
-        className="sm:hidden fixed bottom-0 inset-x-0 h-16 bg-[#004E64] border-t border-white/10 z-30 flex items-stretch"
+        className="sm:hidden fixed bottom-0 inset-x-0 h-16 bg-brand border-t border-white/10 z-30 flex items-stretch"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         {NAV_ITEMS.map((item) => {
@@ -158,11 +158,11 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={cn(
                 "relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors min-h-[44px]",
-                isActive ? "text-[#FECE00]" : "text-white/60",
+                isActive ? "text-accent" : "text-white/60",
               )}
             >
               <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-2xs font-medium">{item.label}</span>
               {showBadge && (
                 <span className="absolute top-1 right-[calc(50%-2px)] translate-x-3 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">
                   {unreadCount > 9 ? "9+" : unreadCount}

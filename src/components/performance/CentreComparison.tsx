@@ -79,24 +79,24 @@ function getScoreBg(score: number): string {
 }
 
 function DeltaBadge({ current, previous }: { current: number; previous: number | null }) {
-  if (previous === null) return <span className="text-[10px] text-muted/50">--</span>;
+  if (previous === null) return <span className="text-2xs text-muted/50">--</span>;
   const delta = current - previous;
   if (delta === 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted">
+      <span className="inline-flex items-center gap-0.5 text-2xs text-muted">
         <Minus className="w-3 h-3" /> 0
       </span>
     );
   }
   if (delta > 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-medium">
+      <span className="inline-flex items-center gap-0.5 text-2xs text-emerald-600 font-medium">
         <ArrowUp className="w-3 h-3" /> +{delta}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-0.5 text-[10px] text-red-600 font-medium">
+    <span className="inline-flex items-center gap-0.5 text-2xs text-red-600 font-medium">
       <ArrowDown className="w-3 h-3" /> {delta}
     </span>
   );
@@ -190,7 +190,7 @@ function CentreSelector({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search centres..."
-                  className="flex-1 bg-transparent text-sm text-foreground/80 placeholder-gray-400 focus:outline-none"
+                  className="flex-1 bg-transparent text-sm text-foreground/80 placeholder-muted focus:outline-none"
                 />
               </div>
             </div>
@@ -413,7 +413,7 @@ export function CentreComparison() {
                     >
                       <div>
                         <p className="truncate">{c.name}</p>
-                        <p className="text-[10px] text-muted font-normal normal-case mt-0.5">
+                        <p className="text-2xs text-muted font-normal normal-case mt-0.5">
                           {c.code} {c.state ? `- ${c.state}` : ""}
                         </p>
                       </div>

@@ -540,8 +540,8 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                             type="button"
                             onClick={() => toggleAllergen(key, a)}
                             className={cn(
-                              "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
-                              ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+                              "px-1.5 py-0.5 text-2xs font-medium rounded-full",
+                              ALLERGEN_COLORS[a] || "bg-surface text-muted"
                             )}
                           >
                             {a}
@@ -561,7 +561,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                                 e.preventDefault();
                                 toggleAllergen(key, a);
                               }}
-                              className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-surface/50 text-muted hover:bg-surface hover:text-muted"
+                              className="px-1.5 py-0.5 text-2xs font-medium rounded-full bg-surface/50 text-muted hover:bg-surface hover:text-muted"
                             >
                               + {a}
                             </button>
@@ -637,8 +637,8 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                                   type="button"
                                   onClick={() => toggleAllergen(key, a)}
                                   className={cn(
-                                    "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
-                                    ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+                                    "px-1.5 py-0.5 text-2xs font-medium rounded-full",
+                                    ALLERGEN_COLORS[a] || "bg-surface text-muted"
                                   )}
                                 >
                                   {a}
@@ -659,7 +659,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                                       e.preventDefault();
                                       toggleAllergen(key, a);
                                     }}
-                                    className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-surface/50 text-muted hover:bg-surface hover:text-muted"
+                                    className="px-1.5 py-0.5 text-2xs font-medium rounded-full bg-surface/50 text-muted hover:bg-surface hover:text-muted"
                                   >
                                     + {a}
                                   </button>
@@ -702,8 +702,8 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           <span
             key={a}
             className={cn(
-              "px-2 py-0.5 text-[10px] font-medium rounded-full capitalize",
-              ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+              "px-2 py-0.5 text-2xs font-medium rounded-full capitalize",
+              ALLERGEN_COLORS[a] || "bg-surface text-muted"
             )}
           >
             {a}

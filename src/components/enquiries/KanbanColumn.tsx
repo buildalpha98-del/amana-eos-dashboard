@@ -92,7 +92,7 @@ export function KanbanColumn({
           </span>
         </div>
         {stuckCount > 0 && !isWaitlisted && (
-          <span className="text-[10px] text-red-600 font-medium">
+          <span className="text-2xs text-red-600 font-medium">
             {stuckCount} stuck
           </span>
         )}

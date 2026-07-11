@@ -128,13 +128,13 @@ export function EmailAnalytics() {
                 style={{ height: `${(d.count / maxVolume) * 100}%`, minHeight: d.count > 0 ? "4px" : "0" }}
                 title={`${d.date}: ${d.count} sends`}
               >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-foreground text-background text-2xs px-1.5 py-0.5 rounded whitespace-nowrap">
                   {d.count}
                 </div>
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-1 text-[10px] text-foreground/30">
+          <div className="flex justify-between mt-1 text-2xs text-foreground/30">
             <span>{dailyVolume[0]?.date.slice(5)}</span>
             <span>{dailyVolume[dailyVolume.length - 1]?.date.slice(5)}</span>
           </div>
@@ -164,7 +164,7 @@ export function EmailAnalytics() {
                       {send.recipientCount > 0 && ` · ${send.recipientCount} recipients`}
                     </p>
                   </div>
-                  <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-medium", sc.bg, sc.text)}>
+                  <span className={cn("px-2 py-0.5 rounded-full text-2xs font-medium", sc.bg, sc.text)}>
                     {send.status}
                   </span>
                   <span className="text-foreground/30 whitespace-nowrap">
@@ -195,7 +195,7 @@ function StatCard({
     <div className="bg-surface rounded-xl p-3 border border-border">
       <div className="flex items-center gap-2 mb-1">
         <Icon className={cn("h-3.5 w-3.5", color ?? "text-foreground/40")} />
-        <span className="text-[10px] font-medium text-foreground/50 uppercase tracking-wide">{label}</span>
+        <span className="text-2xs font-medium text-foreground/50 uppercase tracking-wide">{label}</span>
       </div>
       <p className={cn("text-xl font-bold", color ?? "text-foreground")}>{value.toLocaleString()}</p>
     </div>

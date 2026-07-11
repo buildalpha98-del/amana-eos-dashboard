@@ -175,7 +175,7 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
             aria-label="Search commands"
             className="flex-1 bg-transparent text-[15px] text-[color:var(--color-foreground)] placeholder-[color:var(--color-muted)]/70 focus:outline-none"
           />
-          <kbd className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-[color:var(--color-muted)] px-1.5 py-0.5 rounded bg-[color:var(--color-cream-deep)] border border-[color:var(--color-border)]">
+          <kbd className="hidden sm:inline-flex items-center gap-1 text-2xs font-mono text-[color:var(--color-muted)] px-1.5 py-0.5 rounded bg-[color:var(--color-cream-deep)] border border-[color:var(--color-border)]">
             ESC
           </kbd>
         </div>
@@ -251,7 +251,7 @@ function GroupSection({
 }) {
   return (
     <li className="px-1.5 pt-1.5 pb-0.5 first:pt-0.5">
-      <div className="px-2 text-[10px] font-heading font-semibold uppercase tracking-[0.08em] text-[color:var(--color-muted)] mb-0.5">
+      <div className="px-2 text-2xs font-heading font-semibold uppercase tracking-[0.08em] text-[color:var(--color-muted)] mb-0.5">
         {title}
       </div>
       <ul>{children}</ul>

@@ -431,7 +431,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className={cn("block font-medium text-muted mb-1", compact ? "text-[10px]" : "text-xs")}>
+      <span className={cn("block font-medium text-muted mb-1", compact ? "text-2xs" : "text-xs")}>
         {label}
       </span>
       {children}

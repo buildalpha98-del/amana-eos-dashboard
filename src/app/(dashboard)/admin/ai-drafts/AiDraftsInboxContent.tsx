@@ -51,14 +51,14 @@ const STATUS_COLORS: Record<string, string> = {
   ready: "bg-amber-100 text-amber-700",
   accepted: "bg-emerald-100 text-emerald-700",
   edited: "bg-indigo-100 text-indigo-700",
-  dismissed: "bg-gray-100 text-gray-600",
+  dismissed: "bg-surface text-muted",
 };
 
 const TASK_TYPE_COLORS: Record<string, string> = {
   communication: "bg-blue-100 text-blue-700",
   research: "bg-purple-100 text-purple-700",
   document: "bg-emerald-100 text-emerald-700",
-  admin: "bg-gray-100 text-gray-700",
+  admin: "bg-surface text-foreground/80",
 };
 
 function formatDate(d: string) {

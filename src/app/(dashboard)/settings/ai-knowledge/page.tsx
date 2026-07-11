@@ -403,11 +403,11 @@ export default function AiKnowledgePage() {
         return (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted">Documents</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Documents</p>
               <p className="text-2xl font-bold text-foreground">{entries.length}</p>
             </div>
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted">Indexed</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Indexed</p>
               <p className={cn(
                 "text-2xl font-bold",
                 indexedCount === entries.length ? "text-emerald-600" : "text-amber-600",
@@ -416,11 +416,11 @@ export default function AiKnowledgePage() {
               </p>
             </div>
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted">Chunks</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Chunks</p>
               <p className="text-2xl font-bold text-foreground">{totalChunks}</p>
             </div>
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted">Errors</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Errors</p>
               <p className={cn(
                 "text-2xl font-bold",
                 errored === 0 ? "text-emerald-600" : "text-red-600",
@@ -624,24 +624,24 @@ export default function AiKnowledgePage() {
                     {e.title}
                   </span>
                   {e.kind === "file" && (
-                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                    <span className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
                       {(e.fileName?.split(".").pop() ?? "FILE").toUpperCase()}
                     </span>
                   )}
                   {e.indexed ? (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
+                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold px-1.5 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
                       <CheckCircle2 className="w-3 h-3" />
                       Indexed
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">
+                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">
                       <AlertTriangle className="w-3 h-3" />
                       Not indexed
                     </span>
                   )}
                   {e.indexError && (
                     <span
-                      className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800"
+                      className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800"
                       title={e.indexError}
                     >
                       Error

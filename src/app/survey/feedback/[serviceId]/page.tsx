@@ -76,8 +76,8 @@ export default function QuickFeedbackPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a]">
-        <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand via-[#005f77] to-[#00768a]">
+        <div className="max-w-md w-full mx-4 bg-card rounded-2xl shadow-2xl p-8 text-center">
           <div className="text-6xl mb-4">🎉</div>
           <h1 className="text-2xl font-bold text-foreground mb-2">Thank You!</h1>
           <p className="text-muted">
@@ -93,10 +93,10 @@ export default function QuickFeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a] px-4 py-8">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand via-[#005f77] to-[#00768a] px-4 py-8">
+      <div className="max-w-md w-full bg-card rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-[#004E64] px-6 py-5 text-center">
+        <div className="bg-brand px-6 py-5 text-center">
           <h1 className="text-xl font-bold text-white tracking-tight">
             Amana OSHC
           </h1>
@@ -130,7 +130,7 @@ export default function QuickFeedbackPage() {
                 title={s.label}
               >
                 <span className="text-4xl">{s.emoji}</span>
-                <span className="text-[10px] text-muted font-medium">
+                <span className="text-2xs text-muted font-medium">
                   {s.label}
                 </span>
               </button>
@@ -146,7 +146,7 @@ export default function QuickFeedbackPage() {
               rows={3}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-brand focus:border-brand"
               placeholder="Tell us more..."
             />
           </div>
@@ -159,7 +159,7 @@ export default function QuickFeedbackPage() {
             <input
               value={parentName}
               onChange={(e) => setParentName(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-brand focus:border-brand"
               placeholder="Parent name"
             />
           </div>
@@ -172,7 +172,7 @@ export default function QuickFeedbackPage() {
           <button
             onClick={handleSubmit}
             disabled={score === null || submitting}
-            className="w-full py-3 px-4 bg-[#004E64] hover:bg-[#003d4f] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-brand hover:bg-[#003d4f] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Submitting..." : "Submit Feedback"}
           </button>

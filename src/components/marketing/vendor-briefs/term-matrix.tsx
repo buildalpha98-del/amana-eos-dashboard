@@ -73,7 +73,7 @@ export function TermMatrix({
                 <td className="sticky left-0 z-10 bg-card px-3 py-2 font-medium text-foreground">
                   {centre.name}
                   {centre.state && (
-                    <span className="ml-1.5 rounded bg-surface px-1.5 py-0.5 text-[10px] font-mono text-muted">
+                    <span className="ml-1.5 rounded bg-surface px-1.5 py-0.5 text-2xs font-mono text-muted">
                       {centre.state}
                     </span>
                   )}
@@ -101,7 +101,7 @@ export function TermMatrix({
                         onClick={() => onOpenBrief(brief.id)}
                         className="flex h-12 w-full flex-col items-start justify-center rounded-md border border-border bg-card px-2 py-1 text-left transition-colors hover:border-brand/40 hover:bg-surface/40"
                       >
-                        <span className="font-mono text-[10px] text-muted">
+                        <span className="font-mono text-2xs text-muted">
                           {brief.briefNumber}
                         </span>
                         <StatusPill status={brief.status} />

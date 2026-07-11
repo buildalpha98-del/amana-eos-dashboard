@@ -102,12 +102,12 @@ export default async function MenuPrintPage({
   return (
     <div className="font-sans">
       {/* Screen-only toolbar */}
-      <div className="no-print mb-6 flex items-center justify-between border-b border-gray-200 pb-4">
+      <div className="no-print mb-6 flex items-center justify-between border-b border-border pb-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-gray-500">
+          <p className="text-xs uppercase tracking-wide text-muted">
             Print preview
           </p>
-          <h1 className="text-base font-semibold text-gray-800">
+          <h1 className="text-base font-semibold text-foreground">
             Weekly menu — {service.name}
           </h1>
         </div>
@@ -115,14 +115,14 @@ export default async function MenuPrintPage({
       </div>
 
       {/* Print header */}
-      <header className="print-header mb-6 border-b-2 border-[#004E64] pb-3 text-center">
-        <div className="text-2xl font-bold tracking-tight text-[#004E64]">
+      <header className="print-header mb-6 border-b-2 border-brand pb-3 text-center">
+        <div className="text-2xl font-bold tracking-tight text-brand">
           {service.name}
         </div>
-        <div className="mt-1 text-sm text-gray-700">
+        <div className="mt-1 text-sm text-foreground/80">
           Weekly Menu · {formatWeekLabel(weekStart)}
         </div>
-        <div className="mt-1 text-xs text-gray-500">
+        <div className="mt-1 text-xs text-muted">
           {totalCount} {totalCount === 1 ? "meal planned" : "meals planned"} ·
           Generated {new Date().toLocaleDateString("en-AU", {
             day: "numeric",
@@ -133,20 +133,20 @@ export default async function MenuPrintPage({
       </header>
 
       {totalCount === 0 ? (
-        <p className="text-center text-sm text-gray-500 py-8">
+        <p className="text-center text-sm text-muted py-8">
           No menu items for this week yet.
         </p>
       ) : (
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr>
-              <th className="w-[120px] border border-gray-300 bg-gray-100 p-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-700">
+              <th className="w-[120px] border border-border bg-surface p-2 text-left text-xs font-semibold uppercase tracking-wide text-foreground/80">
                 Day
               </th>
               {SLOTS.map((slot) => (
                 <th
                   key={slot}
-                  className="border border-gray-300 bg-gray-100 p-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-700"
+                  className="border border-border bg-surface p-2 text-left text-xs font-semibold uppercase tracking-wide text-foreground/80"
                 >
                   {SLOT_LABELS[slot]}
                 </th>
@@ -155,8 +155,8 @@ export default async function MenuPrintPage({
           </thead>
           <tbody>
             {DAYS.map((day) => (
-              <tr key={day} className="even:bg-gray-50">
-                <td className="border border-gray-300 p-2 align-top text-xs font-semibold text-[#004E64]">
+              <tr key={day} className="even:bg-surface">
+                <td className="border border-border p-2 align-top text-xs font-semibold text-brand">
                   {DAY_LABELS[day]}
                 </td>
                 {SLOTS.map((slot) => {
@@ -164,21 +164,21 @@ export default async function MenuPrintPage({
                   return (
                     <td
                       key={slot}
-                      className="border border-gray-300 p-2 align-top"
+                      className="border border-border p-2 align-top"
                     >
                       {cell && cell.description.trim().length > 0 ? (
                         <>
-                          <div className="text-[11px] text-gray-900">
+                          <div className="text-[11px] text-foreground">
                             {cell.description}
                           </div>
                           {cell.allergens.length > 0 && (
-                            <div className="mt-1 text-[9px] italic text-gray-500">
+                            <div className="mt-1 text-[9px] italic text-muted">
                               Allergens: {cell.allergens.join(", ")}
                             </div>
                           )}
                         </>
                       ) : (
-                        <span className="text-[10px] italic text-gray-400">
+                        <span className="text-2xs italic text-muted/70">
                           —
                         </span>
                       )}
@@ -192,17 +192,17 @@ export default async function MenuPrintPage({
       )}
 
       {menuWeek?.notes && menuWeek.notes.trim().length > 0 && (
-        <section className="mt-6 rounded border border-gray-300 bg-gray-50 p-3">
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-700">
+        <section className="mt-6 rounded border border-border bg-surface p-3">
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/80">
             Notes
           </div>
-          <div className="whitespace-pre-wrap text-xs text-gray-800">
+          <div className="whitespace-pre-wrap text-xs text-foreground">
             {menuWeek.notes}
           </div>
         </section>
       )}
 
-      <footer className="mt-10 border-t border-gray-200 pt-3 text-center text-[10px] text-gray-500">
+      <footer className="mt-10 border-t border-border pt-3 text-center text-2xs text-muted">
         Amana OSHC · Weekly menu for {service.name} ·{" "}
         {formatWeekLabel(weekStart)}
       </footer>

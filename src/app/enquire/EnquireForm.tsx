@@ -105,11 +105,11 @@ export default function EnquireForm() {
 
   if (submitted) {
     return (
-      <div className="w-full max-w-md rounded-2xl border-2 border-[#e8e4df] bg-white p-8 shadow-sm text-center">
+      <div className="w-full max-w-md rounded-2xl border-2 border-border bg-card p-8 shadow-sm text-center">
         <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="w-6 h-6 text-green-700" />
         </div>
-        <h1 className="text-lg font-heading font-semibold text-[#1a1a2e] mb-2">Thanks for reaching out!</h1>
+        <h1 className="text-lg font-heading font-semibold text-foreground mb-2">Thanks for reaching out!</h1>
         <p className="text-sm text-muted">
           We&apos;ve received your enquiry{service ? ` for ${service.name}` : ""}. The team will be in touch within
           one business day.
@@ -119,15 +119,15 @@ export default function EnquireForm() {
   }
 
   return (
-    <div className="w-full max-w-md rounded-2xl border-2 border-[#e8e4df] bg-white p-6 sm:p-8 shadow-sm">
+    <div className="w-full max-w-md rounded-2xl border-2 border-border bg-card p-6 sm:p-8 shadow-sm">
       <div className="mb-5">
-        <h1 className="text-xl font-heading font-semibold text-[#1a1a2e]">Enquire about Amana OSHC</h1>
+        <h1 className="text-xl font-heading font-semibold text-foreground">Enquire about Amana OSHC</h1>
         {service && (
           <p className="mt-1 text-sm text-muted flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5" aria-hidden />
             {service.name}
             {service.suburb && <span> · {service.suburb}</span>}
-            {service.state && <span className="text-[10px]">{service.state}</span>}
+            {service.state && <span className="text-2xs">{service.state}</span>}
           </p>
         )}
         {serviceMissing && (
@@ -243,7 +243,7 @@ export default function EnquireForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full px-4 py-3 rounded-xl bg-[#004E64] text-white font-semibold hover:bg-[#0A7E9E] disabled:opacity-60 transition-colors"
+          className="w-full px-4 py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand-light disabled:opacity-60 transition-colors"
         >
           {submitting ? "Sending…" : "Send enquiry"}
         </button>
@@ -279,7 +279,7 @@ export default function EnquireForm() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-[#1a1a2e]/80 mb-1.5">{label}</span>
+      <span className="block text-sm font-medium text-foreground/80 mb-1.5">{label}</span>
       {children}
     </label>
   );

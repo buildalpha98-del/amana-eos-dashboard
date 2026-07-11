@@ -478,7 +478,7 @@ export function ActiveMeetingView({
                   )}
                 >
                   <Icon className="w-3 h-3" />
-                  <span className="text-[10px] font-medium hidden lg:inline">
+                  <span className="text-2xs font-medium hidden lg:inline">
                     {s.label}
                   </span>
                 </div>
@@ -734,7 +734,7 @@ export function ActiveMeetingView({
                     </div>
                     <span
                       className={cn(
-                        "text-[10px] font-medium",
+                        "text-2xs font-medium",
                         isActive ? "text-brand" : "text-muted"
                       )}
                     >
@@ -791,7 +791,7 @@ export function ActiveMeetingView({
                           )
                         }
                         className={cn(
-                          "text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors",
+                          "text-2xs px-2 py-0.5 rounded-full font-medium transition-colors",
                           attendee.status === "present"
                             ? "bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700"
                             : "bg-red-100 text-red-600 hover:bg-emerald-100 hover:text-emerald-700"
@@ -802,7 +802,7 @@ export function ActiveMeetingView({
                     )}
                     {isCompleted && (
                       <span className={cn(
-                        "text-[10px] px-2 py-0.5 rounded-full font-medium",
+                        "text-2xs px-2 py-0.5 rounded-full font-medium",
                         attendee.status === "present"
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-red-100 text-red-600"

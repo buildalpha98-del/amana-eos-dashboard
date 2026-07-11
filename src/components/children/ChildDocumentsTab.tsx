@@ -125,7 +125,7 @@ export function ChildDocumentsTab({ childId }: { childId: string }) {
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <span className={cn(
-                        "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                        "inline-flex items-center px-1.5 py-0.5 rounded-full text-2xs font-semibold",
                         doc.uploaderType === "parent"
                           ? "bg-blue-50 text-blue-600"
                           : "bg-surface text-muted",
@@ -155,12 +155,12 @@ export function ChildDocumentsTab({ childId }: { childId: string }) {
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       {doc.isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 text-[10px] font-semibold">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 text-2xs font-semibold">
                           <CheckCircle className="w-3 h-3" />
                           Verified
                         </span>
                       ) : (
-                        <span className="text-[10px] text-muted">Unverified</span>
+                        <span className="text-2xs text-muted">Unverified</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

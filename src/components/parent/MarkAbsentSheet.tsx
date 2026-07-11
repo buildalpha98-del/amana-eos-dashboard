@@ -106,7 +106,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
         {/* Illness toggle */}
         <label className="flex items-center justify-between gap-3 py-2 cursor-pointer">
           <div>
-            <p className="text-sm font-medium text-[#1a1a2e]">Due to illness</p>
+            <p className="text-sm font-medium text-foreground">Due to illness</p>
             <p className="text-xs text-muted">
               Tick if your child is sick today.
             </p>
@@ -119,12 +119,12 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
             onClick={() => setIsIllness((v) => !v)}
             className={cn(
               "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-              isIllness ? "bg-[#004E64]" : "bg-[#e8e4df]",
+              isIllness ? "bg-brand" : "bg-border",
             )}
           >
             <span
               className={cn(
-                "inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform",
+                "inline-block h-5 w-5 transform rounded-full bg-card shadow-sm transition-transform",
                 isIllness ? "translate-x-5" : "translate-x-0.5",
               )}
             />
@@ -133,7 +133,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
 
         {/* Notes */}
         <div>
-          <label htmlFor="absence-notes" className="block text-xs font-medium text-[#1a1a2e]/70 mb-1.5">
+          <label htmlFor="absence-notes" className="block text-xs font-medium text-foreground/70 mb-1.5">
             Notes <span className="text-muted font-normal">(optional)</span>
           </label>
           <textarea
@@ -142,7 +142,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
             onChange={(e) => setNotes(e.target.value.slice(0, NOTES_LIMIT))}
             rows={3}
             placeholder="Anything the centre should know…"
-            className="w-full px-3 py-2 text-sm border border-[#e8e4df] rounded-xl bg-white resize-none focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+            className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-card resize-none focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           />
           <p className={cn(
             "text-right text-[11px] mt-1",
@@ -154,7 +154,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
 
         {/* Medical certificate upload */}
         <div>
-          <p className="text-xs font-medium text-[#1a1a2e]/70 mb-1.5">
+          <p className="text-xs font-medium text-foreground/70 mb-1.5">
             Medical certificate <span className="text-muted font-normal">(optional)</span>
           </p>
 
@@ -163,7 +163,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 border-2 border-dashed border-[#e8e4df] rounded-xl text-sm font-medium text-[#004E64] hover:bg-[#F2EDE8] transition-colors disabled:opacity-50 min-h-[48px]"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 border-2 border-dashed border-border rounded-xl text-sm font-medium text-brand hover:bg-surface transition-colors disabled:opacity-50 min-h-[48px]"
             >
               {uploading ? (
                 <>
@@ -178,7 +178,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
               )}
             </button>
           ) : (
-            <div className="flex items-center gap-3 p-3 rounded-xl border border-[#e8e4df] bg-white">
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card">
               {certPreview ? (
                 <img
                   src={certPreview}
@@ -186,18 +186,18 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
                   className="w-12 h-12 rounded-lg object-cover shrink-0"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-lg bg-[#F2EDE8] flex items-center justify-center shrink-0">
-                  <FileText className="w-5 h-5 text-[#004E64]" />
+                <div className="w-12 h-12 rounded-lg bg-surface flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-brand" />
                 </div>
               )}
-              <p className="flex-1 text-sm text-[#1a1a2e] truncate">
+              <p className="flex-1 text-sm text-foreground truncate">
                 {certName || "Certificate attached"}
               </p>
               <button
                 type="button"
                 onClick={removeCert}
                 aria-label="Remove certificate"
-                className="p-2 rounded-lg text-muted hover:text-[#1a1a2e] hover:bg-[#F2EDE8] transition-colors"
+                className="p-2 rounded-lg text-muted hover:text-foreground hover:bg-surface transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -224,7 +224,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
           type="button"
           onClick={handleSubmit}
           disabled={submitDisabled || overLimit}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
         >
           {markAbsent.isPending ? (
             <>

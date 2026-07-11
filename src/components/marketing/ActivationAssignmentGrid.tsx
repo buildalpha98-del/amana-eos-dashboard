@@ -280,7 +280,7 @@ export function ActivationAssignmentGrid({
                       updateRow(row.serviceId, "status", e.target.value)
                     }
                     disabled={!row.assigned}
-                    className={`w-full rounded-full px-2 py-1 text-[10px] font-medium border-0 focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed ${
+                    className={`w-full rounded-full px-2 py-1 text-2xs font-medium border-0 focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed ${
                       STATUS_OPTIONS.find((s) => s.value === row.status)
                         ?.color ?? "bg-surface text-muted"
                     }`}

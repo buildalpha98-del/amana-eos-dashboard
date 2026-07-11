@@ -784,7 +784,7 @@ function ChecklistOverridesSection({
             >
               {label}
               {count > 0 && (
-                <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full bg-brand text-white text-[10px] font-semibold">
+                <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full bg-brand text-white text-2xs font-semibold">
                   {count}
                 </span>
               )}
@@ -815,7 +815,7 @@ function ChecklistOverridesSection({
             >
               <div className="flex items-center justify-between gap-2">
                 <code className="text-xs text-muted font-mono">{item.key}</code>
-                <span className="text-[10px] uppercase tracking-wider text-muted">
+                <span className="text-2xs uppercase tracking-wider text-muted">
                   {item.category}
                 </span>
               </div>

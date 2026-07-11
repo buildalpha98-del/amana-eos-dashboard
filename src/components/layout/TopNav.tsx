@@ -102,7 +102,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
     <header
       ref={navRef}
       data-tour="topnav"
-      className="sticky top-0 z-40 bg-gradient-to-r from-[#002E3D] to-[#001824] text-white shadow-sm"
+      className="sticky top-0 z-40 bg-gradient-to-r from-brand-dark to-[#001824] text-white shadow-sm"
     >
       <div className="flex items-center px-3 sm:px-4 h-12">
         {/* Mobile hamburger */}

@@ -191,7 +191,7 @@ export function ProjectDetailPanel({
                   key={s.key}
                   onClick={() => updateProject.mutate({ id: projectId, status: s.key })}
                   className={cn(
-                    "px-2.5 py-1.5 text-[10px] font-medium rounded-md border transition-colors",
+                    "px-2.5 py-1.5 text-2xs font-medium rounded-md border transition-colors",
                     project.status === s.key ? s.color : "bg-card border-border text-muted hover:border-border"
                   )}
                 >
@@ -322,7 +322,7 @@ export function ProjectDetailPanel({
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className={cn("text-sm truncate", todo.status === "complete" ? "line-through text-muted" : "text-foreground/80")}>{todo.title}</p>
-                      <p className="text-[10px] text-muted">
+                      <p className="text-2xs text-muted">
                         Due {new Date(todo.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                       </p>
                     </div>

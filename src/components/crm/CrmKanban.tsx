@@ -60,7 +60,7 @@ function DroppableColumn({
         <h3 className="text-xs font-semibold text-foreground/80 truncate">
           {column.label}
         </h3>
-        <span className="text-[10px] text-muted bg-surface rounded-full px-1.5 py-0.5">
+        <span className="text-2xs text-muted bg-surface rounded-full px-1.5 py-0.5">
           {leads.length}
         </span>
       </div>

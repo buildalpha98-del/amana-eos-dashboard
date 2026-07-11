@@ -182,7 +182,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 p.value === priority ? (
                   <span
                     key={p.value}
-                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${p.color}`}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-2xs font-medium ${p.color}`}
                   >
                     <Flag className="h-2.5 w-2.5" />
                     {p.label} Priority
@@ -364,12 +364,12 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 <Calendar className="h-3 w-3" />
                 Due Date
                 {isOverdue && (
-                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
+                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-2xs font-semibold text-red-600">
                     OVERDUE
                   </span>
                 )}
                 {isToday && (
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-600">
                     TODAY
                   </span>
                 )}

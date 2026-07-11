@@ -49,7 +49,7 @@ export function CustodyChip({
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`View custody arrangements${childName ? ` for ${childName}` : ""}`}
-        className={`inline-flex items-center gap-1 ${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs"} rounded-full ${tone.chipBg} ${tone.chipText} font-semibold hover:brightness-95 transition`}
+        className={`inline-flex items-center gap-1 ${compact ? "px-1.5 py-0.5 text-2xs" : "px-2 py-1 text-xs"} rounded-full ${tone.chipBg} ${tone.chipText} font-semibold hover:brightness-95 transition`}
       >
         <Shield className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
         {compact && custody.type !== "court_order" ? "Custody" : label}

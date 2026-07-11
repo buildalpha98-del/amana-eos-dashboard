@@ -122,7 +122,7 @@ export function RockListView({
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center">
-                      <span className="text-[10px] font-medium text-brand">
+                      <span className="text-2xs font-medium text-brand">
                         {(rock.owner?.name ?? "Unassigned")
                           .split(" ")
                           .map((n) => n[0])

@@ -205,7 +205,7 @@ export function QuickEntryPanel({ grid }: QuickEntryPanelProps) {
                       value={row.notes ?? ""}
                       onChange={(e) => setNotes(centre.id, e.target.value)}
                       placeholder="Type the reason…"
-                      className="w-full rounded-md border border-amber-300 bg-white text-xs p-1.5"
+                      className="w-full rounded-md border border-amber-300 bg-card text-xs p-1.5"
                       autoFocus
                     />
                   )}

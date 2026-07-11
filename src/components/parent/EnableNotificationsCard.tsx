@@ -58,9 +58,9 @@ export function EnableNotificationsCard() {
     return (
       <CardShell>
         <div className="flex items-start gap-3">
-          <Smartphone className="w-5 h-5 text-[#004E64] shrink-0 mt-0.5" />
+          <Smartphone className="w-5 h-5 text-brand shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-[#1a1a2e]">
+            <p className="text-sm font-medium text-foreground">
               Install the app first
             </p>
             <p className="text-xs text-muted mt-1">
@@ -120,13 +120,13 @@ export function EnableNotificationsCard() {
       <div className="flex items-start gap-3">
         <div
           className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-            enabled ? "bg-[#d4f4d4] text-[#1f5e1f]" : "bg-[#004E64]/10 text-[#004E64]"
+            enabled ? "bg-[#d4f4d4] text-[#1f5e1f]" : "bg-brand/10 text-brand"
           }`}
         >
           {enabled ? <Check className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[#1a1a2e]">
+          <p className="text-sm font-semibold text-foreground">
             Push notifications
           </p>
           <p className="text-xs text-muted mt-0.5">
@@ -147,7 +147,7 @@ export function EnableNotificationsCard() {
             type="button"
             onClick={handleDisable}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-[#1a1a2e] disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-foreground disabled:opacity-50"
           >
             <BellOff className="w-3.5 h-3.5" />
             Turn off
@@ -157,7 +157,7 @@ export function EnableNotificationsCard() {
             type="button"
             onClick={handleEnable}
             disabled={busy || blocked}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#004E64] hover:bg-[#006B87] disabled:opacity-60 rounded-md px-3 py-1.5"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-brand hover:bg-[#006B87] disabled:opacity-60 rounded-md px-3 py-1.5"
           >
             <Bell className="w-3.5 h-3.5" />
             {busy ? "Enabling…" : "Enable"}
@@ -170,7 +170,7 @@ export function EnableNotificationsCard() {
 
 function CardShell({ children }: { children: React.ReactNode }) {
   return (
-    <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+    <section className="bg-card rounded-xl p-4 shadow-sm border border-border">
       {children}
     </section>
   );

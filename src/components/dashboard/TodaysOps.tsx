@@ -84,7 +84,7 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
   }) => (
     <button
       onClick={() => handleSort(field)}
-      className={`flex items-center gap-0.5 text-[10px] font-semibold text-muted uppercase tracking-wider hover:text-foreground transition-colors ${className}`}
+      className={`flex items-center gap-0.5 text-2xs font-semibold text-muted uppercase tracking-wider hover:text-foreground transition-colors ${className}`}
     >
       {label}
       {sortKey === field &&
@@ -112,19 +112,19 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
         </div>
         <div className="flex items-center gap-2">
           {redCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 text-2xs font-semibold">
               <AlertCircle className="w-3 h-3" />
               {redCount} action needed
             </span>
           )}
           {amberCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 text-2xs font-semibold">
               <AlertTriangle className="w-3 h-3" />
               {amberCount} watch
             </span>
           )}
           {redCount === 0 && amberCount === 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 text-2xs font-semibold">
               <CheckCircle2 className="w-3 h-3" />
               All on track
             </span>
@@ -191,7 +191,7 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
                       <p className="text-sm font-medium text-foreground truncate">
                         {c.name}
                       </p>
-                      <p className="text-[10px] text-muted">{c.code}</p>
+                      <p className="text-2xs text-muted">{c.code}</p>
                     </div>
                   </div>
                 </td>
@@ -218,16 +218,16 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
                 </td>
                 <td className="text-center px-2 py-2.5">
                   {c.educatorsRostered === 0 && c.bscAttended + c.ascAttended === 0 ? (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-muted bg-surface px-1.5 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-muted bg-surface px-1.5 py-0.5 rounded-full">
                       N/A
                     </span>
                   ) : c.ratioOk ? (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full">
                       <CheckCircle2 className="w-3 h-3" />
                       OK
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-950/60 px-1.5 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-950/60 px-1.5 py-0.5 rounded-full">
                       <AlertCircle className="w-3 h-3" />
                       Over
                     </span>
@@ -258,7 +258,7 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
 
       {/* Footer */}
       <div className="px-4 py-2 border-t border-border/50 bg-surface/30">
-        <p className="text-[10px] text-muted">
+        <p className="text-2xs text-muted">
           {centres.length} centre{centres.length !== 1 ? "s" : ""} &middot;
           Totals: BSC {centres.reduce((s, c) => s + c.bscAttended, 0)}/
           {centres.reduce((s, c) => s + c.bscEnrolled, 0)} &middot; ASC{" "}

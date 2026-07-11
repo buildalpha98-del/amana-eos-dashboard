@@ -265,7 +265,7 @@ function IncidentCard({
             </span>
             <span
               className={cn(
-                "text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)]",
+                "text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)]",
                 SEVERITY_BADGE[incident.severity] ?? "bg-surface text-foreground/80",
               )}
             >
@@ -344,17 +344,17 @@ function IncidentCard({
       {(incident.parentNotified || incident.reportableToAuthority || incident.followUpRequired) && (
         <div className="mt-2 flex gap-1 flex-wrap">
           {incident.parentNotified && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-emerald-100 text-emerald-800">
+            <span className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-emerald-100 text-emerald-800">
               Parent notified
             </span>
           )}
           {incident.reportableToAuthority && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-rose-100 text-rose-800">
+            <span className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-rose-100 text-rose-800">
               Reportable
             </span>
           )}
           {incident.followUpRequired && !incident.followUpCompleted && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-amber-100 text-amber-800">
+            <span className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-amber-100 text-amber-800">
               Follow-up due
             </span>
           )}

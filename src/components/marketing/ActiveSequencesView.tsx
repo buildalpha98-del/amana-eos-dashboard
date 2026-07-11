@@ -181,7 +181,7 @@ export function ActiveSequencesView() {
                         </span>
                         <span
                           className={cn(
-                            "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                            "rounded-full px-1.5 py-0.5 text-2xs font-medium",
                             enrolment.sequence?.type === "parent_nurture"
                               ? "bg-amber-100 text-amber-700"
                               : "bg-blue-100 text-blue-700",

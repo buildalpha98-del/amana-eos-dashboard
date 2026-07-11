@@ -154,7 +154,7 @@ export function FilterBar({
         >
           <X className="w-3 h-3" aria-hidden />
           {resetLabel}
-          <span className="text-[10px] text-[color:var(--color-muted)]/70">
+          <span className="text-2xs text-[color:var(--color-muted)]/70">
             ({activeCount})
           </span>
         </button>

@@ -163,11 +163,11 @@ function ServiceCard({ service }: { service: ServiceSurveyData }) {
             {service.recentComments.slice(0, 5).map((c, i) => (
               <div key={i} className="bg-surface rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-medium text-muted">
+                  <span className="text-2xs font-medium text-muted">
                     {new Date(c.date).toLocaleDateString()}
                   </span>
                   <span
-                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
+                    className="text-2xs font-semibold px-1.5 py-0.5 rounded-full text-white"
                     style={{ backgroundColor: getReasonColor(c.reason) }}
                   >
                     {formatReason(c.reason)}
@@ -496,7 +496,7 @@ export function ExitSurveyDashboard() {
               >
                 {summary.churn.churnRate.toFixed(1)}%
               </p>
-              <p className="text-[10px] text-muted mt-0.5">
+              <p className="text-2xs text-muted mt-0.5">
                 {summary.churn.withdrawnCount} withdrawn / {summary.churn.activeCount} active
               </p>
             </div>

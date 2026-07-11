@@ -27,7 +27,7 @@ function humanize(value: string | null | undefined): string {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  ts_draft: "bg-gray-100 text-gray-700",
+  ts_draft: "bg-surface text-foreground/80",
   ts_submitted: "bg-amber-100 text-amber-800",
   ts_approved: "bg-green-100 text-green-800",
   ts_exported: "bg-blue-100 text-blue-800",
@@ -81,7 +81,7 @@ export function TimesheetTab({ targetUserId, weeks, canSubmit }: TimesheetTabPro
                     <td className="py-2">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          STATUS_STYLES[w.status] ?? "bg-gray-100 text-gray-700"
+                          STATUS_STYLES[w.status] ?? "bg-surface text-foreground/80"
                         }`}
                       >
                         {humanize(w.status).replace("Ts ", "")}

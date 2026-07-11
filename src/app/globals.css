@@ -36,6 +36,11 @@
   --color-info: #2563EB;
   --color-surface: #F2EDE8;
 
+  /* Micro label size — replaces ad-hoc text-[10px]. Use for badge/meta text
+     only; body copy floor stays text-xs. */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+
   --shadow-warm-sm: 0 1px 2px rgba(140, 120, 90, 0.06);
   --shadow-warm: 0 2px 8px -1px rgba(140, 120, 90, 0.08), 0 1px 2px rgba(140, 120, 90, 0.04);
   --shadow-warm-md: 0 4px 16px -2px rgba(140, 120, 90, 0.1), 0 2px 4px rgba(140, 120, 90, 0.04);
@@ -101,11 +106,15 @@ body::before {
 }
 
 /* ─── Card Elevation ────────────────────────────────────── */
+/* 2026-07-11: raw `bg-white` was swept onto the `bg-card` token; the
+   automatic warm elevation follows it (`.bg-white` kept as a legacy net). */
 
+.bg-card,
 .bg-white {
   box-shadow: var(--shadow-warm-sm);
 }
 
+.bg-card:where(:not(table *, thead *, tbody *, tr *, th *, td *, nav *, header *, aside *)),
 .bg-white:where(:not(table *, thead *, tbody *, tr *, th *, td *, nav *, header *, aside *)) {
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
@@ -335,8 +344,7 @@ thead th {
 }
 
 /* Warm table header backgrounds */
-thead tr,
-.bg-gray-50:where(thead *, tr:first-child) {
+thead tr {
   background-color: var(--color-surface) !important;
 }
 
@@ -392,18 +400,18 @@ td, th {
   mix-blend-mode: soft-light;
 }
 
+/* 2026-07-11: the `.dark .bg-gray-*` / `.dark .text-gray-*` remap hacks are
+   gone — raw palette classes were swept onto tokens, which re-theme via the
+   .dark variable overrides above. Only the elevation tweak remains, plus a
+   bg-white safety net for any dynamically-built class strings. */
+.dark .bg-card,
 .dark .bg-white {
-  background-color: var(--color-card);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.dark .bg-gray-50, .dark .bg-gray-100 { background-color: var(--color-surface); }
-.dark .border-gray-200, .dark .border-gray-100 { border-color: var(--color-border); }
-.dark .text-gray-900 { color: #eee8e0; }
-.dark .text-gray-700 { color: #c9c3bb; }
-.dark .text-gray-600 { color: #a19b93; }
-.dark .text-gray-500 { color: #8e8a82; }
-.dark .text-gray-400 { color: #6b6560; }
+.dark .bg-white {
+  background-color: var(--color-card);
+}
 
 .dark ::-webkit-scrollbar-thumb {
   background: #3a3a48;

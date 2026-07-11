@@ -73,17 +73,17 @@ export function CoordinatorHistorySidePanel({ serviceId, onClose }: CoordinatorH
                         {postedPct > 0 && <div style={{ width: `${postedPct}%` }} className="bg-green-500" />}
                         {notPostedPct > 0 && <div style={{ width: `${notPostedPct}%` }} className="bg-red-500" />}
                         {excludedPct > 0 && <div style={{ width: `${excludedPct}%` }} className="bg-blue-300" />}
-                        {notCheckedPct > 0 && <div style={{ width: `${notCheckedPct}%` }} className="bg-gray-200" />}
+                        {notCheckedPct > 0 && <div style={{ width: `${notCheckedPct}%` }} className="bg-border" />}
                       </div>
                     </li>
                   );
                 })}
               </ul>
-              <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted">
+              <div className="mt-2 flex flex-wrap gap-3 text-2xs text-muted">
                 <LegendDot colour="bg-green-500" label="Posted" />
                 <LegendDot colour="bg-red-500" label="Did not post" />
                 <LegendDot colour="bg-blue-300" label="Excluded (leave/closed)" />
-                <LegendDot colour="bg-gray-200" label="Not checked" />
+                <LegendDot colour="bg-border" label="Not checked" />
               </div>
             </div>
 

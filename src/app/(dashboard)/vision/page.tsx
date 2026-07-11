@@ -214,7 +214,7 @@ export default function VisionPage() {
                     <div className="text-lg font-bold text-foreground">
                       {rockStats.total}
                     </div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">
+                    <div className="text-2xs text-muted uppercase tracking-wider">
                       Total
                     </div>
                   </div>
@@ -222,7 +222,7 @@ export default function VisionPage() {
                     <div className="text-lg font-bold text-emerald-600">
                       {rockStats.onTrack}
                     </div>
-                    <div className="text-[10px] text-emerald-600 uppercase tracking-wider">
+                    <div className="text-2xs text-emerald-600 uppercase tracking-wider">
                       On Track
                     </div>
                   </div>
@@ -230,7 +230,7 @@ export default function VisionPage() {
                     <div className="text-lg font-bold text-red-600">
                       {rockStats.offTrack}
                     </div>
-                    <div className="text-[10px] text-red-600 uppercase tracking-wider">
+                    <div className="text-2xs text-red-600 uppercase tracking-wider">
                       Off Track
                     </div>
                   </div>
@@ -238,7 +238,7 @@ export default function VisionPage() {
                     <div className="text-lg font-bold text-brand">
                       {rockStats.done}
                     </div>
-                    <div className="text-[10px] text-brand uppercase tracking-wider">
+                    <div className="text-2xs text-brand uppercase tracking-wider">
                       Done
                     </div>
                   </div>
@@ -298,7 +298,7 @@ export default function VisionPage() {
                           ? "bg-red-500"
                           : issue.priority === "high"
                           ? "bg-amber-500"
-                          : "bg-gray-300"
+                          : "bg-muted/30"
                       )}
                     />
                     <span className="text-sm text-foreground/80 truncate flex-1">

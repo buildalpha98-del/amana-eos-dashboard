@@ -111,7 +111,7 @@ const TYPE_META: Record<
   conversation: {
     label: "Informal conversation",
     icon: MessageSquare,
-    pill: "bg-gray-50 text-gray-800 border-gray-200",
+    pill: "bg-surface text-foreground border-border",
   },
 };
 
@@ -233,7 +233,7 @@ export function PerformanceCasesTab({
                       {c.title}
                     </span>
                     {c.confidential && (
-                      <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800">
+                      <span className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800">
                         Confidential
                       </span>
                     )}

@@ -480,7 +480,7 @@ function UserRow({
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-medium text-foreground">{user.name}</p>
               {user.email === "admin@amanaoshc.com.au" && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface text-muted border border-border">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-surface text-muted border border-border">
                   System
                 </span>
               )}
@@ -820,7 +820,7 @@ function ActivityLogPanel() {
                     .join(", ");
 
                   return (
-                    <tr key={log.id} className="border-b border-gray-50 hover:bg-surface/50">
+                    <tr key={log.id} className="border-b border-border/50 hover:bg-surface/50">
                       <td className="py-2.5 px-3 text-xs text-muted whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleDateString("en-AU", {
                           day: "2-digit",
@@ -1878,7 +1878,7 @@ function PermissionsPanel() {
                 {section.rows.map((row) => (
                   <tr
                     key={row.label}
-                    className="border-b border-gray-50 hover:bg-surface/50"
+                    className="border-b border-border/50 hover:bg-surface/50"
                   >
                     <td className="py-2 px-3 text-sm text-foreground/80">
                       {row.label}
@@ -2584,7 +2584,7 @@ function BudgetTiersSection() {
                 <th className="pb-2 font-medium w-20" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border/50">
               {tiers.map((tier, idx) => (
                 <tr key={idx}>
                   <td className="py-2 text-foreground">{tier.minWeeklyChildren}+</td>
@@ -2674,7 +2674,7 @@ const SECTION_COLORS: Record<string, string> = {
   sentiment: "bg-rose-500",
   attendance: "bg-teal-500",
   duplicates: "bg-orange-500",
-  unknown: "bg-gray-400",
+  unknown: "bg-muted/60",
 };
 
 function AiUsageDashboard() {
@@ -2771,7 +2771,7 @@ function AiUsageDashboard() {
                   <span className="text-xs text-muted w-24 capitalize truncate">{section}</span>
                   <div className="flex-1 bg-surface rounded-full h-5 overflow-hidden">
                     <div
-                      className={cn("h-full rounded-full transition-all", SECTION_COLORS[section] || "bg-gray-400")}
+                      className={cn("h-full rounded-full transition-all", SECTION_COLORS[section] || "bg-muted/60")}
                       style={{ width: `${(stats.calls / maxSectionCalls) * 100}%` }}
                     />
                   </div>
@@ -2795,7 +2795,7 @@ function AiUsageDashboard() {
                 </thead>
                 <tbody>
                   {userEntries.map(([uid, stats]) => (
-                    <tr key={uid} className="border-b border-gray-50">
+                    <tr key={uid} className="border-b border-border/50">
                       <td className="py-1.5 text-foreground/80">{stats.name}</td>
                       <td className="py-1.5 text-right text-muted">{stats.calls}</td>
                       <td className="py-1.5 text-right text-muted text-xs">

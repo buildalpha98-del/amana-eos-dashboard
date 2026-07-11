@@ -22,7 +22,7 @@ export function DocumentRow({ item }: { item: DataRoomItem }) {
   const Icon = cfg.icon;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-surface/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-surface/50 transition-colors">
       {/* Status icon */}
       <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${cfg.bg}`}>
         <Icon className={`w-4 h-4 ${cfg.color}`} />

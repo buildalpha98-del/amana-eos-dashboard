@@ -265,7 +265,7 @@ export function NotificationPreferences() {
       </div>
 
       {/* Toggle list — greyed while fully muted */}
-      <div className={cn("divide-y divide-gray-50 px-6", muted && "pointer-events-none opacity-50")}>
+      <div className={cn("divide-y divide-border/50 px-6", muted && "pointer-events-none opacity-50")}>
         {PREF_ITEMS.map((item) => {
           const Icon = item.icon;
           const enabled = prefs[item.key];

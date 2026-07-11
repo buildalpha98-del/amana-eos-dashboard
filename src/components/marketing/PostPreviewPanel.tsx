@@ -189,7 +189,7 @@ function InstagramPreview({
       {/* IG header */}
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-0.5">
-          <div className="h-full w-full rounded-full bg-card flex items-center justify-center text-[10px] font-bold text-foreground/80">
+          <div className="h-full w-full rounded-full bg-card flex items-center justify-center text-2xs font-bold text-foreground/80">
             A
           </div>
         </div>
@@ -239,7 +239,7 @@ function LinkedInPreview({
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">Amana OSHC</p>
-          <p className="text-[10px] text-muted">
+          <p className="text-2xs text-muted">
             1,200 followers · Just now
           </p>
         </div>

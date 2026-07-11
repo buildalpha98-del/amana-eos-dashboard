@@ -276,7 +276,7 @@ export function ReportViewer({
         <div className="flex-1 overflow-y-auto">
           {/* Header section */}
           <div className="px-6 pt-6 pb-4">
-            <h1 className="text-xl font-bold text-[#004E64] leading-tight">
+            <h1 className="text-xl font-bold text-brand leading-tight">
               {report.title}
             </h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-muted">
@@ -351,7 +351,7 @@ export function ReportViewer({
                     key={key}
                     className="rounded-lg border border-[#FFF2BF] bg-[#FFFAE6] p-3 text-center"
                   >
-                    <div className="text-lg font-bold text-[#004E64]">
+                    <div className="text-lg font-bold text-brand">
                       {formatMetricValue(value)}
                     </div>
                     <div className="text-xs text-muted mt-0.5">
@@ -366,7 +366,7 @@ export function ReportViewer({
           {/* ── Action Items ── */}
           {actionItems.length > 0 && (
             <div className="px-6 pb-4">
-              <h2 className="text-sm font-semibold text-[#004E64] uppercase tracking-wider mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-brand uppercase tracking-wider mb-2 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
                 Action Items ({actionItems.filter((i) => i.completed).length}/
                 {actionItems.length})
@@ -384,8 +384,8 @@ export function ReportViewer({
                       className={cn(
                         "mt-0.5 h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors",
                         item.completed
-                          ? "bg-[#004E64] border-[#004E64]"
-                          : "border-border hover:border-[#004E64]"
+                          ? "bg-brand border-brand"
+                          : "border-border hover:border-brand"
                       )}
                     >
                       {item.completed && (
@@ -402,7 +402,7 @@ export function ReportViewer({
                         {item.text}
                       </span>
                       {item.assignee && (
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#FFF2BF] text-[#004E64] font-medium">
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#FFF2BF] text-brand font-medium">
                           {item.assignee}
                         </span>
                       )}
@@ -421,22 +421,22 @@ export function ReportViewer({
                 rehypePlugins={[rehypeSanitize]}
                 components={{
                   h1: ({ children }) => (
-                    <h1 className="text-xl font-bold text-[#004E64] mt-6 mb-2">
+                    <h1 className="text-xl font-bold text-brand mt-6 mb-2">
                       {children}
                     </h1>
                   ),
                   h2: ({ children }) => (
-                    <h2 className="text-lg font-semibold text-[#004E64] mt-5 mb-2">
+                    <h2 className="text-lg font-semibold text-brand mt-5 mb-2">
                       {children}
                     </h2>
                   ),
                   h3: ({ children }) => (
-                    <h3 className="text-base font-semibold text-[#004E64] mt-4 mb-1">
+                    <h3 className="text-base font-semibold text-brand mt-4 mb-1">
                       {children}
                     </h3>
                   ),
                   strong: ({ children }) => (
-                    <strong className="font-semibold text-[#004E64]">
+                    <strong className="font-semibold text-brand">
                       {children}
                     </strong>
                   ),
@@ -446,7 +446,7 @@ export function ReportViewer({
                   a: ({ href, children }) => (
                     <a
                       href={href}
-                      className="text-[#004E64] underline hover:text-[#FECE00]"
+                      className="text-brand underline hover:text-accent"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -480,7 +480,7 @@ export function ReportViewer({
             <button
               onClick={onReview}
               disabled={reviewPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003d50] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-[#003d50] transition-colors disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
               {reviewPending ? "Marking..." : "Mark Reviewed"}
@@ -488,7 +488,7 @@ export function ReportViewer({
           )}
           <button
             onClick={handleExportPdf}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#004E64] bg-[#FFF2BF] rounded-lg hover:bg-[#FECE00] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand bg-[#FFF2BF] rounded-lg hover:bg-accent transition-colors"
           >
             <FileDown className="w-4 h-4" />
             Export PDF

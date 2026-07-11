@@ -75,7 +75,7 @@ const HEALTH_CONFIG = {
     textColor: "text-muted",
     bgColor: "bg-surface",
     borderColor: "border-border",
-    dotColor: "bg-gray-400",
+    dotColor: "bg-muted/60",
   },
 } as const;
 
@@ -135,7 +135,7 @@ function HealthBar({ seat }: { seat: AutomationSeat }) {
     { count: seat.green, color: "bg-emerald-500" },
     { count: seat.amber, color: "bg-amber-500" },
     { count: seat.red, color: "bg-red-500" },
-    { count: seat.neverRun, color: "bg-gray-300" },
+    { count: seat.neverRun, color: "bg-muted/30" },
   ];
   return (
     <div className="flex w-full h-2 rounded-full overflow-hidden bg-surface">

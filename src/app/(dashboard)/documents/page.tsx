@@ -470,7 +470,7 @@ export default function DocumentsPage() {
                   "px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-colors capitalize",
                   selectedCategory === cat
                     ? `${colors.badge} ${colors.text} border-current`
-                    : "bg-card text-muted border-border hover:border-gray-400"
+                    : "bg-card text-muted border-border hover:border-muted/60"
                 )}
               >
                 {cat === "hr" ? "HR" : cat}

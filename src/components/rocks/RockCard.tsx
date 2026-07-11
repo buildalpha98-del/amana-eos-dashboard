@@ -48,7 +48,7 @@ export function RockCard({
         <div className="flex items-center gap-1.5">
           <span
             className={cn(
-              "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider",
+              "inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider",
               priority.bg,
               priority.text
             )}
@@ -56,12 +56,12 @@ export function RockCard({
             {priority.label}
           </span>
           {rock.rockType === "company" ? (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 text-purple-700">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium bg-purple-50 text-purple-700">
               <Building2 className="w-2.5 h-2.5" />
               Co.
             </span>
           ) : (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-surface/50 text-muted">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium bg-surface/50 text-muted">
               <User className="w-2.5 h-2.5" />
               Personal
             </span>
@@ -78,7 +78,7 @@ export function RockCard({
       {/* Progress Bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
+          <span className="text-2xs font-medium text-muted uppercase tracking-wider">
             Progress
           </span>
           <span className="text-xs font-semibold text-foreground/80">
@@ -100,7 +100,7 @@ export function RockCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center">
-            <span className="text-[10px] font-medium text-brand">
+            <span className="text-2xs font-medium text-brand">
               {(rock.owner?.name ?? "Unassigned")
                 .split(" ")
                 .map((n) => n[0])

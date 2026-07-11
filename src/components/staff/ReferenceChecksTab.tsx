@@ -107,7 +107,7 @@ function statusPill(s: RefStatus): string {
     case "declined":
       return "bg-amber-50 text-amber-700 border-amber-200";
     default:
-      return "bg-gray-50 text-gray-700 border-gray-200";
+      return "bg-surface text-foreground/80 border-border";
   }
 }
 
@@ -229,7 +229,7 @@ export function ReferenceChecksTab({
                     {c.recommendation && (
                       <span
                         className={cn(
-                          "text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded border",
+                          "text-2xs uppercase font-semibold px-1.5 py-0.5 rounded border",
                           recommendationPill(c.recommendation),
                         )}
                       >
@@ -237,7 +237,7 @@ export function ReferenceChecksTab({
                       </span>
                     )}
                     {c.redFlags && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded border bg-red-50 text-red-700 border-red-200">
+                      <span className="inline-flex items-center gap-0.5 text-2xs uppercase font-semibold px-1.5 py-0.5 rounded border bg-red-50 text-red-700 border-red-200">
                         <CircleAlert className="w-3 h-3" />
                         Flag
                       </span>

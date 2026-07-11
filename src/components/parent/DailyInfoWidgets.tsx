@@ -27,13 +27,13 @@ export function DailyInfoWidgets() {
       {hasMenu && (
         <section
           aria-label="Today's menu"
-          className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]"
+          className="bg-card rounded-xl p-4 shadow-sm border border-border"
         >
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
               <UtensilsCrossed className="w-4 h-4 text-orange-600" />
             </div>
-            <h2 className="text-sm font-heading font-semibold text-[#1a1a2e]">
+            <h2 className="text-sm font-heading font-semibold text-foreground">
               Today&apos;s Menu
             </h2>
           </div>
@@ -42,16 +42,16 @@ export function DailyInfoWidgets() {
               .sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot))
               .map((item, i) => (
                 <div key={i}>
-                  <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  <p className="text-2xs font-semibold text-muted uppercase tracking-wider">
                     {SLOT_LABELS[item.slot] ?? item.slot}
                   </p>
-                  <p className="text-sm text-[#1a1a2e] mt-0.5">{item.description}</p>
+                  <p className="text-sm text-foreground mt-0.5">{item.description}</p>
                   {item.allergens.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.allergens.map((a) => (
                         <span
                           key={a}
-                          className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full"
+                          className="text-2xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full"
                         >
                           {a}
                         </span>
@@ -67,20 +67,20 @@ export function DailyInfoWidgets() {
       {hasProgram && (
         <section
           aria-label="Today's program"
-          className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]"
+          className="bg-card rounded-xl p-4 shadow-sm border border-border"
         >
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-              <CalendarDays className="w-4 h-4 text-[#004E64]" />
+            <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+              <CalendarDays className="w-4 h-4 text-brand" />
             </div>
-            <h2 className="text-sm font-heading font-semibold text-[#1a1a2e]">
+            <h2 className="text-sm font-heading font-semibold text-foreground">
               Today&apos;s Program
             </h2>
           </div>
           <div className="space-y-3">
             {todayProgram.map((activity) => (
-              <div key={activity.id} className="border-l-2 border-[#004E64]/20 pl-3">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted">
+              <div key={activity.id} className="border-l-2 border-brand/20 pl-3">
+                <div className="flex items-center gap-1.5 text-2xs text-muted">
                   <Clock className="w-3 h-3" />
                   <span>{activity.startTime} – {activity.endTime}</span>
                   {activity.location && (
@@ -90,7 +90,7 @@ export function DailyInfoWidgets() {
                     </>
                   )}
                 </div>
-                <p className="text-sm font-medium text-[#1a1a2e] mt-0.5">
+                <p className="text-sm font-medium text-foreground mt-0.5">
                   {activity.title}
                 </p>
                 {activity.description && (
@@ -99,7 +99,7 @@ export function DailyInfoWidgets() {
                   </p>
                 )}
                 {activity.staffName && (
-                  <p className="text-[10px] text-muted mt-0.5">
+                  <p className="text-2xs text-muted mt-0.5">
                     Staff: {activity.staffName}
                   </p>
                 )}

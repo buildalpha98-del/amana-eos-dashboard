@@ -18,7 +18,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   onboarding: { label: "Onboarding", color: "bg-blue-100 text-blue-700" },
   pipeline: { label: "Pipeline", color: "bg-purple-100 text-purple-700" },
   closing: { label: "Closing", color: "bg-amber-100 text-amber-700" },
-  closed: { label: "Closed", color: "bg-gray-100 text-gray-500" },
+  closed: { label: "Closed", color: "bg-surface text-muted" },
 };
 
 export function ServiceCard({
@@ -50,7 +50,7 @@ export function ServiceCard({
             </p>
             <span
               className={cn(
-                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap",
+                "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium whitespace-nowrap",
                 status.color
               )}
             >

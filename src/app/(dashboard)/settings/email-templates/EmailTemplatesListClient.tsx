@@ -56,7 +56,7 @@ export function EmailTemplatesListClient({ rows }: { rows: Row[] }) {
                       {item.label}
                     </span>
                     {item.override && (
-                      <span className="text-[10px] uppercase tracking-wider font-semibold bg-brand/15 text-brand px-1.5 py-0.5 rounded">
+                      <span className="text-2xs uppercase tracking-wider font-semibold bg-brand/15 text-brand px-1.5 py-0.5 rounded">
                         Overridden
                       </span>
                     )}
@@ -64,7 +64,7 @@ export function EmailTemplatesListClient({ rows }: { rows: Row[] }) {
                   <div className="text-xs text-muted mt-0.5">
                     {item.description}
                   </div>
-                  <code className="text-[10px] font-mono text-muted/70 mt-1 block">
+                  <code className="text-2xs font-mono text-muted/70 mt-1 block">
                     {item.key}
                   </code>
                 </div>

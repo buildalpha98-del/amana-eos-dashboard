@@ -116,9 +116,9 @@ export function PolicyAdminPanel() {
         </div>
       ) : visible.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/30 p-12 text-center">
-          <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">No documents yet.</p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <FileText className="mx-auto h-8 w-8 text-muted" />
+          <p className="mt-3 text-sm text-muted">No documents yet.</p>
+          <p className="mt-1 text-xs text-muted">
             Upload your first policy or procedure PDF to get started.
           </p>
         </div>
@@ -179,19 +179,19 @@ function DocumentRow({
             {doc.title}
           </span>
           {doc.isArchived && (
-            <span className="text-[10px] uppercase tracking-wide font-medium text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+            <span className="text-2xs uppercase tracking-wide font-medium text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
               archived
             </span>
           )}
-          <span className="text-[10px] uppercase tracking-wide font-medium text-muted bg-muted/50 px-1.5 py-0.5 rounded">
+          <span className="text-2xs uppercase tracking-wide font-medium text-muted bg-muted/50 px-1.5 py-0.5 rounded">
             {categoryLabel(doc.category)}
           </span>
           {doc.currentVersion ? (
-            <span className="text-[10px] uppercase tracking-wide font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded">
+            <span className="text-2xs uppercase tracking-wide font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded">
               v{doc.currentVersion.versionNumber}
             </span>
           ) : (
-            <span className="text-[10px] uppercase tracking-wide font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+            <span className="text-2xs uppercase tracking-wide font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
               no file
             </span>
           )}
@@ -199,7 +199,7 @@ function DocumentRow({
         {doc.description && (
           <p className="mt-1 text-xs text-muted line-clamp-2">{doc.description}</p>
         )}
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-muted">
           Updated {formatDate(doc.updatedAt)}
           {doc.currentVersion?.uploadedBy
             ? ` · v${doc.currentVersion.versionNumber} by ${doc.currentVersion.uploadedBy.name}`

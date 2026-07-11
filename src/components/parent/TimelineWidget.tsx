@@ -89,7 +89,7 @@ function TimelineCard({
   const likeToggle = useParentPostLikeToggle();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const TypeIcon = typeIcons[post.type] ?? MessageCircle;
-  const badgeClass = typeBadge[post.type] ?? "bg-gray-50 text-gray-600";
+  const badgeClass = typeBadge[post.type] ?? "bg-surface text-muted";
   const dateStr = new Date(post.createdAt).toLocaleDateString("en-AU", {
     day: "numeric",
     month: "short",
@@ -114,12 +114,12 @@ function TimelineCard({
               {post.title}
             </h3>
             <span
-              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badgeClass}`}
+              className={`text-2xs font-semibold px-1.5 py-0.5 rounded-full ${badgeClass}`}
             >
               {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
             </span>
             {post.isCommunity && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 flex items-center gap-0.5">
+              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 flex items-center gap-0.5">
                 <Users className="w-2.5 h-2.5" />
                 All
               </span>
@@ -136,7 +136,7 @@ function TimelineCard({
               {post.tags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="text-[10px] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] px-1.5 py-0.5 rounded-full"
+                  className="text-2xs bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] px-1.5 py-0.5 rounded-full"
                 >
                   {tag.child.firstName}
                 </span>
@@ -246,7 +246,7 @@ function CommentSheet({
                       {c.authorName}
                     </span>
                     {c.authorType === "staff" && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] font-semibold">
+                      <span className="text-2xs px-1.5 py-0.5 rounded-full bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] font-semibold">
                         Staff
                       </span>
                     )}
@@ -280,7 +280,7 @@ function CommentSheet({
             onChange={(e) => setBody(e.target.value)}
             placeholder="Say something kind…"
             rows={1}
-            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-white text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
+            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-card text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
           />
           <button
             type="submit"

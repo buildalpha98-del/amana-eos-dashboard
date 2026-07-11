@@ -65,14 +65,14 @@ function PillarMiniBar({
 }) {
   return (
     <div className="flex items-center gap-1.5" title={`${label}: ${value}`}>
-      <span className="text-[10px] text-muted w-7 text-right">{label}</span>
+      <span className="text-2xs text-muted w-7 text-right">{label}</span>
       <div className="w-16 h-2 bg-surface rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{ width: `${value}%`, backgroundColor: color }}
         />
       </div>
-      <span className="text-[10px] font-medium text-muted w-5">{value}</span>
+      <span className="text-2xs font-medium text-muted w-5">{value}</span>
     </div>
   );
 }
@@ -200,7 +200,7 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
                   </div>
                   {/* State Badge */}
                   {centre.state && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface text-muted mt-0.5">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-surface text-muted mt-0.5">
                       {centre.state}
                     </span>
                   )}

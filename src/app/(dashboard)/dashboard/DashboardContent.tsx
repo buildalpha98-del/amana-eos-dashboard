@@ -99,7 +99,7 @@ function QuickActionButtons() {
           <Link
             key={a.href}
             href={a.href}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted-foreground hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
           >
             <Icon className="w-3.5 h-3.5" />
             {a.label}
@@ -527,27 +527,27 @@ function CommandCentreDashboard({
                     >
                       {data.npsSurvey.score !== null ? data.npsSurvey.score : "N/A"}
                     </div>
-                    <div className="text-[10px] sm:text-xs text-muted mt-0.5">Score</div>
+                    <div className="text-2xs sm:text-xs text-muted mt-0.5">Score</div>
                   </div>
 
                   <div className="flex-1 grid grid-cols-3 gap-2 sm:gap-4">
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-success">{data.npsSurvey.promoters}</div>
-                      <div className="text-[10px] sm:text-xs text-muted">Promoters</div>
+                      <div className="text-2xs sm:text-xs text-muted">Promoters</div>
                     </div>
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-warning">{data.npsSurvey.passives}</div>
-                      <div className="text-[10px] sm:text-xs text-muted">Passives</div>
+                      <div className="text-2xs sm:text-xs text-muted">Passives</div>
                     </div>
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-danger">{data.npsSurvey.detractors}</div>
-                      <div className="text-[10px] sm:text-xs text-muted">Detractors</div>
+                      <div className="text-2xs sm:text-xs text-muted">Detractors</div>
                     </div>
                   </div>
 
                   <div className="text-center shrink-0">
                     <div className="text-base sm:text-lg font-semibold text-foreground">{data.npsSurvey.totalResponses}</div>
-                    <div className="text-[10px] sm:text-xs text-muted">Total</div>
+                    <div className="text-2xs sm:text-xs text-muted">Total</div>
                   </div>
                 </div>
 

@@ -228,7 +228,7 @@ export function ImportWizard({
                         {col.label}
                       </span>
                       {col.required && (
-                        <span className="text-red-500 text-[10px]">*</span>
+                        <span className="text-red-500 text-2xs">*</span>
                       )}
                     </div>
                   ))}
@@ -318,7 +318,7 @@ export function ImportWizard({
                         {dryRunResult.preview.slice(0, 10).map((row, i) => (
                           <tr
                             key={i}
-                            className="border-b border-gray-50 hover:bg-surface"
+                            className="border-b border-border/50 hover:bg-surface"
                           >
                             {dryRunResult.columns.map((col) => (
                               <td

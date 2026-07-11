@@ -45,7 +45,7 @@ function FeedSection({
           {title}
         </span>
         <span
-          className="text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none"
+          className="text-2xs font-bold rounded-full px-1.5 py-0.5 leading-none"
           style={{ backgroundColor: bgColor, color }}
         >
           {count}
@@ -163,7 +163,7 @@ export function ActionItemsFeed({
                     {issue.title}
                   </p>
                   <span
-                    className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                    className={`text-2xs font-bold uppercase px-1.5 py-0.5 rounded ${
                       issue.priority === "critical"
                         ? "bg-red-100 text-red-700"
                         : "bg-amber-100 text-amber-700"

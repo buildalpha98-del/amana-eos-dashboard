@@ -36,7 +36,7 @@ const statusColors: Record<string, string> = {
   open: "bg-amber-500",
   pending_parent: "bg-purple-500",
   resolved: "bg-emerald-500",
-  closed: "bg-gray-400",
+  closed: "bg-muted/60",
 };
 
 const statusLabels: Record<string, string> = {
@@ -137,7 +137,7 @@ export function TicketAnalytics() {
                 <span className="text-xs font-medium text-muted w-16 capitalize">{priority}</span>
                 <div className="flex-1 h-6 bg-surface rounded-full overflow-hidden">
                   <div
-                    className={cn("h-full rounded-full transition-all", priorityColors[priority] || "bg-gray-400")}
+                    className={cn("h-full rounded-full transition-all", priorityColors[priority] || "bg-muted/60")}
                     style={{ width: `${(count / maxPriority) * 100}%` }}
                   />
                 </div>
@@ -159,7 +159,7 @@ export function TicketAnalytics() {
                 <span className="text-xs font-medium text-muted w-24">{statusLabels[status] || status}</span>
                 <div className="flex-1 h-6 bg-surface rounded-full overflow-hidden">
                   <div
-                    className={cn("h-full rounded-full transition-all", statusColors[status] || "bg-gray-400")}
+                    className={cn("h-full rounded-full transition-all", statusColors[status] || "bg-muted/60")}
                     style={{ width: `${(count / maxStatus) * 100}%` }}
                   />
                 </div>
@@ -203,7 +203,7 @@ export function TicketAnalytics() {
               {data.agentWorkload.map((agent, i) => (
                 <div key={agent.id} className="flex items-center gap-3 py-1.5 px-2 rounded-md hover:bg-surface">
                   <span className={cn(
-                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
+                    "w-5 h-5 rounded-full flex items-center justify-center text-2xs font-bold",
                     i === 0 ? "bg-amber-100 text-amber-700" : i === 1 ? "bg-border text-muted" : i === 2 ? "bg-orange-100 text-orange-700" : "bg-surface text-muted"
                   )}>
                     {i + 1}

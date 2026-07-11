@@ -239,7 +239,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                 <div key={m.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[10px] font-medium text-brand">
+                      <span className="text-2xs font-medium text-brand">
                         {(m.owner?.name ?? "?")
                           .split(" ")
                           .map((n) => n[0])
@@ -270,7 +270,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                       const entry = entryLookup[m.id]?.[weekKey];
                       return (
                         <div key={weekKey} className="text-center">
-                          <p className="text-[10px] text-muted mb-1">{formatWeekShort(week)}</p>
+                          <p className="text-2xs text-muted mb-1">{formatWeekShort(week)}</p>
                           <EntryCell
                             entry={entry}
                             unit={m.unit}
@@ -311,7 +311,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                     <th
                       key={week.toISOString()}
                       className={cn(
-                        "px-1 py-3 text-center text-[10px] font-medium w-[70px]",
+                        "px-1 py-3 text-center text-2xs font-medium w-[70px]",
                         week.getTime() === getWeekStart().getTime()
                           ? "text-brand bg-brand/5 font-semibold"
                           : "text-muted"
@@ -332,7 +332,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                     <td className="sticky left-0 z-10 bg-card px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px] font-medium text-brand">
+                          <span className="text-2xs font-medium text-brand">
                             {(m.owner?.name ?? "Unassigned")
                               .split(" ")
                               .map((n) => n[0])
@@ -353,7 +353,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                         {m.title}
                       </div>
                       {m.description && (
-                        <div className="text-[10px] text-muted truncate max-w-[150px]">
+                        <div className="text-2xs text-muted truncate max-w-[150px]">
                           {m.description}
                         </div>
                       )}

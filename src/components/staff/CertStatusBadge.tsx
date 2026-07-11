@@ -5,7 +5,7 @@ const STATUS_STYLES = {
   valid: "bg-green-100 text-green-800 border-green-200",
   expiring: "bg-amber-100 text-amber-800 border-amber-200",
   expired: "bg-red-100 text-red-800 border-red-200",
-  missing: "bg-gray-100 text-gray-600 border-gray-200",
+  missing: "bg-surface text-muted border-border",
   no_expiry: "bg-emerald-50 text-emerald-700 border-emerald-200",
 } as const;
 

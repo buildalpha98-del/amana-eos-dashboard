@@ -29,8 +29,8 @@ const stageColors: Record<string, string> = {
   submitted: "bg-orange-100 text-orange-700",
   negotiating: "bg-red-100 text-red-700",
   won: "bg-emerald-100 text-emerald-700",
-  lost: "bg-gray-100 text-gray-600",
-  on_hold: "bg-gray-100 text-gray-500",
+  lost: "bg-surface text-muted",
+  on_hold: "bg-surface text-muted",
 };
 
 export function LeadTable({

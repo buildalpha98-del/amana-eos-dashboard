@@ -214,8 +214,8 @@ export function SiblingEnrolmentForm() {
                   i < step
                     ? "bg-green-500 text-white"
                     : i === step
-                      ? "bg-[#004E64] text-white"
-                      : "bg-[#e8e4df] text-muted"
+                      ? "bg-brand text-white"
+                      : "bg-border text-muted"
                 }`}
               >
                 {i < step ? <Check className="w-4 h-4" /> : i + 1}
@@ -223,20 +223,20 @@ export function SiblingEnrolmentForm() {
               {i < STEPS.length - 1 && (
                 <div
                   className={`h-0.5 w-4 sm:w-8 mx-1 ${
-                    i < step ? "bg-green-500" : "bg-[#e8e4df]"
+                    i < step ? "bg-green-500" : "bg-border"
                   }`}
                 />
               )}
             </div>
           ))}
         </div>
-        <p className="text-sm font-semibold text-[#1a1a2e] text-center">
+        <p className="text-sm font-semibold text-foreground text-center">
           {STEPS[step]}
         </p>
       </div>
 
       {/* Step content */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-[#e8e4df]">
+      <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
         {step === 0 && (
           <Step1ChildDetails form={form} errors={errors} update={update} />
         )}
@@ -269,7 +269,7 @@ export function SiblingEnrolmentForm() {
         {step > 0 && (
           <button
             onClick={handleBack}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-[#1a1a2e] bg-white border border-[#e8e4df] rounded-xl hover:bg-[#f8f5f2] transition-colors min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-foreground bg-card border border-border rounded-xl hover:bg-[#f8f5f2] transition-colors min-h-[44px]"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -279,7 +279,7 @@ export function SiblingEnrolmentForm() {
         {step < STEPS.length - 1 ? (
           <button
             onClick={handleNext}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-[#004E64] rounded-xl hover:bg-[#003d4f] transition-colors min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-brand rounded-xl hover:bg-[#003d4f] transition-colors min-h-[44px]"
           >
             Next
             <ArrowRight className="w-4 h-4" />
@@ -288,7 +288,7 @@ export function SiblingEnrolmentForm() {
           <button
             onClick={handleSubmit}
             disabled={createEnrolment.isPending}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-[#004E64] rounded-xl hover:bg-[#003d4f] transition-colors disabled:opacity-50 min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-brand rounded-xl hover:bg-[#003d4f] transition-colors disabled:opacity-50 min-h-[44px]"
           >
             {createEnrolment.isPending ? "Submitting..." : "Submit Application"}
           </button>
@@ -328,7 +328,7 @@ function Step1ChildDetails({
           value={form.childFirstName}
           onChange={(e) => update("childFirstName", e.target.value)}
           placeholder="Enter first name"
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px]"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
         />
       </FormField>
 
@@ -338,7 +338,7 @@ function Step1ChildDetails({
           value={form.childLastName}
           onChange={(e) => update("childLastName", e.target.value)}
           placeholder="Enter last name"
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px]"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
         />
       </FormField>
 
@@ -347,7 +347,7 @@ function Step1ChildDetails({
           type="date"
           value={form.childDateOfBirth}
           onChange={(e) => update("childDateOfBirth", e.target.value)}
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px]"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
         />
       </FormField>
 
@@ -355,7 +355,7 @@ function Step1ChildDetails({
         <select
           value={form.childGender}
           onChange={(e) => update("childGender", e.target.value)}
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px]"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
         >
           {GENDER_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -371,7 +371,7 @@ function Step1ChildDetails({
           value={form.childSchool}
           onChange={(e) => update("childSchool", e.target.value)}
           placeholder="Enter school name"
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px]"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
         />
       </FormField>
 
@@ -381,7 +381,7 @@ function Step1ChildDetails({
           value={form.childYear}
           onChange={(e) => update("childYear", e.target.value)}
           placeholder="e.g. Year 3"
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px]"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
         />
       </FormField>
     </div>
@@ -414,7 +414,7 @@ function Step2CareRequirements({
         <select
           value={form.serviceId}
           onChange={(e) => update("serviceId", e.target.value)}
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px]"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
         >
           <option value="">Select a service...</option>
           {services.map((s) => (
@@ -439,15 +439,15 @@ function Step2CareRequirements({
           {SESSION_OPTIONS.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-3 p-3 rounded-lg border border-[#e8e4df] hover:bg-[#f8f5f2] transition-colors cursor-pointer min-h-[44px]"
+              className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-[#f8f5f2] transition-colors cursor-pointer min-h-[44px]"
             >
               <input
                 type="checkbox"
                 checked={form.sessionTypes.includes(opt.value)}
                 onChange={() => toggleSession(opt.value)}
-                className="w-5 h-5 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+                className="w-5 h-5 rounded border-border text-brand focus:ring-brand"
               />
-              <span className="text-sm font-medium text-[#1a1a2e]">
+              <span className="text-sm font-medium text-foreground">
                 {opt.label}
               </span>
             </label>
@@ -460,7 +460,7 @@ function Step2CareRequirements({
           type="date"
           value={form.startDate}
           onChange={(e) => update("startDate", e.target.value)}
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px]"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
         />
       </FormField>
     </div>
@@ -507,8 +507,8 @@ function Step3Medical({
                 }}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors min-h-[32px] ${
                   active
-                    ? "bg-[#004E64] text-white"
-                    : "bg-[#f8f5f2] text-muted hover:bg-[#e8e4df]"
+                    ? "bg-brand text-white"
+                    : "bg-[#f8f5f2] text-muted hover:bg-border"
                 }`}
               >
                 {preset}
@@ -536,7 +536,7 @@ function Step3Medical({
           onChange={(e) => update("medicationDetails", e.target.value)}
           placeholder="List any medications your child takes regularly..."
           rows={3}
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px] resize-none"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px] resize-none"
         />
       </FormField>
 
@@ -546,7 +546,7 @@ function Step3Medical({
           onChange={(e) => update("anaphylaxisActionPlan", e.target.value)}
           placeholder="Describe the action plan if applicable..."
           rows={3}
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px] resize-none"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px] resize-none"
         />
       </FormField>
 
@@ -556,7 +556,7 @@ function Step3Medical({
           onChange={(e) => update("additionalNeeds", e.target.value)}
           placeholder="Any additional support needs, behavioural considerations, etc."
           rows={3}
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px] resize-none"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px] resize-none"
         />
       </FormField>
     </div>
@@ -587,7 +587,7 @@ function Step4Consents({
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-sm font-semibold text-[#1a1a2e] mb-3">
+        <h3 className="text-sm font-semibold text-foreground mb-3">
           Required Consents
         </h3>
         <div className="space-y-2">
@@ -597,16 +597,16 @@ function Step4Consents({
               className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer min-h-[44px] ${
                 errors[key]
                   ? "border-red-300 bg-red-50"
-                  : "border-[#e8e4df] hover:bg-[#f8f5f2]"
+                  : "border-border hover:bg-[#f8f5f2]"
               }`}
             >
               <input
                 type="checkbox"
                 checked={form[key] as boolean}
                 onChange={(e) => update(key, e.target.checked as never)}
-                className="w-5 h-5 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+                className="w-5 h-5 rounded border-border text-brand focus:ring-brand"
               />
-              <span className="text-sm text-[#1a1a2e]">{label}</span>
+              <span className="text-sm text-foreground">{label}</span>
             </label>
           ))}
         </div>
@@ -618,32 +618,32 @@ function Step4Consents({
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-[#1a1a2e] mb-3">
+        <h3 className="text-sm font-semibold text-foreground mb-3">
           Copy from Family Profile
         </h3>
         <div className="space-y-2">
-          <label className="flex items-center gap-3 p-3 rounded-lg border border-[#e8e4df] hover:bg-[#f8f5f2] transition-colors cursor-pointer min-h-[44px]">
+          <label className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-[#f8f5f2] transition-colors cursor-pointer min-h-[44px]">
             <input
               type="checkbox"
               checked={form.copyAuthorisedPickups}
               onChange={(e) => update("copyAuthorisedPickups", e.target.checked)}
-              className="w-5 h-5 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+              className="w-5 h-5 rounded border-border text-brand focus:ring-brand"
             />
-            <span className="text-sm text-[#1a1a2e]">
+            <span className="text-sm text-foreground">
               Copy authorised pickups from {siblingName} profile
             </span>
           </label>
 
-          <label className="flex items-center gap-3 p-3 rounded-lg border border-[#e8e4df] hover:bg-[#f8f5f2] transition-colors cursor-pointer min-h-[44px]">
+          <label className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-[#f8f5f2] transition-colors cursor-pointer min-h-[44px]">
             <input
               type="checkbox"
               checked={form.copyEmergencyContacts}
               onChange={(e) =>
                 update("copyEmergencyContacts", e.target.checked)
               }
-              className="w-5 h-5 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+              className="w-5 h-5 rounded border-border text-brand focus:ring-brand"
             />
-            <span className="text-sm text-[#1a1a2e]">
+            <span className="text-sm text-foreground">
               Copy emergency contacts from existing family profile
             </span>
           </label>
@@ -755,7 +755,7 @@ function FormField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-[#1a1a2e] mb-1">
+      <label className="block text-sm font-medium text-foreground mb-1">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -791,13 +791,13 @@ function TagInput({
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-[#004E64]/10 text-[#004E64] text-xs font-medium rounded-full"
+              className="inline-flex items-center gap-1 px-2 py-1 bg-brand/10 text-brand text-xs font-medium rounded-full"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => onChange(tags.filter((t) => t !== tag))}
-                className="p-0.5 hover:bg-[#004E64]/20 rounded-full"
+                className="p-0.5 hover:bg-brand/20 rounded-full"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -817,12 +817,12 @@ function TagInput({
             }
           }}
           placeholder={placeholder}
-          className="w-full px-3 py-2.5 text-sm border border-[#e8e4df] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 min-h-[44px] flex-1"
+          className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px] flex-1"
         />
         <button aria-label="Add another child"
           type="button"
           onClick={addTag}
-          className="px-3 py-2 bg-[#f8f5f2] border border-[#e8e4df] rounded-lg hover:bg-[#e8e4df] transition-colors min-h-[44px]"
+          className="px-3 py-2 bg-[#f8f5f2] border border-border rounded-lg hover:bg-border transition-colors min-h-[44px]"
         >
           <Plus className="w-4 h-4 text-muted" />
         </button>
@@ -839,7 +839,7 @@ function ReviewSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border border-[#e8e4df] rounded-lg p-3">
+    <div className="border border-border rounded-lg p-3">
       <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
         {title}
       </h4>
@@ -852,7 +852,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-2">
       <span className="text-xs text-muted">{label}</span>
-      <span className="text-xs font-medium text-[#1a1a2e] text-right">
+      <span className="text-xs font-medium text-foreground text-right">
         {value}
       </span>
     </div>

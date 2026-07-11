@@ -31,7 +31,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   pending: { label: "Pending", color: "bg-amber-100 text-amber-700 border-amber-300" },
   in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-700 border-blue-300" },
   complete: { label: "Complete", color: "bg-emerald-100 text-emerald-700 border-emerald-300" },
-  cancelled: { label: "Cancelled", color: "bg-gray-100 text-gray-500 border-gray-300" },
+  cancelled: { label: "Cancelled", color: "bg-surface text-muted border-border" },
 };
 
 function getNextStatus(current: string): string {
@@ -273,12 +273,12 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
 
               {/* Linked rock/issue */}
               {todo.rock && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">
+                <span className="text-2xs px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">
                   {todo.rock.title}
                 </span>
               )}
               {todo.issue && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-600 rounded">
+                <span className="text-2xs px-1.5 py-0.5 bg-red-50 text-red-600 rounded">
                   {todo.issue.title}
                 </span>
               )}
@@ -297,8 +297,8 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
               {/* Status Badge */}
               <span
                 className={cn(
-                  "text-[10px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap",
-                  statusConfig[todo.status]?.color || "bg-gray-100 text-gray-500 border-gray-300"
+                  "text-2xs font-medium px-2 py-0.5 rounded-full border whitespace-nowrap",
+                  statusConfig[todo.status]?.color || "bg-surface text-muted border-border"
                 )}
               >
                 {statusConfig[todo.status]?.label || todo.status}

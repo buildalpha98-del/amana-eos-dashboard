@@ -287,7 +287,7 @@ function FilterMenu({
         {icon}
         <span>{label}</span>
         {selected.length > 0 ? (
-          <span className="rounded-full bg-brand text-white text-[10px] font-bold px-1.5 py-0">
+          <span className="rounded-full bg-brand text-white text-2xs font-bold px-1.5 py-0">
             {selected.length}
           </span>
         ) : null}

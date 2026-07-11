@@ -81,7 +81,7 @@ export function ShiftHandoverWidget({ serviceId }: { serviceId: string }) {
             onChange={(e) => setDraft(e.target.value)}
             rows={3}
             placeholder="What should the next shift know? Meds due, behaviour to watch, parent to call back…"
-            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-white resize-y"
+            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-card resize-y"
           />
           <div className="flex justify-end">
             <button

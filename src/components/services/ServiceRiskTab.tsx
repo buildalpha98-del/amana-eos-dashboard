@@ -198,13 +198,13 @@ function Empty({ onCreate }: { onCreate: () => void }) {
 function StatusChip({ ra }: { ra: RiskAssessmentItem }) {
   if (ra.approvedAt) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-emerald-100 text-emerald-800">
+      <span className="inline-flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-emerald-100 text-emerald-800">
         <Check className="w-3 h-3" /> Approved
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-amber-100 text-amber-800">
+    <span className="inline-flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-amber-100 text-amber-800">
       <AlertTriangle className="w-3 h-3" /> Pending
     </span>
   );
@@ -607,7 +607,7 @@ function RatingPicker({
       <select
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1 text-sm bg-white"
+        className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1 text-sm bg-card"
       >
         {[1, 2, 3, 4, 5].map((n) => (
           <option key={n} value={n}>

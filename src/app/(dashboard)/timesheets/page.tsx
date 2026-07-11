@@ -86,7 +86,7 @@ const STATUS_CONFIG: Record<
     label: "Draft",
     color: "text-foreground/80",
     bg: "bg-surface",
-    dot: "bg-gray-400",
+    dot: "bg-muted/60",
   },
   submitted: {
     label: "Submitted",
@@ -917,7 +917,7 @@ function ImportFromOWNAModal({
                 "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
                 dragOver
                   ? "border-brand bg-brand/5"
-                  : "border-border hover:border-gray-400"
+                  : "border-border hover:border-muted/60"
               )}
             >
               <FileUp className="w-10 h-10 text-muted mx-auto mb-3" />

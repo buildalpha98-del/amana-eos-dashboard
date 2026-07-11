@@ -327,7 +327,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                       {col.label}
                     </h4>
                     <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${col.badge}`}
+                      className={`rounded-full px-1.5 py-0.5 text-2xs font-bold ${col.badge}`}
                     >
                       {columnTasks.length}
                     </span>
@@ -411,7 +411,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                             )}
                           </div>
                           <span
-                            className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+                            className={`shrink-0 rounded border px-1.5 py-0.5 text-2xs font-semibold ${
                               PRIORITY_COLORS[task.priority]
                             }`}
                           >
@@ -421,19 +421,19 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                         <div className="flex flex-wrap items-center gap-1.5 mt-2">
                           {dueIndicator && (
                             <span
-                              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${dueIndicator.className}`}
+                              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-2xs font-medium ${dueIndicator.className}`}
                             >
                               <Calendar className="h-3 w-3" />
                               {dueIndicator.label}
                             </span>
                           )}
                           {task.assignee && (
-                            <span className="inline-flex items-center rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                            <span className="inline-flex items-center rounded-full bg-surface px-1.5 py-0.5 text-2xs font-medium text-muted">
                               {(task.assignee?.name ?? "Unassigned").split(" ")[0]}
                             </span>
                           )}
                           {task.campaign && (
-                            <span className="inline-flex items-center rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand">
+                            <span className="inline-flex items-center rounded-full bg-brand/10 px-1.5 py-0.5 text-2xs font-medium text-brand">
                               {task.campaign.name}
                             </span>
                           )}
@@ -485,7 +485,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                         </td>
                         <td className="px-4 py-3">
                           <span
-                            className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+                            className={`rounded border px-1.5 py-0.5 text-2xs font-semibold ${
                               PRIORITY_COLORS[task.priority]
                             }`}
                           >

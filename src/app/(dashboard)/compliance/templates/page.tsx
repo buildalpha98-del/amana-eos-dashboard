@@ -83,7 +83,7 @@ const formatLabels: Record<string, { label: string; color: string }> = {
   compliant: { label: "Compliant", color: "bg-emerald-100 text-emerald-700" },
   reverse_yes_no: { label: "Reverse Y/N", color: "bg-amber-100 text-amber-700" },
   review_date: { label: "Review Date", color: "bg-cyan-100 text-cyan-700" },
-  inventory: { label: "Inventory", color: "bg-gray-100 text-gray-500" },
+  inventory: { label: "Inventory", color: "bg-surface text-muted" },
 };
 
 const frequencyLabels: Record<string, string> = {
@@ -193,7 +193,7 @@ function SortableItemRow({
         ) : (
           <>
             {item.section && (
-              <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mb-0.5 inline-block">
+              <span className="text-2xs font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mb-0.5 inline-block">
                 {item.section}
               </span>
             )}
@@ -205,7 +205,7 @@ function SortableItemRow({
         )}
       </div>
 
-      <span className={cn("px-2 py-0.5 text-[10px] font-medium rounded-full shrink-0 mt-1", fmt.color)}>
+      <span className={cn("px-2 py-0.5 text-2xs font-medium rounded-full shrink-0 mt-1", fmt.color)}>
         {fmt.label}
       </span>
 
@@ -448,7 +448,7 @@ function TemplateDetail({
             >
               <X className="w-3 h-3" /> Cancel
             </button>
-            <span className="text-[10px] text-muted ml-1">
+            <span className="text-2xs text-muted ml-1">
               ⌘/Ctrl+Enter to save · Esc to cancel
             </span>
           </div>
@@ -617,7 +617,7 @@ function ParsePreviewModal({
                 <span
                   className={cn(
                     "px-2 py-0.5 text-xs font-medium rounded-full",
-                    formatLabels[parsed.detectedFormat]?.color || "bg-gray-100 text-gray-500"
+                    formatLabels[parsed.detectedFormat]?.color || "bg-surface text-muted"
                   )}
                 >
                   {formatLabels[parsed.detectedFormat]?.label || parsed.detectedFormat}
@@ -632,7 +632,7 @@ function ParsePreviewModal({
               {parsed.metadata.sections.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
                   {parsed.metadata.sections.map((s) => (
-                    <span key={s} className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                    <span key={s} className="text-2xs bg-surface text-muted px-2 py-0.5 rounded">
                       {s}
                     </span>
                   ))}
@@ -654,7 +654,7 @@ function ParsePreviewModal({
                       <span className="text-xs text-muted mt-0.5 w-6 shrink-0">{idx + 1}</span>
                       <div className="flex-1 min-w-0">
                         {item.section && (
-                          <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mr-1">
+                          <span className="text-2xs font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mr-1">
                             {item.section}
                           </span>
                         )}
@@ -663,7 +663,7 @@ function ParsePreviewModal({
                           <p className="text-xs text-muted mt-0.5">{item.guidance}</p>
                         )}
                       </div>
-                      <span className={cn("px-1.5 py-0.5 text-[10px] font-medium rounded-full shrink-0", fmt.color)}>
+                      <span className={cn("px-1.5 py-0.5 text-2xs font-medium rounded-full shrink-0", fmt.color)}>
                         {fmt.label}
                       </span>
                       <button
@@ -906,7 +906,7 @@ function BulkUploadModal({
                         <>
                           <span
                             className={cn(
-                              "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                              "text-2xs font-medium px-1.5 py-0.5 rounded-full",
                               confidence >= 0.8
                                 ? "bg-emerald-100 text-emerald-700"
                                 : confidence >= 0.6
@@ -1249,14 +1249,14 @@ export default function AuditTemplatesPage() {
                       </p>
                       {template.documentMode && (
                         <span
-                          className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-indigo-100 text-indigo-700"
+                          className="px-1.5 py-0.5 text-2xs font-medium rounded bg-indigo-100 text-indigo-700"
                           title="Document-mode audit — coordinators edit the .docx inline per instance"
                         >
                           Doc
                         </span>
                       )}
                       {!template.isActive && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500">
+                        <span className="px-1.5 py-0.5 text-2xs font-medium rounded bg-surface text-muted">
                           Inactive
                         </span>
                       )}
@@ -1277,7 +1277,7 @@ export default function AuditTemplatesPage() {
                     </div>
                   </div>
 
-                  <span className={cn("px-2 py-0.5 text-[10px] font-medium rounded-full shrink-0", fmt.color)}>
+                  <span className={cn("px-2 py-0.5 text-2xs font-medium rounded-full shrink-0", fmt.color)}>
                     {fmt.label}
                   </span>
 
@@ -1439,7 +1439,7 @@ export default function AuditTemplatesPage() {
                   autoFocus
                   value={wipeConfirm}
                   onChange={(e) => setWipeConfirm(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm border border-rose-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
+                  className="w-full px-3 py-1.5 text-sm border border-rose-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 bg-card"
                   placeholder="RESET"
                 />
               </div>

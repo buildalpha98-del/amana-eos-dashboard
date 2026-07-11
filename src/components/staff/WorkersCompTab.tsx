@@ -95,12 +95,12 @@ const STATUS_META: Record<
   },
   on_hold: {
     label: "On hold",
-    pill: "bg-gray-50 text-gray-800 border-gray-200",
+    pill: "bg-surface text-foreground border-border",
     icon: Pause,
   },
   closed: {
     label: "Closed",
-    pill: "bg-gray-100 text-gray-700 border-gray-200",
+    pill: "bg-surface text-foreground/80 border-border",
     icon: CheckCircle2,
   },
   reopened: {

@@ -37,7 +37,7 @@ const STATUS_STYLES: Record<string, string> = {
   leave_pending: "bg-amber-100 text-amber-800",
   leave_approved: "bg-green-100 text-green-800",
   leave_rejected: "bg-red-100 text-red-800",
-  leave_cancelled: "bg-gray-100 text-gray-700",
+  leave_cancelled: "bg-surface text-foreground/80",
 };
 
 export function LeaveTab({ targetUserId, balances, recentRequests, canRequest }: LeaveTabProps) {
@@ -98,7 +98,7 @@ export function LeaveTab({ targetUserId, balances, recentRequests, canRequest }:
                     <td className="py-2">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          STATUS_STYLES[r.status] ?? "bg-gray-100 text-gray-700"
+                          STATUS_STYLES[r.status] ?? "bg-surface text-foreground/80"
                         }`}
                       >
                         {humanize(r.status).replace("Leave ", "")}

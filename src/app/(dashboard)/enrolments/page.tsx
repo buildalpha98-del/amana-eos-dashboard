@@ -33,7 +33,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   under_review: { label: "Reviewing", color: "bg-amber-50 text-amber-700" },
   processed: { label: "Confirmed", color: "bg-green-50 text-green-700" },
   needs_info: { label: "Needs Info", color: "bg-orange-50 text-orange-700" },
-  archived: { label: "Archived", color: "bg-gray-50 text-gray-500" },
+  archived: { label: "Archived", color: "bg-surface text-muted" },
 };
 
 export default function EnrolmentsPage() {
@@ -122,7 +122,7 @@ export default function EnrolmentsPage() {
           <UserPlus className="h-4 w-4" />
           Sibling Applications
           {(siblingData?.total ?? 0) > 0 && (
-            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">
+            <span className="px-1.5 py-0.5 text-2xs font-bold rounded-full bg-amber-100 text-amber-700">
               {siblingData?.total}
             </span>
           )}

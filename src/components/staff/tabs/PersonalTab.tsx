@@ -150,7 +150,7 @@ export function PersonalTab({
                   <div className="text-sm font-medium text-foreground">
                     {c.name}
                     {c.isPrimary && (
-                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-brand/10 text-brand">
+                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-brand/10 text-brand">
                         Primary
                       </span>
                     )}
@@ -450,7 +450,7 @@ function AccountPanel({
     <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-6">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold text-foreground">Account</h3>
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-amber-100 text-amber-800">
           Admin only
         </span>
       </div>

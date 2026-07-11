@@ -311,7 +311,7 @@ function ReflectionCard({
             <span
               key={qa}
               className={cn(
-                "text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)]",
+                "text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)]",
                 "bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]",
               )}
             >

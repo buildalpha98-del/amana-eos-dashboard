@@ -55,8 +55,8 @@ const swimLanes = [
     key: "closed",
     label: "Closed",
     statuses: ["closing", "closed"],
-    badgeColor: "bg-gray-100 text-gray-500",
-    accentColor: "border-gray-400",
+    badgeColor: "bg-surface text-muted",
+    accentColor: "border-muted/60",
   },
 ] as const;
 

@@ -261,7 +261,7 @@ export function ContractDetailPanel({
                       ? "bg-amber-400 border-amber-400"
                       : v.status === "terminated"
                       ? "bg-red-400 border-red-400"
-                      : "bg-gray-300 border-border"
+                      : "bg-muted/30 border-border"
                   )}
                 />
                 <div className="min-w-0 flex-1">

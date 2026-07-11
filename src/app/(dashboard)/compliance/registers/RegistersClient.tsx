@@ -116,7 +116,7 @@ export function RegistersClient({
           >
             <Icon className="w-4 h-4" />
             {label}
-            <span className="text-[10px] font-normal text-muted ml-1">
+            <span className="text-2xs font-normal text-muted ml-1">
               {reg}
             </span>
           </button>
