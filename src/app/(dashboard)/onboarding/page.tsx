@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   useOnboardingPacks,
@@ -24,6 +25,7 @@ import { ExitSurveyDashboard } from "@/components/exit-surveys/ExitSurveyDashboa
 import { OnboardingPacksTab } from "@/components/onboarding/OnboardingPacksTab";
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
+import { TrainingComplianceTab } from "@/components/onboarding/TrainingComplianceTab";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GraduationCap,
@@ -35,6 +37,7 @@ import {
   ClipboardCheck,
   ShieldCheck,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -56,16 +59,52 @@ interface ServiceOption {
   code: string;
 }
 
-export default function OnboardingPage() {
+// Single source of truth for the tab ids — used for the state union, the
+// deep-link allow-list, and the URL round-trip. Admin-only tabs are gated so
+// a non-admin deep link can't land on a blank body.
+const TAB_IDS = ["onboarding", "lms", "induction", "compliance", "exit-surveys"] as const;
+type TabId = (typeof TAB_IDS)[number];
+const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "compliance"];
+
+function isTabId(value: string): value is TabId {
+  return (TAB_IDS as readonly string[]).includes(value);
+}
+
+function OnboardingPageInner() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const role = session?.user?.role as Role | undefined;
   const isAdmin = hasMinRole(role, "admin");
   const isOwner = role === "owner";
   const isStaff = role === "staff";
   const isServiceScoped = role === "staff" || role === "member";
 
-  const [activeTab, setActiveTab] = useState<"onboarding" | "lms" | "induction" | "exit-surveys">("onboarding");
+  const [activeTab, setActiveTab] = useState<TabId>("onboarding");
+
+  // URL-synced tabs (?tab=) — reactive to client-side navigation and
+  // back/forward, and re-evaluated once the session's role arrives so the
+  // admin compliance-email deep link works while non-admins fall back to
+  // the default tab instead of a blank body.
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (
+      tab &&
+      isTabId(tab) &&
+      (isAdmin || !ADMIN_ONLY_TABS.includes(tab))
+    ) {
+      setActiveTab(tab);
+    }
+  }, [searchParams, isAdmin]);
+
+  // Switch tab + write it back to the URL so views are shareable.
+  const changeTab = (tab: TabId) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`/onboarding?${params.toString()}`, { scroll: false });
+  };
   const [showCreatePack, setShowCreatePack] = useState(false);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
@@ -299,12 +338,12 @@ export default function OnboardingPage() {
         description={isStaff
           ? "Complete your onboarding tasks and training modules."
           : "Manage onboarding packs and LMS courses for staff."}
-        primaryAction={isAdmin ? {
+        primaryAction={isAdmin && (activeTab === "onboarding" || activeTab === "lms") ? {
           label: activeTab === "onboarding" ? "Create Pack" : "Create Course",
           icon: Plus,
           onClick: () => activeTab === "onboarding" ? setShowCreatePack(true) : setShowCreateCourse(true),
         } : undefined}
-        secondaryActions={isAdmin ? [
+        secondaryActions={isAdmin && (activeTab === "onboarding" || activeTab === "lms") ? [
           {
             label: "Assign Pack",
             icon: Users,
@@ -349,7 +388,7 @@ export default function OnboardingPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">
         <button
-          onClick={() => setActiveTab("onboarding")}
+          onClick={() => changeTab("onboarding")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
             activeTab === "onboarding" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
@@ -359,7 +398,7 @@ export default function OnboardingPage() {
           Onboarding
         </button>
         <button
-          onClick={() => setActiveTab("lms")}
+          onClick={() => changeTab("lms")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
             activeTab === "lms" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
@@ -370,7 +409,7 @@ export default function OnboardingPage() {
         </button>
         {isAdmin && (
           <button
-            onClick={() => setActiveTab("induction")}
+            onClick={() => changeTab("induction")}
             className={cn(
               "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
               activeTab === "induction" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
@@ -380,8 +419,20 @@ export default function OnboardingPage() {
             Induction
           </button>
         )}
+        {isAdmin && (
+          <button
+            onClick={() => changeTab("compliance")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "compliance" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Compliance
+          </button>
+        )}
         <button
-          onClick={() => setActiveTab("exit-surveys")}
+          onClick={() => changeTab("exit-surveys")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
             activeTab === "exit-surveys" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
@@ -396,6 +447,9 @@ export default function OnboardingPage() {
       {activeTab === "induction" && (
         <InductionAdminTab canBackfill={role === "owner" || role === "head_office"} />
       )}
+
+      {/* Compliance Tab */}
+      {activeTab === "compliance" && isAdmin && <TrainingComplianceTab />}
 
       {/* Seed Message */}
       {seedMessage && (
@@ -714,5 +768,14 @@ export default function OnboardingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary for static prerendering.
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingPageInner />
+    </Suspense>
   );
 }
