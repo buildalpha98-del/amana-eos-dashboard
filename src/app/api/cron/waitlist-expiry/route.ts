@@ -127,3 +127,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw err;
   }
 });
+
+// Vercel Cron invokes endpoints with GET; alias so the scheduled job runs
+// (verifyCronSecret still gates it). Previously POST-only → every run 405ed.
+export const GET = POST;
