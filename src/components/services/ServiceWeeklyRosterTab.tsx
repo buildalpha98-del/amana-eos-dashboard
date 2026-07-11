@@ -347,7 +347,7 @@ function ChildPill({ child }: { child: RosterChild }) {
         <UtensilsCrossed className="w-3 h-3 text-amber-500 shrink-0" aria-label="Dietary" />
       )}
       {child.bookingType === "casual" && (
-        <span className="text-[9px] font-semibold bg-blue-50 text-blue-600 px-1 py-0.5 rounded shrink-0">
+        <span className="text-2xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-1 py-0.5 rounded shrink-0">
           C
         </span>
       )}

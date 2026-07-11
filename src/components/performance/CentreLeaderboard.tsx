@@ -172,10 +172,10 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
             const rank = index + 1;
             const scoreColor =
               centre.score >= 80
-                ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800"
                 : centre.score >= 60
-                ? "text-amber-700 bg-amber-50 border-amber-200"
-                : "text-red-700 bg-red-50 border-red-200";
+                ? "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800"
+                : "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800";
 
             return (
               <div

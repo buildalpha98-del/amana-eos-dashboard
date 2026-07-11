@@ -343,7 +343,7 @@ export default function AccountPage() {
         <button
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 text-base font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-950/50 text-red-600 dark:text-red-400 text-base font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
         >
           <LogOut className="w-4 h-4" />
           {loggingOut ? "Logging out..." : "Log Out"}
@@ -402,7 +402,7 @@ function ReadOnlyField({
         <span className="text-xs text-muted">{label}</span>
         <span className="text-sm font-medium text-foreground">{value}</span>
       </div>
-      {note && <p className="text-[11px] text-muted leading-snug">{note}</p>}
+      {note && <p className="text-xs text-muted leading-snug">{note}</p>}
     </div>
   );
 }

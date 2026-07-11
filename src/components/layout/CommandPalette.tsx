@@ -73,16 +73,16 @@ const typeConfig: Record<
   SearchResult["type"],
   { icon: React.ElementType; color: string; bg: string; href: string; label: string }
 > = {
-  rock: { icon: Mountain, color: "text-purple-600", bg: "bg-purple-50", href: "/rocks", label: "Rocks" },
-  todo: { icon: CheckSquare, color: "text-emerald-600", bg: "bg-emerald-50", href: "/todos", label: "To-Dos" },
-  issue: { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50", href: "/issues", label: "Issues" },
-  service: { icon: Building2, color: "text-blue-600", bg: "bg-blue-50", href: "/services", label: "Services" },
-  project: { icon: FolderKanban, color: "text-amber-600", bg: "bg-amber-50", href: "/projects", label: "Projects" },
-  person: { icon: User, color: "text-indigo-600", bg: "bg-indigo-50", href: "/team", label: "People" },
+  rock: { icon: Mountain, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40", href: "/rocks", label: "Rocks" },
+  todo: { icon: CheckSquare, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40", href: "/todos", label: "To-Dos" },
+  issue: { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/40", href: "/issues", label: "Issues" },
+  service: { icon: Building2, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40", href: "/services", label: "Services" },
+  project: { icon: FolderKanban, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40", href: "/projects", label: "Projects" },
+  person: { icon: User, color: "text-indigo-600", bg: "bg-indigo-50 dark:bg-indigo-950/40", href: "/team", label: "People" },
   // 2026-07-05: role-scoped entity search grew children + CRM.
-  child: { icon: Baby, color: "text-pink-600", bg: "bg-pink-50", href: "/children", label: "Children" },
-  lead: { icon: Target, color: "text-cyan-700", bg: "bg-cyan-50", href: "/crm", label: "CRM Leads" },
-  enquiry: { icon: MessageCircle, color: "text-orange-600", bg: "bg-orange-50", href: "/contact-centre?tab=enquiries", label: "Enquiries" },
+  child: { icon: Baby, color: "text-pink-600", bg: "bg-pink-50 dark:bg-pink-950/40", href: "/children", label: "Children" },
+  lead: { icon: Target, color: "text-cyan-700", bg: "bg-cyan-50 dark:bg-cyan-950/40", href: "/crm", label: "CRM Leads" },
+  enquiry: { icon: MessageCircle, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/40", href: "/contact-centre?tab=enquiries", label: "Enquiries" },
 };
 
 const quickActions: QuickAction[] = [

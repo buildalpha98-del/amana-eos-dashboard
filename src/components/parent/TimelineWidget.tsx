@@ -29,9 +29,9 @@ const typeIcons: Record<string, typeof Megaphone> = {
 };
 
 const typeBadge: Record<string, string> = {
-  observation: "bg-blue-50 text-blue-600",
-  announcement: "bg-amber-50 text-amber-600",
-  reminder: "bg-purple-50 text-purple-600",
+  observation: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400",
+  announcement: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
+  reminder: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400",
 };
 
 export function TimelineWidget() {
@@ -119,7 +119,7 @@ function TimelineCard({
               {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
             </span>
             {post.isCommunity && (
-              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 flex items-center gap-0.5">
+              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 flex items-center gap-0.5">
                 <Users className="w-2.5 h-2.5" />
                 All
               </span>
@@ -143,7 +143,7 @@ function TimelineCard({
               ))}
             </div>
           )}
-          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-[color:var(--color-muted)]">
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-[color:var(--color-muted)]">
             <span>{post.author?.name ?? "Centre"}</span>
             <span>·</span>
             <time dateTime={post.createdAt}>{dateStr}</time>
@@ -250,7 +250,7 @@ function CommentSheet({
                         Staff
                       </span>
                     )}
-                    <span className="text-[11px] text-[color:var(--color-muted)]">
+                    <span className="text-xs text-[color:var(--color-muted)]">
                       {new Date(c.createdAt).toLocaleString("en-AU", {
                         day: "numeric",
                         month: "short",

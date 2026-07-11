@@ -89,7 +89,7 @@ export function ServiceReflectionsTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+        <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Reflections
         </h2>
         <BrandButton onClick={() => setCreateOpen(true)}>
@@ -198,7 +198,7 @@ function BrandButton({
         // 44px min height — tablet tap target. Educators on iPad shouldn't
         // need to aim.
         "min-h-[44px]",
-        "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+        "bg-[color:var(--color-brand)] text-white text-sm font-medium",
         "hover:bg-[color:var(--color-brand-hover)] transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",
       )}
@@ -240,11 +240,11 @@ function ReflectionCard({
       <header className="flex items-start gap-2 mb-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] uppercase tracking-wide font-semibold text-[color:var(--color-brand)]">
+            <span className="text-2xs uppercase tracking-wide font-semibold text-[color:var(--color-brand)]">
               {reflection.type}
             </span>
             <MoodIcon mood={reflection.mood} />
-            <span className="text-[11px] text-[color:var(--color-muted)]">
+            <span className="text-xs text-[color:var(--color-muted)]">
               {reflection.author.name} ·{" "}
               {date.toLocaleDateString(undefined, {
                 day: "numeric",
@@ -302,7 +302,7 @@ function ReflectionCard({
           </div>
         )}
       </header>
-      <p className="text-[13px] text-[color:var(--color-foreground)]/80 whitespace-pre-wrap">
+      <p className="text-sm text-[color:var(--color-foreground)]/80 whitespace-pre-wrap">
         {reflection.content}
       </p>
       {reflection.qualityAreas.length > 0 && (
@@ -510,7 +510,7 @@ function ReflectionDialog({
                     )
                   }
                   className={cn(
-                    "px-2 py-1 rounded-[var(--radius-sm)] text-[12px] font-medium border transition-colors",
+                    "px-2 py-1 rounded-[var(--radius-sm)] text-xs font-medium border transition-colors",
                     active
                       ? "bg-[color:var(--color-brand)] text-white border-[color:var(--color-brand)]"
                       : "bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)] border-[color:var(--color-border)]",
@@ -537,7 +537,7 @@ function ReflectionDialog({
                 type="button"
                 onClick={() => setMood(v)}
                 className={cn(
-                  "flex items-center gap-1 px-3 py-1.5 rounded-[var(--radius-sm)] text-[13px] font-medium border",
+                  "flex items-center gap-1 px-3 py-1.5 rounded-[var(--radius-sm)] text-sm font-medium border",
                   mood === v
                     ? "bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] border-[color:var(--color-brand)]/20"
                     : "bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)] border-[color:var(--color-border)]",
@@ -584,7 +584,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
+      <span className="block text-2xs font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
         {label}
       </span>
       {children}

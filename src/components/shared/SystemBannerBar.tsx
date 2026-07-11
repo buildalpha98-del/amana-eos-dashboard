@@ -26,31 +26,31 @@ interface Banner {
 
 const TYPE_CONFIG = {
   info: {
-    bg: "bg-blue-50",
+    bg: "bg-blue-50 dark:bg-blue-950/40",
     border: "border-blue-200",
     text: "text-blue-800",
     icon: Info,
   },
   success: {
-    bg: "bg-emerald-50",
+    bg: "bg-emerald-50 dark:bg-emerald-950/40",
     border: "border-emerald-200",
     text: "text-emerald-800",
     icon: CheckCircle2,
   },
   warning: {
-    bg: "bg-amber-50",
+    bg: "bg-amber-50 dark:bg-amber-950/40",
     border: "border-amber-200",
     text: "text-amber-800",
     icon: AlertTriangle,
   },
   feature: {
-    bg: "bg-purple-50",
+    bg: "bg-purple-50 dark:bg-purple-950/40",
     border: "border-purple-200",
     text: "text-purple-800",
     icon: Sparkles,
   },
   celebration: {
-    bg: "bg-purple-50",
+    bg: "bg-purple-50 dark:bg-purple-950/40",
     border: "border-purple-300",
     text: "text-purple-800",
     icon: PartyPopper,

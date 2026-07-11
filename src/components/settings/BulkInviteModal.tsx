@@ -578,19 +578,19 @@ export function BulkInviteModal({
               {/* Summary badges */}
               <div className="flex items-center gap-3">
                 {validCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {validCount} valid
                   </span>
                 )}
                 {warningCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-300">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     {warningCount} skipped
                   </span>
                 )}
                 {errorCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300">
                     <XCircle className="w-3.5 h-3.5" />
                     {errorCount} invalid
                   </span>
@@ -727,19 +727,19 @@ export function BulkInviteModal({
             <div className="space-y-4">
               {/* Summary */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-4 rounded-lg bg-green-50 text-center">
+                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/40 text-center">
                   <p className="text-2xl font-bold text-green-700">
                     {result.created}
                   </p>
                   <p className="text-xs text-green-600 mt-1">Invited</p>
                 </div>
-                <div className="p-4 rounded-lg bg-yellow-50 text-center">
+                <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/40 text-center">
                   <p className="text-2xl font-bold text-yellow-700">
                     {result.skipped.length}
                   </p>
                   <p className="text-xs text-yellow-600 mt-1">Skipped</p>
                 </div>
-                <div className="p-4 rounded-lg bg-red-50 text-center">
+                <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/40 text-center">
                   <p className="text-2xl font-bold text-red-700">
                     {result.errors.length}
                   </p>
@@ -753,7 +753,7 @@ export function BulkInviteModal({
                   <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                     Skipped
                   </p>
-                  <div className="bg-yellow-50 rounded-lg p-3 space-y-1">
+                  <div className="bg-yellow-50 dark:bg-yellow-950/40 rounded-lg p-3 space-y-1">
                     {result.skipped.map((s, i) => (
                       <p key={i} className="text-xs text-yellow-700">
                         <strong>{s.email}</strong> — {s.reason}
@@ -769,7 +769,7 @@ export function BulkInviteModal({
                   <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                     Errors
                   </p>
-                  <div className="bg-red-50 rounded-lg p-3 space-y-1">
+                  <div className="bg-red-50 dark:bg-red-950/40 rounded-lg p-3 space-y-1">
                     {result.errors.map((e, i) => (
                       <p key={i} className="text-xs text-red-700">
                         <strong>{e.email}</strong> — {e.error}

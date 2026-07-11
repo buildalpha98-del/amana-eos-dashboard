@@ -276,7 +276,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                   className={cn(
                     "ml-auto text-xs font-medium px-1.5 py-0.5 rounded",
                     data.todosToday.length > 0
-                      ? "bg-amber-100 text-amber-700"
+                      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                       : "bg-card text-muted"
                   )}
                 >
@@ -334,7 +334,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                   className={cn(
                     "ml-auto text-xs font-medium px-1.5 py-0.5 rounded",
                     data.openTickets.length > 0
-                      ? "bg-rose-100 text-rose-700"
+                      ? "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300"
                       : "bg-card text-muted"
                   )}
                 >
@@ -387,7 +387,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
 
           {/* Expiring Compliance Certs Warning */}
           {data.expiringCerts.length > 0 && (
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+            <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3">
               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
               <div className="space-y-1 min-w-0">
                 <p className="text-xs font-medium text-amber-800">
@@ -397,7 +397,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                 </p>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5">
                   {data.expiringCerts.map((cert) => (
-                    <span key={cert.id} className="text-[11px] text-amber-700">
+                    <span key={cert.id} className="text-xs text-amber-700">
                       {cert.userName} &mdash;{" "}
                       {certTypeLabels[cert.type] || cert.type} ({cert.daysLeft}d
                       left)

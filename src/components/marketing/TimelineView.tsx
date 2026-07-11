@@ -231,7 +231,7 @@ export function TimelineView({
                   {/* Bar */}
                   <button
                     onClick={() => onSelectCampaign(campaign.id)}
-                    className={`absolute z-[1] rounded-md px-2 py-1 text-[11px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity ${colors}`}
+                    className={`absolute z-[1] rounded-md px-2 py-1 text-xs font-medium truncate cursor-pointer hover:opacity-80 transition-opacity ${colors}`}
                     style={{
                       left: 96 + start * COL_W + 2,
                       width: span * COL_W - 4,

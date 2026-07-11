@@ -17,14 +17,14 @@ function getPriorityConfig(priority: string) {
   switch (priority) {
     case "urgent":
       return {
-        bg: "bg-red-100",
+        bg: "bg-red-100 dark:bg-red-950/50",
         text: "text-red-700",
         icon: AlertTriangle,
         label: "Urgent",
       };
     case "important":
       return {
-        bg: "bg-amber-100",
+        bg: "bg-amber-100 dark:bg-amber-950/50",
         text: "text-amber-700",
         icon: AlertCircle,
         label: "Important",
@@ -141,7 +141,7 @@ export function DashboardAnnouncements() {
                 </p>
 
                 {/* Footer: author + date */}
-                <div className="flex items-center gap-2 text-[11px] text-muted">
+                <div className="flex items-center gap-2 text-xs text-muted">
                   {announcement.author?.avatar ? (
                     <img
                       src={announcement.author.avatar}

@@ -166,7 +166,7 @@ export function MeetingListView({
 
       {/* AI Meeting Prep */}
       {aiPrep && (
-        <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4">
+        <div className="mb-6 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiPrep}</div>
             <button onClick={() => setAiPrep("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
@@ -294,7 +294,7 @@ export function MeetingListView({
                     className={cn(
                       "w-8 h-8 rounded-lg flex items-center justify-center",
                       meeting.status === "completed"
-                        ? "bg-emerald-50"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40"
                         : meeting.status === "in_progress"
                         ? "bg-brand/10"
                         : "bg-surface"
@@ -362,11 +362,11 @@ export function MeetingListView({
                     className={cn(
                       "text-xs px-2 py-0.5 rounded-full font-medium",
                       meeting.status === "completed"
-                        ? "bg-emerald-50 text-emerald-700"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
                         : meeting.status === "in_progress"
                         ? "bg-brand/10 text-brand"
                         : meeting.status === "cancelled"
-                        ? "bg-red-50 text-red-600"
+                        ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
                         : "bg-surface text-muted"
                     )}
                   >

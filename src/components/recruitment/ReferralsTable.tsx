@@ -5,9 +5,9 @@ import { Users, CheckCircle2 } from "lucide-react";
 import { MarkReferralPaidModal } from "./MarkReferralPaidModal";
 
 const STATUS_COLORS: Record<Referral["status"], string> = {
-  pending: "bg-amber-100 text-amber-700",
-  hired: "bg-blue-100 text-blue-700",
-  bonus_paid: "bg-emerald-100 text-emerald-700",
+  pending: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  hired: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  bonus_paid: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
   expired: "bg-surface text-muted",
 };
 

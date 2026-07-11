@@ -91,25 +91,25 @@ const STATUS_CONFIG: Record<
   submitted: {
     label: "Submitted",
     color: "text-blue-700",
-    bg: "bg-blue-100",
+    bg: "bg-blue-100 dark:bg-blue-950/50",
     dot: "bg-blue-400",
   },
   approved: {
     label: "Approved",
     color: "text-emerald-700",
-    bg: "bg-emerald-100",
+    bg: "bg-emerald-100 dark:bg-emerald-950/50",
     dot: "bg-emerald-400",
   },
   exported_to_xero: {
     label: "Exported to Xero",
     color: "text-purple-700",
-    bg: "bg-purple-100",
+    bg: "bg-purple-100 dark:bg-purple-950/50",
     dot: "bg-purple-400",
   },
   rejected: {
     label: "Rejected",
     color: "text-red-700",
-    bg: "bg-red-100",
+    bg: "bg-red-100 dark:bg-red-950/50",
     dot: "bg-red-400",
   },
 };
@@ -604,7 +604,7 @@ function GenerateFromTimeclockModal({
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-emerald-50 p-3">
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3">
                 <p className="text-2xl font-bold text-emerald-700">
                   {result.created}
                 </p>
@@ -617,7 +617,7 @@ function GenerateFromTimeclockModal({
                 <p className="text-xs text-muted">Already present</p>
               </div>
               <div
-                className={`rounded-lg p-3 ${result.unpriced > 0 ? "bg-amber-50" : "bg-surface"}`}
+                className={`rounded-lg p-3 ${result.unpriced > 0 ? "bg-amber-50 dark:bg-amber-950/40" : "bg-surface"}`}
               >
                 <p
                   className={`text-2xl font-bold ${result.unpriced > 0 ? "text-amber-700" : "text-foreground"}`}
@@ -632,7 +632,7 @@ function GenerateFromTimeclockModal({
               </div>
             </div>
             {result.incomplete > 0 && (
-              <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+              <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 rounded-lg p-3">
                 {result.incomplete} shift{result.incomplete === 1 ? "" : "s"}{" "}
                 in this week {result.incomplete === 1 ? "has" : "have"} a
                 clock-in but no clock-out — ask the staff member to fix it,
@@ -640,7 +640,7 @@ function GenerateFromTimeclockModal({
               </p>
             )}
             {result.unpriced > 0 && (
-              <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+              <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 rounded-lg p-3">
                 {result.unpriced} entr{result.unpriced === 1 ? "y" : "ies"}{" "}
                 had no active contract on the shift date — set the pay rate
                 manually or issue a contract, then re-run.
@@ -937,7 +937,7 @@ function ImportFromOWNAModal({
             </div>
 
             {parseError && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
                 <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                 <p className="text-sm text-red-700">{parseError}</p>
               </div>
@@ -1045,7 +1045,7 @@ function ImportFromOWNAModal({
             </div>
 
             {importTimesheet.isError && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
                 <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                 <p className="text-sm text-red-700">
                   {importTimesheet.error?.message || "Import failed"}
@@ -1057,7 +1057,7 @@ function ImportFromOWNAModal({
 
         {step === "result" && importResult && (
           <div className="space-y-4">
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                 <p className="text-sm font-semibold text-emerald-800">
@@ -1088,7 +1088,7 @@ function ImportFromOWNAModal({
 
             {((importResult.unmatchedNames && importResult.unmatchedNames.length > 0) ||
               (Array.isArray(importResult.unmatched) && importResult.unmatched.length > 0)) && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
                   <p className="text-xs font-medium text-amber-800 mb-1">
                     Unmatched staff:
                   </p>
@@ -1266,7 +1266,7 @@ function TimesheetDetail({
 
       {/* Reject Form */}
       {showRejectForm && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
           <label className="block text-sm font-medium text-red-800 mb-1">
             Rejection Reason (optional)
           </label>
@@ -1318,7 +1318,7 @@ function TimesheetDetail({
             <button
               onClick={() => setShowDeleteConfirm(true)}
               disabled={deleteTimesheet.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50"
             >
               <Trash2 className="w-4 h-4" />
               Delete
@@ -1339,7 +1339,7 @@ function TimesheetDetail({
             </button>
             <button
               onClick={() => setShowRejectForm(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
             >
               <XCircle className="w-4 h-4" />
               Reject
@@ -1387,7 +1387,7 @@ function TimesheetDetail({
             <button
               onClick={() => setShowDeleteConfirm(true)}
               disabled={deleteTimesheet.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50"
             >
               <Trash2 className="w-4 h-4" />
               Delete
@@ -1517,7 +1517,7 @@ export default function TimesheetsPage() {
     return (
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col items-center justify-center py-24 text-center bg-card rounded-xl border border-border">
-          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-red-400" />
           </div>
           <h3 className="text-lg font-semibold text-foreground">

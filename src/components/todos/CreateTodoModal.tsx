@@ -177,7 +177,7 @@ export function CreateTodoModal({
             </div>
             {aiDraft ? (
               <div
-                className="mt-3 rounded-lg border border-purple-200 bg-purple-50/50 p-3 space-y-2"
+                className="mt-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 p-3 space-y-2"
                 data-testid="todo-ai-draft-panel"
               >
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-800">

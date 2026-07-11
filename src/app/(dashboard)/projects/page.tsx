@@ -180,10 +180,10 @@ export default function ProjectsPage() {
               const status =
                 {
                   not_started: { label: "Not Started", color: "text-muted bg-surface" },
-                  in_progress: { label: "In Progress", color: "text-blue-700 bg-blue-100" },
-                  complete: { label: "Complete", color: "text-emerald-700 bg-emerald-100" },
-                  on_hold: { label: "On Hold", color: "text-amber-700 bg-amber-100" },
-                  cancelled: { label: "Cancelled", color: "text-red-700 bg-red-100" },
+                  in_progress: { label: "In Progress", color: "text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/50" },
+                  complete: { label: "Complete", color: "text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50" },
+                  on_hold: { label: "On Hold", color: "text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50" },
+                  cancelled: { label: "Cancelled", color: "text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950/50" },
                 }[project.status] || { label: project.status, color: "text-muted bg-surface" };
 
               return (

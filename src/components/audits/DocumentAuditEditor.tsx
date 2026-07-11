@@ -234,17 +234,17 @@ export function DocumentAuditEditor({
           <p className="text-xs text-muted mt-0.5">
             {serviceName} · Due {new Date(dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
             {docQuery.data?.source === "template" && (
-              <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+              <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
                 Fresh copy of template
               </span>
             )}
             {docQuery.data?.source === "saved" && !isCompleted && (
-              <span className="ml-2 inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+              <span className="ml-2 inline-flex items-center gap-1 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded">
                 Resuming saved draft
               </span>
             )}
             {isCompleted && (
-              <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+              <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
                 <CheckCircle2 className="w-3 h-3" /> Completed (read-only)
               </span>
             )}
@@ -371,12 +371,12 @@ function AiFlagsPanel({
   const low = flags.filter((f) => f.severity === "low");
 
   const accent = high.length
-    ? "border-red-200 bg-red-50/60"
+    ? "border-red-200 dark:border-red-800 bg-red-50/60"
     : medium.length
-      ? "border-amber-200 bg-amber-50/60"
+      ? "border-amber-200 dark:border-amber-800 bg-amber-50/60"
       : flags.length
-        ? "border-blue-200 bg-blue-50/60"
-        : "border-emerald-200 bg-emerald-50/60";
+        ? "border-blue-200 dark:border-blue-800 bg-blue-50/60"
+        : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60";
 
   return (
     <div className={cn("rounded-xl border p-4 space-y-3", accent)}>
@@ -386,7 +386,7 @@ function AiFlagsPanel({
           AI review of this audit
         </p>
         {scannedAt && (
-          <span className="text-[11px] text-muted ml-auto">
+          <span className="text-xs text-muted ml-auto">
             Scanned{" "}
             {new Date(scannedAt).toLocaleDateString("en-AU", {
               day: "numeric",

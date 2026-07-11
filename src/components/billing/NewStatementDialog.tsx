@@ -405,7 +405,7 @@ function LineItemRow({
           <button
             type="button"
             onClick={onRemove}
-            className="p-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
             aria-label="Remove line item"
           >
             <Trash2 className="w-4 h-4" />

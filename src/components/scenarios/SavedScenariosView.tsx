@@ -81,7 +81,7 @@ export function SavedScenariosView({ scenarios, isLoading, onLoad }: Props) {
                 <button
                   onClick={() => handleDelete(s.id, s.name)}
                   disabled={deleteMutation.isPending}
-                  className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
+                  className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

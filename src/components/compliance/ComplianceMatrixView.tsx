@@ -143,10 +143,10 @@ function StatusCell({
 function ScoreBadge({ valid, total }: { valid: number; total: number }) {
   const color =
     valid === total
-      ? "bg-emerald-100 text-emerald-700"
+      ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
       : valid >= 5
-      ? "bg-amber-100 text-amber-700"
-      : "bg-red-100 text-red-700";
+      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+      : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300";
 
   return (
     <span
@@ -199,11 +199,11 @@ function CertDetailModal({
               className={cn(
                 "font-semibold px-2 py-0.5 rounded-lg text-xs",
                 cert.status === "valid"
-                  ? "bg-emerald-100 text-emerald-700"
+                  ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                   : cert.status === "expiring"
-                  ? "bg-amber-100 text-amber-700"
+                  ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                   : cert.status === "expired"
-                  ? "bg-red-100 text-red-700"
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                   : "bg-surface text-muted"
               )}
             >
@@ -292,11 +292,11 @@ function MobileStaffCard({
             className={cn(
               "flex flex-col items-center gap-1 p-2 rounded-lg border transition-colors",
               cert.status === "valid"
-                ? "border-emerald-200 bg-emerald-50"
+                ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40"
                 : cert.status === "expiring"
-                ? "border-amber-200 bg-amber-50"
+                ? "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40"
                 : cert.status === "expired"
-                ? "border-red-200 bg-red-50"
+                ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40"
                 : "border-border bg-surface/50"
             )}
           >

@@ -34,9 +34,9 @@ function humanize(value: string | null | undefined): string {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  leave_pending: "bg-amber-100 text-amber-800",
-  leave_approved: "bg-green-100 text-green-800",
-  leave_rejected: "bg-red-100 text-red-800",
+  leave_pending: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200",
+  leave_approved: "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200",
+  leave_rejected: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200",
   leave_cancelled: "bg-surface text-foreground/80",
 };
 

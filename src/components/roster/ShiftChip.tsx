@@ -34,9 +34,9 @@ export interface ShiftChipProps {
 // ─── Session-type palette ─────────────────────────────────────
 // Keep colour tokens explicit so tests (and humans) can assert on them.
 const SESSION_STYLES: Record<string, string> = {
-  bsc: "bg-blue-100 text-blue-900 border-blue-400",
-  asc: "bg-green-100 text-green-900 border-green-400",
-  vc: "bg-purple-100 text-purple-900 border-purple-400",
+  bsc: "bg-blue-100 dark:bg-blue-950/50 text-blue-900 dark:text-blue-200 border-blue-400",
+  asc: "bg-green-100 dark:bg-green-950/50 text-green-900 dark:text-green-200 border-green-400",
+  vc: "bg-purple-100 dark:bg-purple-950/50 text-purple-900 dark:text-purple-200 border-purple-400",
 };
 const SESSION_DEFAULT = "bg-surface text-foreground border-muted/60";
 
@@ -110,11 +110,11 @@ export function ShiftChip({
 
 const VARIANCE_STYLES: Record<VarianceStatus, string> = {
   none: "bg-surface text-muted border-border",
-  active: "bg-blue-100 text-blue-800 border-blue-300",
-  "on-time": "bg-green-100 text-green-800 border-green-400",
-  early: "bg-blue-100 text-blue-800 border-blue-300",
-  late: "bg-amber-100 text-amber-800 border-amber-400",
-  "very-late": "bg-red-100 text-red-800 border-red-400",
+  active: "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-800",
+  "on-time": "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200 border-green-400",
+  early: "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-800",
+  late: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-400",
+  "very-late": "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 border-red-400",
 };
 
 interface VarianceBadgeProps {

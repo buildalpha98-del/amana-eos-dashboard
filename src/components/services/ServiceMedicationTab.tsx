@@ -71,7 +71,7 @@ export function ServiceMedicationTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+        <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Medication — today
         </h2>
       </div>
@@ -111,7 +111,7 @@ export function ServiceMedicationTab({ serviceId }: { serviceId: string }) {
                     <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
                       {c.firstName} {c.surname}
                     </p>
-                    <p className="text-[12px] text-[color:var(--color-muted)] whitespace-pre-wrap line-clamp-2">
+                    <p className="text-xs text-[color:var(--color-muted)] whitespace-pre-wrap line-clamp-2">
                       {c.medicationDetails}
                     </p>
                     {logged.length > 0 && (
@@ -123,7 +123,7 @@ export function ServiceMedicationTab({ serviceId }: { serviceId: string }) {
                               key={d.id}
                               className={cn(
                                 "inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-xs)]",
-                                "bg-[color:var(--color-cream-deep)] text-[11px] text-[color:var(--color-foreground)]/80 mr-1",
+                                "bg-[color:var(--color-cream-deep)] text-xs text-[color:var(--color-foreground)]/80 mr-1",
                               )}
                             >
                               <span className="font-medium">
@@ -149,7 +149,7 @@ export function ServiceMedicationTab({ serviceId }: { serviceId: string }) {
                       "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
                       // Medication is a high-stakes tablet action — 44px min
                       "min-h-[44px]",
-                      "bg-[color:var(--color-brand)] text-white text-[13px] font-medium shrink-0",
+                      "bg-[color:var(--color-brand)] text-white text-sm font-medium shrink-0",
                       "hover:bg-[color:var(--color-brand-hover)] transition-colors",
                     )}
                   >
@@ -231,7 +231,7 @@ function LogDoseDialog({
           Log dose — {child.firstName} {child.surname}
         </DialogTitle>
         {child.medicationDetails && (
-          <p className="text-[12px] text-[color:var(--color-muted)] mb-3 whitespace-pre-wrap">
+          <p className="text-xs text-[color:var(--color-muted)] mb-3 whitespace-pre-wrap">
             On file: {child.medicationDetails}
           </p>
         )}
@@ -308,7 +308,7 @@ function LogDoseDialog({
               disabled={!valid || log.isPending}
               className={cn(
                 "min-h-[44px] px-4 py-2 rounded-[var(--radius-sm)]",
-                "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+                "bg-[color:var(--color-brand)] text-white text-sm font-medium",
                 "hover:bg-[color:var(--color-brand-hover)] transition-colors",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
               )}
@@ -331,7 +331,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
+      <span className="block text-2xs font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
         {label}
       </span>
       {children}

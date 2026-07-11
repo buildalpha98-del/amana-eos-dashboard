@@ -108,7 +108,7 @@ export default function GettingStartedPage() {
           <ArrowLeft className="w-4 h-4" />
           Home
         </Link>
-        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] mt-2 leading-tight">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] mt-2 leading-tight">
           Get Set Up
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] mt-1">
@@ -210,7 +210,7 @@ export default function GettingStartedPage() {
               className="flex items-center gap-3 bg-white/50 rounded-xl p-4 border border-border/50"
             >
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-950/40 flex items-center justify-center shrink-0">
                 <item.icon className="w-5 h-5 text-green-500" />
               </div>
               <div className="flex-1 min-w-0">

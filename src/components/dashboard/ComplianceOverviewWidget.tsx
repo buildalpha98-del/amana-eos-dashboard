@@ -95,14 +95,14 @@ export function ComplianceOverviewWidget() {
             {data.expiredCerts > 0 && (
               <Link
                 href="/compliance?filter=expired"
-                className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 hover:border-red-300 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 hover:border-red-300 transition-colors"
               >
-                <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-950/50 flex items-center justify-center flex-shrink-0">
                   <AlertTriangle className="w-4 h-4 text-red-600" />
                 </div>
                 <div>
                   <div className="text-lg font-bold text-red-600 leading-none">{data.expiredCerts}</div>
-                  <div className="text-[11px] text-red-600/70 mt-0.5">Expired Certs</div>
+                  <div className="text-xs text-red-600/70 mt-0.5">Expired Certs</div>
                 </div>
               </Link>
             )}
@@ -110,14 +110,14 @@ export function ComplianceOverviewWidget() {
             {data.expiringCerts > 0 && (
               <Link
                 href="/compliance?filter=expiring"
-                className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 hover:border-amber-300 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 hover:border-amber-300 transition-colors"
               >
-                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center flex-shrink-0">
                   <ShieldAlert className="w-4 h-4 text-amber-600" />
                 </div>
                 <div>
                   <div className="text-lg font-bold text-amber-600 leading-none">{data.expiringCerts}</div>
-                  <div className="text-[11px] text-amber-600/70 mt-0.5">Expiring Soon</div>
+                  <div className="text-xs text-amber-600/70 mt-0.5">Expiring Soon</div>
                 </div>
               </Link>
             )}
@@ -125,14 +125,14 @@ export function ComplianceOverviewWidget() {
             {data.overdueAudits > 0 && (
               <Link
                 href="/compliance?filter=audits"
-                className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 hover:border-red-300 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 hover:border-red-300 transition-colors"
               >
-                <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-950/50 flex items-center justify-center flex-shrink-0">
                   <ClipboardCheck className="w-4 h-4 text-red-600" />
                 </div>
                 <div>
                   <div className="text-lg font-bold text-red-600 leading-none">{data.overdueAudits}</div>
-                  <div className="text-[11px] text-red-600/70 mt-0.5">Overdue Audits</div>
+                  <div className="text-xs text-red-600/70 mt-0.5">Overdue Audits</div>
                 </div>
               </Link>
             )}

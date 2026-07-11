@@ -129,15 +129,15 @@ const GOAL_STATUS_LABEL: Record<GoalStatus, string> = {
 function statusPill(s: ReviewStatus): string {
   switch (s) {
     case "self_assessment":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
     case "awaiting_acknowledgement":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     case "completed":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "cancelled":
       return "bg-surface text-foreground/80 border-border";
     case "manager_review":
-      return "bg-purple-50 text-purple-700 border-purple-200";
+      return "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800";
     default:
       return "bg-surface text-foreground/80 border-border";
   }
@@ -147,13 +147,13 @@ function ratingPill(r: ReviewRating): string {
   switch (r) {
     case "exceptional":
     case "exceeding_expectations":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "meeting_expectations":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
     case "partially_meeting":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     case "below_expectations":
-      return "bg-red-50 text-red-700 border-red-200";
+      return "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
   }
 }
 
@@ -219,7 +219,7 @@ export function MyPerformanceReviewsCard() {
           My Performance Reviews
         </h3>
         {reviews.some(isActionRequired) && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
             Action required
           </span>
         )}
@@ -243,7 +243,7 @@ function ReviewRow({ review }: { review: PerformanceReview }) {
       className={cn(
         "rounded-lg border",
         isActionRequired(review)
-          ? "border-amber-300 bg-amber-50/30"
+          ? "border-amber-300 dark:border-amber-800 bg-amber-50/30"
           : "border-border/60",
       )}
     >
@@ -253,7 +253,7 @@ function ReviewRow({ review }: { review: PerformanceReview }) {
         className="w-full flex flex-wrap items-start gap-3 p-3 text-left"
         aria-expanded={expanded}
       >
-        <div className="shrink-0 p-1.5 rounded-md border bg-orange-100 border-orange-200">
+        <div className="shrink-0 p-1.5 rounded-md border bg-orange-100 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800">
           <Award className="w-4 h-4 text-orange-700" />
         </div>
         <div className="flex-1 min-w-0">
@@ -482,7 +482,7 @@ function AcknowledgementForm({ review }: { review: PerformanceReview }) {
     <div className="space-y-3 pt-3">
       <ManagerAssessmentBlock review={review} />
 
-      <div className="rounded-md border border-amber-200 bg-amber-50/40 p-3 space-y-2">
+      <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/40 p-3 space-y-2">
         <p className="text-sm font-medium text-amber-900">
           Your acknowledgement
         </p>
@@ -580,7 +580,7 @@ function ReviewReadOnly({ review }: { review: PerformanceReview }) {
         <GoalsList goals={review.goals} />
       )}
       {showAck && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50/40 p-3 text-sm">
+        <div className="rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 p-3 text-sm">
           <div className="font-medium text-emerald-900 inline-flex items-center gap-1">
             <CheckCircle2 className="w-4 h-4" />
             Acknowledged {formatDate(review.acknowledgedAt)}
@@ -605,7 +605,7 @@ function ManagerAssessmentBlock({ review }: { review: PerformanceReview }) {
     return null;
   }
   return (
-    <div className="rounded-md border border-purple-200 bg-purple-50/40 p-3 space-y-2">
+    <div className="rounded-md border border-purple-200 dark:border-purple-800 bg-purple-50/40 p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium text-purple-900 inline-flex items-center gap-1.5">
           <Award className="w-4 h-4" />

@@ -21,9 +21,9 @@ export interface RatioBadgeProps {
 
 const STATUS_STYLES: Record<RatioStatus, string> = {
   none: "bg-surface text-foreground/80 border-border",
-  ok: "bg-green-100 text-green-800 border-green-400",
-  warning: "bg-amber-100 text-amber-800 border-amber-400",
-  breach: "bg-red-100 text-red-800 border-red-400",
+  ok: "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200 border-green-400",
+  warning: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-400",
+  breach: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 border-red-400",
 };
 
 export function RatioBadge({ staffCount, childrenCount, className }: RatioBadgeProps) {

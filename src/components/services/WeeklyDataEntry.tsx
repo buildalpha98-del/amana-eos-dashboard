@@ -181,7 +181,7 @@ export function WeeklyDataEntry({
         </h4>
 
         {/* Rise and Shine (BSC) */}
-        <p className="text-[11px] font-semibold text-foreground/80 mt-1 mb-1.5">
+        <p className="text-xs font-semibold text-foreground/80 mt-1 mb-1.5">
           Rise and Shine
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -211,7 +211,7 @@ export function WeeklyDataEntry({
           </div>
         </div>
         <p
-          className="text-[11px] text-muted mt-1 mb-3"
+          className="text-xs text-muted mt-1 mb-3"
           data-testid="weekly-total-bsc"
         >
           Weekly total bookings:{" "}
@@ -224,7 +224,7 @@ export function WeeklyDataEntry({
         </p>
 
         {/* Amana Afternoons (ASC) */}
-        <p className="text-[11px] font-semibold text-foreground/80 mt-1 mb-1.5">
+        <p className="text-xs font-semibold text-foreground/80 mt-1 mb-1.5">
           Amana Afternoons
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -254,7 +254,7 @@ export function WeeklyDataEntry({
           </div>
         </div>
         <p
-          className="text-[11px] text-muted mt-1 mb-3"
+          className="text-xs text-muted mt-1 mb-3"
           data-testid="weekly-total-asc"
         >
           Weekly total bookings:{" "}
@@ -269,7 +269,7 @@ export function WeeklyDataEntry({
         {/* Holiday Quest (VC) — new 2026-06-05. Mirrors BSC/ASC so
             coordinators can forecast permanent vs walk-in bookings
             for school-holiday weeks. */}
-        <p className="text-[11px] font-semibold text-foreground/80 mt-1 mb-1.5">
+        <p className="text-xs font-semibold text-foreground/80 mt-1 mb-1.5">
           Holiday Quest
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -299,7 +299,7 @@ export function WeeklyDataEntry({
           </div>
         </div>
         <p
-          className="text-[11px] text-muted mt-1"
+          className="text-xs text-muted mt-1"
           data-testid="weekly-total-vc"
         >
           Weekly total bookings:{" "}

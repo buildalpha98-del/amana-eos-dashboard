@@ -232,7 +232,7 @@ export function NotificationPreferences() {
           <div
             className={cn(
               "flex h-9 w-9 items-center justify-center rounded-lg",
-              muted ? "bg-amber-100 text-amber-700" : "bg-surface text-muted",
+              muted ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : "bg-surface text-muted",
             )}
           >
             <BellOff className="h-4.5 w-4.5" />

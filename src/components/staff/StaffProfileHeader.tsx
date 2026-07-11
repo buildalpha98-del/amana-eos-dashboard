@@ -71,8 +71,8 @@ function deriveStatus(
 }
 
 const STATUS_TONE: Record<ReturnType<typeof deriveStatus>, string> = {
-  active: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  pending: "bg-amber-100 text-amber-800 border-amber-300",
+  active: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800",
+  pending: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800",
   deactivated: "bg-surface text-foreground/80 border-border",
 };
 
@@ -241,7 +241,7 @@ export function StaffProfileHeader({
             className="rounded-lg border border-border bg-card p-4 lg:w-64 self-start"
             data-testid="staff-profile-quick-actions"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-3">
+            <p className="text-2xs font-semibold uppercase tracking-wider text-muted mb-3">
               Quick actions
             </p>
             <div className="flex flex-col gap-1.5">
@@ -398,7 +398,7 @@ function QuickActionButton({
       className={cn(
         "inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-left",
         "hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed",
-        variant === "destructive" && "text-red-700 hover:bg-red-50",
+        variant === "destructive" && "text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40",
       )}
       {...rest}
     >

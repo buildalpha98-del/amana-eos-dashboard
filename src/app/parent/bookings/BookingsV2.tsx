@@ -60,7 +60,7 @@ export default function BookingsV2() {
     <div className="pb-24">
       {/* Header */}
       <header className="mb-5">
-        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
           Bookings
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] mt-1">

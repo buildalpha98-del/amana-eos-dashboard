@@ -106,7 +106,7 @@ export default function ActivationsContent() {
 
 function UnassignedBanner({ unassigned }: { unassigned: NonNullable<ReturnType<typeof useActivations>["data"]>["unassignedCampaigns"] }) {
   return (
-    <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <section className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
       <header className="flex items-start gap-2 mb-3">
         <AlertCircle className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
         <div>

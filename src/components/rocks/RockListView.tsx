@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 
 const statusConfig = {
-  on_track: { label: "On Track", bg: "bg-emerald-50", text: "text-emerald-700" },
-  off_track: { label: "Off Track", bg: "bg-red-50", text: "text-red-700" },
+  on_track: { label: "On Track", bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-700" },
+  off_track: { label: "Off Track", bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-700" },
   complete: { label: "Complete", bg: "bg-brand/10", text: "text-brand" },
   dropped: { label: "Dropped", bg: "bg-surface", text: "text-muted" },
 };

@@ -78,8 +78,8 @@ function RatioRow({ row }: { row: RatioLive }) {
         className={cn(
           "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
           tone === "below"
-            ? "bg-rose-100 text-rose-700"
-            : "bg-emerald-100 text-emerald-700",
+            ? "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300"
+            : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
         )}
       >
         {tone === "below" ? (
@@ -93,11 +93,11 @@ function RatioRow({ row }: { row: RatioLive }) {
           <span className="text-sm font-semibold">
             {SESSION_LABELS[row.sessionType]}
           </span>
-          <span className="text-[11px] text-[color:var(--color-muted)]">
+          <span className="text-xs text-[color:var(--color-muted)]">
             · min {row.minRatio}
           </span>
         </div>
-        <p className="text-[13px] text-[color:var(--color-foreground)] mt-0.5">
+        <p className="text-sm text-[color:var(--color-foreground)] mt-0.5">
           <span className="font-bold">{row.ratioText}</span>{" "}
           <span className="text-[color:var(--color-muted)]">
             ({row.educatorCount} educator{row.educatorCount === 1 ? "" : "s"} ·{" "}
@@ -105,7 +105,7 @@ function RatioRow({ row }: { row: RatioLive }) {
           </span>
         </p>
         {row.belowRatio && (
-          <p className="text-[11px] font-medium text-[color:var(--color-danger)] mt-0.5">
+          <p className="text-xs font-medium text-[color:var(--color-danger)] mt-0.5">
             Below ratio — needs another educator
           </p>
         )}
@@ -123,14 +123,14 @@ export function ServiceRatiosTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em] mb-3">
+        <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em] mb-3">
           Live ratio
         </h2>
         <RatioWidget serviceId={serviceId} />
       </div>
 
       <div>
-        <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em] mb-3">
+        <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em] mb-3">
           Recent snapshots
         </h2>
         {!data?.snapshots || data.snapshots.length === 0 ? (
@@ -139,7 +139,7 @@ export function ServiceRatiosTab({ serviceId }: { serviceId: string }) {
           </p>
         ) : (
           <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[color:var(--color-border)]">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-sm">
               <thead className="bg-[color:var(--color-cream-deep)]">
                 <tr>
                   <Th>Captured</Th>
@@ -193,7 +193,7 @@ export function ServiceRatiosTab({ serviceId }: { serviceId: string }) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-3 py-2 text-left font-semibold text-[11px] uppercase tracking-wide text-[color:var(--color-muted)]">
+    <th className="px-3 py-2 text-left font-semibold text-2xs uppercase tracking-wide text-[color:var(--color-muted)]">
       {children}
     </th>
   );

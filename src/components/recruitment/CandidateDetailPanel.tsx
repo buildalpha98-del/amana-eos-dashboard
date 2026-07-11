@@ -195,7 +195,7 @@ export function CandidateDetailPanel({ candidateId, vacancyId, onClose }: Props)
             onClick={() =>
               updateMutation.mutate({ id: candidate.id, stage: "rejected" })
             }
-            className="flex-1 text-sm font-medium px-3 py-2 rounded-lg border border-red-200 text-red-700 hover:bg-red-50"
+            className="flex-1 text-sm font-medium px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
           >
             Reject
           </button>

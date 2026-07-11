@@ -260,7 +260,7 @@ function SummaryCard({
   return (
     <div
       className={`rounded-xl border px-4 py-3 ${
-        warn ? "border-red-200 bg-red-50" : "border-border bg-card"
+        warn ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40" : "border-border bg-card"
       }`}
     >
       <p className="text-2xs uppercase tracking-wider text-muted mb-1">
@@ -286,7 +286,7 @@ function CountBadge({ value, warn }: { value: number; warn?: boolean }) {
   return (
     <span
       className={`inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 text-xs font-medium rounded-full ${
-        warn ? "bg-red-100 text-red-700" : "bg-surface text-foreground/80"
+        warn ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" : "bg-surface text-foreground/80"
       }`}
     >
       {value}

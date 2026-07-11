@@ -315,7 +315,7 @@ export function BulkEditorClient({ category, rows }: Props) {
                             key={v.name}
                             className="rounded-md border border-border bg-surface/40 px-2 py-1"
                           >
-                            <code className="text-[11px] font-mono text-foreground">{`{{${v.name}}}`}</code>
+                            <code className="text-xs font-mono text-foreground">{`{{${v.name}}}`}</code>
                             <div className="text-2xs text-muted">{v.description}</div>
                           </div>
                         ))}

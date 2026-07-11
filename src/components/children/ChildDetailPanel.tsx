@@ -55,9 +55,9 @@ const PANEL_TABS = [
 type PanelTabKey = (typeof PANEL_TABS)[number]["key"];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: "Pending", color: "text-amber-700", bg: "bg-amber-50" },
-  active: { label: "Active", color: "text-green-700", bg: "bg-green-50" },
-  withdrawn: { label: "Withdrawn", color: "text-red-700", bg: "bg-red-50" },
+  pending: { label: "Pending", color: "text-amber-700", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  active: { label: "Active", color: "text-green-700", bg: "bg-green-50 dark:bg-green-950/40" },
+  withdrawn: { label: "Withdrawn", color: "text-red-700", bg: "bg-red-50 dark:bg-red-950/40" },
 };
 
 function Section({
@@ -174,7 +174,7 @@ export function ChildDetailPanel({ childId, onClose }: Props) {
             <button
               onClick={() => updateMutation.mutate({ id: child.id, status: "active" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors disabled:opacity-50"
             >
               <CheckCircle className="h-3.5 w-3.5" />
               Activate
@@ -184,7 +184,7 @@ export function ChildDetailPanel({ childId, onClose }: Props) {
             <button
               onClick={() => updateMutation.mutate({ id: child.id, status: "withdrawn" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors disabled:opacity-50"
             >
               <AlertCircle className="h-3.5 w-3.5" />
               Withdraw
@@ -424,7 +424,7 @@ function MedicalSection({
               {child.medicalConditions.map((c) => (
                 <span
                   key={c}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 text-2xs font-medium"
                 >
                   <AlertTriangle className="w-3 h-3" />
                   {c}
@@ -444,7 +444,7 @@ function MedicalSection({
               {child.dietaryRequirements.map((d) => (
                 <span
                   key={d}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-2xs font-medium"
                 >
                   <UtensilsCrossed className="w-3 h-3" />
                   {d}
@@ -460,12 +460,12 @@ function MedicalSection({
         <div className="space-y-1 pt-1">
           <p className="text-xs text-foreground/50 font-medium">Anaphylaxis Action Plan</p>
           {child.anaphylaxisActionPlan ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 text-2xs font-semibold">
               <CheckCircle className="w-3 h-3" />
               On File
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 text-2xs font-semibold">
               <AlertCircle className="w-3 h-3" />
               Not on File
             </span>
@@ -596,8 +596,8 @@ function EditMedicalDialog({
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded-full border transition-colors",
                     conditions.includes(c)
-                      ? "bg-red-100 text-red-700 border-red-300"
-                      : "bg-card text-muted border-border hover:border-red-200 hover:bg-red-50",
+                      ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800"
+                      : "bg-card text-muted border-border hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-950/40",
                   )}
                 >
                   {c}
@@ -611,7 +611,7 @@ function EditMedicalDialog({
                     key={c}
                     type="button"
                     onClick={() => toggleItem(conditions, setConditions, c)}
-                    className="px-3 py-1.5 text-xs font-medium rounded-full border bg-red-100 text-red-700 border-red-300 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800 transition-colors"
                   >
                     {c} ×
                   </button>
@@ -657,8 +657,8 @@ function EditMedicalDialog({
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded-full border transition-colors",
                     dietary.includes(d)
-                      ? "bg-amber-100 text-amber-700 border-amber-300"
-                      : "bg-card text-muted border-border hover:border-amber-200 hover:bg-amber-50",
+                      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800"
+                      : "bg-card text-muted border-border hover:border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/40",
                   )}
                 >
                   {d}
@@ -671,7 +671,7 @@ function EditMedicalDialog({
                     key={d}
                     type="button"
                     onClick={() => toggleItem(dietary, setDietary, d)}
-                    className="px-3 py-1.5 text-xs font-medium rounded-full border bg-amber-100 text-amber-700 border-amber-300 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800 transition-colors"
                   >
                     {d} ×
                   </button>
@@ -813,7 +813,7 @@ function AuthorisedPickupsSection({ childId }: { childId: string }) {
                     <span className="text-xs font-semibold text-foreground truncate">{p.name}</span>
                     <span className="text-2xs text-foreground/50">({p.relationship})</span>
                     {p.isEmergencyContact && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[9px] font-semibold">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-2xs font-semibold">
                         <Shield className="w-2.5 h-2.5" />
                         Emergency
                       </span>
@@ -826,7 +826,7 @@ function AuthorisedPickupsSection({ childId }: { childId: string }) {
                 </div>
                 <button
                   onClick={() => setDeleteTarget(p)}
-                  className="p-1 rounded-md text-muted hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                  className="p-1 rounded-md text-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0"
                   title="Remove"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

@@ -186,8 +186,8 @@ export function SequenceBuilder({ sequence, onClose }: Props) {
               className={cn(
                 "mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium",
                 sequence.type === "parent_nurture"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-blue-100 text-blue-700",
+                  ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                  : "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
               )}
             >
               {sequence.type === "parent_nurture"
@@ -331,7 +331,7 @@ export function SequenceBuilder({ sequence, onClose }: Props) {
                           </button>
                           <button
                             onClick={() => removeStep(index)}
-                            className="ml-auto rounded p-1 text-red-500 transition-colors hover:bg-red-50"
+                            className="ml-auto rounded p-1 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/40"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>

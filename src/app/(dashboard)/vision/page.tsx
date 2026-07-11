@@ -308,7 +308,7 @@ export default function VisionPage() {
                       onClick={() => updateIssue.mutate({ id: issue.id, category: "short_term" })}
                       disabled={updateIssue.isPending}
                       title="Pull onto the weekly short-term list"
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 hover:text-amber-800 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-800 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                     >
                       <ArrowLeftCircle className="w-3.5 h-3.5" /> Short-Term
                     </button>
@@ -317,7 +317,7 @@ export default function VisionPage() {
                         onClick={() => promoteToRock.mutate({ id: issue.id })}
                         disabled={promoteToRock.isPending}
                         title="Promote into a Rock for next quarter"
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:text-brand-hover opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                       >
                         <Mountain className="w-3.5 h-3.5" /> Rock
                       </button>

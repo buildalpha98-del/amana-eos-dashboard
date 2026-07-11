@@ -22,11 +22,11 @@ const SATISFACTION_FACES = [
 ];
 
 const SELECTED_BG: Record<number, string> = {
-  1: "bg-red-100 ring-2 ring-red-400",
-  2: "bg-orange-100 ring-2 ring-orange-400",
-  3: "bg-yellow-100 ring-2 ring-yellow-400",
-  4: "bg-green-100 ring-2 ring-green-400",
-  5: "bg-emerald-100 ring-2 ring-emerald-400",
+  1: "bg-red-100 dark:bg-red-950/50 ring-2 ring-red-400",
+  2: "bg-orange-100 dark:bg-orange-950/50 ring-2 ring-orange-400",
+  3: "bg-yellow-100 dark:bg-yellow-950/50 ring-2 ring-yellow-400",
+  4: "bg-green-100 dark:bg-green-950/50 ring-2 ring-green-400",
+  5: "bg-emerald-100 dark:bg-emerald-950/50 ring-2 ring-emerald-400",
 };
 
 export default function ExitSurveyPage() {
@@ -211,7 +211,7 @@ export default function ExitSurveyPage() {
                   }`}
                 >
                   <span className="text-3xl">{s.emoji}</span>
-                  <span className="text-[9px] text-muted">{s.label}</span>
+                  <span className="text-2xs text-muted">{s.label}</span>
                 </button>
               ))}
             </div>

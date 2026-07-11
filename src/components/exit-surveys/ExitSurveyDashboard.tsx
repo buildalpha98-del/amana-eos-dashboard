@@ -118,10 +118,10 @@ function ReasonBar({ reasons }: { reasons: ReasonDistribution[] }) {
 function ServiceCard({ service }: { service: ServiceSurveyData }) {
   const wouldReturnColor =
     service.wouldReturnRate > 70
-      ? "text-emerald-600 bg-emerald-50"
+      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40"
       : service.wouldReturnRate >= 40
-        ? "text-amber-600 bg-amber-50"
-        : "text-red-600 bg-red-50";
+        ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
+        : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40";
 
   return (
     <div className="bg-background rounded-xl border border-border p-5 space-y-4">
@@ -390,7 +390,7 @@ export function ExitSurveyDashboard() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-950/50 flex items-center justify-center">
             <ClipboardCheck className="w-5 h-5 text-violet-700" />
           </div>
           <div>

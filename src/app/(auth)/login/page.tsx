@@ -131,7 +131,7 @@ function LoginForm() {
           </h2>
 
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200/60 text-red-600 text-sm">
+            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200/60 text-red-600 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -234,7 +234,7 @@ function LoginForm() {
           </form>
         </div>
 
-        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-[11px] mt-6">
+        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-2xs mt-6">
           Amana OSHC Leadership Team Portal
         </p>
       </div>

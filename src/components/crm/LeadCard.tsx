@@ -3,8 +3,8 @@
 import type { LeadSummary } from "@/hooks/useCRM";
 
 const sourceColors: Record<string, string> = {
-  tender: "bg-blue-100 text-blue-700",
-  direct: "bg-emerald-100 text-emerald-700",
+  tender: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  direct: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
 };
 
 export function LeadCard({
@@ -46,7 +46,7 @@ export function LeadCard({
         </p>
       )}
 
-      <div className="flex items-center justify-between text-[11px] text-muted">
+      <div className="flex items-center justify-between text-xs text-muted">
         <div className="flex items-center gap-2">
           {lead.state && (
             <span className="bg-surface text-muted px-1.5 py-0.5 rounded">
@@ -57,10 +57,10 @@ export function LeadCard({
             <span
               className={`font-semibold px-1.5 py-0.5 rounded-full ${
                 lead.aiScore >= 70
-                  ? "bg-emerald-100 text-emerald-700"
+                  ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                   : lead.aiScore >= 40
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-red-100 text-red-700"
+                    ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                    : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
               }`}
             >
               {lead.aiScore}

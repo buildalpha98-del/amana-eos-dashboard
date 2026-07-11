@@ -227,7 +227,7 @@ export function CampaignDetailPanel({
           </div>
           <div className="ml-3 flex items-center gap-2">
             {hasUnsavedTextChanges && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-2xs font-medium text-amber-700" title="Click outside the field or press Tab to save.">
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-1 text-2xs font-medium text-amber-700 dark:text-amber-300" title="Click outside the field or press Tab to save.">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                 Unsaved
               </span>
@@ -236,7 +236,7 @@ export function CampaignDetailPanel({
               onClick={handleDelete}
               className={`rounded-lg p-2 transition-colors ${
                 confirmDelete
-                  ? "bg-red-100 text-red-600 hover:bg-red-200"
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-red-200"
                   : "text-muted hover:bg-surface hover:text-danger"
               }`}
               title={confirmDelete ? "Click again to confirm delete" : "Delete campaign"}
@@ -278,7 +278,7 @@ export function CampaignDetailPanel({
         )}
 
         {aiBrief && (
-          <div className="mx-6 mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+          <div className="mx-6 mt-4 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-purple-700 flex items-center gap-1">
                 <Sparkles className="h-3.5 w-3.5" /> AI Campaign Brief
@@ -606,9 +606,9 @@ export function CampaignDetailPanel({
                   {campaignTasks.map((task) => {
                     const statusColors: Record<string, string> = {
                       todo: "bg-surface text-muted",
-                      in_progress: "bg-blue-100 text-blue-700",
-                      in_review: "bg-amber-100 text-amber-700",
-                      done: "bg-emerald-100 text-emerald-700",
+                      in_progress: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+                      in_review: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+                      done: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
                     };
                     return (
                       <div

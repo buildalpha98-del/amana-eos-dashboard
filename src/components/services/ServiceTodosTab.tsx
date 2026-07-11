@@ -29,9 +29,9 @@ interface UserOption {
 const statusFilters = ["all", "pending", "in_progress", "complete"] as const;
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "bg-amber-100 text-amber-700 border-amber-300" },
-  in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-700 border-blue-300" },
-  complete: { label: "Complete", color: "bg-emerald-100 text-emerald-700 border-emerald-300" },
+  pending: { label: "Pending", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800" },
+  in_progress: { label: "In Progress", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800" },
+  complete: { label: "Complete", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800" },
   cancelled: { label: "Cancelled", color: "bg-surface text-muted border-border" },
 };
 
@@ -276,12 +276,12 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
 
               {/* Linked rock/issue */}
               {todo.rock && (
-                <span className="text-2xs px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">
+                <span className="text-2xs px-1.5 py-0.5 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 rounded">
                   {todo.rock.title}
                 </span>
               )}
               {todo.issue && (
-                <span className="text-2xs px-1.5 py-0.5 bg-red-50 text-red-600 rounded">
+                <span className="text-2xs px-1.5 py-0.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded">
                   {todo.issue.title}
                 </span>
               )}
@@ -404,7 +404,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-xs text-red-700 dark:text-red-300">
                   {error}
                 </div>
               )}

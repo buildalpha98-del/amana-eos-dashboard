@@ -147,7 +147,7 @@ export function DashboardProjectTodos({
                         className={cn(
                           "flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md shrink-0",
                           todo.isOverdue
-                            ? "bg-red-50 text-red-600"
+                            ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
                             : "bg-surface/50 text-muted"
                         )}
                       >

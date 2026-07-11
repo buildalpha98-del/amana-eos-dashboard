@@ -33,11 +33,11 @@ const typeIcons: Record<string, React.ElementType> = {
 };
 
 const typeBadgeColors: Record<string, string> = {
-  image: "bg-blue-100 text-blue-700",
-  video: "bg-purple-100 text-purple-700",
-  document: "bg-amber-100 text-amber-700",
-  template: "bg-teal-100 text-teal-700",
-  graphic: "bg-pink-100 text-pink-700",
+  image: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  video: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  document: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  template: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
+  graphic: "bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300",
 };
 
 export function AssetsTab() {
@@ -182,7 +182,7 @@ export function AssetsTab() {
                         deleteAsset.mutate(asset.id);
                     }}
                     aria-label="Delete asset"
-                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 
 const priorityConfig = {
-  critical: { label: "Critical", bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
-  high: { label: "High", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
-  medium: { label: "Medium", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  critical: { label: "Critical", bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-700", border: "border-red-200" },
+  high: { label: "High", bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-700", border: "border-amber-200" },
+  medium: { label: "Medium", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700", border: "border-blue-200" },
 };
 
 const statusColors = {
@@ -56,7 +56,7 @@ export function RockCard({
             {priority.label}
           </span>
           {rock.rockType === "company" ? (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium bg-purple-50 text-purple-700">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300">
               <Building2 className="w-2.5 h-2.5" />
               Co.
             </span>

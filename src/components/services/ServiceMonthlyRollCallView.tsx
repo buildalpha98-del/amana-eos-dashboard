@@ -90,9 +90,9 @@ function classifyTone(day: MonthlyRollCallDay | undefined): Tone {
 
 const toneCellClass: Record<Tone, string> = {
   neutral: "bg-card border-border hover:bg-surface",
-  green: "bg-green-100 border-green-400 hover:bg-green-200",
-  amber: "bg-yellow-100 border-yellow-400 hover:bg-yellow-200",
-  red: "bg-red-100 border-red-400 hover:bg-red-200",
+  green: "bg-green-100 dark:bg-green-950/50 border-green-400 hover:bg-green-200",
+  amber: "bg-yellow-100 dark:bg-yellow-950/50 border-yellow-400 hover:bg-yellow-200",
+  red: "bg-red-100 dark:bg-red-950/50 border-red-400 hover:bg-red-200",
 };
 
 const tonePillClass: Record<Tone, string> = {
@@ -173,7 +173,7 @@ export function ServiceMonthlyRollCallView({
       ) : (
         <div className="space-y-1">
           {/* Weekday headers — Monday first */}
-          <div className="grid grid-cols-7 gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+          <div className="grid grid-cols-7 gap-1 text-2xs font-semibold uppercase tracking-wide text-muted">
             {(["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const).map(
               (d) => (
                 <div
@@ -225,7 +225,7 @@ export function ServiceMonthlyRollCallView({
                     <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
                       <span
                         className={cn(
-                          "text-[11px] font-bold rounded-full px-2 py-0.5",
+                          "text-2xs font-bold rounded-full px-2 py-0.5",
                           tonePillClass[tone],
                         )}
                       >

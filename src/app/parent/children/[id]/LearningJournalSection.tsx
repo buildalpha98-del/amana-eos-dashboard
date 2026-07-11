@@ -56,17 +56,17 @@ export function LearningJournalSection({ childId }: { childId: string }) {
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-[color:var(--color-foreground)]">
+                  <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
                     {obs.title}
                   </p>
-                  <p className="text-[11px] text-[color:var(--color-muted)]">
+                  <p className="text-xs text-[color:var(--color-muted)]">
                     {obs.author.name} ·{" "}
                     {date.toLocaleDateString(undefined, {
                       day: "numeric",
                       month: "short",
                     })}
                   </p>
-                  <p className="text-[13px] text-[color:var(--color-foreground)]/80 mt-1 line-clamp-3">
+                  <p className="text-sm text-[color:var(--color-foreground)]/80 mt-1 line-clamp-3">
                     {obs.narrative}
                   </p>
                   {(obs.mtopOutcomes.length > 0 ||

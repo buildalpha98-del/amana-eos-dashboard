@@ -27,17 +27,17 @@ import { cn } from "@/lib/utils";
 type Tab = "upcoming" | "past";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  requested: { bg: "bg-amber-100", text: "text-amber-700", label: "Requested" },
-  confirmed: { bg: "bg-green-100", text: "text-green-700", label: "Confirmed" },
-  waitlisted: { bg: "bg-blue-100", text: "text-blue-700", label: "Waitlisted" },
+  requested: { bg: "bg-amber-100 dark:bg-amber-950/50", text: "text-amber-700", label: "Requested" },
+  confirmed: { bg: "bg-green-100 dark:bg-green-950/50", text: "text-green-700", label: "Confirmed" },
+  waitlisted: { bg: "bg-blue-100 dark:bg-blue-950/50", text: "text-blue-700", label: "Waitlisted" },
   cancelled: { bg: "bg-surface", text: "text-muted", label: "Cancelled" },
-  absent_notified: { bg: "bg-red-100", text: "text-red-600", label: "Absent" },
+  absent_notified: { bg: "bg-red-100 dark:bg-red-950/50", text: "text-red-600", label: "Absent" },
 };
 
 const SESSION_STYLES: Record<string, { bg: string; text: string }> = {
   bsc: { bg: "bg-brand/10", text: "text-brand" },
-  asc: { bg: "bg-amber-100", text: "text-amber-700" },
-  vc: { bg: "bg-purple-100", text: "text-purple-700" },
+  asc: { bg: "bg-amber-100 dark:bg-amber-950/50", text: "text-amber-700" },
+  vc: { bg: "bg-purple-100 dark:bg-purple-950/50", text: "text-purple-700" },
 };
 
 export default function BookingsV1() {

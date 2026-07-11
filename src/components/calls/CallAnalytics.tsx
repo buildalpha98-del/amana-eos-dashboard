@@ -188,7 +188,7 @@ function Stat({ icon: Icon, label, value, color, sub }: {
         <span className="text-xs text-muted font-medium">{label}</span>
       </div>
       <p className={cn("text-2xl font-bold", color)}>{value}</p>
-      <p className="text-[11px] text-muted mt-0.5">{sub}</p>
+      <p className="text-xs text-muted mt-0.5">{sub}</p>
     </div>
   );
 }

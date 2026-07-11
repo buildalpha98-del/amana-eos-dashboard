@@ -40,9 +40,9 @@ interface LaunchData {
 }
 
 const STATUS_STYLES = {
-  "On Track": { bg: "bg-green-50", border: "border-green-300", text: "text-green-700", icon: CheckCircle },
-  "Needs Attention": { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", icon: AlertTriangle },
-  "At Risk": { bg: "bg-red-50", border: "border-red-300", text: "text-red-700", icon: XCircle },
+  "On Track": { bg: "bg-green-50 dark:bg-green-950/40", border: "border-green-300", text: "text-green-700", icon: CheckCircle },
+  "Needs Attention": { bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-300", text: "text-amber-700", icon: AlertTriangle },
+  "At Risk": { bg: "bg-red-50 dark:bg-red-950/40", border: "border-red-300", text: "text-red-700", icon: XCircle },
 };
 
 const MILESTONES = [

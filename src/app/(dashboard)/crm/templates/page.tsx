@@ -95,7 +95,7 @@ export default function CrmTemplatesPage() {
       />
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+      <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm text-blue-700 dark:text-blue-300">
         <p>
           Templates with a <strong>Trigger Stage</strong> are automatically sent when a lead
           enters that stage. Templates without a trigger stage are available for manual use
@@ -144,7 +144,7 @@ export default function CrmTemplatesPage() {
                   </td>
                   <td className="px-4 py-3">
                     {t.triggerStage ? (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
                         {stageLabels[t.triggerStage] || t.triggerStage}
                       </span>
                     ) : (
@@ -156,8 +156,8 @@ export default function CrmTemplatesPage() {
                       <span
                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                           t.pipeline === "tender"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-emerald-100 text-emerald-700"
+                            ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
+                            : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                         }`}
                       >
                         {t.pipeline}
@@ -178,7 +178,7 @@ export default function CrmTemplatesPage() {
                       </button>
                       <button
                         onClick={() => setDeletingTemplate(t)}
-                        className="p-1.5 rounded-md text-muted hover:text-danger hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-md text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />

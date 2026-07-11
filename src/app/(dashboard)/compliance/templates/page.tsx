@@ -78,11 +78,11 @@ import { CSS } from "@dnd-kit/utilities";
 /* ------------------------------------------------------------------ */
 
 const formatLabels: Record<string, { label: string; color: string }> = {
-  yes_no: { label: "Yes / No", color: "bg-blue-100 text-blue-700" },
-  rating_1_5: { label: "Rating 1-5", color: "bg-purple-100 text-purple-700" },
-  compliant: { label: "Compliant", color: "bg-emerald-100 text-emerald-700" },
-  reverse_yes_no: { label: "Reverse Y/N", color: "bg-amber-100 text-amber-700" },
-  review_date: { label: "Review Date", color: "bg-cyan-100 text-cyan-700" },
+  yes_no: { label: "Yes / No", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  rating_1_5: { label: "Rating 1-5", color: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300" },
+  compliant: { label: "Compliant", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  reverse_yes_no: { label: "Reverse Y/N", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" },
+  review_date: { label: "Review Date", color: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300" },
   inventory: { label: "Inventory", color: "bg-surface text-muted" },
 };
 
@@ -623,7 +623,7 @@ function ParsePreviewModal({
                   {formatLabels[parsed.detectedFormat]?.label || parsed.detectedFormat}
                 </span>
                 {parsed.metadata.hasReverseYesNo && (
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
                     Has Reverse Y/N
                   </span>
                 )}
@@ -908,10 +908,10 @@ function BulkUploadModal({
                             className={cn(
                               "text-2xs font-medium px-1.5 py-0.5 rounded-full",
                               confidence >= 0.8
-                                ? "bg-emerald-100 text-emerald-700"
+                                ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                                 : confidence >= 0.6
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-red-100 text-red-700"
+                                ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                                : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                             )}
                           >
                             {Math.round(confidence * 100)}%
@@ -1083,7 +1083,7 @@ export default function AuditTemplatesPage() {
             <button
               onClick={handleSeedTemplates}
               disabled={seeding}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 border border-emerald-300 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
             >
               {seeding ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1121,7 +1121,7 @@ export default function AuditTemplatesPage() {
                 setWipeConfirm("");
                 setShowWipeAll(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-700 border border-rose-300 rounded-lg hover:bg-rose-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
               title="Wipe every template, every scheduled instance, and every staff response. Use only to start fresh."
             >
               <Trash2 className="w-4 h-4" />
@@ -1137,8 +1137,8 @@ export default function AuditTemplatesPage() {
           className={cn(
             "flex items-center justify-between px-4 py-3 rounded-lg text-sm",
             seedResult.created === -1
-              ? "bg-red-50 text-red-700"
-              : "bg-emerald-50 text-emerald-700"
+              ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300"
+              : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
           )}
         >
           <span>
@@ -1249,7 +1249,7 @@ export default function AuditTemplatesPage() {
                       </p>
                       {template.documentMode && (
                         <span
-                          className="px-1.5 py-0.5 text-2xs font-medium rounded bg-indigo-100 text-indigo-700"
+                          className="px-1.5 py-0.5 text-2xs font-medium rounded bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300"
                           title="Document-mode audit — coordinators edit the .docx inline per instance"
                         >
                           Doc
@@ -1334,7 +1334,7 @@ export default function AuditTemplatesPage() {
                         e.stopPropagation();
                         setDeleteTarget({ id: template.id, name: template.name });
                       }}
-                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors shrink-0"
                       title="Delete template (removes items + every per-service instance + history)"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1429,7 +1429,7 @@ export default function AuditTemplatesPage() {
                 Per-template delete on each row is the safer option if you
                 only want to remove a few.
               </p>
-              <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-2 text-rose-900">
+              <div className="rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 px-3 py-2 text-rose-900 dark:text-rose-200">
                 <p className="text-xs mb-1.5">
                   Type <code className="font-mono font-semibold">RESET</code>{" "}
                   to confirm:
@@ -1570,7 +1570,7 @@ function CalendarUploadModal({ onClose }: { onClose: () => void }) {
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {result ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Calendar Imported</h3>

@@ -308,7 +308,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
 
               {/* Error */}
               {parseError && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
                   <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                   <p className="text-sm text-red-700">{parseError}</p>
                 </div>
@@ -366,7 +366,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
 
               {/* Match summary */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                   <div>
                     <p className="text-lg font-bold text-emerald-700">
@@ -376,7 +376,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                   </div>
                 </div>
                 {preview.unmatchedCount > 0 && (
-                  <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <AlertTriangle className="w-5 h-5 text-amber-500" />
                     <div>
                       <p className="text-lg font-bold text-amber-700">
@@ -531,7 +531,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
 
               {/* Error from parse */}
               {parseError && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
                   <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                   <p className="text-sm text-red-700">{parseError}</p>
                 </div>
@@ -539,7 +539,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
 
               {/* Warning for unmatched */}
               {preview.unmatchedCount > 0 && (
-                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
                   <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-amber-800">
@@ -570,7 +570,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
           {step === "result" && result && (
             <div className="space-y-4">
               {/* Success banner */}
-              <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                 <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-emerald-800">
@@ -623,8 +623,8 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                           className={cn(
                             "text-xs px-2 py-0.5 rounded-full font-medium",
                             r.action === "created"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-blue-100 text-blue-700"
+                              ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                              : "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
                           )}
                         >
                           {r.action}
@@ -638,7 +638,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
               {/* Unmatched centres */}
               {result.unmatchedCentres.length > 0 && (
                 <div className="border border-amber-200 rounded-lg overflow-hidden">
-                  <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-200">
+                  <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800">
                     <h4 className="text-xs font-semibold text-amber-700 uppercase tracking-wider">
                       Unmatched Centres (Skipped)
                     </h4>
@@ -656,7 +656,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
               {/* Import errors */}
               {result.importErrors.length > 0 && (
                 <div className="border border-red-200 rounded-lg overflow-hidden">
-                  <div className="px-4 py-2.5 bg-red-50 border-b border-red-200">
+                  <div className="px-4 py-2.5 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-800">
                     <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wider">
                       Errors
                     </h4>

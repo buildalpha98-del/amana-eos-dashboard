@@ -85,18 +85,18 @@ export function DashboardStateKPI({ stateName, stateCode, centres, opsMetrics }:
 
       {/* Centre status strip */}
       <div className="flex flex-wrap items-center gap-3 mt-4">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-xs font-medium text-emerald-700">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-xs font-medium text-emerald-700 dark:text-emerald-300">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
           {green} healthy
         </div>
         {amber > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-xs font-medium text-amber-700">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-xs font-medium text-amber-700 dark:text-amber-300">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
             {amber} attention
           </div>
         )}
         {red > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-xs font-medium text-red-700">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-950/40 text-xs font-medium text-red-700 dark:text-red-300">
             <span className="w-2 h-2 rounded-full bg-red-500" />
             {red} critical
           </div>

@@ -447,10 +447,10 @@ function AccountPanel({
   }
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-6">
+    <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/40 p-6">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold text-foreground">Account</h3>
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-amber-100 text-amber-800">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200">
           Admin only
         </span>
       </div>

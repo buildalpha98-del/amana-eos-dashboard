@@ -69,7 +69,7 @@ function getUserStatus(
   lastLoginAt: string | null,
 ): { label: string; color: string; filter: StatusFilter } {
   if (!lastLoginAt)
-    return { label: "Never", color: "bg-red-100 text-red-700", filter: "never" };
+    return { label: "Never", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300", filter: "never" };
 
   const date = new Date(lastLoginAt);
   const now = new Date();
@@ -79,10 +79,10 @@ function getUserStatus(
   weekAgo.setDate(weekAgo.getDate() - 7);
 
   if (date >= todayStart)
-    return { label: "Active today", color: "bg-green-100 text-green-700", filter: "active_today" };
+    return { label: "Active today", color: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300", filter: "active_today" };
   if (date >= weekAgo)
-    return { label: "This week", color: "bg-blue-100 text-blue-700", filter: "this_week" };
-  return { label: "Inactive", color: "bg-amber-100 text-amber-700", filter: "inactive" };
+    return { label: "This week", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300", filter: "this_week" };
+  return { label: "Inactive", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300", filter: "inactive" };
 }
 
 // ---------- Skeleton ----------
@@ -139,7 +139,7 @@ function StatCard({
     <div
       className={cn(
         "bg-card rounded-xl border p-5 transition-colors",
-        alert ? "border-amber-300 bg-amber-50/30" : "border-border",
+        alert ? "border-amber-300 dark:border-amber-800 bg-amber-50/30" : "border-border",
       )}
     >
       <div className="flex items-center gap-2 mb-2">
@@ -274,14 +274,14 @@ export function AdoptionDashboard() {
           label="Today's Logins"
           value={data.loggedInToday}
           subtitle="Users active today"
-          color="bg-green-100 text-green-600"
+          color="bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-400"
         />
         <StatCard
           icon={AlertTriangle}
           label="Never Logged In"
           value={data.neverLoggedIn}
           subtitle={data.neverLoggedIn > 0 ? "Users need an invite reminder" : "All users have logged in"}
-          color="bg-amber-100 text-amber-600"
+          color="bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400"
           alert={data.neverLoggedIn > 0}
         />
         <StatCard
@@ -289,7 +289,7 @@ export function AdoptionDashboard() {
           label="Onboarding Complete"
           value={`${data.onboardingComplete} / ${data.totalUsers}`}
           subtitle={`${onboardPct}% fully onboarded`}
-          color="bg-emerald-100 text-emerald-600"
+          color="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400"
           progress={onboardPct}
         />
       </div>

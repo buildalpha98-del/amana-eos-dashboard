@@ -33,10 +33,10 @@ import {
 /* ------------------------------------------------------------------ */
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
-  scheduled: { label: "Scheduled", color: "bg-blue-100 text-blue-700 border-blue-300", icon: Clock },
-  in_progress: { label: "In Progress", color: "bg-amber-100 text-amber-700 border-amber-300", icon: Play },
-  completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700 border-emerald-300", icon: CheckCircle2 },
-  overdue: { label: "Overdue", color: "bg-red-100 text-red-700 border-red-300", icon: AlertTriangle },
+  scheduled: { label: "Scheduled", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800", icon: Clock },
+  in_progress: { label: "In Progress", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800", icon: Play },
+  completed: { label: "Completed", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800", icon: CheckCircle2 },
+  overdue: { label: "Overdue", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800", icon: AlertTriangle },
   skipped: { label: "Skipped", color: "bg-surface text-muted border-border", icon: SkipForward },
 };
 
@@ -73,9 +73,9 @@ function YesNoInput({
               "px-4 py-2 text-sm font-medium rounded-lg border transition-all",
               result === val
                 ? val === "yes"
-                  ? "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
+                  ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-400"
                   : val === "no"
-                  ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800 ring-2 ring-red-400"
                   : "bg-surface text-muted border-border ring-2 ring-muted/60"
                 : "bg-card text-muted border-border hover:bg-surface"
             )}
@@ -93,7 +93,7 @@ function YesNoInput({
             value={response.actionRequired || ""}
             onChange={(e) => onChange(response.id, { actionRequired: e.target.value } as Partial<AuditItemResponseData>)}
             rows={2}
-            className="w-full px-3 py-2 text-sm border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none bg-red-50"
+            className="w-full px-3 py-2 text-sm border border-red-200 dark:border-red-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none bg-red-50 dark:bg-red-950/40"
             placeholder="Describe required corrective action..."
           />
         </div>
@@ -126,10 +126,10 @@ function RatingInput({
               "w-10 h-10 rounded-lg border text-sm font-bold transition-all",
               rating === val
                 ? val <= 2
-                  ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800 ring-2 ring-red-400"
                   : val === 3
-                  ? "bg-amber-100 text-amber-700 border-amber-300 ring-2 ring-amber-400"
-                  : "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
+                  ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800 ring-2 ring-amber-400"
+                  : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-400"
                 : "bg-card text-muted border-border hover:bg-surface"
             )}
           >
@@ -146,7 +146,7 @@ function RatingInput({
             value={response.actionRequired || ""}
             onChange={(e) => onChange(response.id, { actionRequired: e.target.value } as Partial<AuditItemResponseData>)}
             rows={2}
-            className="w-full px-3 py-2 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none bg-amber-50"
+            className="w-full px-3 py-2 text-sm border border-amber-200 dark:border-amber-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none bg-amber-50 dark:bg-amber-950/40"
             placeholder="Describe improvement action..."
           />
         </div>
@@ -174,9 +174,9 @@ function CompliantInput({
               "px-4 py-2 text-sm font-medium rounded-lg border transition-all",
               result === val
                 ? val === "yes"
-                  ? "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
+                  ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-400"
                   : val === "no"
-                  ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800 ring-2 ring-red-400"
                   : "bg-surface text-muted border-border ring-2 ring-muted/60"
                 : "bg-card text-muted border-border hover:bg-surface"
             )}
@@ -206,7 +206,7 @@ function CompliantInput({
             value={response.actionRequired || ""}
             onChange={(e) => onChange(response.id, { actionRequired: e.target.value } as Partial<AuditItemResponseData>)}
             rows={2}
-            className="w-full px-3 py-2 text-sm border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none bg-red-50"
+            className="w-full px-3 py-2 text-sm border border-red-200 dark:border-red-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none bg-red-50 dark:bg-red-950/40"
             placeholder="Describe corrective action..."
           />
         </div>
@@ -231,7 +231,7 @@ function ReverseYesNoInput({
           className={cn(
             "px-4 py-2 text-sm font-medium rounded-lg border transition-all",
             result === "yes"
-              ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
+              ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800 ring-2 ring-red-400"
               : "bg-card text-muted border-border hover:bg-surface"
           )}
         >
@@ -242,7 +242,7 @@ function ReverseYesNoInput({
           className={cn(
             "px-4 py-2 text-sm font-medium rounded-lg border transition-all",
             result === "no"
-              ? "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
+              ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-400"
               : "bg-card text-muted border-border hover:bg-surface"
           )}
         >
@@ -261,7 +261,7 @@ function ReverseYesNoInput({
         </button>
       </div>
       {result === "yes" && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
           <p className="text-xs font-medium text-red-700 mb-2 flex items-center gap-1">
             <AlertCircle className="w-3.5 h-3.5" />
             YES means a hazard or issue was found — action is required
@@ -767,9 +767,9 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                                   className={cn(
                                     "px-2 py-0.5 text-xs font-medium rounded",
                                     response.result === "yes"
-                                      ? "bg-emerald-100 text-emerald-700"
+                                      ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                                       : response.result === "no"
-                                      ? "bg-red-100 text-red-700"
+                                      ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                                       : "bg-surface text-muted"
                                   )}
                                 >
@@ -856,7 +856,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
 
       {/* Review info for completed audits */}
       {isComplete && audit.reviewedAt && (
-        <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4">
+        <div className="bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
             <CheckCircle2 className="w-4 h-4" />
             Reviewed on {new Date(audit.reviewedAt).toLocaleDateString("en-AU")}

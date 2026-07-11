@@ -191,7 +191,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
                     />
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                        <span className="text-[9px] font-bold text-brand">
+                        <span className="text-2xs font-bold text-brand">
                           {u.name
                             .split(" ")
                             .map((n) => n[0])

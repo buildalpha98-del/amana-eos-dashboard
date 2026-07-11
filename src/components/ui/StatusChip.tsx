@@ -22,9 +22,9 @@ import { cn } from "@/lib/utils";
 export type StatusChipLevel = "now" | "soon" | "review" | "queue";
 
 const LEVEL_CLASSES: Record<StatusChipLevel, string> = {
-  now: "bg-red-50 text-red-700 border-red-200",
-  soon: "bg-amber-50 text-amber-800 border-amber-200",
-  review: "bg-blue-50 text-blue-700 border-blue-200",
+  now: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+  soon: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
+  review: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
   queue: "bg-surface text-muted border-border",
 };
 

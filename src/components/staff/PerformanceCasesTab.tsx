@@ -76,37 +76,37 @@ const TYPE_META: Record<
   verbal_warning: {
     label: "Verbal warning",
     icon: MessageSquare,
-    pill: "bg-amber-50 text-amber-800 border-amber-200",
+    pill: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
   },
   written_warning: {
     label: "Written warning",
     icon: AlertTriangle,
-    pill: "bg-orange-50 text-orange-800 border-orange-200",
+    pill: "bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800",
   },
   final_warning: {
     label: "Final warning",
     icon: AlertOctagon,
-    pill: "bg-red-50 text-red-800 border-red-200",
+    pill: "bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
   },
   pip: {
     label: "Performance improvement plan",
     icon: ClipboardList,
-    pill: "bg-purple-50 text-purple-800 border-purple-200",
+    pill: "bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-800",
   },
   grievance: {
     label: "Grievance (raised by)",
     icon: Shield,
-    pill: "bg-blue-50 text-blue-800 border-blue-200",
+    pill: "bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800",
   },
   allegation: {
     label: "Allegation (against)",
     icon: Shield,
-    pill: "bg-red-50 text-red-800 border-red-200",
+    pill: "bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
   },
   commendation: {
     label: "Commendation",
     icon: Trophy,
-    pill: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    pill: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800",
   },
   conversation: {
     label: "Informal conversation",
@@ -119,13 +119,13 @@ function statusPill(status: CaseStatus): string {
   switch (status) {
     case "resolved":
     case "closed":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "escalated":
-      return "bg-red-50 text-red-700 border-red-200";
+      return "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
     case "in_progress":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     default:
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
   }
 }
 
@@ -233,7 +233,7 @@ export function PerformanceCasesTab({
                       {c.title}
                     </span>
                     {c.confidential && (
-                      <span className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800">
+                      <span className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200">
                         Confidential
                       </span>
                     )}
@@ -599,7 +599,7 @@ function CaseModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={submit.isPending || deleteMutation.isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
               >
                 {deleteMutation.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -156,7 +156,7 @@ export function ImportWizard({
                       step === s
                         ? "bg-brand text-white"
                         : i < ["upload", "preview", "result"].indexOf(step)
-                        ? "bg-emerald-100 text-emerald-700"
+                        ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                         : "bg-surface text-muted"
                     )}
                   >
@@ -236,7 +236,7 @@ export function ImportWizard({
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                   <p className="text-sm text-red-700">{error}</p>
                 </div>
@@ -249,19 +249,19 @@ export function ImportWizard({
             <div className="space-y-4">
               {/* Validation summary */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-emerald-700">
                     {dryRunResult.valid}
                   </p>
                   <p className="text-xs text-emerald-600">Valid Rows</p>
                 </div>
-                <div className="bg-red-50 rounded-lg p-3 text-center">
+                <div className="bg-red-50 dark:bg-red-950/40 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-red-700">
                     {dryRunResult.invalid}
                   </p>
                   <p className="text-xs text-red-600">Invalid Rows</p>
                 </div>
-                <div className="bg-amber-50 rounded-lg p-3 text-center">
+                <div className="bg-amber-50 dark:bg-amber-950/40 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-amber-700">
                     {dryRunResult.warnings.length}
                   </p>
@@ -271,7 +271,7 @@ export function ImportWizard({
 
               {/* Errors */}
               {dryRunResult.errors.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">
                   <p className="text-sm font-semibold text-red-700 mb-1">
                     Errors
                   </p>
@@ -285,7 +285,7 @@ export function ImportWizard({
 
               {/* Warnings */}
               {dryRunResult.warnings.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
                   <p className="text-sm font-semibold text-amber-700 mb-1">
                     Warnings
                   </p>
@@ -342,7 +342,7 @@ export function ImportWizard({
               )}
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                   <p className="text-sm text-red-700">{error}</p>
                 </div>
@@ -361,13 +361,13 @@ export function ImportWizard({
               </div>
 
               <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
-                <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-emerald-700">
                     {executeResult.created}
                   </p>
                   <p className="text-xs text-emerald-600">Created</p>
                 </div>
-                <div className="bg-blue-50 rounded-lg p-3 text-center">
+                <div className="bg-blue-50 dark:bg-blue-950/40 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-blue-700">
                     {executeResult.updated}
                   </p>
@@ -382,7 +382,7 @@ export function ImportWizard({
               </div>
 
               {executeResult.errors.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-w-md mx-auto">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3 max-w-md mx-auto">
                   <p className="text-sm font-semibold text-red-700 mb-1">
                     Errors
                   </p>

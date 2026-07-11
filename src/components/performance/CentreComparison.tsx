@@ -73,9 +73,9 @@ function getScoreColor(score: number): string {
 }
 
 function getScoreBg(score: number): string {
-  if (score >= 80) return "bg-emerald-50";
-  if (score >= 60) return "bg-amber-50";
-  return "bg-red-50";
+  if (score >= 80) return "bg-emerald-50 dark:bg-emerald-950/40";
+  if (score >= 60) return "bg-amber-50 dark:bg-amber-950/40";
+  return "bg-red-50 dark:bg-red-950/40";
 }
 
 function DeltaBadge({ current, previous }: { current: number; previous: number | null }) {
@@ -255,10 +255,10 @@ function CentreSelector({
                         className={cn(
                           "text-xs font-bold px-1.5 py-0.5 rounded",
                           c.score >= 80
-                            ? "bg-emerald-100 text-emerald-700"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                             : c.score >= 60
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-red-100 text-red-700"
+                            ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                            : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                         )}
                       >
                         {c.score}

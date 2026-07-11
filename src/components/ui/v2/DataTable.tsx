@@ -230,7 +230,7 @@ export function DataTable<TRow>({
       {/* Header */}
       <div
         role="row"
-        className="grid items-center bg-[color:var(--color-cream-deep)] border-b border-[color:var(--color-border)] text-[11px] font-heading font-semibold uppercase tracking-[0.06em] text-[color:var(--color-muted)]"
+        className="grid items-center bg-[color:var(--color-cream-deep)] border-b border-[color:var(--color-border)] text-2xs font-heading font-semibold uppercase tracking-[0.06em] text-[color:var(--color-muted)]"
         style={{ gridTemplateColumns: selectable ? `40px ${gridTemplate}` : gridTemplate }}
       >
         {selectable && (
@@ -298,7 +298,7 @@ export function DataTable<TRow>({
                 aria-selected={isSelected}
                 data-active={isActive ? "true" : undefined}
                 className={cn(
-                  "absolute left-0 right-0 grid items-center text-[13px] border-b border-[color:var(--color-border)]",
+                  "absolute left-0 right-0 grid items-center text-sm border-b border-[color:var(--color-border)]",
                   "hover:bg-[color:var(--color-brand-soft)] transition-colors",
                   isActive && "bg-[color:var(--color-brand-soft)]",
                   isSelected && "bg-[color:var(--color-brand-soft)]/60",

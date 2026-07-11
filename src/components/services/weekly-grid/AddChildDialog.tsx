@@ -138,7 +138,7 @@ export function AddChildDialog({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-[11px]">
+          <table className="w-full text-xs">
             <thead>
               <tr>
                 <th className="text-left text-muted font-medium py-1 pr-2">Session</th>

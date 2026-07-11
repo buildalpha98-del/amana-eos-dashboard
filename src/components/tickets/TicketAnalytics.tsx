@@ -204,7 +204,7 @@ export function TicketAnalytics() {
                 <div key={agent.id} className="flex items-center gap-3 py-1.5 px-2 rounded-md hover:bg-surface">
                   <span className={cn(
                     "w-5 h-5 rounded-full flex items-center justify-center text-2xs font-bold",
-                    i === 0 ? "bg-amber-100 text-amber-700" : i === 1 ? "bg-border text-muted" : i === 2 ? "bg-orange-100 text-orange-700" : "bg-surface text-muted"
+                    i === 0 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : i === 1 ? "bg-border text-muted" : i === 2 ? "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300" : "bg-surface text-muted"
                   )}>
                     {i + 1}
                   </span>

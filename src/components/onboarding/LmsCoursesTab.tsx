@@ -272,7 +272,7 @@ function StaffCourseViewer({
       )}
 
       {!myEnrollment && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-center gap-2">
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           You are not enrolled in this course. Content is view-only. Ask your admin to enrol you.
         </div>
@@ -293,7 +293,7 @@ function StaffCourseViewer({
             const isCompleted = progress?.completed ?? false;
 
             return (
-              <div key={mod.id} className={cn("border rounded-lg overflow-hidden transition-colors", isCompleted ? "border-emerald-200 bg-emerald-50/30" : "border-border")}>
+              <div key={mod.id} className={cn("border rounded-lg overflow-hidden transition-colors", isCompleted ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/30" : "border-border")}>
                 {/* Module header */}
                 <button
                   onClick={() => setExpandedModuleId(isExpanded ? null : mod.id)}
@@ -530,18 +530,18 @@ export function LmsCoursesTab({
           {courses.map((course) => (
             <div key={course.id} onClick={() => { setSelectedCourseId(selectedCourseId === course.id ? null : course.id); setExpandedModuleId(null); setExpandedEnrollmentId(null); }} className={cn("bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-brand border-brand")}>
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center">
                   <BookOpen className="w-5 h-5 text-purple-700" />
                 </div>
                 <div className="flex items-center gap-2">
                   {course.isRequired && (
-                    <span className="text-2xs font-bold uppercase bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Required</span>
+                    <span className="text-2xs font-bold uppercase bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full">Required</span>
                   )}
                   <span className={cn(
                     "text-2xs font-bold uppercase px-2 py-0.5 rounded-full",
-                    course.status === "published" ? "bg-emerald-100 text-emerald-700"
+                    course.status === "published" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                       : course.status === "draft" ? "bg-surface text-muted"
-                      : "bg-amber-100 text-amber-700"
+                      : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                   )}>
                     {course.status}
                   </span>
@@ -569,7 +569,7 @@ export function LmsCoursesTab({
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-purple-700" />
               </div>
               <div>
@@ -580,15 +580,15 @@ export function LmsCoursesTab({
                   {selectedCourseData?.status && (
                     <span className={cn(
                       "text-2xs font-bold uppercase px-2 py-0.5 rounded-full",
-                      selectedCourseData.status === "published" ? "bg-emerald-100 text-emerald-700"
+                      selectedCourseData.status === "published" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                         : selectedCourseData.status === "draft" ? "bg-surface text-muted"
-                        : "bg-amber-100 text-amber-700"
+                        : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                     )}>
                       {selectedCourseData.status}
                     </span>
                   )}
                   {selectedCourseData?.isRequired && (
-                    <span className="text-2xs font-bold uppercase bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Required</span>
+                    <span className="text-2xs font-bold uppercase bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full">Required</span>
                   )}
                 </div>
               </div>
@@ -664,9 +664,9 @@ export function LmsCoursesTab({
                                 </div>
                                 <span className={cn(
                                   "text-2xs font-bold uppercase px-2 py-0.5 rounded-full",
-                                  enrollment.status === "completed" ? "bg-emerald-100 text-emerald-700"
-                                    : enrollment.status === "in_progress" ? "bg-blue-100 text-blue-700"
-                                    : enrollment.status === "expired" ? "bg-red-100 text-red-700"
+                                  enrollment.status === "completed" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                                    : enrollment.status === "in_progress" ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
+                                    : enrollment.status === "expired" ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                                     : "bg-surface text-muted"
                                 )}>
                                   {enrollment.status.replace("_", " ")}

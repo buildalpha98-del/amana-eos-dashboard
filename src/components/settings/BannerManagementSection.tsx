@@ -40,11 +40,11 @@ interface Banner {
 }
 
 const BANNER_TYPES = [
-  { value: "info", label: "Info", icon: Info, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
-  { value: "success", label: "Success", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
-  { value: "warning", label: "Warning", icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" },
-  { value: "feature", label: "Feature", icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
-  { value: "celebration", label: "Celebration", icon: PartyPopper, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-300" },
+  { value: "info", label: "Info", icon: Info, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40", border: "border-blue-200" },
+  { value: "success", label: "Success", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-emerald-200" },
+  { value: "warning", label: "Warning", icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200" },
+  { value: "feature", label: "Feature", icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40", border: "border-purple-200" },
+  { value: "celebration", label: "Celebration", icon: PartyPopper, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40", border: "border-purple-300" },
 ] as const;
 
 function getTypeConfig(type: string) {
@@ -54,9 +54,9 @@ function getTypeConfig(type: string) {
 function getBannerStatus(banner: Banner): { label: string; color: string } {
   if (!banner.active) return { label: "Inactive", color: "bg-surface text-muted" };
   const now = new Date();
-  if (banner.startsAt && new Date(banner.startsAt) > now) return { label: "Scheduled", color: "bg-blue-100 text-blue-700" };
-  if (banner.expiresAt && new Date(banner.expiresAt) <= now) return { label: "Expired", color: "bg-red-100 text-red-700" };
-  return { label: "Active", color: "bg-emerald-100 text-emerald-700" };
+  if (banner.startsAt && new Date(banner.startsAt) > now) return { label: "Scheduled", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" };
+  if (banner.expiresAt && new Date(banner.expiresAt) <= now) return { label: "Expired", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" };
+  return { label: "Active", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" };
 }
 
 function formatDate(dateStr: string | null) {
@@ -510,7 +510,7 @@ export function BannerManagementSection() {
                     <p className="text-xs text-muted mt-0.5 line-clamp-1">
                       {banner.body}
                     </p>
-                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted">
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted">
                       {banner.startsAt && (
                         <span>Starts: {formatDate(banner.startsAt)}</span>
                       )}
@@ -543,7 +543,7 @@ export function BannerManagementSection() {
                     </button>
                     <button
                       onClick={() => setDeleteId(banner.id)}
-                      className="p-1.5 rounded-md text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+                      className="p-1.5 rounded-md text-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                       title="Delete"
                       aria-label="Delete banner"
                     >

@@ -18,13 +18,13 @@ const PLATFORM_META: Record<
   string,
   { icon: typeof Facebook; name: string; accent: string; bg: string }
 > = {
-  facebook: { icon: Facebook, name: "Facebook", accent: "text-blue-600", bg: "bg-blue-50" },
-  instagram: { icon: Instagram, name: "Instagram", accent: "text-pink-600", bg: "bg-pink-50" },
-  linkedin: { icon: Linkedin, name: "LinkedIn", accent: "text-sky-700", bg: "bg-sky-50" },
-  email: { icon: Mail, name: "Email", accent: "text-amber-600", bg: "bg-amber-50" },
-  newsletter: { icon: Mail, name: "Newsletter", accent: "text-teal-600", bg: "bg-teal-50" },
-  website: { icon: Globe, name: "Website", accent: "text-emerald-600", bg: "bg-emerald-50" },
-  flyer: { icon: FileText, name: "Flyer", accent: "text-orange-600", bg: "bg-orange-50" },
+  facebook: { icon: Facebook, name: "Facebook", accent: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+  instagram: { icon: Instagram, name: "Instagram", accent: "text-pink-600", bg: "bg-pink-50 dark:bg-pink-950/40" },
+  linkedin: { icon: Linkedin, name: "LinkedIn", accent: "text-sky-700", bg: "bg-sky-50 dark:bg-sky-950/40" },
+  email: { icon: Mail, name: "Email", accent: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  newsletter: { icon: Mail, name: "Newsletter", accent: "text-teal-600", bg: "bg-teal-50 dark:bg-teal-950/40" },
+  website: { icon: Globe, name: "Website", accent: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+  flyer: { icon: FileText, name: "Flyer", accent: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/40" },
 };
 
 export function PostPreviewPanel({

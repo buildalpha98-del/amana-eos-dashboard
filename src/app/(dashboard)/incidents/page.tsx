@@ -55,9 +55,9 @@ const INCIDENT_TYPES = [
 
 const SEVERITY_LEVELS = [
   { value: "minor", label: "Minor", color: "bg-surface text-foreground/80" },
-  { value: "moderate", label: "Moderate", color: "bg-yellow-100 text-yellow-700" },
-  { value: "reportable", label: "Reportable", color: "bg-orange-100 text-orange-700" },
-  { value: "serious", label: "Serious", color: "bg-red-100 text-red-700" },
+  { value: "moderate", label: "Moderate", color: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300" },
+  { value: "reportable", label: "Reportable", color: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300" },
+  { value: "serious", label: "Serious", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
 ];
 
 const LOCATIONS = [
@@ -78,21 +78,21 @@ const TIMES_OF_DAY = [
 ];
 
 const TYPE_COLORS: Record<string, string> = {
-  injury: "bg-red-50 text-red-700",
-  illness: "bg-purple-50 text-purple-700",
-  behaviour: "bg-blue-50 text-blue-700",
-  missing_child: "bg-rose-50 text-rose-700",
-  near_miss: "bg-amber-50 text-amber-700",
-  medication_error: "bg-orange-50 text-orange-700",
+  injury: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300",
+  illness: "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300",
+  behaviour: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300",
+  missing_child: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300",
+  near_miss: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300",
+  medication_error: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300",
   property_damage: "bg-surface text-foreground/80",
-  complaint: "bg-cyan-50 text-cyan-700",
+  complaint: "bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300",
 };
 
 const SEVERITY_BADGE: Record<string, string> = {
   minor: "bg-surface text-foreground/80",
-  moderate: "bg-yellow-100 text-yellow-700",
-  reportable: "bg-orange-100 text-orange-700",
-  serious: "bg-red-100 text-red-700",
+  moderate: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300",
+  reportable: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  serious: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
 };
 
 function formatLabel(s: string): string {
@@ -201,7 +201,7 @@ function IncidentsPageContent() {
           widget; per-service incident management lives on each service
           detail's Compliance > Incidents tab. We keep this page around
           for filtering / CSV export until those workflows are ported. */}
-      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 flex items-start gap-3">
+      <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4 flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-amber-700 mt-0.5 flex-shrink-0" />
         <div className="flex-1 min-w-0 text-sm">
           <p className="font-semibold text-amber-900 mb-0.5">
@@ -728,7 +728,7 @@ function TrendsTab() {
             {trends.flaggedCentres.map((fc) => (
               <div
                 key={fc.centre}
-                className="bg-red-50 border border-red-200 rounded-xl p-4"
+                className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl p-4"
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Flag className="h-4 w-4 text-red-500" />

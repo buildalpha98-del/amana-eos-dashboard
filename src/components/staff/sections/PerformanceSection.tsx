@@ -46,7 +46,7 @@ export function PerformanceSection({
       sectionKey="performance"
       title="Performance"
       accentDotClass="bg-orange-500"
-      accentActiveClass="bg-orange-100 text-orange-900 border-orange-300"
+      accentActiveClass="bg-orange-100 dark:bg-orange-950/50 text-orange-900 dark:text-orange-200 border-orange-300 dark:border-orange-800"
       subTabs={SUB_TABS}
     >
       {(active) => {

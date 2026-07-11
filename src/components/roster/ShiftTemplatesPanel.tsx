@@ -163,7 +163,7 @@ function TemplateRow({
         className={cn(
           "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium",
           confirming
-            ? "bg-red-100 text-red-900 hover:bg-red-200"
+            ? "bg-red-100 dark:bg-red-950/50 text-red-900 dark:text-red-200 hover:bg-red-200"
             : "text-muted hover:text-foreground hover:bg-muted/30",
           pending && "opacity-60 cursor-not-allowed",
         )}

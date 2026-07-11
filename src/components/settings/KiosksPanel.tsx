@@ -110,7 +110,7 @@ function KioskRowItem({ kiosk }: { kiosk: KioskRow }) {
             {kiosk.label}
           </span>
           {isRevoked && (
-            <span className="text-2xs uppercase tracking-wide font-medium text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+            <span className="text-2xs uppercase tracking-wide font-medium text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/50 px-1.5 py-0.5 rounded">
               revoked
             </span>
           )}
@@ -204,7 +204,7 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
         {!token ? (
           <div className="space-y-3">
             <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-muted mb-1">
                 Service
               </span>
               <select
@@ -221,7 +221,7 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
               </select>
             </label>
             <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-muted mb-1">
                 Label
               </span>
               <input
@@ -253,7 +253,7 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
                 <strong>Copy the token now.</strong> We don't store the
@@ -262,7 +262,7 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-muted mb-1">
                 Bearer token
               </span>
               <textarea

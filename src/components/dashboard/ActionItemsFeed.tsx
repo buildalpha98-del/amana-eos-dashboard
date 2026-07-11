@@ -93,7 +93,7 @@ export function ActionItemsFeed({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-foreground">Action Items</h3>
         {totalItems > 0 && (
-          <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+          <span className="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-full">
             {totalItems} items
           </span>
         )}
@@ -101,7 +101,7 @@ export function ActionItemsFeed({
 
       {totalItems === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center mb-3">
             <CheckSquare className="w-6 h-6 text-emerald-500" />
           </div>
           <p className="text-sm font-medium text-foreground/80">All clear!</p>
@@ -120,7 +120,7 @@ export function ActionItemsFeed({
             {overdueTodos.map((todo) => (
               <FeedItem key={todo.id} href="/todos" borderColor="#F59E0B">
                 <p className="text-sm text-foreground truncate">{todo.title}</p>
-                <p className="text-[11px] text-muted mt-0.5">
+                <p className="text-xs text-muted mt-0.5">
                   {todo.assigneeName} &middot; Due{" "}
                   {new Date(todo.dueDate).toLocaleDateString("en-AU", {
                     day: "numeric",
@@ -165,8 +165,8 @@ export function ActionItemsFeed({
                   <span
                     className={`text-2xs font-bold uppercase px-1.5 py-0.5 rounded ${
                       issue.priority === "critical"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-amber-100 text-amber-700"
+                        ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
+                        : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                     }`}
                   >
                     {issue.priority}
@@ -187,7 +187,7 @@ export function ActionItemsFeed({
             {overdueRocks.map((rock) => (
               <FeedItem key={rock.id} href="/rocks" borderColor="#F59E0B">
                 <p className="text-sm text-foreground truncate">{rock.title}</p>
-                <p className="text-[11px] text-muted mt-0.5">
+                <p className="text-xs text-muted mt-0.5">
                   {rock.ownerName} &middot; {rock.quarter}
                 </p>
               </FeedItem>

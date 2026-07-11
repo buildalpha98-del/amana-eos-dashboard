@@ -153,7 +153,7 @@ export default function ThreadV2() {
             {data.subject ?? "No subject"}
           </h1>
           {data.service && (
-            <p className="text-[11px] text-[color:var(--color-muted)] truncate">
+            <p className="text-xs text-[color:var(--color-muted)] truncate">
               {data.service.name}
             </p>
           )}
@@ -266,7 +266,7 @@ function Bubble({ message }: { message: OptimisticMessage }) {
     <div className={cn("flex", isParent ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[80%] px-3.5 py-2 rounded-[18px] text-[14px] leading-snug",
+          "max-w-[80%] px-3.5 py-2 rounded-[18px] text-sm leading-snug",
           isParent
             ? "bg-[color:var(--color-brand)] text-white rounded-br-[6px]"
             : "bg-[color:var(--color-cream-deep)] text-[color:var(--color-foreground)] rounded-bl-[6px]",
@@ -307,7 +307,7 @@ function TimestampDivider({ iso }: { iso: string }) {
     hour12: true,
   });
   return (
-    <div className="text-[11px] text-[color:var(--color-muted)] text-center my-3 uppercase tracking-wider font-semibold">
+    <div className="text-2xs text-[color:var(--color-muted)] text-center my-3 uppercase tracking-wider font-semibold">
       {stamp}
     </div>
   );

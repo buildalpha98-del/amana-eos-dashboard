@@ -39,8 +39,8 @@ import type { EmployeeListItem } from "@/hooks/useEmployeesList";
 import { AssignToServiceDialog } from "./AssignToServiceDialog";
 
 const STATUS_TONE: Record<EmployeeListItem["status"], string> = {
-  active: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  pending: "bg-amber-100 text-amber-800 border-amber-300",
+  active: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800",
+  pending: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800",
   deactivated: "bg-surface text-foreground/80 border-border",
 };
 

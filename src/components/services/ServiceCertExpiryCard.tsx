@@ -75,9 +75,9 @@ export function ServiceCertExpiryCard({ serviceId }: ServiceCertExpiryCardProps)
         : "yellow";
 
   const toneStyles = {
-    red: "border-red-300 bg-red-50",
-    amber: "border-amber-300 bg-amber-50",
-    yellow: "border-yellow-200 bg-yellow-50",
+    red: "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40",
+    amber: "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40",
+    yellow: "border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40",
   }[tone];
 
   const iconColor = {
@@ -212,12 +212,12 @@ function AffectedStaffRow({ staff }: { staff: AffectedStaffMember }) {
 function CertStatusPill({ cert }: { cert: AffectedCert }) {
   const tone =
     cert.status === "expired"
-      ? "bg-red-100 text-red-800 border-red-300"
+      ? "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 border-red-300 dark:border-red-800"
       : cert.status === "critical"
-        ? "bg-red-50 text-red-700 border-red-200"
+        ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
         : cert.status === "warning"
-          ? "bg-amber-50 text-amber-800 border-amber-200"
-          : "bg-yellow-50 text-yellow-800 border-yellow-200";
+          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800"
+          : "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800";
   const label =
     cert.status === "expired"
       ? "Expired"

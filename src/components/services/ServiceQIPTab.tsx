@@ -70,17 +70,17 @@ const NQS_AREA_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
-  active: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
+  active: { bg: "bg-emerald-100 dark:bg-emerald-950/50", text: "text-emerald-700", icon: CheckCircle2 },
   draft: { bg: "bg-surface", text: "text-muted", icon: Clock },
-  under_review: { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle },
+  under_review: { bg: "bg-amber-100 dark:bg-amber-950/50", text: "text-amber-700", icon: AlertCircle },
   archived: { bg: "bg-surface", text: "text-muted/70", icon: Clock },
 };
 
 const RATING_COLORS: Record<string, string> = {
-  exceeding: "bg-emerald-100 text-emerald-700",
-  meeting: "bg-blue-100 text-blue-700",
-  working_towards: "bg-amber-100 text-amber-700",
-  requires_improvement: "bg-red-100 text-red-700",
+  exceeding: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  meeting: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  working_towards: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  requires_improvement: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
   not_assessed: "bg-surface text-muted",
 };
 
@@ -397,7 +397,7 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
 
                         {/* AI Action Plan Result Panel */}
                         {aiResult[area.id] && (
-                          <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                          <div className="mt-3 p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="text-sm font-medium text-purple-800">
                                 AI-Generated Action Plan

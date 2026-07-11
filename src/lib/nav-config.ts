@@ -160,9 +160,9 @@ export const navItems: NavItem[] = [
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
   // \u2500\u2500 Marketing \u2014 campaigns & brand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Marketing" },
-  { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Marketing", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] },
-  { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Marketing", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] },
+  { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" },
+  { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] },
+  { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] },
 
   // ── People — HR & workforce ───────────────────────────────
   { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING },

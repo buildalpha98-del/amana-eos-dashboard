@@ -29,10 +29,10 @@ import type { CertStatus } from "@/lib/cert-expiry-summary";
 import { CentreDot } from "@/components/ui/CentreDot";
 
 const STATUS_TONE: Record<CertStatus, string> = {
-  expired: "bg-red-100 text-red-800 border-red-300",
-  critical: "bg-red-50 text-red-700 border-red-200",
-  warning: "bg-amber-50 text-amber-800 border-amber-200",
-  upcoming: "bg-yellow-50 text-yellow-800 border-yellow-200",
+  expired: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 border-red-300 dark:border-red-800",
+  critical: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+  warning: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
+  upcoming: "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800",
   valid: "bg-surface text-muted border-border",
 };
 
@@ -114,25 +114,25 @@ function OrgTotals({
     parts.push({
       label: "Expired",
       count: totals.expired,
-      tone: "bg-red-100 text-red-800 border-red-300",
+      tone: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 border-red-300 dark:border-red-800",
     });
   if (totals.critical > 0)
     parts.push({
       label: "≤ 7d",
       count: totals.critical,
-      tone: "bg-red-50 text-red-700 border-red-200",
+      tone: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
     });
   if (totals.warning > 0)
     parts.push({
       label: "≤ 14d",
       count: totals.warning,
-      tone: "bg-amber-50 text-amber-800 border-amber-200",
+      tone: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
     });
   if (totals.upcoming > 0)
     parts.push({
       label: "≤ 30d",
       count: totals.upcoming,
-      tone: "bg-yellow-50 text-yellow-800 border-yellow-200",
+      tone: "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800",
     });
   return (
     <div className="flex flex-wrap items-center gap-1.5 justify-end">
@@ -206,22 +206,22 @@ function CompactCounts({
   return (
     <div className="hidden sm:flex items-center gap-1 text-2xs font-medium flex-shrink-0">
       {totals.expired > 0 ? (
-        <span className="rounded bg-red-100 text-red-800 px-1.5 py-0.5">
+        <span className="rounded bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 px-1.5 py-0.5">
           {totals.expired}E
         </span>
       ) : null}
       {totals.critical > 0 ? (
-        <span className="rounded bg-red-50 text-red-700 px-1.5 py-0.5">
+        <span className="rounded bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 px-1.5 py-0.5">
           {totals.critical}C
         </span>
       ) : null}
       {totals.warning > 0 ? (
-        <span className="rounded bg-amber-50 text-amber-800 px-1.5 py-0.5">
+        <span className="rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 px-1.5 py-0.5">
           {totals.warning}W
         </span>
       ) : null}
       {totals.upcoming > 0 ? (
-        <span className="rounded bg-yellow-50 text-yellow-800 px-1.5 py-0.5">
+        <span className="rounded bg-yellow-50 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-200 px-1.5 py-0.5">
           {totals.upcoming}U
         </span>
       ) : null}

@@ -33,9 +33,9 @@ export function ScraperStatusWidget() {
   }[scrapeRun.status] || <Clock className="w-3.5 h-3.5 text-muted" />;
 
   const statusColor = {
-    running: "bg-blue-50 border-blue-200",
-    completed: "bg-emerald-50 border-emerald-200",
-    failed: "bg-red-50 border-red-200",
+    running: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800",
+    completed: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800",
+    failed: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800",
   }[scrapeRun.status] || "bg-surface/50 border-border";
 
   const timeAgo = (date: string) => {

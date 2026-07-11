@@ -72,9 +72,9 @@ const STATUS_LABEL: Record<PDStatus, string> = {
 function statusPill(s: PDStatus): string {
   switch (s) {
     case "published":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "draft":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     case "archived":
       return "bg-surface text-foreground/80 border-border";
   }
@@ -557,7 +557,7 @@ function PDModal({ mode, id, isAdmin = true, isOwner = false, onClose }: PDModal
                 type="button"
                 onClick={handleDelete}
                 disabled={save.isPending || del.isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
               >
                 {del.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

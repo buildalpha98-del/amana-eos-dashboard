@@ -29,18 +29,18 @@ interface UserOption {
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  on_track: { label: "On Track", color: "bg-emerald-100 text-emerald-700" },
-  off_track: { label: "Off Track", color: "bg-red-100 text-red-700" },
-  complete: { label: "Complete", color: "bg-blue-100 text-blue-700" },
+  on_track: { label: "On Track", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  off_track: { label: "Off Track", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
+  complete: { label: "Complete", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
   dropped: { label: "Dropped", color: "bg-surface text-muted" },
 };
 
 const statusCycle = ["on_track", "off_track", "complete", "dropped"];
 
 const priorityConfig: Record<string, { label: string; color: string }> = {
-  critical: { label: "Critical", color: "bg-red-100 text-red-700" },
-  high: { label: "High", color: "bg-orange-100 text-orange-700" },
-  medium: { label: "Medium", color: "bg-blue-100 text-blue-700" },
+  critical: { label: "Critical", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
+  high: { label: "High", color: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300" },
+  medium: { label: "Medium", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
 };
 
 function getQuarterOptions(): string[] {
@@ -345,7 +345,7 @@ function AddRockModal({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}

@@ -112,7 +112,7 @@ export default function NotificationPreferencesPage() {
           <div
             className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
               data.subscribed
-                ? "bg-green-50 border-green-200"
+                ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800"
                 : "bg-surface/50 border-border"
             }`}
           >
@@ -150,7 +150,7 @@ export default function NotificationPreferencesPage() {
 
           {/* Saved toast */}
           {saved && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg">
+            <div className="mt-4 flex items-center gap-2 text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 px-4 py-2 rounded-lg">
               <Check className="h-4 w-4" />
               Preferences saved
             </div>

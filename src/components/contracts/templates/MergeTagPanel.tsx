@@ -274,7 +274,7 @@ function CustomTagsSection({
               }}
               disabled={del.isPending}
               aria-label={`Delete ${t.label}`}
-              className="p-1 rounded text-muted hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              className="p-1 rounded text-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
               data-testid="custom-tag-delete"
             >
               <X className="w-3 h-3" />
@@ -283,7 +283,7 @@ function CustomTagsSection({
         ))}
 
         {!loading && tags.length === 0 && !adding && (
-          <p className="text-[11px] text-muted italic px-2 py-1">
+          <p className="text-xs text-muted italic px-2 py-1">
             {hasSearch && totalCount > 0
               ? "No custom tags match your search."
               : "No custom tags yet. Add your own with + Add tag."}

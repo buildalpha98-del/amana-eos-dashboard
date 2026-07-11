@@ -115,7 +115,7 @@ export function UploadCalendarDialog({
           {/* Success state */}
           {result ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Calendar Imported Successfully</h3>

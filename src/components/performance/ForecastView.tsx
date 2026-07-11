@@ -38,9 +38,9 @@ const STAGE_LABELS: Record<string, string> = {
 
 function TrendBadge({ trend }: { trend: "growing" | "flat" | "declining" }) {
   const config = {
-    growing: { icon: TrendingUp, cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Growing" },
+    growing: { icon: TrendingUp, cls: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800", label: "Growing" },
     flat: { icon: Minus, cls: "bg-surface text-muted border-border", label: "Flat" },
-    declining: { icon: TrendingDown, cls: "bg-red-50 text-red-700 border-red-200", label: "Declining" },
+    declining: { icon: TrendingDown, cls: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800", label: "Declining" },
   }[trend];
   const Icon = config.icon;
   return (
@@ -216,7 +216,7 @@ export function ForecastView() {
           <Target className="h-5 w-5 text-brand" />
           <h3 className="text-lg font-semibold text-foreground">Enquiry pipeline — expected enrolments</h3>
           {data.pipeline.ratesSource === "observed" ? (
-            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+            <span className="inline-flex items-center rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
               Observed rates · {data.pipeline.observedSampleSize} journeys
             </span>
           ) : (

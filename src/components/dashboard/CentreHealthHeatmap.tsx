@@ -11,9 +11,9 @@ interface CentreHealthHeatmapProps {
 }
 
 const statusColors = {
-  green: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", dot: "bg-emerald-500" },
-  amber: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", dot: "bg-amber-500" },
-  red: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", dot: "bg-red-500" },
+  green: { bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-emerald-200", text: "text-emerald-700", dot: "bg-emerald-500" },
+  amber: { bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200", text: "text-amber-700", dot: "bg-amber-500" },
+  red: { bg: "bg-red-50 dark:bg-red-950/40", border: "border-red-200", text: "text-red-700", dot: "bg-red-500" },
 };
 
 const trendIcons = {
@@ -111,7 +111,7 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
                 className={`${colors.bg} ${colors.border} border rounded-lg p-3 hover:shadow-md transition-shadow group relative`}
               >
                 {/* Rank badge */}
-                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-foreground text-background text-[9px] font-bold shadow-sm">
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-foreground text-background text-2xs font-bold shadow-sm">
                   #{rank}
                 </span>
 
@@ -137,7 +137,7 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
                         </span>
                       )}
                     </div>
-                    <span className="text-[9px] text-muted leading-tight">
+                    <span className="text-2xs text-muted leading-tight">
                       {deltaStr !== undefined ? "vs avg" : trendLabels[trend]}
                     </span>
                   </div>

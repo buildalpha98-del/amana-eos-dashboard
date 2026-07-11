@@ -35,7 +35,7 @@ export default function BillingPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
           Billing
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] mt-1">
@@ -47,7 +47,7 @@ export default function BillingPage() {
       <div className="warm-card">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+            <p className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
               Current Balance
             </p>
             <p

@@ -151,7 +151,7 @@ export default function ContractsPage() {
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-4">
           <Shield className="w-8 h-8 text-red-400" />
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-1">

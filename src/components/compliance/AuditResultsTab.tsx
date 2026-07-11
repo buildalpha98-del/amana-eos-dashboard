@@ -25,10 +25,10 @@ import {
 /* ------------------------------------------------------------------ */
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  scheduled: { label: "Scheduled", color: "bg-blue-100 text-blue-700" },
-  in_progress: { label: "In Progress", color: "bg-amber-100 text-amber-700" },
-  completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700" },
-  overdue: { label: "Overdue", color: "bg-red-100 text-red-700" },
+  scheduled: { label: "Scheduled", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  in_progress: { label: "In Progress", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" },
+  completed: { label: "Completed", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  overdue: { label: "Overdue", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
   skipped: { label: "Skipped", color: "bg-surface text-muted" },
 };
 

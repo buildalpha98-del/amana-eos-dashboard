@@ -118,12 +118,12 @@ function StaffRow({
           )}
         </div>
         {acked ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-1 text-2xs font-medium text-emerald-700 dark:text-emerald-300">
             <CheckCircle2 className="h-3 w-3" />
             Acknowledged
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-800">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/50 px-2 py-1 text-2xs font-medium text-amber-800 dark:text-amber-200">
             <AlertCircle className="h-3 w-3" />
             Acknowledgement required
           </span>

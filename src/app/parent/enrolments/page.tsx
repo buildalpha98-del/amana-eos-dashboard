@@ -9,9 +9,9 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: "Pending Review", color: "bg-amber-100 text-amber-700", icon: Clock },
-  approved: { label: "Approved", color: "bg-green-100 text-green-700", icon: Check },
-  declined: { label: "Declined", color: "bg-red-100 text-red-700", icon: XCircle },
+  pending: { label: "Pending Review", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300", icon: Clock },
+  approved: { label: "Approved", color: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300", icon: Check },
+  declined: { label: "Declined", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300", icon: XCircle },
   withdrawn: { label: "Withdrawn", color: "bg-surface text-muted", icon: XCircle },
 };
 

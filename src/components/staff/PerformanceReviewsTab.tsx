@@ -142,15 +142,15 @@ const GOAL_STATUS_LABEL: Record<GoalStatus, string> = {
 function statusPill(s: ReviewStatus): string {
   switch (s) {
     case "completed":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "cancelled":
       return "bg-surface text-foreground/80 border-border";
     case "awaiting_acknowledgement":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     case "manager_review":
-      return "bg-purple-50 text-purple-700 border-purple-200";
+      return "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800";
     case "self_assessment":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
     default:
       return "bg-surface text-foreground/80 border-border";
   }
@@ -160,13 +160,13 @@ function ratingPill(r: ReviewRating): string {
   switch (r) {
     case "exceptional":
     case "exceeding_expectations":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "meeting_expectations":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
     case "partially_meeting":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     case "below_expectations":
-      return "bg-red-50 text-red-700 border-red-200";
+      return "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
   }
 }
 
@@ -284,7 +284,7 @@ export function PerformanceReviewsTab({
               onClick={() => setEditId(r.id)}
               data-testid={`performance-review-${r.id}`}
             >
-              <div className="shrink-0 p-1.5 rounded-md border bg-orange-100 border-orange-200">
+              <div className="shrink-0 p-1.5 rounded-md border bg-orange-100 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800">
                 <Award className="w-4 h-4 text-orange-700" />
               </div>
               <div className="flex-1 min-w-[200px]">
@@ -744,7 +744,7 @@ function EditReviewModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={save.isPending || del.isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
               >
                 {del.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -867,7 +867,7 @@ function EditReviewModal({
       {(review.selfAssessment ||
         review.selfStrengths ||
         review.selfImprovements) && (
-        <div className="rounded-md border border-blue-200 bg-blue-50/40 p-3 space-y-2">
+        <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-3 space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-blue-900">
             <CheckCircle2 className="w-4 h-4" />
             Self-assessment {review.selfSubmittedAt && (
@@ -967,7 +967,7 @@ function EditReviewModal({
                     type="button"
                     onClick={() => removeGoal(idx)}
                     disabled={save.isPending}
-                    className="shrink-0 p-1.5 rounded-md text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    className="shrink-0 p-1.5 rounded-md text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
                     aria-label="Remove goal"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1050,7 +1050,7 @@ function EditReviewModal({
       </Field>
 
       {review.acknowledgedAt && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50/40 p-3 text-sm">
+        <div className="rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 p-3 text-sm">
           <div className="font-medium text-emerald-900 inline-flex items-center gap-1">
             <CheckCircle2 className="w-4 h-4" />
             Acknowledged {formatDate(review.acknowledgedAt)}

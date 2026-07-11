@@ -210,9 +210,9 @@ function AttendanceTab({
                 <span
                   className={cn(
                     "text-2xs font-semibold px-2 py-0.5 rounded-full",
-                    s.status === "present" ? "bg-green-100 text-green-700" :
-                    s.status === "absent" ? "bg-red-100 text-red-600" :
-                    "bg-amber-100 text-amber-700"
+                    s.status === "present" ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300" :
+                    s.status === "absent" ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400" :
+                    "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                   )}
                 >
                   {s.status === "present" ? "Present" : s.status === "absent" ? "Absent" : "Booked"}
@@ -257,9 +257,9 @@ function AttendanceTab({
                     day === null
                       ? "bg-transparent"
                       : day.status === "present"
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
                         : day.status === "absent"
-                          ? "bg-red-100 text-red-600"
+                          ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400"
                           : "bg-surface text-muted"
                   )}
                 >
@@ -527,7 +527,7 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
           <div>
             <label className="block text-xs font-medium text-foreground/70 mb-1">Action Plan (Asthma/Anaphylaxis)</label>
             {actionPlanUploaded ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-300">
                 <CheckCircle2 className="w-4 h-4" />
                 Action plan uploaded
               </div>

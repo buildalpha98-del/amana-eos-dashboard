@@ -84,10 +84,10 @@ export default function ParentHomeV2() {
 
       {/* ─── Greeting ─────────────────────────────────── */}
       <header>
-        <h1 className="text-[26px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight tracking-[-0.01em]">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight tracking-[-0.01em]">
           Hi {profile.firstName || "there"}.
         </h1>
-        <p className="text-[14px] text-[color:var(--color-muted)] mt-1.5 leading-snug">
+        <p className="text-sm text-[color:var(--color-muted)] mt-1.5 leading-snug">
           {subline}
         </p>
       </header>

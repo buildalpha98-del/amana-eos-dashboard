@@ -81,13 +81,13 @@ const leaveTypeIcons: Record<string, typeof Palmtree> = {
 };
 
 const leaveTypeBadgeColors: Record<string, string> = {
-  annual: "bg-blue-100 text-blue-700",
-  sick: "bg-red-100 text-red-700",
-  personal: "bg-purple-100 text-purple-700",
+  annual: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  sick: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  personal: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
   unpaid: "bg-surface text-foreground/80",
-  long_service: "bg-teal-100 text-teal-700",
-  parental: "bg-pink-100 text-pink-700",
-  compassionate: "bg-amber-100 text-amber-700",
+  long_service: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
+  parental: "bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300",
+  compassionate: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
 };
 
 interface ServiceOption {
@@ -120,19 +120,19 @@ function statusBadge(status: string) {
     case "leave_pending":
       return {
         label: "Pending",
-        className: "bg-amber-100 text-amber-700",
+        className: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
         icon: Clock,
       };
     case "leave_approved":
       return {
         label: "Approved",
-        className: "bg-emerald-100 text-emerald-700",
+        className: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
         icon: CheckCircle2,
       };
     case "leave_rejected":
       return {
         label: "Rejected",
-        className: "bg-red-100 text-red-700",
+        className: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
         icon: XCircle,
       };
     case "leave_cancelled":
@@ -240,21 +240,21 @@ function BalanceCards({ balances }: { balances: LeaveBalanceData[] }) {
       label: "Annual Leave",
       icon: Palmtree,
       color: "text-blue-600",
-      bg: "bg-blue-50",
+      bg: "bg-blue-50 dark:bg-blue-950/40",
     },
     {
       key: "sick",
       label: "Sick Leave",
       icon: Thermometer,
       color: "text-red-600",
-      bg: "bg-red-50",
+      bg: "bg-red-50 dark:bg-red-950/40",
     },
     {
       key: "personal",
       label: "Personal Leave",
       icon: User,
       color: "text-purple-600",
-      bg: "bg-purple-50",
+      bg: "bg-purple-50 dark:bg-purple-950/40",
     },
     {
       key: "other",
@@ -468,7 +468,7 @@ function RequestLeaveModal({
 
           {/* Error */}
           {createRequest.isError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
               <p className="text-sm text-red-700">
                 {createRequest.error?.message || "Failed to submit request"}
@@ -805,7 +805,7 @@ function ApprovalsTab({
               )}
               {/* Impact Analysis Result */}
               {impactResults[req.id] && (
-                <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-purple-700 flex items-center gap-1">
                       <Sparkles className="h-3.5 w-3.5" /> Staffing Impact Analysis
@@ -1013,8 +1013,8 @@ function TeamCalendarTab({
                         className={cn(
                           "text-2xs leading-tight px-1 py-0.5 rounded truncate",
                           entry.status === "leave_approved"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                            : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                         )}
                         title={`${entry.name} - ${leaveTypeLabels[entry.type] || entry.type}`}
                       >
@@ -1035,11 +1035,11 @@ function TeamCalendarTab({
           {/* Legend */}
           <div className="flex items-center gap-4 px-4 py-3 bg-surface/50 border-t border-border">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" />
+              <div className="w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800" />
               <span className="text-xs text-muted">Approved</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-amber-100 border border-amber-200" />
+              <div className="w-3 h-3 rounded bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800" />
               <span className="text-xs text-muted">Pending</span>
             </div>
           </div>
@@ -1189,7 +1189,7 @@ export default function LeavePage() {
           notification in Employment Hero itself. This banner steers
           both staff and admins to the new flow. Existing pending
           requests still visible below so admins can drain the queue. */}
-      <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 flex flex-wrap items-start gap-3">
+      <div className="mb-6 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4 flex flex-wrap items-start gap-3">
         <div className="flex-1 min-w-[200px]">
           <p className="text-sm font-semibold text-amber-900">
             New leave requests now go through My Portal
@@ -1213,7 +1213,7 @@ export default function LeavePage() {
           payroll-of-record view lives at /leave-payroll. Surface a
           banner so admins know where the live data is. */}
       {isAdmin && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 flex flex-wrap items-start gap-3">
+        <div className="mb-6 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-4 flex flex-wrap items-start gap-3">
           <div className="flex-1 min-w-[200px]">
             <p className="text-sm font-semibold text-blue-900">
               Payroll-of-record leave lives in Employment Hero
@@ -1388,7 +1388,7 @@ export default function LeavePage() {
 
       {/* Error State */}
       {requestsError && (
-        <div className="flex items-center gap-2 p-4 mb-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-center gap-2 p-4 mb-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">
             Failed to load leave requests. Please try refreshing the page.

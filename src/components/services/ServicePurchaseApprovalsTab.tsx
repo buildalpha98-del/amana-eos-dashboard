@@ -64,13 +64,13 @@ const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
 function statusPill(s: ApprovalStatus): string {
   switch (s) {
     case "approved":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "rejected":
-      return "bg-red-50 text-red-700 border-red-200";
+      return "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
     case "cancelled":
       return "bg-surface text-foreground/80 border-border";
     default:
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
   }
 }
 
@@ -440,7 +440,7 @@ function CreateApprovalModal({
           className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
         />
       </Field>
-      <div className="rounded-md border border-blue-200 bg-blue-50/40 p-3 text-xs text-blue-900">
+      <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-3 text-xs text-blue-900 dark:text-blue-200">
         <p className="font-semibold">How this works</p>
         <ol className="list-decimal pl-4 mt-1 space-y-0.5">
           <li>You submit this request</li>
@@ -515,7 +515,7 @@ function DecideApprovalModal({
             type="button"
             onClick={() => decide.mutate("rejected")}
             disabled={decide.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
           >
             {pendingStatus === "rejected" ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -579,7 +579,7 @@ function DecideApprovalModal({
           className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
         />
       </Field>
-      <div className="rounded-md border border-blue-200 bg-blue-50/40 p-3 text-xs text-blue-900">
+      <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-3 text-xs text-blue-900 dark:text-blue-200">
         After your decision the requester is notified instantly. On
         approval they&apos;re told to make the purchase and submit an
         expense claim from My Portal.

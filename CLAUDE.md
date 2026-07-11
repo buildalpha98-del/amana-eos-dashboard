@@ -31,7 +31,7 @@
 - API key auth: `authenticateApiKey(req, scope)` with scope-based access (for dashboard-generated keys)
 - **Cowork API auth**: `authenticateCowork(req)` from `@/app/api/_lib/auth` — Bearer token vs `COWORK_API_KEY` env var. ALL cowork routes use this pattern (not `authenticateApiKey`).
 - Dashboard API auth: `withApiAuth(handler, options?)` from `@/lib/server-auth` — session-based wrapper with rate limiting, timeout, and role/feature authorization
-- Nav config: centralized in `src/lib/nav-config.ts` with sections (Home, EOS, Operations, Growth, People, Admin)
+- Nav config: centralized in `src/lib/nav-config.ts` with sections (Home, EOS, Operations, Growth, People, Admin, Settings). Keep each section's items contiguous — the sidebar renders one header per section name (Marketing items live inside Growth as of 2026-07-12)
 - Email templates: inline styles in `src/lib/email-templates.ts`, use `baseLayout()` wrapper and `buttonHtml()` for CTAs
 - Vercel cron config in `vercel.json`
 - Build command: `npm run build` — always verify after changes

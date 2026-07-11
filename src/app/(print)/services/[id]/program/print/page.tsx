@@ -178,7 +178,7 @@ export default async function ProgramPrintPage({
                             {split[session][day].map((a) => (
                               <li
                                 key={a.id}
-                                className="border-l-2 border-brand pl-2 text-[11px] leading-snug"
+                                className="border-l-2 border-brand pl-2 text-xs leading-snug"
                               >
                                 <div className="font-mono text-2xs text-muted">
                                   {a.startTime}–{a.endTime}

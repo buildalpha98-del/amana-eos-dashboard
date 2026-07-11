@@ -319,13 +319,13 @@ function ApplyToServicesModalInner({
                 . Duplicates will be skipped.
               </p>
               {droppedPastMonths.length > 0 && (
-                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                   <AlertTriangle className="w-3 h-3" />
                   Skipping past months: {droppedPastMonths.map((m) => monthNames[m - 1]).join(", ")}
                 </div>
               )}
               {year < currentYear && (
-                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-50 text-red-700 border border-red-200">
+                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
                   <AlertTriangle className="w-3 h-3" />
                   No instances will be created for past years
                 </div>

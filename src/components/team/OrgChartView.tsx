@@ -105,7 +105,7 @@ function SeatCard({
         <div className="px-3 py-2">
           <ul className="space-y-0.5">
             {seat.responsibilities.map((r, i) => (
-              <li key={i} className="text-[11px] text-muted flex items-start gap-1.5">
+              <li key={i} className="text-xs text-muted flex items-start gap-1.5">
                 <span className="text-muted mt-0.5 shrink-0">&bull;</span>
                 <span>{r}</span>
               </li>

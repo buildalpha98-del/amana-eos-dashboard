@@ -70,7 +70,7 @@ export function CampaignGateModal({
         >
           <div className="flex items-start justify-between border-b px-6 py-4">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
+              <div className="mt-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 p-1.5 text-amber-700 dark:text-amber-300">
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div>

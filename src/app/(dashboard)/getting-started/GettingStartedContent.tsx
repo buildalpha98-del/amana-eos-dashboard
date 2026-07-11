@@ -423,7 +423,7 @@ export function GettingStartedContent() {
                         className={cn(
                           "text-xs font-medium px-2 py-0.5 rounded-full",
                           catDone
-                            ? "bg-emerald-50 text-emerald-600"
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
                             : "bg-surface text-muted",
                         )}
                       >

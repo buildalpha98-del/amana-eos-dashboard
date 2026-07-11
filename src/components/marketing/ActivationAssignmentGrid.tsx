@@ -33,8 +33,8 @@ interface RowData {
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending", color: "bg-surface text-muted" },
-  { value: "confirmed", label: "Confirmed", color: "bg-blue-100 text-blue-700" },
-  { value: "completed", label: "Completed", color: "bg-emerald-100 text-emerald-700" },
+  { value: "confirmed", label: "Confirmed", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  { value: "completed", label: "Completed", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
 ];
 
 export function ActivationAssignmentGrid({

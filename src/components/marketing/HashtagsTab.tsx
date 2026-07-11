@@ -20,10 +20,10 @@ import {
 const CATEGORIES = ["All", "Brand", "Campaign", "Platform", "Trending"] as const;
 
 const categoryBadgeColors: Record<string, string> = {
-  brand: "bg-purple-100 text-purple-700",
-  campaign: "bg-blue-100 text-blue-700",
-  platform: "bg-green-100 text-green-700",
-  trending: "bg-orange-100 text-orange-700",
+  brand: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  campaign: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  platform: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  trending: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
 };
 
 export function HashtagsTab() {
@@ -149,7 +149,7 @@ export function HashtagsTab() {
                         deleteHashtagSet.mutate(set.id);
                     }}
                     aria-label="Delete hashtag set"
-                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -166,7 +166,7 @@ export function HashtagsTab() {
                     onClick={() => handleCopy(set.id, set.tags)}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                       isCopied
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
                         : "bg-surface text-muted hover:bg-border"
                     }`}
                   >

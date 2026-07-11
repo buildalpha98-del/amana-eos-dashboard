@@ -58,7 +58,7 @@ export function ActionRequiredWidget({ userRole }: { userRole: string }) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
       <Link
         href="/compliance?filter=expiring"
-        className="border rounded-lg p-4 bg-card hover:bg-amber-50 transition flex items-center gap-3"
+        className="border rounded-lg p-4 bg-card hover:bg-amber-50 dark:hover:bg-amber-950/40 transition flex items-center gap-3"
       >
         <Shield className="h-8 w-8 text-amber-600" />
         <div>
@@ -70,7 +70,7 @@ export function ActionRequiredWidget({ userRole }: { userRole: string }) {
       </Link>
       <Link
         href="/leave?filter=pending"
-        className="border rounded-lg p-4 bg-card hover:bg-blue-50 transition flex items-center gap-3"
+        className="border rounded-lg p-4 bg-card hover:bg-blue-50 dark:hover:bg-blue-950/40 transition flex items-center gap-3"
       >
         <Calendar className="h-8 w-8 text-blue-600" />
         <div>
@@ -82,7 +82,7 @@ export function ActionRequiredWidget({ userRole }: { userRole: string }) {
       </Link>
       <Link
         href="/timesheets?filter=pending"
-        className="border rounded-lg p-4 bg-card hover:bg-green-50 transition flex items-center gap-3"
+        className="border rounded-lg p-4 bg-card hover:bg-green-50 dark:hover:bg-green-950/40 transition flex items-center gap-3"
       >
         <Clock className="h-8 w-8 text-green-600" />
         <div>
@@ -94,7 +94,7 @@ export function ActionRequiredWidget({ userRole }: { userRole: string }) {
       </Link>
       <Link
         href="/roster/swaps?filter=pending"
-        className="border rounded-lg p-4 bg-card hover:bg-orange-50 transition flex items-center gap-3"
+        className="border rounded-lg p-4 bg-card hover:bg-orange-50 dark:hover:bg-orange-950/40 transition flex items-center gap-3"
       >
         <RefreshCw className="h-8 w-8 text-orange-600" />
         <div>
@@ -106,7 +106,7 @@ export function ActionRequiredWidget({ userRole }: { userRole: string }) {
       </Link>
       <Link
         href="/communication?tab=pulse"
-        className="border rounded-lg p-4 bg-card hover:bg-rose-50 transition flex items-center gap-3"
+        className="border rounded-lg p-4 bg-card hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex items-center gap-3"
       >
         <HeartPulse className="h-8 w-8 text-rose-600" />
         <div>

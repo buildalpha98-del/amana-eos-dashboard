@@ -80,7 +80,7 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
           // Tablet tap target
           "min-h-[44px]",
           "bg-gradient-to-r from-[color:var(--color-brand)] to-[color:var(--color-brand-light)]",
-          "text-white text-[13px] font-medium",
+          "text-white text-sm font-medium",
           "hover:opacity-90 transition-opacity",
           "disabled:opacity-50",
         )}
@@ -101,7 +101,7 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
           </DialogTitle>
           <div className="space-y-3">
             <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
                 Headline
               </span>
               <input
@@ -111,7 +111,7 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
               />
             </label>
             <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
                 Newsletter body (Markdown)
               </span>
               <textarea
@@ -126,7 +126,7 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
                 type="button"
                 onClick={() => generate.mutate()}
                 disabled={generate.isPending}
-                className="text-[12px] font-medium text-[color:var(--color-muted)] hover:text-[color:var(--color-foreground)]"
+                className="text-xs font-medium text-[color:var(--color-muted)] hover:text-[color:var(--color-foreground)]"
               >
                 Re-generate
               </button>
@@ -149,7 +149,7 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
                   className={cn(
                     "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
                     "min-h-[44px]",
-                    "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+                    "bg-[color:var(--color-brand)] text-white text-sm font-medium",
                     "hover:bg-[color:var(--color-brand-hover)]",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                   )}

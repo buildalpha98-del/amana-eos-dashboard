@@ -46,16 +46,16 @@ const stageOptions: { key: PipelineStage; label: string }[] = [
 ];
 
 const stageColors: Record<string, string> = {
-  new_lead: "bg-indigo-100 text-indigo-700 border-indigo-300",
-  reviewing: "bg-purple-100 text-purple-700 border-purple-300",
-  contact_made: "bg-blue-100 text-blue-700 border-blue-300",
-  follow_up_1: "bg-sky-100 text-sky-700 border-sky-300",
-  follow_up_2: "bg-cyan-100 text-cyan-700 border-cyan-300",
-  meeting_booked: "bg-teal-100 text-teal-700 border-teal-300",
-  proposal_sent: "bg-amber-100 text-amber-700 border-amber-300",
-  submitted: "bg-orange-100 text-orange-700 border-orange-300",
-  negotiating: "bg-red-100 text-red-700 border-red-300",
-  won: "bg-emerald-100 text-emerald-700 border-emerald-300",
+  new_lead: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800",
+  reviewing: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800",
+  contact_made: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800",
+  follow_up_1: "bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-800",
+  follow_up_2: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800",
+  meeting_booked: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-800",
+  proposal_sent: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800",
+  submitted: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-800",
+  negotiating: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800",
+  won: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
   lost: "bg-surface text-muted border-border",
   on_hold: "bg-surface text-muted border-border",
 };
@@ -465,8 +465,8 @@ export function LeadDetailDrawer({
                   <span
                     className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                       lead.source === "tender"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-emerald-100 text-emerald-700"
+                        ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
+                        : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                     }`}
                   >
                     {lead.source}
@@ -546,7 +546,7 @@ export function LeadDetailDrawer({
                       });
                     }}
                     disabled={scoreLead.isPending}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {scoreLead.isPending ? (
                       <>
@@ -569,10 +569,10 @@ export function LeadDetailDrawer({
                         className={cn(
                           "text-lg font-bold px-3 py-1 rounded-full",
                           lead.aiScore >= 70
-                            ? "bg-emerald-100 text-emerald-700"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                             : lead.aiScore >= 40
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-red-100 text-red-700",
+                              ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                              : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
                         )}
                       >
                         {lead.aiScore}
@@ -656,7 +656,7 @@ export function LeadDetailDrawer({
                         {showAcquisition ? "Hide Analysis" : "Show Analysis"}
                       </button>
                       {showAcquisition && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                        <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
                           {acquisitionResult}
                         </div>
                       )}

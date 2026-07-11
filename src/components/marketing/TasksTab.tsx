@@ -46,30 +46,30 @@ const STATUS_COLUMNS = [
     label: "In Progress",
     icon: Clock,
     color: "border-blue-300",
-    bg: "bg-blue-50",
-    badge: "bg-blue-100 text-blue-700",
+    bg: "bg-blue-50 dark:bg-blue-950/40",
+    badge: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
   },
   {
     key: "in_review" as const,
     label: "In Review",
     icon: Eye,
     color: "border-amber-300",
-    bg: "bg-amber-50",
-    badge: "bg-amber-100 text-amber-700",
+    bg: "bg-amber-50 dark:bg-amber-950/40",
+    badge: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
   },
   {
     key: "done" as const,
     label: "Done",
     icon: CheckCircle2,
     color: "border-emerald-300",
-    bg: "bg-emerald-50",
-    badge: "bg-emerald-100 text-emerald-700",
+    bg: "bg-emerald-50 dark:bg-emerald-950/40",
+    badge: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
   },
 ];
 
 const PRIORITY_COLORS = {
-  high: "bg-red-100 text-red-700 border-red-200",
-  medium: "bg-amber-100 text-amber-700 border-amber-200",
+  high: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+  medium: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
   low: "bg-surface text-muted border-border",
 };
 
@@ -89,16 +89,16 @@ function getDueIndicator(dueDate: string | null): {
   if (diffDays < 0) {
     return {
       label: `${Math.abs(diffDays)}d overdue`,
-      className: "text-red-600 bg-red-50",
+      className: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40",
     };
   }
   if (diffDays === 0) {
-    return { label: "Due today", className: "text-amber-600 bg-amber-50" };
+    return { label: "Due today", className: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40" };
   }
   if (diffDays <= 3) {
     return {
       label: `${diffDays}d left`,
-      className: "text-amber-600 bg-amber-50",
+      className: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40",
     };
   }
   return {

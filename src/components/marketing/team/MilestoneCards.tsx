@@ -4,10 +4,10 @@ import type { ResolvedMilestone } from "@/hooks/useContentTeam";
 import { CheckCircle2, AlertCircle, AlertTriangle, Clock } from "lucide-react";
 
 const STATUS_VISUAL: Record<ResolvedMilestone["status"], { className: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
-  complete: { className: "border-green-200 bg-green-50 text-green-900", icon: CheckCircle2, label: "Complete" },
+  complete: { className: "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-900 dark:text-green-200", icon: CheckCircle2, label: "Complete" },
   on_track: { className: "border-border bg-card text-foreground", icon: Clock, label: "On track" },
-  at_risk: { className: "border-amber-200 bg-amber-50 text-amber-900", icon: AlertTriangle, label: "At risk" },
-  overdue: { className: "border-red-200 bg-red-50 text-red-900", icon: AlertCircle, label: "Overdue" },
+  at_risk: { className: "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200", icon: AlertTriangle, label: "At risk" },
+  overdue: { className: "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200", icon: AlertCircle, label: "Overdue" },
 };
 
 const ROLE_LABEL: Record<string, string> = {

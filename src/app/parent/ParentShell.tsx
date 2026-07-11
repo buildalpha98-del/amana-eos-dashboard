@@ -114,7 +114,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                 <item.icon className="w-4 h-4" />
                 {item.label}
                 {showBadge && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-2xs font-bold">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
@@ -164,7 +164,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
               <item.icon className="w-5 h-5" />
               <span className="text-2xs font-medium">{item.label}</span>
               {showBadge && (
-                <span className="absolute top-1 right-[calc(50%-2px)] translate-x-3 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">
+                <span className="absolute top-1 right-[calc(50%-2px)] translate-x-3 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-2xs font-bold">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}

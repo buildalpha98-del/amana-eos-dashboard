@@ -249,7 +249,7 @@ function SectionDropdown({
             <div className="min-w-0 flex-1">
               <p className="truncate">{item.label}</p>
               {!twoCol && item.tooltip && (
-                <p className="text-[11px] text-muted line-clamp-2 mt-0.5">
+                <p className="text-xs text-muted line-clamp-2 mt-0.5">
                   {item.tooltip}
                 </p>
               )}

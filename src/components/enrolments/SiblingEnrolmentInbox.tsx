@@ -25,9 +25,9 @@ const STATUS_TABS = [
 ];
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "bg-amber-50 text-amber-700" },
-  approved: { label: "Approved", color: "bg-green-50 text-green-700" },
-  declined: { label: "Declined", color: "bg-red-50 text-red-700" },
+  pending: { label: "Pending", color: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300" },
+  approved: { label: "Approved", color: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300" },
+  declined: { label: "Declined", color: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300" },
   withdrawn: { label: "Withdrawn", color: "bg-surface text-muted" },
 };
 
@@ -87,8 +87,8 @@ export function SiblingEnrolmentInbox() {
     <div className="space-y-4">
       {/* Header stat */}
       {pendingCount > 0 && activeTab === "pending" && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center shrink-0">
             <UserPlus className="h-5 w-5 text-amber-700" />
           </div>
           <div>

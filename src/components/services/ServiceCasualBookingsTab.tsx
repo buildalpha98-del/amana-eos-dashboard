@@ -174,7 +174,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
       {/* ── Info banner ─────────────────────────────────────── */}
       <div
         role="status"
-        className="flex items-start gap-3 p-4 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900"
+        className="flex items-start gap-3 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40 text-yellow-900 dark:text-yellow-200"
       >
         <AlertTriangle className="w-5 h-5 text-yellow-700 shrink-0 mt-0.5" />
         <div className="text-sm leading-snug">

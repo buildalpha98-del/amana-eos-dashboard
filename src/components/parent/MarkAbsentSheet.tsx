@@ -145,7 +145,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
             className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-card resize-none focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           />
           <p className={cn(
-            "text-right text-[11px] mt-1",
+            "text-right text-xs mt-1",
             overLimit ? "text-red-600" : "text-muted",
           )}>
             {notes.length}/{NOTES_LIMIT}

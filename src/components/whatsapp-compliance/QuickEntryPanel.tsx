@@ -73,7 +73,7 @@ export function QuickEntryPanel({ grid }: QuickEntryPanelProps) {
 
   if (allComplete && !mutation.isPending && submitted) {
     return (
-      <section className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+      <section className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 p-4 text-sm text-green-900 dark:text-green-200">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5" />
           <strong>Yesterday&apos;s check-in complete</strong> — view in the grid below.
@@ -156,9 +156,9 @@ export function QuickEntryPanel({ grid }: QuickEntryPanelProps) {
               key={centre.id}
               className={`rounded-lg border p-3 text-sm ${
                 row.posted
-                  ? "border-green-300 bg-green-50"
+                  ? "border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40"
                   : row.notPostingReason
-                  ? "border-amber-300 bg-amber-50"
+                  ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40"
                   : "border-border bg-surface"
               }`}
             >

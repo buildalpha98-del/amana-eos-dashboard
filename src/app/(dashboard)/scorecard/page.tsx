@@ -185,7 +185,7 @@ export default function ScorecardPage() {
       {selectedSummary &&
       selectedSummary._count.members === 0 &&
       canManageSelected ? (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-2">
+        <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2">
           <Users className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-medium">No members yet</p>
@@ -196,7 +196,7 @@ export default function ScorecardPage() {
           <button
             type="button"
             onClick={() => setShowManageMembers(true)}
-            className="rounded-md border border-amber-300 bg-card px-2.5 py-1 text-xs text-amber-900 hover:bg-amber-100"
+            className="rounded-md border border-amber-300 dark:border-amber-800 bg-card px-2.5 py-1 text-xs text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/50"
           >
             Invite members
           </button>
@@ -286,7 +286,7 @@ export default function ScorecardPage() {
 
       {/* AI Narrative */}
       {aiNarrative && (
-        <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4">
+        <div className="mb-6 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiNarrative}</div>
             <button onClick={() => setAiNarrative("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">

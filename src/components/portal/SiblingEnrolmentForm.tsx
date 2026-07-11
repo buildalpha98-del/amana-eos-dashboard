@@ -596,7 +596,7 @@ function Step4Consents({
               key={key}
               className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer min-h-[44px] ${
                 errors[key]
-                  ? "border-red-300 bg-red-50"
+                  ? "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40"
                   : "border-border hover:bg-[#f8f5f2]"
               }`}
             >

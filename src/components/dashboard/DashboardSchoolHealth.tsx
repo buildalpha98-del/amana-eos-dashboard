@@ -66,10 +66,10 @@ export function DashboardSchoolHealth() {
 
   const scoreColor = (score: number) =>
     score >= 70
-      ? "text-emerald-700 bg-emerald-50"
+      ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
       : score >= 40
-        ? "text-amber-700 bg-amber-50"
-        : "text-red-700 bg-red-50";
+        ? "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40"
+        : "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40";
 
   return (
     <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
@@ -93,7 +93,7 @@ export function DashboardSchoolHealth() {
           Avg: <span className={cn("font-bold", avgScore >= 70 ? "text-emerald-600" : avgScore >= 40 ? "text-amber-600" : "text-red-600")}>{avgScore}</span>
         </div>
         {atRisk > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-xs font-medium text-red-700">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-950/40 text-xs font-medium text-red-700 dark:text-red-300">
             {atRisk} at risk
           </div>
         )}
@@ -127,7 +127,7 @@ export function DashboardSchoolHealth() {
                   {s.healthScore}
                 </span>
               </div>
-              <div className="space-y-1 text-[11px] text-muted">
+              <div className="space-y-1 text-xs text-muted">
                 <div className="flex justify-between">
                   <span>Last visit</span>
                   <span className={cn("font-medium", daysSinceVisit && daysSinceVisit > 90 ? "text-red-600" : "text-foreground/80")}>

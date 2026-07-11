@@ -51,17 +51,17 @@ interface ServiceOption {
 }
 
 const statusSteps: { key: TicketStatus; label: string; color: string; activeColor: string }[] = [
-  { key: "new", label: "New", color: "bg-blue-100 text-blue-700", activeColor: "bg-blue-500 text-white" },
-  { key: "open", label: "Open", color: "bg-amber-100 text-amber-700", activeColor: "bg-amber-500 text-white" },
-  { key: "pending_parent", label: "Pending", color: "bg-purple-100 text-purple-700", activeColor: "bg-purple-500 text-white" },
-  { key: "resolved", label: "Resolved", color: "bg-emerald-100 text-emerald-700", activeColor: "bg-emerald-500 text-white" },
+  { key: "new", label: "New", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300", activeColor: "bg-blue-500 text-white" },
+  { key: "open", label: "Open", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300", activeColor: "bg-amber-500 text-white" },
+  { key: "pending_parent", label: "Pending", color: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300", activeColor: "bg-purple-500 text-white" },
+  { key: "resolved", label: "Resolved", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300", activeColor: "bg-emerald-500 text-white" },
   { key: "closed", label: "Closed", color: "bg-surface text-muted", activeColor: "bg-muted text-white" },
 ];
 
 const priorityOptions: { key: TicketPriority; label: string; color: string }[] = [
-  { key: "urgent", label: "Urgent", color: "bg-red-100 text-red-700" },
-  { key: "high", label: "High", color: "bg-orange-100 text-orange-700" },
-  { key: "normal", label: "Normal", color: "bg-blue-100 text-blue-700" },
+  { key: "urgent", label: "Urgent", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
+  { key: "high", label: "High", color: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300" },
+  { key: "normal", label: "Normal", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
   { key: "low", label: "Low", color: "bg-surface text-muted" },
 ];
 
@@ -367,8 +367,8 @@ export function TicketDetailPanel({
               <div className={cn(
                 "px-4 py-1.5 text-center text-xs font-medium border-t",
                 isWindowOpen
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : "bg-red-50 text-red-700 border-red-200"
+                  ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                  : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
               )}>
                 {isWindowOpen
                   ? "24-hour messaging window is open"
@@ -418,7 +418,7 @@ export function TicketDetailPanel({
                   label=""
                   size="sm"
                   section="tickets"
-                  className="p-2 text-purple-400 hover:text-purple-600 rounded-lg hover:bg-purple-50 transition-colors flex-shrink-0 !border-0 !px-2 !py-2"
+                  className="p-2 text-purple-400 hover:text-purple-600 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors flex-shrink-0 !border-0 !px-2 !py-2"
                 />
                 <textarea
                   value={replyText}

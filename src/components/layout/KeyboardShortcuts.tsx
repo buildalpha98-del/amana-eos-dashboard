@@ -207,7 +207,7 @@ export function KeyboardShortcuts() {
             <div className="px-6 pb-4 space-y-5 max-h-[60vh] overflow-y-auto">
               {shortcutGroups.map((group) => (
                 <div key={group.title}>
-                  <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2.5">
+                  <h3 className="text-2xs font-semibold text-muted uppercase tracking-wider mb-2.5">
                     {group.title}
                   </h3>
                   <div className="space-y-1.5">

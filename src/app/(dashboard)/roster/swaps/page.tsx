@@ -44,10 +44,10 @@ function formatDate(iso: string): string {
 
 function StatusBadge({ status }: { status: SwapItem["status"] }) {
   const styles: Record<SwapItem["status"], string> = {
-    proposed: "bg-amber-100 text-amber-900",
-    accepted: "bg-blue-100 text-blue-900",
-    approved: "bg-green-100 text-green-900",
-    rejected: "bg-red-100 text-red-900",
+    proposed: "bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200",
+    accepted: "bg-blue-100 dark:bg-blue-950/50 text-blue-900 dark:text-blue-200",
+    approved: "bg-green-100 dark:bg-green-950/50 text-green-900 dark:text-green-200",
+    rejected: "bg-red-100 dark:bg-red-950/50 text-red-900 dark:text-red-200",
     cancelled: "bg-surface text-foreground/80",
   };
   return (

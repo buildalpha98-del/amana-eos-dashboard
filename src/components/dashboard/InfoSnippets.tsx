@@ -106,7 +106,7 @@ export function InfoSnippets() {
         </div>
         <div className="flex items-center gap-2">
           {unacknowledgedCount === 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-2xs font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-2xs font-semibold">
               <CheckCircle2 className="w-3 h-3" />
               All caught up
             </span>
@@ -173,7 +173,7 @@ function SnippetCard({
       </div>
       <div className="flex-shrink-0">
         {snippet.acknowledged ? (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium">
             <CheckCircle2 className="w-3.5 h-3.5" />
             Done
           </span>

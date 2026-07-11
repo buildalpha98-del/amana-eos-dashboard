@@ -200,7 +200,7 @@ export function RegistersClient({
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border print:border-0">
               <table className="w-full text-xs">
-                <thead className="text-left text-[11px] text-muted uppercase tracking-wide bg-surface print:bg-transparent">
+                <thead className="text-left text-2xs text-muted uppercase tracking-wide bg-surface print:bg-transparent">
                   <tr>
                     <Th>Name</Th>
                     <Th>DOB</Th>

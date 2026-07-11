@@ -271,7 +271,7 @@ export function ServiceResponsiblePersonTab({
                           {entry ? (
                             <RpCell entry={entry} />
                           ) : (
-                            <div className="min-h-[40px] flex items-center text-[11px] text-muted/70">
+                            <div className="min-h-[40px] flex items-center text-xs text-muted/70">
                               {canEdit ? (
                                 <span className="inline-flex items-center gap-1">
                                   <UserPlus className="w-3 h-3" /> Assign
@@ -325,11 +325,11 @@ function RpCell({ entry }: { entry: RpEntry }) {
         {entry.personName}
       </div>
       {entry.personRole && (
-        <div className="text-[11px] text-muted leading-tight">
+        <div className="text-xs text-muted leading-tight">
           {entry.personRole}
         </div>
       )}
-      <div className="text-[11px] text-muted/80 mt-0.5">
+      <div className="text-xs text-muted/80 mt-0.5">
         {entry.startTime}–{entry.endTime}
       </div>
     </div>

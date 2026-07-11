@@ -151,7 +151,7 @@ export function AiGenerateModal({
             )}
 
             {error && !generating && (
-              <div className="rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <div className="rounded-md bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">
                 <p className="font-medium">Generation failed</p>
                 <p className="mt-1">{error}</p>
               </div>
@@ -159,9 +159,9 @@ export function AiGenerateModal({
 
             {proposed && (
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                   {meta?.cached && (
-                    <span className="rounded-md bg-blue-50 px-2 py-0.5 text-blue-700">
+                    <span className="rounded-md bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 text-blue-700 dark:text-blue-300">
                       cached (24h reuse)
                     </span>
                   )}

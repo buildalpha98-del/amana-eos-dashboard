@@ -9,7 +9,7 @@ export function HeadlinesSection({
 }) {
   return (
     <div className="space-y-4">
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-amber-800 mb-1">
           Customer &amp; Employee Headlines
         </h4>

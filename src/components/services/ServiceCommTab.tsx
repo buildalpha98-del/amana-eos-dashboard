@@ -29,9 +29,9 @@ import {
 function getPriorityConfig(priority: string) {
   switch (priority) {
     case "urgent":
-      return { bg: "bg-red-100", text: "text-red-700", icon: AlertTriangle, label: "Urgent" };
+      return { bg: "bg-red-100 dark:bg-red-950/50", text: "text-red-700", icon: AlertTriangle, label: "Urgent" };
     case "important":
-      return { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle, label: "Important" };
+      return { bg: "bg-amber-100 dark:bg-amber-950/50", text: "text-amber-700", icon: AlertCircle, label: "Important" };
     default:
       return { bg: "bg-surface", text: "text-muted", icon: Info, label: "Normal" };
   }

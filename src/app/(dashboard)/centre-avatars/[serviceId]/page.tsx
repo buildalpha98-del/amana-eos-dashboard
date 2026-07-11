@@ -30,9 +30,9 @@ import {
 } from "@/components/centre-avatars/LivingLogs";
 
 const FRESHNESS_META = {
-  fresh: { label: "Fresh", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  aging: { label: "Aging", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  stale: { label: "Stale", className: "bg-rose-100 text-rose-700 border-rose-200" },
+  fresh: { label: "Fresh", className: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800" },
+  aging: { label: "Aging", className: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800" },
+  stale: { label: "Stale", className: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800" },
 } as const;
 
 export default function CentreAvatarDetailPage({
@@ -170,7 +170,7 @@ export default function CentreAvatarDetailPage({
           </span>
         )}
         {pendingInsightsCount > 0 && (
-          <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 font-medium text-amber-700">
+          <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-300">
             <Sparkles className="h-3 w-3" />
             {pendingInsightsCount} pending insight{pendingInsightsCount === 1 ? "" : "s"}
           </span>

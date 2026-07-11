@@ -129,7 +129,7 @@ export function ActivationQrLink({ activationId, serviceId, title }: ActivationQ
       {creating ? (
         <div className="rounded-md border border-border bg-surface p-3 space-y-2">
           <div>
-            <label className="block text-[11px] text-muted mb-1">Destination URL (leave blank for default enquiry form)</label>
+            <label className="block text-xs text-muted mb-1">Destination URL (leave blank for default enquiry form)</label>
             <input
               type="url"
               value={destOverride}

@@ -174,7 +174,7 @@ export function BookingRequestsInbox() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 text-sm text-red-700 dark:text-red-300">
           Failed to load booking requests. Please try again.
         </div>
       )}
@@ -286,7 +286,7 @@ export function BookingRequestsInbox() {
                       variant="outline"
                       onClick={() => { setDeclineTarget(booking); setDeclineReason(""); }}
                       disabled={isProcessing}
-                      className="min-h-[44px] min-w-[44px] border-red-300 text-red-600 hover:bg-red-50 gap-1.5"
+                      className="min-h-[44px] min-w-[44px] border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 gap-1.5"
                     >
                       <XCircle className="h-4 w-4" />
                       <span className="hidden sm:inline">Decline</span>

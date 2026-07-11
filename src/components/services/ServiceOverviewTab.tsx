@@ -185,11 +185,11 @@ export function ServiceOverviewTab({
                     className={cn(
                       "text-2xs px-1.5 py-0.5 rounded-full border font-medium capitalize",
                       project.status === "active"
-                        ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                        ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
                         : project.status === "onboarding"
-                        ? "bg-blue-100 text-blue-700 border-blue-300"
+                        ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800"
                         : project.status === "closing"
-                        ? "bg-amber-100 text-amber-700 border-amber-300"
+                        ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800"
                         : project.status === "closed"
                         ? "bg-surface text-muted border-border"
                         : "bg-surface text-muted border-border"
@@ -213,14 +213,14 @@ export function ServiceOverviewTab({
 
       {/* Danger Zone — owner/admin only */}
       {hasMinRole(role, "admin") && (
-        <div className="border border-red-200 rounded-xl p-5 bg-red-50/50">
+        <div className="border border-red-200 dark:border-red-800 rounded-xl p-5 bg-red-50/50">
           <h4 className="text-sm font-semibold text-red-700 mb-1">Danger Zone</h4>
           <p className="text-xs text-red-600/80 mb-3">
             Permanently delete this centre and all associated timesheets, financial data, metrics, and compliance records. Todos, issues, and rocks will be unlinked but preserved.
           </p>
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-card border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-300 bg-card border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Delete Centre

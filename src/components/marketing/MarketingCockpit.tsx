@@ -113,11 +113,11 @@ function WeeklyReportBanner({
 
   const bgClass =
     status === "sent"
-      ? "bg-green-50 border-green-200"
+      ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800"
       : status === "reviewed"
         ? readyToSend
-          ? "bg-amber-50 border-amber-200"
-          : "bg-sky-50 border-sky-200"
+          ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800"
+          : "bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800"
         : "bg-card border-border";
 
   return (
@@ -504,7 +504,7 @@ function ActivationsTile({ data }: { data: CockpitSummary["tiles"]["activations"
         )}
         {data.happeningThisWeek > 0 && (
           <div
-            className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200"
+            className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 text-2xs font-medium text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800"
             title="Activations scheduled to happen within the next 7 days"
           >
             🗓 {data.happeningThisWeek} happening this week
@@ -528,7 +528,7 @@ function WhatsAppTile({ data }: { data: CockpitSummary["tiles"]["whatsapp"] }) {
         <MetricRow label="Announcements" {...data.announcements} />
         {data.patternsFlagged > 0 && (
           <div
-            className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700 border border-red-200"
+            className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-950/40 px-2 py-0.5 text-2xs font-medium text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
             title="Coordinator(s) below floor for two consecutive weeks"
           >
             <span aria-hidden>🚩</span>
@@ -557,7 +557,7 @@ function CentreIntelTile({ data }: { data: CockpitSummary["tiles"]["centreIntel"
       {data.pendingInsightsCount > 0 && (
         <Link
           href="/centre-avatars"
-          className="mt-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+          className="mt-2 flex items-center gap-1.5 rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50"
         >
           <Sparkles className="h-3 w-3" />
           {data.pendingInsightsCount} insight{data.pendingInsightsCount === 1 ? "" : "s"} to review →
@@ -633,7 +633,7 @@ function VendorTile({ data }: { data: CockpitSummary["vendorBriefs"] }) {
             <Link
               key={s.id}
               href={`/marketing/vendor-briefs?tab=in-flight&open=${s.id}`}
-              className="flex items-center gap-1 rounded text-xs text-amber-700 hover:bg-amber-50"
+              className="flex items-center gap-1 rounded text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
             >
               <AlertTriangle className="h-3 w-3" />
               <span className="truncate">{s.title}</span>
@@ -657,7 +657,7 @@ function EscalationsStrip({ escalations }: { escalations: CockpitSummary["escala
   }
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
         <AlertTriangle className="h-4 w-4" />
         Escalations ({escalations.length})
@@ -701,7 +701,7 @@ export function MarketingCockpit() {
 
   if (summaryQuery.isError) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+      <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-6 text-sm text-red-800 dark:text-red-200">
         <div className="flex items-center gap-2 font-semibold">
           <AlertTriangle className="h-4 w-4" />
           Failed to load cockpit
@@ -709,7 +709,7 @@ export function MarketingCockpit() {
         <div className="mt-1">{(summaryQuery.error as Error)?.message ?? "Unknown error"}</div>
         <button
           onClick={() => summaryQuery.refetch()}
-          className="mt-3 rounded-md border border-red-300 bg-card px-3 py-1 text-xs font-medium hover:bg-red-100"
+          className="mt-3 rounded-md border border-red-300 dark:border-red-800 bg-card px-3 py-1 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-950/50"
         >
           Retry
         </button>

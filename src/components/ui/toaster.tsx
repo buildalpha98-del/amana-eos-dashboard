@@ -19,7 +19,7 @@ export function Toaster() {
           duration={t.duration ?? 5000}
           className={`group pointer-events-auto relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-lg border p-4 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-80 data-[state=open]:slide-in-from-top-full ${
             t.variant === "destructive"
-              ? "border-red-200 bg-red-50 text-red-900"
+              ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200"
               : "border-border bg-card text-foreground"
           }`}
         >

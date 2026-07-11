@@ -221,14 +221,14 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
 
           if (booking) {
             if (booking.status === "confirmed") {
-              bgClass = "bg-green-50 hover:bg-green-100";
+              bgClass = "bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-950/50";
               dotColor = "bg-green-500";
             } else if (booking.status === "requested") {
-              bgClass = "bg-amber-50 hover:bg-amber-100";
+              bgClass = "bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/50";
               dotColor = "bg-amber-500";
             }
           } else if (avail && avail.available === 0) {
-            bgClass = "bg-red-50";
+            bgClass = "bg-red-50 dark:bg-red-950/40";
             dotColor = "bg-red-400";
           } else if (avail && avail.available > 0 && !isPast && !isWeekend) {
             dotColor = "bg-muted/30";

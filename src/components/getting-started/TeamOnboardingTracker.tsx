@@ -47,19 +47,19 @@ interface TeamResponse {
 const roleBadge: Record<string, { label: string; className: string }> = {
   owner: {
     label: ROLE_DISPLAY_NAMES.owner,
-    className: "bg-amber-100 text-amber-800",
+    className: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200",
   },
   head_office: {
     label: ROLE_DISPLAY_NAMES.head_office,
-    className: "bg-teal-100 text-teal-800",
+    className: "bg-teal-100 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200",
   },
   admin: {
     label: ROLE_DISPLAY_NAMES.admin,
-    className: "bg-indigo-100 text-indigo-800",
+    className: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-200",
   },
   marketing: {
     label: ROLE_DISPLAY_NAMES.marketing,
-    className: "bg-pink-100 text-pink-800",
+    className: "bg-pink-100 dark:bg-pink-950/50 text-pink-800 dark:text-pink-200",
   },
   member: {
     label: ROLE_DISPLAY_NAMES.member,
@@ -67,7 +67,7 @@ const roleBadge: Record<string, { label: string; className: string }> = {
   },
   staff: {
     label: ROLE_DISPLAY_NAMES.staff,
-    className: "bg-blue-100 text-blue-800",
+    className: "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200",
   },
 };
 
@@ -89,9 +89,9 @@ function getStatusLabel(pct: number): {
   className: string;
 } {
   if (pct === 100)
-    return { text: "Complete", className: "text-emerald-700 bg-emerald-50" };
+    return { text: "Complete", className: "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40" };
   if (pct > 0)
-    return { text: "In Progress", className: "text-amber-700 bg-amber-50" };
+    return { text: "In Progress", className: "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40" };
   return { text: "Not Started", className: "text-muted bg-surface" };
 }
 
@@ -129,21 +129,21 @@ export function TeamOnboardingTracker() {
       value: summary?.fullyOnboarded ?? 0,
       icon: CheckCircle2,
       color: "text-emerald-700",
-      bg: "bg-emerald-50",
+      bg: "bg-emerald-50 dark:bg-emerald-950/40",
     },
     {
       label: "In Progress",
       value: summary?.inProgress ?? 0,
       icon: Clock,
       color: "text-amber-700",
-      bg: "bg-amber-50",
+      bg: "bg-amber-50 dark:bg-amber-950/40",
     },
     {
       label: "Not Started",
       value: summary?.notStarted ?? 0,
       icon: AlertCircle,
       color: "text-red-600",
-      bg: "bg-red-50",
+      bg: "bg-red-50 dark:bg-red-950/40",
     },
   ];
 

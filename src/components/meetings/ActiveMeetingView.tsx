@@ -420,7 +420,7 @@ export function ActiveMeetingView({
           </p>
         </div>
         {isCompleted ? (
-          <span className="text-xs px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+          <span className="text-xs px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
             Completed
           </span>
         ) : (
@@ -538,7 +538,7 @@ export function ActiveMeetingView({
                   className={cn(
                     "p-1.5 rounded-md border transition-colors",
                     timer.isRunning
-                      ? "border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100"
+                      ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50"
                       : "border-brand bg-brand/10 text-brand hover:bg-brand/20"
                   )}
                 >
@@ -793,8 +793,8 @@ export function ActiveMeetingView({
                         className={cn(
                           "text-2xs px-2 py-0.5 rounded-full font-medium transition-colors",
                           attendee.status === "present"
-                            ? "bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700"
-                            : "bg-red-100 text-red-600 hover:bg-emerald-100 hover:text-emerald-700"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-red-100 dark:hover:bg-red-950/50 hover:text-red-700"
+                            : "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 hover:text-emerald-700"
                         )}
                       >
                         {attendee.status === "present" ? "Present" : "Absent"}
@@ -804,8 +804,8 @@ export function ActiveMeetingView({
                       <span className={cn(
                         "text-2xs px-2 py-0.5 rounded-full font-medium",
                         attendee.status === "present"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-red-100 text-red-600"
+                          ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                          : "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400"
                       )}>
                         {attendee.status === "present" ? "Present" : "Absent"}
                       </span>

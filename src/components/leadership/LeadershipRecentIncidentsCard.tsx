@@ -27,9 +27,9 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_TONE: Record<string, string> = {
-  serious: "bg-red-100 text-red-800 border-red-300",
-  reportable: "bg-orange-100 text-orange-800 border-orange-300",
-  moderate: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  serious: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 border-red-300 dark:border-red-800",
+  reportable: "bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-800",
+  moderate: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-800",
   minor: "bg-surface text-foreground/80 border-border",
 };
 
@@ -142,13 +142,13 @@ function IncidentRow({ incident }: { incident: RecentIncident }) {
               {typeLabel}
             </span>
             {incident.reportableToAuthority ? (
-              <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-orange-700 bg-orange-100 rounded-full px-1.5 py-0">
+              <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-950/50 rounded-full px-1.5 py-0">
                 <Flag className="h-2.5 w-2.5" />
                 Reportable
               </span>
             ) : null}
             {incident.followUpRequired ? (
-              <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-amber-800 bg-amber-100 rounded-full px-1.5 py-0">
+              <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-950/50 rounded-full px-1.5 py-0">
                 <AlertTriangle className="h-2.5 w-2.5" />
                 Follow-up
               </span>

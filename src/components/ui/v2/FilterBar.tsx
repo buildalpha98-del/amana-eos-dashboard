@@ -99,7 +99,7 @@ export function FilterBar({
             onChange={(e) => search.onChange(e.target.value)}
             placeholder={search.placeholder ?? "Search…"}
             className={cn(
-              "w-full pl-8 pr-2.5 py-1.5 text-[13px] rounded-[var(--radius-sm)]",
+              "w-full pl-8 pr-2.5 py-1.5 text-sm rounded-[var(--radius-sm)]",
               "bg-[color:var(--color-cream-deep)] border border-transparent",
               "text-[color:var(--color-foreground)] placeholder-[color:var(--color-muted)]/70",
               "focus:outline-none focus:border-[color:var(--color-brand)]/40",
@@ -116,14 +116,14 @@ export function FilterBar({
         return (
           <label
             key={f.key}
-            className="flex items-center gap-1.5 text-[12px] font-medium text-[color:var(--color-muted)]"
+            className="flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted)]"
           >
             <span className="shrink-0">{f.label}</span>
             <select
               value={v}
               onChange={(e) => onChange?.(f.key, e.target.value)}
               className={cn(
-                "px-2 py-1 text-[13px] rounded-[var(--radius-sm)] border cursor-pointer",
+                "px-2 py-1 text-sm rounded-[var(--radius-sm)] border cursor-pointer",
                 "bg-[color:var(--color-cream-deep)] text-[color:var(--color-foreground)]",
                 "focus:outline-none focus:border-[color:var(--color-brand)]/40",
                 isActive
@@ -147,7 +147,7 @@ export function FilterBar({
           type="button"
           onClick={onReset}
           className={cn(
-            "inline-flex items-center gap-1 px-2 py-1 text-[12px] rounded-[var(--radius-sm)]",
+            "inline-flex items-center gap-1 px-2 py-1 text-xs rounded-[var(--radius-sm)]",
             "text-[color:var(--color-muted)] hover:text-[color:var(--color-foreground)]",
             "hover:bg-[color:var(--color-cream-deep)] transition-colors",
           )}

@@ -46,7 +46,7 @@ export function PreviewModal({
         </header>
 
         {missingTags.length > 0 && (
-          <div className="bg-amber-50 border-b border-amber-200 p-3 text-sm text-amber-800 shrink-0">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200 shrink-0">
             ⚠ Template references {missingTags.length} unknown tag
             {missingTags.length === 1 ? "" : "s"}: {missingTags.join(", ")}
           </div>

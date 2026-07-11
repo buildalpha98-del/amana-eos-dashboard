@@ -32,7 +32,7 @@ export function AutosaveStatus({ status, lastSavedAt, errorMessage }: AutosaveSt
 
   if (status === "saving") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+      <span className="inline-flex items-center gap-1 text-xs text-muted">
         <Loader2 className="w-3 h-3 animate-spin" />
         Saving…
       </span>
@@ -40,7 +40,7 @@ export function AutosaveStatus({ status, lastSavedAt, errorMessage }: AutosaveSt
   }
   if (status === "dirty") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-amber-700">
+      <span className="inline-flex items-center gap-1 text-xs text-amber-700">
         <CircleDot className="w-3 h-3" />
         Unsaved changes
       </span>
@@ -48,7 +48,7 @@ export function AutosaveStatus({ status, lastSavedAt, errorMessage }: AutosaveSt
   }
   if (status === "error") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-red-700" title={errorMessage ?? "Save failed"}>
+      <span className="inline-flex items-center gap-1 text-xs text-red-700" title={errorMessage ?? "Save failed"}>
         <AlertTriangle className="w-3 h-3" />
         Save failed — keep editing or hit Save to retry
       </span>
@@ -56,7 +56,7 @@ export function AutosaveStatus({ status, lastSavedAt, errorMessage }: AutosaveSt
   }
   if (status === "saved" && lastSavedAt) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-green-700">
+      <span className="inline-flex items-center gap-1 text-xs text-green-700">
         <Check className="w-3 h-3" />
         Saved {formatRelative(lastSavedAt)}
       </span>
@@ -64,7 +64,7 @@ export function AutosaveStatus({ status, lastSavedAt, errorMessage }: AutosaveSt
   }
   if (lastSavedAt) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+      <span className="inline-flex items-center gap-1 text-xs text-muted">
         <Check className="w-3 h-3" />
         Last saved {formatRelative(lastSavedAt)}
       </span>

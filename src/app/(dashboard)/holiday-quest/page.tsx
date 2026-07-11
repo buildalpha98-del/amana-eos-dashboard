@@ -116,8 +116,8 @@ function toISODate(d: Date) {
 
 const statusColors: Record<string, string> = {
   draft: "bg-surface text-muted",
-  published: "bg-green-100 text-green-700",
-  full: "bg-amber-100 text-amber-700",
+  published: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  full: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
 };
 
 // ── Main Page ──────────────────────────────────────────────
@@ -391,7 +391,7 @@ export default function HolidayQuestPage() {
 
       {/* AI Suggestion */}
       {aiSuggestion && (
-        <div className="mb-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
+        <div className="mb-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiSuggestion}</div>
             <button onClick={() => setAiSuggestion("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
@@ -639,7 +639,7 @@ export default function HolidayQuestPage() {
                     />
                   </div>
                   {/* Risk Assessment Card */}
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
                     <p className="text-sm font-semibold text-amber-800 flex items-center gap-1.5 mb-2">
                       <AlertTriangle className="h-4 w-4" /> Excursion Risk Summary
                     </p>
@@ -719,7 +719,7 @@ export default function HolidayQuestPage() {
                 <button
                   onClick={() => handleDeleteDay(editingDay.id)}
                   disabled={deleteDay.isPending}
-                  className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  className="rounded-lg border border-red-300 dark:border-red-800 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -759,7 +759,7 @@ export default function HolidayQuestPage() {
                     key={t.name}
                     onClick={() => handleApplyTemplate(idx)}
                     disabled={createDays.isPending || !templateStartDate}
-                    className="w-full rounded-lg border border-border p-3 text-left hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50"
+                    className="w-full rounded-lg border border-border p-3 text-left hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-colors disabled:opacity-50"
                   >
                     <p className="text-sm font-semibold text-foreground">{t.name}</p>
                     <p className="text-xs text-muted mt-0.5">

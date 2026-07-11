@@ -141,24 +141,24 @@ const CALL_TYPE_LABELS: Record<string, string> = {
 };
 
 const CALL_TYPE_COLORS: Record<string, string> = {
-  new_enquiry: "bg-emerald-100 text-emerald-800",
+  new_enquiry: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200",
   booking_change: "bg-brand/10 text-brand",
-  billing_issue: "bg-orange-100 text-orange-800",
-  escalation: "bg-red-100 text-red-800",
-  holiday_quest: "bg-purple-100 text-purple-800",
+  billing_issue: "bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-200",
+  escalation: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200",
+  holiday_quest: "bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-200",
   general_message: "bg-surface text-foreground/80",
 };
 
 const URGENCY_COLORS: Record<string, string> = {
   routine: "bg-surface text-foreground/80",
   urgent: "bg-accent/20 text-amber-900",
-  critical: "bg-red-100 text-red-800",
+  critical: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800",
-  in_progress: "bg-amber-100 text-amber-800",
-  actioned: "bg-emerald-100 text-emerald-800",
+  new: "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200",
+  in_progress: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200",
+  actioned: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200",
   closed: "bg-surface text-foreground/80",
 };
 
@@ -474,13 +474,13 @@ export function CallsTab() {
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex flex-wrap gap-1.5">
-                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-surface text-foreground/80")}>
+                    <span className={cn("px-2 py-0.5 rounded-full text-2xs font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-surface text-foreground/80")}>
                       {CALL_TYPE_LABELS[call.callType] ?? call.callType}
                     </span>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", URGENCY_COLORS[call.urgency] ?? "bg-surface")}>
+                    <span className={cn("px-2 py-0.5 rounded-full text-2xs font-medium", URGENCY_COLORS[call.urgency] ?? "bg-surface")}>
                       {call.urgency}
                     </span>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", STATUS_COLORS[call.status] ?? "bg-surface")}>
+                    <span className={cn("px-2 py-0.5 rounded-full text-2xs font-medium", STATUS_COLORS[call.status] ?? "bg-surface")}>
                       {call.status.replace("_", " ")}
                     </span>
                   </div>
@@ -496,16 +496,16 @@ export function CallsTab() {
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-500" aria-label="Call did not capture key details" />
                   )}
                   {call.linkedEnquiryId && (
-                    <span className="ml-auto px-1.5 py-0.5 rounded text-2xs font-medium bg-emerald-50 text-emerald-700">Enquiry</span>
+                    <span className="ml-auto px-1.5 py-0.5 rounded text-2xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">Enquiry</span>
                   )}
                   {call.linkedTodoId && (
-                    <span className={cn("px-1.5 py-0.5 rounded text-2xs font-medium bg-blue-50 text-blue-700", !call.linkedEnquiryId && "ml-auto")}>Todo</span>
+                    <span className={cn("px-1.5 py-0.5 rounded text-2xs font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300", !call.linkedEnquiryId && "ml-auto")}>Todo</span>
                   )}
                   {call.slaAlertedAt && (
-                    <span className="px-1.5 py-0.5 rounded text-2xs font-medium bg-red-50 text-red-700">SLA</span>
+                    <span className="px-1.5 py-0.5 rounded text-2xs font-medium bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300">SLA</span>
                   )}
                   {call.repeatCaller && (
-                    <span className="px-1.5 py-0.5 rounded text-2xs font-medium bg-orange-50 text-orange-700">Repeat</span>
+                    <span className="px-1.5 py-0.5 rounded text-2xs font-medium bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300">Repeat</span>
                   )}
                 </div>
                 {call.summary && (
@@ -710,12 +710,12 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
               {call.status.replace("_", " ")}
             </span>
             {call.successEvaluation === true && (
-              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 flex items-center gap-1">
+              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 flex items-center gap-1">
                 <CheckCircle className="w-3 h-3" /> Captured
               </span>
             )}
             {call.successEvaluation === false && (
-              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 flex items-center gap-1">
+              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" /> Incomplete
               </span>
             )}
@@ -736,7 +736,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
             <section>
               <a
                 href={`/contact-centre?tab=enquiries&id=${call.linkedEnquiryId}`}
-                className="flex items-center justify-between gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
+                className="flex items-center justify-between gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-emerald-600" />
@@ -755,7 +755,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
             <section>
               <a
                 href={`/queue?todo=${call.linkedTodoId}`}
-                className="flex items-center justify-between gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                className="flex items-center justify-between gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-blue-600" />
@@ -772,7 +772,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
           {/* SLA breach badge */}
           {call.slaAlertedAt && call.status !== "actioned" && call.status !== "closed" && (
             <section>
-              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-red-900">SLA breach escalated</p>
@@ -787,7 +787,7 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
           {/* Repeat caller warning */}
           {call.repeatCaller && (
             <section>
-              <div className="flex items-center gap-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center gap-2 px-4 py-3 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 rounded-lg">
                 <Phone className="w-5 h-5 text-orange-600 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-orange-900">Repeat caller</p>
@@ -838,10 +838,10 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
                 {call.callDurationSeconds != null && <Row label="Duration" value={formatDuration(call.callDurationSeconds)} />}
               </div>
             ) : (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
+              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs text-amber-900 dark:text-amber-200">
                 <p className="font-medium mb-1">No structured data captured</p>
                 <p className="text-amber-800">
-                  The VAPI assistant didn&apos;t emit a structured marker (e.g. <code className="bg-amber-100 px-1 rounded">ENQUIRY_CAPTURED:&#123;...&#125;</code>) for this call. Review the transcript below to extract details manually, or check the assistant&apos;s system prompt to ensure it outputs markers at the end of each pathway.
+                  The VAPI assistant didn&apos;t emit a structured marker (e.g. <code className="bg-amber-100 dark:bg-amber-950/50 px-1 rounded">ENQUIRY_CAPTURED:&#123;...&#125;</code>) for this call. Review the transcript below to extract details manually, or check the assistant&apos;s system prompt to ensure it outputs markers at the end of each pathway.
                 </p>
                 {call.callDurationSeconds != null && (
                   <p className="mt-2 text-amber-700">Duration: {formatDuration(call.callDurationSeconds)}</p>

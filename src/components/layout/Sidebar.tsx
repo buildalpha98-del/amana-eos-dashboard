@@ -129,7 +129,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               <div className="my-2 px-3">
                 <div className="flex items-center gap-1.5">
                   <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                  <h3 className="text-[11px] font-semibold text-white/30 uppercase tracking-widest">
+                  <h3 className="text-2xs font-semibold text-white/30 uppercase tracking-widest">
                     Favourites
                   </h3>
                 </div>
@@ -209,7 +209,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                         aria-expanded={!isSectionCollapsed}
                         className="flex items-center justify-between w-full group"
                       >
-                        <h3 className="text-[11px] font-semibold text-white/30 uppercase tracking-widest pl-1">
+                        <h3 className="text-2xs font-semibold text-white/30 uppercase tracking-widest pl-1">
                           {group.key}
                         </h3>
                         <ChevronDown

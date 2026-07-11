@@ -240,7 +240,7 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
               className={cn(
                 "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
                 status === "active"
-                  ? "bg-green-100 text-green-800 hover:bg-green-200"
+                  ? "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200 hover:bg-green-200"
                   : "bg-surface text-muted hover:bg-border"
               )}
             >

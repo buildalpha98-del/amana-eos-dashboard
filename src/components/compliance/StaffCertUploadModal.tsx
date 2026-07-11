@@ -258,7 +258,7 @@ export function StaffCertUploadModal({
 
           {error && (
             <div
-              className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800"
+              className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200"
               data-testid="staff-cert-upload-error"
             >
               <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />

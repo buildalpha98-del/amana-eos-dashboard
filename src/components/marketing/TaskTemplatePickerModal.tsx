@@ -25,12 +25,12 @@ interface Props {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "Social Media": "bg-blue-100 text-blue-700",
-  Content: "bg-purple-100 text-purple-700",
-  Community: "bg-green-100 text-green-700",
-  Events: "bg-amber-100 text-amber-700",
-  Communications: "bg-cyan-100 text-cyan-700",
-  Brand: "bg-rose-100 text-rose-700",
+  "Social Media": "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  Content: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  Community: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  Events: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  Communications: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300",
+  Brand: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
 };
 
 const PRIORITY_DOT: Record<string, string> = {

@@ -124,9 +124,9 @@ function formatWeekLabel(date: Date): string {
 
 function getTimeColor(time: string): string {
   const hour = parseInt(time.split(":")[0], 10);
-  if (hour < 10) return "bg-blue-50 border-blue-200";
-  if (hour < 13) return "bg-amber-50 border-amber-200";
-  return "bg-emerald-50 border-emerald-200";
+  if (hour < 10) return "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800";
+  if (hour < 13) return "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800";
+  return "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800";
 }
 
 // ── Session split ────────────────────────────────────────────
@@ -391,7 +391,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                     <h3 className="text-sm font-semibold text-foreground">
                       {SESSION_LABELS[session]}
                     </h3>
-                    <p className="text-[11px] text-muted">
+                    <p className="text-xs text-muted">
                       {SESSION_HINTS[session]} · {sessionTotal}{" "}
                       {sessionTotal === 1 ? "activity" : "activities"}
                     </p>
@@ -399,7 +399,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                   <button
                     type="button"
                     onClick={() => openCreate(session)}
-                    className="text-[11px] font-medium text-brand hover:underline"
+                    className="text-xs font-medium text-brand hover:underline"
                   >
                     + Add to {session.toUpperCase()}
                   </button>
@@ -414,7 +414,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                           </span>
                           <span className="md:hidden">{DAY_SHORT[day]}</span>
                         </h4>
-                        <span className="text-[11px] text-muted">
+                        <span className="text-xs text-muted">
                           {sessionDays[day].length}
                         </span>
                       </div>
@@ -460,7 +460,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-foreground">MTOP Outcome Coverage</h4>
             {mtopCoverage.untaggedActivities > 0 && (
-              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+              <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full">
                 {mtopCoverage.untaggedActivities} untagged
               </span>
             )}
@@ -763,8 +763,8 @@ function ActivityModal({
               ({ title, description, outcomes[] }) and fills the form
               directly. Educator can edit any field before saving. */}
           {!isEditing && (
-            <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-purple-50/60 px-3 py-2">
-              <p className="text-[12px] text-purple-900">
+            <div className="flex items-center justify-between rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/60 px-3 py-2">
+              <p className="text-xs text-purple-900">
                 Need ideas? Draft this activity with AI, then edit before saving.
               </p>
               <AiButton
@@ -986,19 +986,19 @@ const PICKER_CATEGORIES = [
 ];
 
 const PICKER_CATEGORY_COLORS: Record<string, string> = {
-  physical_play: "bg-blue-100 text-blue-700",
-  creative_arts: "bg-pink-100 text-pink-700",
-  music_movement: "bg-purple-100 text-purple-700",
-  literacy: "bg-amber-100 text-amber-700",
-  numeracy: "bg-emerald-100 text-emerald-700",
-  nature_outdoors: "bg-green-100 text-green-700",
-  cooking_nutrition: "bg-orange-100 text-orange-700",
-  social_emotional: "bg-rose-100 text-rose-700",
-  quiet_time: "bg-sky-100 text-sky-700",
-  free_play: "bg-teal-100 text-teal-700",
-  quran_iqra: "bg-indigo-100 text-indigo-700",
-  homework_help: "bg-yellow-100 text-yellow-700",
-  stem_science: "bg-cyan-100 text-cyan-700",
+  physical_play: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  creative_arts: "bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300",
+  music_movement: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  literacy: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  numeracy: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  nature_outdoors: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  cooking_nutrition: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  social_emotional: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
+  quiet_time: "bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300",
+  free_play: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
+  quran_iqra: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  homework_help: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300",
+  stem_science: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300",
   other: "bg-surface text-foreground/80",
 };
 

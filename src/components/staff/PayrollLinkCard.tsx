@@ -122,7 +122,7 @@ export function PayrollLinkCard({
           </p>
         </div>
         {isLinked && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded">
             <CheckCircle2 className="w-3.5 h-3.5" />
             Linked
           </span>
@@ -160,7 +160,7 @@ export function PayrollLinkCard({
               type="button"
               onClick={handleUnlink}
               disabled={linkMutation.isPending}
-              className="text-xs px-2.5 py-1.5 rounded-md border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"
+              className="text-xs px-2.5 py-1.5 rounded-md border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
               data-testid="payroll-link-unlink"
             >
               {linkMutation.isPending ? (
@@ -198,7 +198,7 @@ export function PayrollLinkCard({
                 }
               }}
             />
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-xs text-muted">
               Find this in Employment Hero → Employees → click the staff member →
               the number after <code>?employeeId=</code> in the URL.
             </p>

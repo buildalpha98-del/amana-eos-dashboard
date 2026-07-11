@@ -28,9 +28,9 @@ const TASK_TYPE_CONFIG: Record<
   AiDraftTaskType,
   { label: string; bg: string; text: string }
 > = {
-  communication: { label: "Communication", bg: "bg-blue-50", text: "text-blue-700" },
-  research: { label: "Research", bg: "bg-purple-50", text: "text-purple-700" },
-  document: { label: "Document", bg: "bg-emerald-50", text: "text-emerald-700" },
+  communication: { label: "Communication", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700" },
+  research: { label: "Research", bg: "bg-purple-50 dark:bg-purple-950/40", text: "text-purple-700" },
+  document: { label: "Document", bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-700" },
   admin: { label: "Admin", bg: "bg-surface", text: "text-foreground/80" },
 };
 
@@ -99,7 +99,7 @@ export function AiDraftReviewPanel({ draft, onClose }: AiDraftReviewPanelProps) 
             <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={cn(
-                  "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium",
+                  "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium",
                   taskConfig.bg,
                   taskConfig.text,
                 )}
@@ -228,7 +228,7 @@ export function AiDraftReviewPanel({ draft, onClose }: AiDraftReviewPanelProps) 
               <button
                 onClick={() => setIsEditing(true)}
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-4 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               >
                 <Pencil className="w-4 h-4" />
                 Edit

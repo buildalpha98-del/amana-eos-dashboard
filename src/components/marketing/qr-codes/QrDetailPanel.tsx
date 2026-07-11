@@ -307,7 +307,7 @@ export function QrDetailPanel({ qrId, onClose }: QrDetailPanelProps) {
                   <Button size="sm" variant="secondary" onClick={doArchive} iconLeft={<Archive className="w-3.5 h-3.5" />}>
                     Archive QR
                   </Button>
-                  <p className="text-[11px] text-muted mt-1">
+                  <p className="text-xs text-muted mt-1">
                     Archived QRs still resolve scans (so printed flyers keep redirecting to the fallback enquiry page),
                     but they&apos;re hidden from the default Hub view.
                   </p>

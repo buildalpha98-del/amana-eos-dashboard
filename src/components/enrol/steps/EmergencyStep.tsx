@@ -92,7 +92,7 @@ export function EmergencyStep({ data, updateData }: Props) {
                 <button
                   type="button"
                   onClick={() => removeContact(i)}
-                  className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+                  className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/40"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -161,7 +161,7 @@ export function EmergencyStep({ data, updateData }: Props) {
             <button
               type="button"
               onClick={() => removePickup(i)}
-              className="text-red-500 hover:text-red-700 p-2.5 rounded-lg hover:bg-red-50 transition-colors self-end"
+              className="text-red-500 hover:text-red-700 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors self-end"
             >
               <Trash2 className="h-4 w-4" />
             </button>

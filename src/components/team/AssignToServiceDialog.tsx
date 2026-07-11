@@ -263,8 +263,8 @@ function ServiceRow({
           className={cn(
             "inline-flex items-center rounded-full border px-2 py-0 text-2xs font-bold uppercase tracking-wide",
             assignedLabel === "Primary"
-              ? "border-emerald-300 bg-emerald-100 text-emerald-800"
-              : "border-blue-300 bg-blue-100 text-blue-800",
+              ? "border-emerald-300 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200"
+              : "border-blue-300 dark:border-blue-800 bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200",
           )}
         >
           Already assigned · {assignedLabel}
@@ -286,7 +286,7 @@ function DraftFields({
   return (
     <div className="mt-2 ml-7 grid grid-cols-1 sm:grid-cols-2 gap-2">
       <label className="block">
-        <span className="block text-[11px] font-medium text-muted uppercase tracking-wide mb-1">
+        <span className="block text-2xs font-medium text-muted uppercase tracking-wide mb-1">
           Role at service
         </span>
         <input
@@ -299,7 +299,7 @@ function DraftFields({
         />
       </label>
       <label className="block">
-        <span className="block text-[11px] font-medium text-muted uppercase tracking-wide mb-1">
+        <span className="block text-2xs font-medium text-muted uppercase tracking-wide mb-1">
           Access level
         </span>
         <select

@@ -39,10 +39,10 @@ import type { LMSModuleData } from "@/hooks/useLMS";
 import { useCreateModule, useUpdateModule, useDeleteModule, useReorderModules } from "@/hooks/useLMS";
 
 const typeConfig = {
-  document: { label: "Document", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
-  video: { label: "Video", icon: Play, color: "text-purple-600", bg: "bg-purple-50" },
-  quiz: { label: "Quiz", icon: HelpCircle, color: "text-amber-600", bg: "bg-amber-50" },
-  checklist: { label: "Checklist", icon: CheckSquare, color: "text-emerald-600", bg: "bg-emerald-50" },
+  document: { label: "Document", icon: FileText, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+  video: { label: "Video", icon: Play, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40" },
+  quiz: { label: "Quiz", icon: HelpCircle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  checklist: { label: "Checklist", icon: CheckSquare, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
   external_link: { label: "External Link", icon: ExternalLink, color: "text-muted", bg: "bg-surface/50" },
 };
 

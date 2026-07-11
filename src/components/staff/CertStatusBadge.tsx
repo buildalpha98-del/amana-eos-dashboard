@@ -2,11 +2,11 @@ import { getCertStatus } from "@/lib/cert-status";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLES = {
-  valid: "bg-green-100 text-green-800 border-green-200",
-  expiring: "bg-amber-100 text-amber-800 border-amber-200",
-  expired: "bg-red-100 text-red-800 border-red-200",
+  valid: "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800",
+  expiring: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
+  expired: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
   missing: "bg-surface text-muted border-border",
-  no_expiry: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  no_expiry: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
 } as const;
 
 export function CertStatusBadge({

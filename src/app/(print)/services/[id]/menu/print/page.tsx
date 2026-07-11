@@ -137,7 +137,7 @@ export default async function MenuPrintPage({
           No menu items for this week yet.
         </p>
       ) : (
-        <table className="w-full border-collapse text-[11px]">
+        <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
               <th className="w-[120px] border border-border bg-surface p-2 text-left text-xs font-semibold uppercase tracking-wide text-foreground/80">
@@ -168,11 +168,11 @@ export default async function MenuPrintPage({
                     >
                       {cell && cell.description.trim().length > 0 ? (
                         <>
-                          <div className="text-[11px] text-foreground">
+                          <div className="text-xs text-foreground">
                             {cell.description}
                           </div>
                           {cell.allergens.length > 0 && (
-                            <div className="mt-1 text-[9px] italic text-muted">
+                            <div className="mt-1 text-2xs italic text-muted">
                               Allergens: {cell.allergens.join(", ")}
                             </div>
                           )}

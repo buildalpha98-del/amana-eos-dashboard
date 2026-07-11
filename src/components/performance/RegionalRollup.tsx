@@ -43,9 +43,9 @@ function getScoreBorderColor(score: number): string {
 }
 
 function getScoreBgAccent(score: number): string {
-  if (score >= 80) return "bg-emerald-50";
-  if (score >= 60) return "bg-amber-50";
-  return "bg-red-50";
+  if (score >= 80) return "bg-emerald-50 dark:bg-emerald-950/40";
+  if (score >= 60) return "bg-amber-50 dark:bg-amber-950/40";
+  return "bg-red-50 dark:bg-red-950/40";
 }
 
 export function RegionalRollup({

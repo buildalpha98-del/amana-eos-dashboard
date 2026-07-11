@@ -303,7 +303,7 @@ export function EnrolmentWizard({
     return (
       <div className="space-y-6">
         <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+          <div className="w-20 h-20 bg-green-100 dark:bg-green-950/50 rounded-full flex items-center justify-center mx-auto mb-5">
             <Check className="h-10 w-10 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -325,7 +325,7 @@ export function EnrolmentWizard({
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                       item.status === "done"
-                        ? "bg-green-100 text-green-600"
+                        ? "bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-400"
                         : item.status === "current"
                         ? "bg-brand/10 text-brand"
                         : "bg-surface text-muted"
@@ -519,7 +519,7 @@ export function EnrolmentWizard({
         {renderStep()}
 
         {submitError && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
             {submitError}
           </div>
         )}

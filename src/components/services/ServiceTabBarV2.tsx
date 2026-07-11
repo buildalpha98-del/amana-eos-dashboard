@@ -129,7 +129,7 @@ export function ServiceTabBarV2({
               onClick={() => onGroupChange(g.key)}
               className={cn(
                 "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)]",
-                "text-[13px] font-medium whitespace-nowrap transition-colors",
+                "text-sm font-medium whitespace-nowrap transition-colors",
                 isActive
                   ? "bg-[color:var(--color-brand)] text-white"
                   : cn(
@@ -160,7 +160,7 @@ export function ServiceTabBarV2({
                 onClick={() => onSubChange?.(sub.key)}
                 className={cn(
                   "inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius-sm)]",
-                  "text-[12px] font-medium transition-colors",
+                  "text-xs font-medium transition-colors",
                   isActive
                     ? "bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] border border-[color:var(--color-brand)]/20"
                     : cn(

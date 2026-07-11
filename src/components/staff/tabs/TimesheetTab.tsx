@@ -28,9 +28,9 @@ function humanize(value: string | null | undefined): string {
 
 const STATUS_STYLES: Record<string, string> = {
   ts_draft: "bg-surface text-foreground/80",
-  ts_submitted: "bg-amber-100 text-amber-800",
-  ts_approved: "bg-green-100 text-green-800",
-  ts_exported: "bg-blue-100 text-blue-800",
+  ts_submitted: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200",
+  ts_approved: "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200",
+  ts_exported: "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200",
 };
 
 export function TimesheetTab({ targetUserId, weeks, canSubmit }: TimesheetTabProps) {

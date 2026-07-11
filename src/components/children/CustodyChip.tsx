@@ -22,10 +22,10 @@ const TYPE_TONE: Record<
   CustodyArrangements["type"],
   { chipBg: string; chipText: string }
 > = {
-  shared: { chipBg: "bg-blue-50", chipText: "text-blue-700" },
-  sole: { chipBg: "bg-blue-50", chipText: "text-blue-700" },
-  court_order: { chipBg: "bg-amber-100", chipText: "text-amber-800" },
-  informal: { chipBg: "bg-blue-50", chipText: "text-blue-700" },
+  shared: { chipBg: "bg-blue-50 dark:bg-blue-950/40", chipText: "text-blue-700" },
+  sole: { chipBg: "bg-blue-50 dark:bg-blue-950/40", chipText: "text-blue-700" },
+  court_order: { chipBg: "bg-amber-100 dark:bg-amber-950/50", chipText: "text-amber-800" },
+  informal: { chipBg: "bg-blue-50 dark:bg-blue-950/40", chipText: "text-blue-700" },
 };
 
 export function CustodyChip({

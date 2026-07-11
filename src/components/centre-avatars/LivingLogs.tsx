@@ -98,7 +98,7 @@ export function InsightsLog({
               key={i.id}
               className={`rounded-lg border px-3 py-2 ${
                 i.status === "pending_review"
-                  ? "border-amber-200 bg-amber-50/60"
+                  ? "border-amber-200 dark:border-amber-800 bg-amber-50/60"
                   : "border-border bg-surface/30"
               }`}
             >
@@ -108,12 +108,12 @@ export function InsightsLog({
                     <span className="font-medium text-foreground/80">{formatDate(i.occurredAt)}</span>
                     <span className="rounded-full bg-surface px-2 py-0.5">{i.source.replace(/_/g, " ")}</span>
                     {i.harvestedFrom && (
-                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-blue-700">
+                      <span className="rounded-full bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 text-blue-700 dark:text-blue-300">
                         harvested · {i.harvestedFrom.replace(/_/g, " ")}
                       </span>
                     )}
                     {i.status === "pending_review" && (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">
+                      <span className="rounded-full bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 text-amber-700 dark:text-amber-300">
                         pending review
                       </span>
                     )}
@@ -131,7 +131,7 @@ export function InsightsLog({
                       type="button"
                       onClick={() => approve.mutate({ serviceId, insightId: i.id })}
                       disabled={approve.isPending}
-                      className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                      className="inline-flex items-center gap-1 rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
                       title="Approve"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Approve

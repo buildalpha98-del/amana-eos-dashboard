@@ -52,7 +52,7 @@ export function BriefTable({
               <td className="px-3 py-2 font-mono text-xs text-foreground/80">
                 {b.briefNumber}
                 {b.escalatedAt && (
-                  <span className="ml-2 rounded bg-rose-50 px-1.5 py-0.5 text-2xs font-medium text-rose-700">
+                  <span className="ml-2 rounded bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 text-2xs font-medium text-rose-700 dark:text-rose-300">
                     escalated
                   </span>
                 )}

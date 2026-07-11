@@ -57,7 +57,7 @@ export function Field({
         {label}
       </label>
       {labelled}
-      {hint && <p className="mt-1 text-[11px] text-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
@@ -329,7 +329,7 @@ export function FormActions({
 }) {
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-      <p className="text-[11px] text-muted">
+      <p className="text-xs text-muted">
         <kbd className="rounded bg-surface px-1 py-0.5 font-mono">⌘</kbd>
         <kbd className="ml-0.5 rounded bg-surface px-1 py-0.5 font-mono">↵</kbd> save ·{" "}
         <kbd className="rounded bg-surface px-1 py-0.5 font-mono">Esc</kbd> cancel

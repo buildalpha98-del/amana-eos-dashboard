@@ -30,9 +30,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const priorityConfig: Record<string, { label: string; bg: string; text: string }> = {
-  critical: { label: "Critical", bg: "bg-red-50", text: "text-red-700" },
-  high: { label: "High", bg: "bg-amber-50", text: "text-amber-700" },
-  medium: { label: "Medium", bg: "bg-blue-50", text: "text-blue-700" },
+  critical: { label: "Critical", bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-700" },
+  high: { label: "High", bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-700" },
+  medium: { label: "Medium", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700" },
 };
 
 function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
@@ -66,7 +66,7 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
             strokeLinecap="round"
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground/80">
+        <span className="absolute inset-0 flex items-center justify-center text-2xs font-bold text-foreground/80">
           {rock.percentComplete}%
         </span>
       </div>
@@ -133,7 +133,7 @@ function RockSection({
           <h3 className="text-sm font-semibold text-foreground">{title}</h3>
           <span className="text-xs text-muted ml-1">({rocks.length})</span>
         </div>
-        <div className="flex items-center gap-3 text-[11px] font-medium">
+        <div className="flex items-center gap-3 text-xs font-medium">
           {onTrack > 0 && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />

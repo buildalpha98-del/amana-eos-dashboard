@@ -181,7 +181,7 @@ function InviteUserModal({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -499,7 +499,7 @@ function UserRow({
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
             user.active
-              ? "bg-green-50 text-green-700"
+              ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300"
               : "bg-surface text-muted"
           }`}
         >
@@ -576,7 +576,7 @@ function UserRow({
                   <button
                     onClick={() => toggleActive.mutate()}
                     disabled={toggleActive.isPending}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
                   >
                     {user.active ? "Deactivate" : "Reactivate"}
                   </button>
@@ -601,7 +601,7 @@ function UserRow({
                       <hr className="my-1" />
                       <button
                         onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium"
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 font-medium"
                       >
                         Delete Permanently
                       </button>
@@ -623,12 +623,12 @@ function UserRow({
               </div>
               <p className="text-sm text-muted mb-4">Set a new password for <span className="font-medium text-foreground">{user.name}</span></p>
               {resetError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
                   {resetError}
                 </div>
               )}
               {resetSuccess ? (
-                <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm">
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-700 dark:text-emerald-300 text-sm">
                   <CheckCircle2 className="w-4 h-4" />
                   Password reset successfully!
                 </div>
@@ -666,7 +666,7 @@ function UserRow({
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
@@ -678,7 +678,7 @@ function UserRow({
                 Are you sure you want to permanently delete <span className="font-medium text-foreground">{user.name}</span>? All their data (todos, rocks, issues, timesheets, etc.) will be removed or unlinked.
               </p>
               {deleteUser.isError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
                   {deleteUser.error instanceof Error ? deleteUser.error.message : "Failed to delete user"}
                 </div>
               )}
@@ -732,9 +732,9 @@ const entityTypeOptions = [
 ];
 
 const actionBadge: Record<string, string> = {
-  create: "bg-emerald-50 text-emerald-700",
-  update: "bg-blue-50 text-blue-700",
-  delete: "bg-red-50 text-red-700",
+  create: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300",
+  update: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300",
+  delete: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300",
 };
 
 function ActivityLogPanel() {
@@ -1354,7 +1354,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
           /* ——— State 2: Connected but unmapped ——— */
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                 Connected to {status?.tenantName}
               </span>
@@ -1370,7 +1370,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               <button
                 onClick={() => xeroDisconnect.mutate()}
                 disabled={xeroDisconnect.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Unlink className="w-3.5 h-3.5" />
                 Disconnect
@@ -1381,7 +1381,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
           /* ——— State 3: Connected and mapped ——— */
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                 Connected to {status?.tenantName}
               </span>
@@ -1406,7 +1406,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                 ? `Last synced: ${formatRelativeTime(status.lastSyncAt)}`
                 : "Never synced"}
               {status?.lastSyncStatus === "error" && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-xs font-medium">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs font-medium">
                   Sync error
                 </span>
               )}
@@ -1414,7 +1414,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
 
             {/* Sync success message */}
             {syncSuccess && (
-              <div className="mb-3 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm flex items-center gap-2">
+              <div className="mb-3 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-sm flex items-center gap-2">
                 <Check className="w-4 h-4" />
                 Sync completed successfully
               </div>
@@ -1449,7 +1449,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               <button
                 onClick={() => xeroDisconnect.mutate()}
                 disabled={xeroDisconnect.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Unlink className="w-3.5 h-3.5" />
                 Disconnect
@@ -1495,7 +1495,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                   mappingStep === 1
                     ? "bg-brand text-white"
-                    : "bg-green-100 text-green-700"
+                    : "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
                 )}
               >
                 {mappingStep > 1 ? (
@@ -2009,10 +2009,10 @@ function ApiKeysSection() {
   }
 
   function getKeyStatus(key: { revokedAt: string | null; expiresAt: string | null }) {
-    if (key.revokedAt) return { label: "Revoked", color: "bg-red-100 text-red-700" };
+    if (key.revokedAt) return { label: "Revoked", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" };
     if (key.expiresAt && new Date(key.expiresAt) < new Date())
-      return { label: "Expired", color: "bg-yellow-100 text-yellow-700" };
-    return { label: "Active", color: "bg-emerald-100 text-emerald-700" };
+      return { label: "Expired", color: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300" };
+    return { label: "Active", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" };
   }
 
   function formatDate(d: string | null) {
@@ -2083,7 +2083,7 @@ function ApiKeysSection() {
                         {key.scopes.map((scope) => (
                           <span
                             key={scope}
-                            className="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-700"
+                            className="text-xs px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
                           >
                             {scope.replace(":", " ")}
                           </span>
@@ -2220,7 +2220,7 @@ function ApiKeysSection() {
               <h4 className="text-lg font-semibold text-foreground">API Key Created</h4>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
               <p className="text-sm text-amber-800 font-medium">
                 Copy this key now. It will not be shown again.
               </p>
@@ -2299,12 +2299,12 @@ function OwnaIntegrationSection() {
         </div>
         <div className="flex items-center gap-2">
           {status?.configured ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               API Configured
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               Not Configured
             </span>
@@ -2715,7 +2715,7 @@ function AiUsageDashboard() {
               className={cn(
                 "px-3 py-1 text-xs rounded-full font-medium transition-colors",
                 days === d
-                  ? "bg-purple-100 text-purple-700"
+                  ? "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300"
                   : "text-muted hover:bg-surface"
               )}
             >
@@ -2736,25 +2736,25 @@ function AiUsageDashboard() {
         <div className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-lg bg-purple-50 p-3">
+            <div className="rounded-lg bg-purple-50 dark:bg-purple-950/40 p-3">
               <div className="flex items-center gap-1.5 text-xs text-purple-600 mb-1">
                 <Zap className="w-3.5 h-3.5" /> Calls
               </div>
               <p className="text-xl font-bold text-purple-900">{data.totalCalls}</p>
             </div>
-            <div className="rounded-lg bg-blue-50 p-3">
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/40 p-3">
               <div className="flex items-center gap-1.5 text-xs text-blue-600 mb-1">
                 <BarChart3 className="w-3.5 h-3.5" /> Input Tokens
               </div>
               <p className="text-xl font-bold text-blue-900">{formatTokens(data.totalInput)}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 p-3">
+            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3">
               <div className="flex items-center gap-1.5 text-xs text-emerald-600 mb-1">
                 <BarChart3 className="w-3.5 h-3.5" /> Output Tokens
               </div>
               <p className="text-xl font-bold text-emerald-900">{formatTokens(data.totalOutput)}</p>
             </div>
-            <div className="rounded-lg bg-amber-50 p-3">
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 p-3">
               <div className="flex items-center gap-1.5 text-xs text-amber-600 mb-1">
                 <DollarSign className="w-3.5 h-3.5" /> Est. Cost
               </div>

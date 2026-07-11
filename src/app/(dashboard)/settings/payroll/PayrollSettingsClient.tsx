@@ -249,7 +249,7 @@ export function PayrollSettingsClient() {
       )}
 
       {status?.connected && unmapped.length === 0 && employeesQ.data && (
-        <section className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-2">
+        <section className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex items-start gap-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-medium text-emerald-900">
@@ -277,9 +277,9 @@ function StatTile({
 }) {
   const accentClass =
     accent === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
       : accent === "amber"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
+        ? "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
         : "border-border";
   const labelClass =
     accent === "emerald"

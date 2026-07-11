@@ -26,10 +26,10 @@ const platformBarColors: Record<string, string> = {
 // ── Status card colors (matching StatusBadge post colours) ──
 const statusCardColors: Record<string, { bg: string; text: string; border: string }> = {
   draft: { bg: "bg-surface/50", text: "text-foreground/80", border: "border-border" },
-  in_review: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200" },
-  approved: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-  scheduled: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
-  published: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+  in_review: { bg: "bg-yellow-50 dark:bg-yellow-950/40", text: "text-yellow-700", border: "border-yellow-200" },
+  approved: { bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700", border: "border-blue-200" },
+  scheduled: { bg: "bg-indigo-50 dark:bg-indigo-950/40", text: "text-indigo-700", border: "border-indigo-200" },
+  published: { bg: "bg-green-50 dark:bg-green-950/40", text: "text-green-700", border: "border-green-200" },
 };
 
 const PERIOD_OPTIONS: { label: string; value: number }[] = [
@@ -311,7 +311,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                             : idx === 1
                             ? "bg-border text-foreground/80"
                             : idx === 2
-                            ? "bg-amber-100 text-amber-700"
+                            ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                             : "bg-surface text-muted"
                         }`}
                       >

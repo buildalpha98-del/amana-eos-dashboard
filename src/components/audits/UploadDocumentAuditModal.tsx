@@ -143,7 +143,7 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
         </div>
 
         <div className="px-6 py-4 space-y-4">
-          <div className="rounded-md border border-blue-200 bg-blue-50/40 p-3 text-xs text-blue-900 space-y-1.5">
+          <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-3 text-xs text-blue-900 dark:text-blue-200 space-y-1.5">
             <p>
               The .docx becomes the master template — it stays untouched and
               is downloadable from the template row.

@@ -162,7 +162,7 @@ function ChildCard({ child, index }: { child: ParentChild; index: number }) {
             </h3>
             {hasMedical && (
               <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-2xs font-semibold"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-2xs font-semibold"
                 aria-label="Has medical conditions"
               >
                 <AlertCircle className="w-3 h-3" />
@@ -270,7 +270,7 @@ function UpcomingSessionsWidget() {
               </div>
               <span className={cn(
                 "text-2xs font-semibold px-2 py-0.5 rounded-full shrink-0",
-                b.status === "confirmed" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                b.status === "confirmed" ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300" : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
               )}>
                 {b.status === "confirmed" ? "Confirmed" : "Requested"}
               </span>
@@ -386,7 +386,7 @@ function EnrolmentApplicationsWidget() {
         <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
           Enrolment Applications
           {pending.length > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 text-2xs font-bold rounded-full bg-amber-100 text-amber-700">
+            <span className="ml-2 px-1.5 py-0.5 text-2xs font-bold rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
               {pending.length} pending
             </span>
           )}
@@ -402,11 +402,11 @@ function EnrolmentApplicationsWidget() {
         {recent.map((app) => {
           const statusColor =
             app.status === "pending"
-              ? "bg-amber-100 text-amber-700"
+              ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
               : app.status === "approved"
-                ? "bg-green-100 text-green-700"
+                ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
                 : app.status === "declined"
-                  ? "bg-red-100 text-red-700"
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                   : "bg-surface text-muted";
 
           return (

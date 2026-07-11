@@ -173,7 +173,7 @@ export function CommandMenu({ role, serviceId }: CommandMenuProps) {
             onKeyDown={onInputKeyDown}
             placeholder="Type a page or an action…"
             aria-label="Search commands"
-            className="flex-1 bg-transparent text-[15px] text-[color:var(--color-foreground)] placeholder-[color:var(--color-muted)]/70 focus:outline-none"
+            className="flex-1 bg-transparent text-base text-[color:var(--color-foreground)] placeholder-[color:var(--color-muted)]/70 focus:outline-none"
           />
           <kbd className="hidden sm:inline-flex items-center gap-1 text-2xs font-mono text-[color:var(--color-muted)] px-1.5 py-0.5 rounded bg-[color:var(--color-cream-deep)] border border-[color:var(--color-border)]">
             ESC
@@ -291,7 +291,7 @@ function Row({
       <div className="flex-1 min-w-0">
         <div className="truncate font-medium">{label}</div>
         {hint && (
-          <div className="text-[11px] text-[color:var(--color-muted)] truncate">
+          <div className="text-xs text-[color:var(--color-muted)] truncate">
             {hint}
           </div>
         )}

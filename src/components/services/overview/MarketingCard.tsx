@@ -154,7 +154,7 @@ export function MarketingCard({
               <div className="flex items-center gap-1.5">
                 <span className="text-foreground">{service.contractEndDate ? new Date(service.contractEndDate).toLocaleDateString("en-AU") : "—"}</span>
                 {daysUntilRenewal !== null && (
-                  <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", daysUntilRenewal <= 0 ? "bg-red-100 text-red-700" : daysUntilRenewal <= 180 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}>
+                  <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", daysUntilRenewal <= 0 ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" : daysUntilRenewal <= 180 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300")}>
                     {daysUntilRenewal <= 0 ? "Expired" : `${daysUntilRenewal}d`}
                   </span>
                 )}
@@ -171,7 +171,7 @@ export function MarketingCard({
               <div className="flex items-center gap-1.5">
                 <span className="text-foreground">{service.lastPrincipalVisit ? new Date(service.lastPrincipalVisit).toLocaleDateString("en-AU") : "—"}</span>
                 {daysSinceVisit !== null && (
-                  <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", daysSinceVisit > 90 ? "bg-red-100 text-red-700" : daysSinceVisit > 60 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}>
+                  <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", daysSinceVisit > 90 ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" : daysSinceVisit > 60 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300")}>
                     {daysSinceVisit}d ago
                   </span>
                 )}

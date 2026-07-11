@@ -97,7 +97,7 @@ export function RowActionMenu({
               className={cn(
                 "w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left rounded",
                 "hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed",
-                it.destructive ? "text-red-700 hover:bg-red-50" : "text-foreground",
+                it.destructive ? "text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40" : "text-foreground",
               )}
             >
               {it.icon}

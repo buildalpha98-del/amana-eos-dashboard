@@ -11,9 +11,9 @@ import { Plus, Filter } from "lucide-react";
 
 const STATUS_PILL: Record<string, string> = {
   pending: "bg-surface text-muted border-border",
-  in_progress: "bg-blue-50 text-blue-700 border-blue-200",
-  completed: "bg-green-50 text-green-700 border-green-200",
-  blocked: "bg-red-50 text-red-700 border-red-200",
+  in_progress: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  completed: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  blocked: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
 };
 
 function fmtDate(iso: string): string {

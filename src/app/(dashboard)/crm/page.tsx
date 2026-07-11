@@ -526,10 +526,10 @@ function SchoolHealthSection() {
 
   const scoreColor = (score: number) =>
     score >= 70
-      ? "text-emerald-700 bg-emerald-50"
+      ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
       : score >= 40
-        ? "text-amber-700 bg-amber-50"
-        : "text-red-700 bg-red-50";
+        ? "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40"
+        : "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40";
 
   return (
     <div className="space-y-3">

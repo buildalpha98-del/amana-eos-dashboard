@@ -72,7 +72,7 @@ export default function ParentLoginPage() {
           {sent ? (
             /* ─── Success state ────────────────────────── */
             <div className="text-center py-4">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-50 mb-4">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-50 dark:bg-green-950/40 mb-4">
                 <CheckCircle className="w-7 h-7 text-green-600" />
               </div>
               <h2 className="text-lg font-heading font-semibold text-foreground mb-2">

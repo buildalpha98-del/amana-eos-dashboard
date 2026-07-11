@@ -30,7 +30,7 @@ export function DailyInfoWidgets() {
           className="bg-card rounded-xl p-4 shadow-sm border border-border"
         >
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center">
               <UtensilsCrossed className="w-4 h-4 text-orange-600" />
             </div>
             <h2 className="text-sm font-heading font-semibold text-foreground">
@@ -51,7 +51,7 @@ export function DailyInfoWidgets() {
                       {item.allergens.map((a) => (
                         <span
                           key={a}
-                          className="text-2xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full"
+                          className="text-2xs bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full"
                         >
                           {a}
                         </span>

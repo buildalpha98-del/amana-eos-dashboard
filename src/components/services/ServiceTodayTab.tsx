@@ -23,7 +23,7 @@ export function ServiceTodayTab({ serviceId }: ServiceTodayTabProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em] mb-2">
+        <h3 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em] mb-2">
           Live ratio
         </h3>
         <RatioWidget serviceId={serviceId} compact />

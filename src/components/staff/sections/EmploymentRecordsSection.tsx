@@ -92,7 +92,7 @@ export function EmploymentRecordsSection({
       sectionKey="employment"
       title="Employment records"
       accentDotClass="bg-purple-500"
-      accentActiveClass="bg-purple-100 text-purple-900 border-purple-300"
+      accentActiveClass="bg-purple-100 dark:bg-purple-950/50 text-purple-900 dark:text-purple-200 border-purple-300 dark:border-purple-800"
       subTabs={subTabs}
       defaultTab={initialTab}
     >

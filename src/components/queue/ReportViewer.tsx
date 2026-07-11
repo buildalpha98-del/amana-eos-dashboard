@@ -139,10 +139,10 @@ function seatLabel(seat: string) {
 
 /* ── Alert styles ─────────────────────────────────── */
 const alertStyles: Record<string, string> = {
-  critical: "bg-red-50 border-red-200 text-red-800",
-  warning: "bg-amber-50 border-amber-200 text-amber-800",
-  info: "bg-blue-50 border-blue-200 text-blue-800",
-  success: "bg-green-50 border-green-200 text-green-800",
+  critical: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200",
+  warning: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200",
+  info: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200",
+  success: "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200",
 };
 
 function AlertIcon({ level }: { level: string }) {
@@ -264,7 +264,7 @@ export function ReportViewer({
 
         {/* AI Summary */}
         {aiSummary && (
-          <div className="mx-6 mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
+          <div className="mx-6 mt-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiSummary}</div>
               <button onClick={() => setAiSummary("")} aria-label="Dismiss summary" className="text-purple-400 hover:text-purple-600 flex-shrink-0">

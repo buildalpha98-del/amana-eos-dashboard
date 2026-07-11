@@ -21,12 +21,12 @@ function formatWeekLabel(dateStr: string): string {
 
 function getCellClasses(count: number): string {
   if (count === 0) {
-    return "bg-red-50 text-red-400";
+    return "bg-red-50 dark:bg-red-950/40 text-red-400";
   }
   if (count <= 2) {
-    return "bg-amber-50 text-amber-700";
+    return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300";
   }
-  return "bg-emerald-50 text-emerald-700";
+  return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300";
 }
 
 export function ContentHeatmap({ data, onCentreClick }: ContentHeatmapProps) {

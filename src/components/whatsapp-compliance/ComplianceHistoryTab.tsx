@@ -11,9 +11,9 @@ type SortField = "name" | "rate";
 type SortDir = "asc" | "desc";
 
 const STATUS_BG: Record<"green" | "amber" | "red", string> = {
-  green: "bg-green-100 text-green-800",
-  amber: "bg-amber-100 text-amber-800",
-  red: "bg-red-100 text-red-800",
+  green: "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200",
+  amber: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200",
+  red: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200",
 };
 
 export function ComplianceHistoryTab() {

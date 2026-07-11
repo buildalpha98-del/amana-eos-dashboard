@@ -56,14 +56,14 @@ const ALLERGEN_OPTIONS = [
 ];
 
 const ALLERGEN_COLORS: Record<string, string> = {
-  gluten: "bg-amber-100 text-amber-700",
-  dairy: "bg-blue-100 text-blue-700",
-  nuts: "bg-orange-100 text-orange-700",
-  eggs: "bg-yellow-100 text-yellow-700",
-  soy: "bg-green-100 text-green-700",
-  shellfish: "bg-red-100 text-red-700",
-  vegan: "bg-emerald-100 text-emerald-700",
-  halal: "bg-purple-100 text-purple-700",
+  gluten: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  dairy: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  nuts: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  eggs: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300",
+  soy: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  shellfish: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  vegan: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  halal: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
 };
 
 type CellKey = string;
@@ -415,7 +415,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
 
       {/* Allergen Check Results */}
       {allergenCheckResult && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium text-amber-800 flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4" />

@@ -106,7 +106,7 @@ export default function EnquireForm() {
   if (submitted) {
     return (
       <div className="w-full max-w-md rounded-2xl border-2 border-border bg-card p-8 shadow-sm text-center">
-        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+        <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-950/50 flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="w-6 h-6 text-green-700" />
         </div>
         <h1 className="text-lg font-heading font-semibold text-foreground mb-2">Thanks for reaching out!</h1>
@@ -235,7 +235,7 @@ export default function EnquireForm() {
         </div>
 
         {error && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">
+          <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-md p-2">
             {error}
           </p>
         )}
@@ -248,7 +248,7 @@ export default function EnquireForm() {
           {submitting ? "Sending…" : "Send enquiry"}
         </button>
 
-        <p className="text-[11px] text-muted text-center">
+        <p className="text-xs text-muted text-center">
           By submitting you agree to be contacted about Amana OSHC enrolments.
         </p>
       </form>

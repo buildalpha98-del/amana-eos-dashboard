@@ -71,7 +71,7 @@ export function InstallPrompt({ onInstalled }: Props) {
 
   if (isStandalone) {
     return (
-      <div className="flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-200">
+      <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/40 rounded-xl border border-green-200 dark:border-green-800">
         <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
         <div>
           <p className="text-sm font-semibold text-green-800">App installed</p>

@@ -130,7 +130,7 @@ export function CampaignsTab({
                     <td className="px-4 py-3 text-muted">
                       <span className="capitalize">{campaign.type}</span>
                       {campaign.type === "activation" && (
-                        <span className="ml-1.5 inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-700">
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-950/50 px-1.5 py-0.5 text-2xs font-semibold text-purple-700 dark:text-purple-300">
                           ACT
                         </span>
                       )}

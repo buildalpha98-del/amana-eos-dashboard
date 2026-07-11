@@ -553,7 +553,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
 
       {/* Attendance Anomaly Alerts */}
       {anomalies && anomalies.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <span className="text-sm font-semibold text-amber-800">
@@ -636,8 +636,8 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 className={cn(
                   "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors",
                   forecastLoading
-                    ? "border-amber-300 text-amber-700 bg-amber-50"
-                    : "border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100",
+                    ? "border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40"
+                    : "border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/50",
                   "disabled:cursor-not-allowed"
                 )}
               >
@@ -686,7 +686,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
 
       {/* Demand Forecast Panel */}
       {forecast && (
-        <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden">
+        <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
           {/* role-button div, not <button>: the dismiss X inside is a
               real <button> (invalid to nest). */}
           <div
@@ -739,7 +739,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
 
       {/* Roster Suggestions Panel */}
       {rosterSuggestion && (
-        <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden">
+        <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
           {/* role-button div, not <button>: the dismiss X inside is a
               real <button> (invalid to nest). */}
           <div

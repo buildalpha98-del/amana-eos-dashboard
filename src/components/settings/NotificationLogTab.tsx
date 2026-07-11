@@ -173,8 +173,8 @@ export function NotificationLogTab() {
                         className={cn(
                           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
                           log.status === "sent"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700",
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+                            : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300",
                         )}
                       >
                         {log.status === "sent" ? (

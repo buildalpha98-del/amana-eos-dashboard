@@ -48,9 +48,9 @@ function useEmailAnalytics(days: number) {
 }
 
 const statusColors: Record<string, { bg: string; text: string }> = {
-  sent: { bg: "bg-green-100", text: "text-green-700" },
-  failed: { bg: "bg-red-100", text: "text-red-700" },
-  scheduled: { bg: "bg-blue-100", text: "text-blue-700" },
+  sent: { bg: "bg-green-100 dark:bg-green-950/50", text: "text-green-700" },
+  failed: { bg: "bg-red-100 dark:bg-red-950/50", text: "text-red-700" },
+  scheduled: { bg: "bg-blue-100 dark:bg-blue-950/50", text: "text-blue-700" },
 };
 
 const channelLabels: Record<string, string> = {

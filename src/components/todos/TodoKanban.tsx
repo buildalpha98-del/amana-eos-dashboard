@@ -165,7 +165,7 @@ function TodoKanbanCard({
           <span className="text-red-500 font-medium ml-auto">Overdue</span>
         )}
         {todo.rock && (
-          <span className="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded text-2xs font-medium truncate max-w-[100px]">
+          <span className="bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded text-2xs font-medium truncate max-w-[100px]">
             {todo.rock.title}
           </span>
         )}

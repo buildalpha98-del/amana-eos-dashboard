@@ -75,22 +75,22 @@ const STATUS_META: Record<
 > = {
   lodged: {
     label: "Lodged",
-    pill: "bg-blue-50 text-blue-800 border-blue-200",
+    pill: "bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800",
     icon: Clock,
   },
   under_review: {
     label: "Under review",
-    pill: "bg-amber-50 text-amber-800 border-amber-200",
+    pill: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
     icon: Clock,
   },
   accepted: {
     label: "Accepted",
-    pill: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    pill: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800",
     icon: CheckCircle2,
   },
   declined: {
     label: "Declined",
-    pill: "bg-red-50 text-red-800 border-red-200",
+    pill: "bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
     icon: XCircle,
   },
   on_hold: {
@@ -105,7 +105,7 @@ const STATUS_META: Record<
   },
   reopened: {
     label: "Reopened",
-    pill: "bg-amber-50 text-amber-800 border-amber-200",
+    pill: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
     icon: Clock,
   },
 };

@@ -84,7 +84,7 @@ export function WeekGrid({ grid, flaggedServiceIds, onOpenHistory }: WeekGridPro
                   <td className="p-3 text-right">
                     {flagged && (
                       <span
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                         title="Two-week pattern flagged"
                         aria-label="Two-week pattern flagged"
                       >

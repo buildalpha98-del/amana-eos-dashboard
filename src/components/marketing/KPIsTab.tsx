@@ -36,17 +36,17 @@ const CATEGORY_OPTIONS = [
 ];
 
 const categoryBadgeColors: Record<string, string> = {
-  engagement: "bg-blue-100 text-blue-700",
-  growth: "bg-green-100 text-green-700",
-  content: "bg-purple-100 text-purple-700",
-  conversion: "bg-amber-100 text-amber-700",
+  engagement: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  growth: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  content: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  conversion: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
 };
 
 const periodBadgeColors: Record<string, string> = {
   weekly: "bg-surface text-muted",
-  monthly: "bg-sky-100 text-sky-700",
-  quarterly: "bg-indigo-100 text-indigo-700",
-  yearly: "bg-teal-100 text-teal-700",
+  monthly: "bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300",
+  quarterly: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  yearly: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
 };
 
 // ── Types ──────────────────────────────────────────────────
@@ -393,7 +393,7 @@ export function KPIsTab() {
                     </div>
 
                     {formError && (
-                      <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+                      <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-xs text-red-600 dark:text-red-400">
                         {formError}
                       </p>
                     )}
@@ -461,7 +461,7 @@ export function KPIsTab() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(kpi.id)}
-                      className="rounded-lg p-1.5 text-muted transition-colors hover:bg-red-50 hover:text-danger"
+                      className="rounded-lg p-1.5 text-muted transition-colors hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-danger"
                       title="Delete"
                       aria-label="Delete KPI"
                     >
@@ -507,7 +507,7 @@ export function KPIsTab() {
 
                 {/* Delete Confirmation */}
                 {isDeleting && (
-                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                  <div className="mt-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3">
                     <p className="text-xs text-red-700 mb-2">
                       Delete this KPI? This action cannot be undone.
                     </p>
@@ -700,7 +700,7 @@ export function KPIsTab() {
 
                   {/* Error */}
                   {formError && (
-                    <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                    <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-600 dark:text-red-400">
                       {formError}
                     </p>
                   )}

@@ -62,13 +62,13 @@ export function ShiftHandoverWidget({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+        <h3 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Shift handover
         </h3>
         <button
           type="button"
           onClick={() => setShowComposer((s) => !s)}
-          className="text-[12px] font-medium text-[color:var(--color-brand)] hover:underline"
+          className="text-xs font-medium text-[color:var(--color-brand)] hover:underline"
         >
           {showComposer ? "Cancel" : "Leave a note"}
         </button>
@@ -92,7 +92,7 @@ export function ShiftHandoverWidget({ serviceId }: { serviceId: string }) {
                 "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
                 // Tablet tap target
                 "min-h-[44px]",
-                "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+                "bg-[color:var(--color-brand)] text-white text-sm font-medium",
                 "hover:bg-[color:var(--color-brand-hover)] transition-colors",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
               )}
@@ -119,7 +119,7 @@ export function ShiftHandoverWidget({ serviceId }: { serviceId: string }) {
                 <p className="text-sm text-[color:var(--color-foreground)] whitespace-pre-wrap">
                   {h.content}
                 </p>
-                <p className="mt-1 text-[11px] text-[color:var(--color-muted)] flex items-center gap-1">
+                <p className="mt-1 text-xs text-[color:var(--color-muted)] flex items-center gap-1">
                   <User className="w-3 h-3" />
                   {h.author.name} ·{" "}
                   {created.toLocaleString(undefined, {

@@ -238,7 +238,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
                     <button
                       type="button"
                       onClick={() => removeChild(i)}
-                      className="p-1.5 text-muted hover:text-danger rounded hover:bg-red-50"
+                      className="p-1.5 text-muted hover:text-danger rounded hover:bg-red-50 dark:hover:bg-red-950/40"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

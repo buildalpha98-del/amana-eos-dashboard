@@ -4,19 +4,19 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 
 const SMILEYS = [
-  { score: 1, emoji: "😢", label: "Very Unhappy", color: "hover:bg-red-50 focus:ring-red-300" },
-  { score: 2, emoji: "😟", label: "Unhappy", color: "hover:bg-orange-50 focus:ring-orange-300" },
-  { score: 3, emoji: "😐", label: "Neutral", color: "hover:bg-yellow-50 focus:ring-yellow-300" },
-  { score: 4, emoji: "😊", label: "Happy", color: "hover:bg-green-50 focus:ring-green-300" },
-  { score: 5, emoji: "😍", label: "Very Happy", color: "hover:bg-emerald-50 focus:ring-emerald-300" },
+  { score: 1, emoji: "😢", label: "Very Unhappy", color: "hover:bg-red-50 dark:hover:bg-red-950/40 focus:ring-red-300" },
+  { score: 2, emoji: "😟", label: "Unhappy", color: "hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:ring-orange-300" },
+  { score: 3, emoji: "😐", label: "Neutral", color: "hover:bg-yellow-50 dark:hover:bg-yellow-950/40 focus:ring-yellow-300" },
+  { score: 4, emoji: "😊", label: "Happy", color: "hover:bg-green-50 dark:hover:bg-green-950/40 focus:ring-green-300" },
+  { score: 5, emoji: "😍", label: "Very Happy", color: "hover:bg-emerald-50 dark:hover:bg-emerald-950/40 focus:ring-emerald-300" },
 ];
 
 const SELECTED_BG: Record<number, string> = {
-  1: "bg-red-100 ring-2 ring-red-400",
-  2: "bg-orange-100 ring-2 ring-orange-400",
-  3: "bg-yellow-100 ring-2 ring-yellow-400",
-  4: "bg-green-100 ring-2 ring-green-400",
-  5: "bg-emerald-100 ring-2 ring-emerald-400",
+  1: "bg-red-100 dark:bg-red-950/50 ring-2 ring-red-400",
+  2: "bg-orange-100 dark:bg-orange-950/50 ring-2 ring-orange-400",
+  3: "bg-yellow-100 dark:bg-yellow-950/50 ring-2 ring-yellow-400",
+  4: "bg-green-100 dark:bg-green-950/50 ring-2 ring-green-400",
+  5: "bg-emerald-100 dark:bg-emerald-950/50 ring-2 ring-emerald-400",
 };
 
 export default function QuickFeedbackPage() {

@@ -386,7 +386,7 @@ function ConversationThread({
             <button
               onClick={() => updateStatus.mutate("resolved")}
               disabled={updateStatus.isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 rounded-lg transition-colors min-h-[32px]"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40 rounded-lg transition-colors min-h-[32px]"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               Resolve

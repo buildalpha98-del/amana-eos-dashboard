@@ -319,7 +319,7 @@ function RawJsonEditor({
         className="w-full rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs font-mono focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
       />
       <div className="mt-2 flex items-center justify-between gap-2">
-        <p className="text-[11px] text-muted">
+        <p className="text-xs text-muted">
           <kbd className="rounded bg-surface px-1 py-0.5 font-mono">⌘</kbd>
           <kbd className="ml-0.5 rounded bg-surface px-1 py-0.5 font-mono">↵</kbd> save ·{" "}
           <kbd className="rounded bg-surface px-1 py-0.5 font-mono">Esc</kbd> cancel
@@ -343,7 +343,7 @@ function RawJsonEditor({
         </div>
       </div>
       {error && (
-        <p className="mt-2 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p>
+        <p className="mt-2 rounded-md bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">{error}</p>
       )}
     </div>
   );

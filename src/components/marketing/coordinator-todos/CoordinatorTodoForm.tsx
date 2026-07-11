@@ -175,7 +175,7 @@ export function CoordinatorTodoForm({
               <p className="text-xs text-muted px-2 py-1.5">Loading centres…</p>
             )}
           </div>
-          <p className="text-[11px] text-muted mt-1">
+          <p className="text-xs text-muted mt-1">
             One todo per centre. Auto-assigned to that centre&apos;s coordinator (falls back to manager).
           </p>
         </div>

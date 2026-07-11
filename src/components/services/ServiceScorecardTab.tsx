@@ -501,8 +501,8 @@ function EntryCell({
         className={cn(
           "px-1 py-1 text-center cursor-pointer transition-colors hover:opacity-80",
           entry.onTrack
-            ? "bg-emerald-50 text-emerald-700"
-            : "bg-red-50 text-red-700"
+            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+            : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300"
         )}
       >
         <span className="text-xs font-medium">{formatValue(entry.value)}</span>
@@ -605,7 +605,7 @@ function AddMeasurableForm({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
