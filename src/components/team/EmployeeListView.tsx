@@ -125,7 +125,16 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
         { header: "Email", accessor: (e) => e.email ?? "" },
         { header: "Phone", accessor: (e) => e.phone ?? "" },
         { header: "Role", accessor: (e) => e.role },
-        { header: "Service", accessor: (e) => e.service?.name ?? "" },
+        {
+          header: "Service",
+          // 2026-07-08: CSV now includes additional-service memberships.
+          // Primary first, then extras joined with " · " so downstream
+          // consumers see the same set the UI shows.
+          accessor: (e) =>
+            [e.service?.name, ...e.additionalServices.map((s) => s.name)]
+              .filter(Boolean)
+              .join(" · "),
+        },
         { header: "Status", accessor: (e) => e.status },
         { header: "Tags", accessor: (e) => e.tags.join(", ") },
       ],

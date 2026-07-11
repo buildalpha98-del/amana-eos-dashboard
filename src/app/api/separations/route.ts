@@ -18,6 +18,84 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import {
+  isConfigured as isEhConfigured,
+  terminateEmployee,
+  EhPayrollError,
+} from "@/lib/eh-payroll";
+
+/**
+ * Push the separation to Employment Hero. Fire-and-forget in spirit —
+ * on failure we stamp the error onto the record and keep going. The
+ * local Separation is authoritative; EH is a downstream mirror. Returns
+ * whether the sync ran (for logging / response shaping).
+ *
+ * Skips silently when:
+ *   - EH integration isn't configured (env vars not set)
+ *   - The user has no employmentHeroEmployeeId (they were never
+ *     imported into EH, or already cleared)
+ * Both cases stamp `ehTerminationError` with a descriptive message so
+ * the SeparationTab UI can render an amber "not linked" badge.
+ */
+async function syncTerminationToEH(recordId: string, userId: string, lastWorkingDay: string) {
+  if (!isEhConfigured()) {
+    await prisma.separationRecord.update({
+      where: { id: recordId },
+      data: {
+        ehTerminationSyncedAt: null,
+        ehTerminationError: "Employment Hero integration not configured",
+      },
+    });
+    return { synced: false, reason: "not_configured" as const };
+  }
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { employmentHeroEmployeeId: true, name: true },
+  });
+  if (!user?.employmentHeroEmployeeId) {
+    await prisma.separationRecord.update({
+      where: { id: recordId },
+      data: {
+        ehTerminationSyncedAt: null,
+        ehTerminationError:
+          "Not linked to Employment Hero — no employmentHeroEmployeeId on user record. Terminate manually in EH.",
+      },
+    });
+    return { synced: false, reason: "not_linked" as const };
+  }
+  try {
+    await terminateEmployee(user.employmentHeroEmployeeId, {
+      terminationDate: lastWorkingDay,
+    });
+    await prisma.separationRecord.update({
+      where: { id: recordId },
+      data: { ehTerminationSyncedAt: new Date(), ehTerminationError: null },
+    });
+    logger.info("Separation synced to Employment Hero", {
+      recordId,
+      userId,
+      lastWorkingDay,
+    });
+    return { synced: true as const };
+  } catch (err) {
+    const msg =
+      err instanceof EhPayrollError
+        ? `EH ${err.status}: ${typeof err.body === "string" ? err.body : "rejected termination"}`
+        : err instanceof Error
+          ? err.message
+          : "Unknown EH error";
+    await prisma.separationRecord.update({
+      where: { id: recordId },
+      data: { ehTerminationSyncedAt: null, ehTerminationError: msg },
+    });
+    logger.warn("Separation → EH sync failed", {
+      recordId,
+      userId,
+      error: msg,
+    });
+    return { synced: false, reason: "eh_error" as const, error: msg };
+  }
+}
 
 const REASONS = [
   "resignation",
@@ -192,7 +270,22 @@ export const POST = withApiAuth(
       actorId: session!.user.id,
     });
 
-    return NextResponse.json(created, { status: 201 });
+    // 2026-07-08: Push termination to Employment Hero so payroll
+    // doesn't keep the person active. Non-blocking — sync status is
+    // stamped onto the record so the UI can show the outcome.
+    await syncTerminationToEH(created.id, data.userId, data.lastWorkingDay);
+    // Re-read to include the updated ehTerminationSyncedAt/Error.
+    const fresh = await prisma.separationRecord.findUnique({
+      where: { id: created.id },
+      include: {
+        recordedBy: { select: { id: true, name: true } },
+        performanceCase: {
+          select: { id: true, type: true, title: true, occurredAt: true },
+        },
+      },
+    });
+
+    return NextResponse.json(fresh ?? created, { status: 201 });
   },
   { roles: ["owner", "head_office", "admin"] },
 );
@@ -283,6 +376,24 @@ export const PATCH = withApiAuth(
       actorId: session!.user.id,
       changedKeys: Object.keys(update),
     });
+
+    // 2026-07-08: Re-sync termination to EH if the last working day
+    // actually changed. Other PATCH fields (reason notes, final-pay
+    // flag, references) don't touch EH so we don't ping it on every
+    // save — only when the operative date shifts.
+    if (p.lastWorkingDay !== undefined) {
+      await syncTerminationToEH(existing.id, userId, p.lastWorkingDay);
+      const fresh = await prisma.separationRecord.findUnique({
+        where: { userId },
+        include: {
+          recordedBy: { select: { id: true, name: true } },
+          performanceCase: {
+            select: { id: true, type: true, title: true, occurredAt: true },
+          },
+        },
+      });
+      return NextResponse.json(fresh ?? updated);
+    }
 
     return NextResponse.json(updated);
   },

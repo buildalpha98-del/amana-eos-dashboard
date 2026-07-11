@@ -26,6 +26,7 @@ import { OnboardingPacksTab } from "@/components/onboarding/OnboardingPacksTab";
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
 import { TrainingComplianceTab } from "@/components/onboarding/TrainingComplianceTab";
+import { SurveysTab } from "@/components/surveys/SurveysTab";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GraduationCap,
@@ -62,9 +63,9 @@ interface ServiceOption {
 // Single source of truth for the tab ids — used for the state union, the
 // deep-link allow-list, and the URL round-trip. Admin-only tabs are gated so
 // a non-admin deep link can't land on a blank body.
-const TAB_IDS = ["onboarding", "lms", "induction", "compliance", "exit-surveys"] as const;
+const TAB_IDS = ["onboarding", "lms", "induction", "compliance", "surveys", "exit-surveys"] as const;
 type TabId = (typeof TAB_IDS)[number];
-const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "compliance"];
+const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "compliance", "surveys"];
 
 function isTabId(value: string): value is TabId {
   return (TAB_IDS as readonly string[]).includes(value);
@@ -431,6 +432,18 @@ function OnboardingPageInner() {
             Compliance
           </button>
         )}
+        {isAdmin && (
+          <button
+            onClick={() => changeTab("surveys")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "surveys" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <ClipboardList className="w-4 h-4" />
+            Surveys
+          </button>
+        )}
         <button
           onClick={() => changeTab("exit-surveys")}
           className={cn(
@@ -518,6 +531,9 @@ function OnboardingPageInner() {
           handleModuleProgress={handleModuleProgress}
         />
       )}
+      {/* Surveys Tab (generic Microsoft-Forms-style builder) */}
+      {activeTab === "surveys" && isAdmin && <SurveysTab />}
+
       {/* Exit Surveys Tab */}
       {activeTab === "exit-surveys" && (
         <ExitSurveyDashboard />

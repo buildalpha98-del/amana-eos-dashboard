@@ -48,22 +48,30 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     session?.user?.inductionGraceUntil
   );
 
-  // Group filtered nav items by section, preserving order
+  // Group filtered nav items by section.
+  //
+  // 2026-07-08: switched from consecutive-run grouping to global Map
+  // dedup so a section that appears twice in nav-config (e.g. "Admin"
+  // with the Settings run in between) renders as ONE section header,
+  // not two. Same fix that landed in TopNav on 2026-06-26 — this
+  // closes the parity gap where the sidebar was still rendering
+  // "ADMIN › Leadership" then another "ADMIN" further down. Order =
+  // first-seen section wins.
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
     ).filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
-    const sections: { key: string; items: typeof navItems }[] = [];
+    const byKey = new Map<string, typeof navItems>();
+    const order: string[] = [];
     for (const item of filtered) {
-      const last = sections[sections.length - 1];
-      if (last && last.key === item.section) {
-        last.items.push(item);
-      } else {
-        sections.push({ key: item.section, items: [item] });
+      if (!byKey.has(item.section)) {
+        byKey.set(item.section, []);
+        order.push(item.section);
       }
+      byKey.get(item.section)!.push(item);
     }
-    return sections;
+    return order.map((key) => ({ key, items: byKey.get(key)! }));
   }, [session?.user?.role, inductionLocked]);
 
   // Build favourited items list from the filtered nav items
@@ -200,7 +208,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 {groupIndex > 0 && (
                   <div
                     className={cn(
-                      "my-2",
+                      // 2026-07-08: bigger top gap + faint separator line
+                      // so each section pops as a distinct block. Prior
+                      // headers rendered as text-white/30 with no divider
+                      // and blended into the item list — Daniel couldn't
+                      // scan to a section quickly.
+                      "mt-4 mb-1 pt-2 border-t border-white/[0.08]",
                       collapsed ? "px-2" : "px-3"
                     )}
                   >
@@ -212,14 +225,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                         onClick={() => toggleSection(group.key)}
                         aria-label={`${isSectionCollapsed ? "Expand" : "Collapse"} ${group.key} section`}
                         aria-expanded={!isSectionCollapsed}
-                        className="flex items-center justify-between w-full group"
+                        className="flex items-center justify-between w-full group py-1"
                       >
-                        <h3 className="text-[11px] font-semibold text-white/30 uppercase tracking-widest pl-1">
+                        <h3 className="text-xs font-bold text-accent uppercase tracking-widest pl-1">
                           {group.key}
                         </h3>
                         <ChevronDown
                           className={cn(
-                            "w-3 h-3 text-white/20 transition-transform duration-200 group-hover:text-white/40",
+                            "w-3.5 h-3.5 text-white/40 transition-transform duration-200 group-hover:text-white/70",
                             isSectionCollapsed && "-rotate-90"
                           )}
                         />
