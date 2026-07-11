@@ -69,7 +69,7 @@ export default function BookingsV1() {
           <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
             My Bookings
           </h1>
-          <p className="text-sm text-[#7c7c8a] mt-1">
+          <p className="text-sm text-muted mt-1">
             Manage your children&apos;s sessions.
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function BookingsV1() {
               "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] capitalize",
               activeTab === tab
                 ? "bg-white text-[#004E64] shadow-sm"
-                : "text-[#7c7c8a] hover:text-[#1a1a2e]"
+                : "text-muted hover:text-[#1a1a2e]"
             )}
           >
             {tab === "upcoming" ? (
@@ -120,7 +120,7 @@ export default function BookingsV1() {
           onClick={() => setView("list")}
           className={cn(
             "p-2 rounded-lg transition-colors",
-            view === "list" ? "bg-[#004E64] text-white" : "text-[#7c7c8a] hover:bg-[#F2EDE8]",
+            view === "list" ? "bg-[#004E64] text-white" : "text-muted hover:bg-[#F2EDE8]",
           )}
           aria-label="List view"
         >
@@ -130,7 +130,7 @@ export default function BookingsV1() {
           onClick={() => setView("calendar")}
           className={cn(
             "p-2 rounded-lg transition-colors",
-            view === "calendar" ? "bg-[#004E64] text-white" : "text-[#7c7c8a] hover:bg-[#F2EDE8]",
+            view === "calendar" ? "bg-[#004E64] text-white" : "text-muted hover:bg-[#F2EDE8]",
           )}
           aria-label="Calendar view"
         >
@@ -166,7 +166,7 @@ export default function BookingsV1() {
               ? "No upcoming bookings"
               : "No past bookings"}
           </h2>
-          <p className="text-sm text-[#7c7c8a]">
+          <p className="text-sm text-muted">
             {activeTab === "upcoming"
               ? 'Tap "Request Booking" to book a casual session.'
               : "Past booking history will appear here."}
@@ -176,7 +176,7 @@ export default function BookingsV1() {
         <div className="space-y-6">
           {grouped.map(({ dateLabel, items }) => (
             <div key={dateLabel}>
-              <h2 className="text-xs font-semibold text-[#7c7c8a] uppercase tracking-wider mb-2">
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
                 {dateLabel}
               </h2>
               <div className="space-y-2">
@@ -263,7 +263,7 @@ function BookingCard({
             <p className="text-sm font-semibold text-[#1a1a2e] truncate">
               {booking.child.firstName} {booking.child.surname}
             </p>
-            <p className="text-xs text-[#7c7c8a] truncate">
+            <p className="text-xs text-muted truncate">
               {booking.service.name}
               {booking.child.yearLevel ? ` \u00b7 ${booking.child.yearLevel}` : ""}
             </p>
@@ -293,7 +293,7 @@ function BookingCard({
 
       {/* Fee row */}
       {booking.gapFee != null && (
-        <div className="mt-2 ml-12 text-xs text-[#7c7c8a]">
+        <div className="mt-2 ml-12 text-xs text-muted">
           ${booking.gapFee.toFixed(2)} gap fee
         </div>
       )}
@@ -304,7 +304,7 @@ function BookingCard({
           {canMarkAbsent && (
             <button
               onClick={onMarkAbsent}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#7c7c8a] hover:text-[#1a1a2e] transition-colors min-h-[44px]"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-[#1a1a2e] transition-colors min-h-[44px]"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
               Mark absent
@@ -313,7 +313,7 @@ function BookingCard({
           {canCancel && (
             <button
               onClick={onCancel}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#7c7c8a] hover:text-[#1a1a2e] transition-colors min-h-[44px]"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-[#1a1a2e] transition-colors min-h-[44px]"
             >
               <XCircle className="w-3.5 h-3.5" />
               Cancel

@@ -38,7 +38,7 @@ export default function MessagesV1() {
           <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
             Messages
           </h1>
-          <p className="text-sm text-[#7c7c8a] mt-1">
+          <p className="text-sm text-muted mt-1">
             Chat with your centre.
           </p>
         </div>
@@ -60,7 +60,7 @@ export default function MessagesV1() {
           <h2 className="text-base font-heading font-semibold text-[#1a1a2e] mb-1">
             No messages yet
           </h2>
-          <p className="text-sm text-[#7c7c8a]">
+          <p className="text-sm text-muted">
             Tap &ldquo;New Message&rdquo; to start a conversation with your centre.
           </p>
         </div>
@@ -117,22 +117,22 @@ function ConversationCard({ conversation: conv }: { conversation: ConversationSu
             )}
           </div>
           {conv.service && (
-            <p className="text-xs text-[#7c7c8a] mt-0.5">{conv.service.name}</p>
+            <p className="text-xs text-muted mt-0.5">{conv.service.name}</p>
           )}
           {conv.lastMessage && (
-            <p className="text-xs text-[#7c7c8a] mt-1 truncate">
+            <p className="text-xs text-muted mt-1 truncate">
               {conv.lastMessage.senderType === "parent" ? "You: " : "Centre: "}
               {conv.lastMessage.preview}
             </p>
           )}
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className="text-[10px] text-[#7c7c8a]">
+          <span className="text-[10px] text-muted">
             {conv.lastMessage ? formatDate(conv.lastMessage.createdAt) : formatDate(conv.createdAt)}
           </span>
           <span className={cn(
             "inline-flex items-center gap-1 text-[10px] font-medium",
-            conv.status === "resolved" ? "text-green-500" : conv.status === "open" ? "text-amber-500" : "text-[#7c7c8a]"
+            conv.status === "resolved" ? "text-green-500" : conv.status === "open" ? "text-amber-500" : "text-muted"
           )}>
             {conv.status === "resolved" ? "Resolved" : conv.status === "open" ? "Open" : conv.status}
           </span>
@@ -207,7 +207,7 @@ function NewMessageDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Question about bookings"
               maxLength={200}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
             />
           </div>
 
@@ -219,7 +219,7 @@ function NewMessageDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
               placeholder="Type your message..."
               maxLength={5000}
               rows={4}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
             />
           </div>
 

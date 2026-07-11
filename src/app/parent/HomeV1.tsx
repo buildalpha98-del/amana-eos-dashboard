@@ -34,7 +34,7 @@ export default function ParentHomeV1() {
   if (error || !profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-[#7c7c8a] text-sm">
+        <p className="text-muted text-sm">
           Unable to load your information. Please try again later.
         </p>
       </div>
@@ -51,7 +51,7 @@ export default function ParentHomeV1() {
         <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
           Welcome back, {profile.firstName} <span aria-hidden="true">&#128075;</span>
         </h1>
-        <p className="text-sm text-[#7c7c8a] mt-1">
+        <p className="text-sm text-muted mt-1">
           Here&apos;s an overview of your family.
         </p>
       </div>
@@ -61,13 +61,13 @@ export default function ParentHomeV1() {
 
       {/* Children cards */}
       <section aria-label="Your children">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Your Children
         </h2>
 
         {profile.children.length === 0 ? (
           <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-            <p className="text-[#7c7c8a] text-sm">
+            <p className="text-muted text-sm">
               No children found on your account. Contact your centre for assistance.
             </p>
           </div>
@@ -93,11 +93,11 @@ export default function ParentHomeV1() {
             <p className="text-sm font-semibold text-[#1a1a2e]">
               Enrol a Sibling
             </p>
-            <p className="text-xs text-[#7c7c8a]">
+            <p className="text-xs text-muted">
               Simplified enrolment — family details are pre-filled
             </p>
           </div>
-          <ChevronRight className="w-5 h-5 text-[#7c7c8a] shrink-0" />
+          <ChevronRight className="w-5 h-5 text-muted shrink-0" />
         </Link>
       )}
 
@@ -121,7 +121,7 @@ export default function ParentHomeV1() {
 
       {/* Quick actions */}
       <section aria-label="Quick actions">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Quick Actions
         </h2>
         <div className="grid grid-cols-3 gap-3">
@@ -171,16 +171,16 @@ function ChildCard({ child, index }: { child: ParentChild; index: number }) {
             )}
           </div>
           {child.yearLevel && (
-            <p className="text-sm text-[#7c7c8a] mt-0.5">{child.yearLevel}</p>
+            <p className="text-sm text-muted mt-0.5">{child.yearLevel}</p>
           )}
-          <p className="text-xs text-[#7c7c8a] mt-0.5">{child.serviceName}</p>
+          <p className="text-xs text-muted mt-0.5">{child.serviceName}</p>
         </div>
-        <ChevronRight className="w-5 h-5 text-[#7c7c8a] flex-shrink-0 mt-0.5" />
+        <ChevronRight className="w-5 h-5 text-muted flex-shrink-0 mt-0.5" />
       </div>
 
       {/* Attendance dots */}
       <div className="mt-3 flex items-center gap-2">
-        <span className="text-xs text-[#7c7c8a]">This week:</span>
+        <span className="text-xs text-muted">This week:</span>
         <div className="flex gap-1">
           {Array.from({ length: total }, (_, i) => (
             <div
@@ -242,7 +242,7 @@ function UpcomingSessionsWidget() {
   return (
     <section aria-label="Upcoming sessions">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
           Upcoming Sessions
         </h2>
         <Link href="/parent/bookings" className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
@@ -266,7 +266,7 @@ function UpcomingSessionsWidget() {
                 <p className="text-sm font-medium text-[#1a1a2e] truncate">
                   {b.child.firstName} — {SESSION_LABELS[b.sessionType] ?? b.sessionType.toUpperCase()}
                 </p>
-                <p className="text-xs text-[#7c7c8a] truncate">{b.service.name} · {month}</p>
+                <p className="text-xs text-muted truncate">{b.service.name} · {month}</p>
               </div>
               <span className={cn(
                 "text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0",
@@ -293,7 +293,7 @@ function RecentMessagesWidget() {
   return (
     <section aria-label="Recent messages">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
           Recent Messages
         </h2>
         <Link href="/parent/messages" className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
@@ -320,7 +320,7 @@ function RecentMessagesWidget() {
                 {isUnread && <span className="w-2 h-2 rounded-full bg-[#004E64] shrink-0" />}
               </div>
               {conv.lastMessage && (
-                <p className="text-xs text-[#7c7c8a] mt-0.5 truncate">
+                <p className="text-xs text-muted mt-0.5 truncate">
                   {conv.lastMessage.senderType === "parent" ? "You: " : "Centre: "}
                   {conv.lastMessage.preview}
                 </p>
@@ -383,7 +383,7 @@ function EnrolmentApplicationsWidget() {
   return (
     <section aria-label="Enrolment applications">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
           Enrolment Applications
           {pending.length > 0 && (
             <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">
@@ -419,7 +419,7 @@ function EnrolmentApplicationsWidget() {
                 <p className="text-sm font-medium text-[#1a1a2e] truncate">
                   {app.childFirstName} {app.childLastName}
                 </p>
-                <p className="text-xs text-[#7c7c8a] truncate">
+                <p className="text-xs text-muted truncate">
                   {app.serviceName}
                 </p>
               </div>

@@ -215,7 +215,7 @@ export function SiblingEnrolmentForm() {
                     ? "bg-green-500 text-white"
                     : i === step
                       ? "bg-[#004E64] text-white"
-                      : "bg-[#e8e4df] text-[#7c7c8a]"
+                      : "bg-[#e8e4df] text-muted"
                 }`}
               >
                 {i < step ? <Check className="w-4 h-4" /> : i + 1}
@@ -296,7 +296,7 @@ export function SiblingEnrolmentForm() {
       </div>
 
       {step === 4 && (
-        <p className="text-xs text-[#7c7c8a] text-center mt-3">
+        <p className="text-xs text-muted text-center mt-3">
           Your application will be reviewed by your centre coordinator. You will
           receive an email confirmation once approved.
         </p>
@@ -508,7 +508,7 @@ function Step3Medical({
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors min-h-[32px] ${
                   active
                     ? "bg-[#004E64] text-white"
-                    : "bg-[#f8f5f2] text-[#7c7c8a] hover:bg-[#e8e4df]"
+                    : "bg-[#f8f5f2] text-muted hover:bg-[#e8e4df]"
                 }`}
               >
                 {preset}
@@ -824,7 +824,7 @@ function TagInput({
           onClick={addTag}
           className="px-3 py-2 bg-[#f8f5f2] border border-[#e8e4df] rounded-lg hover:bg-[#e8e4df] transition-colors min-h-[44px]"
         >
-          <Plus className="w-4 h-4 text-[#7c7c8a]" />
+          <Plus className="w-4 h-4 text-muted" />
         </button>
       </div>
     </div>
@@ -840,7 +840,7 @@ function ReviewSection({
 }) {
   return (
     <div className="border border-[#e8e4df] rounded-lg p-3">
-      <h4 className="text-xs font-semibold text-[#7c7c8a] uppercase tracking-wider mb-2">
+      <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
         {title}
       </h4>
       <div className="space-y-1.5">{children}</div>
@@ -851,7 +851,7 @@ function ReviewSection({
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-2">
-      <span className="text-xs text-[#7c7c8a]">{label}</span>
+      <span className="text-xs text-muted">{label}</span>
       <span className="text-xs font-medium text-[#1a1a2e] text-right">
         {value}
       </span>

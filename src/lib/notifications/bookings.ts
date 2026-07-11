@@ -221,7 +221,7 @@ export async function sendBookingDeclinedNotification(bookingId: string, reason?
           <strong>${data.childName}</strong> on <strong>${formattedDate}</strong>.
         </p>
         ${reasonBlock}
-        <p style="margin: 0 0 12px; color: #7c7c8a; font-size: 14px;">
+        <p style="margin: 0 0 12px; color: #6b6b78; font-size: 14px;">
           Please contact your centre if you have any questions.
         </p>
         <p style="margin: 0; color: #374151; font-size: 15px;">
@@ -286,7 +286,7 @@ export async function sendAbsenceConfirmationNotification(absenceId: string): Pr
           We have recorded <strong>${childName}</strong>'s absence for
           <strong>${session}</strong> on <strong>${formattedDate}</strong>.
         </p>
-        <p style="margin: 0 0 12px; color: #7c7c8a; font-size: 14px;">
+        <p style="margin: 0 0 12px; color: #6b6b78; font-size: 14px;">
           If this was submitted in error, please contact your centre.
         </p>
         <p style="margin: 0; color: #374151; font-size: 15px;">

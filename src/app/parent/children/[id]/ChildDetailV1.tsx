@@ -79,7 +79,7 @@ export default function ChildDetailV1() {
           Back to children
         </Link>
         <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-          <p className="text-[#7c7c8a] text-sm">Child not found.</p>
+          <p className="text-muted text-sm">Child not found.</p>
         </div>
       </div>
     );
@@ -103,7 +103,7 @@ export default function ChildDetailV1() {
         </h1>
         <div className="flex items-center gap-2 mt-1">
           {child.yearLevel && (
-            <span className="text-sm text-[#7c7c8a]">{child.yearLevel}</span>
+            <span className="text-sm text-muted">{child.yearLevel}</span>
           )}
           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#004E64]/10 text-[#004E64] text-xs font-medium">
             {child.serviceName}
@@ -121,7 +121,7 @@ export default function ChildDetailV1() {
               "flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all min-h-[44px] whitespace-nowrap shrink-0",
               activeTab === tab.key
                 ? "bg-white text-[#004E64] shadow-sm"
-                : "text-[#7c7c8a] hover:text-[#1a1a2e]"
+                : "text-muted hover:text-[#1a1a2e]"
             )}
           >
             <tab.icon className="w-4 h-4" />
@@ -186,15 +186,15 @@ function AttendanceTab({
             {todayDetail.sessions.map((s) => (
               <div key={s.sessionType} className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-[#7c7c8a]">
+                  <p className="text-xs font-medium text-muted">
                     {SESSION_LABELS_ATT[s.sessionType ?? ""] ?? s.sessionType}
                   </p>
                   {s.status === "present" && (
                     <p className="text-sm text-[#1a1a2e] mt-0.5">
                       Signed in {formatAttTime(s.signInTime)}
-                      {s.signedInBy && <span className="text-[#7c7c8a]"> by {s.signedInBy}</span>}
+                      {s.signedInBy && <span className="text-muted"> by {s.signedInBy}</span>}
                       {s.signOutTime && (
-                        <span className="text-[#7c7c8a]"> · Out {formatAttTime(s.signOutTime)}</span>
+                        <span className="text-muted"> · Out {formatAttTime(s.signOutTime)}</span>
                       )}
                     </p>
                   )}
@@ -232,17 +232,17 @@ function AttendanceTab({
         </div>
       ) : attendance.length === 0 ? (
         <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-          <CalendarDays className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
-          <p className="text-[#7c7c8a] text-sm">
+          <CalendarDays className="w-8 h-8 text-muted mx-auto mb-2" />
+          <p className="text-muted text-sm">
             No attendance records found for the last 30 days.
           </p>
         </div>
       ) : (
         <>
-          <p className="text-xs text-[#7c7c8a]">Last 30 days</p>
+          <p className="text-xs text-muted">Last 30 days</p>
           <div className="grid grid-cols-5 gap-1 text-center">
             {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
-              <span key={d} className="text-[10px] font-semibold text-[#7c7c8a] uppercase">
+              <span key={d} className="text-[10px] font-semibold text-muted uppercase">
                 {d}
               </span>
             ))}
@@ -260,7 +260,7 @@ function AttendanceTab({
                         ? "bg-green-100 text-green-700"
                         : day.status === "absent"
                           ? "bg-red-100 text-red-600"
-                          : "bg-[#F2EDE8] text-[#7c7c8a]"
+                          : "bg-[#F2EDE8] text-muted"
                   )}
                 >
                   {day && (
@@ -288,7 +288,7 @@ function AttendanceTab({
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <span className="flex items-center gap-1 text-[10px] text-[#7c7c8a]">
+    <span className="flex items-center gap-1 text-[10px] text-muted">
       <span className={cn("w-2 h-2 rounded-full", color)} />
       {label}
     </span>
@@ -341,9 +341,9 @@ function GalleryTab({ childId }: { childId: string }) {
   if (!images || images.length === 0) {
     return (
       <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-        <Camera className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
-        <p className="text-[#7c7c8a] text-sm">No photos yet.</p>
-        <p className="text-[#7c7c8a] text-xs mt-1">
+        <Camera className="w-8 h-8 text-muted mx-auto mb-2" />
+        <p className="text-muted text-sm">No photos yet.</p>
+        <p className="text-muted text-xs mt-1">
           Photos from staff observations will appear here.
         </p>
       </div>
@@ -434,8 +434,8 @@ function MedicalTab({ child }: { child: ParentChild }) {
 
       {!hasAny ? (
         <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-          <Stethoscope className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
-          <p className="text-[#7c7c8a] text-sm">
+          <Stethoscope className="w-8 h-8 text-muted mx-auto mb-2" />
+          <p className="text-muted text-sm">
             No medical information on file. Tap &ldquo;Edit Details&rdquo; to add.
           </p>
         </div>
@@ -456,7 +456,7 @@ function MedicalTab({ child }: { child: ParentChild }) {
                 <ShieldCheck className="w-4 h-4 text-green-600" />
                 <h3 className="text-sm font-heading font-semibold text-[#1a1a2e]">Immunisation Status</h3>
               </div>
-              <p className="text-sm text-[#7c7c8a] ml-6">{child.immunisationStatus}</p>
+              <p className="text-sm text-muted ml-6">{child.immunisationStatus}</p>
             </div>
           )}
         </>
@@ -522,7 +522,7 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
           <MedicalFormField label="Immunisation Status" value={immunisation} onChange={setImmunisation} placeholder="e.g. Up to date" />
           <div>
             <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">Dietary Notes</label>
-            <textarea value={dietaryNotes} onChange={(e) => setDietaryNotes(e.target.value)} placeholder="Any dietary requirements..." maxLength={500} rows={3} className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none" />
+            <textarea value={dietaryNotes} onChange={(e) => setDietaryNotes(e.target.value)} placeholder="Any dietary requirements..." maxLength={500} rows={3} className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none" />
           </div>
           <div>
             <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">Action Plan (Asthma/Anaphylaxis)</label>
@@ -532,7 +532,7 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
                 Action plan uploaded
               </div>
             ) : (
-              <button type="button" onClick={() => { setActionPlanUploaded(true); toast({ description: "Action plan uploaded (simulated)" }); }} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-[#e8e4df] hover:border-[#004E64]/30 text-sm text-[#7c7c8a] hover:text-[#004E64] transition-colors w-full justify-center min-h-[44px]">
+              <button type="button" onClick={() => { setActionPlanUploaded(true); toast({ description: "Action plan uploaded (simulated)" }); }} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-[#e8e4df] hover:border-[#004E64]/30 text-sm text-muted hover:text-[#004E64] transition-colors w-full justify-center min-h-[44px]">
                 <Upload className="w-4 h-4" />
                 Upload Action Plan
               </button>
@@ -551,7 +551,7 @@ function MedicalFormField({ label, value, onChange, placeholder }: { label: stri
   return (
     <div>
       <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">{label}</label>
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]" />
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]" />
     </div>
   );
 }
@@ -651,14 +651,14 @@ function DocumentsTab({ childId }: { childId: string }) {
         </button>
       </div>
 
-      <p className="text-xs text-[#7c7c8a] bg-[#F2EDE8] rounded-lg px-3 py-2">
+      <p className="text-xs text-muted bg-[#F2EDE8] rounded-lg px-3 py-2">
         Documents uploaded by parents are reviewed by your coordinator before being marked as verified.
       </p>
 
       {docs.length === 0 ? (
         <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-          <FileText className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
-          <p className="text-[#7c7c8a] text-sm">No documents uploaded yet.</p>
+          <FileText className="w-8 h-8 text-muted mx-auto mb-2" />
+          <p className="text-muted text-sm">No documents uploaded yet.</p>
         </div>
       ) : (
         docs.map((doc) => (
@@ -666,8 +666,8 @@ function DocumentsTab({ childId }: { childId: string }) {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-semibold text-[#1a1a2e]">{doc.fileName}</p>
-                <p className="text-xs text-[#7c7c8a] mt-0.5">{DOC_TYPE_LABELS[doc.documentType] ?? doc.documentType}</p>
-                <p className="text-xs text-[#7c7c8a]">
+                <p className="text-xs text-muted mt-0.5">{DOC_TYPE_LABELS[doc.documentType] ?? doc.documentType}</p>
+                <p className="text-xs text-muted">
                   Uploaded {new Date(doc.createdAt).toLocaleDateString("en-AU")}
                   {doc.uploaderType && <span className="ml-1">by {doc.uploaderType === "parent" ? "you" : "staff"}</span>}
                 </p>
@@ -707,7 +707,7 @@ function DocumentsTab({ childId }: { childId: string }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">Document Name</label>
-              <input type="text" value={docName} onChange={(e) => setDocName(e.target.value)} placeholder="Optional — defaults to filename" className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]" />
+              <input type="text" value={docName} onChange={(e) => setDocName(e.target.value)} placeholder="Optional — defaults to filename" className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]" />
             </div>
             <div>
               <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">File (PDF or image, max 10MB)</label>
@@ -715,7 +715,7 @@ function DocumentsTab({ childId }: { childId: string }) {
                 type="file"
                 accept=".pdf,image/jpeg,image/png,image/webp"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="w-full text-sm text-[#7c7c8a] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[#e8e4df] file:text-sm file:font-medium file:bg-[#F2EDE8] file:text-[#1a1a2e] hover:file:bg-[#004E64]/10 hover:file:text-[#004E64] file:transition-colors file:cursor-pointer"
+                className="w-full text-sm text-muted file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[#e8e4df] file:text-sm file:font-medium file:bg-[#F2EDE8] file:text-[#1a1a2e] hover:file:bg-[#004E64]/10 hover:file:text-[#004E64] file:transition-colors file:cursor-pointer"
               />
             </div>
             {file && file.size > 10 * 1024 * 1024 && (
@@ -816,14 +816,14 @@ function PickupsTab({ childId }: { childId: string }) {
         </button>
       </div>
 
-      <p className="text-xs text-[#7c7c8a] bg-[#F2EDE8] rounded-lg px-3 py-2">
+      <p className="text-xs text-muted bg-[#F2EDE8] rounded-lg px-3 py-2">
         To remove an authorised pickup, please contact your centre coordinator.
       </p>
 
       {pickups.length === 0 ? (
         <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-          <UserCheck className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
-          <p className="text-[#7c7c8a] text-sm">No authorised pickup persons added yet.</p>
+          <UserCheck className="w-8 h-8 text-muted mx-auto mb-2" />
+          <p className="text-muted text-sm">No authorised pickup persons added yet.</p>
         </div>
       ) : (
         pickups.filter((p) => p.active).map((pickup) => (
@@ -833,18 +833,18 @@ function PickupsTab({ childId }: { childId: string }) {
                 {pickup.photoUrl ? (
                   <img src={pickup.photoUrl} alt={pickup.name} className="w-10 h-10 rounded-full object-cover border border-[#e8e4df]" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#F2EDE8] flex items-center justify-center text-[#7c7c8a] text-sm font-semibold">
+                  <div className="w-10 h-10 rounded-full bg-[#F2EDE8] flex items-center justify-center text-muted text-sm font-semibold">
                     {pickup.name.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div>
                   <p className="text-sm font-semibold text-[#1a1a2e]">{pickup.name}</p>
-                  <p className="text-xs text-[#7c7c8a] mt-0.5">{pickup.relationship}</p>
+                  <p className="text-xs text-muted mt-0.5">{pickup.relationship}</p>
                   <a href={`tel:${pickup.phone}`} className="inline-flex items-center gap-1 mt-1 text-xs text-[#004E64] hover:text-[#0A7E9E] font-medium min-h-[44px]">
                     <Phone className="w-3.5 h-3.5" />
                     {pickup.phone}
                   </a>
-                  {pickup.notes && <p className="text-xs text-[#7c7c8a] italic mt-0.5">{pickup.notes}</p>}
+                  {pickup.notes && <p className="text-xs text-muted italic mt-0.5">{pickup.notes}</p>}
                 </div>
               </div>
               <button onClick={() => openEdit(pickup)} className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
@@ -881,8 +881,8 @@ function ContactsTab({ child }: { child: ParentChild }) {
   if (child.emergencyContacts.length === 0) {
     return (
       <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-        <Phone className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
-        <p className="text-[#7c7c8a] text-sm">
+        <Phone className="w-8 h-8 text-muted mx-auto mb-2" />
+        <p className="text-muted text-sm">
           No emergency contacts on file. You can add them in your account settings.
         </p>
       </div>
@@ -894,7 +894,7 @@ function ContactsTab({ child }: { child: ParentChild }) {
       {child.emergencyContacts.map((contact) => (
         <div key={contact.id} className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
           <h3 className="text-sm font-heading font-semibold text-[#1a1a2e]">{contact.name}</h3>
-          <p className="text-xs text-[#7c7c8a] mt-0.5">{contact.relationship}</p>
+          <p className="text-xs text-muted mt-0.5">{contact.relationship}</p>
           <a href={`tel:${contact.phone}`} className="inline-flex items-center gap-1.5 mt-2 text-sm text-[#004E64] hover:text-[#0A7E9E] font-medium transition-colors min-h-[44px]">
             <Phone className="w-4 h-4" />
             {contact.phone}

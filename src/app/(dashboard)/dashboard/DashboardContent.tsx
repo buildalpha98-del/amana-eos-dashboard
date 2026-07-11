@@ -291,7 +291,7 @@ function CommandCentreDashboard({
           <DashboardTodayStrip
             counts={{
               overdueTodos: data.actionItems.overdueTodos.length,
-              offTrackRocks: data.actionItems.overdueRocks.length,
+              offTrackRocks: data.actionItems.offTrackRockCount,
               openIssues: data.actionItems.idsIssues.length,
               pendingQueue: pendingQueueCount,
             }}

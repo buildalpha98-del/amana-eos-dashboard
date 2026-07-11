@@ -110,7 +110,7 @@ export default function EnquireForm() {
           <CheckCircle2 className="w-6 h-6 text-green-700" />
         </div>
         <h1 className="text-lg font-heading font-semibold text-[#1a1a2e] mb-2">Thanks for reaching out!</h1>
-        <p className="text-sm text-[#7c7c8a]">
+        <p className="text-sm text-muted">
           We&apos;ve received your enquiry{service ? ` for ${service.name}` : ""}. The team will be in touch within
           one business day.
         </p>
@@ -123,7 +123,7 @@ export default function EnquireForm() {
       <div className="mb-5">
         <h1 className="text-xl font-heading font-semibold text-[#1a1a2e]">Enquire about Amana OSHC</h1>
         {service && (
-          <p className="mt-1 text-sm text-[#7c7c8a] flex items-center gap-1">
+          <p className="mt-1 text-sm text-muted flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5" aria-hidden />
             {service.name}
             {service.suburb && <span> · {service.suburb}</span>}
@@ -171,7 +171,7 @@ export default function EnquireForm() {
             />
           </Field>
         </div>
-        <p className="text-xs text-[#7c7c8a] -mt-2">Provide at least one — email or phone — so we can reply.</p>
+        <p className="text-xs text-muted -mt-2">Provide at least one — email or phone — so we can reply.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-2">
@@ -248,7 +248,7 @@ export default function EnquireForm() {
           {submitting ? "Sending…" : "Send enquiry"}
         </button>
 
-        <p className="text-[11px] text-[#7c7c8a] text-center">
+        <p className="text-[11px] text-muted text-center">
           By submitting you agree to be contacted about Amana OSHC enrolments.
         </p>
       </form>

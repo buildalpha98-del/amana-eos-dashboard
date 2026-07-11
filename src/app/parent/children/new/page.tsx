@@ -34,7 +34,7 @@ export default function NewChildPage() {
           Back to children
         </Link>
         <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-          <p className="text-[#7c7c8a] text-sm">
+          <p className="text-muted text-sm">
             Unable to load your profile. Please try again.
           </p>
         </div>
@@ -82,7 +82,7 @@ export default function NewChildPage() {
         <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
           Enrol a Sibling
         </h1>
-        <p className="text-sm text-[#7c7c8a] mt-1">
+        <p className="text-sm text-muted mt-1">
           Your details are pre-filled. Just add the new child&apos;s information.
         </p>
       </div>

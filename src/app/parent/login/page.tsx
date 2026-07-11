@@ -78,7 +78,7 @@ export default function ParentLoginPage() {
               <h2 className="text-lg font-heading font-semibold text-[#1a1a2e] mb-2">
                 Check your email!
               </h2>
-              <p className="text-sm text-[#7c7c8a] leading-relaxed">
+              <p className="text-sm text-muted leading-relaxed">
                 We&apos;ve sent a login link to{" "}
                 <span className="font-medium text-[#1a1a2e]">{email}</span>.
                 It expires in 15 minutes.
@@ -99,7 +99,7 @@ export default function ParentLoginPage() {
               <h2 className="text-lg font-heading font-semibold text-[#1a1a2e] mb-1">
                 Sign in
               </h2>
-              <p className="text-sm text-[#7c7c8a] mb-6">
+              <p className="text-sm text-muted mb-6">
                 Enter your email and we&apos;ll send you a login link.
               </p>
 
@@ -112,7 +112,7 @@ export default function ParentLoginPage() {
                     Email address
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7c7c8a]" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                     <input
                       id="parent-email"
                       type="email"
@@ -121,7 +121,7 @@ export default function ParentLoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="parent@example.com"
                       autoComplete="email"
-                      className="w-full pl-10 pr-4 py-3 border-2 border-[#e8e4df] rounded-xl bg-[#FAF8F5]/50 text-base text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-[#e8e4df] rounded-xl bg-[#FAF8F5]/50 text-base text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors"
                     />
                   </div>
                 </div>

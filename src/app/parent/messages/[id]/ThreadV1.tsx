@@ -58,7 +58,7 @@ export default function ThreadV1() {
           Back to messages
         </Link>
         <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-          <p className="text-[#7c7c8a] text-sm">Conversation not found.</p>
+          <p className="text-muted text-sm">Conversation not found.</p>
         </div>
       </div>
     );
@@ -83,7 +83,7 @@ export default function ThreadV1() {
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
             {conversation.service && (
-              <span className="text-xs text-[#7c7c8a]">{conversation.service.name}</span>
+              <span className="text-xs text-muted">{conversation.service.name}</span>
             )}
             {isResolved && (
               <span className="inline-flex items-center gap-1 text-xs text-green-600">
@@ -101,7 +101,7 @@ export default function ThreadV1() {
           <div key={dateLabel}>
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px bg-[#e8e4df]" />
-              <span className="text-[10px] text-[#7c7c8a] font-medium uppercase">{dateLabel}</span>
+              <span className="text-[10px] text-muted font-medium uppercase">{dateLabel}</span>
               <div className="flex-1 h-px bg-[#e8e4df]" />
             </div>
             {messages.map((msg) => (
@@ -115,7 +115,7 @@ export default function ThreadV1() {
       {/* Reply input */}
       {isResolved && (
         <div className="bg-[#F2EDE8] rounded-xl p-4 text-center mb-2">
-          <p className="text-sm text-[#7c7c8a]">
+          <p className="text-sm text-muted">
             This conversation has been resolved. Send a reply to reopen it.
           </p>
         </div>
@@ -129,7 +129,7 @@ export default function ThreadV1() {
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 px-3 py-2.5 border-0 bg-transparent text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none resize-none min-h-[44px] max-h-32"
+            className="flex-1 px-3 py-2.5 border-0 bg-transparent text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none resize-none min-h-[44px] max-h-32"
             style={{ fieldSizing: "content" } as React.CSSProperties}
           />
           <button
@@ -173,7 +173,7 @@ function MessageBubble({ message: msg }: { message: ConversationMessage }) {
         <p
           className={cn(
             "text-[10px] mt-1",
-            isParent ? "text-white/60" : "text-[#7c7c8a]"
+            isParent ? "text-white/60" : "text-muted"
           )}
         >
           {new Date(msg.createdAt).toLocaleTimeString("en-AU", {

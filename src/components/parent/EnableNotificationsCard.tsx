@@ -63,7 +63,7 @@ export function EnableNotificationsCard() {
             <p className="text-sm font-medium text-[#1a1a2e]">
               Install the app first
             </p>
-            <p className="text-xs text-[#7c7c8a] mt-1">
+            <p className="text-xs text-muted mt-1">
               On iPhone, open this page in Safari, tap the Share button, then
               &ldquo;Add to Home Screen&rdquo;. Notifications can be enabled
               once the app is installed.
@@ -129,7 +129,7 @@ export function EnableNotificationsCard() {
           <p className="text-sm font-semibold text-[#1a1a2e]">
             Push notifications
           </p>
-          <p className="text-xs text-[#7c7c8a] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Sign-in/out, messages from the centre, new posts about your child
             and booking updates.
           </p>
@@ -147,7 +147,7 @@ export function EnableNotificationsCard() {
             type="button"
             onClick={handleDisable}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#7c7c8a] hover:text-[#1a1a2e] disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-[#1a1a2e] disabled:opacity-50"
           >
             <BellOff className="w-3.5 h-3.5" />
             Turn off

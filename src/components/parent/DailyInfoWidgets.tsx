@@ -42,7 +42,7 @@ export function DailyInfoWidgets() {
               .sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot))
               .map((item, i) => (
                 <div key={i}>
-                  <p className="text-[10px] font-semibold text-[#7c7c8a] uppercase tracking-wider">
+                  <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">
                     {SLOT_LABELS[item.slot] ?? item.slot}
                   </p>
                   <p className="text-sm text-[#1a1a2e] mt-0.5">{item.description}</p>
@@ -80,7 +80,7 @@ export function DailyInfoWidgets() {
           <div className="space-y-3">
             {todayProgram.map((activity) => (
               <div key={activity.id} className="border-l-2 border-[#004E64]/20 pl-3">
-                <div className="flex items-center gap-1.5 text-[10px] text-[#7c7c8a]">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted">
                   <Clock className="w-3 h-3" />
                   <span>{activity.startTime} – {activity.endTime}</span>
                   {activity.location && (
@@ -94,12 +94,12 @@ export function DailyInfoWidgets() {
                   {activity.title}
                 </p>
                 {activity.description && (
-                  <p className="text-xs text-[#7c7c8a] mt-0.5 line-clamp-2">
+                  <p className="text-xs text-muted mt-0.5 line-clamp-2">
                     {activity.description}
                   </p>
                 )}
                 {activity.staffName && (
-                  <p className="text-[10px] text-[#7c7c8a] mt-0.5">
+                  <p className="text-[10px] text-muted mt-0.5">
                     Staff: {activity.staffName}
                   </p>
                 )}

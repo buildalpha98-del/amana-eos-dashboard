@@ -98,7 +98,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
     <BottomSheet open={open} onClose={onClose} title="Mark as Absent">
       <div className="px-3 pb-2 space-y-5">
         {booking && (
-          <p className="text-sm text-[#7c7c8a]">
+          <p className="text-sm text-muted">
             {booking.child.firstName}&apos;s {booking.sessionType.toUpperCase()} session
           </p>
         )}
@@ -107,7 +107,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
         <label className="flex items-center justify-between gap-3 py-2 cursor-pointer">
           <div>
             <p className="text-sm font-medium text-[#1a1a2e]">Due to illness</p>
-            <p className="text-xs text-[#7c7c8a]">
+            <p className="text-xs text-muted">
               Tick if your child is sick today.
             </p>
           </div>
@@ -134,7 +134,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
         {/* Notes */}
         <div>
           <label htmlFor="absence-notes" className="block text-xs font-medium text-[#1a1a2e]/70 mb-1.5">
-            Notes <span className="text-[#7c7c8a] font-normal">(optional)</span>
+            Notes <span className="text-muted font-normal">(optional)</span>
           </label>
           <textarea
             id="absence-notes"
@@ -146,7 +146,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
           />
           <p className={cn(
             "text-right text-[11px] mt-1",
-            overLimit ? "text-red-600" : "text-[#7c7c8a]",
+            overLimit ? "text-red-600" : "text-muted",
           )}>
             {notes.length}/{NOTES_LIMIT}
           </p>
@@ -155,7 +155,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
         {/* Medical certificate upload */}
         <div>
           <p className="text-xs font-medium text-[#1a1a2e]/70 mb-1.5">
-            Medical certificate <span className="text-[#7c7c8a] font-normal">(optional)</span>
+            Medical certificate <span className="text-muted font-normal">(optional)</span>
           </p>
 
           {!certUrl ? (
@@ -197,7 +197,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
                 type="button"
                 onClick={removeCert}
                 aria-label="Remove certificate"
-                className="p-2 rounded-lg text-[#7c7c8a] hover:text-[#1a1a2e] hover:bg-[#F2EDE8] transition-colors"
+                className="p-2 rounded-lg text-muted hover:text-[#1a1a2e] hover:bg-[#F2EDE8] transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>

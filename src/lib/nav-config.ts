@@ -156,11 +156,13 @@ export const navItems: NavItem[] = [
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING },
   { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services", roles: ALL_NON_MARKETING },
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING },
+  { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
+  { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
+
+  // \u2500\u2500 Marketing \u2014 campaigns & brand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Marketing" },
   { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Marketing", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] },
-  { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
   { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Marketing", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] },
-  { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
   // ── People — HR & workforce ───────────────────────────────
   { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING },
@@ -189,15 +191,6 @@ export const navItems: NavItem[] = [
   // Coordinator implicit-kept (user listed 6 roles in target spec without
   // explicitly removing coordinator).
   { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ["admin"] },
-    // ── Settings — pulled out of Admin 2026-06-29. Admin was 23 items
-  // deep; extracting the 5 configuration items into their own section
-  // gives users a clear mental model of "where do I change config?"
-  // and shrinks Admin closer to a support/tools drawer.
-  { href: "/settings", label: "Settings", icon: Settings, section: "Settings" },
-  { href: "/settings/organisation", label: "Org Settings", icon: Settings, section: "Settings", tooltip: "Runtime configuration — email sender, ratios, health score weights", roles: ["admin"] },
-  { href: "/settings/permissions", label: "Role Permissions", icon: Shield, section: "Settings", tooltip: "Page-by-page access matrix — owner-only edit", roles: ["owner", "admin"] },
-  { href: "/settings/ai-knowledge", label: "AI Knowledge", icon: Brain, section: "Settings", tooltip: "Content the AI assistant searches when staff ask questions", roles: ["owner", "head_office", "admin"] },
-  { href: "/settings/email-templates", label: "Email Templates", icon: Mail, section: "Settings", tooltip: "Edit subject + body for transactional emails", roles: ["admin"] },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
   { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections", roles: ALL_NON_MARKETING },
   { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring", roles: ALL_NON_MARKETING },
@@ -215,6 +208,16 @@ export const navItems: NavItem[] = [
   { href: "/feedback", label: "Feedback", icon: MessageCircle, section: "Admin", tooltip: "Parent SMS/survey responses and staff-submitted internal feedback", roles: ALL_NON_MARKETING },
   { href: "/admin/ai-drafts", label: "AI Drafts", icon: Bot, section: "Admin", tooltip: "Review and bulk-triage all AI-generated task drafts across the organisation", roles: ALL_NON_MARKETING },
   { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Admin", tooltip: "Child Care Subsidy cost estimator", roles: ALL_NON_MARKETING },
+
+  // ── Settings — pulled out of Admin 2026-06-29. Admin was 23 items
+  // deep; extracting the 5 configuration items into their own section
+  // gives users a clear mental model of "where do I change config?"
+  // and shrinks Admin closer to a support/tools drawer.
+  { href: "/settings", label: "Settings", icon: Settings, section: "Settings" },
+  { href: "/settings/organisation", label: "Org Settings", icon: Settings, section: "Settings", tooltip: "Runtime configuration — email sender, ratios, health score weights", roles: ["admin"] },
+  { href: "/settings/permissions", label: "Role Permissions", icon: Shield, section: "Settings", tooltip: "Page-by-page access matrix — owner-only edit", roles: ["owner", "admin"] },
+  { href: "/settings/ai-knowledge", label: "AI Knowledge", icon: Brain, section: "Settings", tooltip: "Content the AI assistant searches when staff ask questions", roles: ["owner", "head_office", "admin"] },
+  { href: "/settings/email-templates", label: "Email Templates", icon: Mail, section: "Settings", tooltip: "Edit subject + body for transactional emails", roles: ["admin"] },
 ];
 
 /**

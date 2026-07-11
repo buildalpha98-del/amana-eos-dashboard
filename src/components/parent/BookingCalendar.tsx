@@ -161,7 +161,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
             className="p-1.5 rounded-lg hover:bg-[#F2EDE8] transition-colors"
             aria-label="Previous month"
           >
-            <ChevronLeft className="w-4 h-4 text-[#7c7c8a]" />
+            <ChevronLeft className="w-4 h-4 text-muted" />
           </button>
           <span className="text-sm font-semibold text-[#1a1a2e] min-w-[140px] text-center">
             {monthLabel}
@@ -171,7 +171,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
             className="p-1.5 rounded-lg hover:bg-[#F2EDE8] transition-colors"
             aria-label="Next month"
           >
-            <ChevronRight className="w-4 h-4 text-[#7c7c8a]" />
+            <ChevronRight className="w-4 h-4 text-muted" />
           </button>
         </div>
 
@@ -184,7 +184,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
                 "px-3 py-1.5 text-xs font-medium transition-colors",
                 selectedSession === st
                   ? "bg-[#004E64] text-white"
-                  : "bg-white text-[#7c7c8a] hover:bg-[#F2EDE8]",
+                  : "bg-white text-muted hover:bg-[#F2EDE8]",
               )}
             >
               {SESSION_LABELS[st]}
@@ -196,7 +196,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
       {/* Weekday headers */}
       <div className="grid grid-cols-7 gap-1 text-center">
         {WEEKDAY_NAMES.map((d) => (
-          <span key={d} className="text-[10px] font-semibold text-[#7c7c8a] uppercase py-1">
+          <span key={d} className="text-[10px] font-semibold text-muted uppercase py-1">
             {d}
           </span>
         ))}
@@ -259,7 +259,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 justify-center text-[10px] text-[#7c7c8a]">
+      <div className="flex items-center gap-3 justify-center text-[10px] text-muted">
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" />Confirmed</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" />Requested</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300" />Available</span>
@@ -279,7 +279,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
           </p>
 
           {bookingMap.get(`${selectedDate}-${selectedSession}`) ? (
-            <p className="text-xs text-[#7c7c8a] mt-2">
+            <p className="text-xs text-muted mt-2">
               Already booked ({bookingMap.get(`${selectedDate}-${selectedSession}`)?.status})
             </p>
           ) : (
@@ -291,7 +291,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
                 }
                 return (
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-[#7c7c8a]">
+                    <p className="text-xs text-muted">
                       {a ? `${a.available} spot${a.available !== 1 ? "s" : ""} available` : "Availability unknown"}
                     </p>
                     <Button

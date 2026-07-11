@@ -15,6 +15,7 @@ import {
 } from "@/lib/health-score";
 import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
 import { getOrgSettings } from "@/lib/org-settings";
+import { quarterLabel } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,7 +53,10 @@ interface ActionItems {
   overdueTodos: { id: string; title: string; assigneeName: string; dueDate: string }[];
   unassignedTickets: { id: string; ticketNumber: number; subject: string }[];
   idsIssues: { id: string; title: string; priority: string }[];
+  /** Incomplete rocks carried over from PAST quarters (date-overdue). */
   overdueRocks: { id: string; title: string; ownerName: string; quarter: string }[];
+  /** Current-quarter rocks whose status is off_track — matches /rocks?status=off-track. */
+  offTrackRockCount: number;
 }
 
 interface ProjectTodo {
@@ -203,7 +207,7 @@ export async function aggregateDashboard(session: Session): Promise<DashboardDat
     networkAvgScore,
     trends: isServiceScoped ? { ...trends, revenue: [] } : trends,
     actionItems: isServiceScoped
-      ? { ...actionItems, unassignedTickets: [], overdueRocks: [] }
+      ? { ...actionItems, unassignedTickets: [], overdueRocks: [], offTrackRockCount: 0 }
       : actionItems,
     keyMetrics: isServiceScoped
       ? { ...keyMetrics, totalRevenue: 0, openTickets: 0 }
@@ -376,7 +380,7 @@ async function buildActionItems(
   serviceIds: string[] | null,
   userId: string,
 ) {
-  const [overdueTodos, unassignedTickets, idsIssues, overdueRocks] =
+  const [overdueTodos, unassignedTickets, idsIssues, overdueRocks, offTrackRockCount] =
     await Promise.all([
       prisma.todo.findMany({
         where: {
@@ -426,7 +430,7 @@ async function buildActionItems(
           deleted: false,
           status: { in: ["on_track", "off_track"] },
           quarter: {
-            not: `Q${Math.ceil((now.getMonth() + 1) / 3)} ${now.getFullYear()}`,
+            not: quarterLabel(now),
           },
         },
         select: {
@@ -437,6 +441,13 @@ async function buildActionItems(
         },
         orderBy: { createdAt: "asc" },
         take: 10,
+      }),
+      prisma.rock.count({
+        where: {
+          deleted: false,
+          status: "off_track",
+          quarter: quarterLabel(now),
+        },
       }),
     ]);
 
@@ -463,6 +474,7 @@ async function buildActionItems(
       ownerName: r.owner?.name ?? "Unknown",
       quarter: r.quarter,
     })),
+    offTrackRockCount,
   };
 }
 
@@ -552,7 +564,7 @@ async function buildKeyMetrics(
       where: {
         deleted: false,
         status: "on_track",
-        quarter: `Q${Math.ceil((now.getMonth() + 1) / 3)} ${now.getFullYear()}`,
+        quarter: quarterLabel(now),
       },
     }),
     prisma.todo.count({

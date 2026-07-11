@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
+/* The app toggles dark mode via a `.dark` class on <html> (ThemeToggle),
+   not the OS preference — point Tailwind's dark: variant at it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Fonts stay in an `inline` theme block because they reference the
+   next/font variables (--font-dm-sans / --font-bricolage) that only exist
+   on <body> — inlining lets the utility resolve them at point of use. */
 @theme inline {
+  --font-sans: var(--font-dm-sans), "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-bricolage), "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Colors/radii/shadows must NOT be `inline`: inline compiles utilities to
+   literal light-mode values, which silently disconnects them from the
+   `.dark { --color-* }` overrides below (dark mode only half-worked) and
+   from the [data-v2="staff"] radius density overrides. As plain @theme,
+   utilities emit var(--color-*) and re-theme correctly. */
+@theme {
   --color-brand: #004E64;
   --color-brand-dark: #002E3D;
   --color-brand-light: #0A7E9E;
@@ -11,16 +28,13 @@
   --color-card: #FFFFFF;
   --color-sidebar: #002E3D;
   --color-foreground: #1a1a2e;
-  --color-muted: #7c7c8a;
+  --color-muted: #6b6b78; /* ≥4.5:1 on cream (#FAF8F5) and white — WCAG AA for body text */
   --color-border: #e8e4df;
   --color-success: #059669;
   --color-warning: #D97706;
   --color-danger: #DC2626;
   --color-info: #2563EB;
   --color-surface: #F2EDE8;
-
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
 
   --shadow-warm-sm: 0 1px 2px rgba(140, 120, 90, 0.06);
   --shadow-warm: 0 2px 8px -1px rgba(140, 120, 90, 0.08), 0 1px 2px rgba(140, 120, 90, 0.04);

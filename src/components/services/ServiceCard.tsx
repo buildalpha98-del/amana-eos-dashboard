@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   MapPin,
@@ -23,17 +24,23 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 export function ServiceCard({
   service,
   onClick,
+  href,
 }: {
   service: ServiceSummary;
-  onClick: () => void;
+  /** Click handler — used for bulk-select mode. Ignored when `href` is set. */
+  onClick?: () => void;
+  /**
+   * When set, the card renders as a real link (keyboard focus, cmd-click,
+   * middle-click, URL preview) instead of a JS-only button.
+   */
+  href?: string;
 }) {
   const status = statusConfig[service.status] || statusConfig.active;
+  const cardClassName =
+    "block w-full text-left bg-card rounded-xl border border-border p-3.5 sm:p-5 hover:shadow-md hover:border-border transition-all group";
 
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left bg-card rounded-xl border border-border p-3.5 sm:p-5 hover:shadow-md hover:border-border transition-all group"
-    >
+  const inner = (
+    <>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -109,6 +116,19 @@ export function ServiceCard({
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={cardClassName}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button onClick={onClick} className={cardClassName}>
+      {inner}
     </button>
   );
 }

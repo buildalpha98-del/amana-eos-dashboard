@@ -91,7 +91,7 @@ export function InstallPrompt({ onInstalled }: Props) {
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-[#1a1a2e]">Install the app</p>
-            <p className="text-xs text-[#7c7c8a] mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Add Amana Parents to your home screen for quick access.
             </p>
           </div>
@@ -118,7 +118,7 @@ export function InstallPrompt({ onInstalled }: Props) {
           </div>
           <div>
             <p className="text-sm font-semibold text-[#1a1a2e]">Add to Home Screen</p>
-            <p className="text-xs text-[#7c7c8a] mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Follow these steps in Safari to add the app to your iPhone.
             </p>
           </div>
@@ -156,7 +156,7 @@ export function InstallPrompt({ onInstalled }: Props) {
         </div>
         <div>
           <p className="text-sm font-semibold text-[#1a1a2e]">Add to Home Screen</p>
-          <p className="text-xs text-[#7c7c8a] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             {platform === "android"
               ? "Open this page in Chrome, then follow these steps."
               : "Open this page on your phone to install the app."}
@@ -204,7 +204,7 @@ function Step({
         {number}
       </div>
       <div className="flex items-start gap-2 text-sm text-[#1a1a2e]">
-        <Icon className="w-4 h-4 text-[#7c7c8a] shrink-0 mt-0.5" />
+        <Icon className="w-4 h-4 text-muted shrink-0 mt-0.5" />
         <p>{children}</p>
       </div>
     </div>

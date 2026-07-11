@@ -214,7 +214,7 @@ export default function GettingStartedPage() {
                 <item.icon className="w-5 h-5 text-green-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#7c7c8a] line-through">{item.title}</p>
+                <p className="text-sm font-medium text-muted line-through">{item.title}</p>
               </div>
             </div>
           );

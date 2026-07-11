@@ -111,7 +111,7 @@ export function MessagingInbox() {
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7c7c8a]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
               type="text"
               placeholder="Search by name or subject..."
@@ -147,7 +147,7 @@ export function MessagingInbox() {
                   "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all min-h-[32px]",
                   status === tab.value
                     ? "bg-white text-[#004E64] shadow-sm"
-                    : "text-[#7c7c8a] hover:text-[#1a1a2e]",
+                    : "text-muted hover:text-[#1a1a2e]",
                 )}
               >
                 {tab.label}
@@ -166,8 +166,8 @@ export function MessagingInbox() {
             </div>
           ) : !conversations?.length ? (
             <div className="p-8 text-center">
-              <MessageSquare className="w-8 h-8 text-[#7c7c8a]/40 mx-auto mb-2" />
-              <p className="text-sm text-[#7c7c8a]">No conversations</p>
+              <MessageSquare className="w-8 h-8 text-muted/40 mx-auto mb-2" />
+              <p className="text-sm text-muted">No conversations</p>
             </div>
           ) : (
             conversations.map((conv) => (
@@ -197,8 +197,8 @@ export function MessagingInbox() {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <MessageSquare className="w-12 h-12 text-[#7c7c8a]/30 mx-auto mb-3" />
-              <p className="text-sm text-[#7c7c8a]">
+              <MessageSquare className="w-12 h-12 text-muted/30 mx-auto mb-3" />
+              <p className="text-sm text-muted">
                 Select a conversation to view messages
               </p>
             </div>
@@ -255,12 +255,12 @@ function ConversationRow({
               </span>
             )}
           </div>
-          <p className="text-xs text-[#7c7c8a] mt-0.5">{conv.service.name}</p>
+          <p className="text-xs text-muted mt-0.5">{conv.service.name}</p>
           <p className="text-xs text-[#1a1a2e]/70 mt-0.5 truncate">
             {conv.subject}
           </p>
         </div>
-        <span className="text-[10px] text-[#7c7c8a] shrink-0 mt-0.5">
+        <span className="text-[10px] text-muted shrink-0 mt-0.5">
           {formatRelativeTime(conv.lastMessageAt)}
         </span>
       </div>
@@ -376,7 +376,7 @@ function ConversationThread({
             <h3 className="text-sm font-semibold text-[#1a1a2e] truncate">
               {conversation.subject}
             </h3>
-            <p className="text-xs text-[#7c7c8a]">
+            <p className="text-xs text-muted">
               {familyName} &middot; {conversation.service.name}
             </p>
           </div>
@@ -394,7 +394,7 @@ function ConversationThread({
             <button
               onClick={() => updateStatus.mutate("archived")}
               disabled={updateStatus.isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-[#7c7c8a] hover:bg-[#f8f5f2] rounded-lg transition-colors min-h-[32px]"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-[#f8f5f2] rounded-lg transition-colors min-h-[32px]"
             >
               <Archive className="w-3.5 h-3.5" />
               Archive
@@ -452,7 +452,7 @@ function ConversationThread({
                     "text-[10px] mt-1",
                     msg.senderType === "staff"
                       ? "text-white/50"
-                      : "text-[#7c7c8a]",
+                      : "text-muted",
                   )}
                 >
                   {new Date(msg.createdAt).toLocaleTimeString("en-AU", {
@@ -507,7 +507,7 @@ function ConversationThread({
                 attachments.length > 0 ? "Add a caption…" : "Type a message..."
               }
               rows={3}
-              className="w-full px-3 py-2.5 border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+              className="w-full px-3 py-2.5 border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
             />
             <div className="flex justify-end">
               <AiButton
@@ -695,7 +695,7 @@ function NewMessageDialog({
               />
               <div className="max-h-32 overflow-y-auto border border-[#e8e4df] rounded-lg">
                 {filteredFamilies.length === 0 ? (
-                  <p className="text-xs text-[#7c7c8a] p-3 text-center">
+                  <p className="text-xs text-muted p-3 text-center">
                     No families found
                   </p>
                 ) : (
@@ -714,7 +714,7 @@ function NewMessageDialog({
                       >
                         {name || f.email}
                         {name && f.email && (
-                          <span className="text-xs text-[#7c7c8a] ml-2">
+                          <span className="text-xs text-muted ml-2">
                             {f.email}
                           </span>
                         )}
@@ -737,7 +737,7 @@ function NewMessageDialog({
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Enrolment update"
               maxLength={200}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
             />
           </div>
 
@@ -752,7 +752,7 @@ function NewMessageDialog({
               placeholder={attachments.length > 0 ? "Add a caption (optional)…" : "Type your message..."}
               maxLength={5000}
               rows={4}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
             />
           </div>
 
@@ -783,7 +783,7 @@ function NewMessageDialog({
               <Paperclip className="w-4 h-4" />
               Add photo
             </button>
-            <span className="text-xs text-[#7c7c8a]">
+            <span className="text-xs text-muted">
               {attachments.length > 0
                 ? `${attachments.length} of ${MAX_ATTACHMENTS}`
                 : ""}
@@ -905,7 +905,7 @@ function BroadcastDialog({
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Important update"
               maxLength={200}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
             />
           </div>
 
@@ -919,7 +919,7 @@ function BroadcastDialog({
               placeholder="Type your broadcast message..."
               maxLength={10000}
               rows={5}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
             />
           </div>
 
@@ -946,7 +946,7 @@ function BroadcastDialog({
                 />
                 SMS
                 {smsChecked && serviceId && (
-                  <span className="text-xs text-[#7c7c8a]">
+                  <span className="text-xs text-muted">
                     ({smsEligibleCount} of {familyCount} eligible)
                   </span>
                 )}

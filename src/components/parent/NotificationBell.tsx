@@ -79,7 +79,7 @@ export function NotificationBell() {
             {notifications.length === 0 ? (
               <div className="py-10 text-center">
                 <Bell className="w-8 h-8 text-[#e8e4df] mx-auto mb-2" />
-                <p className="text-sm text-[#7c7c8a]">No notifications yet</p>
+                <p className="text-sm text-muted">No notifications yet</p>
               </div>
             ) : (
               notifications.map((n) => (
@@ -127,8 +127,8 @@ function NotificationRow({
           </p>
           {!n.read && <span className="w-2 h-2 rounded-full bg-[#004E64] shrink-0" />}
         </div>
-        <p className="text-xs text-[#7c7c8a] truncate mt-0.5">{n.body}</p>
-        <p className="text-[10px] text-[#7c7c8a] mt-1">{timeAgo(n.createdAt)}</p>
+        <p className="text-xs text-muted truncate mt-0.5">{n.body}</p>
+        <p className="text-[10px] text-muted mt-1">{timeAgo(n.createdAt)}</p>
       </div>
     </Link>
   );

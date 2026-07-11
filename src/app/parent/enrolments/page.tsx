@@ -26,7 +26,7 @@ export default function ParentEnrolmentsPage() {
         <div>
           <Link
             href="/parent"
-            className="inline-flex items-center gap-1 text-xs text-[#7c7c8a] hover:text-[#004E64] mb-2 min-h-[44px]"
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-[#004E64] mb-2 min-h-[44px]"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back
@@ -34,7 +34,7 @@ export default function ParentEnrolmentsPage() {
           <h1 className="text-xl font-heading font-bold text-[#1a1a2e]">
             Enrolments
           </h1>
-          <p className="text-sm text-[#7c7c8a] mt-0.5">
+          <p className="text-sm text-muted mt-0.5">
             Track your sibling enrolment applications.
           </p>
         </div>
@@ -60,7 +60,7 @@ export default function ParentEnrolmentsPage() {
           <h3 className="text-base font-semibold text-[#1a1a2e] mb-1">
             No Applications Yet
           </h3>
-          <p className="text-sm text-[#7c7c8a] mb-4">
+          <p className="text-sm text-muted mb-4">
             Enrol a sibling to get started.
           </p>
           <Link
@@ -87,7 +87,7 @@ export default function ParentEnrolmentsPage() {
                     <h3 className="text-sm font-semibold text-[#1a1a2e]">
                       {app.childFirstName} {app.childLastName}
                     </h3>
-                    <p className="text-xs text-[#7c7c8a] mt-0.5">
+                    <p className="text-xs text-muted mt-0.5">
                       {app.serviceName}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -100,7 +100,7 @@ export default function ParentEnrolmentsPage() {
                         </span>
                       ))}
                     </div>
-                    <p className="text-[10px] text-[#7c7c8a] mt-2">
+                    <p className="text-[10px] text-muted mt-2">
                       Submitted{" "}
                       {new Date(app.createdAt).toLocaleDateString("en-AU", {
                         day: "numeric",

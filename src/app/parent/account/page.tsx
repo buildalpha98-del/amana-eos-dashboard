@@ -124,7 +124,7 @@ export default function AccountPage() {
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-[#7c7c8a] text-sm">
+        <p className="text-muted text-sm">
           Unable to load your account information.
         </p>
       </div>
@@ -137,7 +137,7 @@ export default function AccountPage() {
         <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
           Account
         </h1>
-        <p className="text-sm text-[#7c7c8a] mt-1">
+        <p className="text-sm text-muted mt-1">
           Update your contact details and emergency contacts.
         </p>
       </div>
@@ -146,7 +146,7 @@ export default function AccountPage() {
 
       {/* Profile (editable) */}
       <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Your Details
         </h2>
         <div className="space-y-3">
@@ -169,7 +169,7 @@ export default function AccountPage() {
 
       {/* Contact details (editable) */}
       <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Contact Details
         </h2>
         <div className="space-y-4">
@@ -197,7 +197,7 @@ export default function AccountPage() {
           </label>
 
           <div className="border-t border-[#e8e4df] pt-4">
-            <p className="text-xs font-medium text-[#7c7c8a] mb-3">Address</p>
+            <p className="text-xs font-medium text-muted mb-3">Address</p>
             <div className="space-y-3">
               <FormField
                 label="Street"
@@ -233,7 +233,7 @@ export default function AccountPage() {
 
       {/* Work (editable) */}
       <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Work
         </h2>
         <div className="space-y-3">
@@ -246,7 +246,7 @@ export default function AccountPage() {
       {/* Emergency contacts (editable) */}
       <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+          <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
             Emergency Contacts
           </h2>
           <button
@@ -259,7 +259,7 @@ export default function AccountPage() {
         </div>
 
         {contacts.length === 0 ? (
-          <p className="text-sm text-[#7c7c8a] text-center py-4">
+          <p className="text-sm text-muted text-center py-4">
             No emergency contacts yet. Tap &ldquo;Add&rdquo; to create one.
           </p>
         ) : (
@@ -381,7 +381,7 @@ function FormField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+        className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-muted/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
       />
     </div>
   );
@@ -399,10 +399,10 @@ function ReadOnlyField({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between py-1">
-        <span className="text-xs text-[#7c7c8a]">{label}</span>
+        <span className="text-xs text-muted">{label}</span>
         <span className="text-sm font-medium text-[#1a1a2e]">{value}</span>
       </div>
-      {note && <p className="text-[11px] text-[#7c7c8a] leading-snug">{note}</p>}
+      {note && <p className="text-[11px] text-muted leading-snug">{note}</p>}
     </div>
   );
 }

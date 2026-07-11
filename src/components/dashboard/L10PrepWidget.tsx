@@ -44,7 +44,7 @@ export function L10PrepWidget() {
 
       return {
         overdueTodos: dash.actionItems?.overdueTodos?.length ?? 0,
-        offTrackRocks: dash.actionItems?.overdueRocks?.length ?? 0,
+        offTrackRocks: dash.actionItems?.offTrackRockCount ?? 0,
         openIssues: dash.actionItems?.idsIssues?.length ?? 0,
         missingMeasurables: 0, // Would require scorecard API
         nextMeeting,

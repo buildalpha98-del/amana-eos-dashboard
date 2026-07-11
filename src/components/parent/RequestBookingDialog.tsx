@@ -100,7 +100,7 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
                     <p className="text-sm font-medium text-[#1a1a2e]">
                       {child.firstName} {child.lastName}
                     </p>
-                    <p className="text-xs text-[#7c7c8a]">{child.serviceName}</p>
+                    <p className="text-xs text-muted">{child.serviceName}</p>
                   </div>
                 </button>
               ))}

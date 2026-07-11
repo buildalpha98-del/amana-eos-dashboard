@@ -9,7 +9,6 @@ import { useService } from "@/hooks/useServices";
 import { hasMinRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import {
   ArrowLeft,
   Building2,
@@ -351,14 +350,8 @@ export default function ServiceDetailPage() {
       data-v2="staff"
       className="max-w-7xl mx-auto space-y-6"
     >
-      <Breadcrumb
-        items={[
-          { label: "Services", href: "/services" },
-          { label: service.name },
-        ]}
-      />
-
-      {/* Header */}
+      {/* Header — back-nav lives in the TopBar breadcrumb (Services > Service
+          Detail) + centre switcher; an in-page breadcrumb duplicated both. */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">

@@ -75,7 +75,7 @@ export function NotificationLogTab() {
 
   if (error) {
     return (
-      <div className="text-center py-12 text-[#7c7c8a]">
+      <div className="text-center py-12 text-muted">
         Failed to load notification logs.
       </div>
     );
@@ -86,7 +86,7 @@ export function NotificationLogTab() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-[#7c7c8a]" />
+          <Filter className="w-4 h-4 text-muted" />
           <select
             value={typeFilter}
             onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
@@ -145,7 +145,7 @@ export function NotificationLogTab() {
                 ))
               ) : data?.logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-[#7c7c8a]">
+                  <td colSpan={6} className="text-center py-12 text-muted">
                     <Mail className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     No notification logs found.
                   </td>
@@ -163,7 +163,7 @@ export function NotificationLogTab() {
                     </td>
                     <td className="px-4 py-3 text-[#1a1a2e]">
                       <div>{log.recipientName || "—"}</div>
-                      <div className="text-xs text-[#7c7c8a]">{log.recipientEmail}</div>
+                      <div className="text-xs text-muted">{log.recipientEmail}</div>
                     </td>
                     <td className="px-4 py-3 text-[#1a1a2e] max-w-[200px] truncate">
                       {log.subject}
@@ -190,10 +190,10 @@ export function NotificationLogTab() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7c7c8a]">
+                    <td className="px-4 py-3 text-xs text-muted">
                       {log.relatedType || "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7c7c8a] whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-muted whitespace-nowrap">
                       {formatDate(log.createdAt)}
                     </td>
                   </tr>
@@ -207,7 +207,7 @@ export function NotificationLogTab() {
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-[#7c7c8a]">
+          <p className="text-sm text-muted">
             Showing {(page - 1) * 25 + 1}–{Math.min(page * 25, data.total)} of {data.total}
           </p>
           <div className="flex items-center gap-2">

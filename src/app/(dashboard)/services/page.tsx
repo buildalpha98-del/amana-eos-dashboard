@@ -414,10 +414,9 @@ export default function ServicesPage() {
                           )}
                           <ServiceCard
                             service={service}
-                            onClick={() =>
-                              isBulkMode
-                                ? toggleSelect(service.id)
-                                : router.push(`/services/${service.id}`)
+                            href={isBulkMode ? undefined : `/services/${service.id}`}
+                            onClick={
+                              isBulkMode ? () => toggleSelect(service.id) : undefined
                             }
                           />
                           {isAdmin && !isBulkMode && (
@@ -458,10 +457,9 @@ export default function ServicesPage() {
                           )}
                           <ServiceCard
                             service={service}
-                            onClick={() =>
-                              isBulkMode
-                                ? toggleSelect(service.id)
-                                : router.push(`/services/${service.id}`)
+                            href={isBulkMode ? undefined : `/services/${service.id}`}
+                            onClick={
+                              isBulkMode ? () => toggleSelect(service.id) : undefined
                             }
                           />
                           {/* Touch-friendly delete — always visible on mobile */}

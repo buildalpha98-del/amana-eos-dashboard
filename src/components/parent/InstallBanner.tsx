@@ -139,7 +139,7 @@ export function InstallBanner({
         type="button"
         onClick={handleDismiss}
         aria-label="Dismiss install banner"
-        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full text-[#7c7c8a] hover:text-[#1a1a2e] hover:bg-[#F2EDE8] transition-colors min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px]"
+        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full text-muted hover:text-[#1a1a2e] hover:bg-[#F2EDE8] transition-colors min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px]"
       >
         <X className="w-4 h-4" />
       </button>
@@ -152,7 +152,7 @@ export function InstallBanner({
           <h3 className="text-sm font-heading font-bold text-[#1a1a2e]">
             Add Amana Parents to your home screen
           </h3>
-          <p className="text-xs text-[#7c7c8a] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Tap, open, and stay up to date — no app store needed.
           </p>
         </div>

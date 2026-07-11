@@ -46,14 +46,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       navItems,
       session?.user?.role as Role | undefined
     );
+    // Group by section name (first-occurrence order) rather than contiguous
+    // runs — guarantees one group per section even if nav-config entries are
+    // ever interleaved, so section keys stay unique.
     const sections: { key: string; items: typeof navItems }[] = [];
+    const bySection = new Map<string, { key: string; items: typeof navItems }>();
     for (const item of filtered) {
-      const last = sections[sections.length - 1];
-      if (last && last.key === item.section) {
-        last.items.push(item);
-      } else {
-        sections.push({ key: item.section, items: [item] });
+      let group = bySection.get(item.section);
+      if (!group) {
+        group = { key: item.section, items: [] };
+        bySection.set(item.section, group);
+        sections.push(group);
       }
+      group.items.push(item);
     }
     return sections;
   }, [session?.user?.role]);

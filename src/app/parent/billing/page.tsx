@@ -90,7 +90,7 @@ export default function BillingPage() {
             <h3 className="text-base font-heading font-semibold text-[#1a1a2e] mb-1">
               No statements yet
             </h3>
-            <p className="text-sm text-[#7c7c8a]">
+            <p className="text-sm text-muted">
               Statements will appear here once generated.
             </p>
           </div>
@@ -196,19 +196,19 @@ function StatementCard({
 
         <div className="grid grid-cols-3 gap-2 mt-3 text-center">
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">Fees</p>
+            <p className="text-[10px] text-muted uppercase">Fees</p>
             <p className="text-sm font-semibold text-[#1a1a2e]">
               ${statement.totalFees.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">CCS</p>
+            <p className="text-[10px] text-muted uppercase">CCS</p>
             <p className="text-sm font-semibold text-green-600">
               -${statement.totalCcs.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">Gap</p>
+            <p className="text-[10px] text-muted uppercase">Gap</p>
             <p className="text-sm font-semibold text-[#1a1a2e]">
               ${statement.gapFee.toFixed(2)}
             </p>
@@ -218,13 +218,13 @@ function StatementCard({
         {/* Paid / Balance row */}
         <div className="grid grid-cols-2 gap-2 mt-2 text-center">
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">Paid</p>
+            <p className="text-[10px] text-muted uppercase">Paid</p>
             <p className="text-sm font-semibold text-[#1a1a2e]">
               ${statement.amountPaid.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">Balance</p>
+            <p className="text-[10px] text-muted uppercase">Balance</p>
             <p
               className={cn(
                 "text-sm font-semibold",
@@ -259,7 +259,7 @@ function StatementCard({
               Download PDF
             </a>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-xs text-[#7c7c8a] min-h-[44px]">
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted min-h-[44px]">
               <Download className="w-3.5 h-3.5" />
               PDF not yet available
             </span>
@@ -293,7 +293,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
   if (!data || data.lineItems.length === 0) {
     return (
       <div className="px-4 pb-4">
-        <p className="text-xs text-[#7c7c8a]">No line items available.</p>
+        <p className="text-xs text-muted">No line items available.</p>
       </div>
     );
   }
@@ -306,13 +306,13 @@ function StatementDetail({ statementId }: { statementId: string }) {
   return (
     <div className="px-4 pb-4 border-t border-[#e8e4df] mx-4">
       <div className="pt-3">
-        <p className="text-xs font-semibold text-[#7c7c8a] uppercase tracking-wider mb-2">
+        <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
           Line Items
         </p>
         <div className="overflow-x-auto -mx-1">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-[#7c7c8a] border-b border-[#e8e4df]">
+              <tr className="text-left text-muted border-b border-[#e8e4df]">
                 <th className="pb-1.5 px-1 font-medium">Child</th>
                 <th className="pb-1.5 px-1 font-medium">Date</th>
                 <th className="pb-1.5 px-1 font-medium">Session</th>
@@ -330,10 +330,10 @@ function StatementDetail({ statementId }: { statementId: string }) {
                   <td className="py-1.5 px-1 text-[#1a1a2e]">
                     {item.child.firstName}
                   </td>
-                  <td className="py-1.5 px-1 text-[#7c7c8a]">
+                  <td className="py-1.5 px-1 text-muted">
                     {formatDate(item.date)}
                   </td>
-                  <td className="py-1.5 px-1 text-[#7c7c8a]">
+                  <td className="py-1.5 px-1 text-muted">
                     {SESSION_LABELS[item.sessionType] ?? item.sessionType}
                   </td>
                   <td className="py-1.5 px-1 text-right text-[#1a1a2e]">
