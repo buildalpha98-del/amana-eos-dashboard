@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems, filterNavItems } from "@/lib/nav-config";
+import { isInductionLocked, isInductionAllowedPath } from "@/lib/induction-lock";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NavLayoutToggle } from "@/components/layout/NavLayoutToggle";
 import { useBookingRequestCount } from "@/hooks/useBookingRequests";
@@ -40,28 +41,38 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     onMobileClose?.();
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Group filtered nav items by section, preserving order
+  // Induction locked-mode: a new starter (or expired-grace backfill) only sees
+  // the induction surfaces in the sidebar, mirroring the middleware redirect.
+  const inductionLocked = isInductionLocked(
+    session?.user?.inductionStatus,
+    session?.user?.inductionGraceUntil
+  );
+
+  // Group filtered nav items by section.
+  //
+  // 2026-07-08: switched from consecutive-run grouping to global Map
+  // dedup so a section that appears twice in nav-config (e.g. "Admin"
+  // with the Settings run in between) renders as ONE section header,
+  // not two. Same fix that landed in TopNav on 2026-06-26 — this
+  // closes the parity gap where the sidebar was still rendering
+  // "ADMIN › Leadership" then another "ADMIN" further down. Order =
+  // first-seen section wins.
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
-    );
-    // Group by section name (first-occurrence order) rather than contiguous
-    // runs — guarantees one group per section even if nav-config entries are
-    // ever interleaved, so section keys stay unique.
-    const sections: { key: string; items: typeof navItems }[] = [];
-    const bySection = new Map<string, { key: string; items: typeof navItems }>();
+    ).filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
+    const byKey = new Map<string, typeof navItems>();
+    const order: string[] = [];
     for (const item of filtered) {
-      let group = bySection.get(item.section);
-      if (!group) {
-        group = { key: item.section, items: [] };
-        bySection.set(item.section, group);
-        sections.push(group);
+      if (!byKey.has(item.section)) {
+        byKey.set(item.section, []);
+        order.push(item.section);
       }
-      group.items.push(item);
+      byKey.get(item.section)!.push(item);
     }
-    return sections;
-  }, [session?.user?.role]);
+    return order.map((key) => ({ key, items: byKey.get(key)! }));
+  }, [session?.user?.role, inductionLocked]);
 
   // Build favourited items list from the filtered nav items
   const favouriteItems = useMemo(() => {
@@ -69,9 +80,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
-    ).filter((item) => favourites.has(item.href));
+    )
+      .filter((item) => !inductionLocked || isInductionAllowedPath(item.href))
+      .filter((item) => favourites.has(item.href));
     return filtered;
-  }, [favourites, session?.user?.role]);
+  }, [favourites, session?.user?.role, inductionLocked]);
 
   return (
     <>
@@ -195,7 +208,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 {groupIndex > 0 && (
                   <div
                     className={cn(
-                      "my-2",
+                      // 2026-07-08: bigger top gap + faint separator line
+                      // so each section pops as a distinct block. Prior
+                      // headers rendered as text-white/30 with no divider
+                      // and blended into the item list — Daniel couldn't
+                      // scan to a section quickly.
+                      "mt-4 mb-1 pt-2 border-t border-white/[0.08]",
                       collapsed ? "px-2" : "px-3"
                     )}
                   >
@@ -207,14 +225,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                         onClick={() => toggleSection(group.key)}
                         aria-label={`${isSectionCollapsed ? "Expand" : "Collapse"} ${group.key} section`}
                         aria-expanded={!isSectionCollapsed}
-                        className="flex items-center justify-between w-full group"
+                        className="flex items-center justify-between w-full group py-1"
                       >
-                        <h3 className="text-2xs font-semibold text-white/30 uppercase tracking-widest pl-1">
+                        <h3 className="text-xs font-bold text-accent uppercase tracking-widest pl-1">
                           {group.key}
                         </h3>
                         <ChevronDown
                           className={cn(
-                            "w-3 h-3 text-white/20 transition-transform duration-200 group-hover:text-white/40",
+                            "w-3.5 h-3.5 text-white/40 transition-transform duration-200 group-hover:text-white/70",
                             isSectionCollapsed && "-rotate-90"
                           )}
                         />

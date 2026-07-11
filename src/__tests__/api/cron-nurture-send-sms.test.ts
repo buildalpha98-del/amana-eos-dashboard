@@ -75,6 +75,7 @@ vi.mock("@/lib/email-templates", () => {
     nurtureSessionReminderEmail: (firstName: string, centreName: string) => ({
       subject: "reminder", html: `<p>reminder ${centreName}</p>`,
     }),
+    centreWebsiteUrl: () => undefined,
     retentionCasualReengageEmail: echo("casual"),
     retentionDayChangeReminderEmail: echo("day-change"),
     retentionWithdrawalInterceptEmail: echo("withdrawal"),

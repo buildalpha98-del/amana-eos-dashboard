@@ -34,6 +34,10 @@ export interface EmployeeListItem {
   role: string;
   tags: string[];
   service: { id: string; name: string } | null;
+  /** 2026-07-08: additional centres this user is a member of via
+   *  UserServiceMembership. Empty when the user's only service is
+   *  their primary one (or they have no service at all). */
+  additionalServices: Array<{ id: string; name: string }>;
   status: "active" | "pending" | "deactivated";
   /** True when this user is linked to their Employment Hero Payroll
    *  employee record. False shows a red "needs payroll link" badge

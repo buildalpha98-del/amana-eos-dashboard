@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { CENTRE_AVATAR_STARTER_DATA } from "../src/lib/seed/centre-avatar-starter-data";
 import { SEED_SEQUENCES } from "../src/lib/sequence-seed-data";
+import { seedInduction } from "./seed-induction";
 
 const prisma = new PrismaClient();
 
@@ -2880,6 +2881,12 @@ Don't list every child by name. Don't invent events or meals — use only what's
     sequencesCreated += 1;
   }
   console.log(`Seeded ${sequencesCreated} new email sequences (preserved ${SEED_SEQUENCES.length - sequencesCreated} existing)`);
+
+  // ── Staff-induction curriculum (LMS) ──────────────────────────
+  // Idempotent: courses/modules/quiz questions/practical items/calendar
+  // slots are all guarded by existence checks in seedInduction, so this
+  // is safe to re-run on every Vercel build without duplicating rows.
+  await seedInduction(prisma);
 
   console.log("\nSeed complete!");
 }

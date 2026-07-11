@@ -13,6 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
   senior_educator: "Senior Educator",
   coordinator: "Coordinator",
+  member: "Coordinator",
   director: "Director",
 };
 
@@ -77,6 +78,22 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
+    });
+    queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
+    onUpdated();
+  };
+
+  // Toggle whether this role appears on the public careers page by adding /
+  // removing "website" from postedChannels (the PATCH API already supports it).
+  const handleWebsiteToggle = async (show: boolean) => {
+    const current: string[] = vacancy?.postedChannels ?? [];
+    const next = show
+      ? Array.from(new Set([...current, "website"]))
+      : current.filter((c: string) => c !== "website");
+    await fetch(`/api/recruitment/${vacancyId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postedChannels: next }),
     });
     queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
     onUpdated();
@@ -186,6 +203,23 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
               ))}
             </div>
           </div>
+
+          {/* Website publishing */}
+          <label className="flex items-start gap-3 rounded-lg border border-border bg-surface/40 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={(vacancy.postedChannels ?? []).includes("website")}
+              onChange={(e) => handleWebsiteToggle(e.target.checked)}
+              className="mt-0.5 h-4 w-4"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-foreground/90">Show on public careers page</span>
+              <span className="block text-xs text-muted mt-0.5">
+                Lists this role at amanaoshc.com.au/careers with an apply link, while
+                status is &ldquo;open&rdquo;. The Notes below become the public job ad.
+              </span>
+            </span>
+          </label>
 
           {/* Details */}
           <div className="grid grid-cols-2 gap-4 text-sm">

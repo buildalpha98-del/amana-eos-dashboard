@@ -21,9 +21,12 @@ import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { pickEligibleShift } from "@/lib/timeclock-pick";
+import { assertUserCleared } from "@/lib/induction";
 
 export const POST = withApiAuth(async (_req, session) => {
   const userId = session.user.id;
+  // Induction gate: an un-cleared new starter cannot clock in.
+  await assertUserCleared(userId);
   const now = new Date();
 
   // Pull the user's shifts on the day +/- 1 day either side; the ±2h

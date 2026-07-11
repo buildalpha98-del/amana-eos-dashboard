@@ -32,52 +32,136 @@ function fallbackEnrolUrl(): string {
     : "https://amanaoshc.company/enrol";
 }
 
+/**
+ * Generic quick-feedback form (smiley rating → QuickFeedback → Feedback Hub
+ * + Monday sentiment-analysis AI report). Callers that know the service pass
+ * the per-service prefilled link via the `feedbackUrl` template argument.
+ */
+function fallbackFeedbackUrl(): string {
+  return process.env.NEXTAUTH_URL
+    ? `${process.env.NEXTAUTH_URL}/survey/feedback`
+    : "https://amanaoshc.company/survey/feedback";
+}
+
 // ─── Parent Nurture: Welcome ────────────────────────────────
 
 export async function nurtureWelcomeEmail(firstName: string, centreName: string, enrolUrl?: string) {
   const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.welcome",
-    defaultSubject: "You've taken the first step! Welcome to {{centreName}}",
+    defaultSubject: "Assalamu Alaikum {{firstName}} — your {{centreName}} enquiry is in ✅",
     defaultBody: `
     <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
-      Assalamu Alaikum {{firstName}} — we're glad you found us!
+      Assalamu Alaikum {{firstName}} — we're so glad you found us!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Thank you for enquiring about {{centreName}}. Finding the right before and after school
-      care is a big decision, and we want to make it as easy as possible for you.
+      Thanks for enquiring about {{centreName}}. <strong>A real person from our team will
+      call you within one business day</strong> — no bots, no call centres.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      At Amana OSHC, your child won't just be supervised — right on the school grounds, they'll
-      be part of our signature programs: <strong>Rise &amp; Shine Club</strong> before school,
-      <strong>Amana Afternoons</strong> after the bell, <strong>Iqra Circle</strong> Qur'an and
-      Islamic learning, <strong>Homework Heroes</strong>, <strong>Little Champions</strong> sport,
-      <strong>Imagination Station</strong> art &amp; STEM, and our rotating
-      <strong>Fuel Up with Amana</strong> menu.
+      While you wait, here's what your child's afternoons could look like: homework
+      <strong>done before pickup</strong> with Homework Heroes, Qur'an and Islamic values
+      woven into every session through Iqra Circle, and a proper feed from our rotating
+      Fuel Up with Amana menu — all right on the school grounds.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      You're in good company — <strong>more than 1,000 children</strong> go Beyond The Bell
+      with us every week.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
-        <td style="padding:24px;">
-          <p style="margin:0 0 12px;color:#FECE00;font-size:15px;font-weight:700;">
-            Here's what happens next:
+        <td style="padding:24px;text-align:center;">
+          <p style="margin:0 0 8px;color:#FECE00;font-size:16px;font-weight:700;">
+            Want to skip the queue?
           </p>
-          <p style="margin:0;color:#ffffff;font-size:14px;line-height:2;">
-            1. We'll send you everything you need to know about fees and subsidies
-            (most families pay as little as $5 a day with CCS)<br/>
-            2. When you're ready, you'll complete a quick online enrolment form<br/>
-            3. Our team will confirm your child's spot and booking days<br/>
-            4. We'll help you get set up for a smooth first day
+          <p style="margin:0;color:#ffffff;font-size:14px;line-height:1.7;">
+            Your enrolment form takes about 10 minutes, saves as you go, and locks in
+            your child's spot. Days fill fastest at the start of term.
           </p>
         </td>
       </tr>
     </table>
     {{enrolButton}}
     <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      No pressure, no rush. We're here whenever you're ready to chat — just hit reply
-      or give the centre a call. We'd love to answer any questions you have.
+      Not ready yet? <strong>Just reply to this email</strong> with the days you're after
+      and your child's year — we'll check availability at {{centreName}} and get straight
+      back to you.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Warmly,<br/>
+      <strong>The {{centreName}} Team</strong>
+    </p>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.7;">
+      PS — keep an eye out tomorrow: we'll show you exactly how the Child Care Subsidy
+      gets most families to around <strong>$5 a day</strong>.
+    </p>
+  `,
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      enrolUrl: escapeHtml(url),
+      enrolButton: buttonHtml("Secure Your Child's Spot", url),
+    },
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "A real person will call you within one business day — here's what happens next.",
+      }),
+  });
+}
+
+// ─── Parent Nurture: CCS Assist (info_sent +24h) ───────────
+
+export async function nurtureCcsAssistEmail(firstName: string, centreName: string, enrolUrl?: string) {
+  const url = enrolUrl || fallbackEnrolUrl();
+  const calculatorUrl = "https://amanaoshc.com.au/fees#calculator";
+  return applyEmailTemplateOverride({
+    key: "nurture.ccsAssist",
+    defaultSubject: "$5 a day OSHC? Here's how the subsidy works, {{firstName}}",
+    defaultBody: `
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
+      The fee you see isn't the fee you pay
+    </h2>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Hi {{firstName}},
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      One of the best-kept secrets about OSHC: the Australian Government's
+      <strong>Child Care Subsidy (CCS)</strong> covers <strong>50&#8211;90%</strong> of fees
+      for most families. An after school session is $36 before CCS at most of our centres —
+      at the maximum subsidy that's about <strong>$3.60</strong>.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      And no — <strong>you do NOT need to be on Centrelink benefits.</strong> CCS is for
+      all working families; it's simply claimed through myGov.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;">
+      <tr>
+        <td style="padding:20px;background-color:#FFF2BF;">
+          <p style="margin:0 0 8px;color:#004E64;font-size:15px;font-weight:700;">
+            How it works (in plain English):
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.8;">
+            <strong>Step 1:</strong> Check your eligibility on myGov<br/>
+            <strong>Step 2:</strong> Have your CRN (Customer Reference Number) handy<br/>
+            <strong>Step 3:</strong> Pop it in when you enrol — <strong>we handle all the
+            paperwork with the government from there.</strong>
+          </p>
+        </td>
+      </tr>
+    </table>
+    {{calculatorButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Prefer a human? Reply with your situation or call
+      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> and
+      we'll crunch your numbers with you — no obligation.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Already convinced? <a href="{{enrolUrl}}" style="color:#004E64;font-weight:700;">Your
+      enrolment form is right here</a> — about 10 minutes, and it saves as you go.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
-      Looking forward to meeting your family,<br/>
+      Here to help,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
@@ -85,64 +169,13 @@ export async function nurtureWelcomeEmail(firstName: string, centreName: string,
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(url),
-      enrolButton: buttonHtml("Start Your Enrolment", url),
+      calculatorButton: buttonHtml("See What You'd Pay — 30-Second Calculator", calculatorUrl),
     },
-    wrap: parentEmailLayout,
-  });
-}
-
-// ─── Parent Nurture: CCS Assist (info_sent +24h) ───────────
-
-export async function nurtureCcsAssistEmail(firstName: string, centreName: string) {
-  return applyEmailTemplateOverride({
-    key: "nurture.ccsAssist",
-    defaultSubject: "Most families pay less than you'd think — here's how",
-    defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      The fee you see isn't the fee you pay
-    </h2>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Hi {{firstName}},
-    </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      One of the best-kept secrets about OSHC? The Australian Government's
-      <strong>Child Care Subsidy (CCS)</strong> covers 50&#8211;90% of fees for most
-      families — care can cost as little as <strong>$5 a day</strong>.
-    </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      And no — <strong>you do NOT need to be on Centrelink benefits</strong> to get CCS.
-      It's available to all working families; it's simply claimed through myGov.
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;">
-      <tr>
-        <td style="padding:20px;background-color:#f0fdf4;border-left:4px solid #10b981;">
-          <p style="margin:0 0 8px;color:#065f46;font-size:15px;font-weight:700;">
-            How it works (in plain English):
-          </p>
-          <p style="margin:0;color:#047857;font-size:14px;line-height:1.8;">
-            <strong>Step 1:</strong> Check your eligibility on myGov or Centrelink<br/>
-            <strong>Step 2:</strong> Get your CRN (Customer Reference Number) ready<br/>
-            <strong>Step 3:</strong> Include it when you enrol — we handle the rest
-          </p>
-        </td>
-      </tr>
-    </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Not sure where to start? Our team at {{centreName}} helps families navigate CCS every week.
-      We can even give you a quick estimate of what you'd actually pay out of pocket.
-    </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Just reply to this email with your situation, or call us on
-      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> and
-      we'll walk you through it step by step — no obligation, no paperwork.
-    </p>
-    <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
-      Here to help,<br/>
-      <strong>The {{centreName}} Team</strong>
-    </p>
-  `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "CCS covers 50–90% for most families — and no, you don't need to be on Centrelink.",
+      }),
   });
 }
 
@@ -154,23 +187,23 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
     key: "nurture.howToEnrol",
     defaultSubject: "3 steps, 10 minutes — here's how to secure your child's spot",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       Enrolling is easier than you think
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We've designed our enrolment form to be as painless as possible. Most families
-      finish it in about 10 minutes (yes, really). Here's a quick preview of what you'll need:
+      We've designed our enrolment form to be as painless as possible — most families
+      finish in about 10 minutes. Here's what you'll need:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border:1px solid #FFF2BF;border-radius:12px;overflow:hidden;">
       <tr>
-        <td style="padding:20px;background-color:#eff6ff;border-bottom:1px solid #dbeafe;">
-          <p style="margin:0 0 4px;color:#1e40af;font-size:14px;font-weight:700;">
-            Step 1: Your child's details
+        <td style="padding:20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0 0 4px;color:#004E64;font-size:14px;font-weight:700;">
+            <span style="color:#B78F00;">Step 1</span> — Your child's details
           </p>
-          <p style="margin:0;color:#3b82f6;font-size:13px;line-height:1.6;">
+          <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
             Name, date of birth, medical info, and allergies. Tip: have your Medicare card and
             both CRNs (yours and your child's) handy. Birth certificate and immunisation
             history can be uploaded later. Enrolling siblings? Add all your children in the
@@ -179,35 +212,43 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
         </td>
       </tr>
       <tr>
-        <td style="padding:20px;background-color:#f0fdf4;border-bottom:1px solid #dcfce7;">
-          <p style="margin:0 0 4px;color:#065f46;font-size:14px;font-weight:700;">
-            Step 2: Emergency contacts &amp; authorised pickups
+        <td style="padding:20px;background-color:#ffffff;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0 0 4px;color:#004E64;font-size:14px;font-weight:700;">
+            <span style="color:#B78F00;">Step 2</span> — Emergency contacts &amp; authorised pickups
           </p>
-          <p style="margin:0;color:#047857;font-size:13px;line-height:1.6;">
+          <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
             Who can we call in an emergency? Who's allowed to collect your child? (You'll need
             their names and phone numbers.)
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:20px;background-color:#fefce8;">
-          <p style="margin:0 0 4px;color:#854d0e;font-size:14px;font-weight:700;">
-            Step 3: Choose your days
+        <td style="padding:20px;background-color:#FFFAE6;">
+          <p style="margin:0 0 4px;color:#004E64;font-size:14px;font-weight:700;">
+            <span style="color:#B78F00;">Step 3</span> — Days &amp; payment
           </p>
-          <p style="margin:0;color:#a16207;font-size:13px;line-height:1.6;">
-            Before School Care, After School Care, or both — pick the days that work for your family.
+          <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
+            Pick Before School Care, After School Care, or both — and set up your direct
+            debit so everything's ready for day one. <strong style="color:#004E64;">And no,
+            we won't charge you anything now</strong> — nothing is debited until after your
+            child attends, and only if they love their first days. That's our guarantee.
           </p>
         </td>
       </tr>
     </table>
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;text-align:center;">
+      <em>Spots are confirmed in enrolment order — the earlier you're in, the better your
+      pick of days.</em>
+    </p>
     {{startButton}}
     <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">
       Don't worry if you can't finish in one go — your progress is automatically saved
       and you can come back anytime.
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
-      Need a hand? Reply to this email or call the centre. We can even fill it in together
-      over the phone.
+      Need a hand? Reply to this email or call
+      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> —
+      we can even fill it in together over the phone.
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
@@ -218,9 +259,13 @@ export async function nurtureHowToEnrolEmail(firstName: string, centreName: stri
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(enrolUrl),
-      startButton: buttonHtml("Start Your Enrolment", enrolUrl),
+      startButton: buttonHtml("Start Now — Takes 10 Minutes", enrolUrl),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "Medicare card and CRNs handy? You're 10 minutes from locking in your child's spot.",
+      }),
   });
 }
 
@@ -239,25 +284,41 @@ export async function nurtureNudge1Email(firstName: string, centreName: string, 
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We sent through some info about {{centreName}} a few days ago and wanted to make
-      sure it all made sense. Choosing OSHC can throw up a lot of questions — here are
-      the ones we hear most:
+      We've sent a bit of info through this week and wanted to make sure it all made
+      sense. Here are the four questions we hear most — with the short answers:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0;color:#374151;font-size:14px;line-height:2.2;">
-            <strong>"What does a typical day look like?"</strong><br/>
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"What does a typical afternoon look like?"</strong><br/>
+            Afternoon tea together, then your child chooses — sport, art &amp; STEM,
+            Qur'an time with Iqra Circle, or knocking over homework with our educators.
+          </p>
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
             <strong>"How much will I actually pay after CCS?"</strong><br/>
+            Most families land between <strong>$3 and $10 a session</strong>.
+            <a href="https://amanaoshc.com.au/fees#calculator" style="color:#004E64;font-weight:700;">Your
+            exact number in 30 seconds &#8594;</a>
+          </p>
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
             <strong>"Can I change my days later?"</strong><br/>
-            <strong>"What if my child is nervous about starting?"</strong>
+            Yes — days can be adjusted with our team as your routine changes
+            (with 7 days' notice for recurring bookings).
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"What if my child is nervous about starting?"</strong><br/>
+            Completely normal — and they're welcome to visit with you before their first
+            session. On day one, our educators personally collect your child from their
+            classroom, you'll get a notification the moment they're signed in, and we'll
+            send you photos of how they're settling in.
           </p>
         </td>
       </tr>
     </table>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      If any of these are on your mind (or something else entirely), just hit reply.
-      We're real people and we read every email.
+      Something else on your mind? <strong>Just hit reply</strong> — we're real people
+      and we read every email.
     </p>
     <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
       Or if you're ready to lock in a spot, your enrolment form is waiting — it takes
@@ -275,7 +336,11 @@ export async function nurtureNudge1Email(firstName: string, centreName: string, 
       enrolUrl: escapeHtml(url),
       enrolButton: buttonHtml("Start Your Enrolment", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "The four things parents usually ask before enrolling — answered in one minute.",
+      }),
   });
 }
 
@@ -287,7 +352,7 @@ export async function nurtureNudge2Email(firstName: string, centreName: string, 
     key: "nurture.nudge2",
     defaultSubject: "A peek inside a day at {{centreName}}",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       What actually happens at OSHC?
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -297,37 +362,66 @@ export async function nurtureNudge2Email(firstName: string, centreName: string, 
       We know that "Out of School Hours Care" can sound a bit abstract. So here's what a
       typical afternoon actually looks like at {{centreName}}:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #FFF2BF;border-radius:12px;overflow:hidden;">
       <tr>
-        <td style="padding:16px;background-color:#fefce8;border-bottom:1px solid #fde68a;">
-          <p style="margin:0;color:#92400e;font-size:14px;line-height:1.7;">
-            <strong>3:00 PM</strong> — Our educators collect children from their classrooms (no stressful
-            pickup queues for you!)
+        <td style="padding:16px 20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">3:00 PM</strong> — Our educators collect children straight
+            from their classrooms (no stressful pickup queues for you!)
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#f0fdf4;border-bottom:1px solid #bbf7d0;">
-          <p style="margin:0;color:#065f46;font-size:14px;line-height:1.7;">
-            <strong>3:15 PM</strong> — Fuel Up with Amana: afternoon tea from our rotating
-            menu, catching up about the day
+        <td style="padding:16px 20px;background-color:#ffffff;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">3:15 PM</strong> — Fuel Up with Amana: afternoon tea from
+            our rotating menu, catching up about the day
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#eff6ff;border-bottom:1px solid #bfdbfe;">
-          <p style="margin:0;color:#1e40af;font-size:14px;line-height:1.7;">
-            <strong>3:45 PM</strong> — Choice time: Imagination Station art &amp; STEM,
-            Little Champions sport, Iqra Circle Qur'an time, or Homework Heroes support.
-            Your child picks what excites them.
+        <td style="padding:16px 20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">3:45 PM</strong> — Homework Heroes or Iqra Circle Qur'an
+            time — homework handled and hearts full, before you even arrive
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#fdf4ff;">
-          <p style="margin:0;color:#86198f;font-size:14px;line-height:1.7;">
-            <strong>5:00–6:00 PM</strong> — Wind-down activities and pick-up time. You'll get a
-            quick rundown of what your child got up to.
+        <td style="padding:16px 20px;background-color:#ffffff;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">4:30 PM</strong> — Structured group fun or free play —
+            Little Champions sport, Imagination Station art &amp; STEM, or simply running around
+            with friends
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 20px;background-color:#FFFAE6;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+            <strong style="color:#B78F00;">Until 6:30 PM</strong> — Pick up whenever suits you —
+            swing by any time; latest pickup is 6:30 PM
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      And mornings? <strong>Rise &amp; Shine Club</strong> gives them a calm, positive start
+      before the bell.
+    </p>
+    <p style="margin:0 0 16px;color:#004E64;font-size:14px;line-height:1.7;font-weight:600;">
+      Fair warning: our most common complaint from parents is that the kids don't want
+      to go home.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
+      <tr>
+        <td style="padding:22px 24px;text-align:center;">
+          <p style="margin:0 0 8px;color:#FFFAE6;font-size:15px;line-height:1.7;font-style:italic;">
+            "My daughter loves the variety of programs, from arts and crafts to outdoor play.
+            She asks to go every day."
+          </p>
+          <p style="margin:0;color:#FECE00;font-size:13px;font-weight:700;">
+            — Mariam S, parent at Al-Taqwa College
           </p>
         </td>
       </tr>
@@ -349,9 +443,13 @@ export async function nurtureNudge2Email(firstName: string, centreName: string, 
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(url),
-      enrolButton: buttonHtml("Enrol Online Now", url),
+      enrolButton: buttonHtml("Give Them Afternoons Like This", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "3:00pm — collected from class. 6:30pm — fed, homework done, happy. Here's the middle.",
+      }),
   });
 }
 
@@ -361,41 +459,49 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
   const url = enrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.finalNudge",
-    defaultSubject: "No pressure — we'll be here when you're ready",
+    defaultSubject: "Our last email, {{firstName}} — your child's spot is still here",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       Just a quick note from us
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We know life gets busy, and choosing care for your child is something you want to
-      get right. This will be our last email for now — we don't want to clog your inbox.
+      We know life gets busy — and choosing care for your child is something you want to
+      get right, not rushed. So this is <strong>our last email</strong>; we don't want to
+      clog your inbox.
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      One thing worth knowing: as our educator numbers and daily ratios are set, places at
-      {{centreName}} do become limited — enrolling sooner is the surest way to lock in the
-      days you want.
+      Before we go quiet, one thing worth knowing: as educator numbers and daily ratios
+      are set, places at {{centreName}} do become limited — enrolling sooner is the surest
+      way to lock in the days you want.
     </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      But if you ever want to revisit things — whether it's next week, next term, or next
-      year — our door at {{centreName}} is always open. You can:
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0;color:#374151;font-size:14px;line-height:2;">
-            &#8226; Reply to this email anytime<br/>
-            &#8226; Call the centre during business hours<br/>
-            &#8226; Pop in for a visit — no appointment needed<br/>
-            &#8226; Or <a href="{{enrolUrl}}" style="color:#004E64;font-weight:600;">enrol online</a> whenever it suits — the form saves your progress
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 12px;color:#004E64;font-size:15px;font-weight:700;">
+            Three ways to go from here:
+          </p>
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>1. Ready?</strong> Your form is prefilled and takes about 10 minutes —
+            and nothing is charged until after your child attends.
+          </p>
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>2. Right idea, wrong timing?</strong> Reply <strong>"next term"</strong>
+            and we'll check in closer to the date — no emails in between, promise.
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>3. Still deciding?</strong> Reply with any question, call
+            <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a>,
+            or pop in for a visit — no appointment needed.
           </p>
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We genuinely hope to welcome your family one day. Until then, we wish you all the best.
+    {{enrolButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Whatever you choose, we genuinely hope to welcome your family one day.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Take care,<br/>
@@ -406,8 +512,13 @@ export async function nurtureFinalNudgeEmail(firstName: string, centreName: stri
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(url),
+      enrolButton: buttonHtml("Secure Your Child's Spot", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "We'll stop emailing after today. Here are your three doors (one takes two words).",
+      }),
   });
 }
 
@@ -419,39 +530,49 @@ export async function nurtureFormSupportEmail(firstName: string, centreName: str
     key: "nurture.formSupport",
     defaultSubject: "Stuck on the form? We can finish it together in 5 minutes",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      We noticed you started enrolling — nice!
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
+      You're closer than you think
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       You've started the enrolment form for {{centreName}} (great move!). If you got
-      interrupted or hit a tricky question, don't worry — your progress has been saved.
+      interrupted or hit a tricky question — don't worry, <strong>your progress is
+      saved</strong> and picks up right where you left off.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      The three places parents usually get stuck:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:24px;">
-          <p style="margin:0 0 8px;color:#FECE00;font-size:15px;font-weight:700;">
-            Three ways we can help:
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"What's a CRN?"</strong><br/>
+            Your Centrelink Customer Reference Number — you'll need <strong>yours and your
+            child's</strong>. Find them in the Centrelink app or myGov under
+            <em>My Family</em>, or on any Centrelink letter. Can't track them down? Call us
+            and we'll help.
           </p>
-          <p style="margin:0;color:#ffffff;font-size:14px;line-height:2;">
-            1. <strong>Reply to this email</strong> — tell us where you got stuck<br/>
-            2. <strong>Call the centre</strong> — we'll walk through it together on the phone<br/>
-            3. <strong>Message us on WhatsApp</strong> — send photos of documents if that's easier
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"Do I need documents right now?"</strong><br/>
+            No — birth certificate and immunisation history can be uploaded after enrolment.
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"Why card details?"</strong><br/>
+            Just to have everything ready for day one. <strong>Nothing is debited until
+            after your child attends — and only if they love their first days. That's our
+            guarantee.</strong>
           </p>
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      The most common questions we get: <em>"What's a CRN?"</em> (it's your Centrelink
-      Customer Reference Number), <em>"Do I need immunisation records right now?"</em>
-      (not immediately — we can sort that out later).
-    </p>
-    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
-      You're almost there. Let's get your child's spot secured!
-    </p>
     {{continueButton}}
+    <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
+      Prefer to knock it over together? Reply to this email or call
+      <a href="tel:1300200262" style="color:#004E64;font-weight:700;">1300 200 262</a> and
+      we'll walk through it with you on the phone.
+    </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
       <strong>The {{centreName}} Team</strong>
@@ -461,9 +582,12 @@ export async function nurtureFormSupportEmail(firstName: string, centreName: str
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(url),
-      continueButton: buttonHtml("Continue Your Enrolment", url),
+      continueButton: buttonHtml("Finish Your Enrolment — ~5 Minutes", url),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader: "Your progress is saved — you're about 5 minutes from done.",
+      }),
   });
 }
 
@@ -474,41 +598,52 @@ export async function nurtureFormAbandonmentEmail(firstName: string, centreName:
   const enrolUrl = prefilledEnrolUrl || fallbackEnrolUrl();
   return applyEmailTemplateOverride({
     key: "nurture.formAbandonment",
-    defaultSubject: "Your enrolment is 80% done — let's finish it together",
+    defaultSubject: "Still saving that spot for you, {{firstName}} — 5 minutes to finish?",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       You're so close!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      A few days ago you started enrolling your child at {{centreName}}, and your
-      progress has been saved. We know forms aren't anyone's idea of fun, so we wanted
-      to make sure nothing is holding you up.
+      A few days ago you started enrolling at {{centreName}} — your progress is still
+      saved, right where you left it.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#fefce8;">
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      <strong>Here's the easiest way from here: reply with a time that suits you, and
+      we'll call and finish it together.</strong> Most families are done in under 5
+      minutes with us on the line.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0 0 12px;color:#854d0e;font-size:15px;font-weight:700;">
-            Common things that slow people down:
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 12px;color:#004E64;font-size:15px;font-weight:700;">
+            Or if something specific held you up:
           </p>
-          <p style="margin:0;color:#92400e;font-size:14px;line-height:2;">
-            <strong>"I don't have my CRN handy"</strong> — No worries, you can skip that
-            section and add it later<br/>
-            <strong>"I need to check immunisation records"</strong> — We can accept
-            these after enrolment<br/>
-            <strong>"I'm not sure which days to pick"</strong> — Start with your best
-            guess, changes are easy
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"I couldn't find the CRNs"</strong> — They're in the Centrelink app or
+            myGov under <em>My Family</em> (you need yours and your child's). Call us if
+            you're stuck.
+          </p>
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"I need to dig out immunisation records"</strong> — Upload them after
+            enrolment; don't let that stop you.
+          </p>
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"I wasn't sure which days to pick"</strong> — You don't have to decide
+            now. Leave the days empty and book casually through our app, then set up a
+            recurring schedule whenever you're ready (recurring days can be adjusted with
+            7 days' notice).
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>"The card details made me pause"</strong> — Nothing is debited until
+            after your child attends, and only if they love their first days.
           </p>
         </td>
       </tr>
     </table>
     {{continueButton}}
-    <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
-      Or if you'd rather do it together, reply with a time that suits you and we'll
-      call to walk through it. Most families finish in under 5 minutes with us on the line.
-    </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Cheers,<br/>
       <strong>The {{centreName}} Team</strong>
@@ -518,35 +653,70 @@ export async function nurtureFormAbandonmentEmail(firstName: string, centreName:
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       enrolUrl: escapeHtml(enrolUrl),
-      continueButton: buttonHtml("Continue Your Enrolment", enrolUrl),
+      continueButton: buttonHtml("Pick Up Where You Left Off", enrolUrl),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader: "Reply with a time and we'll finish the form together on the phone.",
+      }),
   });
 }
 
 // ─── First Session Reminder (day before) ─────────────────────
+
+/**
+ * Website centre pages carry the service-specific detail this email can't:
+ * exact spot in the school (usually the hall), photos, and the centre's
+ * direct number for pickup dramas. Keyed by Service.code.
+ */
+const CENTRE_WEBSITE_SLUGS: Record<string, string> = {
+  "MFIS-GA": "mfis-greenacre",
+  "MFIS-HP": "mfis-hoxton-park",
+  "MFIS-BH": "mfis-beaumont-hills",
+  "UG": "unity-grammar",
+  "ARK": "arkana-college",
+  "MNC": "minarah-college",
+  "IRF": "irfan-college",
+  "AICS": "aics",
+  "ATC": "al-taqwa-college",
+  "MIN-OFF": "minaret-officer",
+  "MIN-SPR": "minaret-springvale",
+  "MIN-DOV": "minaret-doveton",
+  "AIA-COB": "aia-kkcc",
+};
+
+export function centreWebsiteUrl(serviceCode?: string | null): string | undefined {
+  const slug = serviceCode ? CENTRE_WEBSITE_SLUGS[serviceCode] : undefined;
+  return slug ? `https://amanaoshc.com.au/centres/${slug}` : undefined;
+}
 
 export function nurtureSessionReminderEmail(
   firstName: string,
   centreName: string,
   serviceAddress?: string,
   orientationVideoUrl?: string,
+  websiteUrl?: string,
 ) {
   // Escape untrusted text before it goes into the HTML body.
   firstName = escapeHtml(firstName);
   centreName = escapeHtml(centreName);
   if (serviceAddress) serviceAddress = escapeHtml(serviceAddress);
   const subject = `Tomorrow's the big day! Everything you need to know`;
-  const addressBlock = serviceAddress
-    ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#eff6ff;">
-        <tr>
-          <td style="padding:16px;">
-            <p style="margin:0 0 4px;color:#1e40af;font-size:13px;font-weight:600;">WHERE TO GO</p>
-            <p style="margin:0;color:#1e3a5f;font-size:15px;font-weight:700;">${serviceAddress}</p>
-          </td>
-        </tr>
-      </table>`
-    : "";
+  const whereBlock = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
+      <tr>
+        <td style="padding:16px 20px;">
+          <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">WHERE TO GO</p>
+          ${serviceAddress ? `<p style="margin:0 0 8px;color:#004E64;font-size:15px;font-weight:700;">${serviceAddress}</p>` : ""}
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            We're right inside the school — most of our services run from the school hall.
+            ${websiteUrl ? `Your centre's exact spot, photos, and the direct number to call if
+            you're ever stuck at pickup are all on
+            <a href="${websiteUrl}" style="color:#004E64;font-weight:700;">your centre's page &#8594;</a>` : "Reply to this email if you're not sure exactly where to find us."}
+          </p>
+        </td>
+      </tr>
+    </table>`;
   const videoBlock = orientationVideoUrl
     ? `<p style="margin:16px 0 8px;color:#374151;font-size:14px;line-height:1.7;">
         One more thing — our 2-minute orientation video covers everything your child needs
@@ -555,54 +725,60 @@ export function nurtureSessionReminderEmail(
       ${buttonHtml("Watch Orientation Video", orientationVideoUrl)}`
     : "";
   const html = parentEmailLayout(`
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       See you tomorrow, ${firstName}!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Your child's first day at ${centreName} is tomorrow and we couldn't be more excited!
       Here's your quick-reference cheat sheet:
     </p>
-    ${addressBlock}
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+    ${whereBlock}
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #FFF2BF;border-radius:12px;overflow:hidden;">
       <tr>
-        <td style="padding:16px;background-color:#f0fdf4;border-bottom:1px solid #dcfce7;">
-          <p style="margin:0 0 4px;color:#065f46;font-size:13px;font-weight:600;">PACK THE BAG</p>
-          <p style="margin:0;color:#047857;font-size:14px;line-height:1.8;">
-            Water bottle (labelled) &#8226; Hat &#8226; Comfy clothes &#8226; Spare outfit &#8226;
-            Sunscreen (applied before drop-off)
+        <td style="padding:16px 20px;background-color:#ffffff;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">PREP THE KIDDO</p>
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.8;">
+            They'll already be in their school clothes — just let them know they'll knock
+            over their homework and have some fun before you arrive.
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#fefce8;border-bottom:1px solid #fde68a;">
-          <p style="margin:0 0 4px;color:#854d0e;font-size:13px;font-weight:600;">KNOW THE TIMES</p>
-          <p style="margin:0;color:#92400e;font-size:14px;line-height:1.8;">
-            <strong>BSC:</strong> Drop off from 6:30 AM &nbsp;|&nbsp;
-            <strong>ASC:</strong> Pick up by 6:00 PM
+        <td style="padding:16px 20px;background-color:#FFFAE6;border-bottom:1px solid #FFF2BF;">
+          <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">KNOW THE TIMES</p>
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.8;">
+            <strong>Before School Care:</strong> drop off from 6:30 AM &nbsp;&#8226;&nbsp;
+            <strong>Afternoons:</strong> pick up whenever suits you, latest 6:30 PM
           </p>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px;background-color:#eff6ff;">
-          <p style="margin:0 0 4px;color:#1e40af;font-size:13px;font-weight:600;">DON'T FORGET</p>
-          <p style="margin:0;color:#1e3a5f;font-size:14px;line-height:1.8;">
-            Sign in/out at the front desk &#8226; Only authorised people can collect your child &#8226;
-            Any medication needs a signed form
+        <td style="padding:16px 20px;background-color:#ffffff;">
+          <p style="margin:0 0 4px;color:#B78F00;font-size:13px;font-weight:700;">DON'T FORGET</p>
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.8;">
+            Sign in/out on arrival and pickup &#8226; Only authorised people can collect
+            your child &#8226; Any medication needs a signed form
           </p>
         </td>
       </tr>
     </table>
+    <p style="margin:16px 0 16px;color:#004E64;font-size:14px;line-height:1.7;">
+      <strong>And here's how you'll know they're doing great:</strong> our educators collect
+      your child straight from their classroom, you'll get a notification the moment they're
+      signed in, and we'll send you photos of how they're settling in during the session.
+    </p>
     ${videoBlock}
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
-      Last-minute nerves (yours or theirs) are totally normal! Our educators are pros at
-      helping children settle in. If you have any questions tonight, reply and we'll get
-      back to you first thing.
+      Last-minute nerves — yours or theirs — are totally normal. Our educators are pros at
+      helping children settle in. Any questions tonight? Just reply.
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
-      See you soon!<br/>
+      See you tomorrow!<br/>
       <strong>The ${centreName} Team</strong>
     </p>
-  `);
+  `, {
+    preheader: "Where to find us, first-day prep, and how you'll know they're settled — all here.",
+  });
   return { subject, html };
 }
 
@@ -668,12 +844,18 @@ export async function nurtureWhatToBringEmail(firstName: string, centreName: str
 
 // ─── Day 1 Check-in (first_session +1d) ──────────────────────
 
-export async function nurtureDay1CheckinEmail(firstName: string, centreName: string) {
+export async function nurtureDay1CheckinEmail(
+  firstName: string,
+  centreName: string,
+  _enrolUrl?: string,
+  feedbackUrl?: string,
+) {
+  const surveyUrl = feedbackUrl || fallbackFeedbackUrl();
   return applyEmailTemplateOverride({
     key: "nurture.day1Checkin",
     defaultSubject: "How did it go? We want to hear all about day one!",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       Day one is done!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -683,13 +865,13 @@ export async function nurtureDay1CheckinEmail(firstName: string, centreName: str
       Your child just had their first day at {{centreName}} — that's a big milestone for
       the whole family! We hope it went smoothly (and that you got a moment to breathe too).
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 8px;color:#004E64;font-size:14px;font-weight:700;">
             A few things that are totally normal:
           </p>
-          <p style="margin:0;color:#374151;font-size:14px;line-height:2;">
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:2;">
             &#8226; Some children take a few sessions to fully settle in<br/>
             &#8226; They might be extra tired — new environments are exciting but draining<br/>
             &#8226; They might not remember everything they did (but we promise they were busy!)
@@ -697,17 +879,35 @@ export async function nurtureDay1CheckinEmail(firstName: string, centreName: str
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      If anything felt off or you have questions, please tell us. We want to make sure your
-      child looks forward to coming back. Just hit reply — we read every message.
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      <strong>One question from us: did they come home happy?</strong> Tell us in our
+      30-second feedback form — what you loved, or what we can do better. It goes straight
+      to our leadership team, and if anything felt off we'll fix it before session two.
     </p>
-    <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
+    {{feedbackButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Or just hit reply — we read every message.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Proud of your little one,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.7;">
+      PS — if they're already asking to go back, you can book more days or set up a
+      recurring schedule in the app anytime.
+    </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      feedbackUrl: escapeHtml(surveyUrl),
+      feedbackButton: buttonHtml("Tell Us How Day One Went (30 sec)", surveyUrl),
+    },
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "Three things that are totally normal after day one — and one question for you.",
+      }),
   });
 }
 
@@ -718,32 +918,52 @@ export async function nurtureDay3CheckinEmail(firstName: string, centreName: str
     key: "nurture.day3Checkin",
     defaultSubject: "Getting into the groove at {{centreName}}",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       Quick check-in from us
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      A few days in and your child is starting to find their rhythm at {{centreName}}.
-      By now they're probably beginning to recognise faces, find their favourite activities,
-      and settle into the routine.
+      A few days in and your child is starting to find their rhythm at {{centreName}} —
+      recognising faces, finding favourite activities, settling into the routine.
     </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We just wanted to check: <strong>is everything going well from your end?</strong>
-      Whether it's a small concern or a big question, we want to hear it now rather than later.
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      Three quick things from us:
     </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Things like pickup logistics, dietary needs, or how your child is going socially —
-      nothing is too small to bring up. Reply anytime.
-    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
+      <tr>
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>1. Anything we should tweak?</strong><br/>
+            Pickup logistics, dietary needs, how your child is going socially — nothing is
+            too small. Just reply; we'd rather hear it now than later.
+          </p>
+          <p style="margin:0 0 14px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>2. Are you set up on the OWNA app?</strong><br/>
+            Daily updates, photos from their sessions, and booking extra days all live
+            there. Your username and password were emailed when your enrolment was
+            confirmed — can't find them? Just reply and we'll resend.
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>3. Join the Amana parent community</strong><br/>
+            Updates, reminders and what's-on, straight to your phone —
+            <a href="https://chat.whatsapp.com/JU9ab3hMupbHzrfa5eS8Ko" style="color:#004E64;font-weight:700;">join
+            our WhatsApp community &#8594;</a> (there's a group for your centre too).
+          </p>
+        </td>
+      </tr>
+    </table>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Here for you,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
     vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader: "A few sessions in — anything we should tweak? Nothing's too small.",
+      }),
   });
 }
 
@@ -781,7 +1001,7 @@ export async function nurtureAppSetupEmail(firstName: string, centreName: string
         </td>
       </tr>
     </table>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;">
           <p style="margin:0 0 12px;color:#FECE00;font-size:15px;font-weight:700;">
@@ -874,12 +1094,18 @@ export async function nurtureFirstWeekEmail(firstName: string, centreName: strin
 
 // ─── Week 2 Feedback (first_session +14d) ────────────────────
 
-export async function nurtureWeek2FeedbackEmail(firstName: string, centreName: string) {
+export async function nurtureWeek2FeedbackEmail(
+  firstName: string,
+  centreName: string,
+  _enrolUrl?: string,
+  feedbackUrl?: string,
+) {
+  const surveyUrl = feedbackUrl || fallbackFeedbackUrl();
   return applyEmailTemplateOverride({
     key: "nurture.week2Feedback",
     defaultSubject: "Two weeks in — we'd love a quick word from you",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
       How's everything going?
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
@@ -890,13 +1116,13 @@ export async function nurtureWeek2FeedbackEmail(firstName: string, centreName: s
       to know how you're finding things. Your feedback — good or bad — helps us get better
       for every family.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
       <tr>
-        <td style="padding:20px;">
-          <p style="margin:0 0 12px;color:#111827;font-size:14px;font-weight:600;">
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;font-weight:700;">
             A few things we'd love to hear about:
           </p>
-          <p style="margin:0;color:#374151;font-size:14px;line-height:2;">
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:2;">
             &#8226; Is your child enjoying their time here?<br/>
             &#8226; Has the drop-off/pickup process been smooth?<br/>
             &#8226; Is there anything we could be doing differently?<br/>
@@ -905,57 +1131,81 @@ export async function nurtureWeek2FeedbackEmail(firstName: string, centreName: s
         </td>
       </tr>
     </table>
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      The quickest way to tell us: tap a face on our 30-second feedback form —
+      it goes straight to our leadership team.
+    </p>
+    {{feedbackButton}}
+    <p style="margin:16px 0 16px;color:#374151;font-size:14px;line-height:1.7;">
+      Loved something? Tell us — with your permission, kind words from parents like you
+      help other families find us.
+    </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Just hit reply — even a one-liner is incredibly helpful. We read and respond to every
-      message personally.
+      Or just hit reply — even a one-liner is incredibly helpful. We read and respond to
+      every message personally.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       Thank you for trusting us with your family,<br/>
       <strong>The {{centreName}} Team</strong>
     </p>
   `,
-    vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    vars: {
+      firstName: escapeHtml(firstName),
+      centreName: escapeHtml(centreName),
+      feedbackUrl: escapeHtml(surveyUrl),
+      feedbackButton: buttonHtml("Share Your Feedback (30 sec)", surveyUrl),
+    },
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "Tap a face, tell us what you loved (or what we should fix). 30 seconds.",
+      }),
   });
 }
 
 // ─── NPS Survey (first_session +30d) ─────────────────────────
 
-export async function nurtureNpsSurveyEmail(firstName: string, centreName: string) {
-  const surveyUrl = process.env.NPS_SURVEY_URL || "https://amanaoshc.company/survey/nps";
+export async function nurtureNpsSurveyEmail(
+  firstName: string,
+  centreName: string,
+  _enrolUrl?: string,
+  feedbackUrl?: string,
+) {
+  const surveyUrl = process.env.NPS_SURVEY_URL || feedbackUrl || fallbackFeedbackUrl();
   return applyEmailTemplateOverride({
     key: "nurture.npsSurvey",
     defaultSubject: "One question, 10 seconds — would you recommend us?",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      A month already!
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
+      Two months already!
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      It's been a month since your child started at {{centreName}}. Time flies when kids
-      are having fun (and parents get their afternoons back!).
+      It's been a couple of months since your child started at {{centreName}}. Time flies
+      when kids are having fun (and parents get their afternoons back!).
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      We have just one question for you. It's the single most important thing we track
-      as a team, and it takes literally 10 seconds:
+      We have just one question — it's the single most important thing we track as a team:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;text-align:center;">
           <p style="margin:0 0 8px;color:#FECE00;font-size:18px;font-weight:700;">
-            How likely are you to recommend us to a friend?
+            How's Amana going for your family?
           </p>
-          <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px;">
-            Rate from 0 (not likely) to 10 (absolutely!)
+          <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">
+            Tap a face — from &#128546; to &#128525; — and add a line about why, if you
+            have 10 more seconds.
           </p>
         </td>
       </tr>
     </table>
     {{ratingButton}}
     <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">
-      Anonymous. 10 seconds. Helps us improve for every family at {{centreName}}.
+      Every response goes straight to our leadership team and shapes what we improve next.
+      (Rather stay anonymous? Just clear your name on the form.)
     </p>
     <p style="margin:16px 0 0;color:#374151;font-size:14px;line-height:1.7;">
       Thank you for being part of our community,<br/>
@@ -966,9 +1216,12 @@ export async function nurtureNpsSurveyEmail(firstName: string, centreName: strin
       firstName: escapeHtml(firstName),
       centreName: escapeHtml(centreName),
       surveyUrl: escapeHtml(surveyUrl),
-      ratingButton: buttonHtml("Share Your Rating", surveyUrl),
+      ratingButton: buttonHtml("Tap a Face — 10 Seconds", surveyUrl),
     },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader: "Two months in — tap a face and tell us how we're really doing.",
+      }),
   });
 }
 
@@ -977,40 +1230,59 @@ export async function nurtureNpsSurveyEmail(firstName: string, centreName: strin
 export async function nurtureMonth1ReferralEmail(firstName: string, centreName: string) {
   return applyEmailTemplateOverride({
     key: "nurture.month1Referral",
-    defaultSubject: "Know another family? We'll thank you with $50",
+    defaultSubject: "Know another family? A free day for you — and for them",
     defaultBody: `
-    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      Share the love (and earn a reward)
+    <h2 style="margin:0 0 8px;color:#004E64;font-size:20px;font-weight:700;">
+      Share the love (and both get rewarded)
     </h2>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
       Hi {{firstName}},
     </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Your child has been part of the {{centreName}} family for over a month now, and
-      we hope you've been happy with the experience. If so, we'd love your help
-      spreading the word!
+      Your child's been part of the {{centreName}} family for over a month now — and word
+      of mouth from parents like you is how most families find us.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, #004E64 0%, #006B87 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:12px;overflow:hidden;background-color:#004E64;">
       <tr>
         <td style="padding:24px;text-align:center;">
           <p style="margin:0 0 8px;color:#FECE00;font-size:22px;font-weight:800;">
-            $50 Referral Reward
+            A Free Day — For You AND Your Friend
           </p>
           <p style="margin:0;color:#ffffff;font-size:14px;line-height:1.6;">
-            For every family you refer who enrols at {{centreName}},<br/>
-            you'll receive a <strong>$50 credit</strong> on your account.
+            Refer a family who enrols at {{centreName}} and you <strong>both</strong> get a
+            free session day, added to your accounts once their child attends their
+            first session.
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.7;">
+      <strong>Three easy ways to refer:</strong>
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border-radius:12px;overflow:hidden;background-color:#FFF2BF;">
+      <tr>
+        <td style="padding:20px 24px;">
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>1. Reply</strong> with your friend's name and number — we'll reach out
+            personally. No hard sell, just a friendly hello.
+          </p>
+          <p style="margin:0 0 12px;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>2. Forward this note</strong> to a friend or your school's group chat:<br/>
+            <em>"Salam! Our kids go to {{centreName}} — before &amp; after school care with
+            Qur'an time, homework help and a proper feed, right on school grounds. With CCS
+            it can be a few dollars a session. They're taking enrolments:
+            amanaoshc.com.au"</em>
+          </p>
+          <p style="margin:0;color:#004E64;font-size:14px;line-height:1.7;">
+            <strong>3. Tell them to mention your name</strong> when they enrol so we know
+            who to thank.
           </p>
         </td>
       </tr>
     </table>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      It's simple: just reply to this email with your friend's name and email (or phone
-      number), and we'll reach out to them personally. No hard sell — just a friendly hello
-      and an offer to answer any questions.
-    </p>
-    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.7;">
-      Word of mouth from families like yours is the best way new families find us.
-      Thank you for being part of our community!
+      And your friend risks nothing — nothing is charged until after their child attends,
+      and only if they love it.
     </p>
     <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
       With gratitude,<br/>
@@ -1018,7 +1290,11 @@ export async function nurtureMonth1ReferralEmail(firstName: string, centreName: 
     </p>
   `,
     vars: { firstName: escapeHtml(firstName), centreName: escapeHtml(centreName) },
-    wrap: parentEmailLayout,
+    wrap: (content: string) =>
+      parentEmailLayout(content, {
+        preheader:
+          "A free day for you — and your friend's first days are covered by our guarantee.",
+      }),
   });
 }
 

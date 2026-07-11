@@ -600,6 +600,8 @@ model User {
   onboardings                   StaffOnboarding[]              @relation("OnboardingUser")
   lmsEnrollments                LMSEnrollment[]                @relation("LMSStudent")
   certificates                  ComplianceCertificate[]        @relation("UserCertificates")
+  practicalSignoffs             PracticalSignoff[]             @relation("SignoffSubject")
+  practicalSignoffsGiven        PracticalSignoff[]             @relation("SignoffSigner")
   recordedAttendance            DailyAttendance[]              @relation("AttendanceRecorder")
   signedInRecords               AttendanceRecord[]             @relation("SignInRecorder")
   signedOutRecords              AttendanceRecord[]             @relation("SignOutRecorder")
@@ -710,6 +712,14 @@ model User {
   employmentType    EmploymentType?
   startDate         DateTime?       @db.Date
   probationEndDate  DateTime?       @db.Date
+
+  // ── Induction state machine (see src/lib/induction.ts) ──
+  inductionStatus        InductionStatus @default(cleared)
+  inductionDueDate       DateTime?
+  inductionClearedAt     DateTime?
+  inductionClearedById   String?
+  inductionGraceUntil    DateTime?
+  inductionOverrideUntil DateTime?
   bankDetailsNote   String?
   bankAccountName   String?
   bankBSB           String?
@@ -878,6 +888,11 @@ model User {
   shiftTemplatesCreated                ShiftTemplate[]                  @relation("ShiftTemplateCreator")
   // 2026-07-05 (AI morning briefing v1): one AI-composed brief per day.
   dailyBriefings                       DailyBriefing[]                  @relation("UserDailyBriefings")
+  // 2026-07-08 (staff surveys v1): surveys the user has authored and
+  // responses they have submitted. Responses are 1:1 with (survey,user)
+  // via a unique constraint on SurveyResponse.
+  surveysCreated                       Survey[]                         @relation("SurveyCreator")
+  surveyResponses                      SurveyResponse[]                 @relation("SurveyRespondent")
 
   // 2026-05-14 (service-staff v1): additional service memberships layered on
   // top of User.serviceId (which stays as the primary/home service). Lets a
@@ -1022,6 +1037,12 @@ model Todo {
   service     Service?   @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   projectId   String?
   project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  // 2026-07-08: correlates a survey-generated todo with its source
+  // Survey so the response-submit endpoint can auto-complete the
+  // todo when the user submits. Populated only for todos created
+  // by /api/surveys/[id]/publish; null for every other todo.
+  surveyId    String?
+  survey      Survey?    @relation("SurveyTodos", fields: [surveyId], references: [id], onDelete: SetNull)
   dueDate     DateTime
   status      TodoStatus @default(pending)
   weekOf      DateTime
@@ -3355,6 +3376,13 @@ model StaffOnboardingProgress {
 // LMS (Learning Management System)
 // ============================================================
 
+enum InductionStatus {
+  new_starter
+  in_training
+  awaiting_signoff
+  cleared
+}
+
 enum LMSCourseStatus {
   draft
   published
@@ -3376,6 +3404,12 @@ enum LMSEnrollmentStatus {
   expired
 }
 
+enum LMSCourseTrack {
+  essential
+  monthly
+  library
+}
+
 model LMSCourse {
   id          String          @id @default(cuid())
   title       String
@@ -3384,6 +3418,7 @@ model LMSCourse {
   thumbnail   String?
   status      LMSCourseStatus @default(draft)
   isRequired  Boolean         @default(false)
+  track       LMSCourseTrack  @default(library)
   serviceId   String?
   service     Service?        @relation("ServiceCourses", fields: [serviceId], references: [id], onDelete: SetNull)
   sortOrder   Int             @default(0)
@@ -3391,11 +3426,13 @@ model LMSCourse {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  modules     LMSModule[]
-  enrollments LMSEnrollment[]
+  modules      LMSModule[]
+  enrollments  LMSEnrollment[]
+  calendarSlots TrainingCalendarSlot[] @relation("CalendarCourse")
 
   @@index([status])
   @@index([serviceId])
+  @@index([track])
 }
 
 model LMSModule {
@@ -3414,7 +3451,9 @@ model LMSModule {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  progress LMSModuleProgress[]
+  progress      LMSModuleProgress[]
+  quizQuestions LMSQuizQuestion[]
+  quizAttempts  LMSQuizAttempt[]
 
   @@index([courseId])
 }
@@ -3435,6 +3474,7 @@ model LMSEnrollment {
   updatedAt   DateTime            @updatedAt
 
   moduleProgress LMSModuleProgress[]
+  quizAttempts   LMSQuizAttempt[]
 
   @@unique([userId, courseId])
   @@index([userId])
@@ -3459,6 +3499,79 @@ model LMSModuleProgress {
   @@unique([enrollmentId, moduleId])
   @@index([enrollmentId])
   @@index([moduleId])
+}
+
+// ── Induction: quiz engine, practical sign-off, training calendar ──
+
+model LMSQuizQuestion {
+  id           String    @id @default(cuid())
+  moduleId     String
+  module       LMSModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  question     String    @db.Text
+  options      Json // string[]
+  correctIndex Int
+  explanation  String?   @db.Text
+  sortOrder    Int       @default(0)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([moduleId])
+}
+
+model LMSQuizAttempt {
+  id            String        @id @default(cuid())
+  enrollmentId  String
+  enrollment    LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  moduleId      String
+  module        LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  answers       Json          @default("[]") // [{questionId, selectedIndex}]
+  score         Float         @default(0)
+  passed        Boolean       @default(false)
+  attemptNumber Int
+  submittedAt   DateTime? // null = in-progress (created at GET); set on POST submit
+  createdAt     DateTime      @default(now())
+
+  // Shuffle seed is derived from (enrollmentId + moduleId + attemptNumber),
+  // all persisted here, so submit re-derives the exact permutation. No seed column.
+  @@index([enrollmentId, moduleId])
+}
+
+model PracticalChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  signoffs PracticalSignoff[]
+}
+
+model PracticalSignoff {
+  id         String                 @id @default(cuid())
+  userId     String
+  user       User                   @relation("SignoffSubject", fields: [userId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       PracticalChecklistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  signedById String
+  signedBy   User                   @relation("SignoffSigner", fields: [signedById], references: [id], onDelete: Cascade)
+  signedAt   DateTime               @default(now())
+  notes      String?                @db.Text
+
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+model TrainingCalendarSlot {
+  id       String    @id @default(cuid())
+  month    Int // 1–12
+  courseId String
+  course   LMSCourse @relation("CalendarCourse", fields: [courseId], references: [id], onDelete: Cascade)
+  active   Boolean   @default(true)
+
+  @@unique([month, courseId])
 }
 
 // ============================================================
@@ -4184,6 +4297,12 @@ model OffboardingPack {
   serviceId   String?
   service     Service? @relation("ServiceOffboardingPacks", fields: [serviceId], references: [id], onDelete: SetNull)
   isDefault   Boolean  @default(false)
+  // 2026-07-08: employment-type-aware packs. When set, the assign
+  // endpoint auto-picks this pack for departing staff whose active
+  // contract has a matching type. Empty array = fallback / manual only.
+  // Introduced with the MA000120 Casual + Permanent packs so casuals
+  // don't get the full-time NES notice checklist and vice versa.
+  applicableEmploymentTypes EmploymentType[] @default([])
   deleted     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -7640,6 +7759,15 @@ model SeparationRecord {
   eligibleForRehire Boolean        @default(true)
   rehireNotes       String?        @db.Text
 
+  // Employment Hero termination sync (2026-07-08).
+  // When a Separation record is created / updated with a lastWorkingDay
+  // and the user has employmentHeroEmployeeId, we push the termination
+  // date to EH so payroll doesn't keep the person active. We stamp the
+  // sync timestamp here on success and the error message on failure so
+  // the SeparationTab can show a status badge + retry button.
+  ehTerminationSyncedAt DateTime?
+  ehTerminationError    String?    @db.Text
+
   // Exit interview — separate from the offboarding pack so it's an
   // explicit fact, not just one task in a list.
   exitInterviewCompleted Boolean   @default(false)
@@ -7939,4 +8067,138 @@ model DailyBriefing {
   @@unique([userId, date])
   @@index([userId, date])
   @@index([date])
+}
+
+// ============================================================
+// STAFF SURVEYS (2026-07-08)
+// Generic survey builder — admins compose a survey with mixed-type
+// questions (yes/no, single/multi-choice, short/long text, rating)
+// and distribute it to a filtered staff audience. Sits under
+// /onboarding as a new "Surveys" tab alongside Onboarding · LMS ·
+// Induction · Exit Surveys. Not tied to any specific lifecycle
+// event — that's what the Exit Surveys dashboard is for.
+// ============================================================
+
+enum SurveyStatus {
+  draft
+  published
+  closed
+}
+
+enum SurveyQuestionType {
+  yes_no
+  single_choice
+  multi_choice
+  short_text
+  long_text
+  rating           // 1-5 stars
+}
+
+enum SurveyAudience {
+  all_staff              // every active User
+  by_role                // filter to specific Role values
+  by_service             // filter to specific service IDs
+  by_employment_type     // filter to specific EmploymentType values
+}
+
+model Survey {
+  id              String       @id @default(cuid())
+  title           String
+  description     String?      @db.Text
+  status          SurveyStatus @default(draft)
+
+  // When true, SurveyResponse.respondentId is nullified before storage
+  // (so results can still be aggregated but individuals can't be
+  // identified — critical for satisfaction / feedback surveys).
+  anonymous       Boolean      @default(false)
+
+  audience        SurveyAudience @default(all_staff)
+  // Filters used when the audience type demands them. Empty arrays for
+  // the other types. We deliberately don't join on User at the schema
+  // level — audience is evaluated at read time in /api/surveys so
+  // adding a new staff mid-survey picks them up automatically.
+  audienceRoles           Role[]           @default([])
+  audienceServiceIds      String[]         @default([])
+  audienceEmploymentTypes EmploymentType[] @default([])
+
+  closesAt        DateTime?
+  publishedAt     DateTime?
+
+  createdById     String
+  createdBy       User         @relation("SurveyCreator", fields: [createdById], references: [id])
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deleted         Boolean      @default(false)
+
+  questions       SurveyQuestion[]
+  responses       SurveyResponse[]
+  todos           Todo[]           @relation("SurveyTodos")
+
+  @@index([status])
+  @@index([createdById])
+}
+
+model SurveyQuestion {
+  id            String             @id @default(cuid())
+  surveyId      String
+  survey        Survey             @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  type          SurveyQuestionType
+  title         String
+  description   String?            @db.Text
+  required      Boolean            @default(true)
+  // Options for single_choice / multi_choice. Empty for other types.
+  // Order preserved from the array; option index is stable so answer
+  // rows can reference by integer position.
+  options       String[]           @default([])
+  sortOrder     Int                @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  answers       SurveyAnswer[]
+
+  @@index([surveyId])
+}
+
+model SurveyResponse {
+  id            String    @id @default(cuid())
+  surveyId      String
+  survey        Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  // Null when the survey is anonymous. We still enforce one-response-
+  // per-user via a separate anonymous-cookie fingerprint (not stored
+  // here) — anonymous surveys accept unlimited responses per browser
+  // in this MVP; deferring anti-brigading to a later iteration.
+  respondentId  String?
+  respondent    User?     @relation("SurveyRespondent", fields: [respondentId], references: [id], onDelete: SetNull)
+  submittedAt   DateTime  @default(now())
+
+  answers       SurveyAnswer[]
+
+  // Enforced only for non-anonymous surveys — a non-null respondentId
+  // uniquely maps to at most one response per survey. Anonymous
+  // responses all share NULL respondentId; the unique constraint on
+  // Postgres allows multiple NULL rows so anonymous surveys can accept
+  // many responses per anonymous slot.
+  @@unique([surveyId, respondentId])
+  @@index([surveyId])
+  @@index([respondentId])
+}
+
+model SurveyAnswer {
+  id           String         @id @default(cuid())
+  responseId   String
+  response     SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  // Exactly one of these fields is populated based on the question's
+  // type. Kept as separate typed columns rather than a JSON blob so
+  // aggregation queries (count per option, avg rating) stay cheap.
+  yesNo         Boolean?           // yes_no
+  choiceIndexes Int[]     @default([]) // single_choice (1 elem) / multi_choice
+  textValue     String?   @db.Text     // short_text / long_text
+  ratingValue   Int?                    // rating 1-5
+
+  @@unique([responseId, questionId])
+  @@index([responseId])
+  @@index([questionId])
 }

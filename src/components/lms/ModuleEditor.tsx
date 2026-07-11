@@ -37,6 +37,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import type { LMSModuleData } from "@/hooks/useLMS";
 import { useCreateModule, useUpdateModule, useDeleteModule, useReorderModules } from "@/hooks/useLMS";
+import { MediaToolbar, VideoUrlHint } from "./MediaToolbar";
+import { QuizQuestionEditor } from "./QuizQuestionEditor";
 
 const typeConfig = {
   document: { label: "Document", icon: FileText, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
@@ -145,23 +147,30 @@ function ModuleCard({
           />
         </div>
         {(editType === "document" || editType === "checklist" || editType === "quiz") && (
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            rows={3}
-            placeholder="Content / instructions..."
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"
-          />
+          <div className="space-y-2">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={editType === "quiz" ? 2 : 6}
+              placeholder={editType === "quiz" ? "Intro shown before the quiz starts..." : "Content (markdown supported)..."}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+            />
+            <MediaToolbar value={editContent} onChange={setEditContent} />
+          </div>
         )}
         {(editType === "video" || editType === "external_link") && (
-          <input
-            type="url"
-            value={editUrl}
-            onChange={(e) => setEditUrl(e.target.value)}
-            placeholder="URL..."
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
-          />
+          <div className="space-y-1">
+            <input
+              type="url"
+              value={editUrl}
+              onChange={(e) => setEditUrl(e.target.value)}
+              placeholder="URL..."
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+            {editType === "video" && <VideoUrlHint url={editUrl} />}
+          </div>
         )}
+        {editType === "quiz" && <QuizQuestionEditor moduleId={module.id} />}
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-sm text-muted">
             <input
@@ -432,22 +441,33 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
             />
           </div>
           {(newType === "document" || newType === "checklist" || newType === "quiz") && (
-            <textarea
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              rows={3}
-              placeholder="Content / instructions..."
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"
-            />
+            <div className="space-y-2">
+              <textarea
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                rows={newType === "quiz" ? 2 : 6}
+                placeholder={newType === "quiz" ? "Intro shown before the quiz starts..." : "Content (markdown supported)..."}
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+              />
+              <MediaToolbar value={newContent} onChange={setNewContent} />
+            </div>
           )}
           {(newType === "video" || newType === "external_link") && (
-            <input
-              type="url"
-              value={newUrl}
-              onChange={(e) => setNewUrl(e.target.value)}
-              placeholder="URL..."
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
-            />
+            <div className="space-y-1">
+              <input
+                type="url"
+                value={newUrl}
+                onChange={(e) => setNewUrl(e.target.value)}
+                placeholder="URL..."
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              />
+              {newType === "video" && <VideoUrlHint url={newUrl} />}
+            </div>
+          )}
+          {newType === "quiz" && (
+            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+              Add the module first, then click ✎ Edit on it to build the quiz questions.
+            </p>
           )}
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-muted">

@@ -29,6 +29,29 @@ export function getCurrentQuarter(): string {
   return quarterLabel(new Date());
 }
 
+/**
+ * Shift a quarter string by N quarters. Positive N = future, negative = past.
+ * Handles year rollover both directions. Returns the same "Q<n>-<yyyy>" shape.
+ *   shiftQuarter("Q1-2026", -1)  → "Q4-2025"
+ *   shiftQuarter("Q4-2026",  1)  → "Q1-2027"
+ */
+export function shiftQuarter(quarter: string, delta: number): string {
+  const [q, y] = quarter.split("-");
+  const qn = Number(q.slice(1));
+  const yn = Number(y);
+  if (!Number.isFinite(qn) || !Number.isFinite(yn)) return quarter;
+  // Convert to an absolute "quarter index" (year*4 + q-1), shift, unpack.
+  const absolute = yn * 4 + (qn - 1) + delta;
+  const newYear = Math.floor(absolute / 4);
+  const newQ = ((absolute % 4) + 4) % 4 + 1; // 1..4
+  return `Q${newQ}-${newYear}`;
+}
+
+/** Human-readable quarter label. "Q3-2026" → "Q3 2026". */
+export function formatQuarter(quarter: string): string {
+  return quarter.replace("-", " ");
+}
+
 export function getWeekStart(date: Date = new Date()): Date {
   const d = new Date(date);
   const day = d.getDay();

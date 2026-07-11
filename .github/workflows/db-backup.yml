@@ -1,0 +1,71 @@
+name: Daily DB Backup
+
+# Independent, off-Neon backup: pg_dump -> gzip -> AES-256 encrypt -> Vercel Blob.
+# Complements Neon's 3-day point-in-time restore with a longer, separate copy
+# that survives even a full database wipe (Blob is separate storage — proven
+# during the 2026-07-07 incident recovery).
+#
+# Required repo secrets (Settings -> Secrets and variables -> Actions):
+#   BACKUP_DATABASE_URL    - production DIRECT (unpooled) connection string
+#   BACKUP_ENCRYPTION_KEY  - long random passphrase (keep it safe & offline;
+#                            without it the backups cannot be decrypted)
+#   BLOB_READ_WRITE_TOKEN  - Vercel Blob read/write token
+#
+# Restore a backup locally:
+#   curl -sL "<blob url>" \
+#     | openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -pass env:BACKUP_ENCRYPTION_KEY \
+#     | gunzip \
+#     | psql "<target DIRECT url>"
+
+on:
+  schedule:
+    - cron: "0 16 * * *" # 16:00 UTC daily (~02:00-03:00 Australia/Sydney)
+  workflow_dispatch: {}
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump + gzip + encrypt
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_DATABASE_URL:-}" ] || [ -z "${BACKUP_ENCRYPTION_KEY:-}" ]; then
+            echo "Missing BACKUP_DATABASE_URL or BACKUP_ENCRYPTION_KEY secret" >&2
+            exit 1
+          fi
+          ts=$(date -u +%Y%m%d-%H%M)
+          file="amana-db-$ts.sql.gz.enc"
+          /usr/lib/postgresql/17/bin/pg_dump "$BACKUP_DATABASE_URL" --no-owner --no-privileges \
+            | gzip -9 \
+            | openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -pass env:BACKUP_ENCRYPTION_KEY \
+            > "$file"
+          test -s "$file" || { echo "Backup file is empty — aborting" >&2; exit 1; }
+          ls -lh "$file"
+          echo "BACKUP_FILE=$file" >> "$GITHUB_ENV"
+
+      - name: Upload to Vercel Blob (and prune old copies)
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          npm i @vercel/blob --no-audit --no-fund --silent
+          node .github/scripts/upload-backup.mjs "$BACKUP_FILE"

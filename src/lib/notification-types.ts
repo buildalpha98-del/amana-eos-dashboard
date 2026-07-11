@@ -41,6 +41,11 @@ export const NOTIFICATION_TYPES = {
   // 2026-07-05: AI morning briefing — fired only on mornings where at
   // least one signal needs the reader (quiet days get no ping).
   MORNING_BRIEF_READY: "morning_brief_ready",
+  // 2026-07-08: fires for every user in a survey's audience when the
+  // admin hits Publish. Links to /surveys where they take it. Paired
+  // with an auto-created Todo so the survey also shows up in their
+  // regular task list.
+  SURVEY_ASSIGNED: "survey_assigned",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

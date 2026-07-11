@@ -94,6 +94,11 @@ interface SeparationRecord {
   finalisedAt: string | null;
   finalisedById: string | null;
   successorUserId: string | null;
+  // ── Employment Hero sync (2026-07-08) ─────────────────
+  // Non-null timestamp = last-working-day pushed to EH successfully.
+  // Non-null error = last attempt failed; shows a Retry button.
+  ehTerminationSyncedAt: string | null;
+  ehTerminationError: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -284,6 +289,8 @@ function SeparationView({
         </div>
       )}
 
+      <EhSyncBadge record={record} />
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -440,6 +447,121 @@ function Field({
       </div>
     </div>
   );
+}
+
+// ─── Employment Hero sync badge ──────────────────────────────────────
+
+/**
+ * Shows the state of the Employment-Hero-termination sync.
+ *
+ * Three states, all rendered as inline info cards under the finalise
+ * banner:
+ *   - Synced (green)  — EH knows the last working day. Nothing to do.
+ *   - Not linked (amber) — the user has no employmentHeroEmployeeId,
+ *     so EH sync was skipped. Admin must terminate manually in EH.
+ *   - Error (red) — EH rejected or was unreachable. Retry button.
+ *
+ * We deliberately don't hide this once finalised — even after user
+ * deactivation you may need to prove EH was told about the last
+ * working day (audit / dispute).
+ */
+function EhSyncBadge({ record }: { record: SeparationRecord }) {
+  const qc = useQueryClient();
+  const retry = useMutation({
+    mutationFn: async () => {
+      return mutateApi(`/api/separations/${record.id}/sync-eh`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["separation", record.userId] });
+      toast({ description: "Employment Hero sync retried." });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "EH sync failed",
+      });
+    },
+  });
+
+  if (record.ehTerminationSyncedAt) {
+    return (
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 flex items-start gap-2">
+        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold">
+            Employment Hero notified · end date{" "}
+            {formatDate(record.lastWorkingDay)}
+          </p>
+          <p className="text-xs mt-0.5">
+            Payroll knows about the termination. Synced{" "}
+            {formatDate(record.ehTerminationSyncedAt)}.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state — EH said no
+  if (record.ehTerminationError && !isNotLinkedError(record.ehTerminationError)) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900 flex items-start gap-3">
+        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold">
+            Employment Hero sync failed
+          </p>
+          <p className="text-xs mt-0.5 break-words">
+            {record.ehTerminationError}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => retry.mutate()}
+          disabled={retry.isPending}
+          className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+        >
+          {retry.isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : null}
+          Retry EH sync
+        </button>
+      </div>
+    );
+  }
+
+  // Not-linked state — no employmentHeroEmployeeId. Also covers the
+  // "EH integration not configured" case at the workspace level.
+  return (
+    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-3">
+      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold">
+          Employment Hero not notified
+        </p>
+        <p className="text-xs mt-0.5">
+          {record.ehTerminationError ||
+            "This staff member isn't linked to Employment Hero. Terminate them manually in EH so payroll stops treating them as active."}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => retry.mutate()}
+        disabled={retry.isPending}
+        className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-md hover:bg-amber-200 disabled:opacity-50"
+      >
+        {retry.isPending ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : null}
+        Retry
+      </button>
+    </div>
+  );
+}
+
+function isNotLinkedError(msg: string): boolean {
+  return msg.startsWith("Not linked") || msg.startsWith("Employment Hero integration not configured");
 }
 
 // ─── Edit form ────────────────────────────────────────────────────────

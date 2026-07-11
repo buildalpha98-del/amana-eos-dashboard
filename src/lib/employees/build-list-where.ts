@@ -73,17 +73,44 @@ export function buildListWhere(
     where.active = true;
   }
 
-  // Service filter (intersect with scope when caller is scoped)
+  // Service filter — matches either the user's primary serviceId OR any
+  // active UserServiceMembership. 2026-07-08: previously only checked
+  // primary; staff added to a centre via /services/[id]/staff (which
+  // creates a UserServiceMembership row) never showed up when filtering
+  // /team by that centre. Applies to both the requested-services filter
+  // AND the caller's centre scope so a member/staff still sees every
+  // colleague at their centre — including primary-elsewhere users.
   const requestedServices = params.s?.split(",").filter(Boolean) ?? [];
+  const buildServiceIdOr = (ids: string[]) => [
+    { serviceId: { in: ids } },
+    {
+      serviceMemberships: {
+        some: { serviceId: { in: ids }, status: "active" as const },
+      },
+    },
+  ];
+
   if (requestedServices.length > 0 && scopedServiceIds !== null) {
     const intersection = requestedServices.filter((id) =>
       scopedServiceIds.includes(id),
     );
-    where.serviceId = { in: intersection };
+    // AND on top of any existing OR (search): fold into `AND`.
+    if (intersection.length > 0) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        { OR: buildServiceIdOr(intersection) },
+      ];
+    }
   } else if (requestedServices.length > 0) {
-    where.serviceId = { in: requestedServices };
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      { OR: buildServiceIdOr(requestedServices) },
+    ];
   } else if (scopedServiceIds !== null) {
-    where.serviceId = { in: scopedServiceIds };
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      { OR: buildServiceIdOr(scopedServiceIds) },
+    ];
   }
 
   // Role filter — validate every value against the runtime enum.

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 
 const SMILEYS = [
   { score: 1, emoji: "😢", label: "Very Unhappy", color: "hover:bg-red-50 dark:hover:bg-red-950/40 focus:ring-red-300" },
@@ -20,12 +20,25 @@ const SELECTED_BG: Record<number, string> = {
 };
 
 export default function QuickFeedbackPage() {
+  // useSearchParams requires a Suspense boundary in the App Router.
+  return (
+    <Suspense fallback={null}>
+      <QuickFeedbackForm />
+    </Suspense>
+  );
+}
+
+function QuickFeedbackForm() {
   const params = useParams();
   const serviceId = params.serviceId as string;
+  // Nurture emails link here with the parent's identity prefilled so
+  // responses land attributed (still editable/removable — never forced).
+  const searchParams = useSearchParams();
 
   const [score, setScore] = useState<number | null>(null);
   const [comment, setComment] = useState("");
-  const [parentName, setParentName] = useState("");
+  const [parentName, setParentName] = useState(searchParams.get("name") ?? "");
+  const [parentEmail] = useState(searchParams.get("email") ?? "");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -57,6 +70,8 @@ export default function QuickFeedbackPage() {
           score,
           comment: comment.trim() || null,
           parentName: parentName.trim() || null,
+          // Clearing the name field opts out of attribution entirely.
+          parentEmail: parentName.trim() ? parentEmail.trim() || null : null,
         }),
       });
 
@@ -178,7 +193,9 @@ export default function QuickFeedbackPage() {
           </button>
 
           <p className="text-center text-xs text-muted">
-            Your response is anonymous unless you provide your name.
+            {parentEmail
+              ? "We've noted who this is from so our team can follow up — clear your name above to respond anonymously."
+              : "Your response is anonymous unless you provide your name."}
           </p>
         </div>
       </div>

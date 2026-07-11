@@ -63,7 +63,18 @@ function LoginForm() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password");
+      // 2026-07-08: don't mask the real error — a rate-limited login
+      // was showing as "Invalid email or password", which made users
+      // think their password was wrong when it was actually the
+      // 5-attempts-per-15-min throttle. NextAuth surfaces our thrown
+      // Error.message through result.error; when it falls back to the
+      // default "CredentialsSignin" code we still show a friendly
+      // generic message.
+      const msg =
+        result.error === "CredentialsSignin"
+          ? "Invalid email or password"
+          : result.error;
+      setError(msg);
       setLoading(false);
     } else {
       // Fetch the fresh session so we can route service-scoped roles directly

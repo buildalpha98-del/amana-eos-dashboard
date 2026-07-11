@@ -22,6 +22,11 @@ const createUserSchema = z.object({
     .default("member"),
   serviceId: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
+  // When true, the account starts locked in the induction flow (new_starter)
+  // and cannot be rostered / clock in until it clears. Omit for admin accounts
+  // and corrections — those default to `cleared` (unchanged behaviour).
+  newStarter: z.boolean().optional(),
+  startDate: z.string().datetime().optional().nullable(),
 });
 
 // GET /api/users — list all users (any authenticated user)
@@ -78,7 +83,7 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
-  const { name, email, password, role, serviceId, state } = parsed.data;
+  const { name, email, password, role, serviceId, state, newStarter, startDate } = parsed.data;
 
   // Guard: admins cannot create owner-level users
   if (session!.user.role !== "owner" && role === "owner") {
@@ -124,6 +129,14 @@ export const POST = withApiAuth(async (req, session) => {
       serviceId: (role === "staff" || role === "member") ? (serviceId || null) : null,
       state: role === "admin" ? (state || null) : null,
       notificationPrefs: getDefaultNotificationPrefs(role),
+      // New starters begin locked in induction; everyone else stays `cleared`.
+      ...(newStarter
+        ? {
+            inductionStatus: "new_starter" as const,
+            inductionDueDate: startDate ? new Date(startDate) : null,
+            ...(startDate ? { startDate: new Date(startDate) } : {}),
+          }
+        : {}),
     },
     select: {
       id: true,

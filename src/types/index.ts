@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role, InductionStatus } from "@prisma/client";
 
 declare module "next-auth" {
   interface Session {
@@ -10,6 +10,8 @@ declare module "next-auth" {
       serviceId?: string | null;
       state?: string | null;
       image?: string | null;
+      inductionStatus?: InductionStatus | string;
+      inductionGraceUntil?: string | Date | null;
     };
   }
 
@@ -20,6 +22,8 @@ declare module "next-auth" {
     role: Role;
     serviceId?: string | null;
     state?: string | null;
+    inductionStatus?: InductionStatus | string;
+    inductionGraceUntil?: string | Date | null;
   }
 }
 
@@ -29,5 +33,7 @@ declare module "next-auth/jwt" {
     role: Role;
     serviceId?: string | null;
     state?: string | null;
+    inductionStatus?: InductionStatus | string;
+    inductionGraceUntil?: string | Date | null;
   }
 }

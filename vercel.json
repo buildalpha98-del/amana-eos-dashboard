@@ -34,6 +34,18 @@
       "schedule": "30 21 * * *"
     },
     {
+      "path": "/api/cron/training-monthly",
+      "schedule": "0 22 1 * *"
+    },
+    {
+      "path": "/api/cron/induction-grace",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/training-reminders",
+      "schedule": "30 22 * * 0"
+    },
+    {
       "path": "/api/cron/booking-generator",
       "schedule": "0 16 * * *"
     },
