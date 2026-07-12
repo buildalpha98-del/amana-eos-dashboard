@@ -48,6 +48,10 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     lastLoginAt: new Date("2026-04-01"),
     tags: [] as string[],
     service: { id: "svc-1", name: "Mawson Lakes" },
+    // 2026-07-08: the route selects active memberships and maps them to
+    // additionalServices — omitting this crashed the handler with a 500.
+    serviceMemberships: [] as Array<{ service: { id: string; name: string } }>,
+    employmentHeroEmployeeId: null,
     ...overrides,
   };
 }
@@ -127,7 +131,17 @@ describe("GET /api/employees", () => {
     prismaMock.user.count.mockResolvedValue(0);
     await GET(createRequest("GET", "/api/employees"));
     const findManyCall = prismaMock.user.findMany.mock.calls[0][0];
-    expect(findManyCall.where.serviceId).toEqual({ in: ["svc-1"] });
+    // 2026-07-08: scope folds into AND as a primary-OR-membership filter.
+    expect(findManyCall.where.AND).toContainEqual({
+      OR: [
+        { serviceId: { in: ["svc-1"] } },
+        {
+          serviceMemberships: {
+            some: { serviceId: { in: ["svc-1"] }, status: "active" },
+          },
+        },
+      ],
+    });
   });
 
   it("returns pendingCount for admin viewers (drives the bulk-resend button)", async () => {
