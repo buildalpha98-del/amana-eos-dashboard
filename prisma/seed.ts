@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { randomBytes } from "crypto";
 import { CENTRE_AVATAR_STARTER_DATA } from "../src/lib/seed/centre-avatar-starter-data";
 import { SEED_SEQUENCES } from "../src/lib/sequence-seed-data";
 import { seedInduction } from "./seed-induction";
@@ -9,10 +10,27 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding database...");
 
-  // Create admin/owner user
+  // Create admin/owner user.
+  //
+  // 2026-07-12 security: no hardcoded default password. When ADMIN_PASSWORD
+  // is unset we mint a STRONG RANDOM secret for any account this run has to
+  // CREATE — never the old "ChangeMe123!". Existing accounts are untouched
+  // (every upsert below omits passwordHash from its `update`), so a
+  // production deploy where the accounts already exist is unaffected whether
+  // or not the env var is present. A fresh install without the env var gets
+  // unknown random passwords that must be set via the forgot-password flow.
   const adminEmail = process.env.ADMIN_EMAIL || "admin@amanaoshc.com.au";
-  const adminPassword = process.env.ADMIN_PASSWORD || "ChangeMe123!";
-  const passwordHash = await hash(adminPassword, 12);
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    console.warn(
+      "⚠ ADMIN_PASSWORD not set — any newly-created seed accounts get a random " +
+        "password; reset via the forgot-password flow. (Existing accounts are unchanged.)",
+    );
+  }
+  const passwordHash = await hash(
+    adminPassword || randomBytes(24).toString("base64url"),
+    12,
+  );
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
