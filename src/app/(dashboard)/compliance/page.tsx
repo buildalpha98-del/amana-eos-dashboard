@@ -33,6 +33,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { StatCard } from "@/components/ui/StatCard";
+import { StatusChip, type StatusChipLevel } from "@/components/ui/StatusChip";
 import { Pagination } from "@/components/ui/Pagination";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
@@ -147,15 +149,18 @@ function expiryStatus(days: number): "expired" | "critical" | "warning" | "valid
   return "valid";
 }
 
-function statusColor(status: string) {
+/** Expiry status → the app-wide attention ladder (StatusChip). Valid certs
+ *  are informational — grey, per the 2026-07-06 design system, so only
+ *  genuinely expiring certs draw colour. */
+function expiryLevel(status: string): StatusChipLevel {
   switch (status) {
     case "expired":
     case "critical":
-      return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800";
+      return "now";
     case "warning":
-      return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800";
+      return "soon";
     default:
-      return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800";
+      return "queue";
   }
 }
 
@@ -422,17 +427,10 @@ function StaffComplianceView() {
                     {typeLabels[type]}
                   </span>
                   {cert && hasNoExpiry && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
-                      No expiry
-                    </span>
+                    <StatusChip level="queue">No expiry</StatusChip>
                   )}
                   {cert && !hasNoExpiry && status && (
-                    <span
-                      className={cn(
-                        "text-xs font-medium px-2 py-0.5 rounded-lg border",
-                        statusColor(status)
-                      )}
-                    >
+                    <StatusChip level={expiryLevel(status)}>
                       {status === "expired"
                         ? "Expired"
                         : status === "critical"
@@ -440,7 +438,7 @@ function StaffComplianceView() {
                         : status === "warning"
                         ? `${days}d left`
                         : "Valid"}
-                    </span>
+                    </StatusChip>
                   )}
                 </div>
                 {!cert && (
@@ -874,35 +872,37 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
       <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div className="bg-card rounded-xl border border-border p-4">
-              <p className="text-xs font-medium text-muted uppercase tracking-wider mb-1">
-                Total Certs
-              </p>
-              <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-            </div>
-            <div className="bg-card rounded-xl border border-amber-200 p-4">
-              <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-1">
-                Expiring Soon
-              </p>
-              <p className="text-2xl font-bold text-amber-600">{stats.expiringSoon}</p>
-            </div>
-            <div className="bg-card rounded-xl border border-red-200 p-4">
-              <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">
-                Expired
-              </p>
-              <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
-            </div>
-            <div className="bg-card rounded-xl border border-emerald-200 p-4">
-              <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-1">
-                Valid
-              </p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.valid}</p>
-            </div>
+            <StatCard size="sm" title="Total Certs" value={stats.total} icon={FileText} />
+            <StatCard
+              size="sm"
+              title="Expiring Soon"
+              value={stats.expiringSoon}
+              icon={Clock}
+              iconColor="#D97706"
+              valueColor="text-amber-600 dark:text-amber-400"
+            />
+            <StatCard
+              size="sm"
+              title="Expired"
+              value={stats.expired}
+              icon={AlertTriangle}
+              iconColor="#DC2626"
+              valueColor="text-red-600 dark:text-red-400"
+            />
+            <StatCard
+              size="sm"
+              title="Valid"
+              value={stats.valid}
+              icon={CheckCircle2}
+              iconColor="#059669"
+              valueColor="text-emerald-600 dark:text-emerald-400"
+            />
           </div>
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <select
+              aria-label="Filter by centre"
               value={serviceFilter}
               onChange={(e) => { setServiceFilter(e.target.value); setCertPage(1); }}
               className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
@@ -915,6 +915,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
               ))}
             </select>
             <select
+              aria-label="Filter by certificate type"
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setCertPage(1); }}
               className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
@@ -1015,6 +1016,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <input
                               type="checkbox"
+                              aria-label={`Select certificate for ${cert.user?.name ?? cert.label ?? "unnamed"}`}
                               checked={selectedIds.has(cert.id)}
                               onChange={(e) => {
                                 const next = new Set(selectedIds);
@@ -1044,8 +1046,17 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                               </p>
                               <div className="flex items-center gap-2">
                                 <p className="text-xs text-muted truncate">
-                                  {cert.service.name}{" "}
-                                  <span className="text-muted">({cert.service.code})</span>
+                                  {/* service is null for personal certs
+                                      (serviceId relaxed 2026-06-05) — this
+                                      unguarded read crashed the whole tab. */}
+                                  {cert.service ? (
+                                    <>
+                                      {cert.service.name}{" "}
+                                      <span className="text-muted">({cert.service.code})</span>
+                                    </>
+                                  ) : (
+                                    "Personal — no centre"
+                                  )}
                                 </p>
                                 {cert.fileUrl && (
                                   <a
@@ -1070,24 +1081,17 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                                 {cert.expiryDate ? formatDate(cert.expiryDate) : "No expiry"}
                               </p>
                             </div>
-                            <span
-                              className={cn(
-                                "text-xs font-semibold px-2 py-1 rounded-lg border",
-                                statusColor(status)
-                              )}
-                            >
-                              {/* `days` is `null` for no-expiry certs (post-
-                                  2026-05 nullable migration). In that case
-                                  `status` is "valid" and we render a "No
-                                  expiry" pill instead of "nulld left".
-                                  Otherwise `days` is a number and the
-                                  status-driven branches all narrow cleanly. */}
+                            {/* `days` is `null` for no-expiry certs (post-
+                                2026-05 nullable migration). In that case
+                                `status` is "valid" and we render a "No
+                                expiry" chip instead of "nulld left". */}
+                            <StatusChip level={expiryLevel(status)}>
                               {days === null
                                 ? "No expiry"
                                 : status === "expired"
                                 ? `${Math.abs(days)}d overdue`
                                 : `${days}d left`}
-                            </span>
+                            </StatusChip>
 
                             {/* Acknowledge expired */}
                             {(status === "expired" || status === "critical") &&

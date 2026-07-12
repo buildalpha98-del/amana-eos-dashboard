@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StatCard } from "@/components/ui/StatCard";
 import { useQuery } from "@tanstack/react-query";
 import {
   Clock,
@@ -101,27 +102,21 @@ export function TicketAnalytics() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageSquare className="w-4 h-4 text-brand" />
-            <span className="text-xs font-medium text-muted uppercase tracking-wider">Total Tickets</span>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{data.totalTickets}</p>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-amber-600" />
-            <span className="text-xs font-medium text-muted uppercase tracking-wider">Avg First Response</span>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{formatHours(data.avgFirstResponseHours)}</p>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span className="text-xs font-medium text-muted uppercase tracking-wider">Avg Resolution</span>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{formatHours(data.avgResolutionHours)}</p>
-        </div>
+        <StatCard size="sm" title="Total Tickets" value={data.totalTickets} icon={MessageSquare} />
+        <StatCard
+          size="sm"
+          title="Avg First Response"
+          value={formatHours(data.avgFirstResponseHours)}
+          icon={Clock}
+          iconColor="#D97706"
+        />
+        <StatCard
+          size="sm"
+          title="Avg Resolution"
+          value={formatHours(data.avgResolutionHours)}
+          icon={CheckCircle2}
+          iconColor="#059669"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
