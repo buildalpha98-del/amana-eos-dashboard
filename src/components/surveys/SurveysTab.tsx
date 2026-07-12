@@ -188,8 +188,8 @@ function SurveyCard({
 }) {
   const statusColor: Record<string, string> = {
     draft: "bg-surface text-muted border-border",
-    published: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    closed: "bg-amber-50 text-amber-800 border-amber-200",
+    published: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+    closed: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
   };
 
   return (
@@ -208,7 +208,7 @@ function SurveyCard({
           )}
         </button>
         <span
-          className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${statusColor[survey.status]}`}
+          className={`shrink-0 text-2xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${statusColor[survey.status]}`}
         >
           {survey.status}
         </span>
@@ -290,7 +290,7 @@ function SurveyCard({
               type="button"
               onClick={onClose}
               disabled={actionsBusy}
-              className="text-xs px-2.5 py-1 rounded border border-amber-300 text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+              className="text-xs px-2.5 py-1 rounded border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 disabled:opacity-50"
             >
               Close
             </button>
@@ -309,7 +309,7 @@ function SurveyCard({
           type="button"
           onClick={onDelete}
           disabled={actionsBusy}
-          className="ml-auto text-xs px-2.5 py-1 rounded text-red-600 hover:bg-red-50 disabled:opacity-50"
+          className="ml-auto text-xs px-2.5 py-1 rounded text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
         >
           Delete
         </button>

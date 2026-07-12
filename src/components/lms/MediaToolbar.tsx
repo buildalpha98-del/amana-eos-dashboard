@@ -73,7 +73,7 @@ export function MediaToolbar({
           {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           {preview ? "Hide preview" : "Preview"}
         </button>
-        <span className="text-[10px] text-muted">Markdown supported</span>
+        <span className="text-2xs text-muted">Markdown supported</span>
         <input
           ref={fileRef}
           type="file"
@@ -112,9 +112,9 @@ export function VideoUrlHint({ url }: { url: string }) {
   if (!url.trim()) return null;
   const embed = toVideoEmbedUrl(url);
   return embed ? (
-    <p className="text-[10px] text-emerald-600">✓ Will embed as a video player.</p>
+    <p className="text-2xs text-emerald-600">✓ Will embed as a video player.</p>
   ) : (
-    <p className="text-[10px] text-amber-600">
+    <p className="text-2xs text-amber-600">
       ⚠ Only YouTube, Loom or Vimeo links embed as a player; other links open as a button.
     </p>
   );

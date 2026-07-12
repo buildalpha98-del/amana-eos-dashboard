@@ -71,12 +71,12 @@ function StaffRow({ row }: { row: ComplianceUserRow }) {
           >
             <div className="min-w-0">
               <p className="truncate text-sm text-foreground">{c.courseTitle}</p>
-              <p className="text-[11px] text-muted capitalize">
+              <p className="text-xs text-muted capitalize">
                 {c.track} · {c.progressPct}% complete
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span className="text-[11px] text-muted whitespace-nowrap">
+              <span className="text-xs text-muted whitespace-nowrap">
                 Due {fmtDate(c.dueDate)}
               </span>
               {c.overdue ? (
