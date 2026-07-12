@@ -7,6 +7,12 @@ import { AiButton } from "@/components/ui/AiButton";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import { buildJobAdTemplate } from "@/lib/recruitment/job-ad-templates";
 
+// Stable fallback while the services query loads. An inline `= []` default
+// mints a new array identity every render, which re-fires the template
+// effect below and (before the fix in its setter) looped setState
+// synchronously — freezing the page during query load.
+const EMPTY_SERVICES: Array<{ id: string; name: string }> = [];
+
 interface NewVacancyModalProps {
   onClose: () => void;
   onCreated: () => void;
@@ -26,7 +32,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
   });
   const [saving, setSaving] = useState(false);
 
-  const { data: services = [] } = useQuery<Array<{ id: string; name: string }>>({
+  const { data: services = EMPTY_SERVICES } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ["services-list-recruitment"],
     queryFn: async () => {
       const res = await fetch("/api/services?limit=100");
@@ -65,6 +71,9 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
     setForm((prev) => {
       if (prev.notes === "" || prev.notes === lastTemplateRef.current) {
         lastTemplateRef.current = template;
+        // Bail out when the template is already in place — returning a new
+        // object here re-rendered and re-fired this effect in a tight loop.
+        if (prev.notes === template) return prev;
         return { ...prev, notes: template };
       }
       return prev;

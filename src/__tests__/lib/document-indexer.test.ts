@@ -87,6 +87,8 @@ describe("document-indexer", () => {
     it("extracts plain text directly", async () => {
       mockFetch.mockResolvedValue({
         ok: true,
+        // extractText reads the body as a buffer for every MIME type
+        arrayBuffer: async () => new TextEncoder().encode("Plain text content here").buffer,
         text: async () => "Plain text content here",
       });
 
@@ -102,6 +104,8 @@ describe("document-indexer", () => {
     it("extracts markdown text directly", async () => {
       mockFetch.mockResolvedValue({
         ok: true,
+        // extractText reads the body as a buffer for every MIME type
+        arrayBuffer: async () => new TextEncoder().encode("# Heading\n\nSome markdown").buffer,
         text: async () => "# Heading\n\nSome markdown",
       });
 
@@ -117,6 +121,8 @@ describe("document-indexer", () => {
     it("extracts CSV text directly", async () => {
       mockFetch.mockResolvedValue({
         ok: true,
+        // extractText reads the body as a buffer for every MIME type
+        arrayBuffer: async () => new TextEncoder().encode("name,age\nAlice,30").buffer,
         text: async () => "name,age\nAlice,30",
       });
 
@@ -130,6 +136,10 @@ describe("document-indexer", () => {
     });
 
     it("throws for unsupported MIME type", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode("binary").buffer,
+      });
       const { extractText } = await import("@/lib/document-indexer");
 
       await expect(
