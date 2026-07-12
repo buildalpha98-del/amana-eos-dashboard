@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile } from "@/lib/storage/uploadFile";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { z } from "zod";
 
 const createPickupSchema = z.object({
@@ -19,10 +20,13 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   const child = await prisma.child.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, serviceId: true },
   });
 
   if (!child) throw ApiError.notFound("Child not found");
+  // Centre-scope: authorised-pickup data is child-safety critical — non-admin
+  // roles may only read/modify it for their own centre's children.
+  assertServiceAccess(session, child.serviceId);
 
   const pickups = await prisma.authorisedPickup.findMany({
     where: { childId: id, active: true },
@@ -37,10 +41,13 @@ export const POST = withApiAuth(async (req, session, context) => {
 
   const child = await prisma.child.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, serviceId: true },
   });
 
   if (!child) throw ApiError.notFound("Child not found");
+  // Centre-scope: authorised-pickup data is child-safety critical — non-admin
+  // roles may only read/modify it for their own centre's children.
+  assertServiceAccess(session, child.serviceId);
 
   const contentType = req.headers.get("content-type") || "";
 

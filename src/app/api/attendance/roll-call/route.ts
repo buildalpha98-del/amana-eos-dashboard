@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { z } from "zod";
 import type { SessionType } from "@prisma/client";
 import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
@@ -32,6 +33,11 @@ export const GET = withApiAuth(async (req, session) => {
   if (!serviceId || !dateStr || !sessionType) {
     throw ApiError.badRequest("serviceId, date, and sessionType are required");
   }
+
+  // Centre-scope gate: this returns child medical data for a single,
+  // required serviceId. Non-admins may only query their own centre;
+  // admins bypass. Throws 403 for any cross-centre request.
+  assertServiceAccess(session, serviceId);
 
   if (!DATE_RE.test(dateStr)) {
     throw ApiError.badRequest("date must be YYYY-MM-DD");

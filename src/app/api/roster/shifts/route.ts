@@ -3,6 +3,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 import { z } from "zod";
 import { assertStaffCertsValidForShift } from "../_lib/cert-guard";
 import { assertUserCleared } from "@/lib/induction";
@@ -12,18 +13,21 @@ import { assertUserCleared } from "@/lib/induction";
 // Returns all shifts for the 7-day window starting at weekStart.
 // ---------------------------------------------------------------------------
 
-export const GET = withApiAuth(async (req) => {
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const weekStart = searchParams.get("weekStart");
   if (!serviceId || !weekStart || !/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
     throw ApiError.badRequest("serviceId and weekStart (YYYY-MM-DD) required");
   }
+  // Centre-scope: pin non-admins to their own centre; admins keep the
+  // requested serviceId. Cross-centre request → NO_SERVICE_MATCH (empty).
+  const scopedServiceId = resolveServiceIdFilter(session, serviceId);
   const start = new Date(weekStart);
   const end = new Date(start);
   end.setDate(end.getDate() + 7);
   const shifts = await prisma.rosterShift.findMany({
-    where: { serviceId, date: { gte: start, lt: end } },
+    where: { serviceId: scopedServiceId, date: { gte: start, lt: end } },
     orderBy: [{ date: "asc" }, { shiftStart: "asc" }],
     include: { user: { select: { id: true, name: true, avatar: true } } },
   });

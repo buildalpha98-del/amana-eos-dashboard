@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseJsonField, gettingStartedProgressSchema } from "@/lib/schemas/json-fields";
-import type { Role } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 
 // Checklist item counts per role — must match GettingStartedContent.tsx
@@ -19,7 +18,6 @@ function getTotalForRole(role: string): number {
 }
 
 export const GET = withApiAuth(async (req, session) => {
-  const allowedRoles: Role[] = ["owner", "admin", "head_office"];
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
@@ -93,4 +91,9 @@ export const GET = withApiAuth(async (req, session) => {
     onboardingComplete,
     userList,
   });
+}, {
+  // 2026-07-12 authz fix: /admin/* route was reachable by any authenticated
+  // user (the allowedRoles array was declared but never enforced). Exposes
+  // org-wide staff emails + login activity — admin-tier only.
+  roles: ["owner", "admin", "head_office"],
 });

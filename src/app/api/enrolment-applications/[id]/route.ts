@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
+import { assertServiceAccess } from "@/lib/authz-scope";
 
 // ── GET /api/enrolment-applications/[id] — full application detail ──
 
 export const GET = withApiAuth(
-  async (req: NextRequest, _session, context) => {
+  async (req: NextRequest, session, context) => {
     const params = await context?.params;
     const id = params?.id;
     if (!id) throw ApiError.badRequest("Missing application ID");
@@ -31,6 +32,10 @@ export const GET = withApiAuth(
     if (!application) {
       throw ApiError.notFound("Application not found");
     }
+
+    // Centre-scope gate: non-admins may only read applications for their
+    // own service (child + family PII). Admins bypass. Throws 403 otherwise.
+    assertServiceAccess(session, application.serviceId);
 
     // Fetch existing siblings at this service for the same family email
     const familyContacts = await prisma.centreContact.findMany({
