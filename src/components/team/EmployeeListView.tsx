@@ -12,7 +12,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Download, Users, Mail } from "lucide-react";
+import { Plus, Download, Users, Mail, Contact } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -163,6 +163,13 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
             : undefined
         }
         secondaryActions={[
+          // 2026-07-12 (nav fold): Staff Directory left the sidebar — the
+          // people-finder view is reachable from here.
+          {
+            label: "Directory",
+            icon: Contact,
+            onClick: () => router.push("/directory"),
+          },
           {
             label: `Resend all pending (${pendingCount})`,
             icon: Mail,

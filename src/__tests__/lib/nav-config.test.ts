@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterNavItems, navItems } from "@/lib/nav-config";
+import { filterNavItems, navItems, partitionNavSection, type NavItem } from "@/lib/nav-config";
 import type { Role } from "@prisma/client";
 
 describe("filterNavItems", () => {
@@ -270,6 +270,128 @@ describe("nav consolidation phase 1 (2026-07-05)", () => {
     for (const role of ["member", "staff"] as Role[]) {
       const hrefs = filterNavItems(navItems, role).map((i) => i.href);
       expect(hrefs).not.toContain("/feedback");
+    }
+  });
+});
+
+// ─── Curated sidebar partition (2026-07-12) ─────────────────
+
+describe("partitionNavSection", () => {
+  const mk = (href: string, core?: boolean | Role[]): NavItem => ({
+    href,
+    label: href,
+    icon: (() => null) as unknown as NavItem["icon"],
+    section: "Test",
+    ...(core !== undefined ? { core } : {}),
+  });
+
+  it("puts core: true items in core and unflagged items in overflow, preserving order", () => {
+    const items = [mk("/a", true), mk("/b"), mk("/c", true), mk("/d")];
+    const { core, overflow } = partitionNavSection(items, "admin");
+    expect(core.map((i) => i.href)).toEqual(["/a", "/c"]);
+    expect(overflow.map((i) => i.href)).toEqual(["/b", "/d"]);
+  });
+
+  it("role-list core applies only to listed roles", () => {
+    // 3+ items so the tiny-section rule doesn't force everything visible
+    const items = [mk("/marketing-only", ["marketing"]), mk("/x"), mk("/y")];
+    const hrefs = (r: Role | undefined) =>
+      partitionNavSection(items, r).core.map((i) => i.href);
+    expect(hrefs("marketing")).toContain("/marketing-only");
+    expect(hrefs("admin")).not.toContain("/marketing-only");
+    expect(hrefs(undefined)).not.toContain("/marketing-only");
+  });
+
+  it("owner matches every role-list (superuser sees curated maximum)", () => {
+    const items = [mk("/marketing-only", ["marketing"]), mk("/x"), mk("/y")];
+    expect(partitionNavSection(items, "owner").core.map((i) => i.href)).toContain(
+      "/marketing-only",
+    );
+  });
+
+  it("promotes the active page into core so the current location is always visible", () => {
+    const items = [mk("/hidden"), mk("/x"), mk("/y")];
+    const { core } = partitionNavSection(items, "admin", { activeHref: "/hidden" });
+    expect(core.map((i) => i.href)).toEqual(["/hidden"]);
+    // nested route also counts as active
+    const nested = partitionNavSection(items, "admin", { activeHref: "/hidden/child" });
+    expect(nested.core.map((i) => i.href)).toEqual(["/hidden"]);
+  });
+
+  it("promotes badge-carrying items via forceShowHrefs", () => {
+    const items = [mk("/bookings"), mk("/other"), mk("/third")];
+    const { core, overflow } = partitionNavSection(items, "admin", {
+      forceShowHrefs: ["/bookings"],
+    });
+    expect(core.map((i) => i.href)).toEqual(["/bookings"]);
+    expect(overflow.map((i) => i.href)).toEqual(["/other", "/third"]);
+  });
+
+  it("real config: admin core for Operations is the curated set", () => {
+    const ops = filterNavItems(navItems, "admin").filter((i) => i.section === "Operations");
+    const { core } = partitionNavSection(ops, "admin");
+    expect(core.map((i) => i.href)).toEqual([
+      "/services",
+      "/bookings",
+      "/financials",
+      "/compliance",
+    ]);
+  });
+
+  it("real config: every section keeps at least the Home items reachable for staff", () => {
+    const home = filterNavItems(navItems, "staff").filter((i) => i.section === "Home");
+    const { overflow } = partitionNavSection(home, "staff");
+    expect(overflow).toHaveLength(0); // Home is never hidden behind a toggle
+  });
+});
+
+describe("partitionNavSection — tiny sections", () => {
+  it("sections with two or fewer items show everything (no toggle)", () => {
+    const mk = (href: string): NavItem => ({
+      href,
+      label: href,
+      icon: (() => null) as unknown as NavItem["icon"],
+      section: "Tiny",
+    });
+    const { core, overflow } = partitionNavSection([mk("/a"), mk("/b")], "member");
+    expect(core).toHaveLength(2);
+    expect(overflow).toHaveLength(0);
+  });
+});
+
+describe("stage-1 nav folds (2026-07-12)", () => {
+  const FOLDED = [
+    "/assistant",
+    "/tools/ccs-calculator",
+    "/data-room",
+    "/admin/ai-drafts",
+    "/directory",
+    "/reports/board",
+    // stage-1 batch 2 (2026-07-12)
+    "/billing",
+    "/scenarios",
+    "/safe-reports",
+    "/policies",
+    "/children",
+    "/centre-avatars",
+    "/communication/whatsapp-compliance",
+    "/position-descriptions",
+    "/contracts",
+    "/leave-payroll",
+  ];
+
+  it("folded items are hidden from the sidebar/top-nav", () => {
+    for (const href of FOLDED) {
+      const item = navItems.find((i) => i.href === href);
+      expect(item, href).toBeDefined();
+      expect(item!.hidden, href).toBe(true);
+    }
+  });
+
+  it("folded items stay in filterNavItems so ⌘K and page titles keep working", () => {
+    const hrefs = filterNavItems(navItems, "owner").map((i) => i.href);
+    for (const href of FOLDED) {
+      expect(hrefs, href).toContain(href);
     }
   });
 });

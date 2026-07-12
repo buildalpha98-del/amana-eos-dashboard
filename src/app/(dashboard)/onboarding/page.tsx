@@ -39,6 +39,7 @@ import {
   ShieldCheck,
   Download,
   AlertTriangle,
+  FileSignature,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -344,7 +345,16 @@ function OnboardingPageInner() {
           icon: Plus,
           onClick: () => activeTab === "onboarding" ? setShowCreatePack(true) : setShowCreateCourse(true),
         } : undefined}
-        secondaryActions={isAdmin && (activeTab === "onboarding" || activeTab === "lms") ? [
+        secondaryActions={[
+          // 2026-07-12 (nav fold): Contracts left the sidebar — the staff
+          // lifecycle spans onboarding through offboarding, contracts included.
+          // The /contracts page itself scopes what each role can see.
+          {
+            label: "Contracts",
+            icon: FileSignature,
+            onClick: () => router.push("/contracts"),
+          },
+          ...(isAdmin && (activeTab === "onboarding" || activeTab === "lms") ? [
           {
             label: "Assign Pack",
             icon: Users,
@@ -383,7 +393,8 @@ function OnboardingPageInner() {
             onClick: activeTab === "onboarding" ? handleSeedPacks : handleSeedCourses,
             loading: seedingPacks || seedingCourses,
           }] : []),
-        ] : undefined}
+        ] : []),
+        ]}
       />
 
       {/* Tabs */}

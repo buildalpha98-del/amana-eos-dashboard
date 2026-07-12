@@ -18,6 +18,7 @@ import {
   ArrowDown,
   Minus,
   ChevronDown,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -37,6 +38,7 @@ import { ForecastView } from "@/components/performance/ForecastView";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AiButton } from "@/components/ui/AiButton";
 import { TrendInsightsWidget } from "@/components/trends/TrendInsightsWidget";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Download } from "lucide-react";
 
@@ -79,6 +81,7 @@ function MetricCell({ value, suffix, good, threshold }: { value: number | null |
 }
 
 export default function PerformancePage() {
+  const router = useRouter();
   const { data: centres, isLoading, error, refetch } = usePerformance();
   const [sortBy, setSortBy] = useState<string>("overall");
   const [selectedCentreId, setSelectedCentreId] = useState<string | null>(null);
@@ -171,6 +174,9 @@ export default function PerformancePage() {
         title="Centre Performance"
         description="Rankings, KPIs, and operational health across all centres"
         secondaryActions={[
+          // 2026-07-12 (nav fold): Board Reports left the sidebar — the
+          // monthly board & investor report generator is reachable here.
+          { label: "Board Reports", icon: FileSpreadsheet, onClick: () => router.push("/reports/board") },
           { label: "Export CSV", icon: Download, onClick: handleExport },
         ]}
         toggles={[

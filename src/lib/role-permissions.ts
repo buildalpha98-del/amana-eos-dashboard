@@ -98,6 +98,14 @@ export const allPages = [
   "/communication",
   "/communication/whatsapp-compliance",
   "/compliance",
+  // 2026-07-12: was missing entirely — the classic new-page gotcha. The
+  // page itself redirects non-owner/head_office; this only restores nav
+  // visibility + canAccessPage for the roles the nav item already allows.
+  "/safe-reports",
+  // 2026-07-12: also missing (same gotcha) — per-role PD library.
+  "/position-descriptions",
+  // 2026-07-12: third instance of the same gotcha — the EH-live leave page.
+  "/leave-payroll",
   "/compliance/templates",
   "/activity-library",
   "/documents",
@@ -205,6 +213,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   head_office: allPages.filter((p) => !HEAD_OFFICE_EXCLUDED.has(p)),
   admin: allPages.filter((p) => !ADMIN_EXCLUDED.has(p)),
   marketing: [
+    "/position-descriptions", // 2026-07-12: was missing from role access entirely
     "/dashboard",
     "/getting-started",
     "/my-portal",
@@ -270,6 +279,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   // over: the post-training-feedback member allowlist is the canonical
   // service-leader scope going forward.
   member: [
+    "/position-descriptions", // 2026-07-12: was missing from role access entirely
     // ── Personal hub ────────────────────────────────────────────
     "/dashboard",
     "/getting-started",
@@ -331,6 +341,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // - /holiday-quest is a marketing planner.
   ],
   staff: [
+    "/position-descriptions", // 2026-07-12: was missing from role access entirely
     "/dashboard",
     "/getting-started",
     "/my-portal",
