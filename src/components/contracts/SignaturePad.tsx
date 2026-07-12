@@ -167,7 +167,7 @@ export function SignaturePad({
       )}
       <div
         className={cn(
-          "rounded-lg border border-border bg-white overflow-hidden touch-none",
+          "rounded-lg border border-border bg-card overflow-hidden touch-none",
           // Touch-action none — Safari otherwise scrolls the page when
           // a user tries to draw on touch.
           disabled && "opacity-60",

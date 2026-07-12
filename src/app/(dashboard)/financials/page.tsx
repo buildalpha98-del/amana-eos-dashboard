@@ -96,7 +96,7 @@ function AttendanceSyncBadge({ lastSync }: { lastSync: string | null }) {
   const [nowTs] = useState(() => Date.now());
   if (!lastSync) {
     return (
-      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-medium">
+      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 text-xs font-medium">
         <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
         Attendance sync: never run
       </span>
@@ -108,7 +108,7 @@ function AttendanceSyncBadge({ lastSync }: { lastSync: string | null }) {
     <span
       className={cn(
         "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
-        stale ? "bg-amber-100 text-amber-800" : "bg-emerald-50 text-emerald-700",
+        stale ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200" : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300",
       )}
       title="Last successful attendance-to-financials cron run"
     >
@@ -223,7 +223,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
                 { label: "Other", val: otherRevenue, set: setOtherRevenue },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-[10px] text-muted">{f.label}</label>
+                  <label className="text-2xs text-muted">{f.label}</label>
                   <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
                 </div>
               ))}
@@ -243,7 +243,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
                 { label: "Other", val: otherCosts, set: setOtherCosts },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-[10px] text-muted">{f.label}</label>
+                  <label className="text-2xs text-muted">{f.label}</label>
                   <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
                 </div>
               ))}
@@ -255,11 +255,11 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
             <label className="text-xs font-medium text-muted block mb-1">Budget (optional)</label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-muted">Budget Revenue</label>
+                <label className="text-2xs text-muted">Budget Revenue</label>
                 <input type="number" min={0} value={budgetRevenue || ""} onChange={(e) => setBudgetRevenue(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
-                <label className="text-[10px] text-muted">Budget Costs</label>
+                <label className="text-2xs text-muted">Budget Costs</label>
                 <input type="number" min={0} value={budgetCosts || ""} onChange={(e) => setBudgetCosts(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
             </div>
@@ -492,7 +492,7 @@ export default function FinancialsPage() {
 
       {/* Data Source Warning */}
       {usedPeriod && usedPeriod !== period && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-800">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-sm text-blue-800 dark:text-blue-200">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           No {period} data available — showing <span className="font-semibold">{usedPeriod}</span> data instead.
         </div>
@@ -502,7 +502,7 @@ export default function FinancialsPage() {
         const zeroRevCentres = latestData.filter((f) => f.totalRevenue === 0);
         if (zeroRevCentres.length === 0 || latestData.length === 0) return null;
         return (
-          <div className="flex items-start gap-2 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+          <div className="flex items-start gap-2 px-4 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-200">
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
             <div>
               <span className="font-semibold">{zeroRevCentres.length} centre{zeroRevCentres.length > 1 ? "s" : ""} reporting $0 revenue</span>
@@ -517,7 +517,7 @@ export default function FinancialsPage() {
 
       {/* AI Financial Commentary */}
       {aiCommentary && (
-        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+        <div className="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-purple-800">AI Financial Commentary</h3>
             <button onClick={() => setAiCommentary(null)} className="text-purple-400 hover:text-purple-600">
@@ -530,7 +530,7 @@ export default function FinancialsPage() {
 
       {/* AI Revenue Insights */}
       {aiRevenueInsights && (
-        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+        <div className="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-purple-800">AI Revenue Optimisation Insights</h3>
             <button onClick={() => setAiRevenueInsights(null)} className="text-purple-400 hover:text-purple-600">
@@ -642,7 +642,7 @@ export default function FinancialsPage() {
                       {row.dataSource === "xero" ? (
                         <span title="Synced from Xero"><RefreshCw className="w-3.5 h-3.5 text-[#13B5EA] inline-block" /></span>
                       ) : row.dataSource === "auto_attendance" ? (
-                        <span title="Auto-calculated from attendance" className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">AUTO</span>
+                        <span title="Auto-calculated from attendance" className="text-2xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">AUTO</span>
                       ) : row.dataSource === "owna_import" ? (
                         <span title="Imported from OWNA"><FileSpreadsheet className="w-3.5 h-3.5 text-amber-500 inline-block" /></span>
                       ) : (

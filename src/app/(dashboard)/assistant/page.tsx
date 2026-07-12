@@ -26,9 +26,9 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       >
         {!isUser && !message.content && (
           <span className="inline-flex items-center gap-1 text-muted">
-            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+            <span className="w-1.5 h-1.5 bg-muted/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-1.5 h-1.5 bg-muted/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-1.5 h-1.5 bg-muted/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
           </span>
         )}
         {message.content && (
@@ -86,7 +86,7 @@ export default function AssistantPage() {
             <Bot className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">AI Assistant</h2>
+            <h2 className="text-xl font-heading font-semibold tracking-tight text-foreground">AI Assistant</h2>
             <p className="text-sm text-muted">Ask questions about your dashboard data</p>
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function AssistantPage() {
             </button>
           )}
         </div>
-        <p className="text-[10px] text-muted mt-1.5 text-center">
+        <p className="text-2xs text-muted mt-1.5 text-center">
           AI responses are based on your live dashboard data. Always verify critical decisions.
         </p>
       </div>

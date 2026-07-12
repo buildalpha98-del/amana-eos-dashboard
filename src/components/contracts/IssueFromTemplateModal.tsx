@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, ArrowRight, ArrowLeft, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useQuery } from "@tanstack/react-query";
 import {
   useContractTemplates,
@@ -388,33 +389,36 @@ export function IssueFromTemplateModal({
           </button>
 
           {step < 5 ? (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={handleNext}
               disabled={
                 (step === 1 && (!templateId || !userId)) ||
                 (step === 2 && (!previewData || hasBlockingMissingTags)) ||
                 (step === 3 && !allCustomFieldsFilled)
               }
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              iconRight={<ArrowRight className="w-4 h-4" />}
             >
-              Next <ArrowRight className="w-4 h-4" />
-            </button>
+              Next
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={handleIssue}
-              disabled={issueMut.isPending || !adminSignatureDataUrl}
+              disabled={!adminSignatureDataUrl}
+              loading={issueMut.isPending}
               title={
                 !adminSignatureDataUrl
                   ? "Sign the contract first using the signature pad below."
                   : undefined
               }
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {issueMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {issueMut.isPending ? "Issuing…" : "Sign & Issue"}
-            </button>
+            </Button>
           )}
         </footer>
       </div>
@@ -534,7 +538,7 @@ function Step2({
       </p>
 
       {staffMissingTags.length > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
           <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-red-800">
@@ -556,7 +560,7 @@ function Step2({
       )}
 
       {orphanMissingTags.length > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
           <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-amber-800">
@@ -571,7 +575,7 @@ function Step2({
       )}
 
       {staffMissingTags.length === 0 && orphanMissingTags.length === 0 && (
-        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+        <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm text-emerald-700 dark:text-emerald-300">
           <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
           All automatic tags resolved successfully.
         </div>
@@ -604,7 +608,7 @@ function Step2({
           title="Tag resolution preview"
           sandbox="allow-same-origin"
           srcDoc={previewData.html}
-          className="w-full h-64 bg-white rounded border border-border/50"
+          className="w-full h-64 bg-card rounded border border-border/50"
         />
       </div>
     </div>
@@ -640,7 +644,7 @@ function Step3({
           <label className="block text-sm font-medium text-foreground mb-1.5">
             {field.label}
             <span className="text-red-500 ml-1">*</span>
-            <code className="ml-2 text-[10px] font-normal text-muted bg-surface px-1 py-0.5 rounded">
+            <code className="ml-2 text-2xs font-normal text-muted bg-surface px-1 py-0.5 rounded">
               {`{{${field.key}}}`}
             </code>
           </label>
@@ -858,14 +862,14 @@ function Step5({
   return (
     <div className="space-y-4">
       {submissionError && (
-        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+        <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
           <div className="font-medium">{submissionError}</div>
         </div>
       )}
 
       {!submissionError && previewData.missingTags.length > 0 && (
-        <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+        <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-200">
           <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
           <div>
             <span className="font-medium">
@@ -883,7 +887,7 @@ function Step5({
           title="Final contract preview"
           sandbox="allow-same-origin"
           srcDoc={previewData.html}
-          className="w-full h-full bg-white"
+          className="w-full h-full bg-card"
         />
       </div>
 

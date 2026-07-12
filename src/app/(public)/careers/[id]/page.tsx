@@ -83,18 +83,18 @@ export default async function CareerApplyPage({
   return (
     <main className="min-h-screen bg-[#FFFAE6] px-4 py-10 md:py-16">
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm font-semibold uppercase tracking-wide text-[#004E64]/60">
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand/60">
           Amana OSHC Careers
         </p>
-        <h1 className="mt-2 text-4xl font-semibold leading-tight text-[#004E64] md:text-5xl">
+        <h1 className="mt-2 text-4xl font-semibold leading-tight text-brand md:text-5xl">
           {roleLabel}
         </h1>
-        <p className="mt-2 text-xl text-[#004E64]/80">{centre}</p>
+        <p className="mt-2 text-xl text-brand/80">{centre}</p>
 
         {chips.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {chips.map((c) => (
-              <span key={c} className="rounded-full bg-[#FFF2BF] px-3 py-1 text-sm font-medium text-[#004E64]">
+              <span key={c} className="rounded-full bg-[#FFF2BF] px-3 py-1 text-sm font-medium text-brand">
                 {c}
               </span>
             ))}
@@ -102,7 +102,7 @@ export default async function CareerApplyPage({
         )}
 
         {v.notes?.trim() && (
-          <div className="mt-8 whitespace-pre-wrap rounded-2xl bg-white p-6 text-[#004E64]/90 shadow-sm ring-1 ring-black/5 md:p-8">
+          <div className="mt-8 whitespace-pre-wrap rounded-2xl bg-card p-6 text-brand/90 shadow-sm ring-1 ring-black/5 md:p-8">
             {v.notes.trim()}
           </div>
         )}
@@ -111,7 +111,7 @@ export default async function CareerApplyPage({
           <CareerApplyForm vacancyId={v.id} roleLabel={roleLabel} centre={centre} />
         </div>
 
-        <p className="mt-8 text-center text-sm text-[#004E64]/60">
+        <p className="mt-8 text-center text-sm text-brand/60">
           <Link href="/careers" className="underline">See all open roles</Link>
         </p>
       </div>

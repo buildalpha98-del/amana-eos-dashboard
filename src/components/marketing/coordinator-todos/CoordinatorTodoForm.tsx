@@ -167,7 +167,7 @@ export function CoordinatorTodoForm({
                 <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-card cursor-pointer text-sm">
                   <input type="checkbox" checked={checked} onChange={() => toggleService(s.id)} aria-label={`Toggle ${s.name}`} />
                   <span className="flex-1 truncate">{s.name}</span>
-                  {s.state && <span className="text-[10px] text-muted">{s.state}</span>}
+                  {s.state && <span className="text-2xs text-muted">{s.state}</span>}
                 </label>
               );
             })}
@@ -175,7 +175,7 @@ export function CoordinatorTodoForm({
               <p className="text-xs text-muted px-2 py-1.5">Loading centres…</p>
             )}
           </div>
-          <p className="text-[11px] text-muted mt-1">
+          <p className="text-xs text-muted mt-1">
             One todo per centre. Auto-assigned to that centre&apos;s coordinator (falls back to manager).
           </p>
         </div>

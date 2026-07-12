@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
+/* The app toggles dark mode via a `.dark` class on <html> (ThemeToggle),
+   not the OS preference — point Tailwind's dark: variant at it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Fonts stay in an `inline` theme block because they reference the
+   next/font variables (--font-dm-sans / --font-bricolage) that only exist
+   on <body> — inlining lets the utility resolve them at point of use. */
 @theme inline {
+  --font-sans: var(--font-dm-sans), "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-bricolage), "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Colors/radii/shadows must NOT be `inline`: inline compiles utilities to
+   literal light-mode values, which silently disconnects them from the
+   `.dark { --color-* }` overrides below (dark mode only half-worked) and
+   from the [data-v2="staff"] radius density overrides. As plain @theme,
+   utilities emit var(--color-*) and re-theme correctly. */
+@theme {
   --color-brand: #004E64;
   --color-brand-dark: #002E3D;
   --color-brand-light: #0A7E9E;
@@ -11,7 +28,7 @@
   --color-card: #FFFFFF;
   --color-sidebar: #002E3D;
   --color-foreground: #1a1a2e;
-  --color-muted: #7c7c8a;
+  --color-muted: #6b6b78; /* ≥4.5:1 on cream (#FAF8F5) and white — WCAG AA for body text */
   --color-border: #e8e4df;
   --color-success: #059669;
   --color-warning: #D97706;
@@ -19,8 +36,10 @@
   --color-info: #2563EB;
   --color-surface: #F2EDE8;
 
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  /* Micro label size — replaces ad-hoc text-[10px]. Use for badge/meta text
+     only; body copy floor stays text-xs. */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
 
   --shadow-warm-sm: 0 1px 2px rgba(140, 120, 90, 0.06);
   --shadow-warm: 0 2px 8px -1px rgba(140, 120, 90, 0.08), 0 1px 2px rgba(140, 120, 90, 0.04);
@@ -87,11 +106,15 @@ body::before {
 }
 
 /* ─── Card Elevation ────────────────────────────────────── */
+/* 2026-07-11: raw `bg-white` was swept onto the `bg-card` token; the
+   automatic warm elevation follows it (`.bg-white` kept as a legacy net). */
 
+.bg-card,
 .bg-white {
   box-shadow: var(--shadow-warm-sm);
 }
 
+.bg-card:where(:not(table *, thead *, tbody *, tr *, th *, td *, nav *, header *, aside *)),
 .bg-white:where(:not(table *, thead *, tbody *, tr *, th *, td *, nav *, header *, aside *)) {
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
@@ -321,8 +344,7 @@ thead th {
 }
 
 /* Warm table header backgrounds */
-thead tr,
-.bg-gray-50:where(thead *, tr:first-child) {
+thead tr {
   background-color: var(--color-surface) !important;
 }
 
@@ -378,18 +400,18 @@ td, th {
   mix-blend-mode: soft-light;
 }
 
+/* 2026-07-11: the `.dark .bg-gray-*` / `.dark .text-gray-*` remap hacks are
+   gone — raw palette classes were swept onto tokens, which re-theme via the
+   .dark variable overrides above. Only the elevation tweak remains, plus a
+   bg-white safety net for any dynamically-built class strings. */
+.dark .bg-card,
 .dark .bg-white {
-  background-color: var(--color-card);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.dark .bg-gray-50, .dark .bg-gray-100 { background-color: var(--color-surface); }
-.dark .border-gray-200, .dark .border-gray-100 { border-color: var(--color-border); }
-.dark .text-gray-900 { color: #eee8e0; }
-.dark .text-gray-700 { color: #c9c3bb; }
-.dark .text-gray-600 { color: #a19b93; }
-.dark .text-gray-500 { color: #8e8a82; }
-.dark .text-gray-400 { color: #6b6560; }
+.dark .bg-white {
+  background-color: var(--color-card);
+}
 
 .dark ::-webkit-scrollbar-thumb {
   background: #3a3a48;

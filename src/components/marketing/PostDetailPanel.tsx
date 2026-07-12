@@ -162,7 +162,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                 {post.services.map((s) => (
                   <span
                     key={s.service.id}
-                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
+                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-2xs font-medium text-brand"
                   >
                     {s.service.code}
                   </span>
@@ -193,16 +193,16 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               className={`rounded-lg p-2 text-sm transition-colors ${
                 confirmDelete
                   ? "bg-red-600 text-white"
-                  : "text-red-500 hover:bg-red-50"
+                  : "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
               }`}
               title={confirmDelete ? "Click again to confirm" : "Delete post"}
-            >
+             aria-label="Delete">
               <Trash2 className="h-4 w-4" />
             </button>
             <button
               onClick={onClose}
               className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
-            >
+             aria-label="Close">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -230,13 +230,13 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
           <div className="border-b border-border px-6 py-3">
             <button
               onClick={() => handleStatusChange("in_review")}
-              className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors"
             >
               <ShieldCheck className="h-4 w-4" />
               Request Approval
             </button>
             {post.rejectionReason && (
-              <div className="mt-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+              <div className="mt-2 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-3 py-2">
                 <p className="text-xs font-medium text-red-700 mb-0.5">
                   Previously rejected:
                 </p>
@@ -269,7 +269,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               </button>
               <button
                 onClick={() => setShowRejectForm(!showRejectForm)}
-                className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
               >
                 <XCircle className="h-4 w-4" />
                 Reject
@@ -314,7 +314,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
 
         {post.status === "approved" && post.approvedBy && (
           <div className="border-b border-border px-6 py-3">
-            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-3 py-2">
               <Check className="h-4 w-4 text-emerald-600" />
               <span className="text-sm text-emerald-700">
                 Approved by{" "}
@@ -494,7 +494,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
 
           {/* Canva Design */}
           {(post.canvaDesignUrl || post.canvaDesignId) && (
-            <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
+            <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800">
               <div className="flex items-center gap-2 mb-2">
                 <Palette className="h-4 w-4 text-purple-600" />
                 <span className="text-sm font-medium text-purple-900">Canva Design</span>
@@ -516,7 +516,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                     href={post.canvaExportUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-purple-300 text-purple-700 hover:bg-purple-100 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-colors"
                   >
                     <Image className="h-3 w-3" />
                     View Export
@@ -573,7 +573,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                   {/* Live metrics indicator */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                      <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-950/50 px-2 py-0.5 text-2xs font-semibold text-green-700 dark:text-green-300">
                         Live
                       </span>
                       {post.engagementSyncedAt && (
@@ -631,12 +631,12 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                     ].map((m) => (
                       <div
                         key={m.label}
-                        className="rounded-lg bg-green-50 border border-green-100 p-2 text-center"
+                        className="rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-800 p-2 text-center"
                       >
                         <p className="text-lg font-bold text-green-700">
                           {m.value.toLocaleString()}
                         </p>
-                        <p className="text-[10px] text-green-600">{m.label}</p>
+                        <p className="text-2xs text-green-600">{m.label}</p>
                       </div>
                     ))}
                   </div>

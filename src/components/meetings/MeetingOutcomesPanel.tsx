@@ -40,26 +40,26 @@ export function MeetingOutcomesPanel({
         <div className="grid grid-cols-2 gap-3">
           <div className="text-center p-2 bg-surface/50 rounded-lg">
             <p className="text-lg font-bold text-foreground">{todosDone}/{todosTotal}</p>
-            <p className="text-[10px] text-muted uppercase">To-Dos Done</p>
+            <p className="text-2xs text-muted uppercase">To-Dos Done</p>
           </div>
           <div className="text-center p-2 bg-surface/50 rounded-lg">
             <p className="text-lg font-bold text-foreground">{rocksOnTrack}/{rocksTotal}</p>
-            <p className="text-[10px] text-muted uppercase">Rocks On Track</p>
+            <p className="text-2xs text-muted uppercase">Rocks On Track</p>
           </div>
           <div className="text-center p-2 bg-surface/50 rounded-lg">
             <p className="text-lg font-bold text-foreground">{solvedIssues}</p>
-            <p className="text-[10px] text-muted uppercase">Issues Solved</p>
+            <p className="text-2xs text-muted uppercase">Issues Solved</p>
           </div>
           <div className="text-center p-2 bg-surface/50 rounded-lg">
             <p className="text-lg font-bold text-accent">{meeting.rating ?? "—"}<span className="text-xs text-muted">/10</span></p>
-            <p className="text-[10px] text-muted uppercase">Rating</p>
+            <p className="text-2xs text-muted uppercase">Rating</p>
           </div>
         </div>
 
         {/* Conclude Notes */}
         {meeting.concludeNotes && (
           <div>
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-1">Recap</p>
+            <p className="text-2xs font-semibold text-muted uppercase tracking-wider mb-1">Recap</p>
             <p className="text-xs text-muted whitespace-pre-wrap">{meeting.concludeNotes}</p>
           </div>
         )}
@@ -67,7 +67,7 @@ export function MeetingOutcomesPanel({
         {/* Cascade Messages */}
         {cascadeLines.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold text-brand uppercase tracking-wider mb-1">
+            <p className="text-2xs font-semibold text-brand uppercase tracking-wider mb-1">
               Cascade Messages
             </p>
             <div className="space-y-1">

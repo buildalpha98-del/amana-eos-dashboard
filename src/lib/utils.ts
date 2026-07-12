@@ -14,10 +14,19 @@ export function formatDateAU(date: Date | string): string {
   });
 }
 
+/**
+ * Canonical Rock.quarter label for a date — "Q3-2026" (hyphen, no space).
+ * ALWAYS use this instead of building the string inline: a hand-rolled
+ * space-separated variant ("Q3 2026") silently matched zero rocks in the
+ * dashboard aggregator and health-score computations.
+ */
+export function quarterLabel(date: Date): string {
+  const q = Math.ceil((date.getMonth() + 1) / 3);
+  return `Q${q}-${date.getFullYear()}`;
+}
+
 export function getCurrentQuarter(): string {
-  const now = new Date();
-  const q = Math.ceil((now.getMonth() + 1) / 3);
-  return `Q${q}-${now.getFullYear()}`;
+  return quarterLabel(new Date());
 }
 
 /**

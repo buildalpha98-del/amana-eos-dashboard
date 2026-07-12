@@ -44,7 +44,7 @@ export default function NotFound() {
           </Link>
         </div>
 
-        <p className="text-white/30 font-heading tracking-wider uppercase text-[11px] mt-6">
+        <p className="text-white/30 font-heading tracking-wider uppercase text-2xs mt-6">
           Amana OSHC Leadership Team Portal
         </p>
       </div>

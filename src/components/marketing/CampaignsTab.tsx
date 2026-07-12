@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useCampaigns } from "@/hooks/useMarketing";
 import type { CampaignData } from "@/hooks/useMarketing";
 import { StatusBadge } from "./StatusBadge";
@@ -75,13 +76,14 @@ export function CampaignsTab({
         </select>
 
         <div className="ml-auto">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover"
+            iconLeft={<Plus className="h-4 w-4" />}
           >
-            <Plus className="h-4 w-4" />
             New Campaign
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -128,7 +130,7 @@ export function CampaignsTab({
                     <td className="px-4 py-3 text-muted">
                       <span className="capitalize">{campaign.type}</span>
                       {campaign.type === "activation" && (
-                        <span className="ml-1.5 inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-950/50 px-1.5 py-0.5 text-2xs font-semibold text-purple-700 dark:text-purple-300">
                           ACT
                         </span>
                       )}
@@ -149,7 +151,7 @@ export function CampaignsTab({
                           {campaign.services.map((s) => (
                             <span
                               key={s.service.id}
-                              className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
+                              className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-2xs font-medium text-brand"
                             >
                               {s.service.code}
                             </span>

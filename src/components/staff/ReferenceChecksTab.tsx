@@ -100,14 +100,14 @@ const RECOMMENDATION_LABEL: Record<RefRecommendation, string> = {
 function statusPill(s: RefStatus): string {
   switch (s) {
     case "completed":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "contacted":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
     case "unable_to_reach":
     case "declined":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     default:
-      return "bg-gray-50 text-gray-700 border-gray-200";
+      return "bg-surface text-foreground/80 border-border";
   }
 }
 
@@ -115,13 +115,13 @@ function recommendationPill(r: RefRecommendation): string {
   switch (r) {
     case "strong_positive":
     case "positive":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
     case "neutral":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
     case "reservations":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     case "do_not_recommend":
-      return "bg-red-50 text-red-700 border-red-200";
+      return "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
   }
 }
 
@@ -218,7 +218,7 @@ export function ReferenceChecksTab({
                 className="p-3 flex flex-wrap items-start gap-3 hover:bg-surface/50 cursor-pointer"
                 onClick={() => setDetailFor(c)}
               >
-                <div className="shrink-0 p-1.5 rounded-md border bg-blue-100 border-blue-200">
+                <div className="shrink-0 p-1.5 rounded-md border bg-blue-100 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
                   <MethodIcon className="w-4 h-4 text-blue-700" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -229,7 +229,7 @@ export function ReferenceChecksTab({
                     {c.recommendation && (
                       <span
                         className={cn(
-                          "text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded border",
+                          "text-2xs uppercase font-semibold px-1.5 py-0.5 rounded border",
                           recommendationPill(c.recommendation),
                         )}
                       >
@@ -237,7 +237,7 @@ export function ReferenceChecksTab({
                       </span>
                     )}
                     {c.redFlags && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded border bg-red-50 text-red-700 border-red-200">
+                      <span className="inline-flex items-center gap-0.5 text-2xs uppercase font-semibold px-1.5 py-0.5 rounded border bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800">
                         <CircleAlert className="w-3 h-3" />
                         Flag
                       </span>
@@ -670,7 +670,7 @@ function RefCheckModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={save.isPending || del.isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
               >
                 {del.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

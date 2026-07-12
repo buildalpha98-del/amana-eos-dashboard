@@ -4,9 +4,9 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function color(score: number): string {
-  if (score >= 80) return "bg-emerald-100 text-emerald-700";
-  if (score >= 50) return "bg-amber-100 text-amber-700";
-  return "bg-red-100 text-red-700";
+  if (score >= 80) return "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300";
+  if (score >= 50) return "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300";
+  return "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300";
 }
 
 export function AiScreenBadge({

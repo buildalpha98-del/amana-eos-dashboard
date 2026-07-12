@@ -23,7 +23,7 @@ export function TodoReviewSection({
 
   return (
     <div className="space-y-4">
-      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+      <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-indigo-800 mb-1">
           To-Do Review
         </h4>

@@ -78,12 +78,12 @@ export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
 
   if (status === "done") {
     return (
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FECE00]">
+      <div className="rounded-2xl bg-card p-8 text-center shadow-sm ring-1 ring-black/5">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#004E64" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
         </div>
-        <h2 className="text-2xl font-semibold text-[#004E64]">Application received</h2>
-        <p className="mt-2 text-[#004E64]/75">
+        <h2 className="text-2xl font-semibold text-brand">Application received</h2>
+        <p className="mt-2 text-brand/75">
           Thanks, {form.name.split(" ")[0] || "there"} — your application for{" "}
           <strong>{roleLabel}</strong> at <strong>{centre}</strong> is in. Our team
           reviews every application and will be in touch by email.
@@ -93,44 +93,44 @@ export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-[#004E64]/20 px-4 py-3 text-[#004E64] outline-none focus:border-[#004E64] focus:ring-2 focus:ring-[#FECE00]";
+    "w-full rounded-lg border border-brand/20 px-4 py-3 text-brand outline-none focus:border-brand focus:ring-2 focus:ring-accent";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 md:p-8">
-      <h2 className="text-xl font-semibold text-[#004E64]">Apply for this role</h2>
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl bg-card p-6 shadow-sm ring-1 ring-black/5 md:p-8">
+      <h2 className="text-xl font-semibold text-brand">Apply for this role</h2>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-[#004E64]/80">Full name *</label>
+        <label className="mb-1 block text-sm font-medium text-brand/80">Full name *</label>
         <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} autoComplete="name" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-[#004E64]/80">Email *</label>
+          <label className="mb-1 block text-sm font-medium text-brand/80">Email *</label>
           <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} autoComplete="email" />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-[#004E64]/80">Phone</label>
+          <label className="mb-1 block text-sm font-medium text-brand/80">Phone</label>
           <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} autoComplete="tel" />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-[#004E64]/80">
-          Why you&rsquo;d be a great fit <span className="font-normal text-[#004E64]/50">(optional)</span>
+        <label className="mb-1 block text-sm font-medium text-brand/80">
+          Why you&rsquo;d be a great fit <span className="font-normal text-brand/50">(optional)</span>
         </label>
         <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className={inputClass} placeholder="Tell us a little about yourself and your experience…" />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-[#004E64]/80">
-          Resume <span className="font-normal text-[#004E64]/50">(PDF or Word .docx, optional)</span>
+        <label className="mb-1 block text-sm font-medium text-brand/80">
+          Resume <span className="font-normal text-brand/50">(PDF or Word .docx, optional)</span>
         </label>
         <input
           type="file"
           accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           onChange={(e) => setResume(e.target.files?.[0] ?? null)}
-          className="block w-full text-sm text-[#004E64] file:mr-4 file:rounded-full file:border-0 file:bg-[#FFF2BF] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#004E64] hover:file:bg-[#FECE00]"
+          className="block w-full text-sm text-brand file:mr-4 file:rounded-full file:border-0 file:bg-[#FFF2BF] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand hover:file:bg-accent"
         />
       </div>
 
@@ -144,7 +144,7 @@ export function CareerApplyForm({ vacancyId, roleLabel, centre }: Props) {
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="w-full rounded-full bg-[#004E64] px-6 py-3.5 text-lg font-semibold text-[#FFFAE6] transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="w-full rounded-full bg-brand px-6 py-3.5 text-lg font-semibold text-[#FFFAE6] transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {status === "submitting" ? "Sending…" : "Submit application"}
       </button>

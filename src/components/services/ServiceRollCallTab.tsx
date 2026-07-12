@@ -248,9 +248,9 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
           {/* ── Summary Cards ──────────────────────────────── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryCard icon={Users} label="Total Enrolled" value={summary.total} color="text-foreground" bgColor="bg-surface" />
-            <SummaryCard icon={UserCheck} label="Present" value={summary.present} color="text-green-600" bgColor="bg-green-50" />
-            <SummaryCard icon={UserX} label="Absent" value={summary.absent} color="text-red-600" bgColor="bg-red-50" />
-            <SummaryCard icon={Clock} label="Not Yet Marked" value={summary.notMarked} color="text-amber-600" bgColor="bg-amber-50" />
+            <SummaryCard icon={UserCheck} label="Present" value={summary.present} color="text-green-600" bgColor="bg-green-50 dark:bg-green-950/40" />
+            <SummaryCard icon={UserX} label="Absent" value={summary.absent} color="text-red-600" bgColor="bg-red-50 dark:bg-red-950/40" />
+            <SummaryCard icon={Clock} label="Not Yet Marked" value={summary.notMarked} color="text-amber-600" bgColor="bg-amber-50 dark:bg-amber-950/40" />
           </div>
 
           {/* ── Roll Call List ─────────────────────────────── */}
@@ -574,7 +574,7 @@ function RollCallRow({
               {entry.child.firstName} {entry.child.surname}
             </p>
             {entry.bookingType === "casual" && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">
+              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
                 Casual
               </span>
             )}
@@ -595,7 +595,7 @@ function RollCallRow({
             </div>
           )}
           {entry.child.anaphylaxisActionPlan && (
-            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold uppercase tracking-wide">
+            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-2xs font-bold uppercase tracking-wide">
               Anaphylaxis
             </span>
           )}
@@ -616,7 +616,7 @@ function RollCallRow({
             <button
               type="button"
               onClick={() => setShowAboutMe((s) => !s)}
-              className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:underline"
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
             >
               {showAboutMe ? (
                 <ChevronDown className="w-3 h-3" />
@@ -661,7 +661,7 @@ function RollCallRow({
           )}
 
           {entry.status === "absent" && (
-            <span className="min-h-[44px] px-4 py-2.5 text-xs font-semibold text-red-600 bg-red-50 rounded-xl flex items-center">
+            <span className="min-h-[44px] px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 rounded-xl flex items-center">
               Absent
             </span>
           )}

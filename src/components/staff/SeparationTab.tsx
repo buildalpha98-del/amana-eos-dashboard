@@ -252,7 +252,7 @@ function SeparationView({
   return (
     <div className="space-y-4">
       {finalised && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 flex items-start gap-2">
+        <div className="rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-sm text-emerald-900 dark:text-emerald-200 flex items-start gap-2">
           <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold">
@@ -268,7 +268,7 @@ function SeparationView({
       )}
 
       {canFinalise && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-3">
+        <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-3">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="font-semibold">Ready to finalise?</p>
@@ -315,7 +315,7 @@ function SeparationView({
       </div>
 
       {isDismissal && !record.performanceCase && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-2">
+        <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>
             Dismissal recorded without a linked PerformanceCase. Fair Work
@@ -487,7 +487,7 @@ function EhSyncBadge({ record }: { record: SeparationRecord }) {
 
   if (record.ehTerminationSyncedAt) {
     return (
-      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 flex items-start gap-2">
+      <div className="rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-sm text-emerald-900 dark:text-emerald-200 flex items-start gap-2">
         <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="font-semibold">
@@ -506,7 +506,7 @@ function EhSyncBadge({ record }: { record: SeparationRecord }) {
   // Error state — EH said no
   if (record.ehTerminationError && !isNotLinkedError(record.ehTerminationError)) {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900 flex items-start gap-3">
+      <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-900 dark:text-red-200 flex items-start gap-3">
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="font-semibold">
@@ -534,7 +534,7 @@ function EhSyncBadge({ record }: { record: SeparationRecord }) {
   // Not-linked state — no employmentHeroEmployeeId. Also covers the
   // "EH integration not configured" case at the workspace level.
   return (
-    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-3">
+    <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-3">
       <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="font-semibold">
@@ -549,7 +549,7 @@ function EhSyncBadge({ record }: { record: SeparationRecord }) {
         type="button"
         onClick={() => retry.mutate()}
         disabled={retry.isPending}
-        className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-md hover:bg-amber-200 disabled:opacity-50"
+        className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-amber-900 dark:text-amber-200 bg-amber-100 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 rounded-md hover:bg-amber-200 disabled:opacity-50"
       >
         {retry.isPending ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1000,7 +1000,7 @@ function FinaliseModal({
         </header>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+          <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-900 dark:text-red-200">
             <p className="font-semibold">This action is not reversible.</p>
             <p className="text-xs mt-1">
               Finalising will deactivate {targetUserName}&apos;s account, clear

@@ -10,6 +10,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   useHashtagSets,
   useCreateHashtagSet,
@@ -19,10 +20,10 @@ import {
 const CATEGORIES = ["All", "Brand", "Campaign", "Platform", "Trending"] as const;
 
 const categoryBadgeColors: Record<string, string> = {
-  brand: "bg-purple-100 text-purple-700",
-  campaign: "bg-blue-100 text-blue-700",
-  platform: "bg-green-100 text-green-700",
-  trending: "bg-orange-100 text-orange-700",
+  brand: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  campaign: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  platform: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  trending: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
 };
 
 export function HashtagsTab() {
@@ -87,13 +88,14 @@ export function HashtagsTab() {
           })}
         </div>
 
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90 transition-colors"
+          iconLeft={<Plus className="h-4 w-4" />}
         >
-          <Plus className="h-4 w-4" />
           New Set
-        </button>
+        </Button>
       </div>
 
       {/* ── Loading State ────────────────────────────── */}
@@ -146,7 +148,8 @@ export function HashtagsTab() {
                       if (confirm("Delete this hashtag set?"))
                         deleteHashtagSet.mutate(set.id);
                     }}
-                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
+                    aria-label="Delete hashtag set"
+                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -163,7 +166,7 @@ export function HashtagsTab() {
                     onClick={() => handleCopy(set.id, set.tags)}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                       isCopied
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
                         : "bg-surface text-muted hover:bg-border"
                     }`}
                   >
@@ -196,6 +199,7 @@ export function HashtagsTab() {
               </h2>
               <button
                 onClick={() => setShowCreate(false)}
+                aria-label="Close"
                 className="p-1 rounded-lg hover:bg-surface"
               >
                 <X className="h-5 w-5 text-muted" />
@@ -254,26 +258,18 @@ export function HashtagsTab() {
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setShowCreate(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-muted hover:bg-surface transition-colors"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleCreate}
-                disabled={
-                  !form.name.trim() ||
-                  !form.tags.trim() ||
-                  createHashtagSet.isPending
-                }
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand hover:bg-brand/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                disabled={!form.name.trim() || !form.tags.trim()}
+                loading={createHashtagSet.isPending}
               >
-                {createHashtagSet.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
                 Create Set
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -57,7 +57,7 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
               />
               <span
                 className={cn(
-                  "text-[10px] leading-tight",
+                  "text-2xs leading-tight",
                   isActive ? "font-semibold" : "font-medium"
                 )}
               >
@@ -75,7 +75,7 @@ export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
           aria-label="Open full navigation menu"
         >
           <MoreHorizontal className="w-5 h-5" />
-          <span className="text-[10px] leading-tight font-medium">More</span>
+          <span className="text-2xs leading-tight font-medium">More</span>
         </button>
       </div>
     </nav>

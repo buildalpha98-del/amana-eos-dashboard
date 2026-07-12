@@ -6,6 +6,7 @@ import { useProjectTemplates, type ProjectTemplate } from "@/hooks/useProjectTem
 import { useServices } from "@/hooks/useServices";
 import { useQuery } from "@tanstack/react-query";
 import { X, FileText, Rocket, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 interface UserOption {
@@ -28,7 +29,7 @@ function TemplateCategoryBadges({ tasks }: { tasks: ProjectTemplate["tasks"] }) 
       {categories.map(([cat, count]) => (
         <span
           key={cat}
-          className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-surface text-muted"
+          className="inline-flex items-center px-1.5 py-0.5 text-2xs font-medium rounded bg-surface text-muted"
         >
           {cat} ({count})
         </span>
@@ -80,7 +81,7 @@ function TemplateTaskPreview({ template }: { template: ProjectTemplate }) {
       >
         {grouped.map(([category, tasks]) => (
           <div key={category}>
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
+            <p className="text-2xs font-semibold text-muted uppercase tracking-widest mb-1">
               {category}
             </p>
             <div className="space-y-0.5">
@@ -247,6 +248,7 @@ export function CreateProjectModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
@@ -254,7 +256,7 @@ export function CreateProjectModal({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -306,7 +308,7 @@ export function CreateProjectModal({
                             {t.name}
                           </p>
                           {isFeatured && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-brand text-white">
+                            <span className="px-1.5 py-0.5 text-2xs font-semibold rounded bg-brand text-white">
                               FEATURED
                             </span>
                           )}
@@ -423,24 +425,28 @@ export function CreateProjectModal({
           )}
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="md"
+              className="flex-1"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
+              size="md"
+              className="flex-1"
               disabled={createProject.isPending}
-              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {createProject.isPending
                 ? "Creating..."
                 : selectedTemplate
                   ? `Launch with ${selectedTemplate.tasks.length} Tasks`
                   : "Create Project"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

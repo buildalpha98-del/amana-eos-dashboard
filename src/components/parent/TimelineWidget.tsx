@@ -29,9 +29,9 @@ const typeIcons: Record<string, typeof Megaphone> = {
 };
 
 const typeBadge: Record<string, string> = {
-  observation: "bg-blue-50 text-blue-600",
-  announcement: "bg-amber-50 text-amber-600",
-  reminder: "bg-purple-50 text-purple-600",
+  observation: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400",
+  announcement: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
+  reminder: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400",
 };
 
 export function TimelineWidget() {
@@ -89,7 +89,7 @@ function TimelineCard({
   const likeToggle = useParentPostLikeToggle();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const TypeIcon = typeIcons[post.type] ?? MessageCircle;
-  const badgeClass = typeBadge[post.type] ?? "bg-gray-50 text-gray-600";
+  const badgeClass = typeBadge[post.type] ?? "bg-surface text-muted";
   const dateStr = new Date(post.createdAt).toLocaleDateString("en-AU", {
     day: "numeric",
     month: "short",
@@ -114,12 +114,12 @@ function TimelineCard({
               {post.title}
             </h3>
             <span
-              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badgeClass}`}
+              className={`text-2xs font-semibold px-1.5 py-0.5 rounded-full ${badgeClass}`}
             >
               {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
             </span>
             {post.isCommunity && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 flex items-center gap-0.5">
+              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 flex items-center gap-0.5">
                 <Users className="w-2.5 h-2.5" />
                 All
               </span>
@@ -136,14 +136,14 @@ function TimelineCard({
               {post.tags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="text-[10px] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] px-1.5 py-0.5 rounded-full"
+                  className="text-2xs bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] px-1.5 py-0.5 rounded-full"
                 >
                   {tag.child.firstName}
                 </span>
               ))}
             </div>
           )}
-          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-[color:var(--color-muted)]">
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-[color:var(--color-muted)]">
             <span>{post.author?.name ?? "Centre"}</span>
             <span>·</span>
             <time dateTime={post.createdAt}>{dateStr}</time>
@@ -246,11 +246,11 @@ function CommentSheet({
                       {c.authorName}
                     </span>
                     {c.authorType === "staff" && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] font-semibold">
+                      <span className="text-2xs px-1.5 py-0.5 rounded-full bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] font-semibold">
                         Staff
                       </span>
                     )}
-                    <span className="text-[11px] text-[color:var(--color-muted)]">
+                    <span className="text-xs text-[color:var(--color-muted)]">
                       {new Date(c.createdAt).toLocaleString("en-AU", {
                         day: "numeric",
                         month: "short",
@@ -280,7 +280,7 @@ function CommentSheet({
             onChange={(e) => setBody(e.target.value)}
             placeholder="Say something kind…"
             rows={1}
-            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-white text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
+            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-card text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
           />
           <button
             type="submit"

@@ -29,6 +29,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 import type { StaffRegisterRow } from "@/lib/nqf-registers";
 
 export interface RegistersClientProps {
@@ -90,14 +91,12 @@ export function RegistersClient({
           <ArrowLeft className="w-4 h-4" />
           Compliance
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
-          NQF compliance registers
-        </h1>
-        <p className="text-sm text-muted mt-1 max-w-3xl">
-          Registers required under the Education and Care Services National
-          Regulations. Available for ACECQA inspection on demand. Each tab
-          covers a specific regulation.
-        </p>
+        <div className="mt-2">
+          <PageHeader
+            title="NQF compliance registers"
+            description="Registers required under the Education and Care Services National Regulations. Available for ACECQA inspection on demand. Each tab covers a specific regulation."
+          />
+        </div>
       </div>
 
       {/* Tabs (hidden on print — printed register shows only its own table) */}
@@ -116,7 +115,7 @@ export function RegistersClient({
           >
             <Icon className="w-4 h-4" />
             {label}
-            <span className="text-[10px] font-normal text-muted ml-1">
+            <span className="text-2xs font-normal text-muted ml-1">
               {reg}
             </span>
           </button>
@@ -201,7 +200,7 @@ export function RegistersClient({
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border print:border-0">
               <table className="w-full text-xs">
-                <thead className="text-left text-[11px] text-muted uppercase tracking-wide bg-surface print:bg-transparent">
+                <thead className="text-left text-2xs text-muted uppercase tracking-wide bg-surface print:bg-transparent">
                   <tr>
                     <Th>Name</Th>
                     <Th>DOB</Th>

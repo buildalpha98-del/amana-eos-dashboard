@@ -109,7 +109,7 @@ function PublishCascadeModal({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -331,8 +331,8 @@ function CascadeCard({
                   className={cn(
                     "flex items-center gap-1 px-2 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50",
                     confirmDelete
-                      ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
-                      : "text-muted hover:text-danger hover:bg-red-50"
+                      ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950/50"
+                      : "text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40"
                   )}
                   title={confirmDelete ? "Click again to confirm" : "Delete message"}
                 >
@@ -349,7 +349,7 @@ function CascadeCard({
         </div>
 
         {/* Published at label */}
-        <p className="text-[11px] text-muted mt-1.5 ml-1">
+        <p className="text-xs text-muted mt-1.5 ml-1">
           Published {formatPublishedDate(msg.publishedAt)}
         </p>
       </div>
@@ -408,7 +408,7 @@ export function CascadeBoardTab() {
 
       {/* Error state */}
       {isError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-6 text-center">
           <p className="text-sm text-red-600">
             Failed to load cascade messages. Please try again.
           </p>

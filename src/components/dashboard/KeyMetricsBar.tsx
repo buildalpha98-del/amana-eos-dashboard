@@ -166,7 +166,7 @@ export function KeyMetricsBar({ metrics, opsMetrics, hideFinancials }: KeyMetric
       {/* Ops metrics row */}
       {opsItems.length > 0 && (
         <div className="bg-card rounded-xl border border-border p-4">
-          <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-3">
+          <p className="text-2xs font-semibold text-muted uppercase tracking-wider mb-3">
             Live Operations
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -193,7 +193,7 @@ export function KeyMetricsBar({ metrics, opsMetrics, hideFinancials }: KeyMetric
       {/* Core metrics row */}
       <div className="bg-card rounded-xl border border-border p-4">
         {hasOps && (
-          <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-3">
+          <p className="text-2xs font-semibold text-muted uppercase tracking-wider mb-3">
             Period Metrics
           </p>
         )}

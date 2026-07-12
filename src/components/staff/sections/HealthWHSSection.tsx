@@ -39,7 +39,7 @@ export function HealthWHSSection({
       sectionKey="health"
       title="Health & WHS"
       accentDotClass="bg-rose-500"
-      accentActiveClass="bg-rose-100 text-rose-900 border-rose-300"
+      accentActiveClass="bg-rose-100 dark:bg-rose-950/50 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-800"
       subTabs={SUB_TABS}
     >
       {(active) => {

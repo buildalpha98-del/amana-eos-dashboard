@@ -73,16 +73,16 @@ const typeConfig: Record<
   SearchResult["type"],
   { icon: React.ElementType; color: string; bg: string; href: string; label: string }
 > = {
-  rock: { icon: Mountain, color: "text-purple-600", bg: "bg-purple-50", href: "/rocks", label: "Rocks" },
-  todo: { icon: CheckSquare, color: "text-emerald-600", bg: "bg-emerald-50", href: "/todos", label: "To-Dos" },
-  issue: { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50", href: "/issues", label: "Issues" },
-  service: { icon: Building2, color: "text-blue-600", bg: "bg-blue-50", href: "/services", label: "Services" },
-  project: { icon: FolderKanban, color: "text-amber-600", bg: "bg-amber-50", href: "/projects", label: "Projects" },
-  person: { icon: User, color: "text-indigo-600", bg: "bg-indigo-50", href: "/team", label: "People" },
+  rock: { icon: Mountain, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40", href: "/rocks", label: "Rocks" },
+  todo: { icon: CheckSquare, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40", href: "/todos", label: "To-Dos" },
+  issue: { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/40", href: "/issues", label: "Issues" },
+  service: { icon: Building2, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40", href: "/services", label: "Services" },
+  project: { icon: FolderKanban, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40", href: "/projects", label: "Projects" },
+  person: { icon: User, color: "text-indigo-600", bg: "bg-indigo-50 dark:bg-indigo-950/40", href: "/team", label: "People" },
   // 2026-07-05: role-scoped entity search grew children + CRM.
-  child: { icon: Baby, color: "text-pink-600", bg: "bg-pink-50", href: "/children", label: "Children" },
-  lead: { icon: Target, color: "text-cyan-700", bg: "bg-cyan-50", href: "/crm", label: "CRM Leads" },
-  enquiry: { icon: MessageCircle, color: "text-orange-600", bg: "bg-orange-50", href: "/contact-centre?tab=enquiries", label: "Enquiries" },
+  child: { icon: Baby, color: "text-pink-600", bg: "bg-pink-50 dark:bg-pink-950/40", href: "/children", label: "Children" },
+  lead: { icon: Target, color: "text-cyan-700", bg: "bg-cyan-50 dark:bg-cyan-950/40", href: "/crm", label: "CRM Leads" },
+  enquiry: { icon: MessageCircle, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/40", href: "/contact-centre?tab=enquiries", label: "Enquiries" },
 };
 
 const quickActions: QuickAction[] = [
@@ -422,7 +422,7 @@ export function CommandPalette({
             aria-label="Close command palette"
             className="p-1 rounded-md text-muted/50 hover:text-muted text-xs"
           >
-            <kbd className="px-1.5 py-0.5 bg-surface border border-border rounded text-[10px] font-medium text-muted">
+            <kbd className="px-1.5 py-0.5 bg-surface border border-border rounded text-2xs font-medium text-muted">
               Esc
             </kbd>
           </button>
@@ -460,7 +460,7 @@ export function CommandPalette({
                   return (
                     <div key={group.type}>
                       <div className="px-4 pt-3 pb-1.5">
-                        <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                        <span className="text-2xs font-semibold text-muted uppercase tracking-wider">
                           {config.label}
                         </span>
                       </div>
@@ -492,7 +492,7 @@ export function CommandPalette({
                               )}
                             </div>
                             {idx === activeIndex ? (
-                              <kbd className="px-1 py-0.5 bg-border rounded text-[10px] font-medium text-muted shrink-0">
+                              <kbd className="px-1 py-0.5 bg-border rounded text-2xs font-medium text-muted shrink-0">
                                 {"\u21B5"}
                               </kbd>
                             ) : (
@@ -516,7 +516,7 @@ export function CommandPalette({
                 {/* Quick actions */}
                 <div>
                   <div className="px-4 pt-3 pb-1.5">
-                    <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                    <span className="text-2xs font-semibold text-muted uppercase tracking-wider">
                       Quick Actions
                     </span>
                   </div>
@@ -539,7 +539,7 @@ export function CommandPalette({
                           {action.label}
                         </span>
                         {idx === activeIndex ? (
-                          <kbd className="px-1 py-0.5 bg-border rounded text-[10px] font-medium text-muted shrink-0">
+                          <kbd className="px-1 py-0.5 bg-border rounded text-2xs font-medium text-muted shrink-0">
                             {"\u21B5"}
                           </kbd>
                         ) : (
@@ -555,7 +555,7 @@ export function CommandPalette({
                   <div>
                     <div className="px-4 pt-3 pb-1.5 flex items-center gap-1.5">
                       <Clock className="w-3 h-3 text-muted" />
-                      <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                      <span className="text-2xs font-semibold text-muted uppercase tracking-wider">
                         Recent
                       </span>
                     </div>
@@ -579,11 +579,11 @@ export function CommandPalette({
                           <span className="flex-1 text-sm text-foreground/80 truncate">
                             {rp.title}
                           </span>
-                          <span className="text-[10px] text-muted shrink-0">
+                          <span className="text-2xs text-muted shrink-0">
                             {relativeTime(rp.timestamp)}
                           </span>
                           {idx === activeIndex && (
-                            <kbd className="px-1 py-0.5 bg-border rounded text-[10px] font-medium text-muted shrink-0">
+                            <kbd className="px-1 py-0.5 bg-border rounded text-2xs font-medium text-muted shrink-0">
                               {"\u21B5"}
                             </kbd>
                           )}
@@ -597,7 +597,7 @@ export function CommandPalette({
                 {recentSearches.length > 0 && (
                   <div>
                     <div className="px-4 pt-3 pb-1.5">
-                      <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                      <span className="text-2xs font-semibold text-muted uppercase tracking-wider">
                         Recent Searches
                       </span>
                     </div>
@@ -636,7 +636,7 @@ export function CommandPalette({
                 {groupedPages.map((group) => (
                   <div key={group.section}>
                     <div className="px-4 pt-3 pb-1.5">
-                      <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                      <span className="text-2xs font-semibold text-muted uppercase tracking-wider">
                         {group.section}
                       </span>
                     </div>
@@ -658,12 +658,12 @@ export function CommandPalette({
                             {page.label}
                           </span>
                           {isCurrentPage && (
-                            <span className="text-[10px] font-medium text-emerald-500">
+                            <span className="text-2xs font-medium text-emerald-500">
                               Current
                             </span>
                           )}
                           {idx === activeIndex ? (
-                            <kbd className="px-1 py-0.5 bg-border rounded text-[10px] font-medium text-muted shrink-0">
+                            <kbd className="px-1 py-0.5 bg-border rounded text-2xs font-medium text-muted shrink-0">
                               {"\u21B5"}
                             </kbd>
                           ) : (
@@ -689,21 +689,21 @@ export function CommandPalette({
         </div>
 
         {/* Footer with keyboard hints */}
-        <div className="border-t border-border/50 px-4 py-2 flex items-center gap-4 text-[10px] text-muted">
+        <div className="border-t border-border/50 px-4 py-2 flex items-center gap-4 text-2xs text-muted">
           <span>
-            <kbd className="px-1 py-0.5 bg-surface rounded text-[10px]">
+            <kbd className="px-1 py-0.5 bg-surface rounded text-2xs">
               {"\u2191\u2193"}
             </kbd>{" "}
             Navigate
           </span>
           <span>
-            <kbd className="px-1 py-0.5 bg-surface rounded text-[10px]">
+            <kbd className="px-1 py-0.5 bg-surface rounded text-2xs">
               {"\u21B5"}
             </kbd>{" "}
             Select
           </span>
           <span>
-            <kbd className="px-1 py-0.5 bg-surface rounded text-[10px]">
+            <kbd className="px-1 py-0.5 bg-surface rounded text-2xs">
               Esc
             </kbd>{" "}
             Close

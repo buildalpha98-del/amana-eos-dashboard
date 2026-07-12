@@ -48,17 +48,17 @@ const SOURCE_TYPE_OPTIONS = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  ready: "bg-amber-100 text-amber-700",
-  accepted: "bg-emerald-100 text-emerald-700",
-  edited: "bg-indigo-100 text-indigo-700",
-  dismissed: "bg-gray-100 text-gray-600",
+  ready: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  accepted: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  edited: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  dismissed: "bg-surface text-muted",
 };
 
 const TASK_TYPE_COLORS: Record<string, string> = {
-  communication: "bg-blue-100 text-blue-700",
-  research: "bg-purple-100 text-purple-700",
-  document: "bg-emerald-100 text-emerald-700",
-  admin: "bg-gray-100 text-gray-700",
+  communication: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  research: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  document: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  admin: "bg-surface text-foreground/80",
 };
 
 function formatDate(d: string) {
@@ -320,7 +320,7 @@ export function AiDraftsInboxContent() {
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-300">
           Failed to load AI drafts. You may not have permission to view this page.
         </div>
       )}

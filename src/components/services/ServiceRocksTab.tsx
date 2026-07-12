@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { getCurrentQuarter } from "@/lib/utils";
 import { Mountain, Plus, User, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
@@ -28,18 +29,18 @@ interface UserOption {
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  on_track: { label: "On Track", color: "bg-emerald-100 text-emerald-700" },
-  off_track: { label: "Off Track", color: "bg-red-100 text-red-700" },
-  complete: { label: "Complete", color: "bg-blue-100 text-blue-700" },
-  dropped: { label: "Dropped", color: "bg-gray-100 text-gray-500" },
+  on_track: { label: "On Track", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  off_track: { label: "Off Track", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
+  complete: { label: "Complete", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  dropped: { label: "Dropped", color: "bg-surface text-muted" },
 };
 
 const statusCycle = ["on_track", "off_track", "complete", "dropped"];
 
 const priorityConfig: Record<string, { label: string; color: string }> = {
-  critical: { label: "Critical", color: "bg-red-100 text-red-700" },
-  high: { label: "High", color: "bg-orange-100 text-orange-700" },
-  medium: { label: "Medium", color: "bg-blue-100 text-blue-700" },
+  critical: { label: "Critical", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
+  high: { label: "High", color: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300" },
+  medium: { label: "Medium", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
 };
 
 function getQuarterOptions(): string[] {
@@ -140,13 +141,14 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
               </option>
             ))}
           </select>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+            iconLeft={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4" />
             Add Rock
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -185,7 +187,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                         className="w-6 h-6 rounded-full object-cover"
                       />
                     ) : (
-                      <span className="text-[10px] font-medium text-white">
+                      <span className="text-2xs font-medium text-white">
                         {getInitials(rock.owner?.name ?? "Unassigned")}
                       </span>
                     )}
@@ -197,7 +199,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                 <div className="flex items-center gap-1.5 mb-3">
                   <span
                     className={cn(
-                      "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium",
+                      "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium",
                       priority.color
                     )}
                   >
@@ -206,7 +208,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                   <button
                     onClick={() => handleStatusCycle(rock)}
                     className={cn(
-                      "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80 transition-opacity",
+                      "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium cursor-pointer hover:opacity-80 transition-opacity",
                       status.color
                     )}
                     title="Click to update status"
@@ -218,8 +220,8 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                 {/* Progress Bar */}
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-muted">Progress</span>
-                    <span className="text-[10px] font-medium text-foreground/80">
+                    <span className="text-2xs text-muted">Progress</span>
+                    <span className="text-2xs font-medium text-foreground/80">
                       {rock.percentComplete}%
                     </span>
                   </div>
@@ -233,13 +235,13 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
 
                 {/* Counts */}
                 <div className="flex items-center gap-3 pt-2 border-t border-border/50">
-                  <span className="text-[10px] text-muted">
+                  <span className="text-2xs text-muted">
                     <span className="font-semibold text-foreground/80">{rock._count.todos}</span> to-dos
                   </span>
-                  <span className="text-[10px] text-muted">
+                  <span className="text-2xs text-muted">
                     <span className="font-semibold text-foreground/80">{rock._count.issues}</span> issues
                   </span>
-                  <span className="text-[10px] text-muted">
+                  <span className="text-2xs text-muted">
                     <span className="font-semibold text-foreground/80">{rock._count.milestones}</span>{" "}
                     milestones
                   </span>
@@ -335,6 +337,7 @@ function AddRockModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-muted"
           >
             <X className="w-5 h-5" />
@@ -342,7 +345,7 @@ function AddRockModal({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -423,20 +426,24 @@ function AddRockModal({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface/50 transition-colors"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={createRock.isPending}
-              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              variant="primary"
+              size="sm"
+              loading={createRock.isPending}
+              className="flex-1"
             >
               {createRock.isPending ? "Adding..." : "Add Rock"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

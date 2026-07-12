@@ -68,7 +68,7 @@ export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+        <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Staff at this service{" "}
           <span className="ml-1 text-foreground/60 normal-case tracking-normal">
             ({members.length})
@@ -81,7 +81,7 @@ export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
             className={cn(
               "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
               "min-h-[44px]",
-              "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+              "bg-[color:var(--color-brand)] text-white text-sm font-medium",
               "hover:bg-[color:var(--color-brand-hover)] transition-colors",
             )}
           >
@@ -121,7 +121,7 @@ export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
         <div className="overflow-hidden rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[color:var(--color-cream-soft)]">
           {/* Desktop table */}
           <table className="hidden sm:table w-full text-sm">
-            <thead className="bg-[color:var(--color-cream-deep)] text-[11px] uppercase tracking-wide text-muted">
+            <thead className="bg-[color:var(--color-cream-deep)] text-2xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="text-left px-4 py-2 font-semibold">Name</th>
                 <th className="text-left px-4 py-2 font-semibold">Role at service</th>
@@ -268,14 +268,14 @@ function StaffTableRow({
                 type="button"
                 onClick={onRemove}
                 aria-label={`Remove ${member.name}`}
-                className="p-2 min-h-[36px] min-w-[36px] rounded-[var(--radius-sm)] text-muted hover:text-rose-600 hover:bg-rose-50"
+                className="p-2 min-h-[36px] min-w-[36px] rounded-[var(--radius-sm)] text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
           ) : (
             <span
-              className="text-[11px] text-muted"
+              className="text-xs text-muted"
               title="Manage primary service on the user's profile"
             >
               —
@@ -316,7 +316,7 @@ function StaffMobileCard({
           {member.isPrimary ? <PrimaryBadge /> : null}
         </p>
         <p className="text-xs text-muted truncate">{member.email}</p>
-        <div className="mt-1.5 text-[11px] text-foreground/80 space-y-0.5">
+        <div className="mt-1.5 text-xs text-foreground/80 space-y-0.5">
           <div>{member.membership.roleAtService}</div>
           <div className="text-muted">
             {ACCESS_LABEL[member.membership.accessLevel]} · since {member.membership.startDate}
@@ -337,7 +337,7 @@ function StaffMobileCard({
             type="button"
             onClick={onRemove}
             aria-label={`Remove ${member.name}`}
-            className="p-2 min-h-[36px] min-w-[36px] rounded-[var(--radius-sm)] text-muted hover:text-rose-600 hover:bg-rose-50"
+            className="p-2 min-h-[36px] min-w-[36px] rounded-[var(--radius-sm)] text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -350,7 +350,7 @@ function StaffMobileCard({
 function PrimaryBadge() {
   return (
     <span
-      className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-1.5 py-0 text-[10px] font-bold uppercase tracking-wide text-emerald-800"
+      className="inline-flex items-center rounded-full border border-emerald-300 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-950/50 px-1.5 py-0 text-2xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-200"
       title="This is the staff member's primary service. Manage on their profile."
     >
       Primary
@@ -390,7 +390,7 @@ function EmptyState({
           className={cn(
             "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
             "min-h-[44px]",
-            "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+            "bg-[color:var(--color-brand)] text-white text-sm font-medium",
             "hover:bg-[color:var(--color-brand-hover)] transition-colors",
           )}
         >

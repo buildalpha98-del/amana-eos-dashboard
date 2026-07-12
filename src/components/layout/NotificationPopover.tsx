@@ -146,7 +146,7 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
             type="button"
             onClick={() => markAll.mutate()}
             disabled={markAll.isPending}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-muted hover:text-foreground hover:bg-surface transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-medium text-muted hover:text-foreground hover:bg-surface transition-colors disabled:opacity-50"
             title="Mark all as read"
           >
             <CheckCheck className="w-3 h-3" />
@@ -163,7 +163,7 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
           </div>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mb-3">
+            <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-950/40 flex items-center justify-center mb-3">
               <CheckCircle className="w-5 h-5 text-green-500" />
             </div>
             <p className="text-sm font-medium text-foreground">You&apos;re all caught up!</p>
@@ -199,7 +199,7 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
                         >
                           {n.title}
                         </span>
-                        <span className="text-[10px] text-muted flex-shrink-0">
+                        <span className="text-2xs text-muted flex-shrink-0">
                           {timeAgo(n.createdAt)}
                         </span>
                       </div>
@@ -213,7 +213,7 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
                           type="button"
                           onClick={() => handleSwapAction(n, "accept")}
                           disabled={isPending}
-                          className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-brand text-white hover:opacity-90 disabled:opacity-50"
+                          className="px-2.5 py-1 rounded-md text-xs font-medium bg-brand text-white hover:opacity-90 disabled:opacity-50"
                         >
                           Accept
                         </button>
@@ -221,7 +221,7 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
                           type="button"
                           onClick={() => handleSwapAction(n, "reject")}
                           disabled={isPending}
-                          className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-border hover:bg-surface disabled:opacity-50"
+                          className="px-2.5 py-1 rounded-md text-xs font-medium border border-border hover:bg-surface disabled:opacity-50"
                         >
                           Reject
                         </button>

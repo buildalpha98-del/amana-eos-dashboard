@@ -560,7 +560,7 @@ function TodosPageContent() {
                       </button>
                     ))}
                     {(!users || users.length === 0) && (
-                      <span className="block px-3 py-1.5 text-sm text-muted-foreground">No users found</span>
+                      <span className="block px-3 py-1.5 text-sm text-muted">No users found</span>
                     )}
                   </div>
                 )}
@@ -580,7 +580,7 @@ function TodosPageContent() {
                   clearSelection();
                   setBulkAssignOpen(false);
                 }}
-                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1.5 text-muted hover:text-foreground transition-colors"
                 title="Clear selection"
               >
                 <X className="w-4 h-4" />

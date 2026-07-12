@@ -27,9 +27,9 @@ const STATUSES: { value: MarketingTaskStatus; label: string }[] = [
 ];
 
 const PRIORITIES: { value: MarketingTaskPriority; label: string; color: string }[] = [
-  { value: "high", label: "High", color: "text-red-600 bg-red-50 border-red-200" },
-  { value: "medium", label: "Medium", color: "text-amber-600 bg-amber-50 border-amber-200" },
-  { value: "low", label: "Low", color: "text-green-600 bg-green-50 border-green-200" },
+  { value: "high", label: "High", color: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800" },
+  { value: "medium", label: "Medium", color: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800" },
+  { value: "low", label: "Low", color: "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800" },
 ];
 
 export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
@@ -182,7 +182,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 p.value === priority ? (
                   <span
                     key={p.value}
-                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${p.color}`}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-2xs font-medium ${p.color}`}
                   >
                     <Flag className="h-2.5 w-2.5" />
                     {p.label} Priority
@@ -197,16 +197,16 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               className={`rounded-lg p-2 text-sm transition-colors ${
                 confirmDelete
                   ? "bg-red-600 text-white"
-                  : "text-red-500 hover:bg-red-50"
+                  : "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
               }`}
               title={confirmDelete ? "Click again to confirm" : "Delete task"}
-            >
+             aria-label="Delete">
               <Trash2 className="h-4 w-4" />
             </button>
             <button
               onClick={onClose}
               className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
-            >
+             aria-label="Close">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -364,12 +364,12 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 <Calendar className="h-3 w-3" />
                 Due Date
                 {isOverdue && (
-                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
+                  <span className="rounded bg-red-100 dark:bg-red-950/50 px-1.5 py-0.5 text-2xs font-semibold text-red-600 dark:text-red-400">
                     OVERDUE
                   </span>
                 )}
                 {isToday && (
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">
+                  <span className="rounded bg-amber-100 dark:bg-amber-950/50 px-1.5 py-0.5 text-2xs font-semibold text-amber-600 dark:text-amber-400">
                     TODAY
                   </span>
                 )}
@@ -387,9 +387,9 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               }
               className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand ${
                 isOverdue
-                  ? "border-red-300 bg-red-50"
+                  ? "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40"
                   : isToday
-                  ? "border-amber-300 bg-amber-50"
+                  ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40"
                   : "border-border"
               }`}
             />

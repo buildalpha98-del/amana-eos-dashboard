@@ -31,11 +31,20 @@
 - API key auth: `authenticateApiKey(req, scope)` with scope-based access (for dashboard-generated keys)
 - **Cowork API auth**: `authenticateCowork(req)` from `@/app/api/_lib/auth` — Bearer token vs `COWORK_API_KEY` env var. ALL cowork routes use this pattern (not `authenticateApiKey`).
 - Dashboard API auth: `withApiAuth(handler, options?)` from `@/lib/server-auth` — session-based wrapper with rate limiting, timeout, and role/feature authorization
-- Nav config: centralized in `src/lib/nav-config.ts` with sections (Home, EOS, Operations, Growth, People, Admin)
+- Nav config: centralized in `src/lib/nav-config.ts` with sections (Home, EOS, Operations, Growth, People, Admin, Settings). Keep each section's items contiguous — the sidebar renders one header per section name (Marketing items live inside Growth as of 2026-07-12)
 - Email templates: inline styles in `src/lib/email-templates.ts`, use `baseLayout()` wrapper and `buttonHtml()` for CTAs
 - Vercel cron config in `vercel.json`
 - Build command: `npm run build` — always verify after changes
 - Toast system: `toast({ description: "..." })` — `description` is required, not optional
+
+## Design System (2026-07-11)
+- **Tokens only**: colors come from `src/app/globals.css` `@theme` — `text-foreground`/`text-muted`/`bg-card`/`bg-surface`/`bg-brand`/`border-border` etc. Never raw Tailwind grays, `bg-white`, or hex-in-className (ESLint warns via `design-token-rails`; `src/components/charts/` is exempt for Recharts). Translucent overlays on dark surfaces (`bg-white/10`) are fine.
+- **`@theme` vs `@theme inline`**: colors/radii/shadows MUST live in plain `@theme` (a guard test enforces this). `inline` freezes utilities to literal values and silently breaks the `.dark { --color-* }` overrides and `[data-v2="staff"]` density overrides. Only the font tokens (which reference next/font vars) belong in `@theme inline`.
+- **Dark mode**: driven by the `.dark` class on `<html>` + token overrides; `@custom-variant dark` is registered so `dark:` variants follow the app toggle, not the OS. For hardcoded tinted surfaces (amber banners, status-tinted rows), pair light classes with `dark:` variants (`bg-amber-50 dark:bg-amber-950/40`).
+- **Buttons**: action buttons (primary/secondary/outline/ghost/destructive) use `Button` from `@/components/ui/Button` — never hand-roll `bg-brand text-white` / `bg-red-600` buttons. Tabs, sort headers, chips, and card-as-button wrappers stay raw, but icon-only buttons MUST have `aria-label`.
+- **Page headers**: use `PageHeader` from `@/components/layout/PageHeader`; when it can't fit, canonical title classes are `text-xl font-heading font-semibold tracking-tight text-foreground` with `text-sm text-muted mt-1` description.
+- **Micro text**: `text-2xs` (10px token) for badge/meta text — no arbitrary `text-[Npx]`.
+- **Quarter strings**: `Rock.quarter` format is `"Q3-2026"` (hyphen). Always use `quarterLabel(date)` / `getCurrentQuarter()` from `@/lib/utils` — a hand-rolled space-separated variant silently matched zero rocks in health scores and the dashboard.
 
 ## Important Paths
 - `prisma/schema.prisma` — database schema

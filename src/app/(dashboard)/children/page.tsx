@@ -23,9 +23,9 @@ const STATUS_TABS = [
 ];
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "bg-amber-50 text-amber-700" },
-  active: { label: "Active", color: "bg-green-50 text-green-700" },
-  withdrawn: { label: "Withdrawn", color: "bg-red-50 text-red-700" },
+  pending: { label: "Pending", color: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300" },
+  active: { label: "Active", color: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300" },
+  withdrawn: { label: "Withdrawn", color: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300" },
 };
 
 type ChildStatusFilter = "current" | "all" | "withdrawn" | "active" | "pending";

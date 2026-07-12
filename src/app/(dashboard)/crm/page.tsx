@@ -218,7 +218,7 @@ export default function CrmPage() {
               "sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border transition-colors",
               showFilters || activeFilterCount > 0
                 ? "bg-brand text-white border-brand"
-                : "bg-card text-muted border-border hover:border-gray-400"
+                : "bg-card text-muted border-border hover:border-muted/60"
             )}
           >
             {showFilters ? (
@@ -228,7 +228,7 @@ export default function CrmPage() {
             )}
             Filters
             {activeFilterCount > 0 && !showFilters && (
-              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-card/20 text-[10px] font-bold">
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-card/20 text-2xs font-bold">
                 {activeFilterCount}
               </span>
             )}
@@ -526,10 +526,10 @@ function SchoolHealthSection() {
 
   const scoreColor = (score: number) =>
     score >= 70
-      ? "text-emerald-700 bg-emerald-50"
+      ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
       : score >= 40
-        ? "text-amber-700 bg-amber-50"
-        : "text-red-700 bg-red-50";
+        ? "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40"
+        : "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40";
 
   return (
     <div className="space-y-3">
@@ -582,7 +582,7 @@ function SchoolHealthSection() {
                     {s.contractEndDate ? new Date(s.contractEndDate).toLocaleDateString("en-AU") : "—"}
                   </td>
                   <td className="px-3 py-2.5 text-center hidden lg:table-cell">
-                    <span className={cn("w-2.5 h-2.5 rounded-full inline-block", s.buildAlphaKidsActive ? "bg-emerald-500" : "bg-gray-300")} />
+                    <span className={cn("w-2.5 h-2.5 rounded-full inline-block", s.buildAlphaKidsActive ? "bg-emerald-500" : "bg-muted/30")} />
                   </td>
                 </tr>
               );

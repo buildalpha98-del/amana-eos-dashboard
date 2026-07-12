@@ -219,7 +219,7 @@ function ResetPasswordForm() {
             </div>
           ) : success ? (
             <div className="text-center">
-              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
@@ -239,7 +239,7 @@ function ResetPasswordForm() {
             </div>
           ) : !token || !tokenValid ? (
             <div className="text-center">
-              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-7 h-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
@@ -272,7 +272,7 @@ function ResetPasswordForm() {
               </p>
 
               {error && (
-                <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200/60 text-red-600 text-sm">
+                <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200/60 text-red-600 dark:text-red-400 text-sm">
                   {error}
                 </div>
               )}
@@ -294,7 +294,7 @@ function ResetPasswordForm() {
                       minLength={12}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 pr-12 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                      className="w-full px-4 py-3 pr-12 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-muted focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                       placeholder="At least 12 characters"
                       autoComplete="new-password"
                       autoFocus
@@ -367,7 +367,7 @@ function ResetPasswordForm() {
                       minLength={12}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:ring-0 transition-colors duration-200 ${
+                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl bg-surface/30 text-base text-foreground placeholder-muted focus:outline-none focus:ring-0 transition-colors duration-200 ${
                         confirmPassword.length > 0
                           ? passwordsMatch
                             ? "border-emerald-300 focus:border-emerald-400"
@@ -434,7 +434,7 @@ function ResetPasswordForm() {
           )}
         </div>
 
-        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-[11px] mt-6">
+        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-2xs mt-6">
           Amana OSHC Leadership Team Portal
         </p>
       </div>

@@ -123,7 +123,7 @@ export function CellEditPopover({ centre, cell, onClose }: CellEditPopoverProps)
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full rounded-md border border-amber-300 bg-amber-50 text-sm p-2"
+                className="w-full rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-sm p-2"
                 placeholder="Type the reason here…"
                 autoFocus
               />

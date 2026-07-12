@@ -18,13 +18,13 @@ const PLATFORM_META: Record<
   string,
   { icon: typeof Facebook; name: string; accent: string; bg: string }
 > = {
-  facebook: { icon: Facebook, name: "Facebook", accent: "text-blue-600", bg: "bg-blue-50" },
-  instagram: { icon: Instagram, name: "Instagram", accent: "text-pink-600", bg: "bg-pink-50" },
-  linkedin: { icon: Linkedin, name: "LinkedIn", accent: "text-sky-700", bg: "bg-sky-50" },
-  email: { icon: Mail, name: "Email", accent: "text-amber-600", bg: "bg-amber-50" },
-  newsletter: { icon: Mail, name: "Newsletter", accent: "text-teal-600", bg: "bg-teal-50" },
-  website: { icon: Globe, name: "Website", accent: "text-emerald-600", bg: "bg-emerald-50" },
-  flyer: { icon: FileText, name: "Flyer", accent: "text-orange-600", bg: "bg-orange-50" },
+  facebook: { icon: Facebook, name: "Facebook", accent: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+  instagram: { icon: Instagram, name: "Instagram", accent: "text-pink-600", bg: "bg-pink-50 dark:bg-pink-950/40" },
+  linkedin: { icon: Linkedin, name: "LinkedIn", accent: "text-sky-700", bg: "bg-sky-50 dark:bg-sky-950/40" },
+  email: { icon: Mail, name: "Email", accent: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  newsletter: { icon: Mail, name: "Newsletter", accent: "text-teal-600", bg: "bg-teal-50 dark:bg-teal-950/40" },
+  website: { icon: Globe, name: "Website", accent: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+  flyer: { icon: FileText, name: "Flyer", accent: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/40" },
 };
 
 export function PostPreviewPanel({
@@ -57,7 +57,7 @@ export function PostPreviewPanel({
           <button
             onClick={onClose}
             className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-foreground transition-colors"
-          >
+           aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -189,7 +189,7 @@ function InstagramPreview({
       {/* IG header */}
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-0.5">
-          <div className="h-full w-full rounded-full bg-card flex items-center justify-center text-[10px] font-bold text-foreground/80">
+          <div className="h-full w-full rounded-full bg-card flex items-center justify-center text-2xs font-bold text-foreground/80">
             A
           </div>
         </div>
@@ -239,7 +239,7 @@ function LinkedInPreview({
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">Amana OSHC</p>
-          <p className="text-[10px] text-muted">
+          <p className="text-2xs text-muted">
             1,200 followers · Just now
           </p>
         </div>

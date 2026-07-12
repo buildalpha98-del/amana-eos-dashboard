@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { quarterLabel } from "@/lib/utils";
 
 // ── In-memory cache with 5-minute TTL ────────────────────
 let _cachedContext: string | null = null;
@@ -20,7 +21,7 @@ export async function buildDashboardContext(): Promise<string> {
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
-  const currentQuarter = `Q${Math.ceil((today.getMonth() + 1) / 3)}-${today.getFullYear()}`;
+  const currentQuarter = quarterLabel(today);
 
   const [
     financials,

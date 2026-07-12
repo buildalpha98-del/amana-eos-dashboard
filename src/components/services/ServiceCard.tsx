@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   MapPin,
@@ -13,27 +14,33 @@ import type { ServiceSummary } from "@/hooks/useServices";
 import { CentreDot } from "@/components/ui/CentreDot";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  active: { label: "Active", color: "bg-emerald-100 text-emerald-700" },
-  onboarding: { label: "Onboarding", color: "bg-blue-100 text-blue-700" },
-  pipeline: { label: "Pipeline", color: "bg-purple-100 text-purple-700" },
-  closing: { label: "Closing", color: "bg-amber-100 text-amber-700" },
-  closed: { label: "Closed", color: "bg-gray-100 text-gray-500" },
+  active: { label: "Active", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  onboarding: { label: "Onboarding", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  pipeline: { label: "Pipeline", color: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300" },
+  closing: { label: "Closing", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" },
+  closed: { label: "Closed", color: "bg-surface text-muted" },
 };
 
 export function ServiceCard({
   service,
   onClick,
+  href,
 }: {
   service: ServiceSummary;
-  onClick: () => void;
+  /** Click handler — used for bulk-select mode. Ignored when `href` is set. */
+  onClick?: () => void;
+  /**
+   * When set, the card renders as a real link (keyboard focus, cmd-click,
+   * middle-click, URL preview) instead of a JS-only button.
+   */
+  href?: string;
 }) {
   const status = statusConfig[service.status] || statusConfig.active;
+  const cardClassName =
+    "block w-full text-left bg-card rounded-xl border border-border p-3.5 sm:p-5 hover:shadow-md hover:border-border transition-all group";
 
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left bg-card rounded-xl border border-border p-3.5 sm:p-5 hover:shadow-md hover:border-border transition-all group"
-    >
+  const inner = (
+    <>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -43,7 +50,7 @@ export function ServiceCard({
             </p>
             <span
               className={cn(
-                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap",
+                "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium whitespace-nowrap",
                 status.color
               )}
             >
@@ -109,6 +116,19 @@ export function ServiceCard({
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={cardClassName}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button onClick={onClick} className={cardClassName}>
+      {inner}
     </button>
   );
 }

@@ -47,9 +47,9 @@ interface OccupancyData {
 type SortKey = "gap" | "penetration" | "state";
 
 const STATUS_COLORS = {
-  red: { dot: "bg-red-500", border: "border-red-300", bg: "bg-red-50" },
-  amber: { dot: "bg-amber-500", border: "border-amber-300", bg: "bg-amber-50" },
-  green: { dot: "bg-green-500", border: "border-green-300", bg: "bg-green-50" },
+  red: { dot: "bg-red-500", border: "border-red-300", bg: "bg-red-50 dark:bg-red-950/40" },
+  amber: { dot: "bg-amber-500", border: "border-amber-300", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  green: { dot: "bg-green-500", border: "border-green-300", bg: "bg-green-50 dark:bg-green-950/40" },
 };
 
 const DRIVER_LABELS: Record<string, string> = {
@@ -190,7 +190,7 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
           </h4>
           <div className="flex items-center gap-2 mt-0.5">
             {centre.state && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface text-muted font-medium">
+              <span className="text-2xs px-1.5 py-0.5 rounded bg-surface text-muted font-medium">
                 {centre.state}
               </span>
             )}
@@ -201,7 +201,7 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
         </div>
         <div className="flex items-center gap-2">
           {centre.launchPhase === "launch" && (
-            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">
+            <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-medium">
               <Sparkles className="h-3 w-3" />
               NEW
             </span>
@@ -234,7 +234,7 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
             />
           </div>
           {centre.ascGap > 0 && (
-            <span className="text-[10px] text-red-600 font-medium whitespace-nowrap">
+            <span className="text-2xs text-red-600 font-medium whitespace-nowrap">
               -{centre.ascGap}
             </span>
           )}
@@ -265,7 +265,7 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
             />
           </div>
           {centre.bscGap > 0 && (
-            <span className="text-[10px] text-red-600 font-medium whitespace-nowrap">
+            <span className="text-2xs text-red-600 font-medium whitespace-nowrap">
               -{centre.bscGap}
             </span>
           )}
@@ -275,12 +275,12 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
       {/* Tags */}
       <div className="flex flex-wrap gap-1.5 pt-1">
         {centre.parentSegment && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 capitalize">
+          <span className="text-2xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 capitalize">
             {centre.parentSegment}
           </span>
         )}
         {centre.parentDriver && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-muted">
+          <span className="text-2xs px-2 py-0.5 rounded-full bg-surface text-muted">
             {DRIVER_LABELS[centre.parentDriver] || centre.parentDriver}
           </span>
         )}
@@ -292,7 +292,7 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
 function TrendBadge({ value }: { value: number }) {
   if (value > 0) {
     return (
-      <span className="flex items-center gap-0.5 text-[10px] text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full">
+      <span className="flex items-center gap-0.5 text-2xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 rounded-full">
         <TrendingUp className="h-3 w-3" />
         +{value}%
       </span>
@@ -300,14 +300,14 @@ function TrendBadge({ value }: { value: number }) {
   }
   if (value < 0) {
     return (
-      <span className="flex items-center gap-0.5 text-[10px] text-red-700 bg-red-50 px-1.5 py-0.5 rounded-full">
+      <span className="flex items-center gap-0.5 text-2xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded-full">
         <TrendingDown className="h-3 w-3" />
         {value}%
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-0.5 text-[10px] text-muted bg-surface/50 px-1.5 py-0.5 rounded-full">
+    <span className="flex items-center gap-0.5 text-2xs text-muted bg-surface/50 px-1.5 py-0.5 rounded-full">
       <Minus className="h-3 w-3" />
       0%
     </span>

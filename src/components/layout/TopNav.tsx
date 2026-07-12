@@ -102,7 +102,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
     <header
       ref={navRef}
       data-tour="topnav"
-      className="sticky top-0 z-40 bg-gradient-to-r from-[#002E3D] to-[#001824] text-white shadow-sm"
+      className="sticky top-0 z-40 bg-gradient-to-r from-brand-dark to-[#001824] text-white shadow-sm"
     >
       <div className="flex items-center px-3 sm:px-4 h-12">
         {/* Mobile hamburger */}
@@ -249,7 +249,7 @@ function SectionDropdown({
             <div className="min-w-0 flex-1">
               <p className="truncate">{item.label}</p>
               {!twoCol && item.tooltip && (
-                <p className="text-[11px] text-muted line-clamp-2 mt-0.5">
+                <p className="text-xs text-muted line-clamp-2 mt-0.5">
                   {item.tooltip}
                 </p>
               )}

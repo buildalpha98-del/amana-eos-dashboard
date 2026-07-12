@@ -61,7 +61,7 @@ export function PayCompensationSection({
       sectionKey="pay"
       title="Pay & compensation"
       accentDotClass="bg-teal-500"
-      accentActiveClass="bg-teal-100 text-teal-900 border-teal-300"
+      accentActiveClass="bg-teal-100 dark:bg-teal-950/50 text-teal-900 dark:text-teal-200 border-teal-300 dark:border-teal-800"
       subTabs={subTabs}
     >
       {(active) => {

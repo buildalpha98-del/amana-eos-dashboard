@@ -26,10 +26,10 @@ const platformBarColors: Record<string, string> = {
 // ── Status card colors (matching StatusBadge post colours) ──
 const statusCardColors: Record<string, { bg: string; text: string; border: string }> = {
   draft: { bg: "bg-surface/50", text: "text-foreground/80", border: "border-border" },
-  in_review: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200" },
-  approved: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-  scheduled: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
-  published: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+  in_review: { bg: "bg-yellow-50 dark:bg-yellow-950/40", text: "text-yellow-700", border: "border-yellow-200" },
+  approved: { bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700", border: "border-blue-200" },
+  scheduled: { bg: "bg-indigo-50 dark:bg-indigo-950/40", text: "text-indigo-700", border: "border-indigo-200" },
+  published: { bg: "bg-green-50 dark:bg-green-950/40", text: "text-green-700", border: "border-green-200" },
 };
 
 const PERIOD_OPTIONS: { label: string; value: number }[] = [
@@ -131,7 +131,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                 const pct = (item._count.id / platformMax) * 100;
                 const barColor =
                   platformBarColors[item.platform.toLowerCase()] ??
-                  "bg-gray-400";
+                  "bg-muted/60";
                 return (
                   <div key={item.platform}>
                     <div className="flex items-center justify-between mb-1.5">
@@ -311,7 +311,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                             : idx === 1
                             ? "bg-border text-foreground/80"
                             : idx === 2
-                            ? "bg-amber-100 text-amber-700"
+                            ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                             : "bg-surface text-muted"
                         }`}
                       >
@@ -367,7 +367,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                 const barPct = (centre.totalEngagement / maxEngagement) * 100;
                 const medalColor = idx < 3 ? medalColors[idx] : undefined;
                 const platformBadgeColor =
-                  platformBarColors[centre.topPlatform?.toLowerCase()] ?? "bg-gray-400";
+                  platformBarColors[centre.topPlatform?.toLowerCase()] ?? "bg-muted/60";
 
                 return (
                   <div
@@ -392,7 +392,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-white",
+                        "shrink-0 rounded px-1.5 py-0.5 text-2xs font-medium text-white",
                         platformBadgeColor
                       )}
                     >

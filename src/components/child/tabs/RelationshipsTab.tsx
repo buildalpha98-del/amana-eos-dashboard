@@ -496,7 +496,7 @@ function IconButton({
     "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors";
   const palette =
     variant === "danger"
-      ? "border-red-200 text-red-600 hover:bg-red-50"
+      ? "border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
       : "border-border text-muted hover:bg-surface hover:text-foreground";
   return (
     <button

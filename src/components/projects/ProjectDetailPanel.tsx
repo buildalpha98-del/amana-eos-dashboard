@@ -14,6 +14,7 @@ import {
   Plus,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
@@ -24,10 +25,10 @@ interface UserOption {
 
 const statusOptions = [
   { key: "not_started", label: "Not Started", color: "bg-surface text-muted border-border" },
-  { key: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-700 border-blue-300" },
-  { key: "complete", label: "Complete", color: "bg-emerald-100 text-emerald-700 border-emerald-300" },
-  { key: "on_hold", label: "On Hold", color: "bg-amber-100 text-amber-700 border-amber-300" },
-  { key: "cancelled", label: "Cancelled", color: "bg-red-100 text-red-700 border-red-300" },
+  { key: "in_progress", label: "In Progress", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800" },
+  { key: "complete", label: "Complete", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800" },
+  { key: "on_hold", label: "On Hold", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800" },
+  { key: "cancelled", label: "Cancelled", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800" },
 ] as const;
 
 export function ProjectDetailPanel({
@@ -174,7 +175,7 @@ export function ProjectDetailPanel({
       <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-card shadow-2xl border-l border-border z-50 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h3 className="text-base font-semibold text-foreground">Project Details</h3>
-          <button onClick={onClose} className="p-1 rounded-md text-muted hover:text-foreground">
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded-md text-muted hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -191,7 +192,7 @@ export function ProjectDetailPanel({
                   key={s.key}
                   onClick={() => updateProject.mutate({ id: projectId, status: s.key })}
                   className={cn(
-                    "px-2.5 py-1.5 text-[10px] font-medium rounded-md border transition-colors",
+                    "px-2.5 py-1.5 text-2xs font-medium rounded-md border transition-colors",
                     project.status === s.key ? s.color : "bg-card border-border text-muted hover:border-border"
                   )}
                 >
@@ -293,12 +294,12 @@ export function ProjectDetailPanel({
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" disabled={addTask.isPending} className="px-3 py-1.5 text-xs bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50">
+                  <Button type="submit" variant="primary" size="xs" disabled={addTask.isPending}>
                     {addTask.isPending ? "Adding..." : "Add"}
-                  </button>
-                  <button type="button" onClick={() => setShowAddTask(false)} className="px-3 py-1.5 text-xs text-muted hover:text-foreground">
+                  </Button>
+                  <Button type="button" variant="ghost" size="xs" onClick={() => setShowAddTask(false)}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
@@ -322,7 +323,7 @@ export function ProjectDetailPanel({
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className={cn("text-sm truncate", todo.status === "complete" ? "line-through text-muted" : "text-foreground/80")}>{todo.title}</p>
-                      <p className="text-[10px] text-muted">
+                      <p className="text-2xs text-muted">
                         Due {new Date(todo.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                       </p>
                     </div>
@@ -351,7 +352,11 @@ export function ProjectDetailPanel({
         </div>
 
         <div className="border-t border-border px-6 py-3 flex justify-between">
-          <button onClick={() => setShowDelete(true)} className="text-muted hover:text-danger transition-colors">
+          <button
+            onClick={() => setShowDelete(true)}
+            aria-label="Delete project"
+            className="text-muted hover:text-danger transition-colors"
+          >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>

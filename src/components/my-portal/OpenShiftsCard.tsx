@@ -51,7 +51,7 @@ export function OpenShiftsCard() {
   if (shifts.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+    <section className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 p-4">
       <header className="flex items-center gap-2 mb-3">
         <Sparkles className="w-4 h-4 text-amber-600" />
         <h3 className="text-sm font-semibold text-foreground">
@@ -89,7 +89,7 @@ function OpenShiftRow({
   return (
     <li className="flex items-center justify-between gap-2 rounded-lg bg-card border border-border px-3 py-2">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 flex-wrap text-[11px] uppercase tracking-wide text-muted">
+        <div className="flex items-center gap-1.5 flex-wrap text-2xs uppercase tracking-wide text-muted">
           <span className="font-semibold text-foreground/80">{sessionLabel}</span>
           <span>·</span>
           <span>{formatDate(shift.date)}</span>

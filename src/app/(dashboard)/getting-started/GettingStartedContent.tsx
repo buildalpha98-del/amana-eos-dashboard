@@ -7,7 +7,6 @@ import Link from "next/link";
 import {
   CheckCircle2,
   Circle,
-  Sparkles,
   UserCircle,
   CalendarDays,
   ShieldCheck,
@@ -49,6 +48,7 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { TeamOnboardingTracker } from "@/components/getting-started/TeamOnboardingTracker";
 import { WelcomeTour, TOUR_STORAGE_KEY } from "@/components/onboarding/WelcomeTour";
 import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
@@ -256,29 +256,18 @@ export function GettingStartedContent() {
   return (
     <div className="max-w-3xl mx-auto pb-16">
       {/* Welcome header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-brand" />
-            <h1 className="text-2xl font-bold text-foreground">
-              Welcome to Amana EOS, {firstName}!
-            </h1>
-          </div>
-          <button
-            onClick={handleReplayTour}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand bg-brand/10 hover:bg-brand/20 rounded-lg transition-colors"
-          >
-            <PlayCircle className="w-3.5 h-3.5" />
-            Replay Tour
-          </button>
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand/10 text-brand">
-            {roleDisplayName}
-          </span>
-          <p className="text-muted text-sm">{getProgressMessage(pct)}</p>
-        </div>
-      </div>
+      <PageHeader
+        title={`Welcome to Amana EOS, ${firstName}!`}
+        description={getProgressMessage(pct)}
+        badge={roleDisplayName}
+        secondaryActions={[
+          {
+            label: "Replay Tour",
+            icon: PlayCircle,
+            onClick: handleReplayTour,
+          },
+        ]}
+      />
 
       {/* Welcome tour replay */}
       {showTour && (
@@ -434,7 +423,7 @@ export function GettingStartedContent() {
                         className={cn(
                           "text-xs font-medium px-2 py-0.5 rounded-full",
                           catDone
-                            ? "bg-emerald-50 text-emerald-600"
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
                             : "bg-surface text-muted",
                         )}
                       >

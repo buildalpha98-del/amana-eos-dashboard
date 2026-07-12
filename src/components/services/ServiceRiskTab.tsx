@@ -127,7 +127,7 @@ export function ServiceRiskTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+        <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Risk assessments
         </h2>
         <BrandButton onClick={() => setCreateOpen(true)}>
@@ -198,13 +198,13 @@ function Empty({ onCreate }: { onCreate: () => void }) {
 function StatusChip({ ra }: { ra: RiskAssessmentItem }) {
   if (ra.approvedAt) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-emerald-100 text-emerald-800">
+      <span className="inline-flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200">
         <Check className="w-3 h-3" /> Approved
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-amber-100 text-amber-800">
+    <span className="inline-flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200">
       <AlertTriangle className="w-3 h-3" /> Pending
     </span>
   );
@@ -223,7 +223,7 @@ function RiskCard({
     <li className="warm-card-dense p-3">
       <header className="flex items-start justify-between gap-2 mb-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
             <span className="uppercase tracking-wide font-semibold text-[color:var(--color-brand)]">
               {ra.activityType}
             </span>
@@ -237,7 +237,7 @@ function RiskCard({
           </div>
           <h3 className="text-sm font-semibold mt-0.5">{ra.title}</h3>
           {ra.location && (
-            <p className="text-[12px] text-[color:var(--color-muted)] mt-0.5">
+            <p className="text-xs text-[color:var(--color-muted)] mt-0.5">
               {ra.location}
             </p>
           )}
@@ -248,7 +248,7 @@ function RiskCard({
             onClick={() => approve.mutate({ raId: ra.id })}
             disabled={approve.isPending}
             className={cn(
-              "inline-flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-[var(--radius-sm)]",
+              "inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-sm)]",
               // Tablet tap target — approval is a one-shot action
               "min-h-[44px]",
               "bg-emerald-600 text-white hover:bg-emerald-700 transition-colors",
@@ -271,14 +271,14 @@ function RiskCard({
             >
               <span
                 className={cn(
-                  "inline-flex items-center justify-center w-7 h-7 rounded-[var(--radius-xs)] text-[11px] font-bold shrink-0",
+                  "inline-flex items-center justify-center w-7 h-7 rounded-[var(--radius-xs)] text-xs font-bold shrink-0",
                   riskScoreColor(score),
                 )}
                 title={`L${h.likelihood} × S${h.severity} = ${score}`}
               >
                 {score}
               </span>
-              <div className="flex-1 min-w-0 text-[12px]">
+              <div className="flex-1 min-w-0 text-xs">
                 <p className="font-medium">{h.hazard}</p>
                 <p className="text-[color:var(--color-muted)] mt-0.5">
                   Controls: {h.controls}
@@ -289,7 +289,7 @@ function RiskCard({
         })}
       </div>
 
-      <p className="mt-2 text-[11px] text-[color:var(--color-muted)]">
+      <p className="mt-2 text-xs text-[color:var(--color-muted)]">
         Author: {ra.author.name}
         {ra.approvedBy
           ? ` · Approved by ${ra.approvedBy.name}`
@@ -419,7 +419,7 @@ function CreateDialog({
 
           <div>
             <div className="flex items-center justify-between mb-1 gap-2">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)]">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-[color:var(--color-muted)]">
                 Hazards
               </span>
               <div className="flex items-center gap-2">
@@ -485,7 +485,7 @@ function CreateDialog({
                       { _uid: uid(), hazard: "", likelihood: 1, severity: 1, controls: "" },
                     ])
                   }
-                  className="text-[11px] font-medium text-[color:var(--color-brand)]"
+                  className="text-xs font-medium text-[color:var(--color-brand)]"
                 >
                   + Add hazard
                 </button>
@@ -495,13 +495,13 @@ function CreateDialog({
               <div
                 role="status"
                 aria-live="polite"
-                className="rounded-[var(--radius-sm)] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900"
+                className="rounded-[var(--radius-sm)] border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-900 dark:text-amber-200"
               >
                 <div className="flex items-center gap-1.5 font-medium">
                   <Sparkles className="w-3.5 h-3.5" />
                   AI is drafting hazards…
                 </div>
-                <pre className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] text-amber-800">
+                <pre className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs text-amber-800">
                   {aiPreview}
                 </pre>
               </div>
@@ -517,7 +517,7 @@ function CreateDialog({
                     <div className="flex items-start gap-2">
                       <span
                         className={cn(
-                          "inline-flex items-center justify-center w-7 h-7 rounded-[var(--radius-xs)] text-[11px] font-bold shrink-0",
+                          "inline-flex items-center justify-center w-7 h-7 rounded-[var(--radius-xs)] text-xs font-bold shrink-0",
                           riskScoreColor(score),
                         )}
                       >
@@ -602,12 +602,12 @@ function RatingPicker({
   onChange: (v: number) => void;
 }) {
   return (
-    <label className="flex-1 text-[11px] text-[color:var(--color-muted)]">
+    <label className="flex-1 text-xs text-[color:var(--color-muted)]">
       <span className="block mb-0.5">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1 text-sm bg-white"
+        className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1 text-sm bg-card"
       >
         {[1, 2, 3, 4, 5].map((n) => (
           <option key={n} value={n}>
@@ -628,7 +628,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
+      <span className="block text-2xs font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
         {label}
       </span>
       {children}
@@ -654,7 +654,7 @@ function BrandButton({
         "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
         // Tablet tap target
         "min-h-[44px]",
-        "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+        "bg-[color:var(--color-brand)] text-white text-sm font-medium",
         "hover:bg-[color:var(--color-brand-hover)] transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",
       )}

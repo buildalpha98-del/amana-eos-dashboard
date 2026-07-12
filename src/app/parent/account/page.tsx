@@ -124,7 +124,7 @@ export default function AccountPage() {
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-[#7c7c8a] text-sm">
+        <p className="text-muted text-sm">
           Unable to load your account information.
         </p>
       </div>
@@ -134,10 +134,10 @@ export default function AccountPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
+        <h1 className="text-2xl font-heading font-bold text-foreground">
           Account
         </h1>
-        <p className="text-sm text-[#7c7c8a] mt-1">
+        <p className="text-sm text-muted mt-1">
           Update your contact details and emergency contacts.
         </p>
       </div>
@@ -145,8 +145,8 @@ export default function AccountPage() {
       <EnableNotificationsCard />
 
       {/* Profile (editable) */}
-      <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+      <section className="bg-card rounded-xl p-4 shadow-sm border border-border">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Your Details
         </h2>
         <div className="space-y-3">
@@ -168,8 +168,8 @@ export default function AccountPage() {
       </section>
 
       {/* Contact details (editable) */}
-      <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+      <section className="bg-card rounded-xl p-4 shadow-sm border border-border">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Contact Details
         </h2>
         <div className="space-y-4">
@@ -186,9 +186,9 @@ export default function AccountPage() {
               type="checkbox"
               checked={smsOptIn}
               onChange={(e) => setSmsOptIn(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
             />
-            <span className="text-sm text-[#1a1a2e]">
+            <span className="text-sm text-foreground">
               <strong>Receive SMS reminders</strong> from your service. Required
               for any text-message updates — without this, you&apos;ll only
               receive emails and in-app notifications. Standard SMS rates may
@@ -196,8 +196,8 @@ export default function AccountPage() {
             </span>
           </label>
 
-          <div className="border-t border-[#e8e4df] pt-4">
-            <p className="text-xs font-medium text-[#7c7c8a] mb-3">Address</p>
+          <div className="border-t border-border pt-4">
+            <p className="text-xs font-medium text-muted mb-3">Address</p>
             <div className="space-y-3">
               <FormField
                 label="Street"
@@ -232,8 +232,8 @@ export default function AccountPage() {
       </section>
 
       {/* Work (editable) */}
-      <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+      <section className="bg-card rounded-xl p-4 shadow-sm border border-border">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Work
         </h2>
         <div className="space-y-3">
@@ -244,14 +244,14 @@ export default function AccountPage() {
       </section>
 
       {/* Emergency contacts (editable) */}
-      <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+      <section className="bg-card rounded-xl p-4 shadow-sm border border-border">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+          <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
             Emergency Contacts
           </h2>
           <button
             onClick={addContact}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[#004E64] hover:text-[#0A7E9E] transition-colors min-h-[44px]"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand-light transition-colors min-h-[44px]"
           >
             <Plus className="w-4 h-4" />
             Add
@@ -259,7 +259,7 @@ export default function AccountPage() {
         </div>
 
         {contacts.length === 0 ? (
-          <p className="text-sm text-[#7c7c8a] text-center py-4">
+          <p className="text-sm text-muted text-center py-4">
             No emergency contacts yet. Tap &ldquo;Add&rdquo; to create one.
           </p>
         ) : (
@@ -267,7 +267,7 @@ export default function AccountPage() {
             {contacts.map((contact, idx) => (
               <div
                 key={contact.id ?? `new-${idx}`}
-                className="relative border border-[#e8e4df] rounded-lg p-3 space-y-3"
+                className="relative border border-border rounded-lg p-3 space-y-3"
               >
                 <button
                   onClick={() => removeContact(idx)}
@@ -305,7 +305,7 @@ export default function AccountPage() {
       <button
         onClick={handleSave}
         disabled={updateAccount.isPending}
-        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
       >
         {updateAccount.isPending ? (
           <span className="inline-flex items-center gap-2">
@@ -339,11 +339,11 @@ export default function AccountPage() {
       </button>
 
       {/* Logout */}
-      <div className="pt-4 border-t border-[#e8e4df]">
+      <div className="pt-4 border-t border-border">
         <button
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 text-base font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-950/50 text-red-600 dark:text-red-400 text-base font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
         >
           <LogOut className="w-4 h-4" />
           {loggingOut ? "Logging out..." : "Log Out"}
@@ -372,7 +372,7 @@ function FormField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">
+      <label className="block text-xs font-medium text-foreground/70 mb-1">
         {label}
       </label>
       <input
@@ -381,7 +381,7 @@ function FormField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+        className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-background/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors min-h-[44px]"
       />
     </div>
   );
@@ -399,10 +399,10 @@ function ReadOnlyField({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between py-1">
-        <span className="text-xs text-[#7c7c8a]">{label}</span>
-        <span className="text-sm font-medium text-[#1a1a2e]">{value}</span>
+        <span className="text-xs text-muted">{label}</span>
+        <span className="text-sm font-medium text-foreground">{value}</span>
       </div>
-      {note && <p className="text-[11px] text-[#7c7c8a] leading-snug">{note}</p>}
+      {note && <p className="text-xs text-muted leading-snug">{note}</p>}
     </div>
   );
 }

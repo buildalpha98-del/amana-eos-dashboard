@@ -75,7 +75,7 @@ export function NotificationLogTab() {
 
   if (error) {
     return (
-      <div className="text-center py-12 text-[#7c7c8a]">
+      <div className="text-center py-12 text-muted">
         Failed to load notification logs.
       </div>
     );
@@ -86,7 +86,7 @@ export function NotificationLogTab() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-[#7c7c8a]" />
+          <Filter className="w-4 h-4 text-muted" />
           <select
             value={typeFilter}
             onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
@@ -111,7 +111,7 @@ export function NotificationLogTab() {
 
         <button
           onClick={() => refetch()}
-          className="ml-auto flex items-center gap-1.5 text-sm text-[#004E64] hover:underline"
+          className="ml-auto flex items-center gap-1.5 text-sm text-brand hover:underline"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh
@@ -145,7 +145,7 @@ export function NotificationLogTab() {
                 ))
               ) : data?.logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-[#7c7c8a]">
+                  <td colSpan={6} className="text-center py-12 text-muted">
                     <Mail className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     No notification logs found.
                   </td>
@@ -157,15 +157,15 @@ export function NotificationLogTab() {
                     className="border-b border-[#e5e7eb] hover:bg-[#f9fafb]/50"
                   >
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-[#004E64]/10 px-2 py-0.5 text-xs font-medium text-[#004E64]">
+                      <span className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
                         {formatType(log.type)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[#1a1a2e]">
+                    <td className="px-4 py-3 text-foreground">
                       <div>{log.recipientName || "—"}</div>
-                      <div className="text-xs text-[#7c7c8a]">{log.recipientEmail}</div>
+                      <div className="text-xs text-muted">{log.recipientEmail}</div>
                     </td>
-                    <td className="px-4 py-3 text-[#1a1a2e] max-w-[200px] truncate">
+                    <td className="px-4 py-3 text-foreground max-w-[200px] truncate">
                       {log.subject}
                     </td>
                     <td className="px-4 py-3">
@@ -173,8 +173,8 @@ export function NotificationLogTab() {
                         className={cn(
                           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
                           log.status === "sent"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700",
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+                            : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300",
                         )}
                       >
                         {log.status === "sent" ? (
@@ -190,10 +190,10 @@ export function NotificationLogTab() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7c7c8a]">
+                    <td className="px-4 py-3 text-xs text-muted">
                       {log.relatedType || "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7c7c8a] whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-muted whitespace-nowrap">
                       {formatDate(log.createdAt)}
                     </td>
                   </tr>
@@ -207,24 +207,26 @@ export function NotificationLogTab() {
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-[#7c7c8a]">
+          <p className="text-sm text-muted">
             Showing {(page - 1) * 25 + 1}–{Math.min(page * 25, data.total)} of {data.total}
           </p>
           <div className="flex items-center gap-2">
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="p-1.5 rounded-lg border border-[#e5e7eb] disabled:opacity-40 hover:bg-[#f9fafb]"
+              aria-label="Previous page"
+              className="p-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-surface"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-sm text-[#1a1a2e]">
+            <span className="text-sm text-foreground">
               {page} / {data.totalPages}
             </span>
             <button
               disabled={page >= data.totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="p-1.5 rounded-lg border border-[#e5e7eb] disabled:opacity-40 hover:bg-[#f9fafb]"
+              aria-label="Next page"
+              className="p-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-surface"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

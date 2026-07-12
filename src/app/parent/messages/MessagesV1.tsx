@@ -35,16 +35,16 @@ export default function MessagesV1() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
+          <h1 className="text-2xl font-heading font-bold text-foreground">
             Messages
           </h1>
-          <p className="text-sm text-[#7c7c8a] mt-1">
+          <p className="text-sm text-muted mt-1">
             Chat with your centre.
           </p>
         </div>
         <button
           onClick={() => setNewMsgOpen(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[44px]"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[44px]"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">New Message</span>
@@ -53,14 +53,14 @@ export default function MessagesV1() {
 
       {/* Conversations list */}
       {items.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-          <div className="w-12 h-12 rounded-full bg-[#FECE00]/20 flex items-center justify-center mx-auto mb-3">
-            <MessageCircle className="w-6 h-6 text-[#004E64]" />
+        <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
+          <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3">
+            <MessageCircle className="w-6 h-6 text-brand" />
           </div>
-          <h2 className="text-base font-heading font-semibold text-[#1a1a2e] mb-1">
+          <h2 className="text-base font-heading font-semibold text-foreground mb-1">
             No messages yet
           </h2>
-          <p className="text-sm text-[#7c7c8a]">
+          <p className="text-sm text-muted">
             Tap &ldquo;New Message&rdquo; to start a conversation with your centre.
           </p>
         </div>
@@ -102,37 +102,37 @@ function ConversationCard({ conversation: conv }: { conversation: ConversationSu
     <Link
       href={`/parent/messages/${conv.id}`}
       className={cn(
-        "block bg-white rounded-xl p-4 shadow-sm border transition-all duration-200 hover:shadow-md hover:border-[#004E64]/20 active:scale-[0.99]",
-        hasUnread ? "border-[#004E64]/30 bg-[#004E64]/[0.02]" : "border-[#e8e4df]"
+        "block bg-card rounded-xl p-4 shadow-sm border transition-all duration-200 hover:shadow-md hover:border-brand/20 active:scale-[0.99]",
+        hasUnread ? "border-brand/30 bg-brand/[0.02]" : "border-border"
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className={cn("text-sm truncate", hasUnread ? "font-bold text-[#1a1a2e]" : "font-semibold text-[#1a1a2e]")}>
+            <p className={cn("text-sm truncate", hasUnread ? "font-bold text-foreground" : "font-semibold text-foreground")}>
               {conv.subject}
             </p>
             {hasUnread && (
-              <span className="w-2 h-2 rounded-full bg-[#004E64] shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-brand shrink-0" />
             )}
           </div>
           {conv.service && (
-            <p className="text-xs text-[#7c7c8a] mt-0.5">{conv.service.name}</p>
+            <p className="text-xs text-muted mt-0.5">{conv.service.name}</p>
           )}
           {conv.lastMessage && (
-            <p className="text-xs text-[#7c7c8a] mt-1 truncate">
+            <p className="text-xs text-muted mt-1 truncate">
               {conv.lastMessage.senderType === "parent" ? "You: " : "Centre: "}
               {conv.lastMessage.preview}
             </p>
           )}
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className="text-[10px] text-[#7c7c8a]">
+          <span className="text-2xs text-muted">
             {conv.lastMessage ? formatDate(conv.lastMessage.createdAt) : formatDate(conv.createdAt)}
           </span>
           <span className={cn(
-            "inline-flex items-center gap-1 text-[10px] font-medium",
-            conv.status === "resolved" ? "text-green-500" : conv.status === "open" ? "text-amber-500" : "text-[#7c7c8a]"
+            "inline-flex items-center gap-1 text-2xs font-medium",
+            conv.status === "resolved" ? "text-green-500" : conv.status === "open" ? "text-amber-500" : "text-muted"
           )}>
             {conv.status === "resolved" ? "Resolved" : conv.status === "open" ? "Open" : conv.status}
           </span>
@@ -185,11 +185,11 @@ function NewMessageDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
         <div className="space-y-4 mt-4">
           {services.length > 1 && (
             <div>
-              <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">Centre</label>
+              <label className="block text-xs font-medium text-foreground/70 mb-1">Centre</label>
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+                className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-background/50 text-sm text-foreground focus:outline-none focus:border-brand transition-colors min-h-[44px]"
               >
                 <option value="">Select a centre</option>
                 {services.map((s) => (
@@ -200,33 +200,33 @@ function NewMessageDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
           )}
 
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">Subject</label>
+            <label className="block text-xs font-medium text-foreground/70 mb-1">Subject</label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Question about bookings"
               maxLength={200}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-background/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors min-h-[44px]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">Message</label>
+            <label className="block text-xs font-medium text-foreground/70 mb-1">Message</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type your message..."
               maxLength={5000}
               rows={4}
-              className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+              className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-background/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors resize-none"
             />
           </div>
 
           <button
             onClick={handleSend}
             disabled={!subject || !message || createConversation.isPending}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >
             {createConversation.isPending ? (
               <><Loader2 className="w-4 h-4 animate-spin" />Sending...</>

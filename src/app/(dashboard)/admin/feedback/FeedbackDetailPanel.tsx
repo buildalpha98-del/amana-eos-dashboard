@@ -186,7 +186,7 @@ export function FeedbackDetailPanel({ feedbackId, onClose }: { feedbackId: strin
             <div>
               <label htmlFor="fb-notes" className="flex items-center justify-between text-xs font-medium text-muted mb-1">
                 <span>Admin notes</span>
-                <span className="flex items-center gap-1 text-[11px]">
+                <span className="flex items-center gap-1 text-xs">
                   {notesSaving && <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>}
                   {!notesSaving && notesSavedAt && <span className="text-emerald-600">Saved</span>}
                 </span>
@@ -200,11 +200,11 @@ export function FeedbackDetailPanel({ feedbackId, onClose }: { feedbackId: strin
                 placeholder="Add investigation notes, fix details, or context…"
                 className="w-full resize-none rounded-lg border border-border bg-surface/50 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
-              <p className="mt-1 text-[11px] text-muted">{notes.length} / 5000</p>
+              <p className="mt-1 text-xs text-muted">{notes.length} / 5000</p>
             </div>
 
             {feedback.resolvedAt && (
-              <p className="text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 rounded-md px-3 py-2">
                 Resolved at {formatFull(feedback.resolvedAt)}
               </p>
             )}

@@ -55,7 +55,7 @@ function formatMetric(value: number, format: "currency" | "percent" | "number"):
 function diffClass(base: number, compare: number, higherIsBetter: boolean): string {
   if (base === compare) return "";
   const better = higherIsBetter ? compare > base : compare < base;
-  return better ? "text-emerald-600 bg-emerald-50" : "text-red-600 bg-red-50";
+  return better ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40";
 }
 
 const HIGHER_IS_BETTER: Record<string, boolean> = {

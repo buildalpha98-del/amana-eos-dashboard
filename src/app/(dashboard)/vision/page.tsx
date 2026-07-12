@@ -214,7 +214,7 @@ export default function VisionPage() {
                     <div className="text-lg font-bold text-foreground">
                       {rockStats.total}
                     </div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">
+                    <div className="text-2xs text-muted uppercase tracking-wider">
                       Total
                     </div>
                   </div>
@@ -222,7 +222,7 @@ export default function VisionPage() {
                     <div className="text-lg font-bold text-emerald-600">
                       {rockStats.onTrack}
                     </div>
-                    <div className="text-[10px] text-emerald-600 uppercase tracking-wider">
+                    <div className="text-2xs text-emerald-600 uppercase tracking-wider">
                       On Track
                     </div>
                   </div>
@@ -230,7 +230,7 @@ export default function VisionPage() {
                     <div className="text-lg font-bold text-red-600">
                       {rockStats.offTrack}
                     </div>
-                    <div className="text-[10px] text-red-600 uppercase tracking-wider">
+                    <div className="text-2xs text-red-600 uppercase tracking-wider">
                       Off Track
                     </div>
                   </div>
@@ -238,7 +238,7 @@ export default function VisionPage() {
                     <div className="text-lg font-bold text-brand">
                       {rockStats.done}
                     </div>
-                    <div className="text-[10px] text-brand uppercase tracking-wider">
+                    <div className="text-2xs text-brand uppercase tracking-wider">
                       Done
                     </div>
                   </div>
@@ -298,7 +298,7 @@ export default function VisionPage() {
                           ? "bg-red-500"
                           : issue.priority === "high"
                           ? "bg-amber-500"
-                          : "bg-gray-300"
+                          : "bg-muted/30"
                       )}
                     />
                     <span className="text-sm text-foreground/80 truncate flex-1">
@@ -308,7 +308,7 @@ export default function VisionPage() {
                       onClick={() => updateIssue.mutate({ id: issue.id, category: "short_term" })}
                       disabled={updateIssue.isPending}
                       title="Pull onto the weekly short-term list"
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 hover:text-amber-800 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-800 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                     >
                       <ArrowLeftCircle className="w-3.5 h-3.5" /> Short-Term
                     </button>
@@ -317,7 +317,7 @@ export default function VisionPage() {
                         onClick={() => promoteToRock.mutate({ id: issue.id })}
                         disabled={promoteToRock.isPending}
                         title="Promote into a Rock for next quarter"
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:text-brand-hover opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                       >
                         <Mountain className="w-3.5 h-3.5" /> Rock
                       </button>

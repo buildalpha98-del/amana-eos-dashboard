@@ -23,6 +23,7 @@ import { MergeTagPanel } from "./MergeTagPanel";
 import { ManualFieldsPanel } from "./ManualFieldsPanel";
 import { PreviewModal } from "./PreviewModal";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 // ── Autosave state label ───────────────────────────────────────────────────────
 function AutosaveLabel({
@@ -34,7 +35,7 @@ function AutosaveLabel({
 }) {
   if (state === "saving") {
     return (
-      <span className="text-xs text-muted-foreground animate-pulse">Saving…</span>
+      <span className="text-xs text-muted animate-pulse">Saving…</span>
     );
   }
   if (state === "error") {
@@ -48,7 +49,7 @@ function AutosaveLabel({
     const label = secs < 5 ? "just now" : `${secs}s ago`;
     return <span className="text-xs text-green-600">Saved {label}</span>;
   }
-  return <span className="text-xs text-muted-foreground">Saved</span>;
+  return <span className="text-xs text-muted">Saved</span>;
 }
 
 // ── Toolbar button helper ──────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ function ToolbarBtn({
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       className={cn(
         "p-1.5 rounded text-sm hover:bg-surface",
@@ -238,22 +240,23 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
               className={cn(
                 "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
                 status === "active"
-                  ? "bg-green-100 text-green-800 hover:bg-green-200"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200 hover:bg-green-200"
+                  : "bg-surface text-muted hover:bg-border"
               )}
             >
               {status === "active" ? "Active" : "Disabled"}
             </button>
 
             {/* Preview */}
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={() => setShowPreview(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand text-white rounded hover:bg-brand/90 transition-colors"
+              iconLeft={<Eye className="w-4 h-4" />}
             >
-              <Eye className="w-4 h-4" />
               Preview
-            </button>
+            </Button>
           </div>
         </header>
 

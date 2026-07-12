@@ -231,7 +231,7 @@ export function TimelineView({
                   {/* Bar */}
                   <button
                     onClick={() => onSelectCampaign(campaign.id)}
-                    className={`absolute z-[1] rounded-md px-2 py-1 text-[11px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity ${colors}`}
+                    className={`absolute z-[1] rounded-md px-2 py-1 text-xs font-medium truncate cursor-pointer hover:opacity-80 transition-opacity ${colors}`}
                     style={{
                       left: 96 + start * COL_W + 2,
                       width: span * COL_W - 4,
@@ -290,8 +290,8 @@ export function TimelineView({
                       <button
                         key={post.id}
                         onClick={() => onSelectPost(post.id)}
-                        className={`w-3 h-3 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 transition-shadow ${
-                          PLATFORM_DOT_COLORS[post.platform] || "bg-gray-400"
+                        className={`w-3 h-3 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-muted/60 transition-shadow ${
+                          PLATFORM_DOT_COLORS[post.platform] || "bg-muted/60"
                         }`}
                         title={post.title}
                       />
@@ -345,8 +345,8 @@ export function TimelineView({
                       <button
                         key={task.id}
                         onClick={() => onSelectTask(task.id)}
-                        className={`w-3 h-3 flex-shrink-0 rotate-45 cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 transition-shadow ${
-                          PRIORITY_COLORS[task.priority] || "bg-gray-400"
+                        className={`w-3 h-3 flex-shrink-0 rotate-45 cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-muted/60 transition-shadow ${
+                          PRIORITY_COLORS[task.priority] || "bg-muted/60"
                         }`}
                         title={task.title}
                       />

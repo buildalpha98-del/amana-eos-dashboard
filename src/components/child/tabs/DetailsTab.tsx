@@ -369,7 +369,7 @@ function ChildDangerZone({ childId, childName, status }: { childId: string; chil
   };
 
   return (
-    <div className="rounded-xl border border-red-200 bg-red-50/50 p-6">
+    <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 p-6">
       <h3 className="text-sm font-semibold text-red-700 flex items-center gap-2 mb-3">
         <AlertTriangle className="w-4 h-4" />
         Danger Zone
@@ -384,7 +384,7 @@ function ChildDangerZone({ childId, childName, status }: { childId: string; chil
             <button
               onClick={handleDeactivate}
               disabled={deactivating}
-              className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+              className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors disabled:opacity-50"
             >
               {deactivating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Deactivate
@@ -399,7 +399,7 @@ function ChildDangerZone({ childId, childName, status }: { childId: string; chil
             <button
               onClick={handleReactivate}
               disabled={deactivating}
-              className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+              className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-green-300 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors disabled:opacity-50"
             >
               {deactivating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Reactivate
@@ -423,7 +423,7 @@ function ChildDangerZone({ childId, childName, status }: { childId: string; chil
               </button>
             </div>
           ) : (
-            <div className="bg-red-100 rounded-lg p-4">
+            <div className="bg-red-100 dark:bg-red-950/50 rounded-lg p-4">
               <p className="text-sm text-red-800 font-medium mb-3">
                 Are you sure you want to permanently delete {childName}? This will remove all bookings, documents, and pickup records.
               </p>

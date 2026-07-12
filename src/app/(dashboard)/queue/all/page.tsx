@@ -6,11 +6,12 @@ import { useAllQueues, useQueue, type QueueUserSummary } from "@/hooks/useQueue"
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Inbox, Users, FileText, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Inbox, FileText, CheckCircle2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 function statusIndicator(total: number) {
-  if (total === 0) return { color: "bg-gray-300", label: "Clear" };
+  if (total === 0) return { color: "bg-muted/30", label: "Clear" };
   if (total <= 5) return { color: "bg-emerald-500", label: "Low" };
   if (total <= 15) return { color: "bg-amber-500", label: "Medium" };
   return { color: "bg-red-500", label: "High" };
@@ -93,15 +94,10 @@ export default function AllQueuesPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-          <Users className="w-5 h-5 text-brand" />
-          All Queues
-        </h1>
-        <p className="text-sm text-muted mt-0.5">
-          Overview of pending reports and tasks across all team members
-        </p>
-      </div>
+      <PageHeader
+        title="All Queues"
+        description="Overview of pending reports and tasks across all team members"
+      />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -173,7 +169,7 @@ export default function AllQueuesPage() {
                   </td>
                   <td className="py-3 px-4">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-muted/30" />
                       <span className="text-xs text-muted">—</span>
                     </span>
                   </td>

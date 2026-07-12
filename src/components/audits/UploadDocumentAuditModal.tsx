@@ -16,10 +16,11 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Loader2, Upload } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { Button } from "@/components/ui/Button";
 
 type Frequency =
   | "daily"
@@ -134,6 +135,7 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
           </h3>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
@@ -141,7 +143,7 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
         </div>
 
         <div className="px-6 py-4 space-y-4">
-          <div className="rounded-md border border-blue-200 bg-blue-50/40 p-3 text-xs text-blue-900 space-y-1.5">
+          <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-3 text-xs text-blue-900 dark:text-blue-200 space-y-1.5">
             <p>
               The .docx becomes the master template — it stays untouched and
               is downloadable from the template row.
@@ -231,24 +233,19 @@ export function UploadDocumentAuditModal({ open, onClose }: Props) {
         </div>
 
         <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-muted hover:text-foreground"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => submit.mutate()}
-            disabled={!file || !name.trim() || submit.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand/90 disabled:opacity-50"
+            disabled={!file || !name.trim()}
+            loading={submit.isPending}
+            iconLeft={<Upload className="w-4 h-4" />}
           >
-            {submit.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
             {submit.isPending ? "Uploading…" : "Upload + create template"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -37,10 +37,10 @@ function formatHourMinute(iso: string | null | undefined): string {
 }
 
 const STATUS_COLORS: Record<CellStatus, string> = {
-  booked: "bg-teal-50 border-teal-300 text-teal-900",
-  signed_in: "bg-green-100 border-green-400 text-green-900",
-  signed_out: "bg-blue-100 border-blue-400 text-blue-900",
-  absent: "bg-red-100 border-red-400 text-red-900",
+  booked: "bg-teal-50 dark:bg-teal-950/40 border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200",
+  signed_in: "bg-green-100 dark:bg-green-950/50 border-green-400 text-green-900 dark:text-green-200",
+  signed_out: "bg-blue-100 dark:bg-blue-950/50 border-blue-400 text-blue-900 dark:text-blue-200",
+  absent: "bg-red-100 dark:bg-red-950/50 border-red-400 text-red-900 dark:text-red-200",
 };
 
 // ── Component ────────────────────────────────────────────
@@ -62,7 +62,7 @@ function WeeklyRollCallCellImpl({
         onClick={() => (clickable ? onClickEmpty(childId, date) : undefined)}
         data-testid={`weekly-cell-empty-${childId}-${date}`}
         className={cn(
-          "w-full h-14 border border-dashed border-border rounded-md text-[11px] text-muted",
+          "w-full h-14 border border-dashed border-border rounded-md text-xs text-muted",
           clickable ? "hover:bg-surface cursor-pointer" : "cursor-default",
         )}
         aria-label={canEdit ? `Add booking on ${date}` : "No booking"}
@@ -92,12 +92,12 @@ function WeeklyRollCallCellImpl({
         {shift.sessionType}
       </div>
       {shift.signInTime && (
-        <div className="text-[10px] leading-tight truncate">
+        <div className="text-2xs leading-tight truncate">
           In: {formatHourMinute(shift.signInTime)}
         </div>
       )}
       {shift.signOutTime && (
-        <div className="text-[10px] leading-tight truncate">
+        <div className="text-2xs leading-tight truncate">
           Out: {formatHourMinute(shift.signOutTime)}
         </div>
       )}

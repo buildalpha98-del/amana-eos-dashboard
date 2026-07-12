@@ -29,7 +29,7 @@ export function ScorecardSection({
 
   return (
     <div className="space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-800 mb-1">
           Weekly Scorecard
         </h4>
@@ -192,7 +192,7 @@ export function ScorecardSection({
                   {!isOnTrack && latestEntry && onDropToIDS ? (
                     <button
                       onClick={() => onDropToIDS(`Off-track: ${m.title}`)}
-                      className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors font-medium whitespace-nowrap"
+                      className="text-2xs px-2 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors font-medium whitespace-nowrap"
                     >
                       → IDS
                     </button>

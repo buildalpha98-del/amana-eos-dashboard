@@ -111,9 +111,9 @@ export function CentreSwitcher() {
         aria-expanded={open}
         aria-label={`Centre switcher: ${displayName}`}
       >
-        <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        <Building2 className="w-3.5 h-3.5 text-muted shrink-0" />
         <span className="truncate">{displayName}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-muted shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {/* Dropdown */}
@@ -123,7 +123,7 @@ export function CentreSwitcher() {
           {showSearch && (
             <div className="p-2 border-b border-border hidden md:block">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -131,7 +131,7 @@ export function CentreSwitcher() {
                   aria-label="Search centres"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-sm bg-surface border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full pl-8 pr-3 py-1.5 text-sm bg-surface border border-border rounded-md text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
             </div>
@@ -145,7 +145,7 @@ export function CentreSwitcher() {
                 !currentServiceId ? "text-brand font-semibold bg-accent/10" : "text-foreground"
               }`}
             >
-              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <Building2 className="w-3.5 h-3.5 text-muted shrink-0" />
               All Centres
             </button>
 
@@ -160,13 +160,13 @@ export function CentreSwitcher() {
               >
                 <span className="truncate">{service.name}</span>
                 {service.state && (
-                  <span className="ml-auto text-xs text-muted-foreground shrink-0">{service.state}</span>
+                  <span className="ml-auto text-xs text-muted shrink-0">{service.state}</span>
                 )}
               </button>
             ))}
 
             {filteredServices.length === 0 && (
-              <p className="px-3 py-4 text-sm text-muted-foreground text-center">No centres found</p>
+              <p className="px-3 py-4 text-sm text-muted text-center">No centres found</p>
             )}
           </div>
         </div>

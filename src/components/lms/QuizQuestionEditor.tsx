@@ -110,7 +110,7 @@ export function QuizQuestionEditor({ moduleId }: { moduleId: string }) {
                   </li>
                 ))}
               </ul>
-              {q.explanation && <p className="mt-1 text-[11px] italic text-muted">{q.explanation}</p>}
+              {q.explanation && <p className="mt-1 text-xs italic text-muted">{q.explanation}</p>}
             </li>
           ))}
           {questions && questions.length === 0 && !draft && (
@@ -176,7 +176,7 @@ export function QuizQuestionEditor({ moduleId }: { moduleId: string }) {
               </button>
             )}
           </div>
-          <p className="text-[10px] text-muted">Select the radio next to the correct answer.</p>
+          <p className="text-2xs text-muted">Select the radio next to the correct answer.</p>
           <textarea
             value={draft.explanation}
             onChange={(e) => setDraft({ ...draft, explanation: e.target.value })}

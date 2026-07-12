@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   Gift,
@@ -39,10 +40,10 @@ interface ReferralStats {
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: typeof CheckCircle }> = {
   pending: { bg: "bg-surface", text: "text-foreground/80", icon: Clock },
-  enquired: { bg: "bg-blue-100", text: "text-blue-700", icon: Users },
-  enrolled: { bg: "bg-green-100", text: "text-green-700", icon: CheckCircle },
-  rewarded: { bg: "bg-emerald-100", text: "text-emerald-700", icon: Gift },
-  expired: { bg: "bg-red-100", text: "text-red-700", icon: XCircle },
+  enquired: { bg: "bg-blue-100 dark:bg-blue-950/50", text: "text-blue-700", icon: Users },
+  enrolled: { bg: "bg-green-100 dark:bg-green-950/50", text: "text-green-700", icon: CheckCircle },
+  rewarded: { bg: "bg-emerald-100 dark:bg-emerald-950/50", text: "text-emerald-700", icon: Gift },
+  expired: { bg: "bg-red-100 dark:bg-red-950/50", text: "text-red-700", icon: XCircle },
 };
 
 export function ReferralsTab({ serviceId }: { serviceId?: string }) {
@@ -227,7 +228,7 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
                           {ref.status === "enquired" && (
                             <button
                               onClick={() => updateStatus(ref.id, "enrolled")}
-                              className="text-xs px-2 py-1 rounded bg-green-50 text-green-700 hover:bg-green-100"
+                              className="text-xs px-2 py-1 rounded bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-950/50"
                             >
                               Mark Enrolled
                             </button>
@@ -235,7 +236,7 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
                           {ref.status === "enrolled" && (
                             <button
                               onClick={() => updateStatus(ref.id, "rewarded")}
-                              className="text-xs px-2 py-1 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              className="text-xs px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
                             >
                               Issue Reward
                             </button>
@@ -408,13 +409,9 @@ function CreateReferralModal({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
-            >
+            <Button type="submit" size="sm" loading={saving}>
               {saving ? "Saving..." : "Create Referral"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

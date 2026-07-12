@@ -40,9 +40,9 @@ interface LaunchData {
 }
 
 const STATUS_STYLES = {
-  "On Track": { bg: "bg-green-50", border: "border-green-300", text: "text-green-700", icon: CheckCircle },
-  "Needs Attention": { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", icon: AlertTriangle },
-  "At Risk": { bg: "bg-red-50", border: "border-red-300", text: "text-red-700", icon: XCircle },
+  "On Track": { bg: "bg-green-50 dark:bg-green-950/40", border: "border-green-300", text: "text-green-700", icon: CheckCircle },
+  "Needs Attention": { bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-300", text: "text-amber-700", icon: AlertTriangle },
+  "At Risk": { bg: "bg-red-50 dark:bg-red-950/40", border: "border-red-300", text: "text-red-700", icon: XCircle },
 };
 
 const MILESTONES = [
@@ -188,14 +188,14 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
       {/* ASC / BSC */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-card/60 rounded p-2">
-          <div className="text-[10px] text-muted uppercase">ASC</div>
+          <div className="text-2xs text-muted uppercase">ASC</div>
           <div className="text-lg font-bold text-foreground">
             {centre.ascEnrolled}
             <span className="text-sm text-muted font-normal"> / {centre.ascTarget}</span>
           </div>
         </div>
         <div className="bg-card/60 rounded p-2">
-          <div className="text-[10px] text-muted uppercase">BSC</div>
+          <div className="text-2xs text-muted uppercase">BSC</div>
           <div className="text-lg font-bold text-foreground">
             {centre.bscEnrolled}
             <span className="text-sm text-muted font-normal"> / {centre.bscTarget}</span>
@@ -205,7 +205,7 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
 
       {/* Sparkline */}
       <div>
-        <div className="text-[10px] text-muted mb-1">Weekly Attendance Trend</div>
+        <div className="text-2xs text-muted mb-1">Weekly Attendance Trend</div>
         <div className="flex items-end gap-px h-8">
           {centre.weeklyTrend.map((val, i) => (
             <div

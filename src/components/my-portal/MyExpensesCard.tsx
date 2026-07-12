@@ -57,11 +57,11 @@ interface ExpenseCategory {
 
 function statusBadgeClass(status: string): string {
   const s = status.toLowerCase();
-  if (s.startsWith("approv")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (s.startsWith("approv")) return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
   if (s.startsWith("reject") || s.startsWith("declin"))
-    return "bg-red-50 text-red-700 border-red-200";
-  if (s.startsWith("cancel")) return "bg-gray-100 text-gray-700 border-gray-200";
-  return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
+  if (s.startsWith("cancel")) return "bg-surface text-foreground/80 border-border";
+  return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
 }
 
 function todayIso(): string {
@@ -458,7 +458,7 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
           </div>
 
           {submitError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+            <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
               {submitError}
             </div>
           )}

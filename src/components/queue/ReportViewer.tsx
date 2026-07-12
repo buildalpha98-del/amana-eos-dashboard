@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { generateReportPdf } from "@/lib/report-pdf";
 import type { QueueReport } from "@/hooks/useQueue";
 import { AiButton } from "@/components/ui/AiButton";
+import { Button } from "@/components/ui/Button";
 
 /* ── Brand colours ────────────────────────────────── */
 const SEAT_COLOURS: Record<string, { bg: string; text: string }> = {
@@ -138,10 +139,10 @@ function seatLabel(seat: string) {
 
 /* ── Alert styles ─────────────────────────────────── */
 const alertStyles: Record<string, string> = {
-  critical: "bg-red-50 border-red-200 text-red-800",
-  warning: "bg-amber-50 border-amber-200 text-amber-800",
-  info: "bg-blue-50 border-blue-200 text-blue-800",
-  success: "bg-green-50 border-green-200 text-green-800",
+  critical: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200",
+  warning: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200",
+  info: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200",
+  success: "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200",
 };
 
 function AlertIcon({ level }: { level: string }) {
@@ -253,6 +254,7 @@ export function ReportViewer({
             />
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 text-muted hover:text-foreground rounded-lg hover:bg-surface transition-colors"
           >
             <X className="w-5 h-5" />
@@ -262,10 +264,10 @@ export function ReportViewer({
 
         {/* AI Summary */}
         {aiSummary && (
-          <div className="mx-6 mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
+          <div className="mx-6 mt-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiSummary}</div>
-              <button onClick={() => setAiSummary("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
+              <button onClick={() => setAiSummary("")} aria-label="Dismiss summary" className="text-purple-400 hover:text-purple-600 flex-shrink-0">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -276,7 +278,7 @@ export function ReportViewer({
         <div className="flex-1 overflow-y-auto">
           {/* Header section */}
           <div className="px-6 pt-6 pb-4">
-            <h1 className="text-xl font-bold text-[#004E64] leading-tight">
+            <h1 className="text-xl font-bold text-brand leading-tight">
               {report.title}
             </h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-muted">
@@ -351,7 +353,7 @@ export function ReportViewer({
                     key={key}
                     className="rounded-lg border border-[#FFF2BF] bg-[#FFFAE6] p-3 text-center"
                   >
-                    <div className="text-lg font-bold text-[#004E64]">
+                    <div className="text-lg font-bold text-brand">
                       {formatMetricValue(value)}
                     </div>
                     <div className="text-xs text-muted mt-0.5">
@@ -366,7 +368,7 @@ export function ReportViewer({
           {/* ── Action Items ── */}
           {actionItems.length > 0 && (
             <div className="px-6 pb-4">
-              <h2 className="text-sm font-semibold text-[#004E64] uppercase tracking-wider mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-brand uppercase tracking-wider mb-2 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
                 Action Items ({actionItems.filter((i) => i.completed).length}/
                 {actionItems.length})
@@ -381,11 +383,16 @@ export function ReportViewer({
                       onClick={() =>
                         toggleActionItem(item.id, !item.completed)
                       }
+                      aria-label={
+                        item.completed
+                          ? "Mark action item incomplete"
+                          : "Mark action item complete"
+                      }
                       className={cn(
                         "mt-0.5 h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors",
                         item.completed
-                          ? "bg-[#004E64] border-[#004E64]"
-                          : "border-border hover:border-[#004E64]"
+                          ? "bg-brand border-brand"
+                          : "border-border hover:border-brand"
                       )}
                     >
                       {item.completed && (
@@ -402,7 +409,7 @@ export function ReportViewer({
                         {item.text}
                       </span>
                       {item.assignee && (
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#FFF2BF] text-[#004E64] font-medium">
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#FFF2BF] text-brand font-medium">
                           {item.assignee}
                         </span>
                       )}
@@ -421,22 +428,22 @@ export function ReportViewer({
                 rehypePlugins={[rehypeSanitize]}
                 components={{
                   h1: ({ children }) => (
-                    <h1 className="text-xl font-bold text-[#004E64] mt-6 mb-2">
+                    <h1 className="text-xl font-bold text-brand mt-6 mb-2">
                       {children}
                     </h1>
                   ),
                   h2: ({ children }) => (
-                    <h2 className="text-lg font-semibold text-[#004E64] mt-5 mb-2">
+                    <h2 className="text-lg font-semibold text-brand mt-5 mb-2">
                       {children}
                     </h2>
                   ),
                   h3: ({ children }) => (
-                    <h3 className="text-base font-semibold text-[#004E64] mt-4 mb-1">
+                    <h3 className="text-base font-semibold text-brand mt-4 mb-1">
                       {children}
                     </h3>
                   ),
                   strong: ({ children }) => (
-                    <strong className="font-semibold text-[#004E64]">
+                    <strong className="font-semibold text-brand">
                       {children}
                     </strong>
                   ),
@@ -446,7 +453,7 @@ export function ReportViewer({
                   a: ({ href, children }) => (
                     <a
                       href={href}
-                      className="text-[#004E64] underline hover:text-[#FECE00]"
+                      className="text-brand underline hover:text-accent"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -477,18 +484,19 @@ export function ReportViewer({
         {/* ── Actions Bar ── */}
         <div className="border-t border-border bg-card px-6 py-4 flex items-center gap-3">
           {report.status === "pending" && onReview && (
-            <button
+            <Button
               onClick={onReview}
-              disabled={reviewPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003d50] transition-colors disabled:opacity-50"
+              loading={reviewPending}
+              variant="primary"
+              size="sm"
+              iconLeft={<CheckCircle2 className="w-4 h-4" />}
             >
-              <CheckCircle2 className="w-4 h-4" />
               {reviewPending ? "Marking..." : "Mark Reviewed"}
-            </button>
+            </Button>
           )}
           <button
             onClick={handleExportPdf}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#004E64] bg-[#FFF2BF] rounded-lg hover:bg-[#FECE00] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand bg-[#FFF2BF] rounded-lg hover:bg-accent transition-colors"
           >
             <FileDown className="w-4 h-4" />
             Export PDF

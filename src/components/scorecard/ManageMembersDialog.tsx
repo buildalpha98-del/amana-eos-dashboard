@@ -132,7 +132,7 @@ export function ManageMembersDialog({
                     type="button"
                     onClick={() => remove.mutate({ userId: m.user.id })}
                     disabled={remove.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
                     data-testid={`remove-member-${m.user.id}`}
                   >
                     <XIcon className="h-3 w-3" />

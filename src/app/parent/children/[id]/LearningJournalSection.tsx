@@ -56,17 +56,17 @@ export function LearningJournalSection({ childId }: { childId: string }) {
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-[color:var(--color-foreground)]">
+                  <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
                     {obs.title}
                   </p>
-                  <p className="text-[11px] text-[color:var(--color-muted)]">
+                  <p className="text-xs text-[color:var(--color-muted)]">
                     {obs.author.name} ·{" "}
                     {date.toLocaleDateString(undefined, {
                       day: "numeric",
                       month: "short",
                     })}
                   </p>
-                  <p className="text-[13px] text-[color:var(--color-foreground)]/80 mt-1 line-clamp-3">
+                  <p className="text-sm text-[color:var(--color-foreground)]/80 mt-1 line-clamp-3">
                     {obs.narrative}
                   </p>
                   {(obs.mtopOutcomes.length > 0 ||
@@ -75,7 +75,7 @@ export function LearningJournalSection({ childId }: { childId: string }) {
                       {obs.mtopOutcomes.map((m) => (
                         <span
                           key={m}
-                          className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]"
+                          className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]"
                         >
                           {m}
                         </span>
@@ -83,7 +83,7 @@ export function LearningJournalSection({ childId }: { childId: string }) {
                       {obs.interests.slice(0, 3).map((i) => (
                         <span
                           key={i}
-                          className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)]"
+                          className="text-2xs px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)]"
                         >
                           {i}
                         </span>

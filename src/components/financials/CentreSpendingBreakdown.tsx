@@ -115,12 +115,12 @@ export function CentreSpendingBreakdown() {
               Week of {weekLabel}
             </p>
             {weekOffset === 0 ? (
-              <p className="text-[10px] text-brand font-medium">Current Week</p>
+              <p className="text-2xs text-brand font-medium">Current Week</p>
             ) : (
               <button
                 type="button"
                 onClick={() => setWeekOffset(0)}
-                className="text-[10px] text-muted hover:text-foreground underline"
+                className="text-2xs text-muted hover:text-foreground underline"
               >
                 Jump to current week
               </button>
@@ -164,7 +164,7 @@ export function CentreSpendingBreakdown() {
         <ScrollableTable>
           <table className="w-full min-w-[1000px] text-sm">
             <thead>
-              <tr className="bg-surface/50 text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
+              <tr className="bg-surface/50 text-left text-2xs font-semibold text-muted uppercase tracking-wider">
                 <th className="px-6 py-3" rowSpan={2}>Centre</th>
                 <th
                   colSpan={1}
@@ -185,7 +185,7 @@ export function CentreSpendingBreakdown() {
                   </span>
                 </th>
               </tr>
-              <tr className="bg-surface/50 text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
+              <tr className="bg-surface/50 text-left text-2xs font-semibold text-muted uppercase tracking-wider">
                 {/* 2026-06-17: dropped Groceries Spent + Variance —
                     Daniel asked for forecast only; Centre Purchases
                     section keeps Spent so the duplicate is gone. */}
@@ -211,7 +211,7 @@ export function CentreSpendingBreakdown() {
                   <tr key={r.service.id} className="hover:bg-surface transition-colors">
                     <td className="px-6 py-3">
                       <div className="font-medium text-foreground">{r.service.name}</div>
-                      <div className="text-[11px] text-muted">
+                      <div className="text-xs text-muted">
                         {r.service.code} · {r.weekBookings} bookings this week
                       </div>
                     </td>
@@ -247,16 +247,16 @@ export function CentreSpendingBreakdown() {
                     {/* Status pill */}
                     <td className="px-4 py-3 text-right">
                       {monthStatus === "over" ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-700">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300">
                           <AlertTriangle className="w-3 h-3" />
                           Over by {formatCurrency(r.monthlyPurchaseSpend - r.monthlyAllocation)}
                         </span>
                       ) : monthStatus === "warn" ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300">
                           {formatCurrency(r.monthlyRemaining)} left
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
                           {formatCurrency(r.monthlyRemaining)} left
                         </span>
                       )}

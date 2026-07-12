@@ -15,6 +15,7 @@ import {
   Check,
   Loader2,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -104,7 +105,7 @@ export function UploadCalendarDialog({
             <Calendar className="w-5 h-5 text-brand" />
             <h2 className="text-lg font-semibold text-foreground">Upload Compliance Calendar</h2>
           </div>
-          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-surface">
+          <button onClick={handleClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-surface">
             <X className="w-4 h-4 text-muted" />
           </button>
         </div>
@@ -114,7 +115,7 @@ export function UploadCalendarDialog({
           {/* Success state */}
           {result ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Calendar Imported Successfully</h3>
@@ -246,28 +247,23 @@ export function UploadCalendarDialog({
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-surface/50">
           {result ? (
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90"
-            >
+            <Button variant="primary" size="sm" onClick={handleClose}>
               Done
-            </button>
+            </Button>
           ) : (
             <>
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface"
-              >
+              <Button variant="secondary" size="sm" onClick={handleClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleImport}
-                disabled={!preview || preview.length === 0 || importMutation.isPending}
-                className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={!preview || preview.length === 0}
+                loading={importMutation.isPending}
               >
-                {importMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 Import Calendar
-              </button>
+              </Button>
             </>
           )}
           {importMutation.isError && (

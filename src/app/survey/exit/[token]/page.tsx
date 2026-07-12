@@ -22,11 +22,11 @@ const SATISFACTION_FACES = [
 ];
 
 const SELECTED_BG: Record<number, string> = {
-  1: "bg-red-100 ring-2 ring-red-400",
-  2: "bg-orange-100 ring-2 ring-orange-400",
-  3: "bg-yellow-100 ring-2 ring-yellow-400",
-  4: "bg-green-100 ring-2 ring-green-400",
-  5: "bg-emerald-100 ring-2 ring-emerald-400",
+  1: "bg-red-100 dark:bg-red-950/50 ring-2 ring-red-400",
+  2: "bg-orange-100 dark:bg-orange-950/50 ring-2 ring-orange-400",
+  3: "bg-yellow-100 dark:bg-yellow-950/50 ring-2 ring-yellow-400",
+  4: "bg-green-100 dark:bg-green-950/50 ring-2 ring-green-400",
+  5: "bg-emerald-100 dark:bg-emerald-950/50 ring-2 ring-emerald-400",
 };
 
 export default function ExitSurveyPage() {
@@ -103,7 +103,7 @@ export default function ExitSurveyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand via-[#005f77] to-[#00768a]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
       </div>
     );
@@ -111,8 +111,8 @@ export default function ExitSurveyPage() {
 
   if (expired) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a]">
-        <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand via-[#005f77] to-[#00768a]">
+        <div className="max-w-md w-full mx-4 bg-card rounded-2xl shadow-2xl p-8 text-center">
           <div className="text-5xl mb-4">⏰</div>
           <h1 className="text-xl font-bold text-foreground mb-2">
             Survey Expired
@@ -128,8 +128,8 @@ export default function ExitSurveyPage() {
 
   if (completed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a]">
-        <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand via-[#005f77] to-[#00768a]">
+        <div className="max-w-md w-full mx-4 bg-card rounded-2xl shadow-2xl p-8 text-center">
           <div className="text-5xl mb-4">🙏</div>
           <h1 className="text-xl font-bold text-foreground mb-2">
             Thank You for Your Feedback
@@ -149,10 +149,10 @@ export default function ExitSurveyPage() {
   const isValid = reason && satisfaction !== null && wouldReturn;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a] px-4 py-8">
-      <div className="max-w-lg mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-brand via-[#005f77] to-[#00768a] px-4 py-8">
+      <div className="max-w-lg mx-auto bg-card rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-[#004E64] px-6 py-5 text-center">
+        <div className="bg-brand px-6 py-5 text-center">
           <h1 className="text-xl font-bold text-white">Amana OSHC</h1>
           <p className="text-white/70 text-sm mt-1">Exit Feedback Survey</p>
         </div>
@@ -174,7 +174,7 @@ export default function ExitSurveyPage() {
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-brand focus:border-brand"
             >
               <option value="">Select a reason...</option>
               {REASONS.map((r) => (
@@ -188,7 +188,7 @@ export default function ExitSurveyPage() {
                 rows={2}
                 value={reasonDetail}
                 onChange={(e) => setReasonDetail(e.target.value)}
-                className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+                className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm focus:ring-brand focus:border-brand"
                 placeholder="Any additional details? (optional)"
               />
             )}
@@ -211,7 +211,7 @@ export default function ExitSurveyPage() {
                   }`}
                 >
                   <span className="text-3xl">{s.emoji}</span>
-                  <span className="text-[9px] text-muted">{s.label}</span>
+                  <span className="text-2xs text-muted">{s.label}</span>
                 </button>
               ))}
             </div>
@@ -226,7 +226,7 @@ export default function ExitSurveyPage() {
               rows={2}
               value={enjoyedMost}
               onChange={(e) => setEnjoyedMost(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-brand focus:border-brand"
               placeholder="Activities, friendships, educators..."
             />
           </div>
@@ -240,7 +240,7 @@ export default function ExitSurveyPage() {
               rows={2}
               value={couldImprove}
               onChange={(e) => setCouldImprove(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-brand focus:border-brand"
               placeholder="Communication, programs, facilities..."
             />
           </div>
@@ -257,7 +257,7 @@ export default function ExitSurveyPage() {
                   onClick={() => setWouldReturn(opt)}
                   className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all border ${
                     wouldReturn === opt
-                      ? "bg-[#004E64] text-white border-[#004E64]"
+                      ? "bg-brand text-white border-brand"
                       : "bg-surface/50 text-foreground/80 border-border hover:bg-surface"
                   }`}
                 >
@@ -274,7 +274,7 @@ export default function ExitSurveyPage() {
           <button
             onClick={handleSubmit}
             disabled={!isValid || submitting}
-            className="w-full py-3 px-4 bg-[#004E64] hover:bg-[#003d4f] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-brand hover:bg-[#003d4f] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Submitting..." : "Submit Feedback"}
           </button>

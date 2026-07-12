@@ -12,6 +12,7 @@ import {
   Target,
   X,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
@@ -198,13 +199,14 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
             Service Scorecard
           </h3>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="xs"
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-hover transition-colors"
+          iconLeft={<Plus className="w-3.5 h-3.5" />}
         >
-          <Plus className="w-3.5 h-3.5" />
           Add Measurable
-        </button>
+        </Button>
       </div>
 
       {/* Empty state */}
@@ -217,13 +219,15 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
           <p className="text-xs text-muted mt-1">
             Add a measurable to start tracking service KPIs weekly.
           </p>
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={() => setShowAddModal(true)}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-hover transition-colors"
+            iconLeft={<Plus className="w-3.5 h-3.5" />}
+            className="mt-4"
           >
-            <Plus className="w-3.5 h-3.5" />
             Add Measurable
-          </button>
+          </Button>
         </div>
       ) : (
         <>
@@ -239,7 +243,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                 <div key={m.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[10px] font-medium text-brand">
+                      <span className="text-2xs font-medium text-brand">
                         {(m.owner?.name ?? "?")
                           .split(" ")
                           .map((n) => n[0])
@@ -270,7 +274,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                       const entry = entryLookup[m.id]?.[weekKey];
                       return (
                         <div key={weekKey} className="text-center">
-                          <p className="text-[10px] text-muted mb-1">{formatWeekShort(week)}</p>
+                          <p className="text-2xs text-muted mb-1">{formatWeekShort(week)}</p>
                           <EntryCell
                             entry={entry}
                             unit={m.unit}
@@ -311,7 +315,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                     <th
                       key={week.toISOString()}
                       className={cn(
-                        "px-1 py-3 text-center text-[10px] font-medium w-[70px]",
+                        "px-1 py-3 text-center text-2xs font-medium w-[70px]",
                         week.getTime() === getWeekStart().getTime()
                           ? "text-brand bg-brand/5 font-semibold"
                           : "text-muted"
@@ -332,7 +336,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                     <td className="sticky left-0 z-10 bg-card px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px] font-medium text-brand">
+                          <span className="text-2xs font-medium text-brand">
                             {(m.owner?.name ?? "Unassigned")
                               .split(" ")
                               .map((n) => n[0])
@@ -353,7 +357,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                         {m.title}
                       </div>
                       {m.description && (
-                        <div className="text-[10px] text-muted truncate max-w-[150px]">
+                        <div className="text-2xs text-muted truncate max-w-[150px]">
                           {m.description}
                         </div>
                       )}
@@ -497,8 +501,8 @@ function EntryCell({
         className={cn(
           "px-1 py-1 text-center cursor-pointer transition-colors hover:opacity-80",
           entry.onTrack
-            ? "bg-emerald-50 text-emerald-700"
-            : "bg-red-50 text-red-700"
+            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+            : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300"
         )}
       >
         <span className="text-xs font-medium">{formatValue(entry.value)}</span>
@@ -593,6 +597,7 @@ function AddMeasurableForm({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-muted"
           >
             <X className="w-5 h-5" />
@@ -600,7 +605,7 @@ function AddMeasurableForm({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -711,20 +716,24 @@ function AddMeasurableForm({
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface/50 transition-colors"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isPending}
-              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              variant="primary"
+              size="sm"
+              loading={isPending}
+              className="flex-1"
             >
               {isPending ? "Adding..." : "Add Measurable"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

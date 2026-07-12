@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
 import { CheckSquare, Plus, X, Calendar, ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
@@ -28,10 +29,10 @@ interface UserOption {
 const statusFilters = ["all", "pending", "in_progress", "complete"] as const;
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "bg-amber-100 text-amber-700 border-amber-300" },
-  in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-700 border-blue-300" },
-  complete: { label: "Complete", color: "bg-emerald-100 text-emerald-700 border-emerald-300" },
-  cancelled: { label: "Cancelled", color: "bg-gray-100 text-gray-500 border-gray-300" },
+  pending: { label: "Pending", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800" },
+  in_progress: { label: "In Progress", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800" },
+  complete: { label: "Complete", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800" },
+  cancelled: { label: "Cancelled", color: "bg-surface text-muted border-border" },
 };
 
 function getNextStatus(current: string): string {
@@ -202,13 +203,14 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
             <option value="title">Title A-Z</option>
             <option value="assignee">Assignee</option>
           </select>
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-brand text-white rounded-md hover:bg-brand/90 transition-colors"
+            iconLeft={<Plus className="w-3.5 h-3.5" />}
           >
-            <Plus className="w-3.5 h-3.5" />
             Add To-Do
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -245,6 +247,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                   }
                 }}
                 disabled={todo.status === "complete" || todo.status === "cancelled"}
+                aria-label="Advance to-do status"
                 className="flex-shrink-0"
               >
                 <CheckSquare
@@ -273,12 +276,12 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
 
               {/* Linked rock/issue */}
               {todo.rock && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">
+                <span className="text-2xs px-1.5 py-0.5 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 rounded">
                   {todo.rock.title}
                 </span>
               )}
               {todo.issue && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-600 rounded">
+                <span className="text-2xs px-1.5 py-0.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded">
                   {todo.issue.title}
                 </span>
               )}
@@ -297,8 +300,8 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
               {/* Status Badge */}
               <span
                 className={cn(
-                  "text-[10px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap",
-                  statusConfig[todo.status]?.color || "bg-gray-100 text-gray-500 border-gray-300"
+                  "text-2xs font-medium px-2 py-0.5 rounded-full border whitespace-nowrap",
+                  statusConfig[todo.status]?.color || "bg-surface text-muted border-border"
                 )}
               >
                 {statusConfig[todo.status]?.label || todo.status}
@@ -323,6 +326,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                 </h4>
                 <button
                   onClick={() => setShowModal(false)}
+                  aria-label="Close"
                   className="p-1 text-muted hover:text-muted"
                 >
                   <X className="w-4 h-4" />
@@ -400,35 +404,30 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-xs text-red-700 dark:text-red-300">
                   {error}
                 </div>
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => { setShowModal(false); setError(null); }}
-                  className="text-xs px-4 py-2 text-muted hover:text-foreground/80"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="xs"
                   onClick={handleCreate}
                   disabled={
-                    !formData.title ||
-                    !formData.assigneeId ||
-                    !formData.dueDate ||
-                    createTodo.isPending
+                    !formData.title || !formData.assigneeId || !formData.dueDate
                   }
-                  className={cn(
-                    "text-xs px-4 py-2 rounded-lg font-medium transition-colors",
-                    formData.title && formData.assigneeId && formData.dueDate
-                      ? "bg-brand text-white hover:bg-brand/90"
-                      : "bg-surface text-muted cursor-not-allowed"
-                  )}
+                  loading={createTodo.isPending}
                 >
                   {createTodo.isPending ? "Creating..." : "Create To-Do"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

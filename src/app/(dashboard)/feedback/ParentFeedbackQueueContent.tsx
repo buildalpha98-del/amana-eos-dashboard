@@ -161,12 +161,12 @@ function FeedbackCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {isSmsReply ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-green-50 text-green-700">
+              <span className="inline-flex items-center gap-1 text-2xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300">
                 <Phone className="w-3 h-3" />
                 SMS reply
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700">
+              <span className="inline-flex items-center gap-1 text-2xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300">
                 <MessageCircle className="w-3 h-3" />
                 {item.surveyType ?? item.source ?? "Feedback"}
               </span>
@@ -192,14 +192,14 @@ function FeedbackCard({
           </p>
         </div>
         <span
-          className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+          className={`text-2xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
             item.status === "new"
-              ? "bg-amber-50 text-amber-700"
+              ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
               : item.status === "reviewing"
-                ? "bg-blue-50 text-blue-700"
+                ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
                 : item.status === "actioned"
-                  ? "bg-green-50 text-green-700"
-                  : "bg-zinc-100 text-zinc-600"
+                  ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300"
+                  : "bg-surface text-muted"
           }`}
         >
           {item.status}

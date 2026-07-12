@@ -255,7 +255,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
               </h3>
               <button
                 onClick={() => onRemoveChild(i)}
-                className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -517,7 +517,7 @@ function DocumentUploadRow({
       {existing.map((f, fi) => (
         <div
           key={fi}
-          className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded-lg mb-2"
+          className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 px-3 py-1.5 rounded-lg mb-2"
         >
           <span className="truncate flex-1">{f.filename}</span>
           <button
@@ -530,7 +530,7 @@ function DocumentUploadRow({
         </div>
       ))}
       {error && (
-        <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-2">
+        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-3 py-2 rounded-lg mb-2">
           {error}
         </div>
       )}

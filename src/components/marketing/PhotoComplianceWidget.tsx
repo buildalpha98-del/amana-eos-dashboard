@@ -11,9 +11,9 @@ function rateColor(rate: number): string {
 }
 
 function rateBg(rate: number): string {
-  if (rate >= 0.85) return "bg-green-100 text-green-700";
-  if (rate >= 0.5) return "bg-amber-100 text-amber-700";
-  return "bg-red-100 text-red-700";
+  if (rate >= 0.85) return "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300";
+  if (rate >= 0.5) return "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300";
+  return "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300";
 }
 
 function formatDay(dateStr: string): string {
@@ -165,8 +165,8 @@ export function PhotoComplianceWidget() {
                   className={cn(
                     "flex-1 rounded py-1 text-center text-xs",
                     day.confirmed
-                      ? "bg-green-50 text-green-700"
-                      : "bg-red-50 text-red-400"
+                      ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300"
+                      : "bg-red-50 dark:bg-red-950/40 text-red-400"
                   )}
                   title={formatDay(day.date)}
                 >

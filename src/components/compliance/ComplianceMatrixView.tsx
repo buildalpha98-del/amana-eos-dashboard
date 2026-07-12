@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -120,7 +121,7 @@ function StatusCell({
       {cert.status === "expiring" && (
         <div className="relative">
           <AlertTriangle className="w-5 h-5 text-amber-500" />
-          <span className="absolute -top-1 -right-3 text-[10px] font-bold text-amber-600">
+          <span className="absolute -top-1 -right-3 text-2xs font-bold text-amber-600">
             {cert.daysLeft}d
           </span>
         </div>
@@ -142,10 +143,10 @@ function StatusCell({
 function ScoreBadge({ valid, total }: { valid: number; total: number }) {
   const color =
     valid === total
-      ? "bg-emerald-100 text-emerald-700"
+      ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
       : valid >= 5
-      ? "bg-amber-100 text-amber-700"
-      : "bg-red-100 text-red-700";
+      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+      : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300";
 
   return (
     <span
@@ -181,6 +182,7 @@ function CertDetailModal({
           </h3>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 rounded-lg hover:bg-surface transition-colors"
           >
             <X className="w-5 h-5 text-muted" />
@@ -197,11 +199,11 @@ function CertDetailModal({
               className={cn(
                 "font-semibold px-2 py-0.5 rounded-lg text-xs",
                 cert.status === "valid"
-                  ? "bg-emerald-100 text-emerald-700"
+                  ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                   : cert.status === "expiring"
-                  ? "bg-amber-100 text-amber-700"
+                  ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                   : cert.status === "expired"
-                  ? "bg-red-100 text-red-700"
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                   : "bg-surface text-muted"
               )}
             >
@@ -290,11 +292,11 @@ function MobileStaffCard({
             className={cn(
               "flex flex-col items-center gap-1 p-2 rounded-lg border transition-colors",
               cert.status === "valid"
-                ? "border-emerald-200 bg-emerald-50"
+                ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40"
                 : cert.status === "expiring"
-                ? "border-amber-200 bg-amber-50"
+                ? "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40"
                 : cert.status === "expired"
-                ? "border-red-200 bg-red-50"
+                ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40"
                 : "border-border bg-surface/50"
             )}
           >
@@ -310,7 +312,7 @@ function MobileStaffCard({
             {cert.status === "missing" && (
               <Minus className="w-4 h-4 text-muted/50" />
             )}
-            <span className="text-[10px] font-medium text-muted text-center leading-tight">
+            <span className="text-2xs font-medium text-muted text-center leading-tight">
               {SHORT_LABELS[cert.type] || cert.type}
             </span>
           </button>
@@ -450,13 +452,14 @@ export default function ComplianceMatrixView({
             </button>
           )}
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleExport}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
+          iconLeft={<Download className="w-4 h-4" />}
         >
-          <Download className="w-4 h-4" />
           Export CSV
-        </button>
+        </Button>
       </div>
 
       {/* Desktop Table */}

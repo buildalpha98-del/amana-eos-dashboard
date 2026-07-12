@@ -21,7 +21,7 @@ export function RatesCard({
         </label>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">BSC</label>
+            <label className="text-2xs text-muted block mb-0.5">BSC</label>
             <input
               type="number"
               min={0}
@@ -39,7 +39,7 @@ export function RatesCard({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">ASC</label>
+            <label className="text-2xs text-muted block mb-0.5">ASC</label>
             <input
               type="number"
               min={0}
@@ -57,7 +57,7 @@ export function RatesCard({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">VC</label>
+            <label className="text-2xs text-muted block mb-0.5">VC</label>
             <input
               type="number"
               min={0}
@@ -85,7 +85,7 @@ export function RatesCard({
         </label>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">BSC Casual</label>
+            <label className="text-2xs text-muted block mb-0.5">BSC Casual</label>
             <input
               type="number"
               min={0}
@@ -103,7 +103,7 @@ export function RatesCard({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted block mb-0.5">ASC Casual</label>
+            <label className="text-2xs text-muted block mb-0.5">ASC Casual</label>
             <input
               type="number"
               min={0}

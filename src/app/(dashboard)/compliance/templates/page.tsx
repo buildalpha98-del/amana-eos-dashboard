@@ -78,12 +78,12 @@ import { CSS } from "@dnd-kit/utilities";
 /* ------------------------------------------------------------------ */
 
 const formatLabels: Record<string, { label: string; color: string }> = {
-  yes_no: { label: "Yes / No", color: "bg-blue-100 text-blue-700" },
-  rating_1_5: { label: "Rating 1-5", color: "bg-purple-100 text-purple-700" },
-  compliant: { label: "Compliant", color: "bg-emerald-100 text-emerald-700" },
-  reverse_yes_no: { label: "Reverse Y/N", color: "bg-amber-100 text-amber-700" },
-  review_date: { label: "Review Date", color: "bg-cyan-100 text-cyan-700" },
-  inventory: { label: "Inventory", color: "bg-gray-100 text-gray-500" },
+  yes_no: { label: "Yes / No", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  rating_1_5: { label: "Rating 1-5", color: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300" },
+  compliant: { label: "Compliant", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  reverse_yes_no: { label: "Reverse Y/N", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" },
+  review_date: { label: "Review Date", color: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300" },
+  inventory: { label: "Inventory", color: "bg-surface text-muted" },
 };
 
 const frequencyLabels: Record<string, string> = {
@@ -193,7 +193,7 @@ function SortableItemRow({
         ) : (
           <>
             {item.section && (
-              <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mb-0.5 inline-block">
+              <span className="text-2xs font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mb-0.5 inline-block">
                 {item.section}
               </span>
             )}
@@ -205,7 +205,7 @@ function SortableItemRow({
         )}
       </div>
 
-      <span className={cn("px-2 py-0.5 text-[10px] font-medium rounded-full shrink-0 mt-1", fmt.color)}>
+      <span className={cn("px-2 py-0.5 text-2xs font-medium rounded-full shrink-0 mt-1", fmt.color)}>
         {fmt.label}
       </span>
 
@@ -448,7 +448,7 @@ function TemplateDetail({
             >
               <X className="w-3 h-3" /> Cancel
             </button>
-            <span className="text-[10px] text-muted ml-1">
+            <span className="text-2xs text-muted ml-1">
               ⌘/Ctrl+Enter to save · Esc to cancel
             </span>
           </div>
@@ -617,13 +617,13 @@ function ParsePreviewModal({
                 <span
                   className={cn(
                     "px-2 py-0.5 text-xs font-medium rounded-full",
-                    formatLabels[parsed.detectedFormat]?.color || "bg-gray-100 text-gray-500"
+                    formatLabels[parsed.detectedFormat]?.color || "bg-surface text-muted"
                   )}
                 >
                   {formatLabels[parsed.detectedFormat]?.label || parsed.detectedFormat}
                 </span>
                 {parsed.metadata.hasReverseYesNo && (
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
                     Has Reverse Y/N
                   </span>
                 )}
@@ -632,7 +632,7 @@ function ParsePreviewModal({
               {parsed.metadata.sections.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
                   {parsed.metadata.sections.map((s) => (
-                    <span key={s} className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                    <span key={s} className="text-2xs bg-surface text-muted px-2 py-0.5 rounded">
                       {s}
                     </span>
                   ))}
@@ -654,7 +654,7 @@ function ParsePreviewModal({
                       <span className="text-xs text-muted mt-0.5 w-6 shrink-0">{idx + 1}</span>
                       <div className="flex-1 min-w-0">
                         {item.section && (
-                          <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mr-1">
+                          <span className="text-2xs font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mr-1">
                             {item.section}
                           </span>
                         )}
@@ -663,7 +663,7 @@ function ParsePreviewModal({
                           <p className="text-xs text-muted mt-0.5">{item.guidance}</p>
                         )}
                       </div>
-                      <span className={cn("px-1.5 py-0.5 text-[10px] font-medium rounded-full shrink-0", fmt.color)}>
+                      <span className={cn("px-1.5 py-0.5 text-2xs font-medium rounded-full shrink-0", fmt.color)}>
                         {fmt.label}
                       </span>
                       <button
@@ -906,12 +906,12 @@ function BulkUploadModal({
                         <>
                           <span
                             className={cn(
-                              "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                              "text-2xs font-medium px-1.5 py-0.5 rounded-full",
                               confidence >= 0.8
-                                ? "bg-emerald-100 text-emerald-700"
+                                ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                                 : confidence >= 0.6
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-red-100 text-red-700"
+                                ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                                : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                             )}
                           >
                             {Math.round(confidence * 100)}%
@@ -1070,11 +1070,11 @@ export default function AuditTemplatesPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to Compliance
           </Link>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-brand" />
             Audit Templates
           </h1>
-          <p className="text-sm text-muted mt-0.5">
+          <p className="text-sm text-muted mt-1">
             Manage checklist items for {templates.length} audit templates
           </p>
         </div>
@@ -1083,7 +1083,7 @@ export default function AuditTemplatesPage() {
             <button
               onClick={handleSeedTemplates}
               disabled={seeding}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 border border-emerald-300 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
             >
               {seeding ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1121,7 +1121,7 @@ export default function AuditTemplatesPage() {
                 setWipeConfirm("");
                 setShowWipeAll(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-700 border border-rose-300 rounded-lg hover:bg-rose-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
               title="Wipe every template, every scheduled instance, and every staff response. Use only to start fresh."
             >
               <Trash2 className="w-4 h-4" />
@@ -1137,8 +1137,8 @@ export default function AuditTemplatesPage() {
           className={cn(
             "flex items-center justify-between px-4 py-3 rounded-lg text-sm",
             seedResult.created === -1
-              ? "bg-red-50 text-red-700"
-              : "bg-emerald-50 text-emerald-700"
+              ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300"
+              : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
           )}
         >
           <span>
@@ -1249,14 +1249,14 @@ export default function AuditTemplatesPage() {
                       </p>
                       {template.documentMode && (
                         <span
-                          className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-indigo-100 text-indigo-700"
+                          className="px-1.5 py-0.5 text-2xs font-medium rounded bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300"
                           title="Document-mode audit — coordinators edit the .docx inline per instance"
                         >
                           Doc
                         </span>
                       )}
                       {!template.isActive && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500">
+                        <span className="px-1.5 py-0.5 text-2xs font-medium rounded bg-surface text-muted">
                           Inactive
                         </span>
                       )}
@@ -1277,7 +1277,7 @@ export default function AuditTemplatesPage() {
                     </div>
                   </div>
 
-                  <span className={cn("px-2 py-0.5 text-[10px] font-medium rounded-full shrink-0", fmt.color)}>
+                  <span className={cn("px-2 py-0.5 text-2xs font-medium rounded-full shrink-0", fmt.color)}>
                     {fmt.label}
                   </span>
 
@@ -1334,7 +1334,7 @@ export default function AuditTemplatesPage() {
                         e.stopPropagation();
                         setDeleteTarget({ id: template.id, name: template.name });
                       }}
-                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors shrink-0"
                       title="Delete template (removes items + every per-service instance + history)"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1429,7 +1429,7 @@ export default function AuditTemplatesPage() {
                 Per-template delete on each row is the safer option if you
                 only want to remove a few.
               </p>
-              <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-2 text-rose-900">
+              <div className="rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 px-3 py-2 text-rose-900 dark:text-rose-200">
                 <p className="text-xs mb-1.5">
                   Type <code className="font-mono font-semibold">RESET</code>{" "}
                   to confirm:
@@ -1439,7 +1439,7 @@ export default function AuditTemplatesPage() {
                   autoFocus
                   value={wipeConfirm}
                   onChange={(e) => setWipeConfirm(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm border border-rose-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
+                  className="w-full px-3 py-1.5 text-sm border border-rose-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 bg-card"
                   placeholder="RESET"
                 />
               </div>
@@ -1570,7 +1570,7 @@ function CalendarUploadModal({ onClose }: { onClose: () => void }) {
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {result ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Calendar Imported</h3>

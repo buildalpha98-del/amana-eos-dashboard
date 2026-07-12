@@ -57,8 +57,8 @@ export function PolicyStaffPanel() {
   if (sorted.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border bg-muted/30 p-12 text-center">
-        <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
-        <p className="mt-3 text-sm text-muted-foreground">
+        <FileText className="mx-auto h-8 w-8 text-muted" />
+        <p className="mt-3 text-sm text-muted">
           No policies or procedures to review just yet.
         </p>
       </div>
@@ -104,11 +104,11 @@ function StaffRow({
             <span className="text-sm font-semibold text-foreground truncate">
               {doc.title}
             </span>
-            <span className="text-[10px] uppercase tracking-wide font-medium text-muted bg-muted/50 px-1.5 py-0.5 rounded">
+            <span className="text-2xs uppercase tracking-wide font-medium text-muted bg-muted/50 px-1.5 py-0.5 rounded">
               {CATEGORY_LABEL[doc.category]}
             </span>
             {doc.currentVersion && (
-              <span className="text-[10px] uppercase tracking-wide font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded">
+              <span className="text-2xs uppercase tracking-wide font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded">
                 v{doc.currentVersion.versionNumber}
               </span>
             )}
@@ -118,12 +118,12 @@ function StaffRow({
           )}
         </div>
         {acked ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-1 text-2xs font-medium text-emerald-700 dark:text-emerald-300">
             <CheckCircle2 className="h-3 w-3" />
             Acknowledged
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-800">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/50 px-2 py-1 text-2xs font-medium text-amber-800 dark:text-amber-200">
             <AlertCircle className="h-3 w-3" />
             Acknowledgement required
           </span>

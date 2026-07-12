@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useCreateSeat, useUpdateSeat, type SeatNode } from "@/hooks/useAccountabilityChart";
 
 interface User {
@@ -124,6 +125,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 text-muted hover:text-foreground rounded"
           >
             <X className="w-5 h-5" />
@@ -189,7 +191,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
                     />
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                        <span className="text-[9px] font-bold text-brand">
+                        <span className="text-2xs font-bold text-brand">
                           {u.name
                             .split(" ")
                             .map((n) => n[0])
@@ -237,6 +239,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
                   {responsibilities.length > 1 && (
                     <button
                       onClick={() => removeResponsibility(i)}
+                      aria-label="Remove responsibility"
                       className="p-1 text-muted hover:text-danger"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -257,19 +260,18 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border flex justify-end gap-3 sticky bottom-0 bg-card rounded-b-xl">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface"
-          >
+          <Button variant="secondary" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSave}
-            disabled={saving || !title.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!title.trim()}
+            loading={saving}
           >
             {saving ? "Saving..." : isNew ? "Create Seat" : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

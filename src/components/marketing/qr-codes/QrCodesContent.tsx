@@ -109,7 +109,7 @@ export default function QrCodesContent() {
                   <td className="p-3">
                     <div className="font-medium text-foreground">{c.name}</div>
                     {c.description && <div className="text-xs text-muted line-clamp-1">{c.description}</div>}
-                    {!c.active && <div className="text-[10px] text-muted">archived</div>}
+                    {!c.active && <div className="text-2xs text-muted">archived</div>}
                   </td>
                   <td className="p-3 text-xs font-mono text-foreground">
                     <a

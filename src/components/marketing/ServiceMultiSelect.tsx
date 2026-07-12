@@ -116,7 +116,7 @@ export function ServiceMultiSelect({
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {selectedIds.length > 0 && (
-            <span className="inline-flex items-center justify-center rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+            <span className="inline-flex items-center justify-center rounded-full bg-brand px-1.5 py-0.5 text-2xs font-bold text-white leading-none">
               {selectedIds.length}
             </span>
           )}

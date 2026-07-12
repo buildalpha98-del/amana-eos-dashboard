@@ -26,8 +26,8 @@ import { cn } from "@/lib/utils";
 
 const STATUS_COLORS = {
   not_started: { bg: "bg-surface", text: "text-muted", label: "Not Started" },
-  in_progress: { bg: "bg-blue-100", text: "text-blue-700", label: "In Progress" },
-  completed: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Completed" },
+  in_progress: { bg: "bg-blue-100 dark:bg-blue-950/50", text: "text-blue-700", label: "In Progress" },
+  completed: { bg: "bg-emerald-100 dark:bg-emerald-950/50", text: "text-emerald-700", label: "Completed" },
 };
 
 interface PackSummary {
@@ -194,7 +194,7 @@ export function OnboardingPacksTab({
                             )}
                           </div>
                           {p.task.isRequired && (
-                            <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+                            <span className="text-2xs font-medium text-red-500 uppercase">Required</span>
                           )}
                         </div>
                       ))}
@@ -224,11 +224,11 @@ export function OnboardingPacksTab({
               {packs.map((pack) => (
                 <div key={pack.id} onClick={() => setSelectedPackId(selectedPackId === pack.id ? null : pack.id)} className={cn("bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer", selectedPackId === pack.id && "ring-2 ring-brand border-brand")}>
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-950/50 flex items-center justify-center">
                       <ClipboardList className="w-5 h-5 text-cyan-700" />
                     </div>
                     {pack.isDefault && (
-                      <span className="text-[10px] font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
+                      <span className="text-2xs font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
                     )}
                   </div>
                   <h4 className="font-semibold text-foreground mb-1">{pack.name}</h4>
@@ -249,7 +249,7 @@ export function OnboardingPacksTab({
               <div className="bg-card rounded-xl border border-border p-6 mt-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-950/50 flex items-center justify-center">
                       <ClipboardList className="w-5 h-5 text-cyan-700" />
                     </div>
                     {editingPackId === selectedPackId ? (
@@ -288,7 +288,7 @@ export function OnboardingPacksTab({
                           {selectedPackData?.name ?? packs.find(p => p.id === selectedPackId)?.name ?? "Pack Details"}
                         </h4>
                         {selectedPackData?.isDefault && (
-                          <span className="text-[10px] font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
+                          <span className="text-2xs font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
                         )}
                       </div>
                     )}
@@ -308,7 +308,7 @@ export function OnboardingPacksTab({
                           <Pencil className="w-4 h-4" />
                         </button>
                         {confirmDeletePackId === selectedPackId ? (
-                          <div className="flex items-center gap-1 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
+                          <div className="flex items-center gap-1 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-2 py-1">
                             <span className="text-xs text-red-600 font-medium">Delete?</span>
                             <button
                               onClick={() => handleDeletePack(selectedPackId!)}
@@ -327,7 +327,7 @@ export function OnboardingPacksTab({
                         ) : (
                           <button
                             onClick={(e) => { e.stopPropagation(); setConfirmDeletePackId(selectedPackId); }}
-                            className="p-1.5 text-muted hover:text-danger hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-1.5 text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
                             title="Delete pack"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -364,11 +364,11 @@ export function OnboardingPacksTab({
                                 <p className="text-sm text-foreground">{task.title}</p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-[10px] font-medium bg-border text-muted px-2 py-0.5 rounded-full capitalize">
+                                <span className="text-2xs font-medium bg-border text-muted px-2 py-0.5 rounded-full capitalize">
                                   {task.category.replace("_", " ")}
                                 </span>
                                 {task.isRequired && (
-                                  <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+                                  <span className="text-2xs font-medium text-red-500 uppercase">Required</span>
                                 )}
                               </div>
                             </div>

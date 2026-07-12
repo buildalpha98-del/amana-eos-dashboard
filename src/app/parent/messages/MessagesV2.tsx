@@ -31,7 +31,7 @@ export default function MessagesV2() {
     <div className="pb-20">
       <header className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
+          <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
             Messages
           </h1>
           <p className="text-sm text-[color:var(--color-muted)] mt-1">
@@ -89,7 +89,7 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
             {conversation.subject ?? "No subject"}
           </p>
           {conversation.lastMessageAt && (
-            <span className="text-[11px] text-[color:var(--color-muted)] shrink-0">
+            <span className="text-xs text-[color:var(--color-muted)] shrink-0">
               {formatRelative(conversation.lastMessageAt)}
             </span>
           )}

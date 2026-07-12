@@ -245,10 +245,10 @@ function StatCard({
   color: string;
 }) {
   const colors: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-600",
-    amber: "bg-amber-50 text-amber-600",
-    purple: "bg-purple-50 text-purple-600",
-    emerald: "bg-emerald-50 text-emerald-600",
+    blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400",
+    amber: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
+    purple: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400",
+    emerald: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400",
   };
 
   return (

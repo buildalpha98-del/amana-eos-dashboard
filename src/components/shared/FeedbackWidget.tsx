@@ -125,7 +125,7 @@ export function FeedbackWidget() {
             </div>
 
             {/* Page badge */}
-            <p className="text-[11px] text-muted truncate">
+            <p className="text-xs text-muted truncate">
               Page: {pathname}
             </p>
 

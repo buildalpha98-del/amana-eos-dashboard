@@ -28,15 +28,15 @@ interface ServiceChildrenTabProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  active: "bg-green-100 text-green-700",
-  pending: "bg-amber-100 text-amber-700",
-  withdrawn: "bg-red-100 text-red-700",
+  active: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  pending: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  withdrawn: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
 };
 
 const CCS_BADGE_STYLES: Record<string, string> = {
-  eligible: "bg-green-100 text-green-700 border-green-200",
-  pending: "bg-amber-100 text-amber-700 border-amber-200",
-  ineligible: "bg-red-100 text-red-700 border-red-200",
+  eligible: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  pending: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+  ineligible: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
 };
 
 const SESSION_LABELS: Record<string, string> = {
@@ -105,7 +105,7 @@ function renderEnrolledDays(bookingPrefs: Record<string, unknown> | null): React
         return (
           <span
             key={session}
-            className="text-[10px] font-medium bg-brand/10 text-brand px-1.5 py-0.5 rounded"
+            className="text-2xs font-medium bg-brand/10 text-brand px-1.5 py-0.5 rounded"
           >
             {SESSION_LABELS[session] ?? session.toUpperCase()}:{" "}
             {dayNames.map((d) => DAY_SHORT[d] ?? d).join(", ")}
@@ -195,11 +195,11 @@ export function ServiceChildrenTab({ serviceId }: ServiceChildrenTabProps) {
 function CcsBadge({ status }: { status: string }) {
   const normalised = status.toLowerCase();
   const styles =
-    CCS_BADGE_STYLES[normalised] ?? "bg-gray-100 text-gray-700 border-gray-200";
+    CCS_BADGE_STYLES[normalised] ?? "bg-surface text-foreground/80 border-border";
   return (
     <span
       data-testid="ccs-badge"
-      className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border capitalize ${styles}`}
+      className={`inline-flex items-center text-2xs font-semibold px-1.5 py-0.5 rounded-full border capitalize ${styles}`}
     >
       CCS: {status}
     </span>
@@ -228,27 +228,27 @@ function ChildRow({ child }: { child: ChildRecord }) {
             <span className="text-xs text-muted">{getAge(child.dob)}</span>
           )}
           {medical && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-2xs font-semibold">
               <AlertTriangle className="w-3 h-3" />
               Medical
             </span>
           )}
           {dietary && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-2xs font-semibold">
               <UtensilsCrossed className="w-3 h-3" />
               Dietary
             </span>
           )}
           {bookingType && (
-            <span className="text-[10px] font-medium bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full capitalize">
+            <span className="text-2xs font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full capitalize">
               {bookingType}
             </span>
           )}
           {child.ccsStatus && <CcsBadge status={child.ccsStatus} />}
         </div>
         <span
-          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
-            STATUS_STYLES[child.status] ?? "bg-gray-100 text-gray-700"
+          className={`text-2xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+            STATUS_STYLES[child.status] ?? "bg-surface text-foreground/80"
           }`}
         >
           {child.status}

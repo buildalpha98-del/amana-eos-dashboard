@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface LeaveRequest {
   id: number;
@@ -70,12 +71,12 @@ function formatDate(iso: string | null): string {
 function statusPill(status: string): string {
   const s = status.toLowerCase();
   if (s.startsWith("approv"))
-    return "bg-emerald-50 text-emerald-800 border-emerald-200";
+    return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800";
   if (s.startsWith("reject"))
-    return "bg-red-50 text-red-800 border-red-200";
+    return "bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800";
   if (s.startsWith("cancel"))
-    return "bg-gray-100 text-gray-700 border-gray-200";
-  return "bg-amber-50 text-amber-800 border-amber-200"; // pending
+    return "bg-surface text-foreground/80 border-border";
+  return "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800"; // pending
 }
 
 const EH_BUSINESS_ID = "407666"; // for the "Open in EH" deeplink
@@ -131,14 +132,12 @@ export function LeavePayrollClient() {
           <ArrowLeft className="w-4 h-4" />
           Back to internal leave
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
-          Leave (Employment Hero)
-        </h1>
-        <p className="text-sm text-muted mt-1 max-w-3xl">
-          Live data from Employment Hero Payroll. Read-only — to approve or
-          reject a request, click through to EH. The 21-day Fair Work
-          response window applies to pending requests.
-        </p>
+        <div className="mt-2">
+          <PageHeader
+            title="Leave (Employment Hero)"
+            description="Live data from Employment Hero Payroll. Read-only — to approve or reject a request, click through to EH. The 21-day Fair Work response window applies to pending requests."
+          />
+        </div>
       </div>
 
       {/* Tabs */}
@@ -166,7 +165,7 @@ export function LeavePayrollClient() {
       {isLoading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900 flex items-start gap-2">
+        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 text-sm text-red-900 dark:text-red-200 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <div>
             <p className="font-medium">Unable to load from Employment Hero.</p>
@@ -218,7 +217,7 @@ export function LeavePayrollClient() {
                       <span className="font-medium">{r.employee}</span>
                     )}
                     {!r.dashboardUser && (
-                      <span className="block text-[10px] text-amber-700 mt-0.5">
+                      <span className="block text-2xs text-amber-700 mt-0.5">
                         Not linked to a dashboard user
                       </span>
                     )}

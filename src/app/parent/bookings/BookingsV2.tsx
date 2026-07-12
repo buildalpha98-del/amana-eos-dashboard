@@ -60,7 +60,7 @@ export default function BookingsV2() {
     <div className="pb-24">
       {/* Header */}
       <header className="mb-5">
-        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
           Bookings
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] mt-1">
@@ -490,7 +490,7 @@ function Step2PickDates({
                     : "bg-[color:var(--color-cream-soft)] border-[color:var(--color-border)] text-[color:var(--color-foreground)]/80",
                 )}
               >
-                <div className="text-[10px] font-bold tracking-wider">{d.weekday.toUpperCase()}</div>
+                <div className="text-2xs font-bold tracking-wider">{d.weekday.toUpperCase()}</div>
                 <div className="text-base font-bold leading-none mt-0.5">{d.day}</div>
               </button>
             );

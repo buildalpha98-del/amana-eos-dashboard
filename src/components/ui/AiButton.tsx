@@ -73,7 +73,7 @@ export function AiButton({
         onClick={cancel}
         className={cn(
           "inline-flex items-center font-medium rounded-lg border transition-colors",
-          "border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100",
+          "border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/50",
           sizeClasses,
           className,
         )}
@@ -92,7 +92,7 @@ export function AiButton({
       disabled={disabled}
       className={cn(
         "inline-flex items-center font-medium rounded-lg border transition-colors",
-        "border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100",
+        "border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/50",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         sizeClasses,
         className,

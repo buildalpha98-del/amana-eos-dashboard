@@ -466,7 +466,7 @@ function OnboardingPageInner() {
 
       {/* Seed Message */}
       {seedMessage && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
           <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
           <p className="text-sm text-amber-800">{seedMessage}</p>
           <button onClick={() => setSeedMessage(null)} className="ml-auto text-amber-400 hover:text-amber-600">
@@ -700,7 +700,7 @@ function OnboardingPageInner() {
                 <input type="date" value={assignForm.dueDate} onChange={(e) => setAssignForm({ ...assignForm, dueDate: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
               {assignPack.isError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-xs text-red-700 dark:text-red-300">
                   {(assignPack.error as Error).message}
                 </div>
               )}
@@ -769,7 +769,7 @@ function OnboardingPageInner() {
                 />
               </div>
               {enrollStaff.isError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-xs text-red-700 dark:text-red-300">
                   {(enrollStaff.error as Error).message}
                 </div>
               )}

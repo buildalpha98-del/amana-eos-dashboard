@@ -19,11 +19,11 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
-  scheduled: { label: "Scheduled", color: "bg-blue-100 text-blue-700", icon: Clock },
-  in_progress: { label: "In Progress", color: "bg-amber-100 text-amber-700", icon: Play },
-  completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle2 },
-  overdue: { label: "Overdue", color: "bg-red-100 text-red-700", icon: AlertTriangle },
-  skipped: { label: "Skipped", color: "bg-gray-100 text-gray-500", icon: SkipForward },
+  scheduled: { label: "Scheduled", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300", icon: Clock },
+  in_progress: { label: "In Progress", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300", icon: Play },
+  completed: { label: "Completed", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300", icon: CheckCircle2 },
+  overdue: { label: "Overdue", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300", icon: AlertTriangle },
+  skipped: { label: "Skipped", color: "bg-surface text-muted", icon: SkipForward },
 };
 
 function scoreColor(score: number | null) {
@@ -53,10 +53,10 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { label: "Scheduled", value: stats.scheduled, color: "text-blue-700 bg-blue-50" },
-            { label: "In Progress", value: stats.in_progress, color: "text-amber-700 bg-amber-50" },
-            { label: "Completed", value: stats.completed, color: "text-emerald-700 bg-emerald-50" },
-            { label: "Overdue", value: stats.overdue, color: "text-red-700 bg-red-50" },
+            { label: "Scheduled", value: stats.scheduled, color: "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40" },
+            { label: "In Progress", value: stats.in_progress, color: "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40" },
+            { label: "Overdue", value: stats.overdue, color: "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40" },
             {
               label: "Avg Score",
               value: stats.avgScore != null ? `${stats.avgScore}%` : "—",

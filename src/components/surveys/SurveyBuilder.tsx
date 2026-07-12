@@ -239,7 +239,7 @@ export function SurveyBuilder({ surveyId, onDone, onCancel }: Props) {
       </div>
 
       {editLocked && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-2">
+        <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>
             This survey already has responses. You can edit the title,
@@ -556,7 +556,7 @@ function QuestionEditor({
             type="button"
             onClick={onRemove}
             disabled={disabled}
-            className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
+            className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded disabled:opacity-30"
             title="Remove question"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -603,7 +603,7 @@ function QuestionEditor({
                   onChange({ options: options.filter((_, x) => x !== oi) })
                 }
                 disabled={disabled || options.length <= 2}
-                className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
+                className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded disabled:opacity-30"
               >
                 <Trash2 className="w-3 h-3" />
               </button>

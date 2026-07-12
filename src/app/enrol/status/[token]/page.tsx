@@ -21,11 +21,11 @@ interface SubmissionStatus {
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  submitted: { label: "Under Review", color: "text-blue-600 bg-blue-50" },
-  reviewing: { label: "Being Reviewed", color: "text-amber-600 bg-amber-50" },
-  processed: { label: "Confirmed", color: "text-green-600 bg-green-50" },
-  needs_info: { label: "More Info Needed", color: "text-orange-600 bg-orange-50" },
-  rejected: { label: "Not Proceeding", color: "text-red-600 bg-red-50" },
+  submitted: { label: "Under Review", color: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40" },
+  reviewing: { label: "Being Reviewed", color: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40" },
+  processed: { label: "Confirmed", color: "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40" },
+  needs_info: { label: "More Info Needed", color: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40" },
+  rejected: { label: "Not Proceeding", color: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40" },
 };
 
 export default function EnrolmentStatusPage() {
@@ -146,7 +146,7 @@ export default function EnrolmentStatusPage() {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                     item.done
-                      ? "bg-green-100 text-green-600"
+                      ? "bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-400"
                       : item.current
                       ? "bg-brand/10 text-brand animate-pulse"
                       : "bg-surface text-muted"

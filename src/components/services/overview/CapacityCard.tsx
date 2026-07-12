@@ -78,7 +78,7 @@ export function CapacityCard({
                 className={cn(
                   "text-xs px-2 py-0.5 rounded-full font-medium",
                   waitlistCount > 0
-                    ? "bg-amber-100 text-amber-700"
+                    ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                     : "bg-surface text-muted"
                 )}
               >

@@ -71,7 +71,7 @@ export function ServiceInfoCard({
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Service Name</label>
+                <label className="text-2xs text-muted block mb-0.5">Service Name</label>
                 <input
                   autoFocus
                   type="text"
@@ -82,7 +82,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Code</label>
+                <label className="text-2xs text-muted block mb-0.5">Code</label>
                 <input
                   type="text"
                   value={detailsForm.code}
@@ -93,7 +93,7 @@ export function ServiceInfoCard({
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Address</label>
+              <label className="text-2xs text-muted block mb-0.5">Address</label>
               <input
                 type="text"
                 value={detailsForm.address}
@@ -104,7 +104,7 @@ export function ServiceInfoCard({
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Suburb</label>
+                <label className="text-2xs text-muted block mb-0.5">Suburb</label>
                 <input
                   type="text"
                   value={detailsForm.suburb}
@@ -114,7 +114,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">State</label>
+                <label className="text-2xs text-muted block mb-0.5">State</label>
                 <input
                   type="text"
                   value={detailsForm.state}
@@ -124,7 +124,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Postcode</label>
+                <label className="text-2xs text-muted block mb-0.5">Postcode</label>
                 <input
                   type="text"
                   value={detailsForm.postcode}
@@ -136,7 +136,7 @@ export function ServiceInfoCard({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Phone</label>
+                <label className="text-2xs text-muted block mb-0.5">Phone</label>
                 <input
                   type="text"
                   value={detailsForm.phone}
@@ -146,7 +146,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Email</label>
+                <label className="text-2xs text-muted block mb-0.5">Email</label>
                 <input
                   type="text"
                   value={detailsForm.email}
@@ -158,7 +158,7 @@ export function ServiceInfoCard({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Capacity</label>
+                <label className="text-2xs text-muted block mb-0.5">Capacity</label>
                 <input
                   type="number"
                   min={0}
@@ -169,7 +169,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Operating Days</label>
+                <label className="text-2xs text-muted block mb-0.5">Operating Days</label>
                 <input
                   type="text"
                   value={detailsForm.operatingDays}

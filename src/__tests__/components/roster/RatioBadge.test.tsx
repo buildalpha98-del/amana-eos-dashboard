@@ -5,11 +5,11 @@ import { render } from "@testing-library/react";
 import { RatioBadge } from "@/components/roster/RatioBadge";
 
 describe("RatioBadge", () => {
-  it("shows 'No coverage needed' with gray styling when childrenCount is 0", () => {
+  it("shows 'No coverage needed' with neutral styling when childrenCount is 0", () => {
     const { container } = render(<RatioBadge staffCount={0} childrenCount={0} />);
     expect(container.textContent).toMatch(/no coverage/i);
     const root = container.firstChild as HTMLElement | null;
-    expect(root?.className).toMatch(/gray/);
+    expect(root?.className).toMatch(/bg-surface|text-muted/); // neutral token styling
   });
 
   it("shows 'No staff rostered' with red styling when staffCount is 0 but children > 0", () => {

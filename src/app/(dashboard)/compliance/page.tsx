@@ -73,19 +73,19 @@ const typeLabels: Record<string, string> = {
 };
 
 const typeBadgeColors: Record<string, string> = {
-  wwcc: "bg-indigo-100 text-indigo-700",
-  first_aid: "bg-red-100 text-red-700",
-  anaphylaxis: "bg-orange-100 text-orange-700",
-  asthma: "bg-teal-100 text-teal-700",
-  cpr: "bg-rose-100 text-rose-700",
-  police_check: "bg-slate-100 text-slate-700",
-  annual_review: "bg-violet-100 text-violet-700",
-  child_protection: "bg-blue-100 text-blue-700",
-  geccko: "bg-emerald-100 text-emerald-700",
-  food_safety: "bg-amber-100 text-amber-700",
-  food_handler: "bg-yellow-100 text-yellow-700",
-  mandatory_reporter_training: "bg-purple-100 text-purple-700",
-  child_safe_code_of_conduct: "bg-pink-100 text-pink-700",
+  wwcc: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  first_aid: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  anaphylaxis: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  asthma: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
+  cpr: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
+  police_check: "bg-surface text-foreground/80",
+  annual_review: "bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300",
+  child_protection: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  geccko: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  food_safety: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  food_handler: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300",
+  mandatory_reporter_training: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  child_safe_code_of_conduct: "bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300",
   other: "bg-surface text-foreground/80",
 };
 
@@ -150,11 +150,11 @@ function statusColor(status: string) {
   switch (status) {
     case "expired":
     case "critical":
-      return "text-red-600 bg-red-50 border-red-200";
+      return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800";
     case "warning":
-      return "text-amber-600 bg-amber-50 border-amber-200";
+      return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800";
     default:
-      return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800";
   }
 }
 
@@ -421,7 +421,7 @@ function StaffComplianceView() {
                     {typeLabels[type]}
                   </span>
                   {cert && hasNoExpiry && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
                       No expiry
                     </span>
                   )}

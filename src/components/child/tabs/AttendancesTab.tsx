@@ -31,9 +31,9 @@ const SESSION_LABELS: Record<"bsc" | "asc" | "vc", string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  present: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  absent: "bg-rose-50 text-rose-700 border-rose-200",
-  booked: "bg-sky-50 text-sky-700 border-sky-200",
+  present: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+  absent: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+  booked: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800",
 };
 
 function formatDateDisplay(iso: string): string {

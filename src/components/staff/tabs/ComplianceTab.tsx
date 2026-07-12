@@ -101,7 +101,7 @@ export function ComplianceTab({ userId, qualifications, certificates, canManage,
                   </button>
                 ) : (
                   <span
-                    className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0"
+                    className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded shrink-0"
                     title="No certificate file has been uploaded for this record yet"
                     data-testid="qualification-no-file-badge"
                   >

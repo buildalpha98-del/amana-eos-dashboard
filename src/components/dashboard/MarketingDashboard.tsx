@@ -137,28 +137,28 @@ export function MarketingDashboard() {
       <div className="flex gap-2 overflow-x-auto pb-2">
         <Link
           href="/enquiries"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted-foreground hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
         >
           <UserPlus className="w-3.5 h-3.5" />
           New Enquiry
         </Link>
         <Link
           href="/marketing/email/compose"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted-foreground hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
         >
           <Mail className="w-3.5 h-3.5" />
           Send Email
         </Link>
         <Link
           href="/crm"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted-foreground hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
         >
           <Target className="w-3.5 h-3.5" />
           CRM Pipeline
         </Link>
         <Link
           href="/conversions"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted-foreground hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
         >
           <TrendingUp className="w-3.5 h-3.5" />
           Conversions

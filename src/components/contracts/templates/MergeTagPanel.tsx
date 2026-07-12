@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { MERGE_TAGS, type MergeTagDef } from "@/lib/contract-templates/merge-tag-catalog";
 import { toCustomTagKey } from "@/lib/contract-templates/custom-tag-key";
 import type { ManualField } from "@/lib/contract-templates/manual-fields-schema";
@@ -80,7 +81,7 @@ export function MergeTagPanel({
       />
       {Object.entries(groups).map(([group, tags]) => (
         <div key={group}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1.5 tracking-wide">
+          <p className="text-xs font-semibold text-muted uppercase mb-1.5 tracking-wide">
             {GROUP_LABELS[group] ?? group}
           </p>
           <div className="space-y-0.5">
@@ -95,7 +96,7 @@ export function MergeTagPanel({
                   {t.label}
                 </span>
                 {t.blocking && (
-                  <span className="text-red-500 text-[10px] shrink-0">*</span>
+                  <span className="text-red-500 text-2xs shrink-0">*</span>
                 )}
               </button>
             ))}
@@ -104,7 +105,7 @@ export function MergeTagPanel({
       ))}
       {filteredManual.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1.5 tracking-wide">
+          <p className="text-xs font-semibold text-muted uppercase mb-1.5 tracking-wide">
             Manual
           </p>
           <div className="space-y-0.5">
@@ -119,7 +120,7 @@ export function MergeTagPanel({
                   {f.label}
                 </span>
                 {f.required && (
-                  <span className="text-red-500 text-[10px] shrink-0">*</span>
+                  <span className="text-red-500 text-2xs shrink-0">*</span>
                 )}
               </button>
             ))}
@@ -134,7 +135,7 @@ export function MergeTagPanel({
         hasSearch={search.length > 0}
         totalCount={customTags.length}
       />
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-2xs text-muted">
         <span className="text-red-500">*</span> required / blocking
       </p>
     </aside>
@@ -190,14 +191,14 @@ function CustomTagsSection({
   return (
     <div data-testid="custom-tags-section">
       <div className="flex items-center justify-between mb-1.5">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <p className="text-xs font-semibold text-muted uppercase tracking-wide">
           Custom Tags
         </p>
         {!adding && (
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-0.5 text-[10px] font-medium text-brand hover:text-brand/80 transition-colors"
+            className="inline-flex items-center gap-0.5 text-2xs font-medium text-brand hover:text-brand/80 transition-colors"
             data-testid="custom-tags-add"
           >
             <Plus className="w-3 h-3" />
@@ -220,28 +221,26 @@ function CustomTagsSection({
             data-testid="custom-tags-input"
           />
           {draft && (
-            <p className="text-[10px] text-muted-foreground font-mono">
+            <p className="text-2xs text-muted font-mono">
               → {previewKey
                 ? `{{${previewKey}}}`
                 : "(needs at least one letter or number)"}
             </p>
           )}
           <div className="flex gap-1">
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="xs"
               disabled={!canSave}
-              className="flex-1 px-2 py-1 text-[11px] font-medium bg-brand text-white rounded hover:bg-brand/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1"
               data-testid="custom-tags-save"
             >
               {create.isPending ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-2 py-1 text-[11px] text-muted-foreground rounded hover:bg-surface transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="ghost" size="xs" onClick={handleCancel}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -275,7 +274,7 @@ function CustomTagsSection({
               }}
               disabled={del.isPending}
               aria-label={`Delete ${t.label}`}
-              className="p-1 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              className="p-1 rounded text-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
               data-testid="custom-tag-delete"
             >
               <X className="w-3 h-3" />
@@ -284,7 +283,7 @@ function CustomTagsSection({
         ))}
 
         {!loading && tags.length === 0 && !adding && (
-          <p className="text-[11px] text-muted-foreground italic px-2 py-1">
+          <p className="text-xs text-muted italic px-2 py-1">
             {hasSearch && totalCount > 0
               ? "No custom tags match your search."
               : "No custom tags yet. Add your own with + Add tag."}

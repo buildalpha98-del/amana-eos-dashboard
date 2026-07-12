@@ -104,7 +104,7 @@ function SetPinDialog({
         </p>
         <div className="space-y-3">
           <label className="block">
-            <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">
+            <span className="block text-2xs font-semibold uppercase tracking-wide text-muted mb-1">
               PIN
             </span>
             <input
@@ -118,7 +118,7 @@ function SetPinDialog({
             />
           </label>
           <label className="block">
-            <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">
+            <span className="block text-2xs font-semibold uppercase tracking-wide text-muted mb-1">
               Confirm PIN
             </span>
             <input

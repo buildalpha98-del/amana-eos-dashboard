@@ -153,7 +153,7 @@ export default function ThreadV2() {
             {data.subject ?? "No subject"}
           </h1>
           {data.service && (
-            <p className="text-[11px] text-[color:var(--color-muted)] truncate">
+            <p className="text-xs text-[color:var(--color-muted)] truncate">
               {data.service.name}
             </p>
           )}
@@ -235,7 +235,7 @@ export default function ThreadV2() {
             }}
             placeholder={hasAttachments ? "Add a caption…" : "Message"}
             rows={1}
-            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-white text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
+            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-card text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
           />
           <button
             type="submit"
@@ -266,7 +266,7 @@ function Bubble({ message }: { message: OptimisticMessage }) {
     <div className={cn("flex", isParent ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[80%] px-3.5 py-2 rounded-[18px] text-[14px] leading-snug",
+          "max-w-[80%] px-3.5 py-2 rounded-[18px] text-sm leading-snug",
           isParent
             ? "bg-[color:var(--color-brand)] text-white rounded-br-[6px]"
             : "bg-[color:var(--color-cream-deep)] text-[color:var(--color-foreground)] rounded-bl-[6px]",
@@ -283,7 +283,7 @@ function Bubble({ message }: { message: OptimisticMessage }) {
           />
         )}
         {isParent && (
-          <div className="flex items-center justify-end gap-1 mt-0.5 text-[10px] opacity-70">
+          <div className="flex items-center justify-end gap-1 mt-0.5 text-2xs opacity-70">
             {message.__failed ? (
               <span className="text-red-200">Failed</span>
             ) : message.__optimistic ? (
@@ -307,7 +307,7 @@ function TimestampDivider({ iso }: { iso: string }) {
     hour12: true,
   });
   return (
-    <div className="text-[11px] text-[color:var(--color-muted)] text-center my-3 uppercase tracking-wider font-semibold">
+    <div className="text-2xs text-[color:var(--color-muted)] text-center my-3 uppercase tracking-wider font-semibold">
       {stamp}
     </div>
   );

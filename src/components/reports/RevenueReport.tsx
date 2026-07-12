@@ -121,7 +121,7 @@ export function RevenueReport({ params }: { params: string }) {
 
       <a
         href={`/api/reports/revenue/export?${params}`}
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003d50] transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
       >
         <Download className="w-4 h-4" />
         Export CSV

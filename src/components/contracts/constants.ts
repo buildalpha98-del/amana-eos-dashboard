@@ -34,7 +34,7 @@ export const STATUS_CONFIG: Record<
     label: "Draft",
     bg: "bg-surface",
     text: "text-foreground/80",
-    dot: "bg-gray-400",
+    dot: "bg-muted/60",
   },
   active: {
     label: "Active",

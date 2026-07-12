@@ -206,12 +206,12 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
               Week of {weekLabel}
             </p>
             {weekOffset === 0 ? (
-              <p className="text-[10px] text-brand font-medium">Current Week</p>
+              <p className="text-2xs text-brand font-medium">Current Week</p>
             ) : (
               <button
                 type="button"
                 onClick={() => setWeekOffset(0)}
-                className="text-[10px] text-muted hover:text-foreground underline"
+                className="text-2xs text-muted hover:text-foreground underline"
               >
                 Jump to current week
               </button>
@@ -294,10 +294,10 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     }}
                   />
                 </div>
-                <p className="text-[10px] text-muted mt-1">{summary.allocationLabel}</p>
+                <p className="text-2xs text-muted mt-1">{summary.allocationLabel}</p>
               </>
             )}
-            <p className="text-[10px] text-muted mt-1">
+            <p className="text-2xs text-muted mt-1">
               Auto-set from weekly attendance · 100+ → $300, otherwise $150
             </p>
           </div>
@@ -648,7 +648,7 @@ function EquipmentRow({
     <div className="flex items-center gap-3 px-3 py-2.5 bg-surface/50 rounded-lg hover:bg-surface group transition-colors">
       {/* Category badge */}
       <span
-        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium text-white flex-shrink-0"
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium text-white flex-shrink-0"
         style={{ backgroundColor: CATEGORY_COLORS[item.category] || "#9CA3AF" }}
       >
         {CATEGORY_LABELS[item.category] || item.category}
@@ -680,7 +680,7 @@ function EquipmentRow({
           onClick={onEdit}
           className="p-1 text-muted hover:text-brand transition-colors"
           title="Edit"
-        >
+         aria-label="Edit">
           <Pencil className="w-3.5 h-3.5" />
         </button>
         <button
@@ -808,7 +808,7 @@ function EquipmentModal({
           <button
             onClick={onClose}
             className="p-1 text-muted hover:text-muted transition-colors"
-          >
+           aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>

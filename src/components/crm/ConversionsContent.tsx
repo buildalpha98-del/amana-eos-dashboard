@@ -12,6 +12,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
 import {
   Repeat,
   Phone,
@@ -42,17 +43,17 @@ const statusConfig: Record<
   identified: {
     label: "Identified",
     color: "text-blue-700",
-    bg: "bg-blue-100",
+    bg: "bg-blue-100 dark:bg-blue-950/50",
   },
   contacted: {
     label: "Contacted",
     color: "text-amber-700",
-    bg: "bg-amber-100",
+    bg: "bg-amber-100 dark:bg-amber-950/50",
   },
   converted: {
     label: "Converted",
     color: "text-emerald-700",
-    bg: "bg-emerald-100",
+    bg: "bg-emerald-100 dark:bg-emerald-950/50",
   },
   declined: { label: "Declined", color: "text-muted", bg: "bg-surface" },
 };
@@ -92,9 +93,9 @@ function RevenueCalculator({
   if (actionable.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+    <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-4">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center flex-shrink-0">
           <Calculator className="w-4 h-4 text-emerald-600" />
         </div>
         <div>
@@ -113,7 +114,7 @@ function RevenueCalculator({
               /year
             </span>
           </p>
-          <p className="text-[10px] text-emerald-500 mt-1">
+          <p className="text-2xs text-emerald-500 mt-1">
             Based on {WEEKS_PER_YEAR} school weeks. BSC $
             {RATES.bsc.regular}/session, ASC ${RATES.asc.regular}/session
             (regular rates).
@@ -153,12 +154,12 @@ function OpportunityRow({
             <p className="text-sm font-semibold text-foreground">
               {opp.service.name}
             </p>
-            <span className="text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
+            <span className="text-2xs font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
               {opp.service.code}
             </span>
             <span
               className={cn(
-                "px-2 py-0.5 text-[10px] font-medium rounded-full",
+                "px-2 py-0.5 text-2xs font-medium rounded-full",
                 config.bg,
                 config.color
               )}
@@ -217,7 +218,7 @@ function OpportunityRow({
             <button
               onClick={() => onUpdateStatus(opp.id, "contacted")}
               disabled={isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors disabled:opacity-50"
             >
               <Phone className="w-3 h-3" />
               Contacted
@@ -228,7 +229,7 @@ function OpportunityRow({
               <button
                 onClick={() => onUpdateStatus(opp.id, "converted")}
                 disabled={isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors disabled:opacity-50"
               >
                 <CheckCircle2 className="w-3 h-3" />
                 Converted
@@ -263,7 +264,9 @@ function OpportunityRow({
               placeholder="Add notes about this conversion opportunity..."
               className="flex-1 px-3 py-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
-            <button
+            <Button
+              variant="primary"
+              size="xs"
               onClick={() => {
                 updateConversion.mutate({
                   id: opp.id,
@@ -273,10 +276,10 @@ function OpportunityRow({
                 setShowNotes(false);
               }}
               disabled={updateConversion.isPending}
-              className="px-3 py-1 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 self-end"
+              className="self-end"
             >
               Save
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -423,12 +426,12 @@ export function ConversionsContent() {
               { label: "Identified", count: stats.identified, color: "bg-blue-500" },
               { label: "Contacted", count: stats.contacted, color: "bg-amber-500" },
               { label: "Converted", count: stats.converted, color: "bg-emerald-500" },
-              { label: "Declined", count: stats.declined, color: "bg-gray-400" },
+              { label: "Declined", count: stats.declined, color: "bg-muted/60" },
             ].map((step, i) => (
               <div key={step.label} className="flex items-center gap-2 flex-1">
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-medium text-foreground/60">{step.label}</span>
+                    <span className="text-2xs font-medium text-foreground/60">{step.label}</span>
                     <span className="text-xs font-bold text-foreground">{step.count}</span>
                   </div>
                   <div className="h-2 bg-surface rounded-full overflow-hidden">
@@ -443,7 +446,7 @@ export function ConversionsContent() {
             ))}
           </div>
           {stats.total > 0 && (
-            <p className="text-[10px] text-foreground/40 mt-2 text-right">
+            <p className="text-2xs text-foreground/40 mt-2 text-right">
               Conversion rate: {((stats.converted / stats.total) * 100).toFixed(1)}%
             </p>
           )}
@@ -465,7 +468,7 @@ export function ConversionsContent() {
                 <h3 className="text-sm font-semibold text-foreground/80">
                   {serviceName}
                 </h3>
-                <span className="text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
+                <span className="text-2xs font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
                   {opps.length} opportunit{opps.length === 1 ? "y" : "ies"}
                 </span>
               </div>

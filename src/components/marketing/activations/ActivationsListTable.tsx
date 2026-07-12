@@ -5,12 +5,12 @@ import { Sparkles, Calendar, Clock } from "lucide-react";
 
 const STAGE_BADGE: Record<ActivationRow["lifecycleStage"], string> = {
   concept: "bg-surface text-muted border-border",
-  approved: "bg-blue-50 text-blue-700 border-blue-200",
-  logistics: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  final_push: "bg-amber-50 text-amber-700 border-amber-200",
-  delivered: "bg-green-50 text-green-700 border-green-200",
-  recap_published: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  cancelled: "bg-red-50 text-red-700 border-red-200",
+  approved: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  logistics: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+  final_push: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+  delivered: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  recap_published: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+  cancelled: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
 };
 
 const STAGE_LABEL: Record<ActivationRow["lifecycleStage"], string> = {
@@ -97,7 +97,7 @@ export function ActivationsListTable({ activations, onSelect }: ActivationsListT
               <td className={`p-3 text-xs ${RECAP_LABEL[a.recapStatus].className}`}>
                 {RECAP_LABEL[a.recapStatus].text}
                 {a.daysSinceDelivered !== null && (
-                  <div className="text-[10px] text-muted flex items-center gap-1 mt-0.5">
+                  <div className="text-2xs text-muted flex items-center gap-1 mt-0.5">
                     <Clock className="w-2.5 h-2.5" aria-hidden />
                     {a.daysSinceDelivered}d ago
                   </div>

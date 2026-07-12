@@ -61,7 +61,7 @@ export function StatusBadge({ variant, label, className }: StatusBadgeProps) {
     <span
       role="status"
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-2xs font-semibold",
         className,
       )}
       style={{ background: style.bg, color: style.fg }}

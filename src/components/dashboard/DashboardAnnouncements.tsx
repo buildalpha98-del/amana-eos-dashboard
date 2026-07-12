@@ -17,14 +17,14 @@ function getPriorityConfig(priority: string) {
   switch (priority) {
     case "urgent":
       return {
-        bg: "bg-red-100",
+        bg: "bg-red-100 dark:bg-red-950/50",
         text: "text-red-700",
         icon: AlertTriangle,
         label: "Urgent",
       };
     case "important":
       return {
-        bg: "bg-amber-100",
+        bg: "bg-amber-100 dark:bg-amber-950/50",
         text: "text-amber-700",
         icon: AlertCircle,
         label: "Important",
@@ -125,7 +125,7 @@ export function DashboardAnnouncements() {
                   </h4>
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium flex-shrink-0",
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium flex-shrink-0",
                       priority.bg,
                       priority.text
                     )}
@@ -141,7 +141,7 @@ export function DashboardAnnouncements() {
                 </p>
 
                 {/* Footer: author + date */}
-                <div className="flex items-center gap-2 text-[11px] text-muted">
+                <div className="flex items-center gap-2 text-xs text-muted">
                   {announcement.author?.avatar ? (
                     <img
                       src={announcement.author.avatar}

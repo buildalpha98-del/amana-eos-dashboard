@@ -31,7 +31,7 @@ export function NavLayoutToggle({ className }: { className?: string }) {
         title="Use the left sidebar layout"
         aria-pressed={layout === "sidebar"}
         className={cn(
-          "inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded transition-colors",
+          "inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors",
           layout === "sidebar"
             ? "bg-white/15 text-white"
             : "text-white/60 hover:text-white",
@@ -46,7 +46,7 @@ export function NavLayoutToggle({ className }: { className?: string }) {
         title="Use the OWNA-style top bar layout"
         aria-pressed={layout === "topbar"}
         className={cn(
-          "inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded transition-colors",
+          "inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors",
           layout === "topbar"
             ? "bg-white/15 text-white"
             : "text-white/60 hover:text-white",

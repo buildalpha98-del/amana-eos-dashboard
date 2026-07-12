@@ -41,7 +41,7 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
           Staffing — This Week
         </label>
         {monthlyOverstaffingCost > 0 && (
-          <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+          <span className="text-2xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full">
             ${monthlyOverstaffingCost.toFixed(0)} overstaffing this month
           </span>
         )}
@@ -57,7 +57,7 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
 
           return (
             <div key={day.date} className="flex items-center gap-2">
-              <span className="text-[10px] text-muted w-7 text-right font-medium">
+              <span className="text-2xs text-muted w-7 text-right font-medium">
                 {label}
               </span>
               <div className="flex-1 flex gap-1">
@@ -69,12 +69,12 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
                     <div
                       key={s.sessionType}
                       className={cn(
-                        "flex-1 flex items-center justify-between px-2 py-1 rounded text-[10px] border",
+                        "flex-1 flex items-center justify-between px-2 py-1 rounded text-2xs border",
                         isUnder
-                          ? "bg-red-50 border-red-200 text-red-700"
+                          ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
                           : isOver
-                          ? "bg-amber-50 border-amber-200 text-amber-700"
-                          : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300"
+                          : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
                       )}
                     >
                       <span className="font-medium uppercase">
@@ -109,21 +109,21 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
       {(week.totalWaste > 0 || week.totalRisk > 0) && (
         <div className="grid grid-cols-2 gap-2 mt-2">
           {week.totalWaste > 0 && (
-            <div className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
+            <div className="px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800">
               <p className="text-sm font-bold text-amber-700">
                 ${week.totalWaste.toFixed(0)}
               </p>
-              <p className="text-[10px] text-amber-600 uppercase tracking-wider">
+              <p className="text-2xs text-amber-600 uppercase tracking-wider">
                 Weekly Waste
               </p>
             </div>
           )}
           {week.totalRisk > 0 && (
-            <div className="px-3 py-1.5 rounded-lg bg-red-50 border border-red-100">
+            <div className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800">
               <p className="text-sm font-bold text-red-700">
                 ${week.totalRisk.toFixed(0)}
               </p>
-              <p className="text-[10px] text-red-600 uppercase tracking-wider">
+              <p className="text-2xs text-red-600 uppercase tracking-wider">
                 Revenue at Risk
               </p>
             </div>

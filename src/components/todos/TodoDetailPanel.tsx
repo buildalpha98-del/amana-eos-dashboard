@@ -19,9 +19,9 @@ interface RockOption {
 
 const statusOptions: { value: TodoStatus; label: string; color: string }[] = [
   { value: "pending", label: "Pending", color: "bg-surface text-foreground/80" },
-  { value: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-700" },
-  { value: "complete", label: "Complete", color: "bg-emerald-100 text-emerald-700" },
-  { value: "cancelled", label: "Cancelled", color: "bg-red-100 text-red-700" },
+  { value: "in_progress", label: "In Progress", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  { value: "complete", label: "Complete", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  { value: "cancelled", label: "Cancelled", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
 ];
 
 export function TodoDetailPanel({
@@ -100,7 +100,7 @@ export function TodoDetailPanel({
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-foreground">To-Do Detail</h3>
             {isPrivate && (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+              <span className="flex items-center gap-1 text-2xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded">
                 <Lock className="w-3 h-3" />
                 Private
               </span>
@@ -279,7 +279,7 @@ export function TodoDetailPanel({
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-card shadow-sm transition-transform ${
                   isPrivate ? "translate-x-5" : ""
                 }`}
               />

@@ -383,7 +383,7 @@ export default function AiKnowledgePage() {
         </p>
       </PageHeader>
 
-      <div className="rounded-md border border-blue-200 bg-blue-50/40 p-4 text-sm text-blue-900 space-y-1">
+      <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-4 text-sm text-blue-900 dark:text-blue-200 space-y-1">
         <p className="font-semibold">How this works</p>
         <p className="text-xs">
           Paste in the content (e.g. your Amana Way handbook, employee
@@ -403,11 +403,11 @@ export default function AiKnowledgePage() {
         return (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted">Documents</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Documents</p>
               <p className="text-2xl font-bold text-foreground">{entries.length}</p>
             </div>
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted">Indexed</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Indexed</p>
               <p className={cn(
                 "text-2xl font-bold",
                 indexedCount === entries.length ? "text-emerald-600" : "text-amber-600",
@@ -416,11 +416,11 @@ export default function AiKnowledgePage() {
               </p>
             </div>
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted">Chunks</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Chunks</p>
               <p className="text-2xl font-bold text-foreground">{totalChunks}</p>
             </div>
             <div className="bg-card rounded-lg border border-border p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted">Errors</p>
+              <p className="text-2xs uppercase tracking-wide text-muted">Errors</p>
               <p className={cn(
                 "text-2xl font-bold",
                 errored === 0 ? "text-emerald-600" : "text-red-600",
@@ -608,7 +608,7 @@ export default function AiKnowledgePage() {
               <div
                 className={
                   e.kind === "file"
-                    ? "shrink-0 p-2 rounded-md bg-blue-50 text-blue-700"
+                    ? "shrink-0 p-2 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
                     : "shrink-0 p-2 rounded-md bg-brand/10 text-brand"
                 }
               >
@@ -624,24 +624,24 @@ export default function AiKnowledgePage() {
                     {e.title}
                   </span>
                   {e.kind === "file" && (
-                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                    <span className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200">
                       {(e.fileName?.split(".").pop() ?? "FILE").toUpperCase()}
                     </span>
                   )}
                   {e.indexed ? (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
+                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold px-1.5 py-0.5 rounded border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
                       <CheckCircle2 className="w-3 h-3" />
                       Indexed
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">
+                    <span className="inline-flex items-center gap-0.5 text-2xs font-semibold px-1.5 py-0.5 rounded border bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
                       <AlertTriangle className="w-3 h-3" />
                       Not indexed
                     </span>
                   )}
                   {e.indexError && (
                     <span
-                      className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800"
+                      className="text-2xs font-semibold uppercase px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200"
                       title={e.indexError}
                     >
                       Error
@@ -897,7 +897,7 @@ function EntryModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={save.isPending || del.isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
               >
                 {del.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -26,12 +26,12 @@ const SESSION_LABELS: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-600",
-  issued: "bg-blue-100 text-blue-700",
-  paid: "bg-green-100 text-green-700",
-  unpaid: "bg-amber-100 text-amber-700",
-  overdue: "bg-red-100 text-red-600",
-  void: "bg-gray-100 text-gray-400 line-through",
+  draft: "bg-surface text-muted",
+  issued: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  paid: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  unpaid: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  overdue: "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400",
+  void: "bg-surface text-muted/70 line-through",
 };
 
 const METHOD_LABELS: Record<string, string> = {
@@ -101,7 +101,7 @@ export function StatementDetailPanel({
                 <span
                   className={cn(
                     "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold capitalize",
-                    STATUS_BADGE[data.status] ?? "bg-gray-100 text-gray-600"
+                    STATUS_BADGE[data.status] ?? "bg-surface text-muted"
                   )}
                 >
                   {data.status}
@@ -239,13 +239,13 @@ export function StatementDetailPanel({
                             via {METHOD_LABELS[p.method] ?? p.method}
                           </span>
                         </p>
-                        <p className="text-[10px] text-muted">
+                        <p className="text-2xs text-muted">
                           {formatDate(p.receivedAt)}
                           {p.reference && ` \u00b7 Ref: ${p.reference}`}
                           {p.recordedBy && ` \u00b7 By: ${p.recordedBy.name}`}
                         </p>
                         {p.notes && (
-                          <p className="text-[10px] text-muted mt-0.5">
+                          <p className="text-2xs text-muted mt-0.5">
                             {p.notes}
                           </p>
                         )}

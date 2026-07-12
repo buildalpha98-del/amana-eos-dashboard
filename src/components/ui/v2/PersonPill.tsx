@@ -25,7 +25,7 @@ export function PersonPill({
     <div className={cn("warm-card flex items-center gap-3", className)}>
       <Avatar name={person.name} seed={person.id} size="lg" />
       <div className="flex-1 min-w-0">
-        <div className="text-[15px] font-semibold text-[color:var(--color-foreground)] truncate">
+        <div className="text-base font-semibold text-[color:var(--color-foreground)] truncate">
           {person.name}
         </div>
         {person.subtitle && (

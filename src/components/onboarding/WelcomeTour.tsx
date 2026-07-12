@@ -216,7 +216,7 @@ export function WelcomeTour({ onComplete }: WelcomeTourProps) {
                   ? "bg-brand"
                   : i < currentStep
                     ? "bg-brand/40"
-                    : "bg-border dark:bg-gray-700",
+                    : "bg-border dark:bg-surface",
               )}
             />
           ))}

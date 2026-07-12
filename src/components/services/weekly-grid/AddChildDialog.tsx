@@ -138,7 +138,7 @@ export function AddChildDialog({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-[11px]">
+          <table className="w-full text-xs">
             <thead>
               <tr>
                 <th className="text-left text-muted font-medium py-1 pr-2">Session</th>
@@ -176,7 +176,7 @@ export function AddChildDialog({
                             toggle({ childId: child.id, date, sessionType: st })
                           }
                           className={cn(
-                            "w-7 h-7 rounded border text-[10px] font-semibold flex items-center justify-center transition-colors",
+                            "w-7 h-7 rounded border text-2xs font-semibold flex items-center justify-center transition-colors",
                             selected
                               ? "bg-brand border-brand text-white"
                               : "bg-surface border-border text-muted hover:bg-card",

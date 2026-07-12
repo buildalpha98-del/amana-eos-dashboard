@@ -29,9 +29,9 @@ interface UserOption {
 }
 
 const statusSteps = [
-  { key: "open", label: "Identify", icon: AlertTriangle, color: "text-amber-600 border-amber-400 bg-amber-50" },
-  { key: "in_discussion", label: "Discuss", icon: MessageSquare, color: "text-blue-600 border-blue-400 bg-blue-50" },
-  { key: "solved", label: "Solve", icon: CheckCircle2, color: "text-emerald-600 border-emerald-400 bg-emerald-50" },
+  { key: "open", label: "Identify", icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/40" },
+  { key: "in_discussion", label: "Discuss", icon: MessageSquare, color: "text-blue-600 dark:text-blue-400 border-blue-400 bg-blue-50 dark:bg-blue-950/40" },
+  { key: "solved", label: "Solve", icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400 border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40" },
   { key: "closed", label: "Closed", icon: XCircle, color: "text-muted border-border bg-surface/50" },
 ] as const;
 
@@ -160,9 +160,9 @@ export function IssueDetailPanel({
                   className={cn(
                     "inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
                     daysOpen >= 14
-                      ? "bg-red-100 text-red-700"
+                      ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                       : daysOpen >= 7
-                      ? "bg-amber-100 text-amber-700"
+                      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                       : "bg-surface text-muted"
                   )}
                 >
@@ -272,7 +272,7 @@ export function IssueDetailPanel({
                     )}
                   >
                     <Icon className="w-5 h-5" />
-                    <span className="text-[10px] font-medium">{step.label}</span>
+                    <span className="text-2xs font-medium">{step.label}</span>
                   </button>
                 );
               })}
@@ -280,7 +280,7 @@ export function IssueDetailPanel({
 
             {/* Resolution prompt modal */}
             {showResolvePrompt && (
-              <div className="mt-3 p-4 border border-emerald-200 bg-emerald-50 rounded-lg space-y-3">
+              <div className="mt-3 p-4 border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg space-y-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span className="text-sm font-medium text-emerald-800">
@@ -342,12 +342,12 @@ export function IssueDetailPanel({
                     "flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors capitalize",
                     issue.priority === p
                       ? p === "critical"
-                        ? "bg-red-100 border-red-300 text-red-700"
+                        ? "bg-red-100 dark:bg-red-950/50 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
                         : p === "high"
-                        ? "bg-orange-100 border-orange-300 text-orange-700"
+                        ? "bg-orange-100 dark:bg-orange-950/50 border-orange-300 dark:border-orange-800 text-orange-700 dark:text-orange-300"
                         : p === "medium"
-                        ? "bg-yellow-100 border-yellow-300 text-yellow-700"
-                        : "bg-blue-100 border-blue-300 text-blue-700"
+                        ? "bg-yellow-100 dark:bg-yellow-950/50 border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300"
+                        : "bg-blue-100 dark:bg-blue-950/50 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300"
                       : "bg-card border-border text-muted hover:border-border"
                   )}
                 >
@@ -382,7 +382,7 @@ export function IssueDetailPanel({
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-xs text-muted">
               {issue.category === "long_term"
                 ? "Parked for quarterly planning on the V/TO."
                 : "Worked weekly at the L10 via IDS."}

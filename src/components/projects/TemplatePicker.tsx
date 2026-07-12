@@ -44,6 +44,7 @@ export function TemplatePicker({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
@@ -95,7 +96,7 @@ export function TemplatePicker({
                         {t.name}
                       </p>
                       {isFeatured && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-brand text-white">
+                        <span className="px-1.5 py-0.5 text-2xs font-semibold rounded bg-brand text-white">
                           FEATURED
                         </span>
                       )}
@@ -106,13 +107,13 @@ export function TemplatePicker({
                       </p>
                     )}
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[10px] font-medium text-muted">
+                      <span className="text-2xs font-medium text-muted">
                         {t.tasks.length} tasks
                       </span>
                       {maxDays > 0 && (
                         <>
                           <span className="text-muted/50">|</span>
-                          <span className="text-[10px] font-medium text-muted">
+                          <span className="text-2xs font-medium text-muted">
                             {maxDays} days
                           </span>
                         </>
@@ -120,7 +121,7 @@ export function TemplatePicker({
                       {categories.length > 0 && (
                         <>
                           <span className="text-muted/50">|</span>
-                          <span className="text-[10px] font-medium text-muted">
+                          <span className="text-2xs font-medium text-muted">
                             {categories.length} phases
                           </span>
                         </>

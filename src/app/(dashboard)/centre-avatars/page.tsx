@@ -12,9 +12,9 @@ import { Target, AlertCircle, Clock, Sparkles, X } from "lucide-react";
 type FilterMode = "all" | "fresh" | "needs-review" | "pending-insights";
 
 const FRESHNESS_META = {
-  fresh: { label: "Fresh", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  aging: { label: "Aging", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  stale: { label: "Stale", className: "bg-rose-100 text-rose-700 border-rose-200" },
+  fresh: { label: "Fresh", className: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800" },
+  aging: { label: "Aging", className: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800" },
+  stale: { label: "Stale", className: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800" },
 } as const;
 
 export default function CentreAvatarsPage() {
@@ -203,7 +203,7 @@ function AvatarCard({ avatar }: { avatar: CentreAvatarSummary }) {
         </span>
       </div>
       {avatar.pendingInsightsCount > 0 && (
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+        <div className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
           <Sparkles className="h-3 w-3" />
           {avatar.pendingInsightsCount} pending insight
           {avatar.pendingInsightsCount === 1 ? "" : "s"}
@@ -232,9 +232,9 @@ function StatTile({
 }) {
   const toneClasses =
     tone === "fresh"
-      ? "text-emerald-700 bg-emerald-50 border-emerald-100"
+      ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-800"
       : tone === "warn"
-        ? "text-amber-700 bg-amber-50 border-amber-100"
+        ? "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-100 dark:border-amber-800"
         : "text-foreground bg-card border-border";
 
   const ringClass = active ? "ring-2 ring-brand ring-offset-1 ring-offset-background" : "";

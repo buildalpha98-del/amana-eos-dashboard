@@ -9,7 +9,6 @@ import { useService } from "@/hooks/useServices";
 import { hasMinRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import {
   ArrowLeft,
   Building2,
@@ -207,10 +206,10 @@ const tabGroups: TabGroup[] = [
 ];
 
 const statusBadgeStyles: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-700 border-emerald-300",
-  onboarding: "bg-blue-100 text-blue-700 border-blue-300",
-  pipeline: "bg-purple-100 text-purple-700 border-purple-300",
-  closing: "bg-amber-100 text-amber-700 border-amber-300",
+  active: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
+  onboarding: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800",
+  pipeline: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800",
+  closing: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800",
   closed: "bg-surface text-muted border-border",
 };
 
@@ -351,14 +350,8 @@ export default function ServiceDetailPage() {
       data-v2="staff"
       className="max-w-7xl mx-auto space-y-6"
     >
-      <Breadcrumb
-        items={[
-          { label: "Services", href: "/services" },
-          { label: service.name },
-        ]}
-      />
-
-      {/* Header */}
+      {/* Header — back-nav lives in the TopBar breadcrumb (Services > Service
+          Detail) + centre switcher; an in-page breadcrumb duplicated both. */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
@@ -366,7 +359,7 @@ export default function ServiceDetailPage() {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
+              <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground truncate">
                 {service.name}
               </h1>
               <span className="px-2 py-0.5 text-xs font-mono font-medium bg-surface text-muted rounded-md border border-border shrink-0">

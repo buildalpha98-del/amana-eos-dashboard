@@ -71,9 +71,9 @@ export function ConsentsStep({ data, updateData }: Props) {
                 key={item.key}
                 className={`p-4 rounded-xl border transition-colors ${
                   value === true
-                    ? "bg-green-50 border-green-200"
+                    ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800"
                     : value === false
-                      ? "bg-red-50 border-red-200"
+                      ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800"
                       : "bg-surface/50 border-border"
                 }`}
               >
@@ -91,8 +91,8 @@ export function ConsentsStep({ data, updateData }: Props) {
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
                           value === opt
                             ? opt
-                              ? "bg-green-50 border-green-300 text-green-700"
-                              : "bg-red-50 border-red-300 text-red-700"
+                              ? "bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800 text-green-700 dark:text-green-300"
+                              : "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
                             : "bg-surface/50 border-border text-muted hover:bg-surface"
                         }`}
                       >

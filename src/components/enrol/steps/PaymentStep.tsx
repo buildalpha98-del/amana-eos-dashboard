@@ -187,7 +187,7 @@ export function PaymentStep({ data, updateData }: Props) {
 
       {payment.method && (
         <>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
             <h4 className="text-sm font-semibold text-amber-800 mb-2">Surcharge Disclosure</h4>
             <ul className="text-sm text-amber-700 space-y-1">
               <li>Visa / Mastercard: 1.75% surcharge</li>

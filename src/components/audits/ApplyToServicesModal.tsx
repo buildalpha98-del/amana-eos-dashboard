@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useAudits";
 import { fetchApi } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 const monthNames = [
@@ -318,13 +319,13 @@ function ApplyToServicesModalInner({
                 . Duplicates will be skipped.
               </p>
               {droppedPastMonths.length > 0 && (
-                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                   <AlertTriangle className="w-3 h-3" />
                   Skipping past months: {droppedPastMonths.map((m) => monthNames[m - 1]).join(", ")}
                 </div>
               )}
               {year < currentYear && (
-                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-50 text-red-700 border border-red-200">
+                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
                   <AlertTriangle className="w-3 h-3" />
                   No instances will be created for past years
                 </div>
@@ -334,22 +335,19 @@ function ApplyToServicesModalInner({
         </div>
 
         <div className="flex items-center justify-end gap-2 px-6 py-3 border-t bg-surface/30">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-surface"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             disabled={!canSubmit}
+            loading={applyMut.isPending}
             onClick={handleApply}
-            className="px-3 py-1.5 text-sm rounded-lg bg-brand text-white hover:bg-brand/90 disabled:opacity-60 flex items-center gap-1.5"
           >
-            {applyMut.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Apply to {selectedIds.length} service{selectedIds.length === 1 ? "" : "s"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

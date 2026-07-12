@@ -56,7 +56,7 @@ export function ServiceObservationsTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+        <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Learning observations
         </h2>
         <BrandButton onClick={() => setCreateOpen(true)}>
@@ -131,7 +131,7 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
     >
       <header className="flex items-start gap-2 mb-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
             <span className="font-semibold text-[color:var(--color-brand)]">
               {observation.child.firstName} {observation.child.surname}
             </span>
@@ -143,7 +143,7 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
               })}
             </span>
             {observation.visibleToParent && (
-              <span className="text-[10px] font-medium bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] px-1.5 py-0.5 rounded-[var(--radius-xs)]">
+              <span className="text-2xs font-medium bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)] px-1.5 py-0.5 rounded-[var(--radius-xs)]">
                 Parent-visible
               </span>
             )}
@@ -153,7 +153,7 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
           </h3>
         </div>
       </header>
-      <p className="text-[13px] text-[color:var(--color-foreground)]/80 whitespace-pre-wrap">
+      <p className="text-sm text-[color:var(--color-foreground)]/80 whitespace-pre-wrap">
         {observation.narrative}
       </p>
       {(observation.mtopOutcomes.length > 0 ||
@@ -162,7 +162,7 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
           {observation.mtopOutcomes.map((m) => (
             <span
               key={m}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]"
+              className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]"
             >
               {m}
             </span>
@@ -170,7 +170,7 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
           {observation.interests.map((i) => (
             <span
               key={i}
-              className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)]"
+              className="text-2xs px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)]"
             >
               {i}
             </span>
@@ -367,7 +367,7 @@ function CreateObservationDialog({
                       )
                     }
                     className={cn(
-                      "px-2 py-1 rounded-[var(--radius-sm)] text-[12px] font-medium border transition-colors",
+                      "px-2 py-1 rounded-[var(--radius-sm)] text-xs font-medium border transition-colors",
                       active
                         ? "bg-[color:var(--color-brand)] text-white border-[color:var(--color-brand)]"
                         : "bg-[color:var(--color-cream-deep)] text-[color:var(--color-muted)] border-[color:var(--color-border)]",
@@ -441,7 +441,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
+      <span className="block text-2xs font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
         {label}
       </span>
       {children}
@@ -469,7 +469,7 @@ function BrandButton({
         "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
         // Tablet tap target — 44px min height
         "min-h-[44px]",
-        "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+        "bg-[color:var(--color-brand)] text-white text-sm font-medium",
         "hover:bg-[color:var(--color-brand-hover)] transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",
       )}

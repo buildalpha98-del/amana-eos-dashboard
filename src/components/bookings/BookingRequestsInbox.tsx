@@ -153,8 +153,8 @@ export function BookingRequestsInbox() {
               className={cn(
                 "rounded-full px-3 py-1.5 text-xs font-medium transition-colors min-h-[36px]",
                 sessionFilter === st.value
-                  ? "bg-[#004E64] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-brand text-white"
+                  : "bg-surface text-muted hover:bg-border"
               )}
             >
               {st.label}
@@ -174,7 +174,7 @@ export function BookingRequestsInbox() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 text-sm text-red-700 dark:text-red-300">
           Failed to load booking requests. Please try again.
         </div>
       )}
@@ -201,7 +201,7 @@ export function BookingRequestsInbox() {
               <div
                 key={booking.id}
                 className={cn(
-                  "rounded-xl border bg-white p-4 shadow-sm transition-opacity",
+                  "rounded-xl border bg-card p-4 shadow-sm transition-opacity",
                   isProcessing && "opacity-50 pointer-events-none"
                 )}
               >
@@ -217,7 +217,7 @@ export function BookingRequestsInbox() {
                           className="h-10 w-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#004E64]/10 text-[#004E64]">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand">
                           <User className="h-5 w-5" />
                         </div>
                       )}
@@ -225,22 +225,22 @@ export function BookingRequestsInbox() {
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-foreground">
                           {booking.child.firstName} {booking.child.surname}
                         </span>
                         {booking.child.dob && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-muted">
                             {childAge(booking.child.dob)}
                           </span>
                         )}
                         {booking.child.yearLevel && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-muted/70">
                             Year {booking.child.yearLevel}
                           </span>
                         )}
                       </div>
 
-                      <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-600">
+                      <div className="mt-1 flex items-center gap-1.5 text-sm text-muted">
                         <CalendarDays className="h-3.5 w-3.5 flex-shrink-0" />
                         <span>
                           {booking.service.name} &mdash;{" "}
@@ -250,12 +250,12 @@ export function BookingRequestsInbox() {
                       </div>
 
                       {parentName && (
-                        <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
                           <User className="h-3 w-3 flex-shrink-0" />
                           <span>
                             Requested by {parentName}
                             {booking.requestedBy?.email && (
-                              <span className="ml-1 text-gray-400">
+                              <span className="ml-1 text-muted/70">
                                 ({booking.requestedBy.email})
                               </span>
                             )}
@@ -263,7 +263,7 @@ export function BookingRequestsInbox() {
                         </div>
                       )}
 
-                      <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-400">
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-muted/70">
                         <Clock className="h-3 w-3 flex-shrink-0" />
                         <span>{relativeTime(booking.createdAt)}</span>
                       </div>
@@ -286,7 +286,7 @@ export function BookingRequestsInbox() {
                       variant="outline"
                       onClick={() => { setDeclineTarget(booking); setDeclineReason(""); }}
                       disabled={isProcessing}
-                      className="min-h-[44px] min-w-[44px] border-red-300 text-red-600 hover:bg-red-50 gap-1.5"
+                      className="min-h-[44px] min-w-[44px] border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 gap-1.5"
                     >
                       <XCircle className="h-4 w-4" />
                       <span className="hidden sm:inline">Decline</span>
@@ -311,7 +311,7 @@ export function BookingRequestsInbox() {
           >
             Previous
           </Button>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted">
             Page {page} of {data.totalPages}
           </span>
           <Button
@@ -335,7 +335,7 @@ export function BookingRequestsInbox() {
           <DialogTitle>Decline Booking</DialogTitle>
           {declineTarget && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted">
                 Decline the booking for{" "}
                 <strong>
                   {declineTarget.child.firstName} {declineTarget.child.surname}
@@ -345,7 +345,7 @@ export function BookingRequestsInbox() {
               <div>
                 <label
                   htmlFor="decline-reason"
-                  className="mb-1 block text-sm font-medium text-gray-700"
+                  className="mb-1 block text-sm font-medium text-foreground/80"
                 >
                   Reason (optional)
                 </label>
@@ -356,7 +356,7 @@ export function BookingRequestsInbox() {
                   placeholder="e.g. Session is at capacity"
                   rows={3}
                   maxLength={500}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
               <div className="flex justify-end gap-2">

@@ -166,7 +166,7 @@ export function BriefDetailPanel({
                     <StatusPill status={brief.status} />
                     <SlaPill state={brief.slaState} />
                     {brief.escalatedAt && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-300">
                         <AlertTriangle className="h-3 w-3" /> Escalated
                       </span>
                     )}
@@ -251,7 +251,7 @@ export function BriefDetailPanel({
                     Escalated {fmtDateTime(brief.escalatedAt)}.
                   </p>
                   {brief.escalationReason && (
-                    <p className="mt-1 whitespace-pre-wrap rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-800">
+                    <p className="mt-1 whitespace-pre-wrap rounded-md bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-xs text-rose-800 dark:text-rose-200">
                       {brief.escalationReason}
                     </p>
                   )}
@@ -364,14 +364,14 @@ export function BriefDetailPanel({
                       <button
                         onClick={() => clearEscalation.mutate(brief.id)}
                         disabled={clearEscalation.isPending}
-                        className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                        className="rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 disabled:opacity-50"
                       >
                         Clear escalation
                       </button>
                     ) : (
                       <button
                         onClick={() => setEscalateOpen(true)}
-                        className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                        className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50"
                       >
                         Escalate
                       </button>

@@ -71,7 +71,7 @@ export function WeeklyGridTable({
                       className="w-8 h-8 rounded-full object-cover shrink-0"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-2xs font-semibold shrink-0">
                       {`${child.firstName[0] ?? ""}${child.surname[0] ?? ""}`.toUpperCase()}
                     </div>
                   )}

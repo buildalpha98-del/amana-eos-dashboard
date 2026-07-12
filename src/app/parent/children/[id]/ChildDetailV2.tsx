@@ -117,11 +117,11 @@ function Hero({ child }: { child: ParentChild }) {
         size="xl"
       />
       <div className="flex-1 min-w-0">
-        <h1 className="text-[22px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
           {child.firstName} {child.lastName}
         </h1>
         {subtitle && (
-          <p className="text-[13px] text-[color:var(--color-muted)] mt-0.5 truncate">
+          <p className="text-sm text-[color:var(--color-muted)] mt-0.5 truncate">
             {subtitle}
           </p>
         )}
@@ -206,7 +206,7 @@ function DayTile({ day }: { day: AttendanceDay }) {
     >
       <div
         className={cn(
-          "text-[9px] font-bold tracking-wider",
+          "text-2xs font-bold tracking-wider",
           isToday ? "text-[color:var(--color-brand)]" : "text-[color:var(--color-muted)]",
         )}
       >
@@ -283,7 +283,7 @@ function Chip({ label, tone }: { label: string; tone?: "alert" }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-2xs font-semibold",
         tone === "alert"
           ? "bg-[color:var(--color-status-alert-bg)] text-[color:var(--color-status-alert-fg)]"
           : "bg-[color:var(--color-cream-deep)] text-[color:var(--color-foreground)]/80",
@@ -339,7 +339,7 @@ function ActionButton({
       className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-[var(--radius-md)] text-[color:var(--color-brand)] bg-[color:var(--color-brand-soft)] hover:bg-[color:var(--color-brand-soft)]/80 transition-colors min-h-[44px]"
     >
       <Icon className="w-5 h-5" />
-      <span className="text-[10px] font-semibold">{label}</span>
+      <span className="text-2xs font-semibold">{label}</span>
     </Link>
   );
 }

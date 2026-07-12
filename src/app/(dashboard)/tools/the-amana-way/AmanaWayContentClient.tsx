@@ -55,7 +55,7 @@ function EditToolbar() {
         <button
           type="button"
           onClick={enterEdit}
-          className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-sm font-medium text-[#1A4F5C] shadow-sm hover:bg-white"
+          className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-sm font-medium text-[#1A4F5C] shadow-sm hover:bg-card"
         >
           <Pencil className="h-3.5 w-3.5" />
           Edit
@@ -67,7 +67,7 @@ function EditToolbar() {
             type="button"
             onClick={cancel}
             disabled={saving}
-            className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-sm font-medium text-foreground shadow-sm hover:bg-white disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-sm font-medium text-foreground shadow-sm hover:bg-card disabled:opacity-60"
           >
             <X className="h-3.5 w-3.5" />
             Cancel

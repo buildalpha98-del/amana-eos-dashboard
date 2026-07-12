@@ -232,7 +232,7 @@ export function NotificationPreferences() {
           <div
             className={cn(
               "flex h-9 w-9 items-center justify-center rounded-lg",
-              muted ? "bg-amber-100 text-amber-700" : "bg-surface text-muted",
+              muted ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : "bg-surface text-muted",
             )}
           >
             <BellOff className="h-4.5 w-4.5" />
@@ -265,7 +265,7 @@ export function NotificationPreferences() {
       </div>
 
       {/* Toggle list — greyed while fully muted */}
-      <div className={cn("divide-y divide-gray-50 px-6", muted && "pointer-events-none opacity-50")}>
+      <div className={cn("divide-y divide-border/50 px-6", muted && "pointer-events-none opacity-50")}>
         {PREF_ITEMS.map((item) => {
           const Icon = item.icon;
           const enabled = prefs[item.key];

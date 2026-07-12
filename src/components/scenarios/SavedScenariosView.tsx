@@ -81,7 +81,7 @@ export function SavedScenariosView({ scenarios, isLoading, onLoad }: Props) {
                 <button
                   onClick={() => handleDelete(s.id, s.name)}
                   disabled={deleteMutation.isPending}
-                  className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
+                  className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -90,21 +90,21 @@ export function SavedScenariosView({ scenarios, isLoading, onLoad }: Props) {
             {/* Key metrics preview */}
             <div className="grid grid-cols-4 gap-3 mt-3 pt-3 border-t border-border/50">
               <div>
-                <p className="text-[10px] text-muted uppercase tracking-wider">Centres</p>
+                <p className="text-2xs text-muted uppercase tracking-wider">Centres</p>
                 <p className="text-xs font-semibold text-foreground">{inputs.numCentres}</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted uppercase tracking-wider">Revenue</p>
+                <p className="text-2xs text-muted uppercase tracking-wider">Revenue</p>
                 <p className="text-xs font-semibold text-foreground">{formatAUD(outputs.totalNetworkRevenue)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted uppercase tracking-wider">Profit</p>
+                <p className="text-2xs text-muted uppercase tracking-wider">Profit</p>
                 <p className={`text-xs font-semibold ${outputs.totalNetworkProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                   {formatAUD(outputs.totalNetworkProfit)}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] text-muted uppercase tracking-wider">Margin</p>
+                <p className="text-2xs text-muted uppercase tracking-wider">Margin</p>
                 <p className="text-xs font-semibold text-foreground">{outputs.marginPercent.toFixed(1)}%</p>
               </div>
             </div>

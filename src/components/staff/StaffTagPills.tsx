@@ -32,7 +32,7 @@ export function StaffTagPills({
       {shown.map((t) => (
         <span
           key={t}
-          className="inline-flex items-center rounded-full bg-surface text-foreground/80 text-[11px] px-2 py-0 border border-border"
+          className="inline-flex items-center rounded-full bg-surface text-foreground/80 text-2xs px-2 py-0 border border-border"
           data-testid={`staff-tag-pill-${t}`}
         >
           {t}
@@ -40,7 +40,7 @@ export function StaffTagPills({
       ))}
       {overflow > 0 ? (
         <span
-          className="inline-flex items-center rounded-full bg-surface text-muted text-[11px] px-2 py-0 border border-border"
+          className="inline-flex items-center rounded-full bg-surface text-muted text-2xs px-2 py-0 border border-border"
           title={tags.slice(max).join(", ")}
           data-testid="staff-tag-pill-overflow"
         >

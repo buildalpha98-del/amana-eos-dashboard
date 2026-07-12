@@ -16,7 +16,7 @@ import { MeasurableTrendDrawer } from "./MeasurableTrendDrawer";
 function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
   // values are newest-first; find the two most recent non-null values
   const recent = values.filter((v): v is number => v !== null);
-  if (recent.length < 2) return <span className="text-muted/50 text-[10px]">—</span>;
+  if (recent.length < 2) return <span className="text-muted/50 text-2xs">—</span>;
 
   const latest = recent[0];
   const prev = recent[1];
@@ -78,7 +78,7 @@ function OwnerCell({
         />
       ) : (
         <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-          <span className="text-[10px] font-medium text-brand">
+          <span className="text-2xs font-medium text-brand">
             {getInitials(owner?.name)}
           </span>
         </div>
@@ -293,7 +293,7 @@ export function ScorecardGrid({
               {weeks.map((week) => (
                 <th
                   key={week.toISOString()}
-                  className="px-1 py-3 text-center text-[10px] font-medium w-[70px] text-muted"
+                  className="px-1 py-3 text-center text-2xs font-medium w-[70px] text-muted"
                 >
                   {formatWeekRange(week)}
                 </th>
@@ -313,7 +313,7 @@ export function ScorecardGrid({
                       className="sticky left-0 z-10 bg-surface/50 px-4 py-2"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center">
                           <Building2 className="w-3 h-3 text-amber-700" />
                         </div>
                         <span className="text-xs font-semibold text-muted">
@@ -400,7 +400,7 @@ export function ScorecardGrid({
                               <button
                                 type="button"
                                 onClick={() => onDelete(m)}
-                                className="p-1 rounded text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+                                className="p-1 rounded text-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                                 title="Delete measurable"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -410,7 +410,7 @@ export function ScorecardGrid({
                         )}
                       </div>
                       {m.description && (
-                        <div className="text-[10px] text-muted truncate max-w-[180px]" title={m.description}>
+                        <div className="text-2xs text-muted truncate max-w-[180px]" title={m.description}>
                           {m.description}
                         </div>
                       )}

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuditInstances, type AuditInstanceSummary } from "@/hooks/useAudits";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle2,
@@ -24,10 +25,10 @@ import {
 /* ------------------------------------------------------------------ */
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  scheduled: { label: "Scheduled", color: "bg-blue-100 text-blue-700" },
-  in_progress: { label: "In Progress", color: "bg-amber-100 text-amber-700" },
-  completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700" },
-  overdue: { label: "Overdue", color: "bg-red-100 text-red-700" },
+  scheduled: { label: "Scheduled", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  in_progress: { label: "In Progress", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" },
+  completed: { label: "Completed", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  overdue: { label: "Overdue", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
   skipped: { label: "Skipped", color: "bg-surface text-muted" },
 };
 
@@ -141,6 +142,7 @@ export function AuditResultsTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYear((y) => y - 1)}
+            aria-label="Previous year"
             className="p-1.5 rounded-lg border border-border hover:bg-surface"
           >
             <ChevronLeft className="w-4 h-4 text-muted" />
@@ -148,6 +150,7 @@ export function AuditResultsTab() {
           <span className="text-sm font-semibold text-foreground min-w-[4rem] text-center">{year}</span>
           <button
             onClick={() => setYear((y) => y + 1)}
+            aria-label="Next year"
             className="p-1.5 rounded-lg border border-border hover:bg-surface"
           >
             <ChevronRight className="w-4 h-4 text-muted" />
@@ -200,14 +203,16 @@ export function AuditResultsTab() {
           ))}
         </select>
 
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleExport}
           disabled={filteredInstances.length === 0}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50 ml-auto"
+          iconLeft={<Download className="w-4 h-4" />}
+          className="ml-auto"
         >
-          <Download className="w-4 h-4" />
           Export CSV
-        </button>
+        </Button>
       </div>
 
       {/* Table */}

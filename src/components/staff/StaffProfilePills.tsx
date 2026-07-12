@@ -34,25 +34,25 @@ const SECTIONS: SectionPill[] = [
   {
     id: "employment",
     label: "Employment records",
-    activeClass: "bg-purple-100 text-purple-900 border-purple-300",
+    activeClass: "bg-purple-100 dark:bg-purple-950/50 text-purple-900 dark:text-purple-200 border-purple-300 dark:border-purple-800",
     dotClass: "bg-purple-500",
   },
   {
     id: "pay",
     label: "Pay & compensation",
-    activeClass: "bg-teal-100 text-teal-900 border-teal-300",
+    activeClass: "bg-teal-100 dark:bg-teal-950/50 text-teal-900 dark:text-teal-200 border-teal-300 dark:border-teal-800",
     dotClass: "bg-teal-500",
   },
   {
     id: "documents",
     label: "Documents",
-    activeClass: "bg-yellow-100 text-yellow-900 border-yellow-300",
+    activeClass: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-900 dark:text-yellow-200 border-yellow-300 dark:border-yellow-800",
     dotClass: "bg-yellow-500",
   },
   {
     id: "performance",
     label: "Performance",
-    activeClass: "bg-orange-100 text-orange-900 border-orange-300",
+    activeClass: "bg-orange-100 dark:bg-orange-950/50 text-orange-900 dark:text-orange-200 border-orange-300 dark:border-orange-800",
     dotClass: "bg-orange-500",
   },
   // 2026-06-01: new section for the HR-audit follow-up — workers comp
@@ -61,7 +61,7 @@ const SECTIONS: SectionPill[] = [
   {
     id: "health",
     label: "Health & WHS",
-    activeClass: "bg-rose-100 text-rose-900 border-rose-300",
+    activeClass: "bg-rose-100 dark:bg-rose-950/50 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-800",
     dotClass: "bg-rose-500",
   },
 ];

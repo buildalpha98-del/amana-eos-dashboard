@@ -181,7 +181,7 @@ export function TakeSurveyForm({ surveyId, onDone, onCancel }: Props) {
           </p>
         )}
         {survey.anonymous && (
-          <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-2 py-1">
+          <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1">
             <Lock className="w-3 h-3" />
             Anonymous — your identity is not stored.
           </p>
@@ -262,8 +262,8 @@ function QuestionRenderer({
                 className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
                   on
                     ? v
-                      ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                      : "bg-red-50 border-red-300 text-red-700"
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                      : "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
                     : "bg-surface/50 border-border text-muted hover:bg-surface"
                 }`}
               >

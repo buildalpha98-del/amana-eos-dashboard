@@ -13,18 +13,18 @@ import {
 } from "lucide-react";
 
 const priorityConfig = {
-  urgent: { label: "Urgent", icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50", badge: "bg-red-100 text-red-700 border-red-200" },
-  high: { label: "High", icon: ArrowUp, color: "text-orange-600", bg: "bg-orange-50", badge: "bg-orange-100 text-orange-700 border-orange-200" },
-  normal: { label: "Normal", icon: Minus, color: "text-blue-600", bg: "bg-card", badge: "bg-blue-100 text-blue-700 border-blue-200" },
+  urgent: { label: "Urgent", icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/40", badge: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800" },
+  high: { label: "High", icon: ArrowUp, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/40", badge: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800" },
+  normal: { label: "Normal", icon: Minus, color: "text-blue-600", bg: "bg-card", badge: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800" },
   low: { label: "Low", icon: ArrowDown, color: "text-muted", bg: "bg-card", badge: "bg-surface text-muted border-border" },
 };
 
 const statusConfig = {
-  new: { label: "New", color: "text-blue-600", bg: "bg-blue-50", dot: "bg-blue-500" },
-  open: { label: "Open", color: "text-amber-600", bg: "bg-amber-50", dot: "bg-amber-500" },
-  pending_parent: { label: "Pending", color: "text-purple-600", bg: "bg-purple-50", dot: "bg-purple-500" },
-  resolved: { label: "Resolved", color: "text-emerald-600", bg: "bg-emerald-50", dot: "bg-emerald-500" },
-  closed: { label: "Closed", color: "text-muted", bg: "bg-surface/50", dot: "bg-gray-400" },
+  new: { label: "New", color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40", dot: "bg-blue-500" },
+  open: { label: "Open", color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40", dot: "bg-amber-500" },
+  pending_parent: { label: "Pending", color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40", dot: "bg-purple-500" },
+  resolved: { label: "Resolved", color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40", dot: "bg-emerald-500" },
+  closed: { label: "Closed", color: "text-muted", bg: "bg-surface/50", dot: "bg-muted/60" },
 };
 
 function timeAgo(dateString: string): string {

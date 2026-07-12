@@ -38,7 +38,7 @@ export function TwoWeekConcernsPanel({ concerns, onViewHistory, onAddToOneOnOne 
 
   if (concerns.length === 0) {
     return (
-      <section className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+      <section className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 p-4 text-sm text-green-900 dark:text-green-200">
         No coordinator patterns flagged this week. ✓
       </section>
     );
@@ -51,7 +51,7 @@ export function TwoWeekConcernsPanel({ concerns, onViewHistory, onAddToOneOnOne 
         {concerns.map((c) => (
           <li
             key={c.serviceId}
-            className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-2"
+            className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 space-y-2"
           >
             <div>
               <div className="font-medium text-foreground flex items-center gap-2">

@@ -44,7 +44,7 @@ export function L10PrepWidget() {
 
       return {
         overdueTodos: dash.actionItems?.overdueTodos?.length ?? 0,
-        offTrackRocks: dash.actionItems?.overdueRocks?.length ?? 0,
+        offTrackRocks: dash.actionItems?.offTrackRockCount ?? 0,
         openIssues: dash.actionItems?.idsIssues?.length ?? 0,
         missingMeasurables: 0, // Would require scorecard API
         nextMeeting,
@@ -143,7 +143,7 @@ export function L10PrepWidget() {
                 </div>
                 <div className="min-w-0">
                   <div className={`text-lg font-bold leading-none ${item.color}`}>{item.value}</div>
-                  <div className="text-[11px] text-muted mt-0.5 truncate">{item.label}</div>
+                  <div className="text-xs text-muted mt-0.5 truncate">{item.label}</div>
                 </div>
               </Link>
             );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useSendLeadEmail } from "@/hooks/useCRM";
 import { useCrmEmailTemplates } from "@/hooks/useCrmEmailTemplates";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
@@ -66,7 +67,7 @@ export function SendEmailModal({
               To: {contactName ? `${contactName} <${contactEmail}>` : contactEmail}
             </p>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-surface rounded">
+          <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-surface rounded">
             <X className="w-5 h-5 text-muted" />
           </button>
         </div>
@@ -119,26 +120,23 @@ export function SendEmailModal({
               placeholder="Compose your email..."
               required
             />
-            <p className="text-[10px] text-muted mt-1">
+            <p className="text-2xs text-muted mt-1">
               Available merge tags: {"{{schoolName}}"}, {"{{contactName}}"}, {"{{senderName}}"}, {"{{companyName}}"}
             </p>
           </div>
 
           <div className="flex gap-3 justify-end pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-muted hover:bg-surface rounded-lg"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
+              size="sm"
               disabled={sendEmail.isPending || !subject.trim() || !body.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand-dark hover:bg-brand rounded-lg disabled:opacity-50"
             >
               {sendEmail.isPending ? "Sending..." : "Send Email"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

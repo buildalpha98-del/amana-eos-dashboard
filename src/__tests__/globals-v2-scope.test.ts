@@ -47,8 +47,18 @@ describe("globals.css v2 scope", () => {
 
   it("keeps core radius-lg parent default at 20px", () => {
     // The default theme block (outside any data-v2 selector) should still own
-    // the parent-portal radius-lg = 20px. We look for it in @theme inline.
-    const themeBlock = globalsCss.match(/@theme inline\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    // the parent-portal radius-lg = 20px. Colors/radii live in a plain @theme
+    // block (NOT `@theme inline` — inline freezes utilities to literal values,
+    // disconnecting them from the .dark and [data-v2] var overrides).
+    const themeBlock = globalsCss.match(/@theme\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(themeBlock).toMatch(/--radius-lg:\s*20px/);
+  });
+
+  it("keeps colors out of @theme inline so .dark overrides reach utilities", () => {
+    const inlineBlocks = [...globalsCss.matchAll(/@theme inline\s*\{[\s\S]*?\n\}/g)]
+      .map((m) => m[0])
+      .join("\n");
+    expect(inlineBlocks).not.toMatch(/--color-/);
+    expect(inlineBlocks).not.toMatch(/--radius-/);
   });
 });

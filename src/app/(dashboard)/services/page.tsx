@@ -34,29 +34,29 @@ const swimLanes = [
     key: "open",
     label: "Open",
     statuses: ["active"],
-    badgeColor: "bg-emerald-100 text-emerald-700",
+    badgeColor: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
     accentColor: "border-emerald-400",
   },
   {
     key: "onboarding",
     label: "Onboarding",
     statuses: ["onboarding"],
-    badgeColor: "bg-blue-100 text-blue-700",
+    badgeColor: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
     accentColor: "border-blue-400",
   },
   {
     key: "pipeline",
     label: "Pipeline",
     statuses: ["pipeline"],
-    badgeColor: "bg-purple-100 text-purple-700",
+    badgeColor: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
     accentColor: "border-purple-400",
   },
   {
     key: "closed",
     label: "Closed",
     statuses: ["closing", "closed"],
-    badgeColor: "bg-gray-100 text-gray-500",
-    accentColor: "border-gray-400",
+    badgeColor: "bg-surface text-muted",
+    accentColor: "border-muted/60",
   },
 ] as const;
 
@@ -414,10 +414,9 @@ export default function ServicesPage() {
                           )}
                           <ServiceCard
                             service={service}
-                            onClick={() =>
-                              isBulkMode
-                                ? toggleSelect(service.id)
-                                : router.push(`/services/${service.id}`)
+                            href={isBulkMode ? undefined : `/services/${service.id}`}
+                            onClick={
+                              isBulkMode ? () => toggleSelect(service.id) : undefined
                             }
                           />
                           {isAdmin && !isBulkMode && (
@@ -458,10 +457,9 @@ export default function ServicesPage() {
                           )}
                           <ServiceCard
                             service={service}
-                            onClick={() =>
-                              isBulkMode
-                                ? toggleSelect(service.id)
-                                : router.push(`/services/${service.id}`)
+                            href={isBulkMode ? undefined : `/services/${service.id}`}
+                            onClick={
+                              isBulkMode ? () => toggleSelect(service.id) : undefined
                             }
                           />
                           {/* Touch-friendly delete — always visible on mobile */}

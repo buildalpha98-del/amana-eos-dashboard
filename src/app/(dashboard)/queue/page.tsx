@@ -454,7 +454,7 @@ export default function QueuePage() {
                     {Object.entries(assigneeGroups).map(
                       ([name, groupReports]) => (
                         <div key={name}>
-                          <h4 className="text-sm font-semibold text-[#004E64] mb-3 flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-brand mb-3 flex items-center gap-2">
                             <User className="h-4 w-4" />
                             {name}{" "}
                             <span className="text-muted font-normal">

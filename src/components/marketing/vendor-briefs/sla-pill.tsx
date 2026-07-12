@@ -8,31 +8,31 @@ const STYLES: Record<
   { className: string; label: string; letter: string; Icon: React.ComponentType<{ className?: string }> }
 > = {
   on_track: {
-    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    className: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
     label: "On track",
     letter: "OK",
     Icon: CheckCircle2,
   },
   ack_overdue: {
-    className: "bg-amber-50 text-amber-700 border-amber-200",
+    className: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
     label: "Ack overdue",
     letter: "A",
     Icon: Clock,
   },
   quote_overdue: {
-    className: "bg-orange-50 text-orange-700 border-orange-200",
+    className: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
     label: "Quote overdue",
     letter: "Q",
     Icon: Clock,
   },
   delivery_overdue: {
-    className: "bg-rose-50 text-rose-700 border-rose-200",
+    className: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
     label: "Delivery overdue",
     letter: "D",
     Icon: AlertTriangle,
   },
   breached: {
-    className: "bg-rose-100 text-rose-800 border-rose-300",
+    className: "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800",
     label: "SLA breached",
     letter: "!",
     Icon: AlertTriangle,

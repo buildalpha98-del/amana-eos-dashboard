@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, getWeekStart } from "@/lib/utils";
 import { AlertCircle, Plus, X, ArrowRight, CheckSquare } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { useServiceMembers } from "@/hooks/useServiceMembers";
@@ -36,10 +37,10 @@ const priorityConfig: Record<string, { label: string; dot: string }> = {
 };
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  open: { label: "Open", color: "bg-amber-100 text-amber-700 border-amber-300" },
-  in_discussion: { label: "In Discussion", color: "bg-blue-100 text-blue-700 border-blue-300" },
-  solved: { label: "Solved", color: "bg-emerald-100 text-emerald-700 border-emerald-300" },
-  closed: { label: "Closed", color: "bg-gray-100 text-gray-500 border-gray-300" },
+  open: { label: "Open", color: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800" },
+  in_discussion: { label: "In Discussion", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800" },
+  solved: { label: "Solved", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800" },
+  closed: { label: "Closed", color: "bg-surface text-muted border-border" },
 };
 
 function getNextIssueStatus(current: string): string {
@@ -215,13 +216,14 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
               </option>
             ))}
           </select>
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-brand text-white rounded-md hover:bg-brand/90 transition-colors"
+            iconLeft={<Plus className="w-3.5 h-3.5" />}
           >
-            <Plus className="w-3.5 h-3.5" />
             Raise Issue
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -268,8 +270,8 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                 {/* Status Badge */}
                 <span
                   className={cn(
-                    "text-[10px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap",
-                    statusConfig[issue.status]?.color || "bg-gray-100 text-gray-500 border-gray-300"
+                    "text-2xs font-medium px-2 py-0.5 rounded-full border whitespace-nowrap",
+                    statusConfig[issue.status]?.color || "bg-surface text-muted border-border"
                   )}
                 >
                   {statusConfig[issue.status]?.label || issue.status}
@@ -282,7 +284,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
 
                 {/* Spawned Todos Count */}
                 {issue._count.spawnedTodos > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 bg-brand/10 text-brand rounded whitespace-nowrap">
+                  <span className="text-2xs px-1.5 py-0.5 bg-brand/10 text-brand rounded whitespace-nowrap">
                     {issue._count.spawnedTodos} to-do{issue._count.spawnedTodos !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -298,7 +300,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                       })
                     }
                     disabled={createTodoFromIssue.isPending}
-                    className="flex items-center gap-0.5 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium whitespace-nowrap"
+                    className="flex items-center gap-0.5 text-2xs text-emerald-600 hover:text-emerald-700 font-medium whitespace-nowrap"
                     title="Create a to-do from this issue"
                   >
                     <CheckSquare className="w-3 h-3" />
@@ -313,7 +315,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                       updateStatus.mutate({ id: issue.id, status: nextStatus })
                     }
                     disabled={updateStatus.isPending}
-                    className="flex items-center gap-0.5 text-[10px] text-brand hover:text-brand/80 font-medium whitespace-nowrap"
+                    className="flex items-center gap-0.5 text-2xs text-brand hover:text-brand/80 font-medium whitespace-nowrap"
                     title={`Move to ${statusConfig[nextStatus]?.label || nextStatus}`}
                   >
                     <ArrowRight className="w-3 h-3" />
@@ -341,6 +343,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                 </h4>
                 <button
                   onClick={() => setShowModal(false)}
+                  aria-label="Close"
                   className="p-1 text-muted hover:text-muted"
                 >
                   <X className="w-4 h-4" />
@@ -422,24 +425,22 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => setShowModal(false)}
-                  className="text-xs px-4 py-2 text-muted hover:text-foreground/80"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="xs"
                   onClick={handleCreate}
-                  disabled={!formData.title || createIssue.isPending}
-                  className={cn(
-                    "text-xs px-4 py-2 rounded-lg font-medium transition-colors",
-                    formData.title
-                      ? "bg-brand text-white hover:bg-brand/90"
-                      : "bg-surface text-muted cursor-not-allowed"
-                  )}
+                  disabled={!formData.title}
+                  loading={createIssue.isPending}
                 >
                   {createIssue.isPending ? "Creating..." : "Raise Issue"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

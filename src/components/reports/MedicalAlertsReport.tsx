@@ -65,7 +65,7 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4 print-only-table">
       {/* Header note */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+      <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
         <p className="text-sm text-amber-800">
           This report lists all currently enrolled children with medical conditions, dietary requirements,
@@ -82,13 +82,13 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
             placeholder="Search by name or condition..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-white"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card"
           />
         </div>
 
         <a
           href={`/api/reports/medical-alerts/export?${params}`}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003d50] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-[#003d50] transition-colors"
         >
           <Download className="w-4 h-4" />
           Export CSV
@@ -136,7 +136,7 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap gap-1">
                         {c.medicalConditions.map((m) => (
-                          <span key={m} className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                          <span key={m} className="inline-flex items-center rounded-full bg-red-50 dark:bg-red-950/40 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-300">
                             {m}
                           </span>
                         ))}
@@ -147,7 +147,7 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {c.anaphylaxisActionPlan ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 text-xs font-bold text-red-700 dark:text-red-300">
                           <AlertTriangle className="w-3 h-3" />
                           YES
                         </span>
@@ -157,7 +157,7 @@ export function MedicalAlertsReport({ serviceId }: { serviceId: string }) {
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {c.medicationDetails ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300">
                           <Pill className="w-3 h-3" />
                           YES
                         </span>

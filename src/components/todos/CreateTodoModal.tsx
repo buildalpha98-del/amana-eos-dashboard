@@ -177,7 +177,7 @@ export function CreateTodoModal({
             </div>
             {aiDraft ? (
               <div
-                className="mt-3 rounded-lg border border-purple-200 bg-purple-50/50 p-3 space-y-2"
+                className="mt-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 p-3 space-y-2"
                 data-testid="todo-ai-draft-panel"
               >
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-800">
@@ -279,7 +279,7 @@ export function CreateTodoModal({
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-card shadow-sm transition-transform ${
                   isPrivate ? "translate-x-5" : ""
                 }`}
               />

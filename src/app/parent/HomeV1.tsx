@@ -34,7 +34,7 @@ export default function ParentHomeV1() {
   if (error || !profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-[#7c7c8a] text-sm">
+        <p className="text-muted text-sm">
           Unable to load your information. Please try again later.
         </p>
       </div>
@@ -48,10 +48,10 @@ export default function ParentHomeV1() {
 
       {/* Greeting */}
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
+        <h1 className="text-2xl font-heading font-bold text-foreground">
           Welcome back, {profile.firstName} <span aria-hidden="true">&#128075;</span>
         </h1>
-        <p className="text-sm text-[#7c7c8a] mt-1">
+        <p className="text-sm text-muted mt-1">
           Here&apos;s an overview of your family.
         </p>
       </div>
@@ -61,13 +61,13 @@ export default function ParentHomeV1() {
 
       {/* Children cards */}
       <section aria-label="Your children">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Your Children
         </h2>
 
         {profile.children.length === 0 ? (
-          <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-            <p className="text-[#7c7c8a] text-sm">
+          <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
+            <p className="text-muted text-sm">
               No children found on your account. Contact your centre for assistance.
             </p>
           </div>
@@ -84,20 +84,20 @@ export default function ParentHomeV1() {
       {profile.children.length > 0 && (
         <Link
           href="/parent/enrolments/new"
-          className="flex items-center gap-3 bg-gradient-to-r from-[#004E64]/5 to-[#FECE00]/10 rounded-xl p-4 border border-[#004E64]/10 hover:shadow-md transition-all active:scale-[0.99]"
+          className="flex items-center gap-3 bg-gradient-to-r from-brand/5 to-accent/10 rounded-xl p-4 border border-brand/10 hover:shadow-md transition-all active:scale-[0.99]"
         >
-          <div className="w-10 h-10 rounded-full bg-[#004E64]/10 flex items-center justify-center shrink-0">
-            <UserPlus className="w-5 h-5 text-[#004E64]" />
+          <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+            <UserPlus className="w-5 h-5 text-brand" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-[#1a1a2e]">
+            <p className="text-sm font-semibold text-foreground">
               Enrol a Sibling
             </p>
-            <p className="text-xs text-[#7c7c8a]">
+            <p className="text-xs text-muted">
               Simplified enrolment — family details are pre-filled
             </p>
           </div>
-          <ChevronRight className="w-5 h-5 text-[#7c7c8a] shrink-0" />
+          <ChevronRight className="w-5 h-5 text-muted shrink-0" />
         </Link>
       )}
 
@@ -121,7 +121,7 @@ export default function ParentHomeV1() {
 
       {/* Quick actions */}
       <section aria-label="Quick actions">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
           Quick Actions
         </h2>
         <div className="grid grid-cols-3 gap-3">
@@ -152,17 +152,17 @@ function ChildCard({ child, index }: { child: ParentChild; index: number }) {
   return (
     <Link
       href={`/parent/children/${child.id}`}
-      className="block bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df] hover:shadow-md hover:border-[#004E64]/20 transition-all active:scale-[0.99]"
+      className="block bg-card rounded-xl p-4 shadow-sm border border-border hover:shadow-md hover:border-brand/20 transition-all active:scale-[0.99]"
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-heading font-semibold text-[#1a1a2e] truncate">
+            <h3 className="text-base font-heading font-semibold text-foreground truncate">
               {child.firstName} {child.lastName}
             </h3>
             {hasMedical && (
               <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-semibold"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-2xs font-semibold"
                 aria-label="Has medical conditions"
               >
                 <AlertCircle className="w-3 h-3" />
@@ -171,27 +171,27 @@ function ChildCard({ child, index }: { child: ParentChild; index: number }) {
             )}
           </div>
           {child.yearLevel && (
-            <p className="text-sm text-[#7c7c8a] mt-0.5">{child.yearLevel}</p>
+            <p className="text-sm text-muted mt-0.5">{child.yearLevel}</p>
           )}
-          <p className="text-xs text-[#7c7c8a] mt-0.5">{child.serviceName}</p>
+          <p className="text-xs text-muted mt-0.5">{child.serviceName}</p>
         </div>
-        <ChevronRight className="w-5 h-5 text-[#7c7c8a] flex-shrink-0 mt-0.5" />
+        <ChevronRight className="w-5 h-5 text-muted flex-shrink-0 mt-0.5" />
       </div>
 
       {/* Attendance dots */}
       <div className="mt-3 flex items-center gap-2">
-        <span className="text-xs text-[#7c7c8a]">This week:</span>
+        <span className="text-xs text-muted">This week:</span>
         <div className="flex gap-1">
           {Array.from({ length: total }, (_, i) => (
             <div
               key={i}
               className={`w-2.5 h-2.5 rounded-full ${
-                i < attended ? "bg-green-500" : "bg-[#e8e4df]"
+                i < attended ? "bg-green-500" : "bg-border"
               }`}
             />
           ))}
         </div>
-        <span className="text-xs font-medium text-[#1a1a2e]">
+        <span className="text-xs font-medium text-foreground">
           {attended} of {total} days
         </span>
       </div>
@@ -213,10 +213,10 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df] hover:shadow-md hover:border-[#004E64]/20 transition-all active:scale-[0.98] min-h-[80px] justify-center"
+      className="flex flex-col items-center gap-1.5 bg-card rounded-xl p-4 shadow-sm border border-border hover:shadow-md hover:border-brand/20 transition-all active:scale-[0.98] min-h-[80px] justify-center"
     >
-      <Icon className="w-5 h-5 text-[#004E64]" />
-      <span className="text-xs font-medium text-[#1a1a2e] text-center leading-tight">
+      <Icon className="w-5 h-5 text-brand" />
+      <span className="text-xs font-medium text-foreground text-center leading-tight">
         {label}
       </span>
     </Link>
@@ -242,10 +242,10 @@ function UpcomingSessionsWidget() {
   return (
     <section aria-label="Upcoming sessions">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
           Upcoming Sessions
         </h2>
-        <Link href="/parent/bookings" className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
+        <Link href="/parent/bookings" className="text-xs font-medium text-brand hover:text-brand-light min-h-[44px] flex items-center">
           View all
         </Link>
       </div>
@@ -257,20 +257,20 @@ function UpcomingSessionsWidget() {
           const month = d.toLocaleDateString("en-AU", { month: "short" });
 
           return (
-            <div key={b.id} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-[#e8e4df]">
-              <div className="w-11 h-11 rounded-lg bg-[#004E64]/10 flex flex-col items-center justify-center shrink-0">
-                <span className="text-[10px] font-semibold text-[#004E64] uppercase">{dayName}</span>
-                <span className="text-sm font-bold text-[#004E64] leading-none">{dateNum}</span>
+            <div key={b.id} className="flex items-center gap-3 bg-card rounded-xl p-3 shadow-sm border border-border">
+              <div className="w-11 h-11 rounded-lg bg-brand/10 flex flex-col items-center justify-center shrink-0">
+                <span className="text-2xs font-semibold text-brand uppercase">{dayName}</span>
+                <span className="text-sm font-bold text-brand leading-none">{dateNum}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#1a1a2e] truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {b.child.firstName} — {SESSION_LABELS[b.sessionType] ?? b.sessionType.toUpperCase()}
                 </p>
-                <p className="text-xs text-[#7c7c8a] truncate">{b.service.name} · {month}</p>
+                <p className="text-xs text-muted truncate">{b.service.name} · {month}</p>
               </div>
               <span className={cn(
-                "text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0",
-                b.status === "confirmed" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                "text-2xs font-semibold px-2 py-0.5 rounded-full shrink-0",
+                b.status === "confirmed" ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300" : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
               )}>
                 {b.status === "confirmed" ? "Confirmed" : "Requested"}
               </span>
@@ -293,10 +293,10 @@ function RecentMessagesWidget() {
   return (
     <section aria-label="Recent messages">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
           Recent Messages
         </h2>
-        <Link href="/parent/messages" className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
+        <Link href="/parent/messages" className="text-xs font-medium text-brand hover:text-brand-light min-h-[44px] flex items-center">
           View all
         </Link>
       </div>
@@ -309,18 +309,18 @@ function RecentMessagesWidget() {
               key={conv.id}
               href={`/parent/messages/${conv.id}`}
               className={cn(
-                "block bg-white rounded-xl p-3 shadow-sm border transition-all hover:shadow-md active:scale-[0.99]",
-                isUnread ? "border-[#004E64]/30" : "border-[#e8e4df]"
+                "block bg-card rounded-xl p-3 shadow-sm border transition-all hover:shadow-md active:scale-[0.99]",
+                isUnread ? "border-brand/30" : "border-border"
               )}
             >
               <div className="flex items-center justify-between gap-2">
-                <p className={cn("text-sm truncate", isUnread ? "font-bold text-[#1a1a2e]" : "font-medium text-[#1a1a2e]")}>
+                <p className={cn("text-sm truncate", isUnread ? "font-bold text-foreground" : "font-medium text-foreground")}>
                   {conv.subject ?? "No subject"}
                 </p>
-                {isUnread && <span className="w-2 h-2 rounded-full bg-[#004E64] shrink-0" />}
+                {isUnread && <span className="w-2 h-2 rounded-full bg-brand shrink-0" />}
               </div>
               {conv.lastMessage && (
-                <p className="text-xs text-[#7c7c8a] mt-0.5 truncate">
+                <p className="text-xs text-muted mt-0.5 truncate">
                   {conv.lastMessage.senderType === "parent" ? "You: " : "Centre: "}
                   {conv.lastMessage.preview}
                 </p>
@@ -347,7 +347,7 @@ function OnboardingBanner() {
   return (
     <Link
       href="/parent/getting-started"
-      className="block bg-gradient-to-r from-[#004E64] to-[#006B87] rounded-xl p-4 shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
+      className="block bg-gradient-to-r from-brand to-[#006B87] rounded-xl p-4 shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
     >
       <div className="flex items-center justify-between text-white">
         <div>
@@ -362,7 +362,7 @@ function OnboardingBanner() {
       </div>
       <div className="mt-3 h-1.5 bg-white/20 rounded-full overflow-hidden">
         <div
-          className="h-full bg-[#FECE00] rounded-full transition-all duration-500"
+          className="h-full bg-accent rounded-full transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -383,17 +383,17 @@ function EnrolmentApplicationsWidget() {
   return (
     <section aria-label="Enrolment applications">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
           Enrolment Applications
           {pending.length > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">
+            <span className="ml-2 px-1.5 py-0.5 text-2xs font-bold rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
               {pending.length} pending
             </span>
           )}
         </h2>
         <Link
           href="/parent/enrolments"
-          className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center"
+          className="text-xs font-medium text-brand hover:text-brand-light min-h-[44px] flex items-center"
         >
           View all
         </Link>
@@ -402,29 +402,29 @@ function EnrolmentApplicationsWidget() {
         {recent.map((app) => {
           const statusColor =
             app.status === "pending"
-              ? "bg-amber-100 text-amber-700"
+              ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
               : app.status === "approved"
-                ? "bg-green-100 text-green-700"
+                ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
                 : app.status === "declined"
-                  ? "bg-red-100 text-red-700"
-                  : "bg-gray-100 text-gray-500";
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
+                  : "bg-surface text-muted";
 
           return (
             <Link
               key={app.id}
               href="/parent/enrolments"
-              className="flex items-center justify-between gap-3 bg-white rounded-xl p-3 shadow-sm border border-[#e8e4df] hover:shadow-md transition-all active:scale-[0.99]"
+              className="flex items-center justify-between gap-3 bg-card rounded-xl p-3 shadow-sm border border-border hover:shadow-md transition-all active:scale-[0.99]"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#1a1a2e] truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {app.childFirstName} {app.childLastName}
                 </p>
-                <p className="text-xs text-[#7c7c8a] truncate">
+                <p className="text-xs text-muted truncate">
                   {app.serviceName}
                 </p>
               </div>
               <span
-                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 capitalize ${statusColor}`}
+                className={`text-2xs font-semibold px-2 py-0.5 rounded-full shrink-0 capitalize ${statusColor}`}
               >
                 {app.status}
               </span>

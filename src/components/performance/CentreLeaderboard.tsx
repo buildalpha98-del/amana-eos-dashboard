@@ -65,14 +65,14 @@ function PillarMiniBar({
 }) {
   return (
     <div className="flex items-center gap-1.5" title={`${label}: ${value}`}>
-      <span className="text-[10px] text-muted w-7 text-right">{label}</span>
+      <span className="text-2xs text-muted w-7 text-right">{label}</span>
       <div className="w-16 h-2 bg-surface rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{ width: `${value}%`, backgroundColor: color }}
         />
       </div>
-      <span className="text-[10px] font-medium text-muted w-5">{value}</span>
+      <span className="text-2xs font-medium text-muted w-5">{value}</span>
     </div>
   );
 }
@@ -172,10 +172,10 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
             const rank = index + 1;
             const scoreColor =
               centre.score >= 80
-                ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800"
                 : centre.score >= 60
-                ? "text-amber-700 bg-amber-50 border-amber-200"
-                : "text-red-700 bg-red-50 border-red-200";
+                ? "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800"
+                : "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800";
 
             return (
               <div
@@ -200,7 +200,7 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
                   </div>
                   {/* State Badge */}
                   {centre.state && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface text-muted mt-0.5">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-surface text-muted mt-0.5">
                       {centre.state}
                     </span>
                   )}

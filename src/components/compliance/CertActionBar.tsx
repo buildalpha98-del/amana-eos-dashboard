@@ -253,7 +253,7 @@ export function CertActionBar({ cert, canEdit, canDelete, onUpdated }: CertActio
         // Surface the actual state explicitly so users don't go hunting for
         // a non-existent View button.
         <span
-          className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded"
+          className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded"
           title="No certificate file has been uploaded for this record yet"
           data-testid="cert-no-file-badge"
         >
@@ -286,7 +286,7 @@ export function CertActionBar({ cert, canEdit, canDelete, onUpdated }: CertActio
           type="button"
           onClick={handleDelete}
           disabled={deleting}
-          className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-700 px-2 py-1 rounded-md border border-border hover:bg-red-50 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-sm text-red-600 dark:text-red-400 hover:text-red-700 px-2 py-1 rounded-md border border-border hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50"
         >
           {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           Delete

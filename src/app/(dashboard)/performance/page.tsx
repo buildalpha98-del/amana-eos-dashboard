@@ -54,10 +54,10 @@ function formatCurrency(value: number): string {
 function ScoreBadge({ score }: { score: number }) {
   const color =
     score >= 80
-      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+      ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
       : score >= 60
-      ? "bg-amber-100 text-amber-700 border-amber-200"
-      : "bg-red-100 text-red-700 border-red-200";
+      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+      : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
 
   return (
     <span className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-sm font-bold border", color)}>
@@ -208,7 +208,7 @@ export default function PerformancePage() {
 
       {/* AI Performance Digest */}
       {aiDigest && (
-        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+        <div className="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-purple-800">AI Performance Digest</h3>
             <button onClick={() => setAiDigest(null)} className="text-purple-400 hover:text-purple-600">
@@ -356,7 +356,7 @@ export default function PerformancePage() {
                         "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
                         index === 0 ? "bg-accent text-brand" :
                         index === 1 ? "bg-border text-foreground/80" :
-                        index === 2 ? "bg-amber-100 text-amber-700" :
+                        index === 2 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" :
                         "text-muted"
                       )}>
                         {index + 1}
@@ -387,7 +387,7 @@ export default function PerformancePage() {
                     </td>
                     {["financial", "operational", "compliance", "satisfaction", "teamCulture"].map((key) => {
                       const val = centre.pillars?.[key as keyof typeof centre.pillars] ?? 0;
-                      const color = val >= 75 ? "bg-emerald-100 text-emerald-700" : val >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
+                      const color = val >= 75 ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" : val >= 50 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300";
                       return (
                         <td key={key} className="hidden md:table-cell px-3 py-3 text-center">
                           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${color}`}>{val}</span>
@@ -428,7 +428,7 @@ export default function PerformancePage() {
                     </td>
                     <td className="hidden lg:table-cell px-4 py-3 text-right">
                       {centre.openIssues > 0 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300">
                           {centre.openIssues}
                         </span>
                       ) : (

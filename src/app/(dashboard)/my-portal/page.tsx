@@ -94,10 +94,10 @@ function getFirstName(name: string): string {
 }
 
 const leaveTypeConfig: Record<string, { color: string; bgColor: string; borderColor: string }> = {
-  annual: { color: "text-blue-700", bgColor: "bg-blue-50", borderColor: "border-blue-200" },
-  sick: { color: "text-amber-700", bgColor: "bg-amber-50", borderColor: "border-amber-200" },
-  personal: { color: "text-purple-700", bgColor: "bg-purple-50", borderColor: "border-purple-200" },
-  long_service: { color: "text-teal-700", bgColor: "bg-teal-50", borderColor: "border-teal-200" },
+  annual: { color: "text-blue-700", bgColor: "bg-blue-50 dark:bg-blue-950/40", borderColor: "border-blue-200" },
+  sick: { color: "text-amber-700", bgColor: "bg-amber-50 dark:bg-amber-950/40", borderColor: "border-amber-200" },
+  personal: { color: "text-purple-700", bgColor: "bg-purple-50 dark:bg-purple-950/40", borderColor: "border-purple-200" },
+  long_service: { color: "text-teal-700", bgColor: "bg-teal-50 dark:bg-teal-950/40", borderColor: "border-teal-200" },
   unpaid: { color: "text-foreground/80", bgColor: "bg-surface/50", borderColor: "border-border" },
 };
 
@@ -232,7 +232,7 @@ function PolicyAckModal({
           </button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+          <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-100 dark:border-blue-800">
             <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-blue-900">{policyTitle}</p>
@@ -357,7 +357,7 @@ function PulseSurveySection() {
           <MessageSquare className="w-5 h-5 text-blue-600" />
           Pulse Survey — {monthName}
         </h3>
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
           Takes 1 min
         </span>
       </div>
@@ -517,7 +517,7 @@ export default function MyPortalPage() {
   if (error || !data) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center mb-4">
           <AlertTriangle className="w-8 h-8 text-red-500" />
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-1">
@@ -569,9 +569,9 @@ export default function MyPortalPage() {
       {/* 2. QUICK ACTIONS BANNER                                      */}
       {/* ============================================================ */}
       {pendingItemCounts.total > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-center gap-2 flex-1">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center">
               <AlertTriangle className="w-4 h-4 text-amber-600" />
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-amber-800">
@@ -839,12 +839,12 @@ export default function MyPortalPage() {
               Active Contract
             </h3>
             {activeContract.acknowledgedByStaff ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Signed
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Action Required
               </span>
@@ -956,9 +956,9 @@ export default function MyPortalPage() {
                     </span>
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full",
+                        "inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider rounded-full",
                         c.status === "superseded"
-                          ? "bg-amber-50 text-amber-700 border border-amber-200"
+                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
                           : "bg-surface text-muted border border-border",
                       )}
                     >
@@ -1025,7 +1025,7 @@ export default function MyPortalPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full",
                 onboardingProgress.status === "in_progress"
-                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                  ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
                   : "bg-surface text-muted border border-border"
               )}
             >
@@ -1092,11 +1092,11 @@ export default function MyPortalPage() {
             {lmsEnrollments.map((enrollment) => {
               const statusConfig =
                 enrollment.status === "completed"
-                  ? { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", label: "Completed" }
+                  ? { bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-700", border: "border-emerald-200", label: "Completed" }
                   : enrollment.status === "in_progress"
-                  ? { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", label: "In Progress" }
+                  ? { bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700", border: "border-blue-200", label: "In Progress" }
                   : enrollment.status === "expired"
-                  ? { bg: "bg-red-50", text: "text-red-700", border: "border-red-200", label: "Expired" }
+                  ? { bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-700", border: "border-red-200", label: "Expired" }
                   : { bg: "bg-surface", text: "text-muted", border: "border-border", label: "Not Started" };
 
               return (
@@ -1159,17 +1159,17 @@ export default function MyPortalPage() {
             </h3>
             <div className="flex items-center gap-2 text-xs">
               {certStats.valid > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-medium">
                   {certStats.valid} valid
                 </span>
               )}
               {certStats.expiring > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-medium">
                   {certStats.expiring} expiring
                 </span>
               )}
               {certStats.expired > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 font-medium">
                   {certStats.expired} expired
                 </span>
               )}
@@ -1191,9 +1191,9 @@ export default function MyPortalPage() {
                   className={cn(
                     "flex items-center gap-3 p-3 rounded-lg border",
                     isExpired
-                      ? "border-red-200 bg-red-50/50"
+                      ? "border-red-200 dark:border-red-800 bg-red-50/50"
                       : isExpiring
-                      ? "border-amber-200 bg-amber-50/50"
+                      ? "border-amber-200 dark:border-amber-800 bg-amber-50/50"
                       : "border-border/50"
                   )}
                 >
@@ -1223,10 +1223,10 @@ export default function MyPortalPage() {
                       className={cn(
                         "text-xs font-semibold px-2 py-0.5 rounded-lg border",
                         isExpired
-                          ? "bg-red-50 text-red-600 border-red-200"
+                          ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800"
                           : isExpiring
-                          ? "bg-amber-50 text-amber-600 border-amber-200"
-                          : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                          : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
                       )}
                     >
                       {hasNoExpiry
@@ -1266,7 +1266,7 @@ export default function MyPortalPage() {
               <Shield className="w-5 h-5 text-amber-500" />
               Pending Policies
             </h3>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
               {pendingPolicies.length} to acknowledge
             </span>
           </div>
@@ -1275,7 +1275,7 @@ export default function MyPortalPage() {
             {pendingPolicies.map((policy) => (
               <div
                 key={policy.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-amber-100 bg-amber-50/30"
+                className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-amber-100 dark:border-amber-800 bg-amber-50/30"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
@@ -1325,7 +1325,7 @@ export default function MyPortalPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full",
                 offboardingProgress.status === "in_progress"
-                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                  ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
                   : "bg-surface text-muted border border-border"
               )}
             >

@@ -79,7 +79,7 @@ export function MarketingCard({
           </label>
         </div>
         {!editing ? (
-          <button onClick={startEdit} className="text-muted hover:text-brand">
+          <button onClick={startEdit} className="text-muted hover:text-brand" aria-label="Edit">
             <Edit3 className="w-3.5 h-3.5" />
           </button>
         ) : (
@@ -98,41 +98,41 @@ export function MarketingCard({
         <div className="space-y-3 p-4 border border-border rounded-xl bg-surface/30">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Contract Start</label>
+              <label className="text-2xs text-muted block mb-0.5">Contract Start</label>
               <input type="date" value={form.contractStartDate} onChange={(e) => setForm((f) => ({ ...f, contractStartDate: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Contract End</label>
+              <label className="text-2xs text-muted block mb-0.5">Contract End</label>
               <input type="date" value={form.contractEndDate} onChange={(e) => setForm((f) => ({ ...f, contractEndDate: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Licence Fee (Annual)</label>
+              <label className="text-2xs text-muted block mb-0.5">Licence Fee (Annual)</label>
               <input type="number" step="0.01" value={form.licenceFeeAnnual} onChange={(e) => setForm((f) => ({ ...f, licenceFeeAnnual: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" placeholder="$0.00" />
             </div>
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Last Principal Visit</label>
+              <label className="text-2xs text-muted block mb-0.5">Last Principal Visit</label>
               <input type="date" value={form.lastPrincipalVisit} onChange={(e) => setForm((f) => ({ ...f, lastPrincipalVisit: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Principal Name</label>
+              <label className="text-2xs text-muted block mb-0.5">Principal Name</label>
               <input type="text" value={form.schoolPrincipalName} onChange={(e) => setForm((f) => ({ ...f, schoolPrincipalName: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Principal Email</label>
+              <label className="text-2xs text-muted block mb-0.5">Principal Email</label>
               <input type="email" value={form.schoolPrincipalEmail} onChange={(e) => setForm((f) => ({ ...f, schoolPrincipalEmail: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Business Manager</label>
+              <label className="text-2xs text-muted block mb-0.5">Business Manager</label>
               <input type="text" value={form.schoolBusinessManagerName} onChange={(e) => setForm((f) => ({ ...f, schoolBusinessManagerName: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Business Manager Email</label>
+              <label className="text-2xs text-muted block mb-0.5">Business Manager Email</label>
               <input type="email" value={form.schoolBusinessManagerEmail} onChange={(e) => setForm((f) => ({ ...f, schoolBusinessManagerEmail: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
@@ -146,15 +146,15 @@ export function MarketingCard({
           {/* Contract row */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
-              <span className="text-[10px] text-muted block">Contract Start</span>
+              <span className="text-2xs text-muted block">Contract Start</span>
               <span className="text-foreground">{service.contractStartDate ? new Date(service.contractStartDate).toLocaleDateString("en-AU") : "—"}</span>
             </div>
             <div>
-              <span className="text-[10px] text-muted block">Contract End</span>
+              <span className="text-2xs text-muted block">Contract End</span>
               <div className="flex items-center gap-1.5">
                 <span className="text-foreground">{service.contractEndDate ? new Date(service.contractEndDate).toLocaleDateString("en-AU") : "—"}</span>
                 {daysUntilRenewal !== null && (
-                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", daysUntilRenewal <= 0 ? "bg-red-100 text-red-700" : daysUntilRenewal <= 180 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}>
+                  <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", daysUntilRenewal <= 0 ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" : daysUntilRenewal <= 180 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300")}>
                     {daysUntilRenewal <= 0 ? "Expired" : `${daysUntilRenewal}d`}
                   </span>
                 )}
@@ -163,15 +163,15 @@ export function MarketingCard({
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
-              <span className="text-[10px] text-muted block">Licence Fee</span>
+              <span className="text-2xs text-muted block">Licence Fee</span>
               <span className="text-foreground">{service.licenceFeeAnnual ? `$${Number(service.licenceFeeAnnual).toLocaleString()}/yr` : "—"}</span>
             </div>
             <div>
-              <span className="text-[10px] text-muted block">Last Principal Visit</span>
+              <span className="text-2xs text-muted block">Last Principal Visit</span>
               <div className="flex items-center gap-1.5">
                 <span className="text-foreground">{service.lastPrincipalVisit ? new Date(service.lastPrincipalVisit).toLocaleDateString("en-AU") : "—"}</span>
                 {daysSinceVisit !== null && (
-                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", daysSinceVisit > 90 ? "bg-red-100 text-red-700" : daysSinceVisit > 60 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}>
+                  <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", daysSinceVisit > 90 ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" : daysSinceVisit > 60 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300")}>
                     {daysSinceVisit}d ago
                   </span>
                 )}
@@ -180,14 +180,14 @@ export function MarketingCard({
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
-              <span className="text-[10px] text-muted block">Principal</span>
+              <span className="text-2xs text-muted block">Principal</span>
               <span className="text-foreground">{service.schoolPrincipalName || "—"}</span>
-              {service.schoolPrincipalEmail && <span className="text-[10px] text-muted block">{service.schoolPrincipalEmail}</span>}
+              {service.schoolPrincipalEmail && <span className="text-2xs text-muted block">{service.schoolPrincipalEmail}</span>}
             </div>
             <div>
-              <span className="text-[10px] text-muted block">Business Manager</span>
+              <span className="text-2xs text-muted block">Business Manager</span>
               <span className="text-foreground">{service.schoolBusinessManagerName || "—"}</span>
-              {service.schoolBusinessManagerEmail && <span className="text-[10px] text-muted block">{service.schoolBusinessManagerEmail}</span>}
+              {service.schoolBusinessManagerEmail && <span className="text-2xs text-muted block">{service.schoolBusinessManagerEmail}</span>}
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm">
