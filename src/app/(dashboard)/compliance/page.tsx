@@ -1022,8 +1022,17 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                               </p>
                               <div className="flex items-center gap-2">
                                 <p className="text-xs text-muted truncate">
-                                  {cert.service.name}{" "}
-                                  <span className="text-muted">({cert.service.code})</span>
+                                  {/* service is null for personal certs
+                                      (serviceId relaxed 2026-06-05) — this
+                                      unguarded read crashed the whole tab. */}
+                                  {cert.service ? (
+                                    <>
+                                      {cert.service.name}{" "}
+                                      <span className="text-muted">({cert.service.code})</span>
+                                    </>
+                                  ) : (
+                                    "Personal — no centre"
+                                  )}
                                 </p>
                                 {cert.fileUrl && (
                                   <a

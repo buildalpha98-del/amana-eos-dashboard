@@ -6,8 +6,10 @@ import { toast } from "@/hooks/useToast";
 
 export interface ComplianceCertData {
   id: string;
-  serviceId: string;
-  service: { id: string; name: string; code: string };
+  /** Null for personal certs since 2026-06-05 (serviceId column relaxed —
+   *  staff without a home centre store null). Guard every render. */
+  serviceId: string | null;
+  service: { id: string; name: string; code: string } | null;
   userId: string | null;
   user: { id: string; name: string; email: string } | null;
   type: string;
