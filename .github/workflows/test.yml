@@ -21,6 +21,9 @@ jobs:
   unit:
     name: Unit Tests
     runs-on: ubuntu-latest
+    # A hung test (e.g. the NewVacancyModal render loop fixed 2026-07-12)
+    # otherwise burns GitHub's 6-hour default before failing.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +52,7 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: github.event_name == 'pull_request'
 
     services:
@@ -95,6 +99,7 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     services:
