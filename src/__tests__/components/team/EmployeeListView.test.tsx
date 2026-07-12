@@ -34,6 +34,11 @@ const ALICE = {
   phone: "0400000001",
   role: "staff",
   service: { id: "svc-1", name: "Mawson Lakes" },
+  // 2026-07-08: EmployeeRow renders additional membership centres and the
+  // payroll-link / contract badges — fixtures must carry these fields.
+  additionalServices: [] as Array<{ id: string; name: string }>,
+  employmentHeroEmployeeId: 1,
+  hasActiveContract: true,
   status: "active" as const,
   tags: [] as string[],
 };
