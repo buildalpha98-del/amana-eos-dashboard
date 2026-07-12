@@ -61,7 +61,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
-    ).filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
+    )
+      .filter((item) => !item.hidden)
+      .filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
     const byKey = new Map<string, typeof navItems>();
     const order: string[] = [];
     for (const item of filtered) {

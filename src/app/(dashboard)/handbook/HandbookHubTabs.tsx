@@ -7,6 +7,7 @@
  * lazy-loaded so the hub doesn't ship all six surfaces in one bundle.
  */
 
+import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -19,6 +20,7 @@ import {
   HelpCircle,
   ExternalLink,
   Download,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -113,6 +115,16 @@ function HandbookHubInner({
               </button>
             );
           })}
+          {/* 2026-07-12 (nav fold): CCS Calculator left the sidebar — it's a
+              standalone tool, linked from here like the compliance sub-pages. */}
+          <Link
+            href="/tools/ccs-calculator"
+            className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-muted hover:text-foreground hover:border-border whitespace-nowrap transition-colors"
+          >
+            <Wrench className="w-4 h-4" />
+            CCS Calculator
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
         </nav>
       </div>
 

@@ -76,6 +76,13 @@ export interface NavItem {
    * surface, and ⌘K searches everything.
    */
   core?: boolean | Role[];
+  /**
+   * Stage-1 nav fold (2026-07-12). When true the item is omitted from the
+   * sidebar and top-nav entirely — it lives as a link-out on its parent hub
+   * page instead. The route, permissions, ⌘K search entry, and TopBar page
+   * title all keep working; this only removes the dedicated nav slot.
+   */
+  hidden?: boolean;
 }
 
 // ── Role allowlists ───────────────────────────────────────
@@ -193,7 +200,7 @@ export const navItems: NavItem[] = [
   // a banner pointing to My Portal and the "Request Leave" button
   // removed. Delete the route + API entirely once the backlog drains.
   { href: "/leave-payroll", label: "Leave", icon: CalendarDays, section: "People", tooltip: "Live leave data from Employment Hero. Approve in EH.", roles: ["owner", "head_office", "admin"] },
-  { href: "/directory", label: "Staff Directory", icon: Contact, section: "People", tooltip: "Find and connect with your team" },
+  { href: "/directory", label: "Staff Directory", icon: Contact, section: "People", tooltip: "Find and connect with your team" , hidden: true }, // folded 2026-07-12 — linked from Team
 
   // ── Admin — config, strategy & utilities ──────────────────
   // 2026-04-30: tightened to admin (the org-admin role, not the state-manager
@@ -204,9 +211,9 @@ export const navItems: NavItem[] = [
   { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ["admin"] },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
   { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections", roles: ALL_NON_MARKETING },
-  { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring", roles: ALL_NON_MARKETING },
-  { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Admin", tooltip: "Monthly board & investor report generator", roles: ALL_NON_MARKETING },
-  { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Admin", tooltip: "Ask questions about your dashboard data" },
+  { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Documents
+  { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Admin", tooltip: "Monthly board & investor report generator", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Performance & Reports
+  { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Admin", tooltip: "Ask questions about your dashboard data" , hidden: true }, // folded 2026-07-12 — the floating Ask-Amana-AI pill is on every page
   // 2026-07-05 (nav consolidation phase 1): six entries — /guides, /help,
   // /tools/the-amana-way, /tools/handbook, /tools/amana-way-one-pager and
   // /tools/employee-handbook — collapsed into the /handbook hub (tabs).
@@ -217,8 +224,8 @@ export const navItems: NavItem[] = [
   // 2026-07-05 (nav consolidation phase 1): /admin/feedback merged into
   // /feedback as the "Internal Feedback" tab (admin-tier only).
   { href: "/feedback", label: "Feedback", icon: MessageCircle, section: "Admin", tooltip: "Parent SMS/survey responses and staff-submitted internal feedback", roles: ALL_NON_MARKETING },
-  { href: "/admin/ai-drafts", label: "AI Drafts", icon: Bot, section: "Admin", tooltip: "Review and bulk-triage all AI-generated task drafts across the organisation", roles: ALL_NON_MARKETING },
-  { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Admin", tooltip: "Child Care Subsidy cost estimator", roles: ALL_NON_MARKETING },
+  { href: "/admin/ai-drafts", label: "AI Drafts", icon: Bot, section: "Admin", tooltip: "Review and bulk-triage all AI-generated task drafts across the organisation", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from My Queue
+  { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Admin", tooltip: "Child Care Subsidy cost estimator", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Handbook & Help
 
   // ── Settings — pulled out of Admin 2026-06-29. Admin was 23 items
   // deep; extracting the 5 configuration items into their own section

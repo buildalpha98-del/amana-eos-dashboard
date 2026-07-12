@@ -42,12 +42,14 @@ import {
   Pencil,
   Files,
   Download,
+  FolderLock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StickyTable } from "@/components/ui/StickyTable";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BulkUploadModal } from "@/components/documents/BulkUploadModal";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 
@@ -86,6 +88,7 @@ function getDownloadUrl(fileUrl: string): string {
 }
 
 export default function DocumentsPage() {
+  const router = useRouter();
   const qc = useQueryClient();
   const dedupeMut = useMutation({
     mutationFn: () =>
@@ -376,6 +379,8 @@ export default function DocumentsPage() {
           description="Manage and organize your policies, procedures, templates, and more."
           primaryAction={{ label: "Upload Document", icon: Plus, onClick: () => setShowModal(true) }}
           secondaryActions={[
+            // 2026-07-12 (nav fold): Data Room left the sidebar — reachable here.
+            { label: "Data Room", icon: FolderLock, onClick: () => router.push("/data-room") },
             { label: "Export", icon: Download, onClick: handleExport },
             { label: "New Folder", icon: FolderPlus, onClick: () => setShowNewFolder(true) },
             { label: "Bulk Upload", icon: Files, onClick: () => setShowBulkUpload(true) },

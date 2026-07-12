@@ -358,3 +358,29 @@ describe("partitionNavSection — tiny sections", () => {
     expect(overflow).toHaveLength(0);
   });
 });
+
+describe("stage-1 nav folds (2026-07-12)", () => {
+  const FOLDED = [
+    "/assistant",
+    "/tools/ccs-calculator",
+    "/data-room",
+    "/admin/ai-drafts",
+    "/directory",
+    "/reports/board",
+  ];
+
+  it("folded items are hidden from the sidebar/top-nav", () => {
+    for (const href of FOLDED) {
+      const item = navItems.find((i) => i.href === href);
+      expect(item, href).toBeDefined();
+      expect(item!.hidden, href).toBe(true);
+    }
+  });
+
+  it("folded items stay in filterNavItems so ⌘K and page titles keep working", () => {
+    const hrefs = filterNavItems(navItems, "owner").map((i) => i.href);
+    for (const href of FOLDED) {
+      expect(hrefs, href).toContain(href);
+    }
+  });
+});

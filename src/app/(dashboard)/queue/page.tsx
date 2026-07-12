@@ -33,11 +33,13 @@ import {
   Eye,
   Users,
   User,
+  Bot,
 } from "lucide-react";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { FilterPresets } from "@/components/ui/FilterPresets";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 const SEATS = [
@@ -236,6 +238,7 @@ export default function QueuePage() {
 
   const userRole = (session?.user as { role?: string } | undefined)?.role;
   const isAdmin = userRole === "owner" || userRole === "admin";
+  const router = useRouter();
 
   const { data, isLoading, error, refetch } = useQueue({
     seat: seatFilter || undefined,
@@ -305,6 +308,15 @@ export default function QueuePage() {
           icon: Filter,
           onClick: () => setShowFilters(!showFilters),
         }}
+        {...(isAdmin
+          ? {
+              // 2026-07-12 (nav fold): AI Drafts left the sidebar — its
+              // review queue is reachable from here.
+              secondaryActions: [
+                { label: "AI Drafts", icon: Bot, onClick: () => router.push("/admin/ai-drafts") },
+              ],
+            }
+          : {})}
         {...(isAdmin
           ? {
               toggles: [

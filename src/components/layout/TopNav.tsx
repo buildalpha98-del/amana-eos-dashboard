@@ -47,7 +47,7 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined,
-    );
+    ).filter((item) => !item.hidden);
     const byKey = new Map<string, NavItem[]>();
     const order: string[] = [];
     for (const item of filtered) {
