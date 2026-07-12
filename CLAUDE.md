@@ -32,6 +32,7 @@
 - **Cowork API auth**: `authenticateCowork(req)` from `@/app/api/_lib/auth` — Bearer token vs `COWORK_API_KEY` env var. ALL cowork routes use this pattern (not `authenticateApiKey`).
 - Dashboard API auth: `withApiAuth(handler, options?)` from `@/lib/server-auth` — session-based wrapper with rate limiting, timeout, and role/feature authorization
 - Nav config: centralized in `src/lib/nav-config.ts` with sections (Home, EOS, Operations, Growth, People, Admin, Settings). Keep each section's items contiguous — the sidebar renders one header per section name (Marketing items live inside Growth as of 2026-07-12)
+- **Curated sidebar** (2026-07-12): every nav item has a `core` tier — `true` (always visible), `Role[]` (visible by default for those roles; owner matches all), or omitted (behind the section's "+N more" toggle). The active page and badge-carrying items always surface; sections with ≤2 items skip curation. When adding a nav item, decide its tier — omitting `core` is a deliberate "overflow" choice, not a default to skip.
 - Email templates: inline styles in `src/lib/email-templates.ts`, use `baseLayout()` wrapper and `buttonHtml()` for CTAs
 - Vercel cron config in `vercel.json`
 - Build command: `npm run build` — always verify after changes

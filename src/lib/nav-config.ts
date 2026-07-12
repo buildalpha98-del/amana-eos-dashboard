@@ -67,6 +67,15 @@ export interface NavItem {
    * only — it does not restrict URL access (use role-permissions for that).
    */
   roles?: Role[];
+  /**
+   * Curated-sidebar tier (2026-07-12). `true` — always shown in the sidebar
+   * for every role that can see the item. A Role[] — shown by default only
+   * for those roles (owner matches every list). Omitted — the item lives
+   * behind the section's "+N more" toggle. Purely a default-visibility
+   * control: favourites, the active page, and badge-carrying items always
+   * surface, and ⌘K searches everything.
+   */
+  core?: boolean | Role[];
 }
 
 // ── Role allowlists ───────────────────────────────────────
@@ -103,37 +112,37 @@ const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin", "marketing", ...EOS_R
  */
 export const navItems: NavItem[] = [
   // ── Home — personal hub ───────────────────────────────────
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Home", tooltip: "Your command centre overview" },
-  { href: "/my-portal", label: "My Portal", icon: UserCircle, section: "Home", tooltip: "Your personal HR hub — profile, leave, training & more" },
-  { href: "/my-day", label: "My Day", icon: Sun, section: "Home", tooltip: "Clock, roll call, and today's checklists in one place" },
-  { href: "/my-training", label: "My Training", icon: GraduationCap, section: "Home", tooltip: "Your induction and ongoing training courses" },
-  { href: "/surveys", label: "My Surveys", icon: ClipboardList, section: "Home", tooltip: "Surveys sent to you — feedback, check-ins, culture" },
-  { href: "/queue", label: "My Queue", icon: Inbox, section: "Home", tooltip: "Reports and tasks assigned to you from automation" },
-  { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "Home", tooltip: "Your onboarding checklist — get up to speed quickly" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Home", tooltip: "Your command centre overview" , core: true },
+  { href: "/my-portal", label: "My Portal", icon: UserCircle, section: "Home", tooltip: "Your personal HR hub — profile, leave, training & more" , core: true },
+  { href: "/my-day", label: "My Day", icon: Sun, section: "Home", tooltip: "Clock, roll call, and today's checklists in one place" , core: true },
+  { href: "/my-training", label: "My Training", icon: GraduationCap, section: "Home", tooltip: "Your induction and ongoing training courses", core: true },
+  { href: "/surveys", label: "My Surveys", icon: ClipboardList, section: "Home", tooltip: "Surveys sent to you — feedback, check-ins, culture", core: true },
+  { href: "/queue", label: "My Queue", icon: Inbox, section: "Home", tooltip: "Reports and tasks assigned to you from automation" , core: true },
+  { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "Home", tooltip: "Your onboarding checklist — get up to speed quickly" , core: true },
 
   // ── EOS — pure EOS methodology ────────────────────────────
   // 2026-04-30: tightened from ALL_NON_MARKETING → EOS_SIDEBAR_ROLES.
   // Director of Service (member) and Educator (staff) now see EOS only
   // inside the service detail page; they don't get a sidebar shortcut.
   { href: "/vision", label: "Vision / V-TO", icon: Eye, section: "EOS", tooltip: "Vision/Traction Organiser — your long-term goals & strategic plan", roles: EOS_SIDEBAR_ROLES },
-  { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS", tooltip: "Quarterly priorities — 90-day goals for the team", roles: EOS_SIDEBAR_ROLES },
+  { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS", tooltip: "Quarterly priorities — 90-day goals for the team", roles: EOS_SIDEBAR_ROLES , core: true },
   // Scorecard is a special case: it lives in the EOS section but is also
   // surfaced in Akram's marketing cockpit (campaign metrics roll up here).
   // Allowed for State Manager, Admin, and Marketing — but NOT Director of
   // Service or Educator. Owner bypasses.
-  { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS", tooltip: "Weekly measurables & KPIs", roles: ["head_office", "admin", "marketing", ...EOS_ROLES] },
-  { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings", roles: EOS_SIDEBAR_ROLES },
-  { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)", roles: EOS_SIDEBAR_ROLES },
-  { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings", roles: EOS_SIDEBAR_ROLES },
+  { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS", tooltip: "Weekly measurables & KPIs", roles: ["head_office", "admin", "marketing", ...EOS_ROLES] , core: true },
+  { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings", roles: EOS_SIDEBAR_ROLES , core: true },
+  { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)", roles: EOS_SIDEBAR_ROLES , core: true },
+  { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings", roles: EOS_SIDEBAR_ROLES , core: true },
   // Visible to ALL roles (everyone benefits from seeing org structure).
   { href: "/accountability-chart", label: "Accountability Chart", icon: Network, section: "EOS", tooltip: "Who's accountable for what — the org structure" },
 
   // ── Operations — day-to-day running ───────────────────────
-  { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING },
+  { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING , core: true },
   // /roll-call top-level removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
   // Coordinators / staff drill into their service to access the daily roll call grid.
-  { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ALL_NON_MARKETING },
-  { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING },
+  { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ALL_NON_MARKETING , core: true },
+  { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING , core: true },
   { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING },
   // 2026-07-05 nav consolidation phase 2: /reports folded in as the
   // "Reports" view; /messaging → Contact Centre tab; /conversions → CRM
@@ -143,7 +152,7 @@ export const navItems: NavItem[] = [
   // 2026-07-05 (nav consolidation phase 1): /compliance/templates and
   // /compliance/registers removed from the sidebar — the /compliance page
   // tab bar now links out to both sub-pages instead.
-  { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ALL_NON_MARKETING },
+  { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ALL_NON_MARKETING , core: true },
   { href: "/safe-reports", label: "Safe Reports", icon: Shield, section: "Operations", tooltip: "Anonymous staff reports — harassment, safety, conduct. Owner & head office only.", roles: ["owner", "head_office"] },
   { href: "/policies", label: "Policies & Procedures", icon: Shield, section: "Operations", tooltip: "Versioned PDF library with per-version acknowledgement", roles: ALL_NON_MARKETING },
   // 2026-07-05: /incidents removed from the sidebar entirely (was
@@ -154,20 +163,20 @@ export const navItems: NavItem[] = [
   { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
 
   // ── Growth — pipeline, parents & outreach ─────────────────
-  { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING },
-  { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING },
+  { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING , core: true },
+  { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING , core: true },
   { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services", roles: ALL_NON_MARKETING },
-  { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING },
-  { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
+  { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING , core: true },
+  { href: "/communication", label: "Communication", icon: Radio, section: "Growth" , core: ["marketing"] },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
   // \u2500\u2500 Marketing \u2014 campaigns & brand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" },
-  { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] },
-  { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] },
+  { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" , core: true },
+  { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] , core: ["marketing"] },
+  { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] , core: ["marketing"] },
 
   // ── People — HR & workforce ───────────────────────────────
-  { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING },
+  { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING , core: true },
   { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "People", tooltip: "Track vacancies, candidates & staff referrals", roles: ALL_NON_MARKETING },
   { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ALL_NON_MARKETING },
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING },
@@ -175,7 +184,7 @@ export const navItems: NavItem[] = [
   // 2026-07-05 (nav consolidation phase 1): /diversity-dashboard +
   // /wgea-report collapsed into the /workforce-reports hub (tabs).
   { href: "/workforce-reports", label: "Workforce Reports", icon: BarChart3, section: "People", tooltip: "Diversity & inclusion stats and WGEA workforce-composition reporting", roles: ["owner", "head_office", "admin"] },
-  { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero", roles: ALL_NON_MARKETING },
+  { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero", roles: ALL_NON_MARKETING , core: true },
   // 2026-06-29: `/leave` retired from the sidebar. Every new leave
   // request now goes through My Portal → EH so managers get the
   // pending notification inside Employment Hero and there's a single
@@ -202,7 +211,7 @@ export const navItems: NavItem[] = [
   // /tools/the-amana-way, /tools/handbook, /tools/amana-way-one-pager and
   // /tools/employee-handbook — collapsed into the /handbook hub (tabs).
   // The old routes redirect there, so deep links keep working.
-  { href: "/handbook", label: "Handbook & Help", icon: BookOpen, section: "Admin", tooltip: "Handbooks, The Amana Way, quick-start guides and the help centre" },
+  { href: "/handbook", label: "Handbook & Help", icon: BookOpen, section: "Admin", tooltip: "Handbooks, The Amana Way, quick-start guides and the help centre" , core: ["member", "staff"] },
   { href: "/automations", label: "Automations", icon: Activity, section: "Admin", tooltip: "Monitor the health and cadence of all automated tasks", roles: ALL_NON_MARKETING },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText, section: "Admin", tooltip: "Security audit trail — who did what and when", roles: ALL_NON_MARKETING },
   // 2026-07-05 (nav consolidation phase 1): /admin/feedback merged into
@@ -215,7 +224,7 @@ export const navItems: NavItem[] = [
   // deep; extracting the 5 configuration items into their own section
   // gives users a clear mental model of "where do I change config?"
   // and shrinks Admin closer to a support/tools drawer.
-  { href: "/settings", label: "Settings", icon: Settings, section: "Settings" },
+  { href: "/settings", label: "Settings", icon: Settings, section: "Settings" , core: true },
   { href: "/settings/organisation", label: "Org Settings", icon: Settings, section: "Settings", tooltip: "Runtime configuration — email sender, ratios, health score weights", roles: ["admin"] },
   { href: "/settings/permissions", label: "Role Permissions", icon: Shield, section: "Settings", tooltip: "Page-by-page access matrix — owner-only edit", roles: ["owner", "admin"] },
   { href: "/settings/ai-knowledge", label: "AI Knowledge", icon: Brain, section: "Settings", tooltip: "Content the AI assistant searches when staff ask questions", roles: ["owner", "head_office", "admin"] },
@@ -246,4 +255,44 @@ export function filterNavItems(
     }
     return true;
   });
+}
+
+/**
+ * Split one section's (already role-filtered) items into the curated core
+ * and the overflow hidden behind the "+N more" toggle.
+ *
+ * An overflow item is promoted into `core` when it is the active page (the
+ * current location must always be visible in the nav) or when it carries a
+ * live badge (`forceShowHrefs` — e.g. pending booking requests). Order is
+ * preserved in both buckets.
+ */
+export function partitionNavSection(
+  items: readonly NavItem[],
+  role: Role | undefined,
+  opts: { activeHref?: string; forceShowHrefs?: readonly string[] } = {},
+): { core: NavItem[]; overflow: NavItem[] } {
+  // Tiny sections don't earn a toggle — a header plus "+1 more" is more
+  // friction than the item itself.
+  if (items.length <= 2) {
+    return { core: [...items], overflow: [] };
+  }
+  const core: NavItem[] = [];
+  const overflow: NavItem[] = [];
+  const force = new Set(opts.forceShowHrefs ?? []);
+  for (const item of items) {
+    const isCore =
+      item.core === true ||
+      (Array.isArray(item.core) &&
+        (role === "owner" || (role !== undefined && item.core.includes(role))));
+    const isActive =
+      opts.activeHref !== undefined &&
+      (opts.activeHref === item.href ||
+        opts.activeHref.startsWith(item.href + "/"));
+    if (isCore || isActive || force.has(item.href)) {
+      core.push(item);
+    } else {
+      overflow.push(item);
+    }
+  }
+  return { core, overflow };
 }
