@@ -367,6 +367,17 @@ describe("stage-1 nav folds (2026-07-12)", () => {
     "/admin/ai-drafts",
     "/directory",
     "/reports/board",
+    // stage-1 batch 2 (2026-07-12)
+    "/billing",
+    "/scenarios",
+    "/safe-reports",
+    "/policies",
+    "/children",
+    "/centre-avatars",
+    "/communication/whatsapp-compliance",
+    "/position-descriptions",
+    "/contracts",
+    "/leave-payroll",
   ];
 
   it("folded items are hidden from the sidebar/top-nav", () => {

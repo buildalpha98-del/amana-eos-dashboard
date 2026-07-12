@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -38,6 +39,7 @@ import {
   FileUp,
   Calendar,
   Filter,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -1423,6 +1425,7 @@ function TimesheetDetail({
 /* ------------------------------------------------------------------ */
 
 export default function TimesheetsPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const role = (session?.user?.role as string) || "";
   const isAdmin = role === "owner" || role === "admin";
@@ -1576,6 +1579,13 @@ export default function TimesheetsPage() {
             label: "Generate from Timeclock",
             icon: Clock,
             onClick: () => setShowTimeclock(true),
+          },
+          // 2026-07-12 (nav fold): Leave left the sidebar — live EH leave
+          // data is workforce-time, same as timesheets. Page is admin-gated.
+          {
+            label: "Leave",
+            icon: CalendarDays,
+            onClick: () => router.push("/leave-payroll"),
           },
         ]}
       >

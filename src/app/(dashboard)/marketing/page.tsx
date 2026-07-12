@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   BarChart3,
@@ -15,6 +16,8 @@ import {
   CalendarCheck,
   Users,
   ExternalLink,
+  UserCircle,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import ActivationsContent from "@/components/marketing/activations/ActivationsContent";
@@ -83,6 +86,7 @@ const MARKETING_HIDDEN_TABS = new Set(["tasks", "growth"]);
 const MARKETING_ONLY_TABS = new Set(["fieldops", "teamops"]);
 
 export default function MarketingPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const isMarketingRole = session?.user?.role === "marketing";
   const isOwner = session?.user?.role === "owner";
@@ -141,6 +145,13 @@ export default function MarketingPage() {
       <PageHeader
         title="Marketing"
         description="Manage campaigns, posts, and content across all platforms"
+        secondaryActions={[
+          // 2026-07-12 (nav fold): both left the sidebar — they're marketing
+          // satellites. The marketing role can also favourite them (stars
+          // surface hidden items).
+          { label: "Centre Avatars", icon: UserCircle, onClick: () => router.push("/centre-avatars") },
+          { label: "WhatsApp Compliance", icon: MessageCircle, onClick: () => router.push("/communication/whatsapp-compliance") },
+        ]}
       >
         <ServiceFilter
           value={selectedServiceId}

@@ -150,7 +150,7 @@ export const navItems: NavItem[] = [
   // Coordinators / staff drill into their service to access the daily roll call grid.
   { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ALL_NON_MARKETING , core: true },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING , core: true },
-  { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING },
+  { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Financials
   // 2026-07-05 nav consolidation phase 2: /reports folded in as the
   // "Reports" view; /messaging → Contact Centre tab; /conversions → CRM
   // view; five marketing satellites → /marketing Field Ops / Team Ops
@@ -160,8 +160,8 @@ export const navItems: NavItem[] = [
   // /compliance/registers removed from the sidebar — the /compliance page
   // tab bar now links out to both sub-pages instead.
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ALL_NON_MARKETING , core: true },
-  { href: "/safe-reports", label: "Safe Reports", icon: Shield, section: "Operations", tooltip: "Anonymous staff reports — harassment, safety, conduct. Owner & head office only.", roles: ["owner", "head_office"] },
-  { href: "/policies", label: "Policies & Procedures", icon: Shield, section: "Operations", tooltip: "Versioned PDF library with per-version acknowledgement", roles: ALL_NON_MARKETING },
+  { href: "/safe-reports", label: "Safe Reports", icon: Shield, section: "Operations", tooltip: "Anonymous staff reports — harassment, safety, conduct. Owner & head office only.", roles: ["owner", "head_office"] , hidden: true }, // folded 2026-07-12 — linked from Compliance (owner/head_office tab)
+  { href: "/policies", label: "Policies & Procedures", icon: Shield, section: "Operations", tooltip: "Versioned PDF library with per-version acknowledgement", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Compliance; pending-ack badge still force-shows in the sidebar
   // 2026-07-05: /incidents removed from the sidebar entirely (was
   // head_office/admin since 2026-04-30). Deprecated in favour of the
   // leadership card + per-service Compliance → Incidents tabs. The page
@@ -172,22 +172,22 @@ export const navItems: NavItem[] = [
   // ── Growth — pipeline, parents & outreach ─────────────────
   { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING , core: true },
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING , core: true },
-  { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services", roles: ALL_NON_MARKETING },
+  { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Enrolments
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING , core: true },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" , core: ["marketing"] },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
   // \u2500\u2500 Marketing \u2014 campaigns & brand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" , core: true },
-  { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] , core: ["marketing"] },
-  { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] , core: ["marketing"] },
+  { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] , core: ["marketing"] , hidden: true }, // folded 2026-07-12 — linked from Marketing; marketing role can favourite it
+  { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] , core: ["marketing"] , hidden: true }, // folded 2026-07-12 — linked from Marketing; marketing role can favourite it
 
   // ── People — HR & workforce ───────────────────────────────
   { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING , core: true },
   { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "People", tooltip: "Track vacancies, candidates & staff referrals", roles: ALL_NON_MARKETING },
   { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ALL_NON_MARKETING },
-  { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING },
-  { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" },
+  { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Staff Lifecycle
+  { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" , hidden: true }, // folded 2026-07-12 — linked from Recruitment
   // 2026-07-05 (nav consolidation phase 1): /diversity-dashboard +
   // /wgea-report collapsed into the /workforce-reports hub (tabs).
   { href: "/workforce-reports", label: "Workforce Reports", icon: BarChart3, section: "People", tooltip: "Diversity & inclusion stats and WGEA workforce-composition reporting", roles: ["owner", "head_office", "admin"] },
@@ -199,7 +199,7 @@ export const navItems: NavItem[] = [
   // pre-existing pending requests can hit the URL directly) but with
   // a banner pointing to My Portal and the "Request Leave" button
   // removed. Delete the route + API entirely once the backlog drains.
-  { href: "/leave-payroll", label: "Leave", icon: CalendarDays, section: "People", tooltip: "Live leave data from Employment Hero. Approve in EH.", roles: ["owner", "head_office", "admin"] },
+  { href: "/leave-payroll", label: "Leave", icon: CalendarDays, section: "People", tooltip: "Live leave data from Employment Hero. Approve in EH.", roles: ["owner", "head_office", "admin"] , hidden: true }, // folded 2026-07-12 — linked from Timesheets
   { href: "/directory", label: "Staff Directory", icon: Contact, section: "People", tooltip: "Find and connect with your team" , hidden: true }, // folded 2026-07-12 — linked from Team
 
   // ── Admin — config, strategy & utilities ──────────────────
@@ -210,7 +210,7 @@ export const navItems: NavItem[] = [
   // explicitly removing coordinator).
   { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ["admin"] },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
-  { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections", roles: ALL_NON_MARKETING },
+  { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Financials
   { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Documents
   { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Admin", tooltip: "Monthly board & investor report generator", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Performance & Reports
   { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Admin", tooltip: "Ask questions about your dashboard data" , hidden: true }, // folded 2026-07-12 — the floating Ask-Amana-AI pill is on every page

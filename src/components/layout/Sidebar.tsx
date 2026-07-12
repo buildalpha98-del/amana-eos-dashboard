@@ -57,12 +57,22 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // closes the parity gap where the sidebar was still rendering
   // "ADMIN › Leadership" then another "ADMIN" further down. Order =
   // first-seen section wins.
+  // Badge-carrying items must never be invisible — a live count overrides
+  // both the curated-core overflow AND the stage-1 `hidden` fold.
+  const forceShowHrefs = useMemo(() => {
+    const hrefs: string[] = [];
+    if (bookingRequestCount != null && bookingRequestCount > 0) hrefs.push("/bookings");
+    if (unreadMessageCount != null && unreadMessageCount > 0) hrefs.push("/messaging");
+    if (pendingPoliciesCount?.count != null && pendingPoliciesCount.count > 0) hrefs.push("/policies");
+    return hrefs;
+  }, [bookingRequestCount, unreadMessageCount, pendingPoliciesCount?.count]);
+
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
     )
-      .filter((item) => !item.hidden)
+      .filter((item) => !item.hidden || forceShowHrefs.includes(item.href))
       .filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
     const byKey = new Map<string, typeof navItems>();
     const order: string[] = [];
@@ -74,7 +84,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       byKey.get(item.section)!.push(item);
     }
     return order.map((key) => ({ key, items: byKey.get(key)! }));
-  }, [session?.user?.role, inductionLocked]);
+  }, [session?.user?.role, inductionLocked, forceShowHrefs]);
 
   // Build favourited items list from the filtered nav items
   const favouriteItems = useMemo(() => {
@@ -206,10 +216,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             // Curated sidebar (2026-07-12): show the role's core items by
             // default; the rest live behind "+N more". Badge-carrying items
             // are force-shown so a live count is never invisible.
-            const forceShowHrefs: string[] = [];
-            if (bookingRequestCount != null && bookingRequestCount > 0) forceShowHrefs.push("/bookings");
-            if (unreadMessageCount != null && unreadMessageCount > 0) forceShowHrefs.push("/messaging");
-            if (pendingPoliciesCount?.count != null && pendingPoliciesCount.count > 0) forceShowHrefs.push("/policies");
             const { core, overflow } = partitionNavSection(
               group.items,
               session?.user?.role as Role | undefined,

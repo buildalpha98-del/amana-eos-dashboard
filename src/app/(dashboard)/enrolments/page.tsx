@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   Download,
@@ -9,6 +10,7 @@ import {
   User,
   Calendar,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { useEnrolments, type EnrolmentSubmission } from "@/hooks/useEnrolments";
 import { useEnrolmentApplications } from "@/hooks/useEnrolmentApplications";
@@ -37,6 +39,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string }> = {
 };
 
 export default function EnrolmentsPage() {
+  const router = useRouter();
   const [view, setView] = useState<"submissions" | "sibling">("submissions");
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
@@ -75,6 +78,11 @@ export default function EnrolmentsPage() {
       <PageHeader
         title="Enrolments"
         description="Review and process parent enrolment submissions"
+        secondaryActions={[
+          // 2026-07-12 (nav fold): Children left the sidebar — browsing
+          // enrolled children is the other half of this lifecycle.
+          { label: "Children", icon: Users, onClick: () => router.push("/children") },
+        ]}
       >
         <ExportButton
           onClick={() =>

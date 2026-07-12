@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, Plus, Users, Clock, CheckCircle2, Search } from "lucide-react";
+import { Briefcase, Plus, Users, Clock, CheckCircle2, Search, FileText } from "lucide-react";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
@@ -90,6 +90,11 @@ export default function RecruitmentPage() {
               }
             : undefined
         }
+        secondaryActions={[
+          // 2026-07-12 (nav fold): Position Descriptions left the sidebar —
+          // PDs exist to hire against, so they live here.
+          { label: "Position Descriptions", icon: FileText, onClick: () => router.push("/position-descriptions") },
+        ]}
       >
         {activeTab === "vacancies" && (
           <div className="flex flex-wrap items-center gap-3">

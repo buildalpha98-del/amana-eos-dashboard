@@ -24,6 +24,7 @@ import {
   FileText,
   ExternalLink,
   FileSpreadsheet,
+  Shield,
 } from "lucide-react";
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -624,6 +625,27 @@ export default function CompliancePage() {
                 NQF Registers
                 <ExternalLink className="w-3.5 h-3.5" />
               </Link>
+              {/* 2026-07-12 (nav fold): Policies & Safe Reports left the
+                  sidebar — both are compliance channels. Safe Reports is
+                  owner/head_office only, mirroring its page access. */}
+              <Link
+                href="/policies"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted hover:text-foreground hover:border-border transition-colors whitespace-nowrap"
+              >
+                <Shield className="w-4 h-4" />
+                Policies
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+              {(role === "owner" || role === "head_office") && (
+                <Link
+                  href="/safe-reports"
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted hover:text-foreground hover:border-border transition-colors whitespace-nowrap"
+                >
+                  <Shield className="w-4 h-4" />
+                  Safe Reports
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              )}
             </nav>
           </div>
 

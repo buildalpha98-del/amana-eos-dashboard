@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useFinancials } from "@/hooks/useFinancials";
 import { useServices } from "@/hooks/useServices";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ import {
   Pencil,
   FileSpreadsheet,
   AlertTriangle,
+  Receipt,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
@@ -298,6 +301,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
 }
 
 export default function FinancialsPage() {
+  const router = useRouter();
   const [period, setPeriod] = useState<string>("weekly");
   const [showEnterData, setShowEnterData] = useState(false);
   const [showImportOWNA, setShowImportOWNA] = useState(false);
@@ -387,6 +391,10 @@ export default function FinancialsPage() {
         primaryAction={{ label: "Enter Data", icon: Plus, onClick: () => setShowEnterData(true) }}
         secondaryActions={[
           { label: "Import from OWNA", icon: FileSpreadsheet, onClick: () => setShowImportOWNA(true) },
+          // 2026-07-12 (nav fold): Billing + Scenarios left the sidebar —
+          // both are money-ops satellites of this page.
+          { label: "Billing", icon: Receipt, onClick: () => router.push("/billing") },
+          { label: "Scenarios", icon: Calculator, onClick: () => router.push("/scenarios") },
         ]}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
