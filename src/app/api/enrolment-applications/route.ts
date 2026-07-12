@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 
 // ── GET /api/enrolment-applications — list sibling enrolment applications ──
 
-export const GET = withApiAuth(async (req: NextRequest) => {
+export const GET = withApiAuth(async (req: NextRequest, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId") || undefined;
   const status = searchParams.get("status") || "pending";
@@ -12,7 +13,10 @@ export const GET = withApiAuth(async (req: NextRequest) => {
   const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
   const where: Record<string, unknown> = {};
-  if (serviceId) where.serviceId = serviceId;
+  // Centre-scope: non-admins can't omit ?serviceId= to read every centre —
+  // they always resolve to their own service (or nothing on a mismatch).
+  const scopedServiceId = resolveServiceIdFilter(session, serviceId);
+  if (scopedServiceId) where.serviceId = scopedServiceId;
   if (status && status !== "all") where.status = status;
 
   const [applications, total] = await Promise.all([

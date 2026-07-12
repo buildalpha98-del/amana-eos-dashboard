@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/api-error";
 import { z } from "zod";
 import { ChildDocumentType } from "@prisma/client";
 import { uploadFile } from "@/lib/storage/uploadFile";
+import { assertServiceAccess } from "@/lib/authz-scope";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -16,10 +17,12 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   const child = await prisma.child.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, serviceId: true },
   });
 
   if (!child) throw ApiError.notFound("Child not found");
+  // Centre-scope: non-admin roles only see documents for their own centre's children.
+  assertServiceAccess(session, child.serviceId);
 
   const documents = await prisma.childDocument.findMany({
     where: { childId: id },
@@ -47,10 +50,12 @@ export const POST = withApiAuth(async (req, session, context) => {
 
   const child = await prisma.child.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, serviceId: true },
   });
 
   if (!child) throw ApiError.notFound("Child not found");
+  // Centre-scope: non-admin roles may only upload to their own centre's children.
+  assertServiceAccess(session, child.serviceId);
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;

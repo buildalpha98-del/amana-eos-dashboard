@@ -12,6 +12,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
 import { parseRoleParam } from "@/lib/role-enum";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -44,9 +45,13 @@ export const GET = withApiAuth(async (req, session) => {
   // is silently dropped — matches the /api/team route's contract.
   const validatedRole = parseRoleParam(role);
 
+  // Centre-scope: a `member` can't enumerate other centres' users by passing
+  // any ?serviceId= — non-admins always resolve to their own service.
+  const scopedServiceId = resolveServiceIdFilter(session, serviceId);
+
   const users = await prisma.user.findMany({
     where: {
-      ...(serviceId ? { serviceId } : {}),
+      ...(scopedServiceId ? { serviceId: scopedServiceId } : {}),
       ...(validatedRole ? { role: validatedRole } : {}),
       ...(active !== null && active !== undefined
         ? { active: active === "true" }

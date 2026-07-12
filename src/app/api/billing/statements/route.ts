@@ -3,12 +3,13 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 
 /* ------------------------------------------------------------------ */
 /*  GET /api/billing/statements — list with filters + pagination      */
 /* ------------------------------------------------------------------ */
 
-export const GET = withApiAuth(async (req) => {
+export const GET = withApiAuth(async (req, session) => {
   const url = new URL(req.url);
   const serviceId = url.searchParams.get("serviceId") ?? undefined;
   const contactId = url.searchParams.get("contactId") ?? undefined;
@@ -19,7 +20,10 @@ export const GET = withApiAuth(async (req) => {
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 50)));
 
   const where: Record<string, unknown> = {};
-  if (serviceId) where.serviceId = serviceId;
+  // Centre-scope: non-admins can't widen past their own service by omitting
+  // ?serviceId=. contactId stays an additional narrowing filter on top.
+  const scopedServiceId = resolveServiceIdFilter(session, serviceId);
+  if (scopedServiceId) where.serviceId = scopedServiceId;
   if (contactId) where.contactId = contactId;
   if (status) where.status = status;
   if (periodFrom || periodTo) {
