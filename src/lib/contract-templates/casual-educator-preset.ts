@@ -27,29 +27,17 @@ export const CASUAL_EDUCATOR_TEMPLATE_DESCRIPTION =
   "(2026-04-17). Casual-loading-inclusive rate, NES leave only, 1hr notice, " +
   "standard Amana clauses (right to disconnect, IP, privacy, deductions).";
 
-export const CASUAL_EDUCATOR_MANUAL_FIELDS = [
-  {
-    key: "usualPlaceOfEmployment",
-    label: "Usual place of employment (clause 2.1)",
-    type: "text" as const,
-    required: true,
-    default: "NSW",
-  },
-  {
-    key: "additionalBenefits",
-    label: "Additional benefits (clause 6.4)",
-    type: "text" as const,
-    required: false,
-    default: "Broken Shift Allowance",
-  },
-  {
-    key: "companyPropertyItems",
-    label: "Company property (clause 12.1)",
-    type: "text" as const,
-    required: false,
-    default: "Uniform",
-  },
-];
+// manualFields is a legacy DB column; the current issue flow derives
+// input fields from `custom.*` merge tags found in the content instead.
+// Left empty here so a future author editing the template through the
+// UI doesn't hit the identifier-regex validator.
+export const CASUAL_EDUCATOR_MANUAL_FIELDS: Array<{
+  key: string;
+  label: string;
+  type: "text" | "longtext" | "date" | "number";
+  required: boolean;
+  default?: string;
+}> = [];
 
 // ─── TipTap node helpers ────────────────────────────────────────────────────
 const t = (text: string) => ({ type: "text", text });
@@ -129,7 +117,7 @@ export const CASUAL_EDUCATOR_CONTENT_JSON = {
     heading(2, "2. Location"),
     p([
       t("2.1 Your usual place of employment will initially be "),
-      tag("usualPlaceOfEmployment"),
+      tag("custom.usualPlaceOfEmployment"),
       t(
         ", as well as any other location required to fulfil the duties of your position. You may at any time be required to work at a different location nominated by the Employer on either a temporary or permanent basis.",
       ),
@@ -179,7 +167,7 @@ export const CASUAL_EDUCATOR_CONTENT_JSON = {
       t(
         "6.4 In addition, the Employee may be entitled to (where relevant) the following additional benefits: ",
       ),
-      tag("additionalBenefits"),
+      tag("custom.additionalBenefits"),
     ]),
     empty(),
     p(
@@ -261,7 +249,7 @@ export const CASUAL_EDUCATOR_CONTENT_JSON = {
       t(
         "12.1 The Employer may provide you with company property during the course of your employment such as ",
       ),
-      tag("companyPropertyItems"),
+      tag("custom.companyPropertyItems"),
       t(
         ". The provision of any such company property is contingent on your role and will be provided at the absolute discretion of the Employer. You will not have a contractual entitlement to such company property and it may be withdrawn by the Employer at any time.",
       ),
