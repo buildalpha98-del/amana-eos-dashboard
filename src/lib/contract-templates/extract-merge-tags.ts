@@ -1,4 +1,5 @@
 import type { TipTapDoc, TipTapNode } from "./render-html";
+import { MERGE_TAGS_BY_KEY } from "./merge-tag-catalog";
 
 /**
  * Walk a TipTap document and return every distinct merge-tag key referenced
@@ -26,7 +27,7 @@ export function extractMergeTagKeys(doc: TipTapDoc | null | undefined): string[]
   return ordered;
 }
 
-/** "custom.payrunFrequency" → "Pay run frequency"; "custom.remunerationPercent" → "Remuneration percent (%)". */
+/** "custom.payrunFrequency" → "Pay run frequency"; "remunerationPercent" → "Remuneration percent (%)". */
 export function humanizeCustomTagKey(fullKey: string): string {
   const tail = fullKey.replace(/^custom\./, "");
   if (!tail) return fullKey;
@@ -61,14 +62,24 @@ export type DerivedCustomField = {
 
 /**
  * Inspect a template body and return one input-field descriptor per distinct
- * custom.* merge tag found. Used by the issuance flow to dynamically collect
- * values without the template author having to declare manualFields.
+ * tag that isn't already resolved automatically. Used by the issuance flow
+ * to dynamically collect values without the template author having to
+ * declare manualFields.
+ *
+ * A tag is considered "custom" (i.e. needs a manual input) if it either:
+ *   1. Starts with `custom.` (the intended convention), or
+ *   2. Doesn't match any built-in key in the merge-tag catalog
+ *      (staff.*, service.*, contract.*, manager.*, system dates, signatures)
+ *
+ * The second rule is a safety net so a template author who forgets the
+ * `custom.` prefix on a bespoke tag still gets a working input field at
+ * issue time instead of a silently-blank value in the rendered doc.
  */
 export function deriveCustomFields(
   doc: TipTapDoc | null | undefined,
 ): DerivedCustomField[] {
   return extractMergeTagKeys(doc)
-    .filter((k) => k.startsWith("custom."))
+    .filter((k) => k.startsWith("custom.") || !MERGE_TAGS_BY_KEY[k])
     .map((key) => ({
       key,
       label: humanizeCustomTagKey(key),
