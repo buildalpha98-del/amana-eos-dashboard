@@ -99,22 +99,16 @@ export const COORDINATOR_PERMANENT_CONTENT_JSON = {
     p([
       t("1.2 You are employed on a part time basis in the position of "),
       tag("contract.position"),
-      t(". You will report to "),
-      tag("custom.reportsTo"),
       t(
-        ", or any other person directed by the Employer from time to time. The Employer may change your title, role, accountability or reporting relationship at any time, where this change would be reasonable.",
+        ". You will report to the State Manager, or any other person directed by the Employer from time to time. The Employer may change your title, role, accountability or reporting relationship at any time, where this change would be reasonable.",
       ),
     ]),
 
     // 2. Location
     heading(2, "2. Location"),
-    p([
-      t("2.1 Your usual place of employment will initially be "),
-      tag("custom.usualPlaceOfEmployment"),
-      t(
-        ", as well as any other location required to fulfil the duties of your position. You may at any time be required to work at a different location nominated by the Employer on either a temporary or permanent basis.",
-      ),
-    ]),
+    p(
+      "2.1 Your usual place of employment will initially be NSW, as well as any other location required to fulfil the duties of your position. You may at any time be required to work at a different location nominated by the Employer on either a temporary or permanent basis.",
+    ),
 
     // 3. Probation
     heading(2, "3. Probation"),

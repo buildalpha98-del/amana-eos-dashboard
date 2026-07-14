@@ -128,10 +128,20 @@ export function IssueFromTemplateModal({
 
   // Reset downstream state when the template changes so values from a previously
   // selected template (award level, manual fields, etc.) don't leak across.
+  // Seed manualValues from any built-in defaults on the derived custom fields
+  // so common values (probation months, pay frequency, etc.) are pre-filled
+  // and the author only edits what's non-standard.
   useEffect(() => {
     setContractMeta(INITIAL_CONTRACT_META);
-    setManualValues({});
+    setManualValues(
+      Object.fromEntries(
+        customFields.map((f) => [f.key, f.default ?? ""]),
+      ),
+    );
     setPreviewData(null);
+    // customFields is derived from templateId — safe to depend on templateId
+    // alone; including customFields would loop on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
 
   // Step 2: auto-resolve preview (no manualValues yet, with userId)
