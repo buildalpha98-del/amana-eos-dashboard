@@ -58,6 +58,22 @@ export type DerivedCustomField = {
   key: string;
   label: string;
   type: InferredFieldType;
+  /** Pre-filled value at issue time. Author can overwrite. */
+  default?: string;
+};
+
+/**
+ * Pre-filled values for known custom tags used by built-in presets.
+ * Keyed by the full merge-tag key. Templates authored by hand won't
+ * appear here unless the key matches one of these.
+ */
+const CUSTOM_TAG_DEFAULTS: Record<string, string> = {
+  "custom.probationMonths": "6",
+  "custom.includedHours": "5 hours",
+  "custom.payFrequency": "fortnightly",
+  "custom.additionalBenefits":
+    "reimbursement of approved work-related expenses, access to leave entitlements and professional development opportunities",
+  "custom.companyPropertyItems": "Uniform and all electronic equipment",
 };
 
 /**
@@ -80,9 +96,15 @@ export function deriveCustomFields(
 ): DerivedCustomField[] {
   return extractMergeTagKeys(doc)
     .filter((k) => k.startsWith("custom.") || !MERGE_TAGS_BY_KEY[k])
-    .map((key) => ({
-      key,
-      label: humanizeCustomTagKey(key),
-      type: inferCustomFieldType(key),
-    }));
+    .map((key) => {
+      const field: DerivedCustomField = {
+        key,
+        label: humanizeCustomTagKey(key),
+        type: inferCustomFieldType(key),
+      };
+      if (CUSTOM_TAG_DEFAULTS[key] !== undefined) {
+        field.default = CUSTOM_TAG_DEFAULTS[key];
+      }
+      return field;
+    });
 }
