@@ -139,4 +139,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(service, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "admin"] });

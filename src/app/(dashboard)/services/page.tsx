@@ -77,6 +77,11 @@ export default function ServicesPage() {
   const [bulkAction, setBulkAction] = useState("");
 
   const role = session?.user?.role as Role | undefined;
+  // 2026-07-13: State Managers (head_office) can only view centres
+  // they've been attached to via UserServiceMembership — they no
+  // longer create new centres or bulk-manage the list. Owner + admin
+  // still get the full toolset.
+  const canCreateService = role === "owner" || role === "admin";
   const serviceId = session?.user?.serviceId as string | undefined;
   const isAdmin = hasMinRole(role, "admin");
 
@@ -216,7 +221,11 @@ export default function ServicesPage() {
       <PageHeader
         title="Service Centres"
         description="Manage your OSHC centres across all locations"
-        primaryAction={{ label: "Add Centre", icon: Plus, onClick: () => setShowCreate(true) }}
+        primaryAction={
+          canCreateService
+            ? { label: "Add Centre", icon: Plus, onClick: () => setShowCreate(true) }
+            : undefined
+        }
       />
 
       {/* Stats row */}

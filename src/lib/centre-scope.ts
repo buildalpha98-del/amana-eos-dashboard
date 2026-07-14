@@ -9,24 +9,47 @@ import { EOS_ROLES } from "@/lib/role-enum";
 // EOS roles (viewer / implementer) are organisation-wide: they run/observe
 // EOS across every centre, so they get the unscoped (null) filter rather
 // than falling through to the "no centre assigned" empty scope.
-const UNSCOPED_ROLES: readonly Role[] = ["owner", "head_office", ...EOS_ROLES];
+//
+// 2026-07-13: State Managers (head_office) removed from this list per
+// Daniel's request — they now only see the centres they've been attached
+// to via UserServiceMembership. The "Add Centre" button is separately
+// hidden for them in the /services UI and blocked at POST /api/services.
+const UNSCOPED_ROLES: readonly Role[] = ["owner", ...EOS_ROLES];
 
 // ---------------------------------------------------------------------------
 // Roles scoped to their assigned centres
 // ---------------------------------------------------------------------------
-// coordinator — their serviceId + any services where they are managerId
-// member, staff, marketing — their serviceId only
+// head_office (State Manager) — their UserServiceMembership rows
+// member (Coordinator) — primary serviceId + services where they are managerId + memberships
+// staff (Educator) — primary serviceId + memberships
+// marketing — primary serviceId only (kept narrow; the services LIST is
+//   still unscoped for marketing via api/services/route.ts skipping getCentreScope)
 // admin — scoped by state (handled separately via getStateScope)
 // ---------------------------------------------------------------------------
 
 /**
+ * Fetch the active additional-service memberships for a user.
+ * Returns the list of serviceIds the user has been attached to via the
+ * /team → additional services flow (excluding disabled/expired rows).
+ */
+async function fetchActiveMembershipServiceIds(
+  userId: string,
+): Promise<string[]> {
+  const rows = await prisma.userServiceMembership.findMany({
+    where: { userId, status: "active" },
+    select: { serviceId: true },
+  });
+  return rows.map((r) => r.serviceId);
+}
+
+/**
  * Resolves which service IDs the current user is authorised to view.
  *
- * Returns `null` for unscoped roles (owner, head_office) — meaning no filter.
+ * Returns `null` for unscoped roles (owner + EOS roles) — meaning no filter.
  * Returns an array of service IDs for scoped roles.
  *
- * NOTE: For coordinators this performs a DB query to find managed services.
- * Cache the result per-request if calling multiple times.
+ * NOTE: For head_office / member this performs a DB query. Cache the
+ * result per-request if calling multiple times.
  */
 export async function getCentreScope(
   session: Session | null,
@@ -35,7 +58,7 @@ export async function getCentreScope(
 
   const role = session.user.role as Role;
 
-  // Owner and head_office always see everything
+  // Owner + EOS roles always see everything
   if (UNSCOPED_ROLES.includes(role)) {
     return { serviceIds: null };
   }
@@ -46,25 +69,44 @@ export async function getCentreScope(
     return { serviceIds: null };
   }
 
+  const userId = session.user.id as string;
   const userServiceId = session.user.serviceId as string | undefined;
 
-  // Coordinator: their assigned service + any services they manage
-  if (role === "member") {
-    const managedServices = await prisma.service.findMany({
-      where: { managerId: session.user.id as string },
-      select: { id: true },
-    });
+  // State Manager (head_office): scoped to whichever centres they've been
+  // attached to via UserServiceMembership. No primary serviceId concept for
+  // head_office — they're not "based" at a single centre.
+  if (role === "head_office") {
+    const memberships = await fetchActiveMembershipServiceIds(userId);
+    return { serviceIds: memberships };
+  }
 
+  // Coordinator: primary + managed + memberships
+  if (role === "member") {
+    const [managed, memberships] = await Promise.all([
+      prisma.service.findMany({
+        where: { managerId: userId },
+        select: { id: true },
+      }),
+      fetchActiveMembershipServiceIds(userId),
+    ]);
     const ids = new Set<string>();
     if (userServiceId) ids.add(userServiceId);
-    for (const s of managedServices) ids.add(s.id);
-
-    // If coordinator has no assigned or managed services, return empty
-    // (they shouldn't see anything rather than everything)
+    for (const s of managed) ids.add(s.id);
+    for (const id of memberships) ids.add(id);
     return { serviceIds: Array.from(ids) };
   }
 
-  // member, staff, marketing: scoped to their single serviceId
+  // Educator: primary + memberships
+  if (role === "staff") {
+    const memberships = await fetchActiveMembershipServiceIds(userId);
+    const ids = new Set<string>();
+    if (userServiceId) ids.add(userServiceId);
+    for (const id of memberships) ids.add(id);
+    return { serviceIds: Array.from(ids) };
+  }
+
+  // marketing: primary serviceId only (services list bypasses this
+  // helper via marketing-specific skip in api/services/route.ts).
   if (userServiceId) {
     return { serviceIds: [userServiceId] };
   }
@@ -81,7 +123,7 @@ export async function getCentreScope(
  * @param field   The field name that holds the serviceId (default: "serviceId")
  * @returns The (possibly modified) where clause
  *
- * If `serviceIds` is null, no filter is applied (admin+ sees all).
+ * If `serviceIds` is null, no filter is applied (owner / EOS see all).
  * If `serviceIds` has one entry, uses direct equality.
  * If `serviceIds` has multiple entries, uses `{ in: [...] }`.
  * If `serviceIds` is empty, adds an impossible filter so no results are returned.
@@ -91,7 +133,7 @@ export function applyCentreFilter<T extends Record<string, unknown>>(
   serviceIds: string[] | null,
   field: string = "serviceId",
 ): T {
-  if (serviceIds === null) return where; // no filtering for admin+
+  if (serviceIds === null) return where; // no filtering for owner+
 
   if (serviceIds.length === 0) {
     // No centres assigned — return nothing
