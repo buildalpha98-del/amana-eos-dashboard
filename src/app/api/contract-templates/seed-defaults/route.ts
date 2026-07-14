@@ -1,15 +1,24 @@
 /**
  * POST /api/contract-templates/seed-defaults
  *
- * Owner-only one-off: seeds the built-in "OSHC Educator — Casual"
- * template if it doesn't already exist. Idempotent — safe to call
- * multiple times; each call reports which templates were created vs
- * skipped.
+ * Owner-only: seeds (or resets) the built-in preset contract templates.
+ * Idempotent — safe to call repeatedly.
  *
- * Exists so Daniel can rebuild his lost templates with a single button
- * click from /contracts/templates without needing local prod DB access.
- * Future default presets (permanent educator, coordinator, etc.) can
- * plug into the same endpoint.
+ * Behaviour:
+ *   - If a template with the preset's name already exists, its
+ *     content + manualFields are OVERWRITTEN with the current preset
+ *     and status is re-activated. This is by design: presets are
+ *     considered the canonical source, and clicking "Seed defaults"
+ *     is understood to mean "restore this to the built-in version".
+ *   - If it doesn't exist, it's created.
+ *
+ * Rationale for upsert: on 2026-07-13 Daniel seeded the casual
+ * educator preset, then hit a bug where custom tags weren't
+ * surfacing at issue time. The fix updated the preset content, but
+ * the endpoint's skip-if-exists guard prevented the new content from
+ * landing until the row was manually removed — which itself was
+ * blocked because contracts referenced the template. Upsert makes
+ * the button self-healing.
  */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -33,7 +42,7 @@ const PRESETS = [
 export const POST = withApiAuth(
   async (_req, session) => {
     const created: Array<{ id: string; name: string }> = [];
-    const skipped: string[] = [];
+    const updated: Array<{ id: string; name: string }> = [];
 
     for (const preset of PRESETS) {
       const existing = await prisma.contractTemplate.findFirst({
@@ -41,29 +50,47 @@ export const POST = withApiAuth(
         select: { id: true },
       });
       if (existing) {
-        skipped.push(preset.name);
-        continue;
+        const tpl = await prisma.contractTemplate.update({
+          where: { id: existing.id },
+          data: {
+            description: preset.description,
+            contentJson: preset.contentJson as never,
+            manualFields: preset.manualFields as never,
+            status: "active",
+            updatedById: session!.user.id,
+          },
+          select: { id: true, name: true },
+        });
+        updated.push(tpl);
+      } else {
+        const tpl = await prisma.contractTemplate.create({
+          data: {
+            name: preset.name,
+            description: preset.description,
+            contentJson: preset.contentJson as never,
+            manualFields: preset.manualFields as never,
+            createdById: session!.user.id,
+          },
+          select: { id: true, name: true },
+        });
+        created.push(tpl);
       }
-      const tpl = await prisma.contractTemplate.create({
-        data: {
-          name: preset.name,
-          description: preset.description,
-          contentJson: preset.contentJson as never,
-          manualFields: preset.manualFields as never,
-          createdById: session!.user.id,
-        },
-        select: { id: true, name: true },
-      });
-      created.push(tpl);
     }
+
+    const parts: string[] = [];
+    if (created.length)
+      parts.push(
+        `Created ${created.length} template${created.length === 1 ? "" : "s"}`,
+      );
+    if (updated.length)
+      parts.push(
+        `reset ${updated.length} to defaults`,
+      );
 
     return NextResponse.json({
       created,
-      skipped,
-      message:
-        created.length === 0
-          ? "All default templates already exist — nothing seeded."
-          : `Seeded ${created.length} template${created.length === 1 ? "" : "s"}.`,
+      updated,
+      message: parts.length ? parts.join(", ") + "." : "Nothing to seed.",
     });
   },
   { roles: ["owner"], feature: "contracts.create" },
