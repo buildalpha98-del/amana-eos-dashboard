@@ -40,7 +40,15 @@ function createPrismaMock() {
             {
               get(methodCache: Record<string, ReturnType<typeof vi.fn>>, method: string) {
                 if (!methodCache[method]) {
-                  methodCache[method] = vi.fn();
+                  const fn = vi.fn();
+                  // Sane defaults matching Prisma's real return contract, so a
+                  // route that calls an un-mocked collection method doesn't blow
+                  // up on `undefined` (e.g. getCentreScope() maps over
+                  // userServiceMembership.findMany()). Any test can still
+                  // override with its own mockResolvedValue.
+                  if (method === "findMany") fn.mockResolvedValue([]);
+                  else if (method === "count") fn.mockResolvedValue(0);
+                  methodCache[method] = fn;
                 }
                 return methodCache[method];
               },
