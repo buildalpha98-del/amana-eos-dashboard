@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
   Clock,
   Plus,
   Shield,
+  Sparkles,
   Users,
 } from "lucide-react";
 import {
@@ -24,7 +25,8 @@ import { NewContractModal } from "@/components/contracts/NewContractModal";
 import { SupersedeContractModal } from "@/components/contracts/SupersedeContractModal";
 import { TerminateContractDialog } from "@/components/contracts/TerminateContractDialog";
 import type { UserOption } from "@/components/contracts/constants";
-import { fetchApi } from "@/lib/fetch-api";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import { TemplatesTable } from "@/components/contracts/templates/TemplatesTable";
 import { NewTemplateModal } from "@/components/contracts/templates/NewTemplateModal";
 
@@ -329,25 +331,69 @@ export default function ContractsPage() {
       )}
 
       {/* ── Templates tab ── */}
-      {activeTab === "templates" && isAdmin && (
-        <>
-          <PageHeader
-            title="Contract Templates"
-            description="Author and manage employment contract templates"
-            primaryAction={{
-              label: "New Template",
-              icon: Plus,
-              onClick: () => setShowNewTemplate(true),
-            }}
-          />
-
-          <TemplatesTable onCreate={() => setShowNewTemplate(true)} />
-
-          {showNewTemplate && (
-            <NewTemplateModal onClose={() => setShowNewTemplate(false)} />
-          )}
-        </>
-      )}
+      {activeTab === "templates" && isAdmin && <TemplatesTabContent
+        onNewTemplate={() => setShowNewTemplate(true)}
+        showNewTemplate={showNewTemplate}
+        onCloseNewTemplate={() => setShowNewTemplate(false)}
+      />}
     </div>
+  );
+}
+
+/**
+ * Templates tab body — extracted so the "Seed defaults" mutation can
+ * live next to the button that triggers it without polluting the
+ * parent page's hook list.
+ */
+function TemplatesTabContent({
+  onNewTemplate,
+  showNewTemplate,
+  onCloseNewTemplate,
+}: {
+  onNewTemplate: () => void;
+  showNewTemplate: boolean;
+  onCloseNewTemplate: () => void;
+}) {
+  const qc = useQueryClient();
+  const seed = useMutation({
+    mutationFn: () =>
+      mutateApi<{
+        created: Array<{ id: string; name: string }>;
+        skipped: string[];
+        message: string;
+      }>("/api/contract-templates/seed-defaults", { method: "POST" }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["contract-templates"] });
+      toast({ description: data.message });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message });
+    },
+  });
+
+  return (
+    <>
+      <PageHeader
+        title="Contract Templates"
+        description="Author and manage employment contract templates"
+        primaryAction={{
+          label: "New Template",
+          icon: Plus,
+          onClick: onNewTemplate,
+        }}
+        secondaryActions={[
+          {
+            label: "Seed defaults",
+            icon: Sparkles,
+            onClick: () => seed.mutate(),
+            loading: seed.isPending,
+          },
+        ]}
+      />
+
+      <TemplatesTable onCreate={onNewTemplate} />
+
+      {showNewTemplate && <NewTemplateModal onClose={onCloseNewTemplate} />}
+    </>
   );
 }
