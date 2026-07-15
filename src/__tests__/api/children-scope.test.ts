@@ -41,6 +41,10 @@ function setupActiveUser() {
   prismaMock.child.findMany.mockResolvedValue([]);
   prismaMock.child.count.mockResolvedValue(0);
   prismaMock.service.findMany.mockResolvedValue([]);
+  // getCentreScope() (membership-aware since feat/service-memberships-scope)
+  // queries userServiceMembership.findMany — mock it so scope resolves to
+  // just the primary serviceId in these tests instead of throwing.
+  prismaMock.userServiceMembership.findMany.mockResolvedValue([]);
 }
 
 describe("GET /api/children — centre scope enforcement", () => {
@@ -57,11 +61,25 @@ describe("GET /api/children — centre scope enforcement", () => {
     expect(call.where.serviceId).toBeUndefined();
   });
 
-  it("head_office sees no serviceId filter (full access)", async () => {
+  it("head_office is scoped to their membership centres (State Manager change, 2026-07-13)", async () => {
+    // feat/service-memberships-scope made head_office (State Manager)
+    // membership-scoped — they no longer see all centres, only ones they're
+    // attached to via UserServiceMembership. With no memberships mocked here,
+    // getCentreScope resolves to the empty/no-access sentinel (fail closed).
     mockSession({ id: "u-ho", name: "HO", role: "head_office" });
     await GET(createRequest("GET", "/api/children"));
     const call = prismaMock.child.findMany.mock.calls[0][0];
-    expect(call.where.serviceId).toBeUndefined();
+    expect(call.where.serviceId).toBe("__no_access__");
+  });
+
+  it("head_office WITH a membership sees that centre's children", async () => {
+    prismaMock.userServiceMembership.findMany.mockResolvedValueOnce([
+      { serviceId: "svc-ho-centre" } as never,
+    ]);
+    mockSession({ id: "u-ho2", name: "HO2", role: "head_office" });
+    await GET(createRequest("GET", "/api/children"));
+    const call = prismaMock.child.findMany.mock.calls[0][0];
+    expect(call.where.serviceId).toBe("svc-ho-centre");
   });
 
   it("admin sees no centre-scope filter (admin uses state scoping elsewhere)", async () => {
