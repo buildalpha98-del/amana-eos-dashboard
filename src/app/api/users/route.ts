@@ -13,11 +13,15 @@ import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
 import { parseRoleParam } from "@/lib/role-enum";
 import { resolveServiceIdFilter } from "@/lib/authz-scope";
+import { generateTempPassword } from "@/lib/temp-password";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
-  password: passwordSchema,
+  // Optional — "invite mode". When omitted the API mints a strong random
+  // temp password and emails it (welcome email below). When supplied, the
+  // admin's password is breach-checked as before.
+  password: passwordSchema.optional(),
   role: z
     .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer"])
     .default("member"),
@@ -88,7 +92,10 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
-  const { name, email, password, role, serviceId, state, newStarter, startDate } = parsed.data;
+  const { name, email, role, serviceId, state, newStarter, startDate } = parsed.data;
+  // Invite mode: no password supplied → mint a strong random one to email.
+  const providedPassword = parsed.data.password;
+  const password = providedPassword ?? generateTempPassword();
 
   // Guard: admins cannot create owner-level users
   if (session!.user.role !== "owner" && role === "owner") {
@@ -114,13 +121,16 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
-  // Check if password has appeared in known data breaches
-  const breachCount = await checkPasswordBreach(password);
-  if (breachCount > 0) {
-    return NextResponse.json(
-      { error: `This password has appeared in ${breachCount.toLocaleString()} data breaches. Please choose a different password.` },
-      { status: 400 },
-    );
+  // Breach-check only an admin-supplied password. A freshly minted random
+  // temp password needs no HIBP lookup (it's high-entropy and unguessable).
+  if (providedPassword) {
+    const breachCount = await checkPasswordBreach(providedPassword);
+    if (breachCount > 0) {
+      return NextResponse.json(
+        { error: `This password has appeared in ${breachCount.toLocaleString()} data breaches. Please choose a different password.` },
+        { status: 400 },
+      );
+    }
   }
 
   const passwordHash = await hash(password, 12);

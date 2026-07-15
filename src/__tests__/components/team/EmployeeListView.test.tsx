@@ -23,6 +23,9 @@ const mockedFetch = vi.mocked(fetchApi);
 vi.mock("@/components/settings/BulkInviteModal", () => ({
   BulkInviteModal: () => <div data-testid="bulk-invite-modal" />,
 }));
+vi.mock("@/components/team/AddStaffModal", () => ({
+  AddStaffModal: () => <div data-testid="add-staff-modal" />,
+}));
 
 const SERVICES = [{ id: "svc-1", name: "Mawson Lakes" }];
 
@@ -152,11 +155,11 @@ describe("EmployeeListView", () => {
       <EmployeeListView viewerRole="member" viewerId="viewer-1" services={SERVICES} />,
     );
     await screen.findByText("Alice Adams");
-    expect(screen.queryByRole("button", { name: /Invite Employees/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Add staff member/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /Export CSV/i })).toBeNull();
   });
 
-  it("renders Invite Employees button for admin viewer", async () => {
+  it("renders Add staff member button for admin viewer", async () => {
     mockedFetch.mockResolvedValue({
       employees: [ALICE],
       total: 1,
@@ -170,7 +173,7 @@ describe("EmployeeListView", () => {
     );
     await screen.findByText("Alice Adams");
     expect(
-      screen.getByRole("button", { name: /Invite Employees/i }),
+      screen.getByRole("button", { name: /Add staff member/i }),
     ).toBeInTheDocument();
   });
 });
