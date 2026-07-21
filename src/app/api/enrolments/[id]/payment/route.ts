@@ -35,5 +35,5 @@ export const POST = withApiAuth(
       ...parsed,
     });
   },
-  { roles: ["owner", "head_office"] },
+  { roles: ["owner", "head_office", "admin"] },
 );

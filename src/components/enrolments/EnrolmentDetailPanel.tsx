@@ -211,7 +211,10 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
   const [notes, setNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [resending, setResending] = useState(false);
-  const canViewPayment = session?.user?.role === "owner" || session?.user?.role === "head_office";
+  const canViewPayment =
+    session?.user?.role === "owner" ||
+    session?.user?.role === "head_office" ||
+    session?.user?.role === "admin";
 
   const handleResendInvite = async () => {
     if (!enrolment) return;
