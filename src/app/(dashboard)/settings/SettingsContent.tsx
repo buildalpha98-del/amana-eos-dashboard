@@ -283,15 +283,14 @@ function InviteUserModal({
           {needsState && (
             <div>
               <label className="block text-sm font-medium text-foreground/80 mb-1">
-                State <span className="text-red-500">*</span>
+                State
               </label>
               <select
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                required
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
-                <option value="">Select a state...</option>
+                <option value="">All states (all regions)</option>
                 {AUSTRALIAN_STATES.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label} ({s.value})
@@ -299,7 +298,7 @@ function InviteUserModal({
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted">
-                {roleLabels.admin}s are scoped to services within their assigned state
+                Leave as &ldquo;All states&rdquo; to give this {roleLabels.admin.toLowerCase()} access to every centre across all regions. Pick a specific state to scope them to just that region.
               </p>
             </div>
           )}
