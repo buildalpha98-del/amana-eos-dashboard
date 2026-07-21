@@ -5,12 +5,14 @@ import {
   useLMSCourses,
   useMyEnrollments,
   useSelfEnrol,
+  useUpdateLMSCourse,
   useUpdateModuleProgress,
   type LMSCourseData,
   type LMSModuleData,
   type LMSModuleProgressData,
   type useUnenrollStaff,
 } from "@/hooks/useLMS";
+import { Button } from "@/components/ui/Button";
 import { ModuleEditor } from "@/components/lms/ModuleEditor";
 import { StaffModuleRow } from "@/components/lms/StaffModuleRow";
 import { QuizQuestionView } from "@/components/onboarding/QuizQuestionView";
@@ -38,6 +40,8 @@ import {
   Trash2,
   Award,
   UserPlus,
+  Send,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
@@ -539,6 +543,7 @@ interface SelectedCourseData {
   category: string | null;
   isRequired: boolean;
   status: string;
+  track?: "essential" | "monthly" | "library";
   modules?: LMSModuleData[];
   enrollments?: {
     id: string;
@@ -600,6 +605,8 @@ export function LmsCoursesTab({
   handleUnenroll,
   handleModuleProgress,
 }: LmsCoursesTabProps) {
+  const updateCourse = useUpdateLMSCourse();
+
   if (isServiceScoped) {
     return <StaffLMSView />;
   }
@@ -678,10 +685,55 @@ export function LmsCoursesTab({
                   {selectedCourseData?.isRequired && (
                     <span className="text-2xs font-bold uppercase bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full">Required</span>
                   )}
+                  {selectedCourseData?.track && selectedCourseData.track !== "library" && (
+                    <span className="text-2xs font-bold uppercase bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                      {selectedCourseData.track === "essential" ? "Essential induction" : "Monthly"}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isAdmin && selectedCourseData && (
+                selectedCourseData.status === "published" ? (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    loading={updateCourse.isPending}
+                    iconLeft={<Undo2 className="w-4 h-4" />}
+                    onClick={() => {
+                      const gateNote = selectedCourseData.track === "essential"
+                        ? " Essential courses stop counting toward the new-starter induction gate while in draft."
+                        : "";
+                      if (!confirm(`Unpublish "${selectedCourseData.title}"? It moves back to draft and is hidden from staff.${gateNote}`)) return;
+                      updateCourse.mutate(
+                        { id: selectedCourseData.id, status: "draft" },
+                        { onSuccess: () => toast({ description: "Course moved back to draft." }) }
+                      );
+                    }}
+                  >
+                    Unpublish
+                  </Button>
+                ) : (
+                  <Button
+                    size="xs"
+                    loading={updateCourse.isPending}
+                    iconLeft={<Send className="w-4 h-4" />}
+                    onClick={() => {
+                      const gateNote = selectedCourseData.track === "essential"
+                        ? " As an Essential induction course, it will start counting toward the new-starter induction gate."
+                        : "";
+                      if (!confirm(`Publish "${selectedCourseData.title}"? Staff will be able to see and complete it.${gateNote}`)) return;
+                      updateCourse.mutate(
+                        { id: selectedCourseData.id, status: "published" },
+                        { onSuccess: () => toast({ description: "Course published — staff can now see it." }) }
+                      );
+                    }}
+                  >
+                    Publish
+                  </Button>
+                )
+              )}
               {isAdmin && selectedCourseData && (
                 <button
                   onClick={() => { setEnrollForm({ userIds: [], dueDate: "" }); setShowEnroll(true); }}

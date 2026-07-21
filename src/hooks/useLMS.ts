@@ -24,6 +24,8 @@ export interface LMSCourseData {
   category: string | null;
   thumbnail: string | null;
   status: "draft" | "published" | "archived";
+  /** Optional: some payloads (e.g. nested course on enrollments) may omit it */
+  track?: "essential" | "monthly" | "library";
   isRequired: boolean;
   serviceId: string | null;
   service: { id: string; name: string; code: string } | null;
