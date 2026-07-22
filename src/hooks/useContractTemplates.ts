@@ -218,6 +218,10 @@ export type IssueFromTemplatePayload = {
    *  adminSignedById on the contract row. Optional during the rollout
    *  but the UI requires it. */
   adminSignatureDataUrl?: string;
+  /** 2026-07-13: when true, the endpoint supersedes any active contract
+   *  the staff member already holds AND prepends a plain-language
+   *  supersede notice to the rendered PDF. */
+  supersedeExisting?: boolean;
 };
 
 export function useIssueFromTemplate() {

@@ -78,6 +78,13 @@ export function IssueFromTemplateModal({
   const [adminSignatureDataUrl, setAdminSignatureDataUrl] = useState<
     string | null
   >(null);
+  /** 2026-07-13: "Replace previous contract" checkbox on Step 4. When
+   *  true AND the selected staff member has an active/draft contract,
+   *  the endpoint supersedes it and adds a "this supersedes any prior
+   *  agreement" notice to the rendered PDF. Defaults to true whenever
+   *  we detect an existing active contract (Daniel's FT→Casual flow),
+   *  and stays false when the user has none. */
+  const [supersedeExisting, setSupersedeExisting] = useState<boolean>(false);
 
   const { data: templates = [] } = useContractTemplates({ status: "active" });
   const { data: users = [] } = useQuery<UserOption[]>({
@@ -86,6 +93,23 @@ export function IssueFromTemplateModal({
     retry: 2,
     staleTime: 60_000,
   });
+
+  // Query the selected staff member's existing contracts so we can
+  // conditionally show the "Replace previous contract" checkbox. Only
+  // active/draft contracts count as "replaceable" — superseded/terminated
+  // ones are historical and irrelevant.
+  const { data: existingActiveContracts = [] } = useQuery<
+    Array<{ id: string; contractType: string; startDate: string }>
+  >({
+    queryKey: ["contracts", "active-for-user", userId],
+    queryFn: () =>
+      fetchApi<Array<{ id: string; contractType: string; startDate: string }>>(
+        `/api/contracts?userId=${userId}&status=active`,
+      ),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+  const hasExistingActive = existingActiveContracts.length > 0;
 
   const previewMut = usePreviewContractTemplate();
   const issueMut = useIssueFromTemplate();
@@ -143,6 +167,14 @@ export function IssueFromTemplateModal({
     // alone; including customFields would loop on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
+
+  // 2026-07-13: default the "Replace previous contract" checkbox on/off
+  // based on whether the selected staff member has an active contract.
+  // Runs whenever userId (or the query result) changes — the admin can
+  // still override by clicking the checkbox before submitting.
+  useEffect(() => {
+    setSupersedeExisting(hasExistingActive);
+  }, [hasExistingActive]);
 
   // Step 2: auto-resolve preview (no manualValues yet, with userId)
   useEffect(() => {
@@ -281,6 +313,7 @@ export function IssueFromTemplateModal({
         },
         manualValues,
         adminSignatureDataUrl,
+        supersedeExisting,
       });
       onClose();
     } catch {
@@ -373,7 +406,54 @@ export function IssueFromTemplateModal({
             />
           )}
           {step === 4 && (
-            <Step4 meta={contractMeta} setMeta={setContractMeta} />
+            <>
+              <Step4 meta={contractMeta} setMeta={setContractMeta} />
+              {hasExistingActive && (
+                <div className="mt-5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={supersedeExisting}
+                      onChange={(e) => setSupersedeExisting(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="flex-1 text-sm">
+                      <span className="font-medium text-amber-900 dark:text-amber-100">
+                        Replace previous contract
+                      </span>
+                      <span className="block mt-1 text-xs text-amber-800 dark:text-amber-200">
+                        {contractMeta.startDate ? (
+                          <>
+                            From{" "}
+                            <strong>
+                              {new Date(contractMeta.startDate).toLocaleDateString(
+                                "en-AU",
+                                { day: "numeric", month: "long", year: "numeric" },
+                              )}
+                            </strong>
+                            , this contract will supersede and replace any
+                            prior employment agreement between the staff
+                            member and Amana OSHC. A notice will be added to
+                            the top of the printed contract explaining this.
+                          </>
+                        ) : (
+                          <>
+                            This will supersede any prior employment
+                            agreement effective from the contract start
+                            date. A notice will be added to the top of the
+                            printed contract explaining this.
+                          </>
+                        )}
+                      </span>
+                      <span className="block mt-1 text-xs text-amber-700/80 dark:text-amber-300/80">
+                        Leave unchecked to keep the existing contract active
+                        alongside this one.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              )}
+            </>
           )}
           {step === 5 && (
             <Step5
