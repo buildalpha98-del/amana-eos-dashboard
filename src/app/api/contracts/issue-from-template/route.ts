@@ -109,7 +109,33 @@ export const POST = withApiAuth(
     // a row per issued contract would pollute that library. The blob URL
     // is the source of truth and is fetched directly. EmploymentContract
     // .documentId remains null in v1.
+    // 2026-07-13: auto-supersede any existing active/draft contract for
+    // this staff member. Daniel's use case is moving people between
+    // employment types (FT → Casual, etc.) — hitting "Issue Contract"
+    // should just do the right thing without the admin needing to know
+    // the Supersede button exists. The old contract gets endDate =
+    // newStartDate, status = superseded, and the new one is linked
+    // back via previousContractId for the audit trail.
+    const existingActive = await prisma.employmentContract.findFirst({
+      where: {
+        userId: data.userId,
+        status: { in: ["active", "contract_draft"] },
+      },
+      select: { id: true },
+      orderBy: { startDate: "desc" },
+    });
+
     const contract = await prisma.$transaction(async (tx) => {
+      if (existingActive) {
+        await tx.employmentContract.update({
+          where: { id: existingActive.id },
+          data: {
+            status: "superseded",
+            endDate: startDate,
+          },
+        });
+      }
+
       const created = await tx.employmentContract.create({
         data: {
           userId: data.userId,
@@ -125,6 +151,7 @@ export const POST = withApiAuth(
           documentId: null,
           templateId: template.id,
           templateValues: { auto: resolved, manual: data.manualValues },
+          previousContractId: existingActive?.id ?? null,
           // Persist admin signature alongside the contract so re-renders
           // (after staff signs) can replay it without the admin needing
           // to re-draw. signedById/At are an audit trail of WHO signed
@@ -138,10 +165,14 @@ export const POST = withApiAuth(
       await tx.activityLog.create({
         data: {
           userId: session!.user.id,
-          action: "issue_from_template",
+          action: existingActive ? "issue_from_template_supersede" : "issue_from_template",
           entityType: "EmploymentContract",
           entityId: created.id,
-          details: { templateId: template.id, templateName: template.name },
+          details: {
+            templateId: template.id,
+            templateName: template.name,
+            ...(existingActive ? { supersededId: existingActive.id } : {}),
+          },
         },
       });
       return created;
