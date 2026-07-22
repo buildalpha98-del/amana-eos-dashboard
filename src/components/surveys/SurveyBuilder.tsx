@@ -75,6 +75,7 @@ const ROLE_LABELS: Record<Role, string> = {
   staff: "Educator",
   eos_viewer: "EOS Viewer",
   eos_implementer: "EOS Implementer",
+  eos: "EOS Member",
 };
 
 const EMPLOYMENT_TYPE_OPTIONS: EmploymentType[] = [

@@ -29,6 +29,7 @@ export const ROLES: readonly Role[] = [
   "staff",
   "eos_viewer",
   "eos_implementer",
+  "eos",
 ] as const;
 
 const ROLE_SET: Set<string> = new Set(ROLES);

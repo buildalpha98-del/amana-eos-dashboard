@@ -24,6 +24,7 @@ enum Role {
   staff // displayed as "Educator"
   eos_viewer // view-only access to the EOS surface — for EOS coaches / board observers / advisors
   eos_implementer // full write access to the EOS surface (org-wide) — for the EOS implementer running L10s, rocks, scorecard, etc.
+  eos // 2026-07-13: broad EOS Member role — full EOS surface plus Services / Operations / Growth / People. Effectively admin-tier org-wide access; distinct from eos_viewer/eos_implementer which are EOS-only.
 }
 
 enum RockStatus {

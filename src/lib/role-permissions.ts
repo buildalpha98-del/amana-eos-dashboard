@@ -442,6 +442,12 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/help",
     "/directory",
   ],
+  // 2026-07-13: broad "EOS Member" tier — full EOS surface plus
+  // Services / Operations / Growth / People. Effectively admin-level
+  // page access, so we mirror admin's page list rather than
+  // hand-maintaining a parallel one. Owner-only stuff (Leadership,
+  // etc.) is inherited via the admin exclusion set.
+  eos: allPages.filter((p) => !ADMIN_EXCLUDED.has(p)),
 };
 
 // ---------------------------------------------------------------------------
@@ -798,6 +804,9 @@ export const roleFeatures: Record<Role, readonly Feature[]> = {
   staff: staffFeatures,
   eos_viewer: eosViewerFeatures,
   eos_implementer: eosImplementerFeatures,
+  // 2026-07-13: EOS Member gets the admin feature set — Services /
+  // Operations / Growth / People, plus everything admin can do.
+  eos: adminFeatures,
 };
 
 // ---------------------------------------------------------------------------
@@ -882,6 +891,10 @@ const rolePriority: Record<Role, number> = {
   // staff level so it never clears a `minRole` gate above plain operational
   // access.
   eos_implementer: 1,
+  // 2026-07-13: EOS Member has admin-equivalent access to Services / Ops /
+  // Growth / People plus full EOS. Ranked at admin so `minRole("admin")`
+  // gates pass; owner-only paths still guarded by explicit role checks.
+  eos: 4,
 };
 
 export function hasMinRole(
