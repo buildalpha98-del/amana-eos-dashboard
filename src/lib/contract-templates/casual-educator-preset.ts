@@ -112,6 +112,13 @@ export const CASUAL_EDUCATOR_CONTENT_JSON = {
     p(
       "1.3 The Employer may change your title, role, accountability or reporting relationship at any time, where this change would be reasonable. This contract is not intended to give rise to an expectation or intention of an ongoing or continuous employment relationship.",
     ),
+    empty(),
+    p([
+      strong("1.4 Prior agreements: "),
+      t(
+        "This contract supersedes and replaces any prior employment agreement between you and AMANA OSHC PTY LTD, regardless of the employment type of that prior agreement (whether casual, part-time, permanent, or fixed-term). From the commencement of this contract, any earlier agreement ceases to have effect and this contract constitutes the terms of your employment on a casual basis going forward.",
+      ),
+    ]),
 
     // 2. Location
     heading(2, "2. Location"),
