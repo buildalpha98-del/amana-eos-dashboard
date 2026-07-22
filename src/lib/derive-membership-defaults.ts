@@ -25,6 +25,7 @@ const ROLE_AT_SERVICE: Record<Role, string> = {
   staff: "Educator",
   eos_viewer: "EOS Viewer",
   eos_implementer: "EOS Implementer",
+  eos: "EOS Member",
 };
 
 const ACCESS_LEVEL: Record<Role, ServiceAccessLevel> = {
@@ -40,6 +41,8 @@ const ACCESS_LEVEL: Record<Role, ServiceAccessLevel> = {
   // EOS Implementer is org-wide for EOS but not a per-service member, so
   // it gets no per-service write access either.
   eos_implementer: "contributor",
+  // EOS Member has admin-tier org-wide access.
+  eos: "admin",
 };
 
 function toIsoDate(d: Date | string): string {

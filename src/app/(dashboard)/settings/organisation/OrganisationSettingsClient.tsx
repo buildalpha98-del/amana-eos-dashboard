@@ -42,6 +42,7 @@ const ROLE_KEYS: (keyof RoleLabels)[] = [
   "staff",
   "eos_viewer",
   "eos_implementer",
+  "eos",
 ];
 
 const ROLE_HINTS: Record<keyof RoleLabels, string> = {
@@ -53,6 +54,7 @@ const ROLE_HINTS: Record<keyof RoleLabels, string> = {
   staff: "On-shift educator",
   eos_viewer: "View-only access to the EOS surface — coaches / advisors",
   eos_implementer: "Full write access to the EOS surface (org-wide) — the EOS implementer",
+  eos: "Broad EOS Member — full EOS surface plus Services / Operations / Growth / People",
 };
 
 interface Props {
@@ -419,6 +421,7 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
               staff: { welcomeMessage: "" },
               eos_viewer: { welcomeMessage: "" },
               eos_implementer: { welcomeMessage: "" },
+              eos: { welcomeMessage: "" },
             },
           }))
         }

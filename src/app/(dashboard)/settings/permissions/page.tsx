@@ -103,6 +103,7 @@ export default function RolePermissionsPage() {
       staff: new Set(),
       eos_viewer: new Set(),
       eos_implementer: new Set(),
+      eos: new Set(),
     };
     for (const r of ROLES_ORDER) {
       const list = data.overrides[r] ?? data.defaults[r];
@@ -163,6 +164,7 @@ export default function RolePermissionsPage() {
       staff: new Set(),
       eos_viewer: new Set(),
       eos_implementer: new Set(),
+      eos: new Set(),
     };
     for (const r of ROLES_ORDER) {
       next[r] = new Set(data.defaults[r]);
@@ -182,6 +184,7 @@ export default function RolePermissionsPage() {
       staff: null,
       eos_viewer: null,
       eos_implementer: null,
+      eos: null,
     };
     for (const r of ROLES_ORDER) {
       const list = [...working[r]].sort();

@@ -249,6 +249,7 @@ function InviteUserModal({
               <option value="member">{roleLabels.member}</option>
               <option value="marketing">{roleLabels.marketing}</option>
               <option value="admin">{roleLabels.admin}</option>
+              <option value="eos">{roleLabels.eos}</option>
               <option value="eos_viewer">{roleLabels.eos_viewer}</option>
               <option value="eos_implementer">{roleLabels.eos_implementer}</option>
               {currentUserRole === "owner" && <option value="head_office">{roleLabels.head_office}</option>}

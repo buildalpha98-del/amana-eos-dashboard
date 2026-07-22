@@ -96,7 +96,10 @@ const LEADERSHIP_ROLES: Role[] = ["head_office", "admin"];
 const OPERATIONAL_ROLES: Role[] = ["head_office", "admin", "member", "staff"];
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const MARKETING_ACCESS: Role[] = ["marketing"];
-const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "member", "staff"];
+// 2026-07-13: `eos` (EOS Member) sits alongside the operational tiers —
+// broad access to Services / Operations / Growth / People, plus the EOS
+// surface via EOS_SIDEBAR_ROLES below.
+const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "member", "staff", "eos"];
 
 // 2026-04-30: per training-session feedback, EOS surfaces in the sidebar are
 // for State Manager + Admin (owner bypasses). Director of Service (member)
@@ -111,7 +114,9 @@ const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "member", "staff"];
 // the rest of the EOS surface to them.
 // 2026-06-23: EOS roles (viewer / implementer) are EOS-only and need the
 // EOS sidebar links to actually reach their surface.
-const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin", "marketing", ...EOS_ROLES];
+// 2026-07-13: `eos` role also needs the EOS section — they have full
+// EOS + operational access, and the EOS docs are their primary surface.
+const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin", "marketing", "eos", ...EOS_ROLES];
 
 /**
  * Single source of truth for the app's navigation items.
