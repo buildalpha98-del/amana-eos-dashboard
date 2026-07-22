@@ -103,6 +103,13 @@ export const COORDINATOR_PERMANENT_CONTENT_JSON = {
         ". You will report to the State Manager, or any other person directed by the Employer from time to time. The Employer may change your title, role, accountability or reporting relationship at any time, where this change would be reasonable.",
       ),
     ]),
+    empty(),
+    p([
+      strong("1.3 Prior agreements: "),
+      t(
+        "This contract supersedes and replaces any prior employment agreement between you and AMANA OSHC PTY LTD, regardless of the employment type of that prior agreement (whether casual, part-time, permanent, or fixed-term). From the commencement of this contract, any earlier agreement ceases to have effect and this contract constitutes the terms of your employment on a part-time permanent basis going forward.",
+      ),
+    ]),
 
     // 2. Location
     heading(2, "2. Location"),
