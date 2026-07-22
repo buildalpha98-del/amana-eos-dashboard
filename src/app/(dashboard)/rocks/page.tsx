@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useRocks, type RockData } from "@/hooks/useRocks";
 import { getCurrentQuarter } from "@/lib/utils";
 import { QuarterSelector } from "@/components/rocks/QuarterSelector";
@@ -18,8 +19,14 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 
 export default function RocksPage() {
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
   const [quarter, setQuarter] = useState(getCurrentQuarter());
   const [view, setView] = useState<"kanban" | "list">("kanban");
+  // 2026-07-13: quick "My Rocks" filter — narrows the board to rocks
+  // where the current user is the owner. Client-side filter over the
+  // already-fetched rocks list; no extra API round-trip.
+  const [scope, setScope] = useState<"all" | "mine">("all");
   // Deep-linkable: /rocks?id=<rockId> opens the detail panel (⌘K).
   const [selectedRockId, setSelectedRockId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -32,6 +39,22 @@ export default function RocksPage() {
   const handleRockClick = (rock: RockData) => {
     setSelectedRockId(rock.id);
   };
+
+  const visibleRocks = useMemo(() => {
+    if (!rocks) return rocks;
+    if (scope === "mine" && currentUserId) {
+      return rocks.filter((r) => r.owner?.id === currentUserId);
+    }
+    return rocks;
+  }, [rocks, scope, currentUserId]);
+
+  const myRockCount = useMemo(
+    () =>
+      rocks && currentUserId
+        ? rocks.filter((r) => r.owner?.id === currentUserId).length
+        : 0,
+    [rocks, currentUserId],
+  );
 
   return (
     <div
@@ -106,8 +129,44 @@ export default function RocksPage() {
       />
 
       {/* Quarter Selector */}
-      <div className="mb-6 overflow-x-auto">
+      <div className="mb-4 overflow-x-auto">
         <QuarterSelector value={quarter} onChange={setQuarter} />
+      </div>
+
+      {/* Scope pills: All Rocks vs My Rocks (current user's owned rocks) */}
+      <div className="mb-6 flex items-center gap-1 bg-surface rounded-lg p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => setScope("all")}
+          className={cn(
+            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+            scope === "all"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted hover:text-foreground",
+          )}
+        >
+          All Rocks
+          {rocks && (
+            <span className="ml-1.5 text-2xs text-muted">({rocks.length})</span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setScope("mine")}
+          disabled={!currentUserId}
+          className={cn(
+            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors disabled:opacity-40",
+            scope === "mine"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted hover:text-foreground",
+          )}
+          title={currentUserId ? "Rocks assigned to you" : "Loading..."}
+        >
+          My Rocks
+          {rocks && (
+            <span className="ml-1.5 text-2xs text-muted">({myRockCount})</span>
+          )}
+        </button>
       </div>
 
       {/* Error State */}
@@ -120,21 +179,23 @@ export default function RocksPage() {
       )}
 
       {/* Summary Bar */}
-      {!error && rocks && rocks.length > 0 && (
+      {!error && visibleRocks && visibleRocks.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
           <span className="text-sm text-muted">
-            <span className="font-semibold text-foreground">{rocks.length}</span>{" "}
-            Rocks
+            <span className="font-semibold text-foreground">
+              {visibleRocks.length}
+            </span>{" "}
+            {scope === "mine" ? "My " : ""}Rocks
           </span>
           <span className="text-border">|</span>
           <span className="text-sm text-success">
-            {rocks.filter((r) => r.status === "on_track").length} on track
+            {visibleRocks.filter((r) => r.status === "on_track").length} on track
           </span>
           <span className="text-sm text-danger">
-            {rocks.filter((r) => r.status === "off_track").length} off track
+            {visibleRocks.filter((r) => r.status === "off_track").length} off track
           </span>
           <span className="text-sm text-brand">
-            {rocks.filter((r) => r.status === "complete").length} complete
+            {visibleRocks.filter((r) => r.status === "complete").length} complete
           </span>
         </div>
       )}
@@ -154,12 +215,19 @@ export default function RocksPage() {
             </div>
           ))}
         </div>
-      ) : rocks && rocks.length > 0 ? (
+      ) : visibleRocks && visibleRocks.length > 0 ? (
         view === "kanban" ? (
-          <RockKanban rocks={rocks} onRockClick={handleRockClick} />
+          <RockKanban rocks={visibleRocks} onRockClick={handleRockClick} />
         ) : (
-          <RockListView rocks={rocks} onRockClick={handleRockClick} />
+          <RockListView rocks={visibleRocks} onRockClick={handleRockClick} />
         )
+      ) : scope === "mine" && rocks && rocks.length > 0 ? (
+        <EmptyState
+          icon={Mountain}
+          title="No Rocks assigned to you"
+          description={`You don't own any Rocks in ${quarter.replace("-", " ")}. Switch back to "All Rocks" to see the full list.`}
+          action={{ label: "Show all Rocks", onClick: () => setScope("all") }}
+        />
       ) : (
         <EmptyState
           icon={Mountain}

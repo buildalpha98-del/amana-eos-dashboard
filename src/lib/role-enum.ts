@@ -51,21 +51,20 @@ export function isEosRole(role: string | null | undefined): boolean {
 /**
  * Roles eligible to be assigned/owned on EOS surfaces (todos, rocks,
  * scorecard measurables, issues, meeting attendees). Deliberately
- * excludes staff (Educator) and member (OSHC Coordinator) — Daniel
- * doesn't want the whole staff list appearing in EOS dropdowns.
- * Also excludes eos_viewer (read-only).
+ * excludes staff (Educator), member (OSHC Coordinator), and eos_viewer
+ * — Daniel doesn't want the whole staff list appearing in EOS dropdowns.
  *
- * 2026-07-13: introduced per Daniel — "the To-do / scorecard box, or
- * anything like that, shouldn't have a whole staff list. Only admin,
- * EOS, marketing, state manager, or ownership roles."
+ * 2026-07-13 (initial): included marketing + eos_implementer.
+ * 2026-07-13 (tightened by Daniel): reduced to just leadership + EOS
+ * Member per follow-up — "should only be able to assign to those that
+ * are admin, state manager, EOS member, and owner." Marketing +
+ * eos_implementer removed from this specific filter.
  */
 export const EOS_ASSIGNEE_ROLES: readonly Role[] = [
   "owner",
   "head_office",
   "admin",
-  "marketing",
   "eos",
-  "eos_implementer",
 ] as const;
 
 const EOS_ASSIGNEE_SET: Set<string> = new Set(EOS_ASSIGNEE_ROLES);
