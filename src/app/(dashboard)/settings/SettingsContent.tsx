@@ -254,8 +254,11 @@ function InviteUserModal({
               <option value="marketing">{roleLabels.marketing}</option>
               <option value="admin">{roleLabels.admin}</option>
               <option value="eos">{roleLabels.eos}</option>
-              <option value="eos_viewer">{roleLabels.eos_viewer}</option>
-              <option value="eos_implementer">{roleLabels.eos_implementer}</option>
+              {/* 2026-07-13: EOS Viewer + EOS Implementer removed from
+                  the picker per Daniel — only the broad "EOS Member"
+                  is offered going forward. Enum values stay in the DB
+                  for any existing rows; new assignments go through
+                  EOS Member. */}
               {currentUserRole === "owner" && <option value="head_office">{roleLabels.head_office}</option>}
               {currentUserRole === "owner" && <option value="owner">{roleLabels.owner}</option>}
             </select>
@@ -566,18 +569,10 @@ function UserRow({
                   >
                     Set as {roleLabels.eos}
                   </button>
-                  <button
-                    onClick={() => updateRole.mutate("eos_viewer")}
-                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
-                  >
-                    Set as {roleLabels.eos_viewer}
-                  </button>
-                  <button
-                    onClick={() => updateRole.mutate("eos_implementer")}
-                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
-                  >
-                    Set as {roleLabels.eos_implementer}
-                  </button>
+                  {/* 2026-07-13: Set-as-EOS-Viewer + Set-as-EOS-Implementer
+                      removed per Daniel — the single "EOS Member" role is
+                      the only EOS option now. Enum values stay in the
+                      schema for any legacy rows. */}
                   {isOwner && (
                     <button
                       onClick={() => updateRole.mutate("head_office")}

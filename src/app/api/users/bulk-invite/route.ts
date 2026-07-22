@@ -14,7 +14,7 @@ const bulkUserSchema = z.object({
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   name: z.string().min(1, "Name is required"),
   role: z
-    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer"])
+    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "eos"])
     // Default to "staff" (Educator) per training feedback — admin
     // promotes individuals to OSHC Educator (`member`) after vetting.
     .default("staff"),
