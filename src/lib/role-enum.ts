@@ -55,15 +55,19 @@ export function isEosRole(role: string | null | undefined): boolean {
  * — Daniel doesn't want the whole staff list appearing in EOS dropdowns.
  *
  * 2026-07-13 (initial): included marketing + eos_implementer.
- * 2026-07-13 (tightened by Daniel): reduced to just leadership + EOS
- * Member per follow-up — "should only be able to assign to those that
- * are admin, state manager, EOS member, and owner." Marketing +
- * eos_implementer removed from this specific filter.
+ * 2026-07-13 (tightened): reduced to owner/head_office/admin/eos.
+ * 2026-07-13 (marketing re-added by Daniel): "for to-dos, rocks,
+ * scorecard, issues, meetings — should also be able to be viewed by
+ * marketing, and we should be able to assign to marketing." Marketing
+ * already had EOS page-level view/edit access since 2026-06-03; this
+ * just re-exposes them in the assignee dropdowns. eos_implementer
+ * stays out (Daniel didn't list it).
  */
 export const EOS_ASSIGNEE_ROLES: readonly Role[] = [
   "owner",
   "head_office",
   "admin",
+  "marketing",
   "eos",
 ] as const;
 
