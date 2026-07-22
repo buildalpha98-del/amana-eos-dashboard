@@ -151,7 +151,11 @@ export const POST = withApiAuth(async (req, session) => {
       passwordHash,
       role,
       serviceId: (role === "staff" || role === "member") ? (serviceId || null) : null,
-      state: role === "admin" ? (state || null) : null,
+      // 2026-07-13: state is a region hint for both admin (state-scoped
+      // per getStateScope) and head_office (State Manager tier). Null =
+      // "all states / all regions" — no region restriction. Other roles
+      // don't carry a state.
+      state: (role === "admin" || role === "head_office") ? (state || null) : null,
       notificationPrefs: getDefaultNotificationPrefs(role),
       // New starters begin locked in induction; everyone else stays `cleared`.
       ...(newStarter

@@ -125,7 +125,11 @@ function InviteUserModal({
   });
 
   const needsService = role === "staff" || role === "member";
-  const needsState = role === "admin";
+  // 2026-07-13: State picker now shown for both Admin and State Manager
+  // (head_office). Owner + other roles skip the picker — no region concept
+  // for them. Both default to "All states" so the leadership tiers see
+  // every region unless explicitly narrowed.
+  const needsState = role === "admin" || role === "head_office";
 
   const createUser = useMutation({
     mutationFn: async (data: {
@@ -299,7 +303,7 @@ function InviteUserModal({
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted">
-                Leave as &ldquo;All states&rdquo; to give this {roleLabels.admin.toLowerCase()} access to every centre across all regions. Pick a specific state to scope them to just that region.
+                Leave as &ldquo;All states&rdquo; for org-wide access across every region. Pick a specific state to scope them to just that region.
               </p>
             </div>
           )}
