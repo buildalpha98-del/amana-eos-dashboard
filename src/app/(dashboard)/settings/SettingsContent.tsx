@@ -556,6 +556,24 @@ function UserRow({
                   >
                     Set as {roleLabels.admin}
                   </button>
+                  <button
+                    onClick={() => updateRole.mutate("eos")}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
+                  >
+                    Set as {roleLabels.eos}
+                  </button>
+                  <button
+                    onClick={() => updateRole.mutate("eos_viewer")}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
+                  >
+                    Set as {roleLabels.eos_viewer}
+                  </button>
+                  <button
+                    onClick={() => updateRole.mutate("eos_implementer")}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
+                  >
+                    Set as {roleLabels.eos_implementer}
+                  </button>
                   {isOwner && (
                     <button
                       onClick={() => updateRole.mutate("head_office")}
