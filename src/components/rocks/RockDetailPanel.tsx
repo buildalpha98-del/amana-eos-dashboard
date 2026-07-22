@@ -53,7 +53,7 @@ export function RockDetailPanel({
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
-      const res = await fetch("/api/users");
+      const res = await fetch("/api/users?scope=eos_assignees");
       if (!res.ok) return [];
       return res.json();
     },

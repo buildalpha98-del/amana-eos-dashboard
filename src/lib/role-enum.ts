@@ -48,6 +48,33 @@ export function isEosRole(role: string | null | undefined): boolean {
   return role === "eos_viewer" || role === "eos_implementer";
 }
 
+/**
+ * Roles eligible to be assigned/owned on EOS surfaces (todos, rocks,
+ * scorecard measurables, issues, meeting attendees). Deliberately
+ * excludes staff (Educator) and member (OSHC Coordinator) — Daniel
+ * doesn't want the whole staff list appearing in EOS dropdowns.
+ * Also excludes eos_viewer (read-only).
+ *
+ * 2026-07-13: introduced per Daniel — "the To-do / scorecard box, or
+ * anything like that, shouldn't have a whole staff list. Only admin,
+ * EOS, marketing, state manager, or ownership roles."
+ */
+export const EOS_ASSIGNEE_ROLES: readonly Role[] = [
+  "owner",
+  "head_office",
+  "admin",
+  "marketing",
+  "eos",
+  "eos_implementer",
+] as const;
+
+const EOS_ASSIGNEE_SET: Set<string> = new Set(EOS_ASSIGNEE_ROLES);
+
+/** True if this role is eligible to own/assignee on EOS surfaces. */
+export function isEosAssigneeRole(role: string | null | undefined): boolean {
+  return typeof role === "string" && EOS_ASSIGNEE_SET.has(role);
+}
+
 /** Type guard. Narrows `value` to `Role` when it's a known enum value. */
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && ROLE_SET.has(value);

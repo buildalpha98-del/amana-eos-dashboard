@@ -11,7 +11,7 @@ import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
-import { parseRoleParam } from "@/lib/role-enum";
+import { parseRoleParam, EOS_ASSIGNEE_ROLES } from "@/lib/role-enum";
 import { resolveServiceIdFilter } from "@/lib/authz-scope";
 import { generateTempPassword } from "@/lib/temp-password";
 
@@ -23,7 +23,7 @@ const createUserSchema = z.object({
   // admin's password is breach-checked as before.
   password: passwordSchema.optional(),
   role: z
-    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer"])
+    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "eos"])
     .default("member"),
   serviceId: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
@@ -41,6 +41,12 @@ export const GET = withApiAuth(async (req, session) => {
   const serviceId = searchParams.get("serviceId");
   const role = searchParams.get("role");
   const active = searchParams.get("active");
+  // 2026-07-13: `?scope=eos_assignees` narrows the list to the roles
+  // eligible to own/be-assigned on EOS surfaces (todos, rocks,
+  // scorecard, issues, meetings). Excludes staff (Educator) and member
+  // (OSHC Coordinator) so those dropdowns aren't cluttered with a full
+  // staff roster. Unknown scope values are silently ignored.
+  const scope = searchParams.get("scope");
 
   // 2026-05-01: validate `?role=` against the actual Role enum before
   // letting it reach Prisma's where clause. Previously `role as any`
@@ -59,6 +65,9 @@ export const GET = withApiAuth(async (req, session) => {
       ...(validatedRole ? { role: validatedRole } : {}),
       ...(active !== null && active !== undefined
         ? { active: active === "true" }
+        : {}),
+      ...(scope === "eos_assignees"
+        ? { role: { in: [...EOS_ASSIGNEE_ROLES] } }
         : {}),
     },
     select: {

@@ -30,7 +30,7 @@ export function StartMeetingDialog({
 
   const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
     queryKey: ["users-list-full"],
-    queryFn: () => fetchApi<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>("/api/users"),
+    queryFn: () => fetchApi<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>("/api/users?scope=eos_assignees"),
     retry: 2,
     staleTime: 60_000,
   });
