@@ -41,7 +41,7 @@ export function ManageMembersDialog({
   // person-pickers (BulkInviteModal, etc.).
   const users = useQuery<UserOption[]>({
     queryKey: ["users-list"],
-    queryFn: () => fetchApi<UserOption[]>("/api/users"),
+    queryFn: () => fetchApi<UserOption[]>("/api/users?scope=eos_assignees"),
     enabled: open,
     staleTime: 60_000,
   });

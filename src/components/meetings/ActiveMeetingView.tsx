@@ -91,7 +91,7 @@ export function ActiveMeetingView({
   const { data: services } = useServices("active");
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
-    queryFn: () => fetchApi<{ id: string; name: string }[]>("/api/users"),
+    queryFn: () => fetchApi<{ id: string; name: string }[]>("/api/users?scope=eos_assignees"),
     retry: 2,
     staleTime: 60_000,
   });
