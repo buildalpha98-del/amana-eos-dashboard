@@ -39,6 +39,13 @@ const issueSchema = z.object({
     .startsWith("data:image/", "Must be a PNG data URL")
     .max(500_000, "Signature image too large")
     .optional(),
+  // 2026-07-13: opt-in supersede toggle from the Issue-Contract wizard.
+  // When true AND the staff member has an active/draft contract, that
+  // contract flips to superseded and the rendered PDF gets a boilerplate
+  // "this supersedes any prior agreement" notice paragraph up top. When
+  // false (or when there's no existing contract), the new contract is
+  // issued alongside any others and no notice is added.
+  supersedeExisting: z.boolean().optional().default(false),
 });
 
 export const POST = withApiAuth(
@@ -87,13 +94,40 @@ export const POST = withApiAuth(
       "signature.adminDate": data.adminSignatureDataUrl ? adminDateFriendly : "",
       "signature.staffDate": "",
     };
-    const { html, missingTags } = renderTemplateHtml({
+    // 2026-07-13: opt-in supersede. Looked up BEFORE HTML render so the
+    // rendered PDF can include the supersede notice. Only actually
+    // touches the existing row when the wizard's "Replace previous
+    // contract" checkbox is ticked. Rationale for opt-in: an admin
+    // sometimes wants to issue an additional contract (e.g. a second
+    // casual engagement running in parallel) without wiping the
+    // previous. The wizard defaults the checkbox to true when it
+    // detects an existing active contract, so Daniel's FT→Casual flow
+    // stays one-click.
+    const existingActive = data.supersedeExisting
+      ? await prisma.employmentContract.findFirst({
+          where: {
+            userId: data.userId,
+            status: { in: ["active", "contract_draft"] },
+          },
+          select: { id: true },
+          orderBy: { startDate: "desc" },
+        })
+      : null;
+
+    const { html: bodyHtml, missingTags } = renderTemplateHtml({
       doc: template.contentJson as TipTapDoc,
       data: allData,
     });
     if (missingTags.length) {
       throw ApiError.badRequest(`Template references unknown tags: ${missingTags.join(", ")}`);
     }
+
+    // When superseding, prepend a plain-language notice to the rendered
+    // HTML so the printed contract makes the transition explicit.
+    const supersedeNoticeHtml = existingActive
+      ? `<p style="padding:12px 14px;margin:0 0 16px 0;border:1px solid #d1d5db;background:#f9fafb;font-size:11pt;line-height:1.5;"><strong>Notice:</strong> This contract, effective from ${new Date(startDate).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}, supersedes and replaces any prior employment agreement between you and AMANA OSHC PTY LTD. The prior agreement ceases on the date this contract takes effect.</p>`
+      : "";
+    const html = supersedeNoticeHtml + bodyHtml;
 
     // Steps 6-7: render PDF + upload.
     // Failure here means no DB row (clean abort — no orphan storage).
@@ -109,21 +143,6 @@ export const POST = withApiAuth(
     // a row per issued contract would pollute that library. The blob URL
     // is the source of truth and is fetched directly. EmploymentContract
     // .documentId remains null in v1.
-    // 2026-07-13: auto-supersede any existing active/draft contract for
-    // this staff member. Daniel's use case is moving people between
-    // employment types (FT → Casual, etc.) — hitting "Issue Contract"
-    // should just do the right thing without the admin needing to know
-    // the Supersede button exists. The old contract gets endDate =
-    // newStartDate, status = superseded, and the new one is linked
-    // back via previousContractId for the audit trail.
-    const existingActive = await prisma.employmentContract.findFirst({
-      where: {
-        userId: data.userId,
-        status: { in: ["active", "contract_draft"] },
-      },
-      select: { id: true },
-      orderBy: { startDate: "desc" },
-    });
 
     const contract = await prisma.$transaction(async (tx) => {
       if (existingActive) {
