@@ -272,7 +272,7 @@ function ContactsTable({
                 Centre
               </th>
               <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">
-                Mobile
+                Contact
               </th>
               <th className="text-right px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">
                 Owing
@@ -321,17 +321,29 @@ function ContactsTable({
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {c.mobileNumber ? (
-                      <a
-                        href={`tel:${c.mobileNumber}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="hover:text-brand"
-                      >
-                        {c.mobileNumber}
-                      </a>
-                    ) : (
-                      <span className="text-muted/50">—</span>
-                    )}
+                    <div className="flex flex-col gap-0.5">
+                      {c.mobileNumber && (
+                        <a
+                          href={`tel:${c.mobileNumber}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-brand"
+                        >
+                          {c.mobileNumber}
+                        </a>
+                      )}
+                      {c.parentEmail && (
+                        <a
+                          href={`mailto:${c.parentEmail}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-brand text-xs truncate max-w-[16rem]"
+                        >
+                          {c.parentEmail}
+                        </a>
+                      )}
+                      {!c.mobileNumber && !c.parentEmail && (
+                        <span className="text-muted/50">—</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-foreground whitespace-nowrap">
                     {formatCurrency(c.amountOwing)}
