@@ -151,6 +151,20 @@ export default function FamilyBalancesPage() {
 
   const contacts = data?.contacts ?? [];
 
+  // 2026-07-23: when editing, gather the other contact attempts for
+  // the SAME account (case-insensitive match). Passed to the modal so
+  // it can render a "thread" view — every attempt for this family
+  // lives in one file, clickable to swap focus.
+  const siblingContacts = useMemo(() => {
+    if (!editingContact) return [];
+    const key = editingContact.accountName.trim().toLowerCase();
+    return contacts.filter(
+      (c) =>
+        c.id !== editingContact.id &&
+        c.accountName.trim().toLowerCase() === key,
+    );
+  }, [contacts, editingContact]);
+
   const summary = useMemo(() => {
     const totalOwing = contacts.reduce((sum, c) => sum + c.amountOwing, 0);
     const noAnswerCount = contacts.filter((c) => c.outcome === "no_answer").length;
@@ -241,6 +255,8 @@ export default function FamilyBalancesPage() {
           existing={modalMode === "edit" ? editingContact : null}
           prefill={modalMode === "create" ? prefill : null}
           onLogAnotherAttempt={openLogAnother}
+          siblingContacts={modalMode === "edit" ? siblingContacts : []}
+          onSwitchTo={openEdit}
         />
       )}
     </div>
