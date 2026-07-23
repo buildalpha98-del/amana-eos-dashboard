@@ -77,6 +77,20 @@ interface Props {
    * close the current instance and re-open with prefill values.
    */
   onLogAnotherAttempt?: (prefill: FamilyBalanceModalPrefill) => void;
+  /**
+   * 2026-07-23: other contact attempts for the same account (excluding
+   * the currently-edited one). Rendered as a compact list at the top
+   * of the edit form so the admin can see the full chase history
+   * inline and jump between attempts without going back to the main
+   * table. Only shown in edit mode.
+   */
+  siblingContacts?: FamilyBalanceContactListItem[];
+  /**
+   * Called when the admin picks a different attempt from the sibling
+   * list — the parent updates its editingContact state so this modal
+   * re-renders focused on the new attempt.
+   */
+  onSwitchTo?: (contact: FamilyBalanceContactListItem) => void;
 }
 
 function toDateInput(iso?: string | null): string {
@@ -92,6 +106,8 @@ export function NewFamilyBalanceContactModal({
   existing,
   prefill,
   onLogAnotherAttempt,
+  siblingContacts = [],
+  onSwitchTo,
 }: Props) {
   useEscapeClose(onClose);
   const create = useCreateFamilyBalanceContact();
@@ -193,10 +209,14 @@ export function NewFamilyBalanceContactModal({
     !followUpDate && outcome === "no_answer";
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    // 2026-07-23: bumped z-index so the modal sits above the floating
+    // Ask Amana AI chat widget (was covering the footer buttons).
+    // Also switched from vh to dvh so mobile Safari's dynamic browser
+    // chrome doesn't push the modal off-screen.
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 sm:p-6">
       <form
         onSubmit={handleSubmit}
-        className="bg-card rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
+        className="bg-card rounded-xl shadow-2xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)] flex flex-col"
       >
         {/* Sticky header */}
         <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
@@ -222,6 +242,86 @@ export function NewFamilyBalanceContactModal({
 
         {/* Scrollable body */}
         <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+          {/* 2026-07-23: Prior attempts thread — only in edit mode
+              when there's at least one other attempt for the same
+              account. Clicking a sibling swaps the modal's focus to
+              that attempt (via onSwitchTo) so admin can walk through
+              a whole family's chase history without leaving the
+              modal. The row for the currently-edited attempt is
+              non-clickable and visually deemphasised so it's clear
+              what's being edited below. */}
+          {isEdit && existing && siblingContacts.length > 0 && (
+            <div className="rounded-lg border border-border bg-surface/50">
+              <div className="px-3 py-2 border-b border-border">
+                <p className="text-xs font-semibold text-foreground/80 uppercase tracking-wide">
+                  All attempts for {existing.parentName}
+                  <span className="ml-1.5 text-muted normal-case font-normal">
+                    ({siblingContacts.length + 1} total)
+                  </span>
+                </p>
+              </div>
+              <ul className="divide-y divide-border max-h-48 overflow-y-auto">
+                {/* Full list including the current one, sorted by
+                    contactedAt desc so the freshest attempt sits at
+                    the top. */}
+                {[...siblingContacts, existing]
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      new Date(b.contactedAt).getTime() -
+                      new Date(a.contactedAt).getTime(),
+                  )
+                  .map((c) => {
+                    const isCurrent = c.id === existing.id;
+                    return (
+                      <li
+                        key={c.id}
+                        className={
+                          isCurrent
+                            ? "px-3 py-2 bg-brand/5"
+                            : "px-3 py-2 hover:bg-surface cursor-pointer"
+                        }
+                        onClick={() => {
+                          if (!isCurrent && onSwitchTo) onSwitchTo(c);
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs font-medium text-foreground whitespace-nowrap">
+                              {new Date(c.contactedAt).toLocaleDateString(
+                                "en-AU",
+                                { day: "numeric", month: "short" },
+                              )}
+                            </span>
+                            <span className="text-2xs uppercase tracking-wide text-muted whitespace-nowrap">
+                              {c.contactMethod}
+                            </span>
+                            <span className="text-xs text-foreground/80 truncate">
+                              {c.outcome.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                          {isCurrent ? (
+                            <span className="text-2xs uppercase tracking-wide text-brand font-semibold whitespace-nowrap">
+                              Editing
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted whitespace-nowrap">
+                              Click to edit
+                            </span>
+                          )}
+                        </div>
+                        {c.outcomeNotes && (
+                          <p className="mt-0.5 text-xs text-muted line-clamp-1">
+                            {c.outcomeNotes}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+              </ul>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground/80 mb-1">
