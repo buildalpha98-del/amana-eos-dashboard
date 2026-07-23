@@ -78,6 +78,7 @@ import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 import { AdoptionDashboard } from "@/components/admin/AdoptionDashboard";
 import { BannerManagementSection } from "@/components/settings/BannerManagementSection";
 import { NotificationLogTab } from "@/components/settings/NotificationLogTab";
+import { AssignToServiceDialog } from "@/components/team/AssignToServiceDialog";
 import { KiosksPanel } from "@/components/settings/KiosksPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Mail } from "lucide-react";
@@ -360,6 +361,7 @@ function UserRow({
   const [showMenu, setShowMenu] = useState(false);
   const [showResetPw, setShowResetPw] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showServiceAccess, setShowServiceAccess] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
 
@@ -591,6 +593,14 @@ function UserRow({
                   )}
                   <hr className="my-1" />
                   <button
+                    onClick={() => { setShowServiceAccess(true); setShowMenu(false); }}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    Manage centre access
+                  </button>
+                  <hr className="my-1" />
+                  <button
                     onClick={() => toggleActive.mutate()}
                     disabled={toggleActive.isPending}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
@@ -716,6 +726,13 @@ function UserRow({
               </div>
             </div>
           </div>
+        )}
+        {showServiceAccess && (
+          <AssignToServiceDialog
+            userId={user.id}
+            userName={user.name}
+            onClose={() => setShowServiceAccess(false)}
+          />
         )}
       </td>
     </tr>
