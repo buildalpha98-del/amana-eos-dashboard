@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 
+const CONTACT_METHODS = ["email", "phone", "sms", "in_person"] as const;
 const CONTACT_OUTCOMES = [
   "answered",
   "no_answer",
@@ -23,11 +24,20 @@ const CONTACT_OUTCOMES = [
   "other",
 ] as const;
 
+// 2026-07-23: widened from outcome/notes/followUp/amount to cover every
+// field on the form. Daniel wants to correct typos on the parent name,
+// method, contacted-at date, etc. after a call.
 const patchSchema = z.object({
+  accountName: z.string().min(1).max(200).optional(),
+  parentName: z.string().min(1).max(200).optional(),
+  mobileNumber: z.string().max(50).nullable().optional(),
+  amountOwing: z.number().nonnegative().optional(),
+  contactedAt: z.string().datetime().optional(),
+  contactMethod: z.enum(CONTACT_METHODS).optional(),
   outcome: z.enum(CONTACT_OUTCOMES).optional(),
   outcomeNotes: z.string().max(5000).nullable().optional(),
   followUpDate: z.string().datetime().nullable().optional(),
-  amountOwing: z.number().nonnegative().optional(),
+  serviceId: z.string().nullable().optional(),
 });
 
 type RouteCtx = { params: Promise<{ id: string }> };
@@ -49,19 +59,24 @@ export const PATCH = withApiAuth(
     });
     if (!existing) throw ApiError.notFound("Contact log not found");
 
+    const d = parsed.data;
     const updated = await prisma.familyBalanceContact.update({
       where: { id },
       data: {
-        ...(parsed.data.outcome !== undefined ? { outcome: parsed.data.outcome } : {}),
-        ...(parsed.data.outcomeNotes !== undefined
-          ? { outcomeNotes: parsed.data.outcomeNotes }
+        ...(d.accountName !== undefined ? { accountName: d.accountName } : {}),
+        ...(d.parentName !== undefined ? { parentName: d.parentName } : {}),
+        ...(d.mobileNumber !== undefined ? { mobileNumber: d.mobileNumber } : {}),
+        ...(d.amountOwing !== undefined ? { amountOwing: d.amountOwing } : {}),
+        ...(d.contactedAt !== undefined
+          ? { contactedAt: new Date(d.contactedAt) }
           : {}),
-        ...(parsed.data.followUpDate !== undefined
-          ? { followUpDate: parsed.data.followUpDate ? new Date(parsed.data.followUpDate) : null }
+        ...(d.contactMethod !== undefined ? { contactMethod: d.contactMethod } : {}),
+        ...(d.outcome !== undefined ? { outcome: d.outcome } : {}),
+        ...(d.outcomeNotes !== undefined ? { outcomeNotes: d.outcomeNotes } : {}),
+        ...(d.followUpDate !== undefined
+          ? { followUpDate: d.followUpDate ? new Date(d.followUpDate) : null }
           : {}),
-        ...(parsed.data.amountOwing !== undefined
-          ? { amountOwing: parsed.data.amountOwing }
-          : {}),
+        ...(d.serviceId !== undefined ? { serviceId: d.serviceId } : {}),
       },
     });
 

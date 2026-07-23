@@ -77,19 +77,24 @@ export function useCreateFamilyBalanceContact() {
   });
 }
 
+export interface UpdateFamilyBalanceContactInput {
+  id: string;
+  accountName?: string;
+  parentName?: string;
+  mobileNumber?: string | null;
+  amountOwing?: number;
+  contactedAt?: string;
+  contactMethod?: ContactMethod;
+  outcome?: ContactOutcome;
+  outcomeNotes?: string | null;
+  followUpDate?: string | null;
+  serviceId?: string | null;
+}
+
 export function useUpdateFamilyBalanceContact() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      ...rest
-    }: {
-      id: string;
-      outcome?: ContactOutcome;
-      outcomeNotes?: string | null;
-      followUpDate?: string | null;
-      amountOwing?: number;
-    }) =>
+    mutationFn: ({ id, ...rest }: UpdateFamilyBalanceContactInput) =>
       mutateApi(`/api/family-balance-contacts/${id}`, {
         method: "PATCH",
         body: rest,

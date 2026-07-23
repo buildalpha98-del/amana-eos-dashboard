@@ -34,7 +34,10 @@ import {
   type ContactOutcome,
   type FamilyBalanceContactListItem,
 } from "@/hooks/useFamilyBalanceContacts";
-import { NewFamilyBalanceContactModal } from "@/components/financials/NewFamilyBalanceContactModal";
+import {
+  NewFamilyBalanceContactModal,
+  type FamilyBalanceModalPrefill,
+} from "@/components/financials/NewFamilyBalanceContactModal";
 
 const METHOD_META: Record<
   ContactMethod,
@@ -113,7 +116,38 @@ function formatDate(iso: string): string {
 
 export default function FamilyBalancesPage() {
   const { data, isLoading, error, refetch } = useFamilyBalanceContacts();
-  const [showNew, setShowNew] = useState(false);
+  // Modal state: either creating (with optional prefill from a same-account
+  // clone) OR editing an existing contact. Never both — opening one closes
+  // the other.
+  const [modalMode, setModalMode] = useState<"closed" | "create" | "edit">(
+    "closed",
+  );
+  const [editingContact, setEditingContact] =
+    useState<FamilyBalanceContactListItem | null>(null);
+  const [prefill, setPrefill] = useState<FamilyBalanceModalPrefill | null>(
+    null,
+  );
+
+  const closeModal = () => {
+    setModalMode("closed");
+    setEditingContact(null);
+    setPrefill(null);
+  };
+  const openCreate = () => {
+    setEditingContact(null);
+    setPrefill(null);
+    setModalMode("create");
+  };
+  const openEdit = (contact: FamilyBalanceContactListItem) => {
+    setPrefill(null);
+    setEditingContact(contact);
+    setModalMode("edit");
+  };
+  const openLogAnother = (seed: FamilyBalanceModalPrefill) => {
+    setEditingContact(null);
+    setPrefill(seed);
+    setModalMode("create");
+  };
 
   const contacts = data?.contacts ?? [];
 
@@ -132,7 +166,7 @@ export default function FamilyBalancesPage() {
         primaryAction={{
           label: "Log contact",
           icon: Plus,
-          onClick: () => setShowNew(true),
+          onClick: openCreate,
         }}
       />
 
@@ -193,16 +227,21 @@ export default function FamilyBalancesPage() {
               icon={DollarSign}
               title="No contacts logged yet"
               description="Log the first contact attempt to start tracking follow-ups. No-answer outcomes will auto-schedule a next-day todo."
-              action={{ label: "Log contact", onClick: () => setShowNew(true) }}
+              action={{ label: "Log contact", onClick: openCreate }}
             />
           ) : (
-            <ContactsTable contacts={contacts} />
+            <ContactsTable contacts={contacts} onRowClick={openEdit} />
           )}
         </>
       )}
 
-      {showNew && (
-        <NewFamilyBalanceContactModal onClose={() => setShowNew(false)} />
+      {modalMode !== "closed" && (
+        <NewFamilyBalanceContactModal
+          onClose={closeModal}
+          existing={modalMode === "edit" ? editingContact : null}
+          prefill={modalMode === "create" ? prefill : null}
+          onLogAnotherAttempt={openLogAnother}
+        />
       )}
     </div>
   );
@@ -210,8 +249,10 @@ export default function FamilyBalancesPage() {
 
 function ContactsTable({
   contacts,
+  onRowClick,
 }: {
   contacts: FamilyBalanceContactListItem[];
+  onRowClick: (contact: FamilyBalanceContactListItem) => void;
 }) {
   const del = useDeleteFamilyBalanceContact();
 
@@ -255,7 +296,11 @@ function ContactsTable({
               const MethodIcon = method.icon;
               const OutcomeIcon = outcome.icon;
               return (
-                <tr key={c.id} className="hover:bg-surface/40">
+                <tr
+                  key={c.id}
+                  onClick={() => onRowClick(c)}
+                  className="hover:bg-surface/40 cursor-pointer"
+                >
                   <td className="px-4 py-3 text-foreground/90 whitespace-nowrap">
                     {formatDate(c.contactedAt)}
                   </td>
@@ -279,6 +324,7 @@ function ContactsTable({
                     {c.mobileNumber ? (
                       <a
                         href={`tel:${c.mobileNumber}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="hover:text-brand"
                       >
                         {c.mobileNumber}
@@ -338,7 +384,8 @@ function ContactsTable({
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (
                           confirm(
                             `Delete this contact log for ${c.parentName}? The follow-up todo (if any) is left intact.`,

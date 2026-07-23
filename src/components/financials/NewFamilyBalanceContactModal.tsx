@@ -1,21 +1,32 @@
 "use client";
 
 /**
- * Modal for logging a new family-balance contact attempt. Kept simple —
- * one screen, minimum required fields, sensible defaults. When outcome
- * is set to "No answer" the backend auto-creates a follow-up todo for
- * the next day; the form also flips a helper hint to the user so they
- * know that's happening.
+ * Modal for logging (or editing) a family-balance contact attempt.
+ *
+ * Three modes, all handled by the same form:
+ *   1. Create  — `mode="create"`, no `existing`, no `prefill`
+ *   2. Edit    — `mode="edit"` + `existing` (the row being edited)
+ *   3. Prefill — `mode="create"` + `prefill` (a same-account starter),
+ *                used when the user clicks "Log another attempt for this
+ *                parent" from the edit view. Copies account/parent/service
+ *                fields into a fresh entry so admin doesn't have to retype.
+ *
+ * The follow-up date field is always available (not just for no_answer)
+ * so an admin can capture "call me back on Tuesday" regardless of the
+ * outcome. When outcome is no_answer AND the field is left blank, the
+ * server defaults it to +1 day.
  */
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
 import {
   useCreateFamilyBalanceContact,
+  useUpdateFamilyBalanceContact,
   type ContactMethod,
   type ContactOutcome,
+  type FamilyBalanceContactListItem,
 } from "@/hooks/useFamilyBalanceContacts";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
@@ -42,36 +53,92 @@ const OUTCOME_OPTIONS: Array<{ value: ContactOutcome; label: string }> = [
   { value: "other", label: "Other" },
 ];
 
+export type FamilyBalanceModalPrefill = {
+  accountName: string;
+  parentName: string;
+  mobileNumber?: string | null;
+  amountOwing?: number;
+  serviceId?: string | null;
+};
+
+interface Props {
+  onClose: () => void;
+  /** Populated → edit mode. When null and prefill is set → create-with-copy. */
+  existing?: FamilyBalanceContactListItem | null;
+  /**
+   * Seed values for a NEW attempt cloned from an existing account.
+   * Used by the "Log another attempt for this parent" button.
+   */
+  prefill?: FamilyBalanceModalPrefill | null;
+  /**
+   * Handler called when the admin explicitly wants to open a fresh
+   * modal for another attempt on the SAME parent — the parent can
+   * close the current instance and re-open with prefill values.
+   */
+  onLogAnotherAttempt?: (prefill: FamilyBalanceModalPrefill) => void;
+}
+
+function toDateInput(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  // Local-day slice, not toISOString().slice(0,10) — timezone-safe.
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function NewFamilyBalanceContactModal({
   onClose,
-}: {
-  onClose: () => void;
-}) {
+  existing,
+  prefill,
+  onLogAnotherAttempt,
+}: Props) {
   useEscapeClose(onClose);
   const create = useCreateFamilyBalanceContact();
+  const update = useUpdateFamilyBalanceContact();
 
+  const isEdit = !!existing;
   const today = new Date().toISOString().slice(0, 10);
 
-  const [accountName, setAccountName] = useState("");
-  const [parentName, setParentName] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [amountOwing, setAmountOwing] = useState("");
-  const [contactedAt, setContactedAt] = useState(today);
-  const [contactMethod, setContactMethod] = useState<ContactMethod>("phone");
-  const [outcome, setOutcome] = useState<ContactOutcome>("answered");
-  const [outcomeNotes, setOutcomeNotes] = useState("");
-  const [serviceId, setServiceId] = useState<string>("");
+  const [accountName, setAccountName] = useState(
+    existing?.accountName ?? prefill?.accountName ?? "",
+  );
+  const [parentName, setParentName] = useState(
+    existing?.parentName ?? prefill?.parentName ?? "",
+  );
+  const [mobileNumber, setMobileNumber] = useState(
+    existing?.mobileNumber ?? prefill?.mobileNumber ?? "",
+  );
+  const [amountOwing, setAmountOwing] = useState(
+    existing?.amountOwing != null
+      ? String(existing.amountOwing)
+      : prefill?.amountOwing != null
+        ? String(prefill.amountOwing)
+        : "",
+  );
+  const [contactedAt, setContactedAt] = useState(
+    existing ? toDateInput(existing.contactedAt) : today,
+  );
+  const [contactMethod, setContactMethod] = useState<ContactMethod>(
+    existing?.contactMethod ?? "phone",
+  );
+  const [outcome, setOutcome] = useState<ContactOutcome>(
+    existing?.outcome ?? "answered",
+  );
+  const [outcomeNotes, setOutcomeNotes] = useState(existing?.outcomeNotes ?? "");
+  const [followUpDate, setFollowUpDate] = useState<string>(
+    toDateInput(existing?.followUpDate),
+  );
+  const [serviceId, setServiceId] = useState<string>(
+    existing?.serviceId ?? prefill?.serviceId ?? "",
+  );
 
-  // Load services once so the picker can render. Not scoped to admin
-  // status here — the parent page is already admin-gated by page access,
-  // and /api/services respects centre-scoping for non-admin callers.
   const { data: services = [] } = useQuery<ServiceOption[]>({
     queryKey: ["services-list"],
     queryFn: () => fetchApi<ServiceOption[]>("/api/services"),
     staleTime: 5 * 60_000,
   });
 
-  const showFollowUpHint = outcome === "no_answer";
+  const submitting = create.isPending || update.isPending;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,23 +146,45 @@ export function NewFamilyBalanceContactModal({
     if (!accountName.trim() || !parentName.trim() || !Number.isFinite(amount)) {
       return;
     }
+    const payload = {
+      accountName: accountName.trim(),
+      parentName: parentName.trim(),
+      mobileNumber: mobileNumber.trim() || null,
+      amountOwing: amount,
+      contactedAt: new Date(contactedAt).toISOString(),
+      contactMethod,
+      outcome,
+      outcomeNotes: outcomeNotes.trim() || null,
+      followUpDate: followUpDate ? new Date(followUpDate).toISOString() : null,
+      serviceId: serviceId || null,
+    };
     try {
-      await create.mutateAsync({
-        accountName: accountName.trim(),
-        parentName: parentName.trim(),
-        mobileNumber: mobileNumber.trim() || null,
-        amountOwing: amount,
-        contactedAt: new Date(contactedAt).toISOString(),
-        contactMethod,
-        outcome,
-        outcomeNotes: outcomeNotes.trim() || null,
-        serviceId: serviceId || null,
-      });
+      if (isEdit && existing) {
+        await update.mutateAsync({ id: existing.id, ...payload });
+      } else {
+        await create.mutateAsync(payload);
+      }
       onClose();
     } catch {
-      // toast handled by hook
+      // toast handled by hooks
     }
   };
+
+  const handleLogAnother = () => {
+    if (!onLogAnotherAttempt) return;
+    onLogAnotherAttempt({
+      accountName: accountName.trim(),
+      parentName: parentName.trim(),
+      mobileNumber: mobileNumber.trim() || null,
+      amountOwing: Number.isFinite(Number(amountOwing))
+        ? Number(amountOwing)
+        : undefined,
+      serviceId: serviceId || null,
+    });
+  };
+
+  const showFollowUpHint =
+    !followUpDate && outcome === "no_answer";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -103,10 +192,12 @@ export function NewFamilyBalanceContactModal({
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
             <h3 className="text-lg font-heading font-semibold text-foreground">
-              Log family balance contact
+              {isEdit ? "Edit family balance contact" : "Log family balance contact"}
             </h3>
             <p className="text-xs text-muted mt-0.5">
-              Record every call, email, or SMS chasing an outstanding balance.
+              {isEdit
+                ? "Update the outcome, notes, or any other detail from this attempt."
+                : "Record every call, email, or SMS chasing an outstanding balance."}
             </p>
           </div>
           <button
@@ -212,7 +303,6 @@ export function NewFamilyBalanceContactModal({
                 required
                 value={contactedAt}
                 onChange={(e) => setContactedAt(e.target.value)}
-                max={today}
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
@@ -253,10 +343,29 @@ export function NewFamilyBalanceContactModal({
                 </option>
               ))}
             </select>
-            {showFollowUpHint && (
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
+              Follow-up date{" "}
+              <span className="text-muted font-normal">(optional)</span>
+            </label>
+            <input
+              type="date"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-muted">
+              Pick a date to remind yourself when to follow up — e.g. if they
+              said &ldquo;call me back on Tuesday&rdquo;. Leave blank to skip
+              the reminder.
+            </p>
+            {showFollowUpHint && !isEdit && (
               <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-3 py-2">
-                A follow-up todo will be created for you, due{" "}
-                <strong>tomorrow</strong>, to try again.
+                No follow-up date set for &ldquo;No answer&rdquo; — a follow-up
+                todo will be auto-scheduled for <strong>tomorrow</strong> so
+                nothing slips.
               </p>
             )}
           </div>
@@ -284,7 +393,18 @@ export function NewFamilyBalanceContactModal({
             />
           </div>
 
-          <div className="flex gap-3 pt-2 border-t border-border">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2 border-t border-border">
+            {isEdit && onLogAnotherAttempt && (
+              <button
+                type="button"
+                onClick={handleLogAnother}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-brand border border-brand/30 rounded-lg hover:bg-brand/5"
+                title="Close this edit and open a fresh attempt for the same parent"
+              >
+                <Plus className="w-4 h-4" />
+                Log another attempt
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -294,10 +414,16 @@ export function NewFamilyBalanceContactModal({
             </button>
             <button
               type="submit"
-              disabled={create.isPending}
+              disabled={submitting}
               className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand/90 disabled:opacity-50"
             >
-              {create.isPending ? "Logging..." : "Log contact"}
+              {submitting
+                ? isEdit
+                  ? "Saving..."
+                  : "Logging..."
+                : isEdit
+                  ? "Save changes"
+                  : "Log contact"}
             </button>
           </div>
         </form>
