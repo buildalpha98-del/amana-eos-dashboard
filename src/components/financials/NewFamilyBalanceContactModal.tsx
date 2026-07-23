@@ -188,29 +188,34 @@ export function NewFamilyBalanceContactModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <div>
-            <h3 className="text-lg font-heading font-semibold text-foreground">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-card rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
+      >
+        {/* Sticky header */}
+        <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+          <div className="min-w-0">
+            <h3 className="text-lg font-heading font-semibold text-foreground truncate">
               {isEdit ? "Edit family balance contact" : "Log family balance contact"}
             </h3>
             <p className="text-xs text-muted mt-0.5">
               {isEdit
-                ? "Update the outcome, notes, or any other detail from this attempt."
-                : "Record every call, email, or SMS chasing an outstanding balance."}
+                ? "Update outcome, notes, or any detail from this attempt."
+                : "Record every call, email, or SMS chasing a balance."}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-md text-muted hover:text-foreground"
+            className="ml-3 p-1 rounded-md text-muted hover:text-foreground shrink-0"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        {/* Scrollable body */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground/80 mb-1">
@@ -393,41 +398,47 @@ export function NewFamilyBalanceContactModal({
             />
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2 border-t border-border">
+        </div>
+
+        {/* Sticky footer */}
+        <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card rounded-b-xl">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3">
             {isEdit && onLogAnotherAttempt && (
               <button
                 type="button"
                 onClick={handleLogAnother}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-brand border border-brand/30 rounded-lg hover:bg-brand/5"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-brand border border-brand/30 rounded-lg hover:bg-brand/5 whitespace-nowrap"
                 title="Close this edit and open a fresh attempt for the same parent"
               >
                 <Plus className="w-4 h-4" />
                 Log another attempt
               </button>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand/90 disabled:opacity-50"
-            >
-              {submitting
-                ? isEdit
-                  ? "Saving..."
-                  : "Logging..."
-                : isEdit
-                  ? "Save changes"
-                  : "Log contact"}
-            </button>
+            <div className="flex gap-3 sm:ml-auto">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface whitespace-nowrap"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-5 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand/90 disabled:opacity-50 whitespace-nowrap"
+              >
+                {submitting
+                  ? isEdit
+                    ? "Saving..."
+                    : "Logging..."
+                  : isEdit
+                    ? "Save changes"
+                    : "Log contact"}
+              </button>
+            </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
