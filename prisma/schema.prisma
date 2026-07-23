@@ -8253,6 +8253,7 @@ model FamilyBalanceContact {
   accountName    String
   parentName     String
   mobileNumber   String?
+  parentEmail    String?
   amountOwing    Decimal               @db.Decimal(10, 2)
   contactedAt    DateTime              @default(now())
   contactMethod  FamilyContactMethod

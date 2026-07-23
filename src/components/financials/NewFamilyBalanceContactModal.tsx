@@ -57,6 +57,7 @@ export type FamilyBalanceModalPrefill = {
   accountName: string;
   parentName: string;
   mobileNumber?: string | null;
+  parentEmail?: string | null;
   amountOwing?: number;
   serviceId?: string | null;
 };
@@ -108,6 +109,9 @@ export function NewFamilyBalanceContactModal({
   const [mobileNumber, setMobileNumber] = useState(
     existing?.mobileNumber ?? prefill?.mobileNumber ?? "",
   );
+  const [parentEmail, setParentEmail] = useState(
+    existing?.parentEmail ?? prefill?.parentEmail ?? "",
+  );
   const [amountOwing, setAmountOwing] = useState(
     existing?.amountOwing != null
       ? String(existing.amountOwing)
@@ -150,6 +154,7 @@ export function NewFamilyBalanceContactModal({
       accountName: accountName.trim(),
       parentName: parentName.trim(),
       mobileNumber: mobileNumber.trim() || null,
+      parentEmail: parentEmail.trim() || null,
       amountOwing: amount,
       contactedAt: new Date(contactedAt).toISOString(),
       contactMethod,
@@ -176,6 +181,7 @@ export function NewFamilyBalanceContactModal({
       accountName: accountName.trim(),
       parentName: parentName.trim(),
       mobileNumber: mobileNumber.trim() || null,
+      parentEmail: parentEmail.trim() || null,
       amountOwing: Number.isFinite(Number(amountOwing))
         ? Number(amountOwing)
         : undefined,
@@ -283,19 +289,32 @@ export function NewFamilyBalanceContactModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground/80 mb-1">
-                Amount owing (AUD) <span className="text-red-500">*</span>
+                Email address
               </label>
               <input
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                value={amountOwing}
-                onChange={(e) => setAmountOwing(e.target.value)}
-                placeholder="0.00"
+                type="email"
+                value={parentEmail}
+                onChange={(e) => setParentEmail(e.target.value)}
+                placeholder="parent@example.com"
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
+              Amount owing (AUD) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              required
+              min="0"
+              step="0.01"
+              value={amountOwing}
+              onChange={(e) => setAmountOwing(e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

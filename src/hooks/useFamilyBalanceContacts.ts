@@ -18,6 +18,7 @@ export interface FamilyBalanceContactListItem {
   accountName: string;
   parentName: string;
   mobileNumber: string | null;
+  parentEmail: string | null;
   amountOwing: number;
   contactedAt: string;
   contactMethod: ContactMethod;
@@ -36,6 +37,7 @@ export interface CreateFamilyBalanceContactInput {
   accountName: string;
   parentName: string;
   mobileNumber?: string | null;
+  parentEmail?: string | null;
   amountOwing: number;
   contactedAt?: string;
   contactMethod: ContactMethod;
@@ -82,6 +84,7 @@ export interface UpdateFamilyBalanceContactInput {
   accountName?: string;
   parentName?: string;
   mobileNumber?: string | null;
+  parentEmail?: string | null;
   amountOwing?: number;
   contactedAt?: string;
   contactMethod?: ContactMethod;

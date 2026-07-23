@@ -31,6 +31,7 @@ const patchSchema = z.object({
   accountName: z.string().min(1).max(200).optional(),
   parentName: z.string().min(1).max(200).optional(),
   mobileNumber: z.string().max(50).nullable().optional(),
+  parentEmail: z.string().email().max(200).nullable().optional().or(z.literal("")),
   amountOwing: z.number().nonnegative().optional(),
   contactedAt: z.string().datetime().optional(),
   contactMethod: z.enum(CONTACT_METHODS).optional(),
@@ -66,6 +67,9 @@ export const PATCH = withApiAuth(
         ...(d.accountName !== undefined ? { accountName: d.accountName } : {}),
         ...(d.parentName !== undefined ? { parentName: d.parentName } : {}),
         ...(d.mobileNumber !== undefined ? { mobileNumber: d.mobileNumber } : {}),
+        ...(d.parentEmail !== undefined
+          ? { parentEmail: d.parentEmail || null }
+          : {}),
         ...(d.amountOwing !== undefined ? { amountOwing: d.amountOwing } : {}),
         ...(d.contactedAt !== undefined
           ? { contactedAt: new Date(d.contactedAt) }
