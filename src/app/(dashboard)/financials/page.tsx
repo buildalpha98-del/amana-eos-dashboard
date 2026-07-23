@@ -395,6 +395,9 @@ export default function FinancialsPage() {
           // both are money-ops satellites of this page.
           { label: "Billing", icon: Receipt, onClick: () => router.push("/billing") },
           { label: "Scenarios", icon: Calculator, onClick: () => router.push("/scenarios") },
+          // 2026-07-23: family-balance chase log — parent contact tracking
+          // for outstanding balances.
+          { label: "Family Balances", icon: AlertTriangle, onClick: () => router.push("/financials/family-balances") },
         ]}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">

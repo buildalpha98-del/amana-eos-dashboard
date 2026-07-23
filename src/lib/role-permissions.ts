@@ -82,6 +82,7 @@ export const allPages = [
   "/scorecard",
   "/meetings",
   "/financials",
+  "/financials/family-balances",
   "/performance",
   "/services",
   "/services/[id]",

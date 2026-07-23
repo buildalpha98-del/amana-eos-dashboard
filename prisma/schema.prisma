@@ -900,6 +900,9 @@ model User {
   // single staff member be at multiple centres with per-service role+access.
   serviceMemberships UserServiceMembership[] @relation("UserMemberships")
 
+  // 2026-07-23: family balance follow-up contacts this user logged.
+  familyBalanceContactsCreated FamilyBalanceContact[] @relation("FamilyBalanceContactCreator")
+
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
   @@index([name])
@@ -1056,6 +1059,10 @@ model Todo {
   assignees  TodoAssignee[] @relation("TodoAssignees")
   aiDrafts   AiTaskDraft[]  @relation("TodoAiDraft")
   sourceCall VapiCall?      @relation("TodoFromCall")
+  // 2026-07-23: reverse side of FamilyBalanceContact.followUpTodo.
+  // Only populated when the parent contact had outcome=no_answer
+  // and the endpoint auto-generated a follow-up.
+  familyContactFollowUp FamilyBalanceContact? @relation("FamilyContactFollowUp")
 
   @@index([assigneeId])
   @@index([rockId])
@@ -2404,6 +2411,10 @@ model Service {
   // top of staffMembers (which is the User.serviceId one-to-many). Lets a
   // single staff member be at multiple centres with per-service role+access.
   serviceMemberships UserServiceMembership[] @relation("ServiceMemberships")
+
+  // 2026-07-23: family balance follow-up log — parent contact attempts
+  // for outstanding balances at this centre.
+  familyBalanceContacts FamilyBalanceContact[] @relation("ServiceFamilyBalanceContacts")
 
   @@index([status])
   @@index([managerId])
@@ -8202,4 +8213,69 @@ model SurveyAnswer {
   @@unique([responseId, questionId])
   @@index([responseId])
   @@index([questionId])
+}
+
+// ============================================================
+// Family balance follow-ups (2026-07-23)
+// ============================================================
+//
+// Track every contact attempt with a family that has an outstanding
+// balance — who was called/emailed, when, and what the outcome was.
+// If the outcome is `no_answer`, the create endpoint auto-generates a
+// Todo (assigned to the admin who logged the contact) for the next day
+// so nobody falls through the cracks.
+//
+// Deliberately a lightweight log, not a full receivables ledger — the
+// point is the follow-up cadence, not accounting.
+
+enum FamilyContactMethod {
+  email
+  phone
+  sms
+  in_person
+}
+
+enum FamilyContactOutcome {
+  answered        // spoke to them; check notes for what was agreed
+  no_answer       // didn't pick up / didn't reply — auto-generates follow-up Todo
+  promised_payment
+  disputed
+  payment_plan
+  other
+}
+
+model FamilyBalanceContact {
+  id             String                @id @default(cuid())
+  // Denormalised on purpose — Amana's OWNA account codes don't currently
+  // map cleanly to a dashboard entity, and Daniel wants to type these in
+  // free-form as he chases balances. Add an accountId FK later when we
+  // have proper family/account records in the dashboard.
+  accountName    String
+  parentName     String
+  mobileNumber   String?
+  amountOwing    Decimal               @db.Decimal(10, 2)
+  contactedAt    DateTime              @default(now())
+  contactMethod  FamilyContactMethod
+  outcome        FamilyContactOutcome
+  outcomeNotes   String?               @db.Text
+  // Populated automatically to `contactedAt + 1 day` when outcome =
+  // no_answer, at which point a Todo is also created. Admin can adjust
+  // via the edit form. Null for outcomes that don't need a follow-up.
+  followUpDate   DateTime?
+  // Link back to the auto-generated follow-up Todo (if any) so
+  // completing/deleting the contact can propagate. Nullable; only set
+  // when outcome triggered a Todo.
+  followUpTodoId String?               @unique
+  followUpTodo   Todo?                 @relation("FamilyContactFollowUp", fields: [followUpTodoId], references: [id], onDelete: SetNull)
+  serviceId      String?
+  service        Service?              @relation("ServiceFamilyBalanceContacts", fields: [serviceId], references: [id], onDelete: SetNull)
+  createdById    String
+  createdBy      User                  @relation("FamilyBalanceContactCreator", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([serviceId])
+  @@index([contactedAt])
+  @@index([outcome])
+  @@index([createdById])
 }
