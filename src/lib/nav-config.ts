@@ -155,6 +155,10 @@ export const navItems: NavItem[] = [
   // Coordinators / staff drill into their service to access the daily roll call grid.
   { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ALL_NON_MARKETING , core: true },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING , core: true },
+  // 2026-07-23: family balance contact log — hidden from the sidebar
+  // (accessed from the Financials page). Kept as an entry so ⌘K search
+  // and the middleware page-access checker recognise it.
+  { href: "/financials/family-balances", label: "Family Balances", icon: DollarSign, section: "Operations", tooltip: "Chase log for outstanding parent balances", roles: ["owner", "head_office", "admin"], hidden: true },
   { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Financials
   // 2026-07-05 nav consolidation phase 2: /reports folded in as the
   // "Reports" view; /messaging → Contact Centre tab; /conversions → CRM
