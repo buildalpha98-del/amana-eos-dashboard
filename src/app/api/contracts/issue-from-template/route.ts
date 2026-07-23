@@ -6,6 +6,7 @@ import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { uploadFile } from "@/lib/storage";
 import { resolveTemplateData } from "@/lib/contract-templates/resolve-data";
+import { extractMergeTagKeys } from "@/lib/contract-templates/extract-merge-tags";
 import { renderTemplateHtml, type TipTapDoc } from "@/lib/contract-templates/render-html";
 import { renderContractPdf } from "@/lib/pdf/render-contract";
 import { sendEmail } from "@/lib/email";
@@ -62,7 +63,12 @@ export const POST = withApiAuth(
     const startDate = new Date(data.contractMeta.startDate);
     const endDate = data.contractMeta.endDate ? new Date(data.contractMeta.endDate) : null;
 
-    // Step 4: resolve auto tags — blocks on missing required staff fields
+    // Step 4: resolve auto tags — blocks on missing required staff
+    // fields. 2026-07-23: only enforce blocking on tags the template
+    // actually REFERENCES. resolveTemplateData is generic and reports
+    // every catalog blocking tag it couldn't fill (e.g. service.name
+    // when the staff member has no serviceId), but a template that
+    // doesn't mention service.name shouldn't fail on it.
     const { resolved, missingBlocking } = await resolveTemplateData({
       userId: data.userId,
       contractMeta: {
@@ -72,8 +78,16 @@ export const POST = withApiAuth(
         position: data.contractMeta.position,
       },
     });
-    if (missingBlocking.length) {
-      throw ApiError.badRequest(`Missing required staff fields: ${missingBlocking.join(", ")}`);
+    const referencedTagKeys = new Set(
+      extractMergeTagKeys(template.contentJson as TipTapDoc),
+    );
+    const relevantMissing = missingBlocking.filter((k) =>
+      referencedTagKeys.has(k),
+    );
+    if (relevantMissing.length) {
+      throw ApiError.badRequest(
+        `Missing required staff fields: ${relevantMissing.join(", ")}`,
+      );
     }
 
     // Step 5: render HTML — merge auto + manual; unknown tags fail here.
