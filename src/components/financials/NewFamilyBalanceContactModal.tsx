@@ -17,7 +17,8 @@
  * server defaults it to +1 day.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
@@ -208,11 +209,18 @@ export function NewFamilyBalanceContactModal({
   const showFollowUpHint =
     !followUpDate && outcome === "no_answer";
 
-  return (
-    // 2026-07-23: bumped z-index so the modal sits above the floating
-    // Ask Amana AI chat widget (was covering the footer buttons).
-    // Also switched from vh to dvh so mobile Safari's dynamic browser
-    // chrome doesn't push the modal off-screen.
+  // 2026-07-23: portal to document.body so `position: fixed` escapes any
+  // ancestor with `transform`/`filter`/`will-change` that would otherwise
+  // make itself the containing block for the modal — which was clipping
+  // the header off-screen and leaving the app's top nav visible above the
+  // black overlay.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted) return null;
+
+  const modal = (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 sm:p-6">
       <form
         onSubmit={handleSubmit}
@@ -560,4 +568,6 @@ export function NewFamilyBalanceContactModal({
       </form>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
