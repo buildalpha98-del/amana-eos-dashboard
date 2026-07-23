@@ -228,6 +228,9 @@ function ContactsTable({
                 Parent / Account
               </th>
               <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">
+                Centre
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">
                 Mobile
               </th>
               <th className="text-right px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">
@@ -259,6 +262,18 @@ function ContactsTable({
                   <td className="px-4 py-3">
                     <p className="text-foreground font-medium">{c.parentName}</p>
                     <p className="text-xs text-muted">{c.accountName}</p>
+                  </td>
+                  <td className="px-4 py-3 text-muted whitespace-nowrap">
+                    {c.service ? (
+                      <span className="text-foreground/80">
+                        {c.service.name}
+                        {c.service.code && (
+                          <span className="text-xs text-muted"> ({c.service.code})</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-muted/50">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted">
                     {c.mobileNumber ? (

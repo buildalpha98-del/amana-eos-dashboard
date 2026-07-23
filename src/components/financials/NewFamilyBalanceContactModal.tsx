@@ -10,12 +10,21 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 import {
   useCreateFamilyBalanceContact,
   type ContactMethod,
   type ContactOutcome,
 } from "@/hooks/useFamilyBalanceContacts";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+
+interface ServiceOption {
+  id: string;
+  name: string;
+  code: string;
+  state: string | null;
+}
 
 const METHOD_OPTIONS: Array<{ value: ContactMethod; label: string }> = [
   { value: "phone", label: "Phone" },
@@ -51,6 +60,16 @@ export function NewFamilyBalanceContactModal({
   const [contactMethod, setContactMethod] = useState<ContactMethod>("phone");
   const [outcome, setOutcome] = useState<ContactOutcome>("answered");
   const [outcomeNotes, setOutcomeNotes] = useState("");
+  const [serviceId, setServiceId] = useState<string>("");
+
+  // Load services once so the picker can render. Not scoped to admin
+  // status here — the parent page is already admin-gated by page access,
+  // and /api/services respects centre-scoping for non-admin callers.
+  const { data: services = [] } = useQuery<ServiceOption[]>({
+    queryKey: ["services-list"],
+    queryFn: () => fetchApi<ServiceOption[]>("/api/services"),
+    staleTime: 5 * 60_000,
+  });
 
   const showFollowUpHint = outcome === "no_answer";
 
@@ -70,6 +89,7 @@ export function NewFamilyBalanceContactModal({
         contactMethod,
         outcome,
         outcomeNotes: outcomeNotes.trim() || null,
+        serviceId: serviceId || null,
       });
       onClose();
     } catch {
@@ -127,6 +147,29 @@ export function NewFamilyBalanceContactModal({
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
+              Service / Centre
+            </label>
+            <select
+              value={serviceId}
+              onChange={(e) => setServiceId(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            >
+              <option value="">— Not linked to a specific centre —</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                  {s.code ? ` (${s.code})` : ""}
+                  {s.state ? ` · ${s.state}` : ""}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted">
+              Tag which centre this family belongs to so State Managers see it in their scope.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
