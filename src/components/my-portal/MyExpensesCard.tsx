@@ -119,7 +119,10 @@ export function MyExpensesCard() {
 
   return (
     <div className="bg-card rounded-xl border border-border p-6" data-testid="my-expenses-card">
-      <div className="flex items-center justify-between mb-4 gap-2">
+      {/* 2026-07-24: stack on mobile so the Submit button gets full width
+          and can't be squeezed off-screen next to the title. Staff on
+          phones were reporting they couldn't find the button. */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <Receipt className="w-5 h-5 text-brand" />
           My Expenses
@@ -128,7 +131,7 @@ export function MyExpensesCard() {
           <button
             type="button"
             onClick={() => setSubmitOpen(true)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90 transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90 transition-colors w-full sm:w-auto"
             data-testid="expense-submit-button"
           >
             <Plus className="w-4 h-4" />
@@ -153,9 +156,19 @@ export function MyExpensesCard() {
           Unable to load expenses. Please refresh the page.
         </p>
       ) : requests.length === 0 ? (
-        <p className="text-sm text-muted">
-          No expenses yet. Click <em>Submit expense</em> to claim a reimbursement.
-        </p>
+        <div className="py-4 text-center">
+          <p className="text-sm text-muted mb-3">
+            No expenses yet — claim a reimbursement any time.
+          </p>
+          <button
+            type="button"
+            onClick={() => setSubmitOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90"
+          >
+            <Plus className="w-4 h-4" />
+            Submit expense
+          </button>
+        </div>
       ) : (
         <ul className="divide-y divide-border">
           {requests.map((r) => {
