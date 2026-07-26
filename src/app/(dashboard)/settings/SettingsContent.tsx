@@ -90,6 +90,7 @@ interface UserData {
   role: Role;
   active: boolean;
   notificationsMuted: boolean;
+  receivesNudges: boolean;
   createdAt: string;
 }
 
@@ -421,6 +422,30 @@ function UserRow({
     },
   });
 
+  const toggleReceivesNudges = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receivesNudges: !user.receivesNudges }),
+      });
+      if (!res.ok) throw new Error("Failed to update nudge preference");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setShowMenu(false);
+      toast({
+        description: user.receivesNudges
+          ? "System nudges disabled for this user"
+          : "System nudges enabled — this user will now receive overdue/compliance alerts",
+      });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+
   const updateRole = useMutation({
     mutationFn: async (newRole: Role) => {
       const res = await fetch(`/api/users/${user.id}`, {
@@ -622,6 +647,15 @@ function UserRow({
                   >
                     <BellOff className="w-3.5 h-3.5" />
                     {user.notificationsMuted ? "Unmute notifications" : "Mute notifications"}
+                  </button>
+                  <button
+                    onClick={() => toggleReceivesNudges.mutate()}
+                    disabled={toggleReceivesNudges.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                    title="Nudges = overdue todo reminders, compliance alerts, weekly digest, meeting reminders. Leadership always receives them; flip this on for a specific non-leader who should too."
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    {user.receivesNudges ? "Stop system nudges" : "Receive system nudges"}
                   </button>
                   {isOwner && (
                     <>

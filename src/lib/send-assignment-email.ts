@@ -6,6 +6,7 @@ import {
   issueAssignedEmail,
 } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
+import { shouldReceiveNudge } from "@/lib/notification-recipients";
 
 /**
  * Fire-and-forget assignment notification email.
@@ -31,7 +32,14 @@ export function sendAssignmentEmail(params: {
     const [assignee, assigner] = await Promise.all([
       prisma.user.findUnique({
         where: { id: params.assigneeId },
-        select: { name: true, email: true },
+        select: {
+          name: true,
+          email: true,
+          role: true,
+          receivesNudges: true,
+          notificationsMuted: true,
+          active: true,
+        },
       }),
       prisma.user.findUnique({
         where: { id: params.assignerId },
@@ -40,6 +48,12 @@ export function sendAssignmentEmail(params: {
     ]);
 
     if (!assignee?.email) return; // Can't send without an email address
+
+    // 2026-07-24: nudge policy — assignment emails only go to leadership
+    // + opted-in users. Staff/coordinator/marketing see the assignment
+    // in-app (via UserNotification), which stays on the bell icon and
+    // My Todos surface.
+    if (!shouldReceiveNudge(assignee)) return;
 
     const assigneeName = assignee.name || "Team Member";
     const assignerName = assigner?.name || "A team member";

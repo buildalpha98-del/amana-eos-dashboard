@@ -794,6 +794,14 @@ model User {
   gettingStartedProgress Json? // Tracks completed checklist items per role
   notificationPrefs      Json? // { overdueTodos: true, newAssignments: true, ... }
   notificationsMuted     Boolean @default(false) // master mute — no external pings (email/push); in-app kept
+  // 2026-07-24: opt-in for cron/system nudges (overdue todos, compliance
+  // alerts, meeting reminders, weekly digest, etc.). Default is OFF for
+  // everyone; the recipient resolver auto-includes leadership roles
+  // (owner/head_office/admin/eos) regardless of this flag, plus each
+  // service's shared inbox email. Flip this to `true` for the select
+  // non-leadership individuals who should ALSO be nudged (e.g. a specific
+  // OSHC Coordinator who wants a copy of their centre's alerts).
+  receivesNudges         Boolean @default(false)
   systemBanners          SystemBannerDismissal[] @relation("BannerDismissals")
   internalFeedback       InternalFeedback[]      @relation("FeedbackAuthor")
 

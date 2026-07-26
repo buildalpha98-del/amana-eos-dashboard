@@ -77,6 +77,7 @@ export const GET = withApiAuth(async (req, session) => {
       role: true,
       active: true,
       notificationsMuted: true,
+      receivesNudges: true,
       avatar: true,
       serviceId: true,
       state: true,
