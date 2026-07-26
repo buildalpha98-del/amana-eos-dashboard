@@ -21,6 +21,7 @@ const updateUserSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
   state: z.string().optional().nullable(),
   notificationsMuted: z.boolean().optional(),
+  receivesNudges: z.boolean().optional(),
 });
 
 // PATCH /api/users/:id — update a user (owner + admin)
@@ -89,6 +90,7 @@ const { id } = await context!.params!;
       active: true,
       state: true,
       notificationsMuted: true,
+      receivesNudges: true,
       createdAt: true,
     },
   });
