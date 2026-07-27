@@ -404,14 +404,26 @@ export function IssueFromTemplateModal({
                   preview looking like a different template than the one
                   he'd picked. */}
               {selectedTemplate && (
-                <div className="mb-4 rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs">
-                  <div className="text-muted">Previewing template</div>
-                  <div className="text-sm font-medium text-foreground">
-                    {selectedTemplate.name}
+                <div className="mb-4 rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-muted">Previewing template</div>
+                    <div className="text-sm font-medium text-foreground truncate">
+                      {selectedTemplate.name}
+                    </div>
+                    <div className="text-2xs text-muted mt-0.5 font-mono truncate">
+                      id: {selectedTemplate.id}
+                    </div>
                   </div>
-                  <div className="text-2xs text-muted mt-0.5 font-mono">
-                    id: {selectedTemplate.id}
-                  </div>
+                  <a
+                    href={`/contracts/templates/${selectedTemplate.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-brand hover:bg-brand/5 rounded-md whitespace-nowrap"
+                    title="Open this template in the editor in a new tab"
+                  >
+                    Open in editor
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               )}
               <Step2
