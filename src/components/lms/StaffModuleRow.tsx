@@ -44,22 +44,38 @@ export function StaffModuleRow({
   onToggleExpand,
 }: Props) {
   const ModIcon = MODULE_TYPE_ICONS[mod.type] || FileText;
+  // Quiz modules complete only by PASSING the quiz in the course player —
+  // the manual toggle would 403 server-side, so don't offer it.
+  const isQuiz = mod.type === "quiz";
 
   return (
     <div>
       <div className="flex items-center gap-3 px-4 py-3 hover:bg-surface">
-        <button
-          type="button"
-          aria-label={isComplete ? "Mark incomplete" : "Mark complete"}
-          onClick={onToggleComplete}
-          className="flex-shrink-0"
-        >
-          {isComplete ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-          ) : (
-            <Circle className="w-5 h-5 text-muted/50 hover:text-brand" />
-          )}
-        </button>
+        {isQuiz ? (
+          <span
+            className="flex-shrink-0"
+            title="Completed by passing the quiz in the course player"
+          >
+            {isComplete ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            ) : (
+              <Circle className="w-5 h-5 text-muted/30" />
+            )}
+          </span>
+        ) : (
+          <button
+            type="button"
+            aria-label={isComplete ? "Mark incomplete" : "Mark complete"}
+            onClick={onToggleComplete}
+            className="flex-shrink-0"
+          >
+            {isComplete ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            ) : (
+              <Circle className="w-5 h-5 text-muted/50 hover:text-brand" />
+            )}
+          </button>
+        )}
         <ModIcon className="w-4 h-4 text-muted flex-shrink-0" />
         <button
           type="button"
@@ -118,7 +134,13 @@ export function StaffModuleRow({
               <ExternalLink className="w-3 h-3" /> Open resource
             </a>
           )}
-          {!mod.content && !mod.resourceUrl && (
+          {isQuiz && (
+            <p className="text-xs text-muted italic">
+              This quiz is taken in the course player — open the course from My
+              Training to complete it.
+            </p>
+          )}
+          {!mod.content && !mod.resourceUrl && !isQuiz && (
             <p className="text-xs text-muted italic">
               No content available for this module yet.
             </p>

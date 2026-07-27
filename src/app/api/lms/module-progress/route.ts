@@ -32,11 +32,34 @@ export const POST = withApiAuth(async (req, session) => {
   // Caller must own the enrollment.
   const enrollment = await prisma.lMSEnrollment.findUnique({
     where: { id: enrollmentId },
-    select: { id: true, userId: true, startedAt: true },
+    select: { id: true, userId: true, courseId: true, startedAt: true },
   });
   if (!enrollment) throw ApiError.notFound("Enrollment not found");
   if (enrollment.userId !== userId) {
     throw ApiError.forbidden("You can only update your own training progress.");
+  }
+
+  // The module must belong to the enrolled course.
+  const progressModule = await prisma.lMSModule.findUnique({
+    where: { id: moduleId },
+    select: { id: true, type: true, courseId: true },
+  });
+  if (!progressModule || progressModule.courseId !== enrollment.courseId) {
+    throw ApiError.notFound("Module not found in this course");
+  }
+  // Quiz modules are completed by PASSING the quiz (the quiz route upserts
+  // progress itself) — never by this endpoint's manual path. Without this,
+  // the dwell-based player path could bypass the quiz gate entirely.
+  if (progressModule.type === "quiz" && completed) {
+    const passedAttempt = await prisma.lMSQuizAttempt.findFirst({
+      where: { enrollmentId, moduleId, passed: true },
+      select: { id: true },
+    });
+    if (!passedAttempt) {
+      throw ApiError.forbidden(
+        "Quiz modules are completed by passing the quiz."
+      );
+    }
   }
 
   await prisma.lMSModuleProgress.upsert({

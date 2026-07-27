@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
 const enrollSchema = z.object({
   courseId: z.string().min(1),
   userIds: z.array(z.string().min(1)).min(1),
@@ -33,15 +34,41 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
       );
     }
 
-    // Staff can only update their own progress
+    // Non-admins can only update their own progress (admins may override).
+    const isAdmin = isAdminRole(session!.user.role);
     const enrollment = await prisma.lMSEnrollment.findUnique({
       where: { id: parsed.data.enrollmentId },
     });
     if (!enrollment) {
       return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
     }
-    if (session!.user.role === "staff" && enrollment.userId !== session!.user.id) {
+    if (!isAdmin && enrollment.userId !== session!.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const progressModule = await prisma.lMSModule.findUnique({
+      where: { id: parsed.data.moduleId },
+      select: { id: true, type: true, courseId: true },
+    });
+    if (!progressModule || progressModule.courseId !== enrollment.courseId) {
+      return NextResponse.json(
+        { error: "Module not found in this course" },
+        { status: 404 }
+      );
+    }
+    // Quiz modules are completed by PASSING the quiz (server-side scored) —
+    // never by a manual tick. Without this, the induction gate is bypassable.
+    if (progressModule.type === "quiz" && parsed.data.completed && !isAdmin) {
+      const passedAttempt = await prisma.lMSQuizAttempt.findFirst({
+        where: { enrollmentId: enrollment.id, moduleId: progressModule.id, passed: true },
+        select: { id: true },
+      });
+      if (!passedAttempt) {
+        return NextResponse.json(
+          { error: "Quiz modules are completed by passing the quiz in the course player." },
+          { status: 403 }
+        );
+      }
     }
 
     const progress = await prisma.lMSModuleProgress.upsert({

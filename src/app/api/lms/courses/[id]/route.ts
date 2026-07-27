@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
 const updateCourseSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional().nullable(),
@@ -36,12 +37,16 @@ const { id } = await context!.params!;
     },
   });
 
-  if (!course || course.deleted) {
+  const isAdmin = isAdminRole(session!.user.role);
+
+  // Non-admins only see published courses (drafts are admin work-in-progress).
+  if (!course || course.deleted || (!isAdmin && course.status !== "published")) {
     return NextResponse.json({ error: "Course not found" }, { status: 404 });
   }
 
-  // Staff can only view their own enrollment
-  if (session!.user.role === "staff") {
+  // Non-admins can only view their own enrollment (other learners' progress
+  // and contact details are admin-only).
+  if (!isAdmin) {
     course.enrollments = course.enrollments.filter(
       (e) => e.userId === session!.user.id
     );
