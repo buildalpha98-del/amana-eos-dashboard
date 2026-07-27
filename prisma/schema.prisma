@@ -8288,3 +8288,20 @@ model FamilyBalanceContact {
   @@index([outcome])
   @@index([createdById])
 }
+
+// ─── Enrolment form translations (2026-07-27) ──────────────────
+// DB-backed i18n strings for the public parent enrolment wizard. English
+// is the source of truth in `src/lib/enrol-i18n.ts`; other locales are
+// AI-generated and reviewable by staff via /settings/enrol-translations
+// (Phase 3). A missing (key, locale) row falls back to the English source.
+model EnrolFormTranslation {
+  id        String   @id @default(cuid())
+  key       String
+  locale    String
+  text      String   @db.Text
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@unique([key, locale])
+  @@index([locale])
+}
