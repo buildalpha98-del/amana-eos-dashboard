@@ -19,6 +19,8 @@ import { ConsentsStep } from "./steps/ConsentsStep";
 import { BookingStep } from "./steps/BookingStep";
 import { PaymentStep } from "./steps/PaymentStep";
 import { ReviewStep } from "./steps/ReviewStep";
+import { EnrolIntro } from "./EnrolIntro";
+import { SUPPORTED_LOCALES } from "./types";
 
 const STORAGE_KEY = "amana-enrolment-form";
 
@@ -420,8 +422,42 @@ export function EnrolmentWizard({
     }
   };
 
+  // 2026-07-27: intro screen renders before the wizard on the first
+  // visit. Parents pick their preferred language; the wizard then mounts
+  // in that locale. `introCompleted` persists in localStorage so refresh
+  // doesn't send them back to the intro. Skip for portal sibling
+  // enrolments (variant === "portal") — those already have context.
+  if (loaded && !submitted && !data.introCompleted && variant !== "portal") {
+    return (
+      <EnrolIntro
+        initialLocale={data.locale ?? "en"}
+        variant={variant}
+        onContinue={(locale) =>
+          setData((d) => ({ ...d, locale, introCompleted: true }))
+        }
+      />
+    );
+  }
+
+  // Locale-driven translation disclaimer banner — shown once inside the
+  // wizard for any locale that isn't yet fully translated.
+  const activeLocale = SUPPORTED_LOCALES.find((l) => l.code === data.locale);
+  const showTranslationBanner =
+    activeLocale && !activeLocale.ready && !submitted;
+
   return (
     <div>
+      {showTranslationBanner && (
+        <div className="mb-4 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
+          <strong>{activeLocale.label} translation coming soon.</strong> The
+          form is showing in English for now. If anything is unclear,
+          contact us on{" "}
+          <a href="mailto:enrolments@amanaoshc.com.au" className="underline">
+            enrolments@amanaoshc.com.au
+          </a>
+          .
+        </div>
+      )}
       {/* Progress bar */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
