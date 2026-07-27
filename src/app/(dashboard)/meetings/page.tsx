@@ -29,15 +29,23 @@ export default function MeetingsPage() {
     setShowStartDialog(true);
   };
 
-  const handleConfirmStart = async (serviceIds: string[], attendeeIds: string[]) => {
+  const handleConfirmStart = async (
+    serviceIds: string[],
+    attendeeIds: string[],
+    isLeadership: boolean,
+  ) => {
     const now = new Date();
-    const title = `L10 Meeting — ${formatDateAU(now)}`;
+    // 2026-07-28: title reflects the meeting type so the list is scannable.
+    const title = isLeadership
+      ? `Leadership L10 — ${formatDateAU(now)}`
+      : `L10 Meeting — ${formatDateAU(now)}`;
     try {
       const newMeeting = await createMeeting.mutateAsync({
         title,
         date: now.toISOString(),
         serviceIds,
         attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
+        isLeadership,
       });
       setShowStartDialog(false);
       setActiveMeetingId(newMeeting.id);

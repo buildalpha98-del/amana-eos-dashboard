@@ -20,11 +20,19 @@ import { useRocks } from "@/hooks/useRocks";
 import { useScorecard } from "@/hooks/useScorecard";
 import { useIssues } from "@/hooks/useIssues";
 import type { MeetingData } from "@/hooks/useMeetings";
+import { useDeleteMeeting } from "@/hooks/useMeetings";
+import { useSession } from "next-auth/react";
+import { Trash2 } from "lucide-react";
 import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
 import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { L10_SECTIONS } from "./sections";
 
+/**
+ * 2026-07-28: owner/admin can delete a meeting from the list — for
+ * cleaning up one started by mistake. Mirrors the API's role gate; the
+ * server enforces it regardless of what the UI shows.
+ */
 export function MeetingListView({
   meetings,
   onStartNew,
@@ -34,6 +42,12 @@ export function MeetingListView({
   onStartNew: () => void;
   onSelect: (m: MeetingData) => void;
 }) {
+  const { data: session } = useSession();
+  const deleteMeeting = useDeleteMeeting();
+  // Mirrors the DELETE route's role gate — the server enforces it too.
+  const canDeleteMeetings =
+    session?.user?.role === "owner" || session?.user?.role === "admin";
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "cancelled">("all");
   const [visibleCount, setVisibleCount] = useState(10);
@@ -285,10 +299,10 @@ export function MeetingListView({
           {visibleMeetings.length > 0 ? (
             <div className="divide-y divide-border/50">
               {visibleMeetings.map((meeting) => (
+                <div key={meeting.id} className="relative group">
                 <button
-                  key={meeting.id}
                   onClick={() => onSelect(meeting)}
-                  className="w-full px-4 py-3 flex items-center gap-4 text-left hover:bg-surface transition-colors"
+                  className="w-full px-4 py-3 pr-12 flex items-center gap-4 text-left hover:bg-surface transition-colors"
                 >
                   <div
                     className={cn(
@@ -377,6 +391,28 @@ export function MeetingListView({
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted/50" />
                 </button>
+                {canDeleteMeetings && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (
+                        confirm(
+                          `Delete "${meeting.title}"? This permanently removes the meeting, its attendees and any cascade messages. Todos, rocks and issues are not affected.`,
+                        )
+                      ) {
+                        deleteMeeting.mutate(meeting.id);
+                      }
+                    }}
+                    disabled={deleteMeeting.isPending}
+                    aria-label={`Delete ${meeting.title}`}
+                    title="Delete meeting"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-opacity disabled:opacity-40"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                </div>
               ))}
             </div>
           ) : (

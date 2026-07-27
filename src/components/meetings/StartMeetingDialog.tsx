@@ -18,19 +18,33 @@ export function StartMeetingDialog({
   onCancel,
   isPending,
 }: {
-  onStart: (serviceIds: string[], attendeeIds: string[]) => void;
+  onStart: (
+    serviceIds: string[],
+    attendeeIds: string[],
+    isLeadership: boolean,
+  ) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
   const { data: services } = useServices("active");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [step, setStep] = useState<"services" | "attendees">("services");
+  // 2026-07-28: meetings now start with a type choice. "Leadership" is an
+  // org-wide L10 for the leadership team — it skips service selection and
+  // narrows the attendee picker to LEADERSHIP_MEETING_ROLES. "Service"
+  // keeps the original centre-scoped flow.
+  const [step, setStep] = useState<"type" | "services" | "attendees">("type");
+  const [isLeadership, setIsLeadership] = useState(false);
   const [userSearch, setUserSearch] = useState("");
 
   const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
-    queryKey: ["users-list-full"],
-    queryFn: () => fetchApi<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>("/api/users?scope=eos_assignees"),
+    queryKey: ["users-list-full", isLeadership ? "leadership" : "eos_assignees"],
+    queryFn: () =>
+      fetchApi<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>(
+        isLeadership
+          ? "/api/users?scope=leadership"
+          : "/api/users?scope=eos_assignees",
+      ),
     retry: 2,
     staleTime: 60_000,
   });
@@ -104,9 +118,13 @@ export function StartMeetingDialog({
                 Start L10 Meeting
               </h3>
               <p className="text-xs text-muted mt-0.5">
-                {step === "services"
-                  ? "Select which services to include in this meeting"
-                  : "Select attendees for this meeting"}
+                {step === "type"
+                  ? "What kind of meeting is this?"
+                  : step === "services"
+                    ? "Select which services to include in this meeting"
+                    : isLeadership
+                      ? "Select the leadership team members present"
+                      : "Select attendees for this meeting"}
               </p>
             </div>
             <button
@@ -117,13 +135,55 @@ export function StartMeetingDialog({
             </button>
           </div>
 
-          {step === "services" ? (
+          {step === "type" ? (
+            <div className="p-6 space-y-3">
+              <button
+                onClick={() => {
+                  setIsLeadership(true);
+                  setSelectedServiceIds([]);
+                  setSelectedUserIds([]);
+                  setStep("attendees");
+                }}
+                className="w-full text-left rounded-lg border border-border p-4 hover:border-brand hover:bg-brand/5 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-brand" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Leadership Meeting (L10)
+                  </span>
+                </div>
+                <p className="text-xs text-muted">
+                  Organisation-wide. Only the leadership team can be added,
+                  and the To-Do review shows just their items.
+                </p>
+              </button>
+              <button
+                onClick={() => {
+                  setIsLeadership(false);
+                  setSelectedUserIds([]);
+                  setStep("services");
+                }}
+                className="w-full text-left rounded-lg border border-border p-4 hover:border-brand hover:bg-brand/5 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="w-4 h-4 text-brand" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Service / Team Meeting
+                  </span>
+                </div>
+                <p className="text-xs text-muted">
+                  Scoped to one or more centres, with the wider team
+                  available as attendees.
+                </p>
+              </button>
+            </div>
+          ) : step === "services" ? (
             <>
               <div className="p-6 space-y-4">
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onStart([], [])}
+                    onClick={() => onStart([], [], false)}
                     className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
                   >
                     Company-Wide Meeting
@@ -219,10 +279,10 @@ export function StartMeetingDialog({
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setStep("services")}
+                    onClick={() => setStep(isLeadership ? "type" : "services")}
                     className="text-xs px-3 py-1.5 text-muted hover:text-foreground transition-colors"
                   >
-                    ← Back to Services
+                    {isLeadership ? "← Back" : "← Back to Services"}
                   </button>
                   <button
                     onClick={() => {
@@ -315,7 +375,9 @@ export function StartMeetingDialog({
                     Cancel
                   </button>
                   <button
-                    onClick={() => onStart(selectedServiceIds, selectedUserIds)}
+                    onClick={() =>
+                      onStart(selectedServiceIds, selectedUserIds, isLeadership)
+                    }
                     disabled={isPending}
                     className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
                   >

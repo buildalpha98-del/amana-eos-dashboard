@@ -10,6 +10,9 @@ const createMeetingSchema = z.object({
   date: z.string().min(1, "Date is required"),
   serviceIds: z.array(z.string()).optional(),
   attendeeIds: z.array(z.string()).optional(),
+  // 2026-07-28: Leadership (L10) meeting — restricts the To-Do Review to
+  // attendees holding a leadership role.
+  isLeadership: z.boolean().optional(),
 });
 
 // GET /api/meetings — list meetings ordered by date desc
@@ -72,6 +75,7 @@ const body = await parseJsonBody(req);
       startedAt: new Date(),
       createdById: session!.user.id,
       serviceIds: parsed.data.serviceIds || [],
+      isLeadership: parsed.data.isLeadership ?? false,
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },

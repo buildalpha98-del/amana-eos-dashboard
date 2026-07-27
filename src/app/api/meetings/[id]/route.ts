@@ -154,3 +154,52 @@ const { id } = await context!.params!;
 
   return NextResponse.json(meeting);
 }, { roles: ["owner", "head_office", "admin", "eos_implementer"] });
+
+// DELETE /api/meetings/:id — remove a meeting outright.
+//
+// 2026-07-28, per Daniel: "should we also be able to delete meetings in
+// case I started an incorrect meeting?" Scoped to owner/admin because this
+// is destructive and unrecoverable: attendees and cascade messages are
+// removed with it via onDelete: Cascade, taking their ratings and notes.
+// Todos, rocks and issues are NOT touched — they're only referenced by a
+// meeting, never owned by one, so deleting a mis-started meeting can't
+// destroy real work.
+export const DELETE = withApiAuth(async (_req, session, context) => {
+  const { id } = await (context!.params as Promise<{ id: string }>);
+
+  const meeting = await prisma.meeting.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      date: true,
+      status: true,
+      _count: { select: { attendees: true, cascades: true } },
+    },
+  });
+  if (!meeting) {
+    return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
+  }
+
+  // Log BEFORE the delete so the audit trail survives it — the row (and
+  // everything cascading off it) is gone immediately after.
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "delete",
+      entityType: "Meeting",
+      entityId: id,
+      details: {
+        title: meeting.title,
+        date: meeting.date.toISOString(),
+        status: meeting.status,
+        attendeeCount: meeting._count.attendees,
+        cascadeCount: meeting._count.cascades,
+      },
+    },
+  });
+
+  await prisma.meeting.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}, { roles: ["owner", "admin"] });

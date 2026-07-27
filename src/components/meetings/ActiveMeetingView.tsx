@@ -15,6 +15,7 @@ import { useUpdateMeeting, usePrepareMeeting } from "@/hooks/useMeetings";
 import { useScorecard, useCreateEntry } from "@/hooks/useScorecard";
 import { useRocks, useUpdateRock } from "@/hooks/useRocks";
 import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
+import { isLeadershipMeetingRole } from "@/lib/role-enum";
 import { useIssues, useUpdateIssue, useCreateIssue } from "@/hooks/useIssues";
 import type { MeetingData } from "@/hooks/useMeetings";
 import { useServices } from "@/hooks/useServices";
@@ -165,18 +166,34 @@ export function ActiveMeetingView({
       return completed >= lastMonday && completed < thisMonday;
     });
 
+    // 2026-07-28: on a Leadership (L10) meeting the review is restricted
+    // to leadership-role owners as well as attendance, so an educator's
+    // or coordinator's todos never surface in the leadership agenda even
+    // if they were added to the meeting. Non-leadership meetings keep the
+    // previous attendance-only behaviour.
+    const byRole = meeting.isLeadership
+      ? openOrRecent.filter((t) => isLeadershipMeetingRole(t.assignee?.role))
+      : openOrRecent;
+
     if (attendeeUserIds.size > 0) {
-      return openOrRecent.filter(
+      return byRole.filter(
         (t) => !!t.assigneeId && attendeeUserIds.has(t.assigneeId),
       );
     }
     // No attendees recorded — fall back to service scope so the
-    // legacy "all todos at this centre" behaviour still works.
-    if (!hasServiceScope) return openOrRecent;
-    return openOrRecent.filter(
+    // legacy "all todos at this centre" behaviour still works. A
+    // leadership meeting stays role-restricted even on this path.
+    if (!hasServiceScope) return byRole;
+    return byRole.filter(
       (t) => !t.serviceId || meetingServiceIds.includes(t.serviceId),
     );
-  }, [allTodos, attendeeUserIds, hasServiceScope, meetingServiceIds]);
+  }, [
+    allTodos,
+    attendeeUserIds,
+    hasServiceScope,
+    meetingServiceIds,
+    meeting.isLeadership,
+  ]);
 
   // Filter + deduplicate IDS issues by service scope
   const allIDSIssues = useMemo(() => {
