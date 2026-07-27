@@ -14,25 +14,30 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { buildShuffledQuestions, scoreAttempt, type QuizQuestion } from "@/lib/quiz";
+import {
+  buildShuffledQuestions,
+  displayCorrectIndex,
+  scoreAttempt,
+  type QuizQuestion,
+} from "@/lib/quiz";
 import { onModuleProgressed } from "@/lib/induction";
 
 /** Resolve the module, its course, and the caller's enrollment — or throw. */
 async function resolveEnrollment(moduleId: string, userId: string) {
-  const module = await prisma.lMSModule.findUnique({
+  const lmsModule = await prisma.lMSModule.findUnique({
     where: { id: moduleId },
     select: { id: true, courseId: true, type: true },
   });
-  if (!module) throw ApiError.notFound("Module not found");
+  if (!lmsModule) throw ApiError.notFound("Module not found");
 
   const enrollment = await prisma.lMSEnrollment.findUnique({
-    where: { userId_courseId: { userId, courseId: module.courseId } },
+    where: { userId_courseId: { userId, courseId: lmsModule.courseId } },
     select: { id: true },
   });
   if (!enrollment) {
     throw ApiError.forbidden("You are not enrolled in this course.");
   }
-  return { module, enrollmentId: enrollment.id };
+  return { module: lmsModule, enrollmentId: enrollment.id };
 }
 
 async function loadQuestions(moduleId: string): Promise<QuizQuestion[]> {
@@ -134,10 +139,13 @@ export const POST = withApiAuth(async (req, session, context) => {
     await onModuleProgressed(userId);
   }
 
-  // Explanations only after submit — never before.
+  // Explanations only after submit — never before. correctIndex is returned in
+  // DISPLAY space (the attempt's shuffled order), since that's what the client
+  // renders — the canonical index would highlight the wrong option.
+  const ctx = { enrollmentId, moduleId, attemptNumber: attempt.attemptNumber };
   const explanations = questions.map((q) => ({
     questionId: q.id,
-    correctIndex: q.correctIndex,
+    correctIndex: displayCorrectIndex(ctx, q),
     explanation: q.explanation ?? null,
   }));
 

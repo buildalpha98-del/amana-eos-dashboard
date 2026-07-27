@@ -120,7 +120,13 @@ describe("POST /api/lms/modules/[id]/quiz (submit)", () => {
     const body = await res.json();
     expect(body.passed).toBe(true);
     expect(body.score).toBe(100);
-    expect(body.explanations[0]).toMatchObject({ questionId: "q1", correctIndex: 1 });
+    // correctIndex is in DISPLAY space — the position the learner saw, so the
+    // client can highlight the right option in the shuffled list directly.
+    const displayPos = correctDisplayPos("e1", "m1", 1);
+    expect(body.explanations[0]).toMatchObject({ questionId: "q1", correctIndex: displayPos });
+    const perm = permutationFor(QUESTION.options.length, deriveSeed("e1", "m1", 1, QUESTION.id));
+    const shuffledOptions = perm.map((i) => QUESTION.options[i]);
+    expect(shuffledOptions[body.explanations[0].correctIndex]).toBe("The kiosk");
     expect(prismaMock.lMSModuleProgress.upsert).toHaveBeenCalled();
   });
 

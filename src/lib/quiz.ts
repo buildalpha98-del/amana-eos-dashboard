@@ -82,6 +82,16 @@ export function buildShuffledQuestions(
   });
 }
 
+/**
+ * Where the correct answer APPEARS in this attempt's shuffled options — the
+ * index the client can highlight directly. (perm[displayPos] = originalIndex,
+ * so the display position of the correct answer is perm.indexOf(correctIndex).)
+ */
+export function displayCorrectIndex(ctx: AttemptCtx, q: QuizQuestion): number {
+  const perm = permutationFor(q.options.length, seedFor(ctx, q.id));
+  return perm.indexOf(q.correctIndex);
+}
+
 export type SubmittedAnswer = { questionId: string; selectedIndex: number };
 
 export type ScoreResult = {
