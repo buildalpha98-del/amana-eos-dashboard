@@ -403,6 +403,18 @@ export function IssueFromTemplateModal({
                   preview below was generated from — Daniel reported the
                   preview looking like a different template than the one
                   he'd picked. */}
+              {/* 2026-07-27: sample-values notice — contract figures
+                  (hours, pay rate, probation months, etc.) render with
+                  PLACEHOLDER values on this step because the real ones
+                  aren't entered until Steps 3-4. Daniel read the sample
+                  "38 hours" as "wrong template"; this makes the
+                  substitution explicit. */}
+              <div className="mb-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 px-3 py-2 text-xs text-blue-800 dark:text-blue-200">
+                <strong>Sample values shown.</strong> Figures like hours per
+                week, pay rate, and probation months are placeholders on
+                this step — you&apos;ll enter the real ones in the next
+                steps, and the final preview before issuing uses those.
+              </div>
               {selectedTemplate && (
                 <div className="mb-4 rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs flex items-start justify-between gap-3">
                   <div className="min-w-0">
