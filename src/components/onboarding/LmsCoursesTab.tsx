@@ -459,6 +459,11 @@ function StaffCourseViewer({
                             question={q}
                           />
                         ))}
+                        <p className="text-xs text-muted italic">
+                          This quiz is scored in the course player — open the
+                          course from My Training to take it and complete this
+                          module.
+                        </p>
                       </div>
                     )}
 
@@ -495,8 +500,8 @@ function StaffCourseViewer({
                       <p className="text-sm text-muted italic">No content available for this module yet.</p>
                     )}
 
-                    {/* Mark as Complete button */}
-                    {myEnrollment && (
+                    {/* Mark as Complete button — quizzes complete only by passing in the player */}
+                    {myEnrollment && mod.type !== "quiz" && (
                       <div className="mt-4 pt-3 border-t border-border">
                         <button
                           onClick={() => onModuleProgress(myEnrollment.id, mod.id, !isCompleted)}
