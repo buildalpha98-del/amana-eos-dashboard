@@ -303,12 +303,21 @@ export const KNOWN_SCHOOLS: { name: string; campuses: string[] }[] = [
     name: "Minaret College",
     campuses: ["Springvale", "Officer", "Doveton"],
   },
+  // 2026-07-27: single-campus schools we service. Empty `campuses` = the
+  // school itself is the value (no sub-picker), rendered as a bare option
+  // in the enrolment form rather than inside an optgroup.
+  { name: "Unity Grammar", campuses: [] },
+  { name: "Arkana College", campuses: [] },
+  { name: "Minarah College", campuses: [] },
+  { name: "AIA KKCC", campuses: [] },
+  { name: "Al-Taqwa College", campuses: [] },
 ];
 
 /** Flat list of "School Campus" strings the picker offers. Derived so
- *  adding a campus above automatically shows up in the dropdown. */
+ *  adding a campus above automatically shows up in the dropdown.
+ *  Single-campus schools (empty `campuses`) surface as their bare name. */
 export const KNOWN_SCHOOL_OPTIONS: string[] = KNOWN_SCHOOLS.flatMap((s) =>
-  s.campuses.map((c) => `${s.name} ${c}`),
+  s.campuses.length === 0 ? [s.name] : s.campuses.map((c) => `${s.name} ${c}`),
 );
 
 export const RELATIONSHIP_OPTIONS = [
