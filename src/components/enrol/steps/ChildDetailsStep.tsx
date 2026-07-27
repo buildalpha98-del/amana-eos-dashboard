@@ -197,18 +197,30 @@ function SchoolPicker({
         className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
       >
         <option value="">Select school...</option>
-        {KNOWN_SCHOOLS.map((school) => (
-          <optgroup key={school.name} label={school.name}>
-            {school.campuses.map((campus) => {
-              const optionValue = `${school.name} ${campus}`;
-              return (
-                <option key={campus} value={optionValue}>
-                  {campus}
-                </option>
-              );
-            })}
-          </optgroup>
-        ))}
+        {KNOWN_SCHOOLS.map((school) => {
+          // 2026-07-27: single-campus schools (empty `campuses`) render as
+          // a bare option — the school name IS the value. Multi-campus
+          // schools keep the grouped picker.
+          if (school.campuses.length === 0) {
+            return (
+              <option key={school.name} value={school.name}>
+                {school.name}
+              </option>
+            );
+          }
+          return (
+            <optgroup key={school.name} label={school.name}>
+              {school.campuses.map((campus) => {
+                const optionValue = `${school.name} ${campus}`;
+                return (
+                  <option key={campus} value={optionValue}>
+                    {campus}
+                  </option>
+                );
+              })}
+            </optgroup>
+          );
+        })}
         <option value="__other">Other school…</option>
       </select>
       {(showOther || otherSelected) && (
