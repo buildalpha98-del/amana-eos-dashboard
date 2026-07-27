@@ -833,7 +833,9 @@ function Step4({
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">
-            Hours per Week
+            {meta.contractType === "ct_part_time"
+              ? "Minimum Hours per Week"
+              : "Hours per Week"}
           </label>
           <input
             type="number"
@@ -841,9 +843,17 @@ function Step4({
             step="0.5"
             value={meta.hoursPerWeek}
             onChange={(e) => setMeta({ ...meta, hoursPerWeek: e.target.value })}
-            placeholder="e.g. 38"
+            placeholder={
+              meta.contractType === "ct_part_time" ? "e.g. 20" : "e.g. 38"
+            }
             className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           />
+          {meta.contractType === "ct_part_time" && (
+            <p className="mt-1 text-xs text-muted">
+              Staff will be rostered at least this many hours per week; more
+              may be assigned per operational need.
+            </p>
+          )}
         </div>
       </div>
 

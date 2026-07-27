@@ -127,14 +127,16 @@ export const COORDINATOR_PERMANENT_CONTENT_JSON = {
       ),
     ]),
 
-    // 4. Hours
+    // 4. Hours — part-time contract expresses a minimum-hours guarantee
+    // (per 2026-07-27 update) rather than a fixed weekly figure; staff
+    // may be rostered above the minimum where operational needs require.
     heading(2, "4. Hours"),
     p([
-      t("4.1 Your ordinary hours of work will be "),
+      t("4.1 Your ordinary hours of work will be a minimum of "),
       tag("contract.hoursPerWeek"),
-      t(" hours per week with "),
+      t(" hours per week, with "),
       tag("custom.includedHours"),
-      t(" included."),
+      t(" included. The Employer may roster additional ordinary hours above this minimum in accordance with clause 4.2."),
     ]),
     empty(),
     p(

@@ -219,7 +219,9 @@ export function ContractFormFields({
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground/80 mb-1">
-            Hours / Week{" "}
+            {value.contractType === "ct_part_time"
+              ? "Minimum hours / Week"
+              : "Hours / Week"}{" "}
             {value.contractType === "ct_casual" && (
               <span className="text-muted font-normal">(optional)</span>
             )}
@@ -231,9 +233,21 @@ export function ContractFormFields({
             max="60"
             value={value.hoursPerWeek}
             onChange={(e) => set("hoursPerWeek", e.target.value)}
-            placeholder={value.contractType === "ct_casual" ? "Variable" : "38"}
+            placeholder={
+              value.contractType === "ct_casual"
+                ? "Variable"
+                : value.contractType === "ct_part_time"
+                  ? "20"
+                  : "38"
+            }
             className={inputCls}
           />
+          {value.contractType === "ct_part_time" && (
+            <p className="mt-1 text-xs text-muted">
+              Staff will be rostered at least this many hours per week; the
+              Employer may roster more where operational needs require.
+            </p>
+          )}
         </div>
       </div>
 
