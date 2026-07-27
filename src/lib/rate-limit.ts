@@ -8,6 +8,7 @@
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // 1. Upstash Redis rate limiter (production)
@@ -133,12 +134,30 @@ export async function checkRateLimit(
   const upstash = getUpstashRatelimit(maxAttempts, windowMs);
 
   if (upstash) {
-    const { success, remaining, reset } = await upstash.limit(key);
-    return {
-      limited: !success,
-      remaining,
-      resetIn: Math.max(0, reset - Date.now()),
-    };
+    // 2026-07-27 INCIDENT: this call had no error handling. When Upstash
+    // started erroring, `.limit()` rejected, the rejection propagated out
+    // through withApiAuth, and EVERY authenticated API route returned 500
+    // — the dashboard error-boundaried and looked like all data was gone.
+    //
+    // A rate limiter must never be a single point of failure for the whole
+    // app. On a Redis error we degrade to the per-instance in-memory
+    // limiter rather than failing fully open: serverless instances are
+    // short-lived so it's weaker than Redis, but it still throttles burst
+    // abuse (notably login) while Redis is unavailable.
+    try {
+      const { success, remaining, reset } = await upstash.limit(key);
+      return {
+        limited: !success,
+        remaining,
+        resetIn: Math.max(0, reset - Date.now()),
+      };
+    } catch (err) {
+      logger.error(
+        "Rate limit: Upstash unavailable — falling back to in-memory",
+        { err, key },
+      );
+      return checkMemory(key, maxAttempts, windowMs);
+    }
   }
 
   // Fallback: in-memory (dev only)
@@ -169,17 +188,25 @@ export async function resetRateLimit(key: string): Promise<void> {
   const redis = getSharedRedis();
 
   if (redis) {
-    // Remove all sliding-window keys for this identifier.
-    // Keys are stored as "ratelimit:{max}:{windowSec}:{key}" by the factory.
-    // Also check legacy "ratelimit:login:{key}" pattern for backwards compat.
-    const patterns = [`ratelimit:*:${key}*`, `ratelimit:login:${key}*`];
-    for (const pattern of patterns) {
-      const keys = await redis.keys(pattern);
-      if (keys.length > 0) {
-        await redis.del(...keys);
+    // 2026-07-27: same incident as checkRateLimit — this runs on successful
+    // login, so an unhandled Redis rejection here would block sign-in
+    // entirely. Failing to clear the counter is harmless (it expires on its
+    // own), so swallow the error and just clear the in-memory copy.
+    try {
+      // Remove all sliding-window keys for this identifier.
+      // Keys are stored as "ratelimit:{max}:{windowSec}:{key}" by the factory.
+      // Also check legacy "ratelimit:login:{key}" pattern for backwards compat.
+      const patterns = [`ratelimit:*:${key}*`, `ratelimit:login:${key}*`];
+      for (const pattern of patterns) {
+        const keys = await redis.keys(pattern);
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
       }
+      return;
+    } catch (err) {
+      logger.error("Rate limit: Upstash reset failed — ignoring", { err, key });
     }
-    return;
   }
 
   resetMemory(key);
