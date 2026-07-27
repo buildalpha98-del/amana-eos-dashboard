@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Receipt, X, AlertTriangle, Paperclip } from "lucide-react";
 import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
@@ -322,16 +323,26 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
     !!dateIncurred &&
     !submitMutation.isPending;
 
-  return (
+  // 2026-07-27: portal to document.body so ancestor `transform`/`filter`/
+  // `will-change` in the my-portal layout can't clip the modal. Also
+  // switch height to `dvh` (dynamic viewport height) so the footer with
+  // the Submit button stays reachable behind iOS Safari's URL bar —
+  // reports of "the submit button isn't clickable" on iPhone.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  const modal = (
     <div
       className="fixed inset-0 z-[60] bg-black/60 flex items-stretch sm:items-center justify-center sm:p-4"
+      style={{ height: "100dvh" }}
       data-testid="expense-submit-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget && !submitMutation.isPending) onClose();
       }}
     >
       <div
-        className="bg-card w-full h-full sm:h-auto sm:max-h-[90vh] sm:w-full sm:max-w-lg flex flex-col shadow-2xl sm:rounded-xl"
+        className="bg-card w-full h-[100dvh] sm:h-auto sm:max-h-[90dvh] sm:w-full sm:max-w-lg flex flex-col shadow-2xl sm:rounded-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="expense-submit-title"
@@ -506,4 +517,6 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
