@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useQuery } from "@tanstack/react-query";
 import {
   useContractTemplates,
+  useContractTemplate,
   usePreviewContractTemplate,
   useIssueFromTemplate,
 } from "@/hooks/useContractTemplates";
@@ -114,9 +115,14 @@ export function IssueFromTemplateModal({
   const previewMut = usePreviewContractTemplate();
   const issueMut = useIssueFromTemplate();
 
+  // 2026-07-27: fetch the selected template FRESH from the DB rather than
+  // reading it out of the (30s-cached) list. Ensures a template edit in
+  // the Templates tab or a "Seed defaults" overwrite shows up immediately
+  // in the Issue-Contract preview instead of after the cache expires.
+  const { data: freshTemplate } = useContractTemplate(templateId || null);
   const selectedTemplate = useMemo(
-    () => templates.find((t) => t.id === templateId),
-    [templates, templateId],
+    () => freshTemplate ?? templates.find((t) => t.id === templateId),
+    [freshTemplate, templates, templateId],
   );
 
   /**

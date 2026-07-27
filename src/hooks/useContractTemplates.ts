@@ -62,7 +62,10 @@ export function useContractTemplate(id: string | null) {
     queryFn: () => fetchApi<ContractTemplateData>(`/api/contract-templates/${id}`),
     enabled: !!id,
     retry: 2,
-    staleTime: 30_000,
+    // 2026-07-27: always refetch when the Issue-Contract wizard reads a
+    // template so a just-saved edit (or "Seed defaults" overwrite) shows
+    // up immediately rather than after 30s.
+    staleTime: 0,
   });
 }
 
