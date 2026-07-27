@@ -59,6 +59,33 @@ export function EnrolmentWizard({
   const [showResumeBanner, setShowResumeBanner] = useState(false);
   const savedProgressRef = useRef<{ data: EnrolmentFormData; step: number } | null>(null);
 
+  // 2026-07-27: translation hook. MUST stay above every conditional
+  // `return` in this component (intro screen, success screen, resume
+  // banner) — it was originally placed below them, so the intro render
+  // ran one fewer hook than the post-Continue render and React threw
+  // "rendered more hooks than during the previous render", which the
+  // error boundary surfaced as "Something went wrong".
+  const { t } = useT(data.locale ?? "en");
+
+  // Locale-driven translation disclaimer — shown inside the wizard for
+  // any locale that isn't fully translated yet.
+  const activeLocale = SUPPORTED_LOCALES.find((l) => l.code === data.locale);
+  const showTranslationBanner =
+    activeLocale && !activeLocale.ready && !submitted;
+
+  // Maps STEPS indices to translation keys so progress-bar labels
+  // translate. Keep in the same order as STEPS in types.ts.
+  const STEP_KEYS: EnrolTranslationKey[] = [
+    "wizard.step.children",
+    "wizard.step.parents",
+    "wizard.step.medical",
+    "wizard.step.emergency",
+    "wizard.step.consents",
+    "wizard.step.booking",
+    "wizard.step.payment",
+    "wizard.step.review",
+  ];
+
   // Load from localStorage — merge with prefill if both exist
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -439,30 +466,6 @@ export function EnrolmentWizard({
       />
     );
   }
-
-  // Locale-driven translation disclaimer banner — shown once inside the
-  // wizard for any locale that isn't yet fully translated.
-  const activeLocale = SUPPORTED_LOCALES.find((l) => l.code === data.locale);
-  const showTranslationBanner =
-    activeLocale && !activeLocale.ready && !submitted;
-
-  // 2026-07-27: translation hook — falls back to English source strings
-  // when the locale's translation row is missing. Safe to call from every
-  // render; caches per-locale via React Query.
-  const { t } = useT(data.locale ?? "en");
-
-  // Map STEPS array indices to translation keys so the progress bar labels
-  // translate. Keep in the same order as STEPS in types.ts.
-  const STEP_KEYS: EnrolTranslationKey[] = [
-    "wizard.step.children",
-    "wizard.step.parents",
-    "wizard.step.medical",
-    "wizard.step.emergency",
-    "wizard.step.consents",
-    "wizard.step.booking",
-    "wizard.step.payment",
-    "wizard.step.review",
-  ];
 
   return (
     <div>
