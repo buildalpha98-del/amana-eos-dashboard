@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError } from "@/lib/api-error";
+import { ENROL_TRANSLATIONS_SOURCE } from "@/lib/enrol-translations-source";
 
 const ALLOWED_LOCALES = new Set(["en", "ar", "ur", "so", "ps", "tr"]);
 
@@ -26,15 +27,21 @@ export const GET = withApiHandler(async (req) => {
     return NextResponse.json({});
   }
 
+  // 2026-07-27: response merges the code source (AI translations shipped
+  // with the deploy) with any per-key DB overrides staff have made via
+  // /settings/enrol-translations. DB wins per key; missing keys in both
+  // fall through to the client's English defaults.
+  const source = ENROL_TRANSLATIONS_SOURCE[locale] ?? {};
   const rows = await prisma.enrolFormTranslation.findMany({
     where: { locale },
     select: { key: true, text: true },
   });
+  const overrides: Record<string, string> = {};
+  for (const r of rows) overrides[r.key] = r.text;
 
-  const map: Record<string, string> = {};
-  for (const r of rows) map[r.key] = r.text;
+  const merged = { ...source, ...overrides };
 
-  return NextResponse.json(map, {
+  return NextResponse.json(merged, {
     headers: {
       // Cache aggressively — translations rarely change and the fallback
       // to English is safe when they're stale.
