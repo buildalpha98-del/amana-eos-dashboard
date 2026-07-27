@@ -11,6 +11,7 @@ import {
   deriveSeed,
   permutationFor,
   buildShuffledQuestions,
+  displayCorrectIndex,
   scoreAttempt,
   PASS_MARK,
 } from "@/lib/quiz";
@@ -67,6 +68,31 @@ describe("buildShuffledQuestions", () => {
   it("shuffled options are a permutation of the originals", () => {
     const built = buildShuffledQuestions({ ...CTX, questions: QUESTIONS });
     expect([...built[0].options].sort()).toEqual([...QUESTIONS[0].options].sort());
+  });
+});
+
+describe("displayCorrectIndex", () => {
+  it("points at the correct option within the SHUFFLED order for every question", () => {
+    const built = buildShuffledQuestions({ ...CTX, questions: QUESTIONS });
+    QUESTIONS.forEach((q, i) => {
+      const di = displayCorrectIndex(CTX, q);
+      expect(built[i].options[di]).toBe(q.options[q.correctIndex]);
+    });
+  });
+  it("matches the display position a correct learner would click", () => {
+    for (const q of QUESTIONS) {
+      expect(displayCorrectIndex(CTX, q)).toBe(correctDisplayPos(q));
+    }
+  });
+  it("varies with attempt context (different attempt → potentially different position)", () => {
+    // Same question, 20 attempts: display position must always map back to the
+    // correct option, whatever the shuffle does.
+    for (let attempt = 1; attempt <= 20; attempt++) {
+      const ctx = { ...CTX, attemptNumber: attempt };
+      const [built] = buildShuffledQuestions({ ...ctx, questions: [QUESTIONS[0]] });
+      const di = displayCorrectIndex(ctx, QUESTIONS[0]);
+      expect(built.options[di]).toBe(QUESTIONS[0].options[QUESTIONS[0].correctIndex]);
+    }
   });
 });
 
