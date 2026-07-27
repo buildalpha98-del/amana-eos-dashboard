@@ -15,24 +15,52 @@
  */
 
 import { useState } from "react";
-import { ChevronRight, Globe } from "lucide-react";
-import { SUPPORTED_LOCALES, type SupportedLocale } from "./types";
+import { ChevronRight, Globe, School } from "lucide-react";
+import {
+  KNOWN_SCHOOLS,
+  KNOWN_SCHOOL_OPTIONS,
+  SUPPORTED_LOCALES,
+  type SupportedLocale,
+} from "./types";
 
 interface Props {
   initialLocale: SupportedLocale;
-  onContinue: (locale: SupportedLocale) => void;
+  /** Pre-selected school, so returning here from the wizard keeps the choice. */
+  initialSchool?: string;
+  onContinue: (locale: SupportedLocale, school: string) => void;
   /** Neutral bg for parent-portal embedding; dark bg for standalone. */
   variant?: "standalone" | "portal";
+  /** Shown when the parent came BACK here from inside the wizard. */
+  isReturning?: boolean;
+  /** Dismiss without changing anything — only offered when returning. */
+  onCancel?: () => void;
 }
 
 export function EnrolIntro({
   initialLocale,
+  initialSchool = "",
   onContinue,
   variant = "standalone",
+  isReturning = false,
+  onCancel,
 }: Props) {
   const [locale, setLocale] = useState<SupportedLocale>(initialLocale);
   const selected = SUPPORTED_LOCALES.find((l) => l.code === locale);
   const showDisclaimer = selected && !selected.ready;
+
+  // School: the <select> holds either a known option, "" (unset), or the
+  // "__other" sentinel which reveals a free-text input. `school` always
+  // holds the value we actually submit.
+  const [school, setSchool] = useState(initialSchool);
+  const [otherPicked, setOtherPicked] = useState(
+    Boolean(initialSchool) && !KNOWN_SCHOOL_OPTIONS.includes(initialSchool),
+  );
+  const selectValue = otherPicked
+    ? "__other"
+    : KNOWN_SCHOOL_OPTIONS.includes(school)
+      ? school
+      : "";
+  const canContinue = school.trim().length > 0;
 
   const outerBg =
     variant === "portal"
@@ -49,11 +77,12 @@ export function EnrolIntro({
             Amana OSHC
           </p>
           <h1 className="text-2xl sm:text-3xl font-heading font-semibold mb-2">
-            Welcome
+            {isReturning ? "Change your details" : "Welcome"}
           </h1>
           <p className="text-sm text-white/85">
-            Before we start your child&apos;s enrolment, please choose your
-            preferred language.
+            {isReturning
+              ? "Update your language or your child's school. Everything you've already filled in is kept."
+              : "Before we start your child's enrolment, please choose your preferred language and your child's school."}
           </p>
         </div>
 
@@ -120,14 +149,89 @@ export function EnrolIntro({
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => onContinue(locale)}
-            className="w-full inline-flex items-center justify-center gap-2 bg-brand text-white font-medium px-4 py-3 rounded-lg hover:bg-brand/90 transition-colors"
-          >
-            Continue
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          {/* School — prefills the first child's school in Step 1, where it
+              can still be changed (and set individually for siblings at
+              different schools). */}
+          <div>
+            <label
+              htmlFor="intro-school"
+              className="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
+            >
+              <School className="w-4 h-4 text-brand" />
+              Which school does your child attend?
+            </label>
+            <select
+              id="intro-school"
+              value={selectValue}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "__other") {
+                  setOtherPicked(true);
+                  setSchool("");
+                } else {
+                  setOtherPicked(false);
+                  setSchool(v);
+                }
+              }}
+              className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+            >
+              <option value="">Select school...</option>
+              {KNOWN_SCHOOLS.map((s) =>
+                s.campuses.length === 0 ? (
+                  <option key={s.name} value={s.name}>
+                    {s.name}
+                  </option>
+                ) : (
+                  <optgroup key={s.name} label={s.name}>
+                    {s.campuses.map((c) => (
+                      <option key={c} value={`${s.name} ${c}`}>
+                        {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                ),
+              )}
+              <option value="__other">Other school…</option>
+            </select>
+            {otherPicked && (
+              <input
+                type="text"
+                value={school}
+                onChange={(e) => setSchool(e.target.value)}
+                placeholder="Type your child's school"
+                autoFocus
+                className="mt-2 w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+              />
+            )}
+            <p className="mt-1 text-xs text-muted">
+              You can change this, or set a different school per child, on the
+              next step.
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row gap-2">
+            {isReturning && onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="sm:flex-1 inline-flex items-center justify-center px-4 py-3 rounded-lg border border-border text-foreground/80 font-medium hover:bg-surface transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onContinue(locale, school.trim())}
+              disabled={!canContinue}
+              title={
+                canContinue ? undefined : "Choose your child's school to continue"
+              }
+              className="sm:flex-[2] w-full inline-flex items-center justify-center gap-2 bg-brand text-white font-medium px-4 py-3 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isReturning ? "Save and continue" : "Continue"}
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
 
           <p className="text-2xs text-muted text-center">
             Your progress is saved in this browser as you go — you can close

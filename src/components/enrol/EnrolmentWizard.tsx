@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { AlertCircle, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Mail, Phone, RotateCcw } from "lucide-react";
+import { AlertCircle, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, FileText, Globe, Loader2, Mail, Phone, RotateCcw } from "lucide-react";
 import {
   EnrolmentFormData,
   INITIAL_FORM_DATA,
@@ -57,6 +57,9 @@ export function EnrolmentWizard({
   const [submitError, setSubmitError] = useState("");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showResumeBanner, setShowResumeBanner] = useState(false);
+  // True while the parent is back on the intro via the "Change" link, so
+  // the intro can offer Cancel instead of looking like a fresh start.
+  const [reopenedIntro, setReopenedIntro] = useState(false);
   const savedProgressRef = useRef<{ data: EnrolmentFormData; step: number } | null>(null);
 
   // 2026-07-27: translation hook. MUST stay above every conditional
@@ -456,19 +459,60 @@ export function EnrolmentWizard({
   // doesn't send them back to the intro. Skip for portal sibling
   // enrolments (variant === "portal") — those already have context.
   if (loaded && !submitted && !data.introCompleted && variant !== "portal") {
+    // `reopenedIntro` distinguishes "first visit" from "came back via the
+    // Change link" — the latter offers Cancel and keeps existing answers.
     return (
       <EnrolIntro
         initialLocale={data.locale ?? "en"}
+        initialSchool={data.children?.[0]?.schoolName ?? ""}
         variant={variant}
-        onContinue={(locale) =>
-          setData((d) => ({ ...d, locale, introCompleted: true }))
+        isReturning={reopenedIntro}
+        onCancel={
+          reopenedIntro
+            ? () => {
+                setReopenedIntro(false);
+                setData((d) => ({ ...d, introCompleted: true }));
+              }
+            : undefined
         }
+        onContinue={(locale, school) => {
+          setReopenedIntro(false);
+          setData((d) => {
+            // Seed the first child's school from the intro. Siblings at a
+            // different school are handled per-child on the Child Details
+            // step, so only child 1 is touched here.
+            const children = d.children.length
+              ? d.children.map((c, i) =>
+                  i === 0 ? { ...c, schoolName: school } : c,
+                )
+              : [{ ...EMPTY_CHILD, schoolName: school }];
+            return { ...d, locale, children, introCompleted: true };
+          });
+        }}
       />
     );
   }
 
   return (
     <div>
+      {/* 2026-07-27: lets a parent who picked the wrong language (or the
+          wrong school) get back to the intro without losing what they've
+          already typed — everything lives in `data`, which we don't touch. */}
+      {variant !== "portal" && !submitted && (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setReopenedIntro(true);
+              setData((d) => ({ ...d, introCompleted: false }));
+            }}
+            className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white underline underline-offset-2"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            {activeLocale?.nativeLabel ?? "English"} · Change language or school
+          </button>
+        </div>
+      )}
       {showTranslationBanner && (
         <div className="mb-4 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
           <strong>{activeLocale.label}</strong>{" "}
