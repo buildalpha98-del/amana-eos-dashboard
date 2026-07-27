@@ -11,7 +11,11 @@ import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
-import { parseRoleParam, EOS_ASSIGNEE_ROLES } from "@/lib/role-enum";
+import {
+  parseRoleParam,
+  EOS_ASSIGNEE_ROLES,
+  LEADERSHIP_MEETING_ROLES,
+} from "@/lib/role-enum";
 import { resolveServiceIdFilter } from "@/lib/authz-scope";
 import { generateTempPassword } from "@/lib/temp-password";
 
@@ -68,6 +72,12 @@ export const GET = withApiAuth(async (req, session) => {
         : {}),
       ...(scope === "eos_assignees"
         ? { role: { in: [...EOS_ASSIGNEE_ROLES] } }
+        : {}),
+      // 2026-07-28: leadership-meeting roster — narrower than
+      // eos_assignees (no head_office). Used by the Start Meeting
+      // dialog's attendee picker for Leadership (L10) meetings.
+      ...(scope === "leadership"
+        ? { role: { in: [...LEADERSHIP_MEETING_ROLES] } }
         : {}),
     },
     select: {

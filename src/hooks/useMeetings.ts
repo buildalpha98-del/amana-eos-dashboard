@@ -52,6 +52,8 @@ export interface MeetingData {
   cascadeMessages: string | null;
   serviceIds: string[];
   rockIds: string[];
+  /** Leadership (L10) meeting — restricts To-Do Review to leadership roles. */
+  isLeadership: boolean;
   startedAt: string | null;
   completedAt: string | null;
   createdById: string;
@@ -97,6 +99,7 @@ export function useCreateMeeting() {
       date: string;
       serviceIds?: string[];
       attendeeIds?: string[];
+      isLeadership?: boolean;
     }) => {
       return mutateApi<MeetingData>("/api/meetings", { method: "POST", body: data });
     },
@@ -160,6 +163,25 @@ export function useUpdateMeeting() {
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+/**
+ * Delete a meeting outright (owner/admin only). Used to clean up a
+ * mis-started meeting. Destructive — the caller must confirm first.
+ */
+export function useDeleteMeeting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      mutateApi<{ ok: true }>(`/api/meetings/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+      toast({ description: "Meeting deleted." });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message });
     },
   });
 }

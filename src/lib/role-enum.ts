@@ -78,6 +78,36 @@ export function isEosAssigneeRole(role: string | null | undefined): boolean {
   return typeof role === "string" && EOS_ASSIGNEE_SET.has(role);
 }
 
+/**
+ * Roles that make up the leadership team for a Leadership (L10) meeting.
+ *
+ * 2026-07-28, per Daniel: "let me select the staff members that will be
+ * present. The to-do list should only show those that have been added to
+ * the meeting and also those that have the roles admin, marketing, EOS,
+ * owner. No other staff member should show."
+ *
+ * NOTE this is deliberately NARROWER than EOS_ASSIGNEE_ROLES — it omits
+ * `head_office` (State Manager), which Daniel did not list. State
+ * Managers remain valid EOS assignees everywhere else; they're just not
+ * part of the leadership-meeting roster. Flip that by adding
+ * "head_office" here if regional managers should attend.
+ */
+export const LEADERSHIP_MEETING_ROLES: readonly Role[] = [
+  "owner",
+  "admin",
+  "marketing",
+  "eos",
+] as const;
+
+const LEADERSHIP_MEETING_SET: Set<string> = new Set(LEADERSHIP_MEETING_ROLES);
+
+/** True if this role belongs to the leadership-meeting roster. */
+export function isLeadershipMeetingRole(
+  role: string | null | undefined,
+): boolean {
+  return typeof role === "string" && LEADERSHIP_MEETING_SET.has(role);
+}
+
 /** Type guard. Narrows `value` to `Role` when it's a known enum value. */
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && ROLE_SET.has(value);
