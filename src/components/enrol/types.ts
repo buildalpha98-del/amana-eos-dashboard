@@ -132,7 +132,29 @@ export interface EnrolmentFormData {
   privacyAccepted: boolean;
   debitAgreement: boolean;
   signature: string;
+  // 2026-07-27: preferred language for the enrolment form. Selected on
+  // the intro screen; drives the (Phase 2) translation lookups. Default
+  // "en"; other locales currently fall back to English content with an
+  // in-progress banner shown at the top of the form.
+  locale: SupportedLocale;
+  /** True once the parent has finished the intro screen; suppresses
+   *  re-showing it on refresh. */
+  introCompleted: boolean;
 }
+
+// 2026-07-27: locales supported by the enrolment form. Add codes here as
+// translations are seeded. Order drives display order on the intro
+// language picker.
+export const SUPPORTED_LOCALES = [
+  { code: "en", label: "English", nativeLabel: "English", ready: true, dir: "ltr" as const },
+  { code: "ar", label: "Arabic", nativeLabel: "العربية", ready: false, dir: "rtl" as const },
+  { code: "ur", label: "Urdu", nativeLabel: "اُردُو", ready: false, dir: "rtl" as const },
+  { code: "so", label: "Somali", nativeLabel: "Soomaali", ready: false, dir: "ltr" as const },
+  { code: "ps", label: "Pashto", nativeLabel: "پښتو", ready: false, dir: "rtl" as const },
+  { code: "tr", label: "Turkish", nativeLabel: "Türkçe", ready: false, dir: "ltr" as const },
+] as const;
+
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]["code"];
 
 export const EMPTY_CHILD: ChildDetails = {
   firstName: "",
@@ -244,6 +266,8 @@ export const INITIAL_FORM_DATA: EnrolmentFormData = {
   privacyAccepted: false,
   debitAgreement: false,
   signature: "",
+  locale: "en",
+  introCompleted: false,
 };
 
 export const STEPS = [
