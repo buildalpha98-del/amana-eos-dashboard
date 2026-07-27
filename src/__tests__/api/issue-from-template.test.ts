@@ -258,9 +258,25 @@ describe("POST /api/contracts/issue-from-template", () => {
 
   // ── Resolution / render errors ───────────────────────────────────────────────
 
-  it("returns 400 when resolveTemplateData returns missingBlocking fields", async () => {
+  it("returns 400 when the template references a missingBlocking field", async () => {
     mockSession({ id: "user-1", name: "Test", role: "admin" });
-    prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE);
+    // The template must actually reference the tag — the route only blocks
+    // on missing staff fields the document uses (see the filter test below).
+    prismaMock.contractTemplate.findUnique.mockResolvedValue({
+      ...MOCK_TEMPLATE,
+      contentJson: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "text", text: "Address: " },
+              { type: "mergeTag", attrs: { key: "staff.address" } },
+            ],
+          },
+        ],
+      },
+    });
     mockResolveTemplateData.mockResolvedValue({
       resolved: {},
       missingBlocking: ["staff.address", "staff.phone"],
@@ -272,7 +288,28 @@ describe("POST /api/contracts/issue-from-template", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("staff.address");
-    expect(body.error).toContain("staff.phone");
+    // staff.phone is missing on the profile but unused by this template,
+    // so it must NOT be reported as a blocker.
+    expect(body.error).not.toContain("staff.phone");
+  });
+
+  it("ignores missingBlocking fields the template never references", async () => {
+    // 2026-07-27 regression guard: issuing the Casual Educator template
+    // failed with "staff.address missing" even though that template has no
+    // address tag and the wizard offered no way to supply one. The route
+    // now intersects missingBlocking with the tags actually present in the
+    // document body.
+    mockSession({ id: "user-1", name: "Test", role: "admin" });
+    prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE); // SIMPLE_DOC — no merge tags
+    mockResolveTemplateData.mockResolvedValue({
+      resolved: {},
+      missingBlocking: ["staff.address", "staff.phone"],
+    });
+
+    const req = createRequest("POST", "/api/contracts/issue-from-template", { body: VALID_BODY });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
   });
 
   // ── Happy path ───────────────────────────────────────────────────────────────
