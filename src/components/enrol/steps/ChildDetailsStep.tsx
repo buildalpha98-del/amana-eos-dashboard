@@ -13,6 +13,7 @@ import {
   KNOWN_SCHOOL_OPTIONS,
 } from "../types";
 import { stateFromPostcode } from "@/lib/au-postcodes";
+import { useT } from "@/lib/enrol-i18n";
 
 interface Props {
   data: EnrolmentFormData;
@@ -165,9 +166,11 @@ function CountryOfBirthPicker({
 function SchoolPicker({
   value,
   onChange,
+  t,
 }: {
   value: string;
   onChange: (v: string) => void;
+  t: ReturnType<typeof useT>["t"];
 }) {
   const isKnown = KNOWN_SCHOOL_OPTIONS.includes(value);
   const otherSelected = !isKnown && value !== "";
@@ -181,7 +184,7 @@ function SchoolPicker({
 
   return (
     <div>
-      <FieldLabel label="School" />
+      <FieldLabel label={t("child.school")} />
       <select
         value={selectValue}
         onChange={(e) => {
@@ -238,6 +241,11 @@ function SchoolPicker({
 }
 
 export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }: Props) {
+  // 2026-07-27: field labels follow the language picked on the intro
+  // screen. Falls back to the English source when a key has no
+  // translation yet. Staff-facing output is unaffected — the enrolment
+  // PDF builds its own English labels server-side.
+  const { t } = useT(data.locale ?? "en");
   // Use functional updater so rapid back-to-back calls (e.g. postcode handler
   // firing updateChild(i, "postcode", ...) then updateChild(i, "state", ...)
   // on the same keystroke) each see the latest state instead of the stale
@@ -276,26 +284,26 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="First Name"
+              label={t("child.firstName")}
               value={child.firstName}
               onChange={(v) => updateChild(i, "firstName", v)}
               required
             />
             <Input
-              label="Surname"
+              label={t("child.surname")}
               value={child.surname}
               onChange={(v) => updateChild(i, "surname", v)}
               required
             />
             <Input
-              label="Date of Birth"
+              label={t("child.dob")}
               value={child.dob}
               onChange={(v) => updateChild(i, "dob", v)}
               type="date"
               required
             />
             <div>
-              <FieldLabel label="Gender" />
+              <FieldLabel label={t("child.gender")} />
               <select
                 value={child.gender}
                 onChange={(e) => updateChild(i, "gender", e.target.value)}
@@ -309,30 +317,30 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
           </div>
 
           <div className="mt-4">
-            <FieldLabel label="Country of Birth" required />
+            <FieldLabel label={t("child.countryOfBirth")} required />
             <CountryOfBirthPicker
               value={child.countryOfBirth}
               onChange={(v) => updateChild(i, "countryOfBirth", v)}
             />
           </div>
 
-          <h4 className="text-sm font-semibold text-muted mt-6 mb-3">Address</h4>
+          <h4 className="text-sm font-semibold text-muted mt-6 mb-3">{t("child.section.address")}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <Input
-                label="Street"
+                label={t("child.street")}
                 value={child.street}
                 onChange={(v) => updateChild(i, "street", v)}
               />
             </div>
             <Input
-              label="Suburb"
+              label={t("child.suburb")}
               value={child.suburb}
               onChange={(v) => updateChild(i, "suburb", v)}
             />
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <FieldLabel label="State" />
+                <FieldLabel label={t("child.state")} />
                 <select
                   value={child.state}
                   onChange={(e) => updateChild(i, "state", e.target.value)}
@@ -345,7 +353,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
                 </select>
               </div>
               <Input
-                label="Postcode"
+                label={t("child.postcode")}
                 value={child.postcode}
                 onChange={(v) => {
                   const digits = v.replace(/\D/g, "").slice(0, 4);
@@ -364,7 +372,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
           </div>
 
           <h4 className="text-sm font-semibold text-muted mt-6 mb-3">
-            Cultural / Language Background
+            {t("child.culturalBackground")}
           </h4>
           <div className="flex flex-wrap gap-2">
             {CULTURAL_OPTIONS.map((opt) => (
@@ -392,14 +400,15 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
             ))}
           </div>
 
-          <h4 className="text-sm font-semibold text-muted mt-6 mb-3">School</h4>
+          <h4 className="text-sm font-semibold text-muted mt-6 mb-3">{t("child.section.school")}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <SchoolPicker
+              t={t}
               value={child.schoolName}
               onChange={(v) => updateChild(i, "schoolName", v)}
             />
             <Input
-              label="Class"
+              label={t("child.class")}
               value={child.yearLevel}
               onChange={(v) => updateChild(i, "yearLevel", v)}
               placeholder="e.g. 4A, K Blue"

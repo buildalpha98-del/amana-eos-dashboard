@@ -66,6 +66,24 @@ export const ENROL_STRINGS_EN = {
   "intro.button.continue": "Continue",
   "intro.footer.saveHint":
     "Your progress is saved in this browser as you go — you can close this tab and finish later.",
+
+  // ── Child Details step ────────────────────────────────────────
+  "child.firstName": "First Name",
+  "child.surname": "Surname",
+  "child.dob": "Date of Birth",
+  "child.gender": "Gender",
+  "child.countryOfBirth": "Country of Birth",
+  "child.section.address": "Address",
+  "child.street": "Street",
+  "child.suburb": "Suburb",
+  "child.state": "State",
+  "child.postcode": "Postcode",
+  "child.section.school": "School",
+  "child.school": "School",
+  "child.class": "Class",
+  "child.culturalBackground": "Cultural / Language Background",
+  "common.select": "Select...",
+  "common.other": "Other",
 } as const;
 
 export type EnrolTranslationKey = keyof typeof ENROL_STRINGS_EN;
