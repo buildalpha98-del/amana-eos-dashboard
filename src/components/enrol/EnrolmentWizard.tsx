@@ -625,9 +625,20 @@ export function EnrolmentWizard({
       {/* Navigation */}
       {step < 7 && (
         <div className="flex justify-between mt-6">
+          {/* 2026-07-27: on the first step Back used to be a dead, greyed-out
+              button. It now returns to the language/school screen, so the
+              bottom-left control is always usable and parents aren't stuck
+              with a wrong language choice. Not offered for portal sibling
+              enrolments, which never see the intro. */}
           <button
             onClick={() => {
               setValidationErrors([]);
+              if (step === 0) {
+                setReopenedIntro(true);
+                setData((d) => ({ ...d, introCompleted: false }));
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                return;
+              }
               let prevStep = step - 1;
               while (prevStep >= 0 && skipSteps.includes(prevStep)) {
                 prevStep--;
@@ -635,11 +646,11 @@ export function EnrolmentWizard({
               setStep(Math.max(0, prevStep));
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            disabled={step === 0}
+            disabled={step === 0 && variant === "portal"}
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-card/10 text-white font-medium hover:bg-card/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="h-4 w-4" />
-            Back
+            {step === 0 ? "Language & school" : "Back"}
           </button>
           <button
             onClick={handleNext}
