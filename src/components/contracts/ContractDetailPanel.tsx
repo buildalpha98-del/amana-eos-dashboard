@@ -168,10 +168,14 @@ export function ContractDetailPanel({
         </div>
         <div>
           <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
-            Hours / Week
+            {contract.contractType === "ct_part_time"
+              ? "Min Hours / Week"
+              : "Hours / Week"}
           </p>
           <p className="text-sm font-medium text-foreground">
-            {contract.hoursPerWeek ? `${contract.hoursPerWeek}h` : "Variable"}
+            {contract.hoursPerWeek
+              ? `${contract.contractType === "ct_part_time" ? "≥ " : ""}${contract.hoursPerWeek}h`
+              : "Variable"}
           </p>
         </div>
         <div>
