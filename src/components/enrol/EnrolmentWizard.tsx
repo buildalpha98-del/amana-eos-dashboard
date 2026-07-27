@@ -21,6 +21,7 @@ import { PaymentStep } from "./steps/PaymentStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { EnrolIntro } from "./EnrolIntro";
 import { SUPPORTED_LOCALES } from "./types";
+import { useT, type EnrolTranslationKey } from "@/lib/enrol-i18n";
 
 const STORAGE_KEY = "amana-enrolment-form";
 
@@ -445,17 +446,30 @@ export function EnrolmentWizard({
   const showTranslationBanner =
     activeLocale && !activeLocale.ready && !submitted;
 
+  // 2026-07-27: translation hook — falls back to English source strings
+  // when the locale's translation row is missing. Safe to call from every
+  // render; caches per-locale via React Query.
+  const { t } = useT(data.locale ?? "en");
+
+  // Map STEPS array indices to translation keys so the progress bar labels
+  // translate. Keep in the same order as STEPS in types.ts.
+  const STEP_KEYS: EnrolTranslationKey[] = [
+    "wizard.step.children",
+    "wizard.step.parents",
+    "wizard.step.medical",
+    "wizard.step.emergency",
+    "wizard.step.consents",
+    "wizard.step.booking",
+    "wizard.step.payment",
+    "wizard.step.review",
+  ];
+
   return (
     <div>
       {showTranslationBanner && (
         <div className="mb-4 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
-          <strong>{activeLocale.label} translation coming soon.</strong> The
-          form is showing in English for now. If anything is unclear,
-          contact us on{" "}
-          <a href="mailto:enrolments@amanaoshc.com.au" className="underline">
-            enrolments@amanaoshc.com.au
-          </a>
-          .
+          <strong>{activeLocale.label}</strong>{" "}
+          {t("wizard.banner.translationPreview")}
         </div>
       )}
       {/* Progress bar */}
@@ -481,7 +495,7 @@ export function EnrolmentWizard({
                 {i < step ? <Check className="h-4 w-4" /> : i + 1}
               </div>
               <span className="text-2xs sm:text-xs text-white/80 hidden sm:block font-medium">
-                {s.label}
+                {t(STEP_KEYS[i]) ?? s.label}
               </span>
             </button>
           ))}
