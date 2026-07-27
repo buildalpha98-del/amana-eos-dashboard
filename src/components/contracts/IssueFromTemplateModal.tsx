@@ -397,12 +397,30 @@ export function IssueFromTemplateModal({
             />
           )}
           {step === 2 && (
-            <Step2
-              previewData={previewData}
-              loading={previewMut.isPending}
-              userId={userId}
-              customFieldKeys={customFieldKeys}
-            />
+            <>
+              {/* 2026-07-27: surface the selected template's name + id at
+                  the top of Step 2 so it's unambiguous which template the
+                  preview below was generated from — Daniel reported the
+                  preview looking like a different template than the one
+                  he'd picked. */}
+              {selectedTemplate && (
+                <div className="mb-4 rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs">
+                  <div className="text-muted">Previewing template</div>
+                  <div className="text-sm font-medium text-foreground">
+                    {selectedTemplate.name}
+                  </div>
+                  <div className="text-2xs text-muted mt-0.5 font-mono">
+                    id: {selectedTemplate.id}
+                  </div>
+                </div>
+              )}
+              <Step2
+                previewData={previewData}
+                loading={previewMut.isPending}
+                userId={userId}
+                customFieldKeys={customFieldKeys}
+              />
+            </>
           )}
           {step === 3 && (
             <Step3
