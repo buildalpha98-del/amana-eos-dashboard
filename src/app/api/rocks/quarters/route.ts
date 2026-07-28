@@ -10,26 +10,18 @@
  * users only see quarters that have rocks in services in their state;
  * service-scoped users see only quarters with rocks in their service.
  *
- * Response: { quarters: ["Q3-2026", "Q2-2026", "Q1-2026", ...] }
+ * Response: { quarters: ["Q1-FY27", "Q4-FY26", "Q3-FY26", ...] }
  */
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { compareQuartersDesc } from "@/lib/utils";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 
-/**
- * Sort quarters newest first. Format is `Q<n>-<yyyy>` — sort by year
- * descending, then quarter number descending.
- */
-function compareQuartersDesc(a: string, b: string): number {
-  const [aq, ay] = a.split("-");
-  const [bq, by] = b.split("-");
-  const ayn = Number(ay);
-  const byn = Number(by);
-  if (ayn !== byn) return byn - ayn;
-  return Number(bq.slice(1)) - Number(aq.slice(1));
-}
+// 2026-07-28: sorting moved to the shared comparator in @/lib/utils.
+// The local version did Number("2026") on the year half, which yields NaN
+// against the FY format ("Q1-FY27") and silently scrambled the ordering.
 
 export const GET = withApiAuth(async (_req, session) => {
   const role = session!.user.role as string;

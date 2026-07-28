@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentQuarter } from "@/lib/utils";
 import { withApiAuth } from "@/lib/server-auth";
 import { ADMIN_ROLES } from "@/lib/role-permissions";
 
@@ -19,7 +20,8 @@ import { ADMIN_ROLES } from "@/lib/role-permissions";
  */
 export const GET = withApiAuth(async () => {
   const now = new Date();
-  const quarter = `Q${Math.floor(now.getMonth() / 3) + 1}-${now.getFullYear()}`;
+  // 2026-07-28: was a hand-rolled calendar label; EOS quarters are now FY-based.
+  const quarter = getCurrentQuarter();
 
   const eightWeeksAgo = new Date(now);
   eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);

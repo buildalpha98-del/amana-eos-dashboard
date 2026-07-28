@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
-import { getCurrentQuarter } from "@/lib/utils";
+import { getCurrentQuarter, shiftQuarter, formatQuarter } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -189,14 +189,20 @@ function EosDashboard({ canWrite }: { canWrite: boolean }) {
 
 // ─── Main Dashboard Content ─────────────────────────────────
 
+// 2026-07-28: EOS quarters follow the AU financial year, so the picker
+// lists the four quarters of the CURRENT FY (derived by walking back from
+// today's quarter) rather than Q1-Q4 of the calendar year.
 function getPeriodOptions(): { value: string; label: string }[] {
-  const now = new Date();
-  const year = now.getFullYear();
+  const current = getCurrentQuarter();
+  const currentQn = Number(/^Q([1-4])/.exec(current)?.[1] ?? "1");
+  const fyStart = shiftQuarter(current, -(currentQn - 1)); // back to Q1 of this FY
+  const fyLabel = /-FY(\d{2})$/.exec(fyStart)?.[1] ?? "";
   const options = [];
-  for (let q = 1; q <= 4; q++) {
-    options.push({ value: `Q${q}-${year}`, label: `Q${q} ${year}` });
+  for (let i = 0; i < 4; i++) {
+    const q = shiftQuarter(fyStart, i);
+    options.push({ value: q, label: formatQuarter(q) });
   }
-  options.push({ value: `yearly-${year}`, label: `Full Year ${year}` });
+  options.push({ value: `yearly-FY${fyLabel}`, label: `Full Year FY${fyLabel}` });
   return options;
 }
 
