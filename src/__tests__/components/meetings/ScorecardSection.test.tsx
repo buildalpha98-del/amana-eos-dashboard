@@ -52,7 +52,9 @@ describe("ScorecardSection", () => {
   it("renders the Weekly Scorecard heading and helper text", () => {
     render(<ScorecardSection scorecard={SAMPLE_SCORECARD} />);
     expect(screen.getByText("Weekly Scorecard")).toBeInTheDocument();
-    expect(screen.getByText(/Review whether each measurable hit its goal/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Discuss only what.s off track/i),
+    ).toBeInTheDocument();
   });
 
   it("renders one row per measurable and shows titles", () => {
@@ -70,7 +72,8 @@ describe("ScorecardSection", () => {
     const onDropToIDS = vi.fn();
     render(<ScorecardSection scorecard={SAMPLE_SCORECARD} onDropToIDS={onDropToIDS} />);
 
-    const idsButton = screen.getByText("→ IDS");
+    // Grid layout renders an icon + "IDS" rather than the old "→ IDS".
+    const idsButton = screen.getByTitle("Add this to the IDS list");
     fireEvent.click(idsButton);
     expect(onDropToIDS).toHaveBeenCalledWith(expect.stringMatching(/Off-track: New leads/i));
   });
