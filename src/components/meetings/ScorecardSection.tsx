@@ -17,15 +17,39 @@
  * measurable ordered by weekOf desc, so both the visible weeks and the
  * 13-week average come from what we already fetch — no API change.
  *
- * Preserved from the old layout: clicking the current week's cell edits
- * that entry inline, and an off-track measurable can still be dropped
- * into IDS.
+ * 2026-07-28 (same day, follow-up): Daniel asked for BOTH styles rather
+ * than a replacement — "show the other style and set up the style it's
+ * showing at the moment". So the trailing-weeks grid and the original
+ * single-week table are both available behind a toggle, remembered in
+ * localStorage per browser. Default is the grid.
+ *
+ * Preserved in both views: clicking the current week's value edits that
+ * entry inline, and an off-track measurable can be dropped into IDS.
  */
 
 import { useState, useMemo } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, LayoutGrid, Rows3 } from "lucide-react";
 import type { ScorecardData, MeasurableData } from "@/hooks/useScorecard";
 import { cn } from "@/lib/utils";
+
+type ScorecardView = "grid" | "week";
+const VIEW_STORAGE_KEY = "amana.scorecardView";
+
+/**
+ * Read the saved view. Lazy-initialiser pattern (same as useDensity) rather
+ * than setState-in-an-effect, which react-hooks/set-state-in-effect flags
+ * and which causes an extra render on every mount.
+ */
+function readStoredView(): ScorecardView {
+  if (typeof window === "undefined") return "grid";
+  try {
+    return window.localStorage.getItem(VIEW_STORAGE_KEY) === "week"
+      ? "week"
+      : "grid";
+  } catch {
+    return "grid";
+  }
+}
 
 /** How many trailing weeks to show as columns. */
 const WEEKS_SHOWN = 4;
@@ -82,6 +106,17 @@ export function ScorecardSection({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  // View preference persists per browser so a facilitator who prefers the
+  // single-week table isn't re-toggling it at the start of every meeting.
+  const [view, setView] = useState<ScorecardView>(readStoredView);
+  const chooseView = (next: ScorecardView) => {
+    setView(next);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    } catch {
+      // Private-mode / quota — the toggle still works for this session.
+    }
+  };
 
   const measurables = useMemo(
     () => scorecard?.measurables ?? [],
@@ -123,22 +158,62 @@ export function ScorecardSection({
   return (
     <div className="space-y-4">
       <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
-          Weekly Scorecard
-        </h4>
-        <p className="text-xs text-blue-700 dark:text-blue-300">
-          Last {WEEKS_SHOWN} weeks, most recent first. Discuss only what&apos;s
-          off track — drop those into IDS rather than solving them here.
-          {offTrackCount > 0 && (
-            <span className="font-medium">
-              {" "}
-              {offTrackCount} off track this week.
-            </span>
-          )}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+              Weekly Scorecard
+            </h4>
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              {view === "grid"
+                ? `Last ${WEEKS_SHOWN} weeks, most recent first.`
+                : "This week's result for each measurable."}{" "}
+              Discuss only what&apos;s off track — drop those into IDS rather
+              than solving them here.
+              {offTrackCount > 0 && (
+                <span className="font-medium">
+                  {" "}
+                  {offTrackCount} off track this week.
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 shrink-0 rounded-lg border border-blue-200 dark:border-blue-800 bg-card p-0.5">
+            <button
+              type="button"
+              onClick={() => chooseView("grid")}
+              aria-pressed={view === "grid"}
+              title={`Trailing ${WEEKS_SHOWN} weeks`}
+              className={cn(
+                "inline-flex items-center gap-1 px-2 py-1 rounded-md text-2xs font-medium transition-colors",
+                view === "grid"
+                  ? "bg-brand text-white"
+                  : "text-muted hover:text-foreground",
+              )}
+            >
+              <LayoutGrid className="w-3 h-3" />
+              {WEEKS_SHOWN} weeks
+            </button>
+            <button
+              type="button"
+              onClick={() => chooseView("week")}
+              aria-pressed={view === "week"}
+              title="This week only"
+              className={cn(
+                "inline-flex items-center gap-1 px-2 py-1 rounded-md text-2xs font-medium transition-colors",
+                view === "week"
+                  ? "bg-brand text-white"
+                  : "text-muted hover:text-foreground",
+              )}
+            >
+              <Rows3 className="w-3 h-3" />
+              This week
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Scrolls within itself so a wide grid never pushes the page sideways. */}
+      {view === "grid" ? (
+      /* Scrolls within itself so a wide grid never pushes the page sideways. */
       <div className="rounded-lg border border-border bg-card overflow-x-auto">
         <table className="w-full text-sm border-collapse">
           <thead>
@@ -300,6 +375,181 @@ export function ScorecardSection({
           </tbody>
         </table>
       </div>
+      ) : (
+        <WeekView
+          measurables={measurables}
+          editingId={editingId}
+          setEditingId={setEditingId}
+          editValue={editValue}
+          setEditValue={setEditValue}
+          onDropToIDS={onDropToIDS}
+          onEntrySubmit={onEntrySubmit}
+          isCompleted={isCompleted}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Original single-week table — kept as a toggle option rather than being
+ * replaced by the grid. Shows just this week's actual against goal, which
+ * is the tighter view when a facilitator only wants "did we hit it".
+ */
+function WeekView({
+  measurables,
+  editingId,
+  setEditingId,
+  editValue,
+  setEditValue,
+  onDropToIDS,
+  onEntrySubmit,
+  isCompleted,
+}: {
+  measurables: MeasurableData[];
+  editingId: string | null;
+  setEditingId: (v: string | null) => void;
+  editValue: string;
+  setEditValue: (v: string) => void;
+  onDropToIDS?: (title: string) => void;
+  onEntrySubmit?: (measurableId: string, value: number) => void;
+  isCompleted?: boolean;
+}) {
+  const onTrackCount = measurables.filter((m) => m.entries[0]?.onTrack).length;
+  const offTrackCount = measurables.filter(
+    (m) => m.entries[0] && !m.entries[0].onTrack,
+  ).length;
+  const noDataCount = measurables.filter((m) => !m.entries[0]).length;
+
+  return (
+    <>
+      <div className="flex items-center gap-4 mb-2">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          <span className="text-xs text-muted">{onTrackCount} on track</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+          <span className="text-xs text-muted">{offTrackCount} off track</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-border" />
+          <span className="text-xs text-muted">{noDataCount} no data</span>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
+        <div className="grid grid-cols-[1fr,120px,80px,80px,60px] gap-px bg-surface text-xs font-medium text-muted px-4 py-2">
+          <span>Measurable</span>
+          <span className="text-center">Owner</span>
+          <span className="text-center">Goal</span>
+          <span className="text-center">Actual</span>
+          <span className="text-center">Action</span>
+        </div>
+        <div className="divide-y divide-border/50">
+          {measurables.map((m, idx) => {
+            const latestEntry = m.entries[0];
+            const isOnTrack = latestEntry?.onTrack;
+            return (
+              <div
+                key={m.id}
+                className={cn(
+                  "grid grid-cols-[1fr,120px,80px,80px,60px] gap-px px-4 py-2.5 items-center",
+                  !isOnTrack && latestEntry
+                    ? "bg-red-50/50 dark:bg-red-950/20"
+                    : idx % 2 === 1
+                      ? "bg-surface/30"
+                      : "",
+                )}
+              >
+                <span className="text-sm text-foreground truncate" title={m.title}>
+                  {m.title}
+                </span>
+                <span className="text-xs text-muted text-center truncate">
+                  {(m.owner?.name ?? "Unassigned").split(" ")[0]}
+                </span>
+                <span className="text-xs text-muted text-center font-mono">
+                  {goalLabel(m)}
+                  {m.unit ? ` ${m.unit}` : ""}
+                </span>
+                <div className="flex justify-center">
+                  {editingId === m.id ? (
+                    <input
+                      autoFocus
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={() => {
+                        if (editValue && !isNaN(parseFloat(editValue)) && onEntrySubmit) {
+                          onEntrySubmit(m.id, parseFloat(editValue));
+                        }
+                        setEditingId(null);
+                        setEditValue("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          editValue &&
+                          !isNaN(parseFloat(editValue)) &&
+                          onEntrySubmit
+                        ) {
+                          onEntrySubmit(m.id, parseFloat(editValue));
+                          setEditingId(null);
+                          setEditValue("");
+                        }
+                        if (e.key === "Escape") {
+                          setEditingId(null);
+                          setEditValue("");
+                        }
+                      }}
+                      aria-label={`${m.title} value for this week`}
+                      className="w-16 text-xs text-center border border-brand rounded px-1 py-0.5 font-mono focus:outline-none focus:ring-1 focus:ring-brand"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (!isCompleted && onEntrySubmit) {
+                          setEditingId(m.id);
+                          setEditValue(latestEntry ? String(latestEntry.value) : "");
+                        }
+                      }}
+                      disabled={isCompleted || !onEntrySubmit}
+                      className={cn(
+                        "text-xs font-mono font-semibold px-2 py-0.5 rounded transition-colors",
+                        !isCompleted && onEntrySubmit
+                          ? "hover:bg-brand/10 cursor-pointer"
+                          : "",
+                        !latestEntry
+                          ? "text-muted/50"
+                          : isOnTrack
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-red-600 dark:text-red-400",
+                      )}
+                    >
+                      {latestEntry
+                        ? `${latestEntry.value}${m.unit ? ` ${m.unit}` : ""}`
+                        : "--"}
+                    </button>
+                  )}
+                </div>
+                <div className="flex justify-center">
+                  {!isOnTrack && latestEntry && onDropToIDS && !isCompleted ? (
+                    <button
+                      onClick={() => onDropToIDS(`Off-track: ${m.title}`)}
+                      title="Add this to the IDS list"
+                      className="text-2xs px-2 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors font-medium whitespace-nowrap"
+                    >
+                      IDS
+                    </button>
+                  ) : (
+                    <span className="text-muted/50 text-xs">—</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
   );
 }

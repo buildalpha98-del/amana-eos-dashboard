@@ -13,6 +13,8 @@ const createMeetingSchema = z.object({
   // 2026-07-28: Leadership (L10) meeting — restricts the To-Do Review to
   // attendees holding a leadership role.
   isLeadership: z.boolean().optional(),
+  // 2026-07-28: which Scorecard to review. Omitted = legacy single scorecard.
+  scorecardId: z.string().optional().nullable(),
 });
 
 // GET /api/meetings — list meetings ordered by date desc
@@ -76,6 +78,7 @@ const body = await parseJsonBody(req);
       createdById: session!.user.id,
       serviceIds: parsed.data.serviceIds || [],
       isLeadership: parsed.data.isLeadership ?? false,
+      scorecardId: parsed.data.scorecardId ?? null,
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },
