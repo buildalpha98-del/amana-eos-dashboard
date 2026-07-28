@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { getCurrentQuarter } from "@/lib/utils";
+import { getCurrentQuarter, shiftQuarter } from "@/lib/utils";
 import { Mountain, Plus, User, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -43,19 +43,13 @@ const priorityConfig: Record<string, { label: string; color: string }> = {
   medium: { label: "Medium", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
 };
 
+// 2026-07-28: was hand-rolling calendar-quarter strings, which broke once
+// EOS moved to the financial year — the exact "hand-rolled variant matches
+// zero rocks" failure the helpers exist to prevent. Always derive from
+// getCurrentQuarter()/shiftQuarter().
 function getQuarterOptions(): string[] {
-  const now = new Date();
-  const currentQ = Math.ceil((now.getMonth() + 1) / 3);
-  const currentYear = now.getFullYear();
-
-  const quarters: string[] = [];
-  quarters.push(`Q${currentQ}-${currentYear}`);
-
-  const nextQ = currentQ === 4 ? 1 : currentQ + 1;
-  const nextYear = currentQ === 4 ? currentYear + 1 : currentYear;
-  quarters.push(`Q${nextQ}-${nextYear}`);
-
-  return quarters;
+  const current = getCurrentQuarter();
+  return [current, shiftQuarter(current, 1)];
 }
 
 function getInitials(name: string): string {
