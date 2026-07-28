@@ -116,7 +116,6 @@ function OnboardingPageInner() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
   const [expandedEnrollmentId, setExpandedEnrollmentId] = useState<string | null>(null);
-  const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set());
 
   // Data
   const { data: packs = [], isLoading: packsLoading } = useOnboardingPacks();
@@ -533,8 +532,6 @@ function OnboardingPageInner() {
           selectedCourseLoading={selectedCourseLoading}
           setEnrollForm={setEnrollForm}
           setShowEnroll={setShowEnroll}
-          revealedAnswers={revealedAnswers}
-          setRevealedAnswers={setRevealedAnswers}
           userId={session?.user?.id}
           unenrollStaff={unenrollStaff}
           updateModuleProgress={updateModuleProgress}

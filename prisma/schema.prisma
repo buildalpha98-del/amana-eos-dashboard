@@ -3559,6 +3559,10 @@ model LMSQuizAttempt {
   passed        Boolean       @default(false)
   attemptNumber Int
   submittedAt   DateTime? // null = in-progress (created at GET); set on POST submit
+  // Fingerprint of the question set (ids + options) served at start. Submit
+  // rejects (409) if it no longer matches — an option edit mid-attempt would
+  // otherwise silently corrupt the display→canonical answer mapping.
+  optionsFingerprint String?
   createdAt     DateTime      @default(now())
 
   // Shuffle seed is derived from (enrollmentId + moduleId + attemptNumber),

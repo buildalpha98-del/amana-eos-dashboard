@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { recalcEnrollmentStatus } from "@/lib/lms-progress";
 const enrollSchema = z.object({
   courseId: z.string().min(1),
   userIds: z.array(z.string().min(1)).min(1),
@@ -90,34 +91,7 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
       },
     });
 
-    // Recalculate enrollment status
-    const fullEnrollment = await prisma.lMSEnrollment.findUnique({
-      where: { id: parsed.data.enrollmentId },
-      include: {
-        course: { include: { modules: { where: { isRequired: true } } } },
-        moduleProgress: true,
-      },
-    });
-
-    if (fullEnrollment) {
-      const requiredModuleIds = fullEnrollment.course.modules.map((m) => m.id);
-      const completedRequired = fullEnrollment.moduleProgress.filter(
-        (p) => p.completed && requiredModuleIds.includes(p.moduleId)
-      ).length;
-      const anyStarted = fullEnrollment.moduleProgress.some((p) => p.completed);
-      const allDone =
-        requiredModuleIds.length > 0 && completedRequired >= requiredModuleIds.length;
-
-      await prisma.lMSEnrollment.update({
-        where: { id: parsed.data.enrollmentId },
-        data: {
-          status: allDone ? "completed" : anyStarted ? "in_progress" : "enrolled",
-          startedAt:
-            anyStarted && !fullEnrollment.startedAt ? new Date() : undefined,
-          completedAt: allDone ? new Date() : null,
-        },
-      });
-    }
+    await recalcEnrollmentStatus(parsed.data.enrollmentId);
 
     return NextResponse.json(progress);
   }

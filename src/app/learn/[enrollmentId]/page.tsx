@@ -62,6 +62,7 @@ export default async function LearnPage({
       courseTitle={enrollment.course.title}
       modules={modules}
       initialCompletedIds={enrollment.moduleProgress.map((p) => p.moduleId)}
+      readOnly={!isOwner}
     />
   );
 }
