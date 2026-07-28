@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useUpdateMeeting, usePrepareMeeting } from "@/hooks/useMeetings";
 import { useScorecard, useCreateEntry } from "@/hooks/useScorecard";
+import { useScorecardDetail } from "@/hooks/useScorecards";
 import { useRocks, useUpdateRock } from "@/hooks/useRocks";
 import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
 import { isLeadershipMeetingRole } from "@/lib/role-enum";
@@ -77,7 +78,14 @@ export function ActiveMeetingView({
   const createEntry = useCreateEntry();
 
   // Data hooks
-  const { data: scorecard } = useScorecard();
+  // 2026-07-28: a meeting can target a specific Scorecard. Meetings created
+  // before that column existed have scorecardId = null and fall back to the
+  // legacy single scorecard, so historical meetings render unchanged.
+  // useScorecardDetail is disabled when the id is null, so only one of these
+  // two queries ever actually fires.
+  const { data: selectedScorecard } = useScorecardDetail(meeting.scorecardId);
+  const { data: legacyScorecard } = useScorecard();
+  const scorecard = meeting.scorecardId ? selectedScorecard : legacyScorecard;
   const { data: allRocks } = useRocks(getCurrentQuarter());
   // 2026-06-05: To-Do Review now shows ALL open todos for the people
   // attending this meeting — not just last week's todos. Daniel

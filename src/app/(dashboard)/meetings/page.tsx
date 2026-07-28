@@ -33,6 +33,7 @@ export default function MeetingsPage() {
     serviceIds: string[],
     attendeeIds: string[],
     isLeadership: boolean,
+    scorecardId: string | null,
   ) => {
     const now = new Date();
     // 2026-07-28: title reflects the meeting type so the list is scannable.
@@ -46,6 +47,7 @@ export default function MeetingsPage() {
         serviceIds,
         attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
         isLeadership,
+        scorecardId,
       });
       setShowStartDialog(false);
       setActiveMeetingId(newMeeting.id);

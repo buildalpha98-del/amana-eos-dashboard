@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { useServices } from "@/hooks/useServices";
+import { useScorecardsList } from "@/hooks/useScorecards";
 import { cn } from "@/lib/utils";
 import { fetchApi } from "@/lib/fetch-api";
 
@@ -22,11 +23,14 @@ export function StartMeetingDialog({
     serviceIds: string[],
     attendeeIds: string[],
     isLeadership: boolean,
+    scorecardId: string | null,
   ) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
   const { data: services } = useServices("active");
+  const { data: scorecardsData } = useScorecardsList();
+  const scorecards = scorecardsData?.scorecards ?? [];
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   // 2026-07-28: meetings now start with a type choice. "Leadership" is an
@@ -35,6 +39,9 @@ export function StartMeetingDialog({
   // keeps the original centre-scoped flow.
   const [step, setStep] = useState<"type" | "services" | "attendees">("type");
   const [isLeadership, setIsLeadership] = useState(false);
+  // 2026-07-28: which Scorecard the meeting reviews. null = the legacy
+  // single scorecard, which is also the fallback for older meetings.
+  const [scorecardId, setScorecardId] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
 
   const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
@@ -183,7 +190,7 @@ export function StartMeetingDialog({
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onStart([], [], false)}
+                    onClick={() => onStart([], [], false, null)}
                     className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
                   >
                     Company-Wide Meeting
@@ -359,6 +366,33 @@ export function StartMeetingDialog({
                     </p>
                   )}
                 </div>
+
+                {/* 2026-07-28: pick which scorecard this meeting reviews.
+                    Only shown when there's more than one to choose from —
+                    a single-scorecard org shouldn't be asked. */}
+                {scorecards.length > 1 && (
+                  <div className="pt-2 border-t border-border/50">
+                    <label
+                      htmlFor="meeting-scorecard"
+                      className="block text-xs font-medium text-foreground mb-1.5"
+                    >
+                      Scorecard to review
+                    </label>
+                    <select
+                      id="meeting-scorecard"
+                      value={scorecardId ?? ""}
+                      onChange={(e) => setScorecardId(e.target.value || null)}
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    >
+                      <option value="">Default scorecard</option>
+                      {scorecards.map((sc) => (
+                        <option key={sc.id} value={sc.id}>
+                          {sc.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="px-6 py-4 border-t border-border/50 bg-surface/30 flex items-center justify-between">
@@ -376,7 +410,12 @@ export function StartMeetingDialog({
                   </button>
                   <button
                     onClick={() =>
-                      onStart(selectedServiceIds, selectedUserIds, isLeadership)
+                      onStart(
+                        selectedServiceIds,
+                        selectedUserIds,
+                        isLeadership,
+                        scorecardId,
+                      )
                     }
                     disabled={isPending}
                     className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"

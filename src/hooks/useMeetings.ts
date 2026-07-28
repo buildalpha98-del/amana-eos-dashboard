@@ -54,6 +54,8 @@ export interface MeetingData {
   rockIds: string[];
   /** Leadership (L10) meeting — restricts To-Do Review to leadership roles. */
   isLeadership: boolean;
+  /** Scorecard this meeting reviews. Null = legacy single scorecard. */
+  scorecardId: string | null;
   startedAt: string | null;
   completedAt: string | null;
   createdById: string;
@@ -100,6 +102,7 @@ export function useCreateMeeting() {
       serviceIds?: string[];
       attendeeIds?: string[];
       isLeadership?: boolean;
+      scorecardId?: string | null;
     }) => {
       return mutateApi<MeetingData>("/api/meetings", { method: "POST", body: data });
     },
