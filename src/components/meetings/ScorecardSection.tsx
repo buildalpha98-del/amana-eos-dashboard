@@ -51,8 +51,16 @@ function readStoredView(): ScorecardView {
   }
 }
 
-/** How many trailing weeks to show as columns. */
-const WEEKS_SHOWN = 4;
+/**
+ * How many trailing weeks to show as columns.
+ * 2026-07-28: bumped 4 → 5 at Daniel's request for one more week of
+ * context in the L10 review. The API returns 13 weeks per measurable, so
+ * this can go up to 13 without any backend change; the grid scrolls
+ * horizontally within its own container so extra columns never push the
+ * page sideways. The toggle label and helper copy derive from this
+ * constant, so changing it here is the only edit needed.
+ */
+const WEEKS_SHOWN = 5;
 
 /** "JUL 20-26" — the Mon-Sun span of the week starting at `weekOf`. */
 function weekLabel(weekOfIso: string): string {
