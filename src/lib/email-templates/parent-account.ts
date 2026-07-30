@@ -41,6 +41,60 @@ export async function parentVerifyEmail(params: {
 
 
 /**
+ * Sent to the second parent/carer named on a submitted enrolment, letting
+ * them know they have access to the Family Portal for their child.
+ *
+ * Deliberately does NOT contain credentials. Daniel asked for "an email
+ * with their login details", but minting a password for a third party and
+ * emailing it out would put a working credential in an inbox we don't
+ * control — and any forward of that message is a live account handover.
+ * Instead they register themselves in the normal way; because their address
+ * is on the submitted enrolment, findEnrolmentIdsForEmail() attaches the
+ * child to them automatically the moment they do.
+ *
+ * Also written to be safe if the primary carer mistypes the address: it
+ * names who added them and reveals nothing beyond a first name.
+ */
+export async function secondaryCarerInviteEmail(params: {
+  name: string | null;
+  invitedBy: string;
+  childNames: string[];
+}): Promise<{ subject: string; html: string }> {
+  const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+  const greeting = params.name ? `Hi ${params.name},` : "Hello,";
+
+  const child =
+    params.childNames.length === 1
+      ? params.childNames[0]
+      : params.childNames.length > 1
+        ? `${params.childNames.slice(0, -1).join(", ")} and ${params.childNames.at(-1)}`
+        : "your child";
+
+  return {
+    subject: "You've been added as a carer — Amana OSHC Family Portal",
+    html: await baseLayout(
+      `
+      <p>${greeting}</p>
+      <p>${params.invitedBy} has listed you as a parent or carer on
+      ${child}'s enrolment with Amana OSHC.</p>
+      <p>That means you can have your own access to the Family Portal, where
+      you can see bookings, account statements and updates about
+      ${child}'s time with us.</p>
+      ${buttonHtml("Set up my access", `${base}/parent/signup`)}
+      <p>Use this same email address when you sign up and we'll connect you
+      to ${child}'s enrolment automatically. You'll choose your own password
+      — we never send one by email.</p>
+      <p style="font-size:13px;color:#6b7280;">If you weren't expecting this,
+      or you don't think you should be listed as a carer, please contact us at
+      enrolments@amanaoshc.com.au and we'll sort it out.</p>
+    `,
+      "family",
+    ),
+  };
+}
+
+
+/**
  * Staff-triggered nudge for a family who created an account but hasn't
  * finished (or started) their child's enrolment.
  *

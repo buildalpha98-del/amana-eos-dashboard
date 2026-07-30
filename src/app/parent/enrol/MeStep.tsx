@@ -3,9 +3,10 @@
 /**
  * Step 1 — the account holder's own details, plus the CCS questions.
  *
- * CRN is deliberately OPTIONAL: a parent who hasn't had their subsidy
- * approved yet won't have one, and requiring it would contradict the
- * non-blocking CCS decision (see src/lib/enrol-ccs.ts).
+ * CRN is REQUIRED for the primary carer (Daniel, 2026-07-30). Note this
+ * does NOT contradict the non-blocking CCS decision in enrol-ccs.ts: a
+ * family can still enrol before their subsidy is APPROVED, they just have
+ * to give us the CRN that the claim will eventually be made against.
  */
 
 import { AlertTriangle, Info, ExternalLink } from "lucide-react";
@@ -244,14 +245,14 @@ export function MeStep({
 
         <div>
           <label htmlFor="me-crn" className="block text-sm font-medium text-foreground mb-1">
-            Your CRN <span className="text-muted font-normal">(optional)</span>
+            Your CRN <span className="text-red-500">*</span>
           </label>
           <input id="me-crn" className={field} value={data.crn ?? ""}
             onChange={(e) => onChange({ crn: e.target.value })} placeholder="e.g. 123 456 789A" />
           <p className="mt-1 text-xs text-muted">
-            Your Centrelink Customer Reference Number. Leave blank if you
-            don&apos;t have one yet — you can add it later once your subsidy
-            is approved.
+            Your Centrelink Customer Reference Number, from your myGov or
+            Centrelink account. We need this to claim your Child Care
+            Subsidy — without it your fees can&apos;t be subsidised.
           </p>
         </div>
       </div>

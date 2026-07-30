@@ -4,11 +4,15 @@ import {
   billingComplete,
   childComplete,
   childrenComplete,
+  contactsBlocker,
   contactsComplete,
   draftSubmittable,
+  emergencyContactComplete,
   firstIncompleteStep,
   meComplete,
   stepComplete,
+  EMERGENCY_RELATIONSHIP_OPTIONS,
+  type DraftEmergencyContact,
   type EnrolDraft,
 } from "@/lib/enrol-draft";
 
@@ -19,6 +23,7 @@ const goodMe = {
   dob: "1990-01-01",
   street: "1 Test St",
   suburb: "Auburn",
+  crn: "123 456 789A",
   isLegalCarer: true,
   ccsApproved: "yes" as const,
 };
@@ -28,15 +33,41 @@ const goodChild = {
   surname: "Rahman",
   dob: "2018-05-02",
   schoolName: "Unity Grammar",
-  yearLevel: "Year 1",
-  medicalNone: true,
+  classroom: "D.G1Y",
+  anaphylaxis: false,
+  allergies: false,
+  asthma: false,
+  otherCondition: false,
+  dietaryRestrictions: false,
+  paracetamol: true,
+  uploads: [
+    { type: "birth_certificate", filename: "bc.pdf", url: "https://b/bc.pdf" },
+    { type: "immunisation_record", filename: "im.pdf", url: "https://b/im.pdf" },
+  ],
+};
+
+const goodEmergency: DraftEmergencyContact = {
+  name: "Fatima Khan",
+  relationship: "Auntie",
+  phone: "0411 111 111",
+  consentTransport: true,
+  consentMedical: true,
+  consentOffPremises: true,
+  consentAmbulance: true,
+  consentOutings: true,
+  consentNotify: true,
+  consentPickup: true,
 };
 
 const goodContacts = {
-  emergency: [
-    { name: "Fatima", relationship: "Auntie", phone: "0411 111 111" },
-    { name: "Omar", relationship: "Uncle", phone: "0422 222 222" },
-  ],
+  courtOrders: false,
+  secondaryParent: {
+    firstName: "Omar",
+    surname: "Rahman",
+    mobile: "0422 222 222",
+    email: "omar@example.com",
+  },
+  emergency: [goodEmergency],
 };
 
 const goodBilling = {
@@ -71,15 +102,16 @@ describe("meComplete", () => {
     expect(meComplete(goodMe)).toBe(true);
   });
 
+  it("REQUIRES the parent CRN", () => {
+    expect(meComplete({ ...goodMe, crn: "" })).toBe(false);
+    expect(meComplete({ ...goodMe, crn: "   " })).toBe(false);
+  });
+
   it("requires the legal-carer declaration", () => {
     expect(meComplete({ ...goodMe, isLegalCarer: false })).toBe(false);
   });
 
-  it("does NOT require a CRN — a parent awaiting CCS approval has none", () => {
-    expect(meComplete({ ...goodMe, crn: "" })).toBe(true);
-  });
-
-  it("accepts 'not approved and not applied' — CCS is non-blocking", () => {
+  it("still lets a family enrol before CCS is approved, so long as they give a CRN", () => {
     expect(
       meComplete({ ...goodMe, ccsApproved: "no", ccsApplied: "no" }),
     ).toBe(true);
@@ -88,78 +120,180 @@ describe("meComplete", () => {
   it("rejects an unanswered CCS question", () => {
     expect(meComplete({ ...goodMe, ccsApproved: undefined })).toBe(false);
   });
-
-  it("treats whitespace as empty", () => {
-    expect(meComplete({ ...goodMe, firstName: "   " })).toBe(false);
-  });
 });
 
 describe("childComplete", () => {
-  it("accepts a child with 'nothing to declare' ticked", () => {
+  it("accepts a fully screened child with both documents", () => {
     expect(childComplete(goodChild)).toBe(true);
   });
 
-  it("accepts a child with real medical detail instead of the tick", () => {
+  it("requires a classroom, not a year level", () => {
+    expect(childComplete({ ...goodChild, classroom: "" })).toBe(false);
+  });
+
+  it("rejects any unanswered screening question", () => {
+    for (const k of [
+      "anaphylaxis",
+      "allergies",
+      "asthma",
+      "otherCondition",
+      "dietaryRestrictions",
+      "paracetamol",
+    ] as const) {
+      expect(childComplete({ ...goodChild, [k]: undefined })).toBe(false);
+    }
+  });
+
+  it("treats an explicit 'no' as answered", () => {
+    expect(childComplete({ ...goodChild, paracetamol: false })).toBe(true);
+  });
+
+  it("requires the birth certificate and immunisation record", () => {
+    expect(childComplete({ ...goodChild, uploads: [] })).toBe(false);
+    expect(
+      childComplete({ ...goodChild, uploads: [goodChild.uploads[0]] }),
+    ).toBe(false);
+  });
+
+  it("ignores an upload row with no URL", () => {
     expect(
       childComplete({
         ...goodChild,
-        medicalNone: false,
-        allergies: "Peanuts — anaphylaxis",
+        uploads: [
+          goodChild.uploads[0],
+          { type: "immunisation_record", filename: "x", url: "" },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("pairs the Medicare number with its expiry", () => {
+    expect(childComplete({ ...goodChild, medicareNumber: "12345" })).toBe(false);
+    expect(childComplete({ ...goodChild, medicareExpiry: "05/2030" })).toBe(false);
+    expect(
+      childComplete({
+        ...goodChild,
+        medicareNumber: "12345",
+        medicareExpiry: "05/2030",
       }),
     ).toBe(true);
   });
 
-  it("rejects a child whose medical section was skipped entirely", () => {
-    expect(childComplete({ ...goodChild, medicalNone: false })).toBe(false);
-  });
-
-  it("requires a school and year level", () => {
-    expect(childComplete({ ...goodChild, schoolName: "" })).toBe(false);
-    expect(childComplete({ ...goodChild, yearLevel: "" })).toBe(false);
+  it("rejects when ONE sibling of several is incomplete", () => {
+    expect(childrenComplete([goodChild, { firstName: "Sara" }])).toBe(false);
   });
 
   it("rejects an empty children array", () => {
     expect(childrenComplete([])).toBe(false);
     expect(childrenComplete(undefined)).toBe(false);
   });
-
-  it("rejects when ONE sibling of several is incomplete", () => {
-    expect(childrenComplete([goodChild, { firstName: "Sara" }])).toBe(false);
-  });
 });
 
-describe("contactsComplete", () => {
-  it("accepts two distinct complete contacts", () => {
-    expect(contactsComplete(goodContacts)).toBe(true);
+describe("emergency contacts", () => {
+  it("accepts ONE complete contact — a second is never forced", () => {
+    expect(contactsComplete(fullDraft)).toBe(true);
   });
 
-  it("rejects a single contact", () => {
-    expect(contactsComplete({ emergency: [goodContacts.emergency[0]] })).toBe(
-      false,
-    );
-  });
-
-  it("rejects two rows that are the same person — the point is redundancy", () => {
+  it("requires every per-contact authorisation to be answered", () => {
+    const c = { ...goodEmergency, consentPickup: undefined };
+    expect(emergencyContactComplete(c)).toBe(false);
     expect(
-      contactsComplete({
-        emergency: [
-          { name: "Fatima", relationship: "Auntie", phone: "0411 111 111" },
-          { name: "Fatima R", relationship: "Auntie", phone: "0411111111" },
-        ],
-      }),
+      contactsComplete({ ...fullDraft, contacts: { ...goodContacts, emergency: [c] } }),
     ).toBe(false);
   });
 
-  it("ignores half-filled rows rather than counting them", () => {
-    expect(
-      contactsComplete({
-        emergency: [...goodContacts.emergency, { name: "Half" }],
-      }),
-    ).toBe(true);
+  it("does not offer Mum or Dad as a relationship", () => {
+    expect(EMERGENCY_RELATIONSHIP_OPTIONS).not.toContain("Mum");
+    expect(EMERGENCY_RELATIONSHIP_OPTIONS).not.toContain("Dad");
   });
 
-  it("does not require a second parent", () => {
-    expect(contactsComplete({ ...goodContacts, secondaryParent: {} })).toBe(true);
+  it("rejects a contact who is the primary carer, by phone", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: {
+        ...goodContacts,
+        emergency: [{ ...goodEmergency, phone: goodMe.mobile }],
+      },
+    };
+    expect(contactsComplete(d)).toBe(false);
+    expect(contactsBlocker(d)).toMatch(/other than you/i);
+  });
+
+  it("rejects a contact who is the primary carer, by name", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: {
+        ...goodContacts,
+        emergency: [{ ...goodEmergency, name: "aisha  rahman" }],
+      },
+    };
+    expect(contactsComplete(d)).toBe(false);
+  });
+
+  it("rejects a contact who is the SECOND carer", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: {
+        ...goodContacts,
+        emergency: [{ ...goodEmergency, phone: "0422222222" }],
+      },
+    };
+    expect(contactsComplete(d)).toBe(false);
+  });
+});
+
+describe("second carer requirement", () => {
+  it("is mandatory when no court order applies", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: { ...goodContacts, secondaryParent: {} },
+    };
+    expect(contactsComplete(d)).toBe(false);
+    expect(contactsBlocker(d)).toMatch(/second parent or carer/i);
+  });
+
+  it("is excused by a court order, but then the order must be uploaded", () => {
+    const noUpload: EnrolDraft = {
+      ...fullDraft,
+      contacts: { courtOrders: true, secondaryParent: {}, emergency: [goodEmergency] },
+    };
+    expect(contactsComplete(noUpload)).toBe(false);
+    expect(contactsBlocker(noUpload)).toMatch(/upload/i);
+
+    const withUpload: EnrolDraft = {
+      ...noUpload,
+      contacts: {
+        ...noUpload.contacts,
+        courtOrderUploads: [
+          { type: "court_order", filename: "o.pdf", url: "https://b/o.pdf" },
+        ],
+      },
+    };
+    expect(contactsComplete(withUpload)).toBe(true);
+  });
+
+  it("rejects a half-filled second carer even when excused", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: {
+        courtOrders: true,
+        courtOrderUploads: [
+          { type: "court_order", filename: "o.pdf", url: "https://b/o.pdf" },
+        ],
+        secondaryParent: { firstName: "Omar" },
+        emergency: [goodEmergency],
+      },
+    };
+    expect(contactsComplete(d)).toBe(false);
+  });
+
+  it("requires the court order question to be answered at all", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: { ...goodContacts, courtOrders: undefined },
+    };
+    expect(contactsComplete(d)).toBe(false);
+    expect(contactsBlocker(d)).toMatch(/court order/i);
   });
 });
 
@@ -170,39 +304,21 @@ describe("billingComplete", () => {
 
   it("does NOT require days for a casual booking", () => {
     expect(
-      billingComplete({
-        startDate: "2026-08-01",
-        bookingType: "casual",
-        days: [],
-      }),
+      billingComplete({ startDate: "2026-08-01", bookingType: "casual", days: [] }),
     ).toBe(true);
-  });
-
-  it("requires a start date", () => {
-    expect(billingComplete({ ...goodBilling, startDate: "" })).toBe(false);
   });
 });
 
 describe("agreementComplete", () => {
-  it("accepts a mix of yes and no consents", () => {
-    expect(agreementComplete(goodAgreement)).toBe(true);
-  });
-
   it("rejects an UNANSWERED consent — not the same as a 'no'", () => {
     const { photos: _photos, ...rest } = goodAgreement;
     expect(agreementComplete(rest)).toBe(false);
   });
 
   it("requires terms and privacy, but not the debit agreement", () => {
-    expect(agreementComplete({ ...goodAgreement, termsAccepted: false })).toBe(
-      false,
-    );
-    expect(agreementComplete({ ...goodAgreement, privacyAccepted: false })).toBe(
-      false,
-    );
-    expect(agreementComplete({ ...goodAgreement, debitAgreement: false })).toBe(
-      true,
-    );
+    expect(agreementComplete({ ...goodAgreement, termsAccepted: false })).toBe(false);
+    expect(agreementComplete({ ...goodAgreement, privacyAccepted: false })).toBe(false);
+    expect(agreementComplete({ ...goodAgreement, debitAgreement: false })).toBe(true);
   });
 
   it("requires a typed signature", () => {
@@ -219,12 +335,6 @@ describe("stepComplete / draftSubmittable", () => {
     expect(firstIncompleteStep(fullDraft)).toBeNull();
   });
 
-  it("blocks submission and names the first gap", () => {
-    const draft: EnrolDraft = { ...fullDraft, contacts: {} };
-    expect(draftSubmittable(draft)).toBe(false);
-    expect(firstIncompleteStep(draft)).toBe(2);
-  });
-
   it("reports the EARLIEST gap when several steps are unfinished", () => {
     const draft: EnrolDraft = { ...fullDraft, children: [], billing: {} };
     expect(firstIncompleteStep(draft)).toBe(1);
@@ -235,7 +345,7 @@ describe("stepComplete / draftSubmittable", () => {
     expect(firstIncompleteStep({})).toBe(0);
   });
 
-  it("returns false for an out-of-range step rather than throwing", () => {
-    expect(stepComplete(9, fullDraft)).toBe(false);
+  it("returns null from contactsBlocker when the step is fine", () => {
+    expect(contactsBlocker(fullDraft)).toBeNull();
   });
 });

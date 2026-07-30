@@ -1,27 +1,36 @@
 "use client";
 
 /**
- * Step 2 — the children being enrolled, with their medical details.
+ * Step 2 — the children being enrolled, their health screening, and their
+ * documents.
  *
  * Medical sits here rather than in its own step on purpose: it belongs to
  * a child, and splitting it out is what makes a parent with two children
  * fill in one child's allergies against the other's name.
+ *
+ * The screening questions mirror the NQF-standard set Daniel supplied
+ * (anaphylaxis / allergies / asthma / other condition / dietary /
+ * paracetamol), each with the action a family needs to take when they
+ * answer yes.
  */
 
 import { Plus } from "lucide-react";
-import { field, Field, RepeatCard, SectionHeading, YesNo } from "./ui";
-import type { DraftChild } from "@/lib/enrol-draft";
+import {
+  field,
+  Field,
+  FileUploadField,
+  RepeatCard,
+  ScreeningQuestion,
+  SectionHeading,
+} from "./ui";
+import {
+  ENROLMENTS_EMAIL,
+  OPTIONAL_CHILD_DOCUMENTS,
+  REQUIRED_CHILD_DOCUMENTS,
+  type DraftChild,
+  type DraftUpload,
+} from "@/lib/enrol-draft";
 import { CULTURAL_OPTIONS, KNOWN_SCHOOL_OPTIONS } from "@/components/enrol/types";
-
-const YEAR_LEVELS = [
-  "Kindergarten",
-  "Year 1",
-  "Year 2",
-  "Year 3",
-  "Year 4",
-  "Year 5",
-  "Year 6",
-];
 
 // NOT named `children`: React treats that prop specially, and handing it
 // an array of plain objects is asking for a confusing render-time error.
@@ -34,6 +43,13 @@ export function ChildStep({
 }) {
   const patch = (i: number, p: Partial<DraftChild>) =>
     onChange(items.map((c, idx) => (idx === i ? { ...c, ...p } : c)));
+
+  const setUpload = (i: number, type: string, u: DraftUpload | undefined) => {
+    const existing = (items[i]?.uploads ?? []).filter((x) => x.type !== type);
+    patch(i, { uploads: u ? [...existing, u] : existing });
+  };
+  const getUpload = (i: number, type: string) =>
+    (items[i]?.uploads ?? []).find((x) => x.type === type);
 
   const add = () => onChange([...items, {}]);
   const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
@@ -104,20 +120,21 @@ export function ChildStep({
                 ))}
               </select>
             </Field>
-            <Field id={`c${i}-year`} label="Year level" required>
-              <select
-                id={`c${i}-year`}
+            {/* Free text, not a year dropdown — schools label rooms their
+                own way and that's what educators need at pickup. */}
+            <Field
+              id={`c${i}-classroom`}
+              label="Classroom"
+              required
+              hint="Your child's room or class code, for example D.G1Y"
+            >
+              <input
+                id={`c${i}-classroom`}
                 className={field}
-                value={c.yearLevel ?? ""}
-                onChange={(e) => patch(i, { yearLevel: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {YEAR_LEVELS.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+                value={c.classroom ?? ""}
+                onChange={(e) => patch(i, { classroom: e.target.value })}
+                placeholder="e.g. D.G1Y"
+              />
             </Field>
             <Field
               id={`c${i}-crn`}
@@ -146,93 +163,197 @@ export function ChildStep({
                 ))}
               </select>
             </Field>
+            <Field id={`c${i}-medicare`} label="Medicare number">
+              <input
+                id={`c${i}-medicare`}
+                inputMode="numeric"
+                className={field}
+                value={c.medicareNumber ?? ""}
+                onChange={(e) => patch(i, { medicareNumber: e.target.value })}
+              />
+            </Field>
+            {/* MM/YYYY only — that's all a Medicare card shows. */}
+            <Field
+              id={`c${i}-medicare-exp`}
+              label="Medicare expiry"
+              hint="Month and year, as printed on the card."
+            >
+              <input
+                id={`c${i}-medicare-exp`}
+                className={field}
+                value={c.medicareExpiry ?? ""}
+                onChange={(e) => patch(i, { medicareExpiry: e.target.value })}
+                placeholder="MM/YYYY"
+                inputMode="numeric"
+                maxLength={7}
+              />
+            </Field>
           </div>
 
           <SectionHeading>Health &amp; medical</SectionHeading>
 
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={c.medicalNone ?? false}
-              onChange={(e) =>
-                patch(i, {
-                  medicalNone: e.target.checked,
-                  ...(e.target.checked
-                    ? { allergies: "", conditions: "", medications: "", dietary: "" }
-                    : {}),
-                })
-              }
-              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
-            />
-            <span className="text-sm text-foreground">
-              {c.firstName?.trim() || "This child"} has no allergies, medical
-              conditions, medications or dietary requirements.
-            </span>
-          </label>
+          <div className="space-y-5">
+            <ScreeningQuestion
+              label="Does your child have anaphylaxis?"
+              value={c.anaphylaxis}
+              onChange={(v) => patch(i, { anaphylaxis: v })}
+            >
+              <p className="font-semibold">Please also:</p>
+              <p>
+                1) Complete an Anaphylaxis Management, Risk Minimisation &amp;
+                Communication Plan — we&apos;ll provide this.
+              </p>
+              <p>
+                2) Complete an ASCIA Action Plan for Anaphylaxis Reactions
+                (from{" "}
+                <a
+                  href="https://www.allergy.org.au"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-semibold"
+                >
+                  allergy.org.au
+                </a>
+                ) and have it signed by your child&apos;s doctor. Upload it
+                below as a medical / action plan.
+              </p>
+            </ScreeningQuestion>
 
-          {!c.medicalNone && (
-            <div className="grid grid-cols-1 gap-4">
+            <ScreeningQuestion
+              label="Does your child have any allergies?"
+              value={c.allergies}
+              onChange={(v) => patch(i, { allergies: v })}
+            >
+              <p className="font-semibold">Please also:</p>
+              <p>
+                1) Complete an Allergy Management, Risk Minimisation &amp;
+                Communication Plan — we&apos;ll provide this.
+              </p>
+              <p>
+                2) Complete an ASCIA Action Plan for Allergic Reactions (from{" "}
+                <a
+                  href="https://www.allergy.org.au"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-semibold"
+                >
+                  allergy.org.au
+                </a>
+                ) and have it signed by your child&apos;s doctor.
+              </p>
+            </ScreeningQuestion>
+
+            {(c.anaphylaxis || c.allergies) && (
               <Field
-                id={`c${i}-allergies`}
-                label="Allergies"
-                hint="Include what happens on exposure and how severe it is."
+                id={`c${i}-allergy-detail`}
+                label="Please describe the allergy and what happens on exposure"
               >
                 <textarea
-                  id={`c${i}-allergies`}
+                  id={`c${i}-allergy-detail`}
                   rows={2}
                   className={field}
-                  value={c.allergies ?? ""}
-                  onChange={(e) => patch(i, { allergies: e.target.value })}
+                  value={c.allergiesDetail ?? ""}
+                  onChange={(e) => patch(i, { allergiesDetail: e.target.value })}
                 />
               </Field>
-              <Field id={`c${i}-conditions`} label="Medical conditions">
-                <textarea
-                  id={`c${i}-conditions`}
-                  rows={2}
-                  className={field}
-                  value={c.conditions ?? ""}
-                  onChange={(e) => patch(i, { conditions: e.target.value })}
-                />
-              </Field>
+            )}
+
+            <ScreeningQuestion
+              label="Does your child have asthma?"
+              value={c.asthma}
+              onChange={(v) => patch(i, { asthma: v })}
+            >
+              <p className="font-semibold">Please also:</p>
+              <p>
+                1) Complete an Asthma Management, Risk Minimisation &amp;
+                Communication Plan — we&apos;ll provide this.
+              </p>
+              <p>
+                2) Complete an Asthma Care Plan for Education and Care
+                Services (from{" "}
+                <a
+                  href="https://www.asthmaaustralia.org.au"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-semibold"
+                >
+                  asthmaaustralia.org.au
+                </a>
+                ) and have it signed by your child&apos;s doctor.
+              </p>
+            </ScreeningQuestion>
+
+            <ScreeningQuestion
+              label="Does your child have another medical condition not listed above (for example diabetes, epilepsy, hearing loss)?"
+              value={c.otherCondition}
+              onChange={(v) => patch(i, { otherCondition: v })}
+            >
+              <p className="font-semibold">Please also:</p>
+              <p>
+                1) Complete a Medical Management, Risk Minimisation &amp;
+                Communication Plan — we&apos;ll provide this.
+              </p>
+              <p>2) Have the forms completed and signed by your doctor.</p>
+              <p>3) Upload the signed forms below.</p>
+            </ScreeningQuestion>
+
+            {c.otherCondition && (
               <Field
-                id={`c${i}-meds`}
-                label="Medications"
-                hint="Anything we may need to administer, with the dose."
+                id={`c${i}-other-detail`}
+                label="Please describe the condition"
               >
                 <textarea
-                  id={`c${i}-meds`}
+                  id={`c${i}-other-detail`}
                   rows={2}
                   className={field}
-                  value={c.medications ?? ""}
-                  onChange={(e) => patch(i, { medications: e.target.value })}
+                  value={c.otherConditionDetail ?? ""}
+                  onChange={(e) =>
+                    patch(i, { otherConditionDetail: e.target.value })
+                  }
                 />
               </Field>
-              <Field id={`c${i}-diet`} label="Dietary requirements">
+            )}
+
+            <ScreeningQuestion
+              label="Does your child have any dietary restrictions?"
+              value={c.dietaryRestrictions}
+              onChange={(v) => patch(i, { dietaryRestrictions: v })}
+            />
+
+            {c.dietaryRestrictions && (
+              <Field
+                id={`c${i}-diet-detail`}
+                label="Please describe the dietary restrictions"
+              >
                 <input
-                  id={`c${i}-diet`}
+                  id={`c${i}-diet-detail`}
                   className={field}
-                  value={c.dietary ?? ""}
-                  onChange={(e) => patch(i, { dietary: e.target.value })}
+                  value={c.dietaryDetail ?? ""}
+                  onChange={(e) => patch(i, { dietaryDetail: e.target.value })}
                 />
               </Field>
-              <div>
-                <span className="block text-sm font-medium text-foreground mb-2">
-                  Is there a medical management or action plan?
-                </span>
-                <YesNo
-                  label="Medical management plan"
-                  value={c.hasMedicalPlan}
-                  onChange={(v) => patch(i, { hasMedicalPlan: v })}
-                />
-                {c.hasMedicalPlan && (
-                  <p className="mt-2 text-xs text-muted">
-                    Please bring a copy to your first session — we can&apos;t
-                    accept your child without it on file.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+            )}
+
+            <ScreeningQuestion
+              label="In the event that no parent or guardian can be contacted, do you give permission for a staff member to administer paracetamol to your child, in line with the Administration of First Aid and Medication Policy?"
+              value={c.paracetamol}
+              onChange={(v) => patch(i, { paracetamol: v })}
+            />
+
+            <Field
+              id={`c${i}-meds`}
+              label="Medications we may need to administer"
+              hint="Include the dose and when it's given. Leave blank if none."
+            >
+              <textarea
+                id={`c${i}-meds`}
+                rows={2}
+                className={field}
+                value={c.medications ?? ""}
+                onChange={(e) => patch(i, { medications: e.target.value })}
+              />
+            </Field>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field id={`c${i}-doc`} label="Doctor / medical centre">
@@ -252,19 +373,45 @@ export function ChildStep({
                 onChange={(e) => patch(i, { doctorPhone: e.target.value })}
               />
             </Field>
-            <Field
-              id={`c${i}-medicare`}
-              label="Medicare number"
-              className="sm:col-span-2"
+          </div>
+
+          <SectionHeading>Documents</SectionHeading>
+          <p className="text-xs text-muted -mt-2">
+            A photo taken on your phone is fine. Any questions, email us at{" "}
+            <a
+              href={`mailto:${ENROLMENTS_EMAIL}`}
+              className="underline font-medium"
             >
-              <input
-                id={`c${i}-medicare`}
-                inputMode="numeric"
-                className={field}
-                value={c.medicareNumber ?? ""}
-                onChange={(e) => patch(i, { medicareNumber: e.target.value })}
+              {ENROLMENTS_EMAIL}
+            </a>
+            .
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {REQUIRED_CHILD_DOCUMENTS.map((d) => (
+              <FileUploadField
+                key={d.type}
+                label={d.label}
+                type={d.type}
+                required
+                value={getUpload(i, d.type)}
+                onChange={(u) => setUpload(i, d.type, u)}
               />
-            </Field>
+            ))}
+            {OPTIONAL_CHILD_DOCUMENTS.map((d) => (
+              <FileUploadField
+                key={d.type}
+                label={d.label}
+                type={d.type}
+                hint={
+                  d.type === "medical_action_plan"
+                    ? "Upload here if your child has an action plan."
+                    : undefined
+                }
+                value={getUpload(i, d.type)}
+                onChange={(u) => setUpload(i, d.type, u)}
+              />
+            ))}
           </div>
         </RepeatCard>
       ))}
