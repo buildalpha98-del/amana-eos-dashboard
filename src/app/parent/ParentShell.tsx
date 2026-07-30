@@ -4,16 +4,8 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { isPublicParentRoute } from "@/lib/parent-routes";
 
-/**
- * Routes under /parent that a signed-OUT visitor must be able to reach.
- * Anything not listed here requires a valid parent session.
- */
-const PUBLIC_PARENT_ROUTES = [
-  "/parent/login",
-  "/parent/signup",
-  "/parent/confirm",
-];
 import {
   Home,
   Users,
@@ -73,7 +65,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // parent creating their first account is BY DEFINITION not authenticated,
   // so the sign-up and confirmation pages must never be gated — that showed
   // up as "session expired" on a page they'd never even seen.
-  if (PUBLIC_PARENT_ROUTES.includes(pathname)) {
+  if (isPublicParentRoute(pathname)) {
     return <>{children}</>;
   }
 
