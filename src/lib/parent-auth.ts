@@ -21,6 +21,15 @@ export interface ParentJwtPayload {
   email: string;
   name: string;
   enrolmentIds: string[];
+  /**
+   * 2026-07-30: id of the parent's own ParentAccount.
+   *
+   * OPTIONAL on purpose — sessions issued before parent accounts existed
+   * are still valid 30-day JWTs in people's browsers and simply lack this
+   * claim. Treat "no accountId" as "magic-link session": still
+   * authenticated, but not yet account-backed.
+   */
+  accountId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -175,4 +184,45 @@ export function withParentAuth(
       if (timeoutId) clearTimeout(timeoutId);
     }
   };
+}
+
+
+// ---------------------------------------------------------------------------
+// Session cookies
+// ---------------------------------------------------------------------------
+
+/** 30 days — matches the parent JWT expiry. */
+const PARENT_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
+
+/**
+ * Attach the parent session cookies to a response.
+ *
+ * Extracted 2026-07-30 so signup/confirm/login and the original magic-link
+ * verify route can't drift apart on cookie flags — getting `httpOnly` or
+ * `secure` wrong on one path only would be a silent security hole.
+ *
+ * Two cookies by design: `parent-session` holds the JWT and is httpOnly so
+ * JS can't read it; `parent-active` is a readable flag the client uses to
+ * decide whether to show a logged-in shell. The flag carries no authority.
+ */
+export function setParentSessionCookie(
+  response: NextResponse,
+  jwt: string,
+): NextResponse {
+  const secure = process.env.NODE_ENV === "production";
+  response.cookies.set("parent-session", jwt, {
+    httpOnly: true,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: PARENT_COOKIE_MAX_AGE,
+  });
+  response.cookies.set("parent-active", "1", {
+    httpOnly: false,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: PARENT_COOKIE_MAX_AGE,
+  });
+  return response;
 }

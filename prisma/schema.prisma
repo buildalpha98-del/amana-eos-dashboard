@@ -6442,6 +6442,56 @@ model SequenceStepExecution {
 
 // ── Parent Portal ───────────────────────────────────────────
 
+// ─── Parent accounts (2026-07-30) ────────────────────────────────────
+//
+// Phase 1 of the enrolment re-architecture. Previously parents had NO
+// account: they submitted an anonymous enrolment and were identified
+// afterwards by scanning EnrolmentSubmission JSON for their email.
+// Now the account exists FIRST and owns everything that follows.
+//
+// Login is password-primary with the existing magic link kept as the
+// forgot-password path, so a parent can never be locked out of their
+// own enrolment.
+model ParentAccount {
+  id           String    @id @default(cuid())
+  // Always stored lowercased+trimmed — the lookup path depends on it.
+  email        String    @unique
+  passwordHash String
+  // Null until the parent clicks the emailed confirmation link. Gates
+  // login: an unverified account cannot start an enrolment.
+  emailVerifiedAt DateTime?
+  // Captured at sign-up so we can address them in the confirmation email
+  // before any enrolment data exists.
+  firstName    String?
+  surname      String?
+  // Set when an existing family claims their pre-account enrolments, so
+  // the one-time backfill is auditable and never re-runs.
+  claimedAt    DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  verifications ParentEmailVerification[]
+
+  @@index([email])
+}
+
+// Single-use, hashed email-confirmation tokens. Mirrors ParentMagicLink's
+// shape deliberately: only the hash is stored, so a database leak cannot
+// be replayed to verify someone else's address.
+model ParentEmailVerification {
+  id        String        @id @default(cuid())
+  accountId String
+  account   ParentAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([accountId])
+  @@index([tokenHash])
+}
+
 model ParentMagicLink {
   id        String    @id @default(cuid())
   email     String
