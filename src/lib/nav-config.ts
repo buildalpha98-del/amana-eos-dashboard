@@ -181,6 +181,9 @@ export const navItems: NavItem[] = [
   // ── Growth — pipeline, parents & outreach ─────────────────
   { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING , core: true },
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING , core: true },
+  // 2026-07-30: staff view of parent ACCOUNTS (the login side), as opposed
+  // to /enrolments which lists submitted forms. Sits beside it in Growth.
+  { href: "/families", label: "Families", icon: Users, section: "Growth", tooltip: "Parent accounts, enrolment progress and children", roles: ALL_NON_MARKETING },
   { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Enrolments
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING , core: true },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" , core: ["marketing"] },

@@ -22,7 +22,7 @@ export async function parentVerifyEmail(params: {
         <p>If you've forgotten your password, use the
         <strong>Email me a login link</strong> option on the sign-in page.</p>
         <p>If this wasn't you, you can safely ignore this message.</p>
-      `),
+      `, "family"),
     };
   }
 
@@ -35,6 +35,6 @@ export async function parentVerifyEmail(params: {
       ${buttonHtml("Confirm my email", params.link)}
       <p style="font-size:13px;color:#6b7280;">This link expires in 24 hours.
       If you didn't create an account, you can ignore this email.</p>
-    `),
+    `, "family"),
   };
 }

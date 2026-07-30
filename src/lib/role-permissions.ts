@@ -138,6 +138,7 @@ export const allPages = [
   "/contact-centre",
   "/messaging",
   "/enrolments",
+  "/families",
   "/children",
   "/children/[id]",
   "/conversions",
