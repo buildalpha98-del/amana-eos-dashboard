@@ -88,6 +88,62 @@ export async function enrolmentReceivedEmail(params: {
 
 
 /**
+ * Sent when STAFF confirm an enrolment.
+ *
+ * This is where email verification now lives. Families sign up and go
+ * straight into the form without confirming an address first — asking
+ * them to go and find an email before they could even see the form was
+ * losing people at the doorstep. By this point the address has been used
+ * for the submission receipt and staff have checked the details, so
+ * verifying here costs the family nothing and still proves the address
+ * before it carries anything sensitive.
+ *
+ * `verifyLink` is null when the address is already verified — then this is
+ * purely a "you're all set" email with nothing to action.
+ */
+export async function enrolmentApprovedEmail(params: {
+  name: string;
+  childNames: string[];
+  verifyLink: string | null;
+}): Promise<{ subject: string; html: string }> {
+  const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+
+  const child =
+    params.childNames.length === 1
+      ? params.childNames[0]
+      : params.childNames.length > 1
+        ? `${params.childNames.slice(0, -1).join(", ")} and ${params.childNames.at(-1)}`
+        : "your child";
+
+  const verifyBlock = params.verifyLink
+    ? `
+      <p>One last thing — please confirm your email address so we can be
+      sure important updates about ${child} reach you.</p>
+      ${buttonHtml("Verify my email address", params.verifyLink)}
+      <p style="font-size:13px;color:#6b7280;">This link expires in 24 hours.
+      If it does, just ask us for a new one.</p>`
+    : `${buttonHtml("Go to my Family Portal", `${base}/parent`)}`;
+
+  return {
+    subject: `${child}'s enrolment is confirmed — Amana OSHC`,
+    html: await baseLayout(
+      `
+      <p>Assalamu alaikum ${params.name},</p>
+      <p>Good news — ${child}'s enrolment with Amana OSHC has been
+      confirmed. We're looking forward to having them with us.</p>
+      ${verifyBlock}
+      <p>You'll receive your OWNA login details separately; that's the app
+      we currently use day to day for bookings and updates.</p>
+      <p style="font-size:13px;color:#6b7280;">Any questions, just reply to
+      this email or contact us at enrolments@amanaoshc.com.au.</p>
+    `,
+      "family",
+    ),
+  };
+}
+
+
+/**
  * Sent to the second parent/carer named on a submitted enrolment, letting
  * them know they have access to the Family Portal for their child.
  *

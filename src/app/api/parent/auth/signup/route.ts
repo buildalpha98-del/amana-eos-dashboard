@@ -4,9 +4,21 @@
  * 2026-07-30: parents now create their own account BEFORE enrolling,
  * rather than us provisioning one after an anonymous submission.
  *
- * Always returns a generic success — the response must not reveal whether
- * an email is already registered, or sign-up becomes a way to enumerate
- * which families attend.
+ * 2026-07-31: sign-up now creates the account AND signs them straight in,
+ * landing them on the enrolment form. Daniel: making a family go and find
+ * a confirmation email before they can even see the form was turning
+ * people away at the doorstep. Verification moved to the
+ * enrolment-approval email, by which point the address has to work
+ * anyway.
+ *
+ * DELIBERATE TRADE-OFF: because we now issue a session, we can no longer
+ * give an identical response for a taken email. Doing so would mean
+ * either logging someone into an account they don't own (one-step
+ * takeover of a real family's child records) or returning "success" with
+ * no session and stranding them. So a taken address now says so. That
+ * leaks whether an email is registered — accepted knowingly, because the
+ * alternative is far worse. Everything else stays: bcrypt cost 12, HIBP
+ * breach check, rate limiting.
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -15,8 +27,13 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
-import { createParentAccount, normaliseEmail } from "@/lib/parent-account";
+import {
+  createParentAccount,
+  findEnrolmentIdsForEmail,
+  normaliseEmail,
+} from "@/lib/parent-account";
 import { parentVerifyEmail } from "@/lib/email-templates/parent-account";
+import { setParentSessionCookie, signParentJwt } from "@/lib/parent-auth";
 
 const signupSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -45,12 +62,6 @@ export const POST = withApiHandler(async (req) => {
     throw new ApiError(429, "Too many sign-up attempts. Please try again later.");
   }
 
-  const generic = NextResponse.json({
-    success: true,
-    message:
-      "Check your inbox — we've sent a link to confirm your email address.",
-  });
-
   // Split the single "Full name" field for storage: firstName is what we
   // address them by in email, surname is what staff sort on. A one-word
   // name stays whole rather than inventing an empty surname.
@@ -65,21 +76,48 @@ export const POST = withApiHandler(async (req) => {
     surname,
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
-  const link = `${base}/parent/confirm?token=${result.verificationToken}`;
-
-  try {
-    const { subject, html } = await parentVerifyEmail({
-      name: firstName,
-      link,
-      alreadyRegistered: result.alreadyExisted,
-    });
-    await sendEmail({ to: email, subject, html });
-  } catch (err) {
-    // Never surface a send failure — it would leak that the address exists.
-    // Logged so a genuinely broken mailer is still visible to us.
-    logger.error("Parent signup: confirmation email failed", { err, email });
+  // ── Address already taken ────────────────────────────────────────────
+  // Never issue a session for an account this request didn't create.
+  if (!result.mayAutoLogin) {
+    const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+    try {
+      const { subject, html } = await parentVerifyEmail({
+        name: firstName,
+        link: `${base}/parent/login`,
+        alreadyRegistered: true,
+      });
+      await sendEmail({ to: email, subject, html });
+    } catch (err) {
+      logger.error("Parent signup: already-registered notice failed", {
+        err,
+        email,
+      });
+    }
+    throw new ApiError(
+      409,
+      "You already have an account with this email. Please sign in instead — you can reset your password from the sign-in page if you've forgotten it.",
+    );
   }
 
-  return generic;
+  // ── Brand new: sign them in and send them to the form ────────────────
+  const { enrolmentIds, parentName } = await findEnrolmentIdsForEmail(email);
+
+  const jwt = await signParentJwt({
+    email,
+    name: [firstName, surname].filter(Boolean).join(" ") || parentName || "Parent",
+    enrolmentIds,
+    accountId: result.accountId,
+  });
+
+  const res = NextResponse.json({
+    success: true,
+    redirectTo: "/parent/enrol",
+  });
+  setParentSessionCookie(res, jwt);
+
+  logger.info("Parent account created and signed in", {
+    accountId: result.accountId,
+  });
+
+  return res;
 });

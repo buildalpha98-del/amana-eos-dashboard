@@ -10,8 +10,9 @@
  */
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, MailCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 
 export default function ParentSignupPage() {
@@ -21,7 +22,7 @@ export default function ParentSignupPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
+  const router = useRouter();
 
   const passwordsMatch = password === confirm;
   const longEnough = password.length >= 10;
@@ -35,11 +36,17 @@ export default function ParentSignupPage() {
     if (!longEnough) return setError("Password must be at least 10 characters.");
     setLoading(true);
     try {
-      await mutateApi("/api/parent/auth/signup", {
-        method: "POST",
-        body: { email, password, fullName: fullName.trim() },
-      });
-      setSent(true);
+      const res = await mutateApi<{ redirectTo?: string }>(
+        "/api/parent/auth/signup",
+        {
+          method: "POST",
+          body: { email, password, fullName: fullName.trim() },
+        },
+      );
+      // Signed in already — go straight to the form. router.push would
+      // leave the signup page on the back stack, and pressing Back into a
+      // form you've already started is disorienting.
+      router.replace(res?.redirectTo ?? "/parent/enrol");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -60,24 +67,7 @@ export default function ParentSignupPage() {
         </div>
 
         <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/50">
-          {sent ? (
-            <div className="text-center py-4">
-              <MailCheck className="w-10 h-10 text-brand mx-auto mb-3" />
-              <h2 className="text-lg font-semibold text-foreground mb-1">
-                Check your inbox
-              </h2>
-              <p className="text-sm text-muted">
-                We&apos;ve sent a link to <strong>{email}</strong>. Confirm your
-                email address to activate your account and start your
-                child&apos;s enrolment.
-              </p>
-              <p className="text-xs text-muted mt-4">
-                The link expires in 24 hours. Nothing arrived? Check your junk
-                folder.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="su-name" className="block text-sm font-medium text-foreground mb-1">
                   Full name
@@ -172,8 +162,7 @@ export default function ParentSignupPage() {
                   Sign in
                 </Link>
               </p>
-            </form>
-          )}
+          </form>
         </div>
       </div>
     </div>
