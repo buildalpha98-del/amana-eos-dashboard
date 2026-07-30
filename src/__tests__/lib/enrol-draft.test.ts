@@ -77,7 +77,7 @@ const goodContacts = {
 const goodBilling = {
   startDate: "2026-08-01",
   bookingType: "permanent" as const,
-  days: ["Monday", "Wednesday"],
+  sessions: { afterSchool: ["Monday", "Wednesday"], amanaAfternoons: ["yes"] },
 };
 
 const goodAgreement = {
@@ -327,14 +327,50 @@ describe("second carer requirement", () => {
 });
 
 describe("billingComplete", () => {
-  it("requires days for a permanent booking", () => {
-    expect(billingComplete({ ...goodBilling, days: [] })).toBe(false);
+  it("accepts a start date, booking type and at least one session", () => {
+    expect(billingComplete(goodBilling)).toBe(true);
   });
 
-  it("does NOT require days for a casual booking", () => {
+  it("requires at least one session, casual bookings included", () => {
+    expect(billingComplete({ ...goodBilling, sessions: {} })).toBe(false);
     expect(
-      billingComplete({ startDate: "2026-08-01", bookingType: "casual", days: [] }),
+      billingComplete({
+        startDate: "2026-08-01",
+        bookingType: "casual",
+        sessions: {},
+      }),
+    ).toBe(false);
+  });
+
+  it("counts a whole-of-session tick, not just weekdays", () => {
+    expect(
+      billingComplete({
+        startDate: "2026-08-01",
+        bookingType: "casual",
+        sessions: { holidayQuest: ["yes"] },
+      }),
     ).toBe(true);
+  });
+
+  it("treats an empty day array as nothing selected", () => {
+    expect(
+      billingComplete({ ...goodBilling, sessions: { afterSchool: [] } }),
+    ).toBe(false);
+  });
+
+  it("still reads a draft saved before the session grid existed", () => {
+    expect(
+      billingComplete({
+        startDate: "2026-08-01",
+        bookingType: "permanent",
+        days: ["Monday"],
+      }),
+    ).toBe(true);
+  });
+
+  it("requires the start date and booking type", () => {
+    expect(billingComplete({ ...goodBilling, startDate: "" })).toBe(false);
+    expect(billingComplete({ ...goodBilling, bookingType: "" })).toBe(false);
   });
 });
 

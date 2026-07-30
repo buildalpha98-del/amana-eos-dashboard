@@ -163,8 +163,18 @@ export const POST = withParentAuth(async (req, ctx) => {
     },
     bookingPrefs: {
       bookingType: billing.bookingType ?? "",
-      days: billing.days ?? [],
       startDate: billing.startDate ?? "",
+      // Per-program selections from the booking grid.
+      sessions: billing.sessions ?? {},
+      // Flattened weekday list, so anything already reading `days` (rosters,
+      // the enrolment PDF) keeps working without knowing about the grid.
+      days: Array.from(
+        new Set([
+          ...(billing.sessions?.beforeSchool ?? []),
+          ...(billing.sessions?.afterSchool ?? []),
+          ...(billing.days ?? []),
+        ]),
+      ),
     },
   }));
 

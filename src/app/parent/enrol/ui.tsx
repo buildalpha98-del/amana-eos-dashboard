@@ -10,7 +10,73 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { Upload, FileCheck2, X, Loader2 } from "lucide-react";
-import type { DraftUpload } from "@/lib/enrol-draft";
+import { ENROLMENTS_EMAIL, type DraftUpload } from "@/lib/enrol-draft";
+
+/**
+ * 4MB, sitting under the ~4.5MB request-body ceiling Vercel enforces on
+ * serverless functions.
+ *
+ * This matters more than it looks: an oversized body is rejected by the
+ * platform BEFORE our route runs, so a bigger limit in our own code is a
+ * promise we can't keep — the parent just gets an opaque plain-text
+ * rejection. Keep this and the server's MAX_SIZE in step.
+ */
+const MAX_UPLOAD_MB = 4;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
+/** Longest edge for an uploaded photo. Plenty to read a certificate. */
+const MAX_IMAGE_EDGE = 2000;
+
+const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
+
+/**
+ * Downscale a photo in the browser before uploading.
+ *
+ * A modern phone camera produces 3-8MB images — well past what the
+ * platform accepts — and a parent photographing a birth certificate has no
+ * idea their camera is the problem. Re-encoding to a 2000px JPEG typically
+ * lands under 1MB with the text still perfectly legible, and it uploads
+ * far faster on mobile data.
+ *
+ * Anything we can't decode (PDFs, and HEIC on browsers that don't support
+ * it) is returned untouched rather than failed — the size check downstream
+ * still protects us.
+ */
+async function compressImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  // Already small enough that re-encoding risks looking worse for no gain.
+  if (file.size <= 1024 * 1024) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(
+      1,
+      MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height),
+    );
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.85),
+    );
+    if (!blob || blob.size >= file.size) return file;
+
+    const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], name, { type: "image/jpeg" });
+  } catch {
+    // HEIC on a browser without a decoder, a corrupt image, an OOM on a
+    // huge panorama — fall back to the original and let size checks speak.
+    return file;
+  }
+}
 
 export const field =
   "w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand";
@@ -158,16 +224,47 @@ export function FileUploadField({
     setBusy(true);
     setError(null);
     try {
+      // Phone photos are routinely 3-8MB and the platform rejects anything
+      // over ~4.5MB before our route ever runs. Shrink first.
+      const prepared = await compressImage(file);
+
+      if (prepared.size > MAX_UPLOAD_BYTES) {
+        throw new Error(
+          prepared.type === "application/pdf"
+            ? `That PDF is ${mb(prepared.size)}MB and our limit is ${MAX_UPLOAD_MB}MB. Please upload a photo of the document instead, or email it to ${ENROLMENTS_EMAIL}.`
+            : `That file is ${mb(prepared.size)}MB and our limit is ${MAX_UPLOAD_MB}MB. Please try a smaller copy.`,
+        );
+      }
+
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", prepared);
       fd.append("type", type);
       const res = await fetch("/api/parent/upload", {
         method: "POST",
         body: fd,
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error ?? "Upload failed.");
-      onChange({ type, filename: json.filename, url: json.url });
+
+      // NEVER res.json() blindly. When the platform rejects an oversized
+      // body it replies with plain text ("Request Entity Too Large"), and
+      // parsing that as JSON is what produced the unreadable
+      // "Unexpected token 'R'" error a parent saw.
+      const raw = await res.text();
+      let json: { error?: string; filename?: string; url?: string } = {};
+      try {
+        json = raw ? JSON.parse(raw) : {};
+      } catch {
+        if (!res.ok) {
+          throw new Error(
+            res.status === 413
+              ? `That file is too large. Please keep uploads under ${MAX_UPLOAD_MB}MB.`
+              : "We couldn't upload that file. Please try again.",
+          );
+        }
+        throw new Error("We couldn't read the response. Please try again.");
+      }
+
+      if (!res.ok) throw new Error(json.error ?? "Upload failed.");
+      onChange({ type, filename: json.filename!, url: json.url! });
     } catch (e) {
       // Shown inline, next to the field. A toast would scroll away from
       // the thing that failed.
