@@ -10,6 +10,8 @@ import {
   emergencyContactComplete,
   firstIncompleteStep,
   meComplete,
+  medicareExpiryValid,
+  formatMedicareExpiry,
   stepComplete,
   EMERGENCY_RELATIONSHIP_OPTIONS,
   type DraftEmergencyContact,
@@ -34,6 +36,8 @@ const goodChild = {
   dob: "2018-05-02",
   schoolName: "Unity Grammar",
   classroom: "D.G1Y",
+  medicareNumber: "2123 45678 1",
+  medicareExpiry: "05/2030",
   anaphylaxis: false,
   allergies: false,
   asthma: false,
@@ -167,16 +171,20 @@ describe("childComplete", () => {
     ).toBe(false);
   });
 
-  it("pairs the Medicare number with its expiry", () => {
-    expect(childComplete({ ...goodChild, medicareNumber: "12345" })).toBe(false);
-    expect(childComplete({ ...goodChild, medicareExpiry: "05/2030" })).toBe(false);
-    expect(
-      childComplete({
-        ...goodChild,
-        medicareNumber: "12345",
-        medicareExpiry: "05/2030",
-      }),
-    ).toBe(true);
+  it("REQUIRES the Medicare number and expiry", () => {
+    expect(childComplete({ ...goodChild, medicareNumber: "" })).toBe(false);
+    expect(childComplete({ ...goodChild, medicareExpiry: "" })).toBe(false);
+    expect(childComplete({ ...goodChild, medicareExpiry: undefined })).toBe(false);
+  });
+
+  it("rejects an expiry that isn't MM/YYYY", () => {
+    for (const bad of ["2030", "5/30", "13/2030", "00/2030", "05-2030", "may 2030"]) {
+      expect(childComplete({ ...goodChild, medicareExpiry: bad })).toBe(false);
+    }
+  });
+
+  it("accepts a past expiry — a family renewing shouldn't be locked out", () => {
+    expect(childComplete({ ...goodChild, medicareExpiry: "01/2020" })).toBe(true);
   });
 
   it("rejects when ONE sibling of several is incomplete", () => {
@@ -186,6 +194,27 @@ describe("childComplete", () => {
   it("rejects an empty children array", () => {
     expect(childrenComplete([])).toBe(false);
     expect(childrenComplete(undefined)).toBe(false);
+  });
+});
+
+describe("medicareExpiryValid / formatMedicareExpiry", () => {
+  it("accepts MM/YYYY only", () => {
+    expect(medicareExpiryValid("05/2030")).toBe(true);
+    expect(medicareExpiryValid("12/2026")).toBe(true);
+    expect(medicareExpiryValid("5/2030")).toBe(false);
+    expect(medicareExpiryValid("13/2030")).toBe(false);
+    expect(medicareExpiryValid(undefined)).toBe(false);
+  });
+
+  it("inserts the slash as the parent types", () => {
+    expect(formatMedicareExpiry("0")).toBe("0");
+    expect(formatMedicareExpiry("05")).toBe("05");
+    expect(formatMedicareExpiry("052")).toBe("05/2");
+    expect(formatMedicareExpiry("052030")).toBe("05/2030");
+    // Re-typing over an already-formatted value must not double up.
+    expect(formatMedicareExpiry("05/2030")).toBe("05/2030");
+    // Overflow is clipped rather than accumulating silently.
+    expect(formatMedicareExpiry("0520301234")).toBe("05/2030");
   });
 });
 

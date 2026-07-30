@@ -25,6 +25,8 @@ import {
 } from "./ui";
 import {
   ENROLMENTS_EMAIL,
+  formatMedicareExpiry,
+  medicareExpiryValid,
   OPTIONAL_CHILD_DOCUMENTS,
   REQUIRED_CHILD_DOCUMENTS,
   type DraftChild,
@@ -163,7 +165,7 @@ export function ChildStep({
                 ))}
               </select>
             </Field>
-            <Field id={`c${i}-medicare`} label="Medicare number">
+            <Field id={`c${i}-medicare`} label="Medicare number" required>
               <input
                 id={`c${i}-medicare`}
                 inputMode="numeric"
@@ -172,17 +174,25 @@ export function ChildStep({
                 onChange={(e) => patch(i, { medicareNumber: e.target.value })}
               />
             </Field>
-            {/* MM/YYYY only — that's all a Medicare card shows. */}
+            {/* MM/YYYY only — that's all a Medicare card shows. The slash
+                is inserted as they type so nobody has to guess the shape. */}
             <Field
               id={`c${i}-medicare-exp`}
               label="Medicare expiry"
-              hint="Month and year, as printed on the card."
+              required
+              hint={
+                c.medicareExpiry && !medicareExpiryValid(c.medicareExpiry)
+                  ? "Please enter the month and year as MM/YYYY, e.g. 05/2030."
+                  : "Month and year, as printed on the card."
+              }
             >
               <input
                 id={`c${i}-medicare-exp`}
                 className={field}
                 value={c.medicareExpiry ?? ""}
-                onChange={(e) => patch(i, { medicareExpiry: e.target.value })}
+                onChange={(e) =>
+                  patch(i, { medicareExpiry: formatMedicareExpiry(e.target.value) })
+                }
                 placeholder="MM/YYYY"
                 inputMode="numeric"
                 maxLength={7}

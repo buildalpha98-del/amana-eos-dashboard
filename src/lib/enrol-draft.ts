@@ -268,6 +268,28 @@ export function meComplete(me: DraftMe | undefined): boolean {
   );
 }
 
+/**
+ * Medicare expiry, as MM/YYYY — that's all the card prints.
+ *
+ * Accepts a two-digit month 01-12 and a plausible four-digit year. Does
+ * NOT reject a past date: a family renewing their card shouldn't be
+ * locked out of enrolling, and staff can see the date for themselves.
+ */
+export function medicareExpiryValid(v: string | undefined): boolean {
+  const m = /^(\d{2})\/(\d{4})$/.exec((v ?? "").trim());
+  if (!m) return false;
+  const month = Number(m[1]);
+  const year = Number(m[2]);
+  return month >= 1 && month <= 12 && year >= 2000 && year <= 2100;
+}
+
+/** Format keystrokes into MM/YYYY as the parent types. */
+export function formatMedicareExpiry(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 6);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+
 /** Has this child's document `type` been uploaded? */
 export function hasUpload(c: DraftChild | undefined, type: string): boolean {
   return (c?.uploads ?? []).some((u) => u.type === type && filled(u.url));
@@ -286,10 +308,11 @@ export function childComplete(c: DraftChild | undefined): boolean {
     typeof c.dietaryRestrictions === "boolean" &&
     typeof c.paracetamol === "boolean";
 
-  // A Medicare number without an expiry is unusable, so they travel
-  // together — but neither is forced on its own.
-  const medicarePaired =
-    filled(c.medicareNumber) === filled(c.medicareExpiry);
+  // Both mandatory (Daniel, 2026-07-30). The expiry is format-checked as
+  // well as present: "2030" or "5/30" would be accepted as "filled" and
+  // then be useless to the person reading the record.
+  const medicare =
+    filled(c.medicareNumber) && medicareExpiryValid(c.medicareExpiry);
 
   const documents = REQUIRED_CHILD_DOCUMENTS.every((d) => hasUpload(c, d.type));
 
@@ -300,7 +323,7 @@ export function childComplete(c: DraftChild | undefined): boolean {
     filled(c.schoolName) &&
     filled(c.classroom) &&
     screeningAnswered &&
-    medicarePaired &&
+    medicare &&
     documents
   );
 }
