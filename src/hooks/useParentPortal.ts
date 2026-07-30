@@ -509,11 +509,24 @@ export interface OnboardingResponse {
   totalCount: number;
 }
 
-export function useParentOnboarding() {
+/**
+ * 2026-07-30: takes `enabled` because this fired for SIGNED-OUT visitors.
+ * useParentInstallEffects calls it unconditionally (hooks can't be
+ * conditional), so on /parent/signup and /parent/login it hit an
+ * auth-required endpoint, got a 401, and QueryProvider toasted
+ * "Session expired" and reloaded the page — which remounted the hook and
+ * repeated, looping every few seconds on the very pages a parent without
+ * an account has to use.
+ *
+ * `retry: false` as well: retrying a 401 can't succeed and only multiplies
+ * the toasts.
+ */
+export function useParentOnboarding(enabled: boolean = true) {
   return useQuery<OnboardingResponse>({
     queryKey: ["parent", "onboarding"],
     queryFn: () => fetchApi<OnboardingResponse>("/api/parent/onboarding"),
-    retry: 2,
+    enabled,
+    retry: false,
     staleTime: 30_000,
   });
 }

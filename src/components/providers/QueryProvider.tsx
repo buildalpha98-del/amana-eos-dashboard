@@ -41,9 +41,17 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
     const isParentArea =
       typeof window !== "undefined" &&
       window.location.pathname.startsWith("/parent");
+    const target = isParentArea ? "/parent/login" : "/login";
+    // Already on the sign-in page? A 401 there is expected (a bad password,
+    // or a stray unauthenticated query) and redirecting would reload the
+    // page, remount whatever 401'd, and loop forever.
+    if (typeof window !== "undefined" && window.location.pathname === target) {
+      isRedirecting.current = false;
+      return;
+    }
     toast({ description: "Session expired. Please sign in again." });
     setTimeout(() => {
-      window.location.href = isParentArea ? "/parent/login" : "/login";
+      window.location.href = target;
     }, 800);
   };
 
