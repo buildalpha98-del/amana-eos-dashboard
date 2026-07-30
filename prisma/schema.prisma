@@ -6472,6 +6472,7 @@ model ParentAccount {
   updatedAt    DateTime  @updatedAt
 
   verifications ParentEmailVerification[]
+  enrolmentDraft EnrolmentDraft?
 
   @@index([email])
 }
@@ -6490,6 +6491,36 @@ model ParentEmailVerification {
 
   @@index([accountId])
   @@index([tokenHash])
+}
+
+// ─── Enrolment draft (2026-07-30, Phase 2) ───────────────────────────
+//
+// A parent's in-progress enrolment, owned by their account. Separate from
+// EnrolmentSubmission on purpose: a submission is a completed, immutable
+// record staff act on, whereas this is scratch state that changes on every
+// keystroke. Mixing them would mean half-filled rows appearing in the
+// staff enrolment queue.
+//
+// One draft per account (@unique on accountId) — a parent completes one
+// enrolment at a time, adding multiple children within it.
+//
+// `data` is the whole form blob rather than columns because the shape is
+// still moving; it's validated on SUBMIT, not on autosave. Autosave must
+// never reject a half-typed field — losing a parent's work to a validation
+// error they can't see is worse than storing something incomplete.
+model EnrolmentDraft {
+  id          String        @id @default(cuid())
+  accountId   String        @unique
+  account     ParentAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  // Which step they were last on, so "continue where you left off" lands
+  // them in the right place rather than back at step 1.
+  currentStep Int           @default(0)
+  data        Json          @default("{}")
+  submittedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([accountId])
 }
 
 model ParentMagicLink {
