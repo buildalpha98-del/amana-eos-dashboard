@@ -160,43 +160,53 @@ export function BillingStep({
                   <span className="text-sm font-semibold text-foreground">
                     {row.label}
                   </span>
+                  {/* Rendered inline, not as a title tooltip: a tooltip
+                      needs a hover, so on a phone this text — which
+                      explains what the program actually IS — could never
+                      be read. */}
                   {row.help && (
-                    <span
-                      title={row.help}
-                      aria-label={row.help}
-                      className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand/15 text-brand text-2xs font-bold align-middle cursor-help"
-                    >
-                      ?
-                    </span>
+                    <p className="text-xs text-muted mt-0.5 leading-snug sm:max-w-[11rem] sm:ml-auto">
+                      {row.help}
+                    </p>
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                <div className="flex flex-wrap gap-2">
                   {row.perDay ? (
                     WEEKDAYS.map((d) => (
-                      <label
+                      // Chips rather than bare checkboxes: a 16px box is
+                      // well under a usable tap target, and these are a
+                      // required control on the smallest screen.
+                      <button
                         key={d}
-                        className="inline-flex items-center gap-2 cursor-pointer"
+                        type="button"
+                        onClick={() => toggleDay(row.key, d)}
+                        aria-pressed={picked.includes(d)}
+                        className={
+                          "px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
+                          (picked.includes(d)
+                            ? "border-brand bg-brand/10 text-brand"
+                            : "border-border bg-card text-muted hover:border-brand/40")
+                        }
                       >
-                        <input
-                          type="checkbox"
-                          checked={picked.includes(d)}
-                          onChange={() => toggleDay(row.key, d)}
-                          className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
-                        />
-                        <span className="text-sm text-foreground">{d}</span>
-                      </label>
+                        <span className="sm:hidden">{d.slice(0, 3)}</span>
+                        <span className="hidden sm:inline">{d}</span>
+                      </button>
                     ))
                   ) : (
-                    <label className="inline-flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={picked.length > 0}
-                        onChange={() => toggleSession(row.key)}
-                        className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
-                      />
-                      <span className="text-sm text-foreground">{row.time}</span>
-                    </label>
+                    <button
+                      type="button"
+                      onClick={() => toggleSession(row.key)}
+                      aria-pressed={picked.length > 0}
+                      className={
+                        "px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
+                        (picked.length > 0
+                          ? "border-brand bg-brand/10 text-brand"
+                          : "border-border bg-card text-muted hover:border-brand/40")
+                      }
+                    >
+                      {row.time}
+                    </button>
                   )}
                 </div>
               </div>

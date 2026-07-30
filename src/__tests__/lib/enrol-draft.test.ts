@@ -13,6 +13,7 @@ import {
   medicareExpiryValid,
   formatMedicareExpiry,
   stepComplete,
+  stepBlocker,
   EMERGENCY_RELATIONSHIP_OPTIONS,
   type DraftEmergencyContact,
   type EnrolDraft,
@@ -407,6 +408,60 @@ describe("National Regulations record requirements", () => {
     };
     expect(contactsComplete(d)).toBe(false);
     expect(contactsBlocker(d)).toMatch(/restricted/i);
+  });
+});
+
+describe("stepBlocker", () => {
+  it("is silent when a step is complete", () => {
+    for (const s of [0, 1, 2, 3, 4]) {
+      expect(stepBlocker(s, fullDraft)).toBeNull();
+    }
+  });
+
+  it("names the missing CRN rather than saying 'fill in the form'", () => {
+    expect(stepBlocker(0, { ...fullDraft, me: { ...goodMe, crn: "" } })).toMatch(
+      /CRN/i,
+    );
+  });
+
+  it("names the CHILD it's complaining about", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      children: [goodChild, { firstName: "Sara" }],
+    };
+    expect(stepBlocker(1, d)).toMatch(/Sara/);
+  });
+
+  it("tells the parent which document is missing", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      children: [{ ...goodChild, uploads: [goodChild.uploads[0]] }],
+    };
+    expect(stepBlocker(1, d)).toMatch(/immunisation record/i);
+  });
+
+  it("points at the Medicare format when the expiry is malformed", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      children: [{ ...goodChild, medicareExpiry: "2030" }],
+    };
+    expect(stepBlocker(1, d)).toMatch(/MM\/YYYY/);
+  });
+
+  it("asks for a session when none is ticked", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      billing: { ...goodBilling, sessions: {} },
+    };
+    expect(stepBlocker(3, d)).toMatch(/session/i);
+  });
+
+  it("falls back to the contacts blocker on step 2", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: { ...goodContacts, courtOrders: undefined },
+    };
+    expect(stepBlocker(2, d)).toBe(contactsBlocker(d));
   });
 });
 

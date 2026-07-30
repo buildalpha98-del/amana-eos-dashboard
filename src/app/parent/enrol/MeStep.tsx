@@ -16,6 +16,7 @@ import {
   type CcsApproved,
 } from "@/lib/enrol-ccs";
 import { AUSTRALIAN_STATES, CULTURAL_OPTIONS } from "@/components/enrol/types";
+import { field } from "./ui";
 
 export interface MeData {
   firstName?: string;
@@ -34,9 +35,6 @@ export interface MeData {
   ccsApproved?: CcsApproved;
   ccsApplied?: CcsApplied;
 }
-
-const field =
-  "w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand";
 
 function YesNo({
   name,

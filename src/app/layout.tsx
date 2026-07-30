@@ -23,7 +23,11 @@ const bricolage = Bricolage_Grotesque({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // maximumScale deliberately NOT set. Pinning it to 1 blocks pinch-zoom,
+  // which fails WCAG 1.4.4 and hurts most on the enrolment form, where
+  // parents transcribe card numbers, BSBs, CRNs and Medicare numbers.
+  // It was there to stop iOS zoom-on-focus; the real fix for that is
+  // 16px inputs, which the form now uses.
   themeColor: "#004E64",
 };
 

@@ -596,6 +596,106 @@ export function agreementComplete(a: DraftAgreement | undefined): boolean {
   );
 }
 
+/**
+ * Why this step won't let the parent continue, or null when it will.
+ *
+ * Exists because a disabled button explains nothing on a touch device —
+ * `title` tooltips need a hover that phones don't have. The Child step
+ * alone has a dozen required fields spread over a long scroll, so
+ * "something above is missing" is not a usable hint.
+ */
+export function stepBlocker(step: number, d: EnrolDraft): string | null {
+  if (stepComplete(step, d)) return null;
+  switch (step) {
+    case 0: {
+      const me = d.me ?? {};
+      if (!filled(me.crn)) {
+        return "Please enter your CRN — we need it to claim your Child Care Subsidy.";
+      }
+      if (!filled(me.culturalBackground)) {
+        return "Please select your cultural background.";
+      }
+      if (!me.isLegalCarer) {
+        return "Please confirm you're the parent or legal carer.";
+      }
+      if (
+        !ccsAnswered({
+          approved: me.ccsApproved ?? null,
+          applied: me.ccsApplied ?? null,
+        })
+      ) {
+        return "Please answer the Child Care Subsidy questions.";
+      }
+      return "Please fill in your name, mobile, date of birth and home address.";
+    }
+    case 1: {
+      const kids = d.children ?? [];
+      if (kids.length === 0) return "Please add your child's details.";
+      const i = kids.findIndex((c) => !childComplete(c));
+      if (i === -1) return null;
+      const c = kids[i];
+      const who = c.firstName?.trim() || `Child ${i + 1}`;
+      if (!filled(c.firstName) || !filled(c.surname) || !filled(c.dob)) {
+        return `Please complete ${who}'s name and date of birth.`;
+      }
+      if (!filled(c.schoolName) || !filled(c.classroom)) {
+        return `Please select ${who}'s school and enter their classroom.`;
+      }
+      if (!filled(c.medicareNumber) || !medicareExpiryValid(c.medicareExpiry)) {
+        return `Please enter ${who}'s Medicare number and expiry as MM/YYYY.`;
+      }
+      const screening = [
+        c.anaphylaxis,
+        c.allergies,
+        c.asthma,
+        c.otherCondition,
+        c.dietaryRestrictions,
+        c.paracetamol,
+        c.additionalNeeds,
+      ];
+      if (screening.some((v) => typeof v !== "boolean")) {
+        return `Please answer every health question for ${who} with Yes or No.`;
+      }
+      if (!filled(c.immunisationStatus)) {
+        return `Please select ${who}'s immunisation status.`;
+      }
+      if (
+        !filled(c.doctorName) ||
+        !filled(c.doctorPhone) ||
+        !filled(c.doctorAddress)
+      ) {
+        return `Please add ${who}'s doctor — name, phone and address.`;
+      }
+      const missing = REQUIRED_CHILD_DOCUMENTS.filter(
+        (doc) => !hasUpload(c, doc.type),
+      );
+      if (missing.length) {
+        return `Please upload ${who}'s ${missing
+          .map((m) => m.label.toLowerCase())
+          .join(" and ")}. A photo from your phone is fine.`;
+      }
+      return `Please finish ${who}'s details.`;
+    }
+    case 2:
+      return contactsBlocker(d);
+    case 3: {
+      const b = d.billing ?? {};
+      if (!filled(b.startDate)) return "Please choose a preferred start date.";
+      if (!filled(b.bookingType)) return "Please choose a booking type.";
+      if (!anySessionSelected(b)) {
+        return "Please tick at least one session — before school care, after school care, or Holiday Quest.";
+      }
+      return "Please complete the booking details.";
+    }
+    case 4:
+      return agreementComplete(d.agreement)
+        ? null
+        : "Please answer every consent, accept the terms and privacy policy, and type your name to sign.";
+    default:
+      return null;
+  }
+}
+
 /** 0-indexed, matching ENROL_STEPS. */
 export function stepComplete(step: number, d: EnrolDraft): boolean {
   switch (step) {

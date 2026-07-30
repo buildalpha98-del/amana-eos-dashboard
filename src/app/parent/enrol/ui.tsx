@@ -183,8 +183,12 @@ export function ScreeningQuestion({
   children?: ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+    <div className="space-y-2 pb-4 border-b border-border last:border-b-0 sm:border-b-0 sm:pb-0">
+      {/* gap-2 inside, divider outside: the Yes/No pair must read as
+          belonging to the question ABOVE it. With even spacing it reads as
+          belonging to the one below, which is how a parent grants
+          ambulance consent to the wrong question. */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
         <p className="text-sm font-medium text-foreground sm:pr-6 min-w-0">
           {label}
           <Req />
@@ -301,7 +305,7 @@ export function FileUploadField({
             type="button"
             onClick={() => onChange(undefined)}
             aria-label={`Remove ${label}`}
-            className="text-muted hover:text-red-600 shrink-0"
+            className="shrink-0 -mr-2 min-w-11 min-h-11 inline-flex items-center justify-center text-muted hover:text-red-600"
           >
             <X className="w-4 h-4" />
           </button>
@@ -351,7 +355,7 @@ export function RepeatCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border p-4 space-y-4">
+    <div className="rounded-lg border border-border p-3 sm:p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground">{title}</h4>
         {onRemove && (

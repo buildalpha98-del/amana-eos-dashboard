@@ -314,7 +314,7 @@ export function ContactsStep({
             {EMERGENCY_CONSENTS.map((q) => (
               <div
                 key={q.key}
-                className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
+                className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 pb-4 border-b border-border last:border-b-0 sm:border-b-0 sm:pb-0"
               >
                 <p className="text-sm text-foreground sm:pr-6 min-w-0 leading-relaxed">
                   {q.label}

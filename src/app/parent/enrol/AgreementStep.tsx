@@ -97,7 +97,7 @@ export function AgreementStep({
         {CONSENTS.map((c) => (
           <div
             key={c.key}
-            className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
+            className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 pb-4 border-b border-border last:border-b-0 sm:border-b-0 sm:pb-0"
           >
             <div className="min-w-0 sm:pr-6">
               <p className="text-sm font-medium text-foreground">
