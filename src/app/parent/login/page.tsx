@@ -3,15 +3,42 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Mail, ArrowRight, CheckCircle } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle, Lock, Loader2 } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
 export default function ParentLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  // 2026-07-30: password is now the primary sign-in. The magic link stays
+  // as the forgot-password path — previously it was the ONLY way in, so a
+  // parent who set a password had no field to type it into.
+  const [mode, setMode] = useState<"password" | "link">("password");
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setLoading(true);
+    try {
+      await mutateApi("/api/parent/auth/login", {
+        method: "POST",
+        body: { email: email.trim().toLowerCase(), password },
+      });
+      // Full reload rather than router.push so the freshly-set session
+      // cookie is attached to the very first request for /parent.
+      window.location.href = "/parent";
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description:
+          err instanceof Error ? err.message : "Incorrect email or password.",
+      });
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,10 +127,15 @@ export default function ParentLoginPage() {
                 Sign in
               </h2>
               <p className="text-sm text-muted mb-6">
-                Enter your email and we&apos;ll send you a login link.
+                {mode === "password"
+                  ? "Sign in with your email and password."
+                  : "Enter your email and we\u2019ll send you a login link."}
               </p>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                onSubmit={mode === "password" ? handlePasswordLogin : handleSubmit}
+                className="space-y-4"
+              >
                 <div>
                   <label
                     htmlFor="parent-email"
@@ -125,6 +157,29 @@ export default function ParentLoginPage() {
                     />
                   </div>
                 </div>
+
+                {mode === "password" && (
+                  <div>
+                    <label
+                      htmlFor="parent-password"
+                      className="block text-sm font-medium text-foreground/80 mb-1.5"
+                    >
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                      <input
+                        id="parent-password"
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="current-password"
+                        className="w-full pl-10 pr-4 py-3 border-2 border-border rounded-xl bg-background/50 text-base text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="submit"
@@ -152,15 +207,33 @@ export default function ParentLoginPage() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      Sending...
+                      {mode === "password" ? "Signing in..." : "Sending..."}
                     </span>
                   ) : (
                     <>
-                      Send Login Link
+                      {mode === "password" ? "Sign in" : "Send Login Link"}
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
+
+                <div className="pt-1 text-center space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setMode(mode === "password" ? "link" : "password")}
+                    className="text-xs text-brand underline underline-offset-2"
+                  >
+                    {mode === "password"
+                      ? "Forgot your password? Email me a login link"
+                      : "Sign in with a password instead"}
+                  </button>
+                  <p className="text-xs text-muted">
+                    New to Amana OSHC?{" "}
+                    <a href="/parent/signup" className="text-brand underline">
+                      Create an account
+                    </a>
+                  </p>
+                </div>
               </form>
             </>
           )}

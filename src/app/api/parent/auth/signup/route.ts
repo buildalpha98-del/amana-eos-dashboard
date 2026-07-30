@@ -24,8 +24,10 @@ const signupSchema = z.object({
   // data, so it sits above the 8-char staff minimum. Breach-checked in
   // createParentAccount.
   password: z.string().min(10, "Password must be at least 10 characters"),
-  firstName: z.string().trim().min(1).max(100).optional(),
-  surname: z.string().trim().min(1).max(100).optional(),
+  // 2026-07-30: full name is now required at sign-up — it's how staff
+  // identify the account before any enrolment data exists.
+  firstName: z.string().trim().min(1, "Enter your first name").max(100),
+  surname: z.string().trim().min(1, "Enter your last name").max(100),
 });
 
 export const POST = withApiHandler(async (req) => {
@@ -59,7 +61,7 @@ export const POST = withApiHandler(async (req) => {
 
   try {
     const { subject, html } = await parentVerifyEmail({
-      name: parsed.data.firstName ?? "there",
+      name: parsed.data.firstName,
       link,
       alreadyRegistered: result.alreadyExisted,
     });

@@ -35,9 +35,15 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   const handleSessionExpired = () => {
     if (isRedirecting.current) return;
     isRedirecting.current = true;
+    // 2026-07-30: parents were being bounced to the STAFF login, where
+    // their credentials don't work — a dead end that reads as "my account
+    // is broken". Send them to their own sign-in instead.
+    const isParentArea =
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/parent");
     toast({ description: "Session expired. Please sign in again." });
     setTimeout(() => {
-      window.location.href = "/login";
+      window.location.href = isParentArea ? "/parent/login" : "/login";
     }, 800);
   };
 

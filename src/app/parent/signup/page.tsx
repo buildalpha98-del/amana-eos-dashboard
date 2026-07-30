@@ -16,6 +16,7 @@ import { mutateApi } from "@/lib/fetch-api";
 
 export default function ParentSignupPage() {
   const [firstName, setFirstName] = useState("");
+  const [surname, setSurname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -26,7 +27,12 @@ export default function ParentSignupPage() {
   const passwordsMatch = password === confirm;
   const longEnough = password.length >= 10;
   const canSubmit =
-    !!email && longEnough && passwordsMatch && !loading;
+    !!email &&
+    !!firstName.trim() &&
+    !!surname.trim() &&
+    longEnough &&
+    passwordsMatch &&
+    !loading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +46,8 @@ export default function ParentSignupPage() {
         body: {
           email,
           password,
-          ...(firstName.trim() ? { firstName: firstName.trim() } : {}),
+          firstName: firstName.trim(),
+          surname: surname.trim(),
         },
       });
       setSent(true);
@@ -84,14 +91,29 @@ export default function ParentSignupPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="su-first" className="block text-sm font-medium text-foreground mb-1">
-                  First name <span className="text-muted font-normal">(optional)</span>
+                  First name
                 </label>
                 <input
                   id="su-first"
                   type="text"
+                  required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   autoComplete="given-name"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                />
+              </div>
+              <div>
+                <label htmlFor="su-last" className="block text-sm font-medium text-foreground mb-1">
+                  Last name
+                </label>
+                <input
+                  id="su-last"
+                  type="text"
+                  required
+                  value={surname}
+                  onChange={(e) => setSurname(e.target.value)}
+                  autoComplete="family-name"
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
                 />
               </div>

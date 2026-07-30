@@ -67,9 +67,14 @@ export async function verifyParentJwt(
 ): Promise<ParentJwtPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    const { email, name, enrolmentIds } = payload as unknown as ParentJwtPayload;
+    const { email, name, enrolmentIds, accountId } =
+      payload as unknown as ParentJwtPayload;
     if (!email || !name || !Array.isArray(enrolmentIds)) return null;
-    return { email, name, enrolmentIds };
+    // accountId is carried through when present. Sessions minted before
+    // parent accounts existed simply omit it — still valid, just not
+    // account-backed. Dropping it here (as this did) meant the id never
+    // survived verification.
+    return { email, name, enrolmentIds, ...(accountId ? { accountId } : {}) };
   } catch {
     return null;
   }

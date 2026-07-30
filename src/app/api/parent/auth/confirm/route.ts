@@ -12,7 +12,6 @@ import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { confirmParentEmail } from "@/lib/parent-account";
-import { signParentJwt, setParentSessionCookie } from "@/lib/parent-auth";
 
 const confirmSchema = z.object({ token: z.string().min(16) });
 
@@ -29,17 +28,13 @@ export const POST = withApiHandler(async (req) => {
 
   const result = await confirmParentEmail(parsed.data.token);
 
-  const jwt = await signParentJwt({
-    email: result.email,
-    name: "Parent",
-    enrolmentIds: result.claimedEnrolmentIds,
-    accountId: result.accountId,
-  });
-
-  const res = NextResponse.json({
+  // 2026-07-30: deliberately does NOT sign the parent in. Daniel wants
+  // them to sign in with the password they just chose — it confirms the
+  // password works before they start a long enrolment, and it keeps a
+  // single session-issuing path (login) rather than two.
+  return NextResponse.json({
     success: true,
+    email: result.email,
     claimedEnrolments: result.claimedEnrolmentIds.length,
   });
-  setParentSessionCookie(res, jwt);
-  return res;
 });

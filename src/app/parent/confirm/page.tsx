@@ -39,8 +39,9 @@ function ConfirmInner() {
         if (cancelled) return;
         setClaimed(res.claimedEnrolments ?? 0);
         setState("done");
-        // Brief pause so the parent sees it worked before the redirect.
-        setTimeout(() => router.push("/parent"), 1800);
+        // 2026-07-30: sign in rather than auto-login, so the parent proves
+        // the password they chose works before starting a long enrolment.
+        setTimeout(() => router.push("/parent/login"), 2200);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -72,8 +73,8 @@ function ConfirmInner() {
             </h1>
             <p className="text-sm text-muted">
               {claimed > 0
-                ? `Your account is active and we've linked ${claimed} existing enrolment${claimed === 1 ? "" : "s"}.`
-                : "Your account is active. Taking you to your portal…"}
+                ? `Your account is active and we've linked ${claimed} existing enrolment${claimed === 1 ? "" : "s"}. Sign in to continue.`
+                : "Your account is active. Sign in with your password to start your child's enrolment."}
             </p>
           </>
         )}
