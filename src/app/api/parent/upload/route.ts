@@ -28,7 +28,20 @@ const ALLOWED_TYPES = [
   "image/heif",
 ];
 
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+/**
+ * 4MB — deliberately BELOW the ~4.5MB request-body ceiling Vercel applies
+ * to serverless functions.
+ *
+ * The old 10MB was unreachable: the platform rejects an oversized body
+ * before this handler ever runs, replying with plain-text "Request Entity
+ * Too Large". A parent saw that surface as
+ * `Unexpected token 'R', "Request En"... is not valid JSON`, because the
+ * client parsed it as JSON. The client now downscales photos before
+ * sending and handles non-JSON replies; this keeps our stated limit
+ * honest. Must stay in step with MAX_UPLOAD_MB in
+ * src/app/parent/enrol/ui.tsx.
+ */
+const MAX_SIZE = 4 * 1024 * 1024; // 4MB
 
 export const POST = withParentAuth(async (req) => {
   const formData = await req.formData();
@@ -43,7 +56,10 @@ export const POST = withParentAuth(async (req) => {
     );
   }
   if (file.size > MAX_SIZE) {
-    throw ApiError.badRequest("That file is larger than 10MB. Please upload a smaller copy.");
+    throw new ApiError(
+      413,
+      "That file is larger than 4MB. If it's a photo, try again — we shrink photos automatically. If it's a PDF, please upload a photo of the document instead.",
+    );
   }
 
   // Magic-byte check: a renamed .exe still declares image/png otherwise.

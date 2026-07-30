@@ -138,8 +138,54 @@ export interface DraftBilling {
   method?: "credit_card" | "bank_account" | "";
   startDate?: string;
   bookingType?: "permanent" | "casual" | "";
+  /**
+   * Which sessions, by program. Keyed by SESSION_ROWS[].key.
+   *
+   * A day-based row (before/after school care) stores the weekday names;
+   * a whole-of-session row (Rise and Shine, Amana Afternoons, Holiday
+   * Quest) stores `["yes"]` when ticked. One shape for both keeps the
+   * autosaved draft simple and the rendering uniform.
+   */
+  sessions?: Record<string, string[]>;
+  /** @deprecated superseded by `sessions`; kept so old drafts still read. */
   days?: string[];
 }
+
+/**
+ * The booking grid, mirroring the layout Daniel supplied: a program name
+ * on the left, and either the five weekdays or a single session time on
+ * the right. Editing a row is one click, which is the whole point.
+ */
+export const SESSION_ROWS: {
+  key: string;
+  label: string;
+  help?: string;
+  /** Weekday checkboxes when true, a single time checkbox when false. */
+  perDay: boolean;
+  /** Shown as the single option's label when `perDay` is false. */
+  time?: string;
+}[] = [
+  {
+    key: "beforeSchool",
+    label: "Before school care",
+    help: "We collect your child from home-room or the school gate and take them to the service before the school day starts.",
+    perDay: true,
+  },
+  { key: "riseAndShine", label: "Rise and Shine", perDay: false, time: "7–8:30am" },
+  {
+    key: "afterSchool",
+    label: "After school care",
+    help: "We collect your child at the end of the school day and care for them until you arrive.",
+    perDay: true,
+  },
+  {
+    key: "amanaAfternoons",
+    label: "Amana Afternoons",
+    perDay: false,
+    time: "3:30–6:30pm",
+  },
+  { key: "holidayQuest", label: "Holiday Quest", perDay: false, time: "7am–6pm" },
+];
 
 export interface DraftAgreement {
   firstAid?: boolean | null;
@@ -453,12 +499,20 @@ export function contactsBlocker(d: EnrolDraft): string | null {
   return "Please complete this step.";
 }
 
+/** Has this family picked at least one session anywhere on the grid? */
+export function anySessionSelected(b: DraftBilling | undefined): boolean {
+  const sessions = b?.sessions ?? {};
+  if (SESSION_ROWS.some((r) => (sessions[r.key] ?? []).length > 0)) return true;
+  // Drafts saved before the grid existed stored a flat day list.
+  return (b?.days ?? []).length > 0;
+}
+
 export function billingComplete(b: DraftBilling | undefined): boolean {
   if (!b) return false;
   if (!filled(b.startDate) || !filled(b.bookingType)) return false;
-  // Permanent bookings need the days; casual is by definition ad hoc.
-  if (b.bookingType === "permanent") return (b.days ?? []).length > 0;
-  return true;
+  // Whatever the booking type, we need to know WHICH sessions they want —
+  // a casual booking with nothing ticked tells staff nothing.
+  return anySessionSelected(b);
 }
 
 export function agreementComplete(a: DraftAgreement | undefined): boolean {

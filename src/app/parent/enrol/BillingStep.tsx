@@ -19,7 +19,12 @@
 
 import { ShieldCheck } from "lucide-react";
 import { field, Field } from "./ui";
-import { WEEKDAYS, type DraftBilling } from "@/lib/enrol-draft";
+import {
+  anySessionSelected,
+  SESSION_ROWS,
+  WEEKDAYS,
+  type DraftBilling,
+} from "@/lib/enrol-draft";
 
 export interface PaymentEntry {
   method: "credit_card" | "bank_account" | "";
@@ -77,11 +82,20 @@ export function BillingStep({
   payment: PaymentEntry;
   onPaymentChange: (patch: Partial<PaymentEntry>) => void;
 }) {
-  const days = data.days ?? [];
-  const toggleDay = (d: string) =>
-    onChange({
-      days: days.includes(d) ? days.filter((x) => x !== d) : [...days, d],
-    });
+  const sessions = data.sessions ?? {};
+
+  const toggleDay = (rowKey: string, day: string) => {
+    const current = sessions[rowKey] ?? [];
+    const next = current.includes(day)
+      ? current.filter((d) => d !== day)
+      : [...current, day];
+    onChange({ sessions: { ...sessions, [rowKey]: next } });
+  };
+
+  const toggleSession = (rowKey: string) => {
+    const on = (sessions[rowKey] ?? []).length > 0;
+    onChange({ sessions: { ...sessions, [rowKey]: on ? [] : ["yes"] } });
+  };
 
   const thisYear = new Date().getFullYear();
 
@@ -120,31 +134,76 @@ export function BillingStep({
         </Field>
       </div>
 
-      {data.bookingType === "permanent" && (
-        <div>
-          <span className="block text-sm font-medium text-foreground mb-2">
-            Which days? <span className="text-red-500">*</span>
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {WEEKDAYS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => toggleDay(d)}
-                aria-pressed={days.includes(d)}
-                className={
-                  "px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors " +
-                  (days.includes(d)
-                    ? "border-brand bg-brand/10 text-brand"
-                    : "border-border bg-card text-muted hover:border-brand/40")
-                }
+      {/* Program on the left, its days or session time on the right —
+          matching the layout Daniel supplied. One click per change. */}
+      <div>
+        <span className="block text-sm font-medium text-foreground mb-3">
+          Which sessions do you need? <span className="text-red-500">*</span>
+        </span>
+
+        <div className="space-y-1">
+          {SESSION_ROWS.map((row) => {
+            const picked = sessions[row.key] ?? [];
+            return (
+              <div
+                key={row.key}
+                className="grid grid-cols-1 sm:grid-cols-[minmax(0,11rem)_1fr] gap-2 sm:gap-4 items-start py-2.5 border-b border-border last:border-b-0"
               >
-                {d.slice(0, 3)}
-              </button>
-            ))}
-          </div>
+                <div className="sm:text-right sm:pt-1.5">
+                  <span className="text-sm font-semibold text-foreground">
+                    {row.label}
+                  </span>
+                  {row.help && (
+                    <span
+                      title={row.help}
+                      aria-label={row.help}
+                      className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand/15 text-brand text-2xs font-bold align-middle cursor-help"
+                    >
+                      ?
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                  {row.perDay ? (
+                    WEEKDAYS.map((d) => (
+                      <label
+                        key={d}
+                        className="inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={picked.includes(d)}
+                          onChange={() => toggleDay(row.key, d)}
+                          className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                        />
+                        <span className="text-sm text-foreground">{d}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={picked.length > 0}
+                        onChange={() => toggleSession(row.key)}
+                        className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                      />
+                      <span className="text-sm text-foreground">{row.time}</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {!anySessionSelected(data) && (
+          <p className="mt-2 text-xs text-muted">
+            Pick at least one — you can change these any time once
+            you&apos;re enrolled.
+          </p>
+        )}
+      </div>
 
       <div className="pt-4 border-t border-border space-y-4">
         <div className="flex items-start gap-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-3">
