@@ -46,7 +46,7 @@ import {
 import { AgreementStep } from "./AgreementStep";
 import {
   stepComplete,
-  contactsBlocker,
+  stepBlocker,
   draftSubmittable,
   type DraftAgreement,
   type DraftBilling,
@@ -91,6 +91,20 @@ export default function ParentEnrolPage() {
   const children = form.children ?? [{}];
 
   const canAdvance = stepComplete(step, form);
+  // On the last step the blocker also has to account for payment, which
+  // lives outside the draft.
+  const blocker =
+    step === LAST_STEP
+      ? submitting
+        ? null
+        : !stepComplete(4, form)
+          ? stepBlocker(4, form)
+          : !paymentEntered(payment)
+            ? "Please go back to Billing and enter your payment details — they aren't saved between visits."
+            : !draftSubmittable(form)
+              ? "Some earlier steps are incomplete. Use the circles above to go back and finish them."
+              : null
+      : stepBlocker(step, form);
   const canSubmit =
     draftSubmittable(form) && paymentEntered(payment) && !submitting;
 
@@ -140,7 +154,7 @@ export default function ParentEnrolPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6">
       {/* Progress */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -149,16 +163,19 @@ export default function ParentEnrolPage() {
             const done = i < step;
             const current = i === step;
             return (
-              <div key={s.key} className="flex-1 flex flex-col items-center relative">
+              <div key={s.key} className="flex-1 min-w-0 px-0.5 flex flex-col items-center relative">
                 {i > 0 && (
-                  <span className="absolute top-5 right-1/2 w-full border-t border-dashed border-border -z-10" />
+                  <span className="absolute top-5 right-1/2 w-full border-t border-dashed border-border z-0" />
                 )}
                 <button
                   type="button"
                   onClick={() => i <= step && goTo(i)}
                   disabled={i > step}
                   className={
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors " +
+                    // 44px square, NOT smaller: globals.css forces
+                    // min-height:44px on every button under pointer:coarse,
+                    // so anything shorter renders as an oval on a phone.
+                    "w-11 h-11 rounded-full flex items-center justify-center transition-colors shrink-0 relative z-10 " +
                     (current
                       ? "bg-brand text-white"
                       : done
@@ -171,7 +188,7 @@ export default function ParentEnrolPage() {
                   {done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                 </button>
                 <span className={
-                  "mt-2 text-xs font-medium " +
+                  "mt-2 text-2xs sm:text-xs font-medium text-center leading-tight break-words " +
                   (current ? "text-brand" : "text-muted")
                 }>
                   {s.label}
@@ -194,7 +211,7 @@ export default function ParentEnrolPage() {
         </span>
       </div>
 
-      <div className="bg-card rounded-xl border border-border p-5 sm:p-6">
+      <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
         {step === 0 && (
           <MeStep
             data={(form.me ?? {}) as MeData}
@@ -231,30 +248,13 @@ export default function ParentEnrolPage() {
         )}
       </div>
 
-      {/* Contacts has the most rules, so a dead Next there is the most
-          confusing. Say exactly what's missing rather than leaving them to
-          guess — Daniel hit precisely this. */}
-      {step === 2 && !canAdvance && (
+      {/* A disabled Next explains nothing on a phone — `title` needs a
+          hover that touch devices don't have. Say what's missing, on
+          every step. */}
+      {blocker && (
         <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
           <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-800 dark:text-amber-200">
-            {contactsBlocker(form)}
-          </p>
-        </div>
-      )}
-
-      {/* On the final step, say WHY submit is disabled. A dead button with
-          no explanation is the worst possible end to a long form. */}
-      {step === LAST_STEP && !canSubmit && !submitting && (
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
-          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-800 dark:text-amber-200">
-            {!stepComplete(4, form)
-              ? "Please answer every consent, accept the terms and privacy policy, and type your name to sign."
-              : !paymentEntered(payment)
-                ? "Please go back to Billing and enter your payment details — they aren't saved between visits."
-                : "Some earlier steps are incomplete. Use the circles above to go back and finish them."}
-          </p>
+          <p className="text-xs text-amber-800 dark:text-amber-200">{blocker}</p>
         </div>
       )}
 
@@ -263,7 +263,7 @@ export default function ParentEnrolPage() {
           type="button"
           onClick={() => goTo(Math.max(0, step - 1))}
           disabled={step === 0}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border text-foreground/80 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 px-4 py-3 min-h-11 rounded-lg border border-border text-foreground/80 disabled:opacity-40"
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
@@ -273,8 +273,7 @@ export default function ParentEnrolPage() {
             type="button"
             onClick={() => goTo(step + 1)}
             disabled={!canAdvance}
-            title={!canAdvance ? "Please complete the required fields" : undefined}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>
@@ -283,7 +282,7 @@ export default function ParentEnrolPage() {
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>

@@ -49,6 +49,8 @@ export interface DraftMe {
   suburb?: string;
   state?: string;
   postcode?: string;
+  /** Reg 160(3)(i) requires the cultural background of the child AND parents. */
+  culturalBackground?: string;
   isLegalCarer?: boolean;
   ccsApproved?: CcsApproved;
   ccsApplied?: CcsApplied;
@@ -91,6 +93,13 @@ export interface DraftChild {
 
   doctorName?: string;
   doctorPhone?: string;
+  /** Reg 162(a) requires the practitioner's ADDRESS, not just a phone. */
+  doctorAddress?: string;
+  /** Reg 162(g) — immunisation STATUS, distinct from the uploaded record. */
+  immunisationStatus?: string;
+  /** Reg 160(3)(j) — additional needs / special considerations. */
+  additionalNeeds?: boolean | null;
+  additionalNeedsDetail?: string;
 
   /** Birth certificate, immunisation record, photo, action plans. */
   uploads?: DraftUpload[];
@@ -104,6 +113,11 @@ export interface DraftEmergencyContact {
   name?: string;
   relationship?: string;
   phone?: string;
+  /**
+   * Reg 160(3)(d)-(e) require the ADDRESS of an emergency contact and of
+   * anyone authorised to collect the child — not just a phone number.
+   */
+  address?: string;
   consentTransport?: boolean | null;
   consentMedical?: boolean | null;
   consentOffPremises?: boolean | null;
@@ -124,6 +138,10 @@ export interface DraftSecondaryParent {
   email?: string;
   mobile?: string;
   relationship?: string;
+  /** Reg 160(3)(b) — address of EACH parent/guardian. */
+  address?: string;
+  /** Saves retyping when both carers live together. */
+  sameAddressAsPrimary?: boolean;
 }
 
 export interface DraftContacts {
@@ -132,6 +150,13 @@ export interface DraftContacts {
   emergency?: DraftEmergencyContact[];
   courtOrders?: boolean | null;
   courtOrderUploads?: DraftUpload[];
+  /**
+   * Reg 160(3)(f): the record must name any person whose access to the
+   * child is PROHIBITED or restricted. "A court order exists" is not
+   * enough for an educator deciding whether to release a child at the
+   * door — they need the name.
+   */
+  courtOrderRestrictedPersons?: string;
 }
 
 export interface DraftBilling {
@@ -281,6 +306,18 @@ export const REQUIRED_CHILD_DOCUMENTS = [
   { type: "immunisation_record", label: "Immunisation record" },
 ] as const;
 
+/**
+ * Reg 162(g). "Exemption" is a real, lawful category (medical
+ * contraindication or a recognised exemption) and omitting it would force
+ * those families to answer inaccurately.
+ */
+export const IMMUNISATION_STATUS_OPTIONS = [
+  "Up to date",
+  "Not up to date / catching up",
+  "Medical exemption",
+  "Other exemption",
+] as const;
+
 export const OPTIONAL_CHILD_DOCUMENTS = [
   { type: "child_photo", label: "Photo of your child" },
   { type: "medical_action_plan", label: "Medical / action plan" },
@@ -309,6 +346,7 @@ export function meComplete(me: DraftMe | undefined): boolean {
     filled(me.street) &&
     filled(me.suburb) &&
     filled(me.crn) &&
+    filled(me.culturalBackground) &&
     me.isLegalCarer === true &&
     ccsAnswered({ approved: me.ccsApproved ?? null, applied: me.ccsApplied ?? null })
   );
@@ -362,6 +400,11 @@ export function childComplete(c: DraftChild | undefined): boolean {
 
   const documents = REQUIRED_CHILD_DOCUMENTS.every((d) => hasUpload(c, d.type));
 
+  // Reg 162(a): the practitioner's name, ADDRESS and phone must all be on
+  // the record. Reg 162(g): immunisation status.
+  const doctor =
+    filled(c.doctorName) && filled(c.doctorPhone) && filled(c.doctorAddress);
+
   return (
     filled(c.firstName) &&
     filled(c.surname) &&
@@ -369,6 +412,9 @@ export function childComplete(c: DraftChild | undefined): boolean {
     filled(c.schoolName) &&
     filled(c.classroom) &&
     screeningAnswered &&
+    typeof c.additionalNeeds === "boolean" &&
+    filled(c.immunisationStatus) &&
+    doctor &&
     medicare &&
     documents
   );
@@ -386,7 +432,11 @@ export function emergencyContactComplete(
     (q) => typeof c[q.key] === "boolean",
   );
   return (
-    filled(c.name) && filled(c.relationship) && filled(c.phone) && consentsAnswered
+    filled(c.name) &&
+    filled(c.relationship) &&
+    filled(c.phone) &&
+    filled(c.address) &&
+    consentsAnswered
   );
 }
 
@@ -399,7 +449,11 @@ export function secondaryParentFilled(
 }
 
 function secondaryParentValid(sp: DraftSecondaryParent | undefined): boolean {
-  return Boolean(sp && filled(sp.firstName) && filled(sp.surname) && filled(sp.mobile));
+  // Address may be inherited from the primary carer rather than typed.
+  const hasAddress = Boolean(sp?.sameAddressAsPrimary || filled(sp?.address));
+  return Boolean(
+    sp && filled(sp.firstName) && filled(sp.surname) && filled(sp.mobile) && hasAddress,
+  );
 }
 
 /**
@@ -426,6 +480,8 @@ export function contactsComplete(d: EnrolDraft): boolean {
     // still an error rather than a silent partial record.
     if (secondaryParentFilled(sp) && !secondaryParentValid(sp)) return false;
     if ((contacts.courtOrderUploads ?? []).length === 0) return false;
+    // An educator at the door needs the NAME, not just "an order exists".
+    if (!filled(contacts.courtOrderRestrictedPersons)) return false;
   }
 
   const valid = (contacts.emergency ?? []).filter(emergencyContactComplete);
@@ -461,7 +517,7 @@ export function contactsBlocker(d: EnrolDraft): string | null {
     return "Please answer whether any court orders or parenting plans apply.";
   }
   if (contacts.courtOrders === false && !secondaryParentValid(sp)) {
-    return "Please add a second parent or carer — first name, last name and mobile. If a court order means you can't, tick the court order question above.";
+    return "Please add a second parent or carer — first name, last name, mobile and address. If a court order means you can't, answer Yes to the court order question above.";
   }
   if (contacts.courtOrders === true) {
     if (secondaryParentFilled(sp) && !secondaryParentValid(sp)) {
@@ -470,6 +526,9 @@ export function contactsBlocker(d: EnrolDraft): string | null {
     if ((contacts.courtOrderUploads ?? []).length === 0) {
       return "Please upload a copy of the court order or parenting plan.";
     }
+    if (!filled(contacts.courtOrderRestrictedPersons)) {
+      return "Please name anyone whose contact with your child is restricted, so our educators know.";
+    }
   }
 
   const all = contacts.emergency ?? [];
@@ -477,7 +536,7 @@ export function contactsBlocker(d: EnrolDraft): string | null {
   if (valid.length < 1) {
     return all.length === 0
       ? "Please add one emergency contact."
-      : "Please complete the emergency contact's name, relationship, phone, and answer each of the authorisation questions.";
+      : "Please complete the emergency contact's name, relationship, phone and address, and answer each of the authorisation questions.";
   }
 
   const carerPhones = new Set(
@@ -535,6 +594,106 @@ export function agreementComplete(a: DraftAgreement | undefined): boolean {
     a.privacyAccepted === true &&
     filled(a.signature)
   );
+}
+
+/**
+ * Why this step won't let the parent continue, or null when it will.
+ *
+ * Exists because a disabled button explains nothing on a touch device —
+ * `title` tooltips need a hover that phones don't have. The Child step
+ * alone has a dozen required fields spread over a long scroll, so
+ * "something above is missing" is not a usable hint.
+ */
+export function stepBlocker(step: number, d: EnrolDraft): string | null {
+  if (stepComplete(step, d)) return null;
+  switch (step) {
+    case 0: {
+      const me = d.me ?? {};
+      if (!filled(me.crn)) {
+        return "Please enter your CRN — we need it to claim your Child Care Subsidy.";
+      }
+      if (!filled(me.culturalBackground)) {
+        return "Please select your cultural background.";
+      }
+      if (!me.isLegalCarer) {
+        return "Please confirm you're the parent or legal carer.";
+      }
+      if (
+        !ccsAnswered({
+          approved: me.ccsApproved ?? null,
+          applied: me.ccsApplied ?? null,
+        })
+      ) {
+        return "Please answer the Child Care Subsidy questions.";
+      }
+      return "Please fill in your name, mobile, date of birth and home address.";
+    }
+    case 1: {
+      const kids = d.children ?? [];
+      if (kids.length === 0) return "Please add your child's details.";
+      const i = kids.findIndex((c) => !childComplete(c));
+      if (i === -1) return null;
+      const c = kids[i];
+      const who = c.firstName?.trim() || `Child ${i + 1}`;
+      if (!filled(c.firstName) || !filled(c.surname) || !filled(c.dob)) {
+        return `Please complete ${who}'s name and date of birth.`;
+      }
+      if (!filled(c.schoolName) || !filled(c.classroom)) {
+        return `Please select ${who}'s school and enter their classroom.`;
+      }
+      if (!filled(c.medicareNumber) || !medicareExpiryValid(c.medicareExpiry)) {
+        return `Please enter ${who}'s Medicare number and expiry as MM/YYYY.`;
+      }
+      const screening = [
+        c.anaphylaxis,
+        c.allergies,
+        c.asthma,
+        c.otherCondition,
+        c.dietaryRestrictions,
+        c.paracetamol,
+        c.additionalNeeds,
+      ];
+      if (screening.some((v) => typeof v !== "boolean")) {
+        return `Please answer every health question for ${who} with Yes or No.`;
+      }
+      if (!filled(c.immunisationStatus)) {
+        return `Please select ${who}'s immunisation status.`;
+      }
+      if (
+        !filled(c.doctorName) ||
+        !filled(c.doctorPhone) ||
+        !filled(c.doctorAddress)
+      ) {
+        return `Please add ${who}'s doctor — name, phone and address.`;
+      }
+      const missing = REQUIRED_CHILD_DOCUMENTS.filter(
+        (doc) => !hasUpload(c, doc.type),
+      );
+      if (missing.length) {
+        return `Please upload ${who}'s ${missing
+          .map((m) => m.label.toLowerCase())
+          .join(" and ")}. A photo from your phone is fine.`;
+      }
+      return `Please finish ${who}'s details.`;
+    }
+    case 2:
+      return contactsBlocker(d);
+    case 3: {
+      const b = d.billing ?? {};
+      if (!filled(b.startDate)) return "Please choose a preferred start date.";
+      if (!filled(b.bookingType)) return "Please choose a booking type.";
+      if (!anySessionSelected(b)) {
+        return "Please tick at least one session — before school care, after school care, or Holiday Quest.";
+      }
+      return "Please complete the booking details.";
+    }
+    case 4:
+      return agreementComplete(d.agreement)
+        ? null
+        : "Please answer every consent, accept the terms and privacy policy, and type your name to sign.";
+    default:
+      return null;
+  }
 }
 
 /** 0-indexed, matching ENROL_STEPS. */

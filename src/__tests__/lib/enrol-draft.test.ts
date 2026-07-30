@@ -13,6 +13,7 @@ import {
   medicareExpiryValid,
   formatMedicareExpiry,
   stepComplete,
+  stepBlocker,
   EMERGENCY_RELATIONSHIP_OPTIONS,
   type DraftEmergencyContact,
   type EnrolDraft,
@@ -26,6 +27,7 @@ const goodMe = {
   street: "1 Test St",
   suburb: "Auburn",
   crn: "123 456 789A",
+  culturalBackground: "Lebanese",
   isLegalCarer: true,
   ccsApproved: "yes" as const,
 };
@@ -44,6 +46,11 @@ const goodChild = {
   otherCondition: false,
   dietaryRestrictions: false,
   paracetamol: true,
+  additionalNeeds: false,
+  immunisationStatus: "Up to date",
+  doctorName: "Dr Smith",
+  doctorPhone: "02 9000 0000",
+  doctorAddress: "5 Clinic Rd, Auburn NSW 2144",
   uploads: [
     { type: "birth_certificate", filename: "bc.pdf", url: "https://b/bc.pdf" },
     { type: "immunisation_record", filename: "im.pdf", url: "https://b/im.pdf" },
@@ -54,6 +61,7 @@ const goodEmergency: DraftEmergencyContact = {
   name: "Fatima Khan",
   relationship: "Auntie",
   phone: "0411 111 111",
+  address: "9 Neighbour St, Auburn NSW 2144",
   consentTransport: true,
   consentMedical: true,
   consentOffPremises: true,
@@ -70,6 +78,7 @@ const goodContacts = {
     surname: "Rahman",
     mobile: "0422 222 222",
     email: "omar@example.com",
+    sameAddressAsPrimary: true,
   },
   emergency: [goodEmergency],
 };
@@ -296,6 +305,7 @@ describe("second carer requirement", () => {
         courtOrderUploads: [
           { type: "court_order", filename: "o.pdf", url: "https://b/o.pdf" },
         ],
+        courtOrderRestrictedPersons: "None",
       },
     };
     expect(contactsComplete(withUpload)).toBe(true);
@@ -309,6 +319,7 @@ describe("second carer requirement", () => {
         courtOrderUploads: [
           { type: "court_order", filename: "o.pdf", url: "https://b/o.pdf" },
         ],
+        courtOrderRestrictedPersons: "None",
         secondaryParent: { firstName: "Omar" },
         emergency: [goodEmergency],
       },
@@ -323,6 +334,134 @@ describe("second carer requirement", () => {
     };
     expect(contactsComplete(d)).toBe(false);
     expect(contactsBlocker(d)).toMatch(/court order/i);
+  });
+});
+
+describe("National Regulations record requirements", () => {
+  it("requires the parent's cultural background (reg 160(3)(i))", () => {
+    expect(meComplete({ ...goodMe, culturalBackground: "" })).toBe(false);
+  });
+
+  it("requires the doctor's name, phone AND address (reg 162(a))", () => {
+    expect(childComplete({ ...goodChild, doctorAddress: "" })).toBe(false);
+    expect(childComplete({ ...goodChild, doctorPhone: "" })).toBe(false);
+    expect(childComplete({ ...goodChild, doctorName: "" })).toBe(false);
+  });
+
+  it("requires immunisation status, separate from the uploaded record (reg 162(g))", () => {
+    expect(childComplete({ ...goodChild, immunisationStatus: "" })).toBe(false);
+  });
+
+  it("requires the additional-needs question to be answered (reg 160(3)(j))", () => {
+    expect(childComplete({ ...goodChild, additionalNeeds: undefined })).toBe(false);
+    expect(childComplete({ ...goodChild, additionalNeeds: true })).toBe(true);
+  });
+
+  it("requires an emergency contact's address (reg 160(3)(d))", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: {
+        ...goodContacts,
+        emergency: [{ ...goodEmergency, address: "" }],
+      },
+    };
+    expect(contactsComplete(d)).toBe(false);
+  });
+
+  it("requires the second carer's address, or 'same as mine' (reg 160(3)(b))", () => {
+    const noAddr: EnrolDraft = {
+      ...fullDraft,
+      contacts: {
+        ...goodContacts,
+        secondaryParent: {
+          firstName: "Omar",
+          surname: "Rahman",
+          mobile: "0422 222 222",
+        },
+      },
+    };
+    expect(contactsComplete(noAddr)).toBe(false);
+
+    const typed: EnrolDraft = {
+      ...noAddr,
+      contacts: {
+        ...noAddr.contacts,
+        secondaryParent: {
+          ...noAddr.contacts!.secondaryParent,
+          address: "12 Other St, Auburn",
+        },
+      },
+    };
+    expect(contactsComplete(typed)).toBe(true);
+  });
+
+  it("requires naming who is restricted when a court order applies (reg 160(3)(f))", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: {
+        courtOrders: true,
+        courtOrderUploads: [
+          { type: "court_order", filename: "o.pdf", url: "https://b/o.pdf" },
+        ],
+        emergency: [goodEmergency],
+      },
+    };
+    expect(contactsComplete(d)).toBe(false);
+    expect(contactsBlocker(d)).toMatch(/restricted/i);
+  });
+});
+
+describe("stepBlocker", () => {
+  it("is silent when a step is complete", () => {
+    for (const s of [0, 1, 2, 3, 4]) {
+      expect(stepBlocker(s, fullDraft)).toBeNull();
+    }
+  });
+
+  it("names the missing CRN rather than saying 'fill in the form'", () => {
+    expect(stepBlocker(0, { ...fullDraft, me: { ...goodMe, crn: "" } })).toMatch(
+      /CRN/i,
+    );
+  });
+
+  it("names the CHILD it's complaining about", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      children: [goodChild, { firstName: "Sara" }],
+    };
+    expect(stepBlocker(1, d)).toMatch(/Sara/);
+  });
+
+  it("tells the parent which document is missing", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      children: [{ ...goodChild, uploads: [goodChild.uploads[0]] }],
+    };
+    expect(stepBlocker(1, d)).toMatch(/immunisation record/i);
+  });
+
+  it("points at the Medicare format when the expiry is malformed", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      children: [{ ...goodChild, medicareExpiry: "2030" }],
+    };
+    expect(stepBlocker(1, d)).toMatch(/MM\/YYYY/);
+  });
+
+  it("asks for a session when none is ticked", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      billing: { ...goodBilling, sessions: {} },
+    };
+    expect(stepBlocker(3, d)).toMatch(/session/i);
+  });
+
+  it("falls back to the contacts blocker on step 2", () => {
+    const d: EnrolDraft = {
+      ...fullDraft,
+      contacts: { ...goodContacts, courtOrders: undefined },
+    };
+    expect(stepBlocker(2, d)).toBe(contactsBlocker(d));
   });
 });
 

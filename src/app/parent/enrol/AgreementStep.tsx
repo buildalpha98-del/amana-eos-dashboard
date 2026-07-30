@@ -9,7 +9,22 @@
  */
 
 import { field, Field, SectionHeading, YesNo } from "./ui";
-import type { DraftAgreement } from "@/lib/enrol-draft";
+import { ENROLMENTS_EMAIL, type DraftAgreement } from "@/lib/enrol-draft";
+import {
+  CREDIT_CARD_FEE,
+  DIRECT_DEBIT_FEE,
+  dishonourDescription,
+  feeDescription,
+} from "@/lib/enrol-fees";
+
+/**
+ * Public policy documents. These pages must EXIST and be current — a
+ * checkbox saying "I have read and accept" a document the family was never
+ * shown is not an enforceable acceptance, and for the privacy policy it
+ * doesn't meet APP 1/5 either.
+ */
+const TERMS_URL = "https://amanaoshc.com.au/terms";
+const PRIVACY_URL = "https://amanaoshc.com.au/privacy";
 
 const CONSENTS: {
   key: keyof DraftAgreement;
@@ -82,7 +97,7 @@ export function AgreementStep({
         {CONSENTS.map((c) => (
           <div
             key={c.key}
-            className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
+            className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 pb-4 border-b border-border last:border-b-0 sm:border-b-0 sm:pb-0"
           >
             <div className="min-w-0 sm:pr-6">
               <p className="text-sm font-medium text-foreground">
@@ -105,38 +120,112 @@ export function AgreementStep({
 
       <SectionHeading>Agreement</SectionHeading>
 
+      {/*
+        Australian Privacy Principle 5 requires us to tell a family what
+        we're collecting and why AT THE POINT of collection. A checkbox
+        pointing at a policy they were never shown doesn't satisfy that,
+        and the enrolment collects health information, which is "sensitive
+        information" needing express consent.
+      */}
+      <details className="rounded-lg border border-border bg-surface p-3">
+        <summary className="text-sm font-medium text-foreground cursor-pointer">
+          How we handle your family&apos;s information
+        </summary>
+        <div className="mt-3 space-y-2 text-xs text-muted leading-relaxed">
+          <p>
+            Amana OSHC collects the information on this form because the
+            Education and Care Services National Law and Regulations require
+            us to keep an enrolment record for every child, and because we
+            need it to care for your child safely.
+          </p>
+          <p>
+            That includes <strong>health information</strong> — allergies,
+            medical conditions, medications and immunisation status. This is
+            sensitive information, and we collect it only with your consent
+            and only so we can keep your child safe.
+          </p>
+          <p>
+            We share it with: our educators (as needed to care for your
+            child), Services Australia (for Child Care Subsidy), and
+            emergency services or medical practitioners in an emergency. We
+            do not sell it or use it for marketing without asking you
+            separately.
+          </p>
+          <p>
+            Enrolment records are kept for the period the Regulations
+            require — generally until the child turns 25. You can ask to see
+            or correct your family&apos;s information at any time by
+            emailing{" "}
+            <a href={`mailto:${ENROLMENTS_EMAIL}`} className="underline">
+              {ENROLMENTS_EMAIL}
+            </a>
+            .
+          </p>
+        </div>
+      </details>
+
       <div className="space-y-3">
-        {(
-          [
-            {
-              key: "termsAccepted" as const,
-              text: "I have read and accept Amana OSHC's terms and conditions of enrolment.",
-            },
-            {
-              key: "privacyAccepted" as const,
-              text: "I have read and accept the privacy policy, and I consent to my family's information being handled as described in it.",
-            },
-            {
-              key: "debitAgreement" as const,
-              text: "I authorise Amana OSHC to debit the account I've provided for fees as they fall due.",
-            },
-          ]
-        ).map((t) => (
-          <label key={t.key} className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={Boolean(data[t.key])}
-              onChange={(e) => onChange({ [t.key]: e.target.checked })}
-              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
-            />
-            <span className="text-sm text-foreground leading-relaxed">
-              {t.text}
-              {t.key !== "debitAgreement" && (
-                <span className="text-red-500"> *</span>
-              )}
-            </span>
-          </label>
-        ))}
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={Boolean(data.termsAccepted)}
+            onChange={(e) => onChange({ termsAccepted: e.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+          />
+          <span className="text-sm text-foreground leading-relaxed">
+            I have read and accept Amana OSHC&apos;s{" "}
+            <a
+              href={TERMS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-medium"
+            >
+              terms and conditions of enrolment
+            </a>
+            , including the fee schedule.
+            <span className="text-red-500"> *</span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={Boolean(data.privacyAccepted)}
+            onChange={(e) => onChange({ privacyAccepted: e.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+          />
+          <span className="text-sm text-foreground leading-relaxed">
+            I have read the notice above and the{" "}
+            <a
+              href={PRIVACY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-medium"
+            >
+              privacy policy
+            </a>
+            , and I consent to Amana OSHC collecting and handling my
+            family&apos;s information — including my child&apos;s health
+            information — as described.
+            <span className="text-red-500"> *</span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={Boolean(data.debitAgreement)}
+            onChange={(e) => onChange({ debitAgreement: e.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+          />
+          <span className="text-sm text-foreground leading-relaxed">
+            I authorise Amana OSHC to debit the account I&apos;ve provided
+            for fees as they fall due, and I accept the processing fees set
+            out on the Billing step — {feeDescription(DIRECT_DEBIT_FEE)} for
+            direct debit or {feeDescription(CREDIT_CARD_FEE)} by card, plus{" "}
+            {dishonourDescription(DIRECT_DEBIT_FEE)}.
+          </span>
+        </label>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
