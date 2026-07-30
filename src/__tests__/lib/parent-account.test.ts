@@ -74,15 +74,28 @@ describe("createParentAccount", () => {
     expect(mockPrisma.parentAccount.create).not.toHaveBeenCalled();
   });
 
-  it("lets an UNverified duplicate re-register (lost email / mistyped pw)", async () => {
+  it("refuses to re-register an UNverified duplicate too", async () => {
+    // Changed 2026-07-31. Sign-up now issues a SESSION, so silently
+    // replacing the password on any existing account — verified or not —
+    // would be one-step account takeover. Every pre-existing account is
+    // sent to sign-in instead.
     mockPrisma.parentAccount.findUnique.mockResolvedValue({
       id: "acc-2",
       emailVerifiedAt: null,
     });
-    mockPrisma.parentAccount.update.mockResolvedValue({ id: "acc-2" });
     const res = await createParentAccount({ email: "a@b.com", password: "correcthorsebattery" });
-    expect(mockPrisma.parentAccount.update).toHaveBeenCalled();
-    expect(res.accountId).toBe("acc-2");
+    expect(res.alreadyExisted).toBe(true);
+    expect(res.mayAutoLogin).toBe(false);
+    expect(mockPrisma.parentAccount.update).not.toHaveBeenCalled();
+    expect(mockPrisma.parentAccount.create).not.toHaveBeenCalled();
+  });
+
+  it("permits auto-login ONLY for an account it just created", async () => {
+    mockPrisma.parentAccount.findUnique.mockResolvedValue(null);
+    mockPrisma.parentAccount.create.mockResolvedValue({ id: "acc-new" });
+    const res = await createParentAccount({ email: "new@b.com", password: "correcthorsebattery" });
+    expect(res.mayAutoLogin).toBe(true);
+    expect(res.alreadyExisted).toBe(false);
   });
 
   it("stores only a hash of the token, never the raw value", async () => {
@@ -146,14 +159,16 @@ describe("authenticateParent", () => {
     expect(await authenticateParent("a@b.com", "wrongpassword")).toBeNull();
   });
 
-  it("blocks login until the email is confirmed", async () => {
+  it("ALLOWS login before the email is confirmed", async () => {
+    // Changed 2026-07-31: verification moved to the enrolment-approval
+    // email. Making a family confirm an address before they could even
+    // reach the form was losing people at the doorstep.
     mockPrisma.parentAccount.findUnique.mockResolvedValue({
       id: "acc", email: "a@b.com", passwordHash: await hash("realpassword", 4),
       emailVerifiedAt: null, firstName: null, surname: null,
     });
-    await expect(authenticateParent("a@b.com", "realpassword")).rejects.toThrow(
-      /confirm your email/i,
-    );
+    const res = await authenticateParent("a@b.com", "realpassword");
+    expect(res?.accountId).toBe("acc");
   });
 
   it("succeeds for a verified account with the right password", async () => {

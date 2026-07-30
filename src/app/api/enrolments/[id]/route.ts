@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
+import { sendEmail } from "@/lib/email";
+import { reissueVerification } from "@/lib/parent-account";
+import { enrolmentApprovedEmail } from "@/lib/email-templates/parent-account";
 import { parseJsonBody } from "@/lib/api-error";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { sendParentWelcomeInvite } from "@/lib/notifications/parent-welcome";
@@ -129,6 +132,48 @@ const { id } = await context!.params!;
     sendParentWelcomeInvite(invite).catch((err) =>
       logger.error("Welcome invite failed", { contactId: invite.contactId, err }),
     );
+  }
+
+  // ── "Enrolment confirmed" + the email-verification ask ────────────────
+  // Verification lives HERE rather than at sign-up (2026-07-31): families
+  // now go straight from sign-up into the form, and are asked to confirm
+  // their address only once staff have approved them.
+  //
+  // Outside the transaction and fully swallowed — a mail failure must
+  // never roll back an approval that already activated the children and
+  // generated their bookings.
+  if (parsed.data.status === "processed") {
+    void (async () => {
+      try {
+        const primary = updated.primaryParent as {
+          email?: string;
+          firstName?: string;
+        } | null;
+        const email = primary?.email?.trim();
+        if (!email) return;
+
+        const kids = await prisma.child.findMany({
+          where: { enrolmentId: id },
+          select: { firstName: true },
+        });
+
+        // null when the address is already verified — then it's simply a
+        // confirmation email with nothing to action.
+        const reissued = await reissueVerification(email);
+        const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+
+        const { subject, html } = await enrolmentApprovedEmail({
+          name: primary?.firstName?.trim() || "there",
+          childNames: kids.map((c) => c.firstName).filter(Boolean),
+          verifyLink: reissued
+            ? `${base}/parent/confirm?token=${reissued.token}`
+            : null,
+        });
+        await sendEmail({ to: email, subject, html });
+      } catch (err) {
+        logger.error("Enrolment approval email failed", { enrolmentId: id, err });
+      }
+    })();
   }
 
   return NextResponse.json(updated);

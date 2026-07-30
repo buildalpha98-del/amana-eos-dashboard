@@ -54,3 +54,38 @@ describe("permissions", () => {
     expect(canBook("active")).toBe(true);
   });
 });
+
+describe("status vocabulary matches what the API actually writes", () => {
+  // Regression, 2026-07-31. PATCH /api/enrolments/[id] writes "processed"
+  // on approval (and activates the children), but this module only knew
+  // "approved"/"active" — so approving a family left them in
+  // needs_enrolment, locked out of the booking their approval was
+  // supposed to unlock.
+  it("treats 'processed' as approved", () => {
+    expect(getParentEnrolmentState([{ status: "processed" }])).toBe("active");
+  });
+
+  it("treats 'under_review' as pending, not unknown", () => {
+    expect(getParentEnrolmentState([{ status: "under_review" }])).toBe(
+      "pending_review",
+    );
+  });
+
+  it("routes rejected and archived back to the form", () => {
+    expect(getParentEnrolmentState([{ status: "rejected" }])).toBe(
+      "needs_enrolment",
+    );
+    expect(getParentEnrolmentState([{ status: "archived" }])).toBe(
+      "needs_enrolment",
+    );
+  });
+
+  it("lets one processed child open the portal while a sibling is pending", () => {
+    expect(
+      getParentEnrolmentState([
+        { status: "submitted" },
+        { status: "processed" },
+      ]),
+    ).toBe("active");
+  });
+});

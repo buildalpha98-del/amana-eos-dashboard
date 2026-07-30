@@ -88,8 +88,18 @@ export interface CreateAccountResult {
   accountId: string;
   /** Raw token to embed in the confirmation email. Never persisted. */
   verificationToken: string;
-  /** True when this email already had an account — caller must not leak it. */
+  /** True when this email already had an account. */
   alreadyExisted: boolean;
+  /**
+   * Whether the caller may sign this person straight in.
+   *
+   * FALSE whenever the account already existed. Sign-up now issues a
+   * session, so auto-logging into an account someone else created would
+   * be single-step account takeover: type a known family's email, choose
+   * any password, and you're inside their child's records. The only
+   * accounts we log straight into are ones this request just created.
+   */
+  mayAutoLogin: boolean;
 }
 
 /**
@@ -122,37 +132,29 @@ export async function createParentAccount(params: {
 
   // Already verified → do nothing but mint a token so the caller can send a
   // "you already have an account" email. Never overwrite a live password.
-  if (existing?.emailVerifiedAt) {
+  if (existing) {
+    // Do NOT touch the password and do NOT issue a session. They own this
+    // address already; the caller sends a "you already have an account"
+    // email and points them at sign-in.
     return {
       accountId: existing.id,
       verificationToken: randomBytes(32).toString("hex"),
       alreadyExisted: true,
+      mayAutoLogin: false,
     };
   }
 
   const passwordHash = await hash(params.password, BCRYPT_COST);
 
-  // Unverified duplicate → let them re-register (they likely lost the email
-  // or mistyped the password), replacing the un-activated credentials.
-  const account = existing
-    ? await prisma.parentAccount.update({
-        where: { id: existing.id },
-        data: {
-          passwordHash,
-          firstName: params.firstName ?? undefined,
-          surname: params.surname ?? undefined,
-        },
-        select: { id: true },
-      })
-    : await prisma.parentAccount.create({
-        data: {
-          email,
-          passwordHash,
-          firstName: params.firstName ?? null,
-          surname: params.surname ?? null,
-        },
-        select: { id: true },
-      });
+  const account = await prisma.parentAccount.create({
+    data: {
+      email,
+      passwordHash,
+      firstName: params.firstName ?? null,
+      surname: params.surname ?? null,
+    },
+    select: { id: true },
+  });
 
   const raw = randomBytes(32).toString("hex");
   await prisma.parentEmailVerification.create({
@@ -166,7 +168,8 @@ export async function createParentAccount(params: {
   return {
     accountId: account.id,
     verificationToken: raw,
-    alreadyExisted: Boolean(existing),
+    alreadyExisted: false,
+    mayAutoLogin: true,
   };
 }
 
@@ -254,12 +257,10 @@ export async function authenticateParent(
   if (!account) return null;
   if (!(await compare(password, account.passwordHash))) return null;
 
-  if (!account.emailVerifiedAt) {
-    throw ApiError.forbidden(
-      "Please confirm your email address first — check your inbox for the link we sent.",
-    );
-  }
-
+  // 2026-07-31: an UNVERIFIED address can now sign in. Verification moved
+  // to the enrolment-approval email — making a family verify before they
+  // can even see the form was turning people away at the door, and the
+  // address gets proven before anything of consequence happens anyway.
   await prisma.parentAccount.update({
     where: { id: account.id },
     data: { lastLoginAt: new Date() },

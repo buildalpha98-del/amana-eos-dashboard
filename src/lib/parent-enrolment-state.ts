@@ -19,10 +19,31 @@
  * parent allowed to…" and drifting apart.
  */
 
-/** Status values on EnrolmentSubmission that count as staff-approved. */
-const APPROVED_STATUSES = new Set(["approved", "active"]);
-/** Statuses that mean "submitted and awaiting a decision". */
-const PENDING_STATUSES = new Set(["submitted", "processing", "in_review"]);
+/**
+ * Status values on EnrolmentSubmission that count as staff-approved.
+ *
+ * "processed" is the REAL one — it's what PATCH /api/enrolments/[id]
+ * writes when staff confirm an enrolment, and what activates the children
+ * and generates their bookings.
+ *
+ * It was missing here (2026-07-31). The effect was that approving a family
+ * did nothing for them: this function recognised neither "processed" nor
+ * "under_review", so an approved enrolment fell through to
+ * needs_enrolment and the family stayed locked out of booking — the exact
+ * thing approval is supposed to unlock. "approved"/"active" are kept as
+ * defensive synonyms in case another path ever writes them.
+ */
+const APPROVED_STATUSES = new Set(["processed", "approved", "active"]);
+/**
+ * Submitted, awaiting a decision. "under_review" is the value the status
+ * enum actually uses; "in_review"/"processing" are tolerated synonyms.
+ */
+const PENDING_STATUSES = new Set([
+  "submitted",
+  "under_review",
+  "processing",
+  "in_review",
+]);
 
 export type ParentEnrolmentState =
   | "needs_enrolment"
@@ -46,8 +67,8 @@ export function getParentEnrolmentState(
     return "pending_review";
   }
 
-  // Only drafts / declined / unknown statuses left — treat as not enrolled
-  // so they're routed back into the form rather than stranded.
+  // Only drafts / rejected / archived / unknown left — treat as not
+  // enrolled so they're routed back into the form rather than stranded.
   return "needs_enrolment";
 }
 
