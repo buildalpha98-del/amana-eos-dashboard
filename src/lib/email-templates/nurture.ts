@@ -21,15 +21,22 @@ import { parentEmailLayout, buttonHtml, escapeHtml } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 /**
- * Amana's own enrolment wizard — the form we push in every nurture email
- * (NOT the OWNA portal). Callers that know the enquiry pass the prefilled
- * per-enquiry link (`/enrol/<enquiryId>`) so the parent's details carry over
- * and submission auto-advances their pipeline card to enrolled.
+ * Where we send a family to enrol.
+ *
+ * Points at SIGN-UP, not the old anonymous form. Enrolment is now
+ * account-backed: that's what lets a parent stop half way and resume on
+ * another device, and what attaches the enrolment to them afterwards.
+ * `/enrol` is retired and redirects here anyway — this just stops us
+ * minting fresh links to a dead path.
+ *
+ * NOTE: callers can still pass a per-enquiry `enrolUrl` (`/enrol/<id>`)
+ * for prefill. Those links remain live for emails already sent, but new
+ * sends should prefer this default.
  */
 function fallbackEnrolUrl(): string {
   return process.env.NEXTAUTH_URL
-    ? `${process.env.NEXTAUTH_URL}/enrol`
-    : "https://amanaoshc.company/enrol";
+    ? `${process.env.NEXTAUTH_URL}/parent/signup`
+    : "https://amanaoshc.company/parent/signup";
 }
 
 /**

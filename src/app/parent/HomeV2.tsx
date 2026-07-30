@@ -18,6 +18,7 @@ import {
 } from "@/components/parent/ui";
 import { TimelineWidget } from "@/components/parent/TimelineWidget";
 import { InstallBanner } from "@/components/parent/InstallBanner";
+import { OwnaTransitionNotice } from "@/components/parent/OwnaTransitionNotice";
 import { CentreInfoCard } from "@/components/parent/CentreInfoCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,10 @@ export default function ParentHomeV2() {
     <div className="space-y-7">
       {/* PWA install banner — only renders when eligible */}
       <InstallBanner />
+
+      {/* Temporary: we're still on OWNA day to day. Remove when the
+          portal goes fully live. */}
+      <OwnaTransitionNotice />
 
       {/* ─── Greeting ─────────────────────────────────── */}
       <header>

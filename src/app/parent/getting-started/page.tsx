@@ -3,10 +3,6 @@
 import Link from "next/link";
 import {
   Rocket,
-  User,
-  Stethoscope,
-  FileText,
-  UserCheck,
   Smartphone,
   CheckCircle2,
   ChevronRight,
@@ -14,7 +10,6 @@ import {
 } from "lucide-react";
 import {
   useParentOnboarding,
-  useParentChildren,
   useMarkOnboardingStep,
   type OnboardingProgress,
 } from "@/hooks/useParentPortal";
@@ -34,7 +29,6 @@ interface ChecklistItem {
 
 export default function GettingStartedPage() {
   const { data: onboarding, isLoading } = useParentOnboarding();
-  const { data: children } = useParentChildren();
   const markStep = useMarkOnboardingStep();
 
   if (isLoading) return <OnboardingSkeleton />;
@@ -47,50 +41,29 @@ export default function GettingStartedPage() {
     installed: false,
   };
 
-  const completedCount = onboarding?.completedCount ?? 0;
-  const totalCount = onboarding?.totalCount ?? 5;
+  // Single-item checklist now, so progress is simply "is it installed?".
+  // Reading totalCount from the API would still say 5 and show a parent
+  // "1 of 5" against a list of one.
+  const totalCount = 1;
+  const completedCount = onboarding?.progress?.installed ? 1 : 0;
   const allDone = completedCount === totalCount;
 
-  // Use first child for linking to child-specific pages
-  const firstChild = children?.[0];
-
+  /**
+   * ONE step, deliberately.
+   *
+   * Daniel, 2026-07-30: adding the app to the home screen is the only
+   * thing we actually need parents to do. The other four — complete your
+   * profile, review medical details, upload immunisation, add a pickup
+   * person — are all captured during enrolment now, so presenting them
+   * again was asking families to redo work they'd already done, and a
+   * checklist that can't be finished is worse than no checklist.
+   */
   const items: ChecklistItem[] = [
-    {
-      key: "profile",
-      title: "Complete your profile",
-      description: "Add your phone number and address so we can reach you.",
-      icon: User,
-      iconColor: "text-blue-500",
-      href: "/parent/account",
-    },
-    {
-      key: "medical",
-      title: "Review medical details",
-      description: "Check your child's allergies, conditions, and medications are up to date.",
-      icon: Stethoscope,
-      iconColor: "text-amber-500",
-      href: firstChild ? `/parent/children/${firstChild.id}` : "/parent/children",
-    },
-    {
-      key: "documents",
-      title: "Upload immunisation record",
-      description: "Upload your child's immunisation history or medical action plan.",
-      icon: FileText,
-      iconColor: "text-purple-500",
-      href: firstChild ? `/parent/children/${firstChild.id}` : "/parent/children",
-    },
-    {
-      key: "pickups",
-      title: "Add an authorised pickup person",
-      description: "Add someone who can collect your child from the centre.",
-      icon: UserCheck,
-      iconColor: "text-green-500",
-      href: firstChild ? `/parent/children/${firstChild.id}` : "/parent/children",
-    },
     {
       key: "installed",
       title: "Add the app to your phone",
-      description: "Install the Amana Parents app for quick access from your home screen.",
+      description:
+        "Install the Amana Parents app so it's one tap from your home screen — no login to remember.",
       icon: Smartphone,
       iconColor: "text-brand",
       isInstallStep: true,
