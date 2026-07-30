@@ -14,6 +14,8 @@ import {
   formatMedicareExpiry,
   stepComplete,
   stepBlocker,
+  normaliseSessions,
+  SESSION_ROWS,
   EMERGENCY_RELATIONSHIP_OPTIONS,
   type DraftEmergencyContact,
   type EnrolDraft,
@@ -86,7 +88,7 @@ const goodContacts = {
 const goodBilling = {
   startDate: "2026-08-01",
   bookingType: "permanent" as const,
-  sessions: { afterSchool: ["Monday", "Wednesday"], amanaAfternoons: ["yes"] },
+  sessions: { amanaAfternoons: ["Monday", "Wednesday"] },
 };
 
 const goodAgreement = {
@@ -411,6 +413,44 @@ describe("National Regulations record requirements", () => {
   });
 });
 
+describe("session programs", () => {
+  it("offers Rise and Shine, Amana Afternoons and Holiday Quest only", () => {
+    expect(SESSION_ROWS.map((r) => r.key)).toEqual([
+      "riseAndShine",
+      "amanaAfternoons",
+      "holidayQuest",
+    ]);
+  });
+
+  it("shows a time against every program", () => {
+    for (const r of SESSION_ROWS) expect(r.time).toBeTruthy();
+  });
+
+  it("collapses weekdays to a single marker when switching to casual", () => {
+    expect(
+      normaliseSessions({ riseAndShine: ["Monday", "Friday"] }, "casual"),
+    ).toEqual({ riseAndShine: ["yes"] });
+  });
+
+  it("keeps a casual pick selected when switching to permanent", () => {
+    // The marker isn't a weekday, so the day list empties — but the
+    // program stays in the map so the parent sees it's still chosen.
+    expect(normaliseSessions({ riseAndShine: ["yes"] }, "permanent")).toEqual({
+      riseAndShine: [],
+    });
+  });
+
+  it("never gives Holiday Quest weekdays — it isn't a per-day program", () => {
+    expect(
+      normaliseSessions({ holidayQuest: ["Monday"] }, "permanent"),
+    ).toEqual({ holidayQuest: ["yes"] });
+  });
+
+  it("drops programs with nothing selected", () => {
+    expect(normaliseSessions({ riseAndShine: [] }, "casual")).toEqual({});
+  });
+});
+
 describe("stepBlocker", () => {
   it("is silent when a step is complete", () => {
     for (const s of [0, 1, 2, 3, 4]) {
@@ -493,7 +533,7 @@ describe("billingComplete", () => {
 
   it("treats an empty day array as nothing selected", () => {
     expect(
-      billingComplete({ ...goodBilling, sessions: { afterSchool: [] } }),
+      billingComplete({ ...goodBilling, sessions: { amanaAfternoons: [] } }),
     ).toBe(false);
   });
 

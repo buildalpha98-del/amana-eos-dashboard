@@ -276,9 +276,14 @@ export const POST = withParentAuth(async (req, ctx) => {
             state: child.state,
             postcode: child.postcode,
           },
-          culturalBackground: child.culturalBackground
-            ? [child.culturalBackground]
-            : [],
+          // Reg 160(3)(i) wants the child AND parents. We stopped asking
+          // per child (it was the same answer twice), so inherit the
+          // primary carer's — falling back to anything an older draft
+          // already captured.
+          culturalBackground: (() => {
+            const v = me.culturalBackground || child.culturalBackground;
+            return v ? [v] : [];
+          })(),
           schoolName: child.schoolName ?? null,
           // The dashboard's yearLevel column now carries the classroom code
           // families actually use (e.g. "D.G1Y").

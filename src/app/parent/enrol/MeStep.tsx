@@ -15,7 +15,7 @@ import {
   type CcsApplied,
   type CcsApproved,
 } from "@/lib/enrol-ccs";
-import { AUSTRALIAN_STATES, CULTURAL_OPTIONS } from "@/components/enrol/types";
+import { AUSTRALIAN_STATES } from "@/components/enrol/types";
 import { field } from "./ui";
 
 export interface MeData {
@@ -137,13 +137,11 @@ export function MeStep({
           <label htmlFor="me-cultural" className="block text-sm font-medium text-foreground mb-1">
             Your cultural background <span className="text-red-500">*</span>
           </label>
-          <select id="me-cultural" className={field} value={data.culturalBackground ?? ""}
-            onChange={(e) => onChange({ culturalBackground: e.target.value })}>
-            <option value="">Select...</option>
-            {CULTURAL_OPTIONS.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+          {/* Free text, not a list: no fixed list covers our families, and
+              a wrong-but-close option is worse data than what they type. */}
+          <input id="me-cultural" className={field} value={data.culturalBackground ?? ""}
+            onChange={(e) => onChange({ culturalBackground: e.target.value })}
+            placeholder="e.g. Lebanese, Somali, Australian" />
         </div>
       </div>
 
