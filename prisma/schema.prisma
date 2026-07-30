@@ -6468,6 +6468,10 @@ model ParentAccount {
   // the one-time backfill is auditable and never re-runs.
   claimedAt    DateTime?
   lastLoginAt  DateTime?
+  // 2026-07-30: when staff last nudged this family to finish their
+  // enrolment. Stored so the Families list can show "reminded 2 days ago"
+  // and staff don't unknowingly send the same parent three emails.
+  enrolmentReminderSentAt DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

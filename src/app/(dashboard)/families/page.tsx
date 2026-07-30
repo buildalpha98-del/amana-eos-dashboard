@@ -10,7 +10,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Trash2, Users, Loader2 } from "lucide-react";
+import { Search, Trash2, Users, Loader2, Send } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -31,6 +31,7 @@ interface Family {
   draftStep: number | null;
   draftUpdatedAt: string | null;
   enrolmentCount: number;
+  reminderSentAt: string | null;
   children: { id: string; name: string; status: string }[];
 }
 
@@ -54,6 +55,15 @@ const STATE_META: Record<
       "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800",
   },
 };
+
+/** "3 days ago" / "5h ago" — short enough for a table cell. */
+function timeAgo(iso: string): string {
+  const hours = (Date.now() - new Date(iso).getTime()) / 3_600_000;
+  if (hours < 1) return "just now";
+  if (hours < 24) return `${Math.round(hours)}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -87,6 +97,19 @@ export default function FamiliesPage() {
       toast({
         description: `Account removed. ${res.email} can now sign up again.`,
       });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
+  const remind = useMutation({
+    mutationFn: (id: string) =>
+      mutateApi<{ ok: true; email: string }>(`/api/families/${id}/remind`, {
+        method: "POST",
+      }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["families"] });
+      toast({ description: `Reminder sent to ${res.email}.` });
     },
     onError: (err: Error) =>
       toast({ variant: "destructive", description: err.message }),
@@ -182,7 +205,30 @@ export default function FamiliesPage() {
                           <td className="px-4 py-3 text-muted whitespace-nowrap">
                             {formatDate(f.lastLoginAt)}
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            {f.enrolmentState === "needs_enrolment" && (
+                              <span className="inline-flex items-center gap-1.5 mr-1">
+                                {f.reminderSentAt && (
+                                  <span className="text-2xs text-muted">
+                                    Reminded {timeAgo(f.reminderSentAt)}
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => remind.mutate(f.id)}
+                                  disabled={remind.isPending}
+                                  title="Email this family a link to finish their enrolment"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-brand/30 text-brand text-xs font-medium hover:bg-brand/5 disabled:opacity-40"
+                                >
+                                  {remind.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Send className="w-3 h-3" />
+                                  )}
+                                  {f.reminderSentAt ? "Remind again" : "Send reminder"}
+                                </button>
+                              </span>
+                            )}
                             {isOwner && (
                               <button
                                 type="button"

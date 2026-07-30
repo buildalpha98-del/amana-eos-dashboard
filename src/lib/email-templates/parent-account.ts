@@ -38,3 +38,44 @@ export async function parentVerifyEmail(params: {
     `, "family"),
   };
 }
+
+
+/**
+ * Staff-triggered nudge for a family who created an account but hasn't
+ * finished (or started) their child's enrolment.
+ *
+ * Deliberately warm rather than administrative — this goes to a parent who
+ * has already shown intent by signing up, so the tone is "we've saved your
+ * spot", not "you have failed to comply".
+ */
+export async function parentEnrolmentReminderEmail(params: {
+  name: string;
+  link: string;
+  /** True when they have a part-finished form waiting. */
+  hasDraft: boolean;
+}): Promise<{ subject: string; html: string }> {
+  const subject = params.hasDraft
+    ? "Pick up where you left off — Amana OSHC"
+    : "Finish your child's enrolment — Amana OSHC";
+
+  const opening = params.hasDraft
+    ? `<p>You've made a start on your child's enrolment — everything you entered has been saved, so you can carry on from exactly where you stopped.</p>`
+    : `<p>Thanks for creating your Amana OSHC account. To finish setting up, we just need your child's enrolment details.</p>`;
+
+  return {
+    subject,
+    html: await baseLayout(
+      `
+      <p>Hi ${params.name},</p>
+      ${opening}
+      <p>It takes about ten minutes, and you can stop and come back at any
+      point — your answers save as you go.</p>
+      ${buttonHtml(params.hasDraft ? "Continue my enrolment" : "Start my enrolment", params.link)}
+      <p style="font-size:13px;color:#6b7280;">If you've already spoken to
+      us about your enrolment, or you no longer need care, just reply to
+      this email and let us know.</p>
+    `,
+      "family",
+    ),
+  };
+}
