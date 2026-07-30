@@ -3,8 +3,14 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { isPublicParentRoute } from "@/lib/parent-routes";
+
+/** Where a parent without an enrolment is funnelled. */
+const ENROL_PATH = "/parent/enrol";
+import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
+import type { ParentEnrolmentState } from "@/lib/parent-enrolment-state";
 
 import {
   Home,
@@ -44,6 +50,23 @@ export function ParentShell({ children }: { children: React.ReactNode }) {
 function ParentShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isAuthenticated, isLoading, logout } = useParentAuth();
+  const router = useRouter();
+
+  // 2026-07-30: the enrolment gate. A parent with no children on their
+  // account sees ONLY the enrolment form — landing them on a home page
+  // with nothing to show was both confusing and the source of the
+  // "No contact record found" toast.
+  //
+  // Once submitted they get the full portal but still can't book, until
+  // staff approve. That distinction lives in canBook(), not here.
+  const { data: parentState } = useQuery<{ state: ParentEnrolmentState }>({
+    queryKey: ["parent", "state"],
+    queryFn: () => fetchApi("/api/parent/state"),
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const mustEnrol = parentState?.state === "needs_enrolment";
   const { data: conversations } = useParentConversations();
   const unreadCount = (conversations ?? []).reduce(
     (sum, c) => sum + (c.unreadCount ?? 0),
@@ -56,6 +79,14 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated) return;
     registerParentServiceWorker().catch(() => {});
   }, [isAuthenticated]);
+
+  // Funnel them into the form. router.replace (not push) so Back can't
+  // bounce them out of it.
+  useEffect(() => {
+    if (!isAuthenticated || !mustEnrol) return;
+    if (pathname === ENROL_PATH) return;
+    router.replace(ENROL_PATH);
+  }, [isAuthenticated, mustEnrol, pathname, router]);
 
   // Public parent routes — rendered bare, with no shell and no auth gate.
   //
@@ -81,6 +112,37 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // Not authenticated — auth provider will redirect, but render nothing in the meantime
   if (!isAuthenticated) {
     return null;
+  }
+
+  // Gated into the enrolment form: render it bare, with no nav. Showing
+  // Children/Bookings/Billing tabs they can't use yet is just a row of
+  // dead ends.
+  if (mustEnrol) {
+    return (
+      <div data-v2="parent" className="parent-portal min-h-screen bg-[#FFFAE6]">
+        <header className="h-14 bg-brand flex items-center px-4 shadow-md">
+          <span className="text-white font-heading font-semibold">
+            Amana OSHC
+          </span>
+          <button
+            onClick={logout}
+            className="ml-auto text-xs text-white/70 hover:text-white underline underline-offset-2"
+          >
+            Sign out
+          </button>
+        </header>
+        <main className="pb-10">
+          {pathname === ENROL_PATH ? (
+            children
+          ) : (
+            // Mid-redirect. A spinner rather than a flash of the old page.
+            <div className="flex items-center justify-center py-24">
+              <div className="animate-spin h-8 w-8 border-4 border-brand border-t-transparent rounded-full" />
+            </div>
+          )}
+        </main>
+      </div>
+    );
   }
 
   return (
