@@ -18,7 +18,10 @@ import { prisma } from "@/lib/prisma";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { encryptField } from "@/lib/field-encryption";
+import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { normaliseEmail } from "@/lib/parent-account";
+import { secondaryCarerInviteEmail } from "@/lib/email-templates/parent-account";
 import {
   draftSubmittable,
   firstIncompleteStep,
@@ -142,15 +145,21 @@ export const POST = withParentAuth(async (req, ctx) => {
     state: me.state ?? "",
     postcode: me.postcode ?? "",
     medical: {
-      allergies: c.allergies ?? "",
-      conditions: c.conditions ?? "",
+      anaphylaxis: c.anaphylaxis ?? null,
+      allergies: c.allergies ?? null,
+      asthma: c.asthma ?? null,
+      otherCondition: c.otherCondition ?? null,
+      dietaryRestrictions: c.dietaryRestrictions ?? null,
+      paracetamolConsent: c.paracetamol ?? null,
+      allergiesDetail: c.allergiesDetail ?? "",
+      asthmaDetail: c.asthmaDetail ?? "",
+      otherConditionDetail: c.otherConditionDetail ?? "",
+      dietaryDetail: c.dietaryDetail ?? "",
       medications: c.medications ?? "",
-      dietary: c.dietary ?? "",
-      none: c.medicalNone ?? false,
-      hasMedicalPlan: c.hasMedicalPlan ?? null,
       doctorName: c.doctorName ?? "",
       doctorPhone: c.doctorPhone ?? "",
       medicareNumber: c.medicareNumber ?? "",
+      medicareExpiry: c.medicareExpiry ?? "",
     },
     bookingPrefs: {
       bookingType: billing.bookingType ?? "",
@@ -169,22 +178,49 @@ export const POST = withParentAuth(async (req, ctx) => {
     sunscreen: agreement.sunscreen ?? null,
   };
 
+  const emergencyContacts = (contacts.emergency ?? []).filter((c) => c.name);
+
+  // The separate "authorised for pickup" list is gone — pickup is now a
+  // per-contact authorisation. Derive the list staff actually read at the
+  // door from the contacts who have that permission.
+  const authorisedPickup = emergencyContacts
+    .filter((c) => c.consentPickup === true)
+    .map((c) => ({ name: c.name, relationship: c.relationship, phone: c.phone }));
+
+  // Flatten every child's uploads into the two shapes the rest of the
+  // dashboard already reads (documentUploads / medicalFiles).
+  const documentUploads: {
+    childIndex: number;
+    type: string;
+    filename: string;
+    url: string;
+  }[] = [];
+  const medicalFiles: typeof documentUploads = [];
+  enrichedChildren.forEach((c, childIndex) => {
+    for (const u of c.uploads ?? []) {
+      const row = { childIndex, type: u.type, filename: u.filename, url: u.url };
+      if (u.type === "medical_action_plan") medicalFiles.push(row);
+      else documentUploads.push(row);
+    }
+  });
+
+  const courtOrderFiles = (contacts.courtOrderUploads ?? []).map((u) => ({
+    filename: u.filename,
+    url: u.url,
+  }));
+
   const submission = await prisma.$transaction(async (tx) => {
     const sub = await tx.enrolmentSubmission.create({
       data: {
         primaryParent,
         secondaryParent: contacts.secondaryParent?.firstName
-          ? contacts.secondaryParent
+          ? (contacts.secondaryParent as unknown as object)
           : undefined,
-        children: enrichedChildren,
-        // Cast: Prisma's InputJsonValue doesn't accept a named interface
-        // array directly, though the runtime shape is plain JSON.
-        emergencyContacts: (contacts.emergency ?? []).filter(
-          (c) => c.name,
-        ) as unknown as object[],
-        authorisedPickup: (contacts.authorised ?? []).filter(
-          (c) => c.name,
-        ) as unknown as object[],
+        // Casts: Prisma's InputJsonValue won't take a named interface
+        // directly, though the runtime shape is plain JSON.
+        children: enrichedChildren as unknown as object[],
+        emergencyContacts: emergencyContacts as unknown as object[],
+        authorisedPickup: authorisedPickup as unknown as object[],
         consents,
         paymentMethod: payment?.method ?? null,
         paymentDetails:
@@ -197,11 +233,22 @@ export const POST = withParentAuth(async (req, ctx) => {
         privacyAccepted: agreement.privacyAccepted === true,
         debitAgreement: agreement.debitAgreement === true,
         courtOrders: contacts.courtOrders === true,
+        courtOrderFiles: courtOrderFiles.length ? courtOrderFiles : undefined,
+        documentUploads: documentUploads.length ? documentUploads : undefined,
+        medicalFiles: medicalFiles.length ? medicalFiles : undefined,
         status: "submitted",
       },
     });
 
     for (const child of enrichedChildren) {
+      const conditions: string[] = [];
+      if (child.anaphylaxis) conditions.push("Anaphylaxis");
+      if (child.allergies) conditions.push("Allergies");
+      if (child.asthma) conditions.push("Asthma");
+      if (child.otherCondition && child.otherConditionDetail) {
+        conditions.push(child.otherConditionDetail);
+      }
+
       await tx.child.create({
         data: {
           enrolmentId: sub.id,
@@ -219,13 +266,16 @@ export const POST = withParentAuth(async (req, ctx) => {
             ? [child.culturalBackground]
             : [],
           schoolName: child.schoolName ?? null,
-          yearLevel: child.yearLevel ?? null,
+          // The dashboard's yearLevel column now carries the classroom code
+          // families actually use (e.g. "D.G1Y").
+          yearLevel: child.classroom ?? null,
           crn: child.crn || null,
           medical: child.medical,
           bookingPrefs: child.bookingPrefs,
+          medicalConditions: conditions,
           medicationDetails: child.medications || null,
-          dietaryRequirements: child.dietary ? [child.dietary] : [],
-          anaphylaxisActionPlan: child.hasMedicalPlan === true,
+          dietaryRequirements: child.dietaryDetail ? [child.dietaryDetail] : [],
+          anaphylaxisActionPlan: child.anaphylaxis === true,
           medicareNumber: child.medicareNumber || null,
           // Stays "pending" until staff approve — canBook() reads this, so
           // creating it active would let a family book before review.
@@ -247,6 +297,37 @@ export const POST = withParentAuth(async (req, ctx) => {
     submissionId: submission.id,
     children: enrichedChildren.length,
   });
+
+  // ── Invite the second carer to the Family Portal ──────────────────────
+  // They set their OWN password via the normal sign-up: we never mint
+  // credentials on someone else's behalf and email them out. Because their
+  // address is now on the submitted enrolment, findEnrolmentIdsForEmail()
+  // links this child to them automatically the moment they register.
+  //
+  // Deliberately outside the transaction and fully swallowed: a bounced
+  // invite must never roll back a family's completed enrolment.
+  const sp = contacts.secondaryParent;
+  if (sp?.email?.trim()) {
+    try {
+      const spEmail = normaliseEmail(sp.email);
+      if (spEmail !== normaliseEmail(ctx.parent.email)) {
+        const { subject, html } = await secondaryCarerInviteEmail({
+          name: sp.firstName ?? null,
+          invitedBy:
+            [me.firstName, me.surname].filter(Boolean).join(" ") || "a parent",
+          childNames: enrichedChildren
+            .map((c) => c.firstName)
+            .filter(Boolean) as string[],
+        });
+        await sendEmail({ to: spEmail, subject, html });
+      }
+    } catch (err) {
+      logger.warn("Secondary carer invite failed to send", {
+        submissionId: submission.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   return NextResponse.json({ ok: true, submissionId: submission.id });
 });

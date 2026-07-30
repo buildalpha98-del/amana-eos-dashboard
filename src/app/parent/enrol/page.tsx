@@ -46,6 +46,7 @@ import {
 import { AgreementStep } from "./AgreementStep";
 import {
   stepComplete,
+  contactsBlocker,
   draftSubmittable,
   type DraftAgreement,
   type DraftBilling,
@@ -229,6 +230,18 @@ export default function ParentEnrolPage() {
           />
         )}
       </div>
+
+      {/* Contacts has the most rules, so a dead Next there is the most
+          confusing. Say exactly what's missing rather than leaving them to
+          guess — Daniel hit precisely this. */}
+      {step === 2 && !canAdvance && (
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
+          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            {contactsBlocker(form)}
+          </p>
+        </div>
+      )}
 
       {/* On the final step, say WHY submit is disabled. A dead button with
           no explanation is the worst possible end to a long form. */}

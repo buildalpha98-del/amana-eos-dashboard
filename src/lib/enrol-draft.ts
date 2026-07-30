@@ -6,13 +6,30 @@
  * SAME rules to decide whether a draft may become a submission. Two copies
  * of "is this complete" is how a form ends up letting a half-filled
  * enrolment through the back door.
+ *
+ * 2026-07-30 revision, per Daniel. These rules were deliberately aligned
+ * with the public form's validateStep() in src/components/enrol/types.ts —
+ * that form already encoded the same policy (CRN mandatory, secondary
+ * carer mandatory unless a court order applies, birth certificate and
+ * immunisation record mandatory), and having the portal be more lenient
+ * than the public form would just move the compliance gap rather than
+ * close it.
  */
 
 import { ccsAnswered, type CcsApplied, type CcsApproved } from "@/lib/enrol-ccs";
 
+/** Where enrolment questions go. Never the director's personal address. */
+export const ENROLMENTS_EMAIL = "enrolments@amanaoshc.com.au";
+
 // ---------------------------------------------------------------------------
 // Shapes
 // ---------------------------------------------------------------------------
+
+export interface DraftUpload {
+  type: string;
+  filename: string;
+  url: string;
+}
 
 export interface DraftMe {
   firstName?: string;
@@ -21,6 +38,12 @@ export interface DraftMe {
   dob?: string;
   gender?: string;
   languageSpoken?: string;
+  /**
+   * MANDATORY for the primary carer. Daniel, 2026-07-30: "the CRN for the
+   * parent, especially the primary carer, is not optional — they must give
+   * it." Without it we can't submit a CCS claim, so an enrolment that
+   * lacks one is an invoice the family didn't expect.
+   */
   crn?: string;
   street?: string;
   suburb?: string;
@@ -37,46 +60,78 @@ export interface DraftChild {
   dob?: string;
   gender?: string;
   schoolName?: string;
-  yearLevel?: string;
+  /**
+   * Free text, NOT a year-level dropdown. Daniel: parents should enter the
+   * child's actual classroom code (e.g. "D.G1Y") — that's what the schools
+   * use on the ground, and it's what educators need at pickup.
+   */
+  classroom?: string;
   crn?: string;
   countryOfBirth?: string;
   culturalBackground?: string;
-  /** Free text. Empty means "none" only once `medicalNone` is ticked. */
-  allergies?: string;
-  conditions?: string;
+  medicareNumber?: string;
+  /** MM/YYYY — cards only ever show month and year. */
+  medicareExpiry?: string;
+
+  // ── Health screening (mirrors the NQF-standard questions) ──
+  anaphylaxis?: boolean | null;
+  allergies?: boolean | null;
+  asthma?: boolean | null;
+  otherCondition?: boolean | null;
+  dietaryRestrictions?: boolean | null;
+  /** Permission to administer paracetamol if no carer can be reached. */
+  paracetamol?: boolean | null;
+
+  anaphylaxisDetail?: string;
+  allergiesDetail?: string;
+  asthmaDetail?: string;
+  otherConditionDetail?: string;
+  dietaryDetail?: string;
   medications?: string;
-  dietary?: string;
-  /**
-   * Explicit "nothing to declare". Without this we can't tell a parent who
-   * has no allergies apart from one who skipped the question — and for
-   * anaphylaxis that difference matters.
-   */
-  medicalNone?: boolean;
-  hasMedicalPlan?: boolean | null;
+
   doctorName?: string;
   doctorPhone?: string;
-  medicareNumber?: string;
+
+  /** Birth certificate, immunisation record, photo, action plans. */
+  uploads?: DraftUpload[];
 }
 
-export interface DraftContact {
+/**
+ * An emergency contact, with the authorisations the Regulations expect us
+ * to record per person rather than per family.
+ */
+export interface DraftEmergencyContact {
   name?: string;
   relationship?: string;
   phone?: string;
+  consentTransport?: boolean | null;
+  consentMedical?: boolean | null;
+  consentOffPremises?: boolean | null;
+  consentAmbulance?: boolean | null;
+  consentOutings?: boolean | null;
+  consentNotify?: boolean | null;
+  /**
+   * Replaces the old separate "authorised for pickup" list. Daniel: fold it
+   * into the emergency contact rather than making families enter the same
+   * person twice.
+   */
+  consentPickup?: boolean | null;
+}
+
+export interface DraftSecondaryParent {
+  firstName?: string;
+  surname?: string;
   email?: string;
+  mobile?: string;
+  relationship?: string;
 }
 
 export interface DraftContacts {
-  secondaryParent?: {
-    firstName?: string;
-    surname?: string;
-    email?: string;
-    mobile?: string;
-    relationship?: string;
-  };
-  /** At least two — the regulator expects two reachable people. */
-  emergency?: DraftContact[];
-  authorised?: DraftContact[];
+  secondaryParent?: DraftSecondaryParent;
+  /** ONE is required. More are welcome; a second is never forced. */
+  emergency?: DraftEmergencyContact[];
   courtOrders?: boolean | null;
+  courtOrderUploads?: DraftUpload[];
 }
 
 export interface DraftBilling {
@@ -117,7 +172,73 @@ export const WEEKDAYS = [
   "Friday",
 ] as const;
 
-export const EMPTY_CHILD: DraftChild = {};
+/**
+ * Relationship options for an EMERGENCY contact.
+ *
+ * "Mum" and "Dad" are deliberately absent. Daniel: without that, parents
+ * read the field as another place to put themselves — and an emergency
+ * contact who is the parent we already can't reach is no contact at all.
+ */
+export const EMERGENCY_RELATIONSHIP_OPTIONS = [
+  "Uncle",
+  "Auntie",
+  "Grandparent",
+  "Other Relative",
+  "Family Friend",
+  "Neighbour",
+  "Guardian",
+  "Other",
+] as const;
+
+/** The per-contact authorisations, in the order they're asked. */
+export const EMERGENCY_CONSENTS = [
+  {
+    key: "consentTransport" as const,
+    label:
+      "Can this person be contacted to give consent for educators to transport the child or arrange transportation of the child?",
+  },
+  {
+    key: "consentMedical" as const,
+    label:
+      "Can this person be contacted to give consent for medical treatment, or to authorise a Nominated Supervisor or educator to administer medication to the child, in the event that you cannot be contacted?",
+  },
+  {
+    key: "consentOffPremises" as const,
+    label:
+      "Can this person be contacted to give consent for educators to take the child outside the Service's premises in the event that you cannot be contacted?",
+  },
+  {
+    key: "consentAmbulance" as const,
+    label:
+      "Can this person be contacted to give consent to the transportation of the child by an ambulance service?",
+  },
+  {
+    key: "consentOutings" as const,
+    label:
+      "Can this person give authorisation for the Service to take the child on regular outings?",
+  },
+  {
+    key: "consentNotify" as const,
+    label:
+      "This person can be contacted and notified of an emergency involving the child if any parent or carer cannot be immediately contacted.",
+  },
+  {
+    key: "consentPickup" as const,
+    label:
+      "This person has been given permission by a parent or carer to drop off and collect the child from the service.",
+  },
+];
+
+/** Documents every child needs before we can accept them. */
+export const REQUIRED_CHILD_DOCUMENTS = [
+  { type: "birth_certificate", label: "Birth certificate" },
+  { type: "immunisation_record", label: "Immunisation record" },
+] as const;
+
+export const OPTIONAL_CHILD_DOCUMENTS = [
+  { type: "child_photo", label: "Photo of your child" },
+  { type: "medical_action_plan", label: "Medical / action plan" },
+] as const;
 
 // ---------------------------------------------------------------------------
 // Completeness
@@ -125,6 +246,12 @@ export const EMPTY_CHILD: DraftChild = {};
 
 const filled = (v: unknown): boolean =>
   typeof v === "string" ? v.trim().length > 0 : Boolean(v);
+
+/** Loose comparison for "is this the same person?" checks. */
+const normName = (s: string | undefined): string =>
+  (s ?? "").toLowerCase().replace(/[^a-z]/g, "");
+const normPhone = (s: string | undefined): string =>
+  (s ?? "").replace(/\D/g, "");
 
 export function meComplete(me: DraftMe | undefined): boolean {
   if (!me) return false;
@@ -135,26 +262,46 @@ export function meComplete(me: DraftMe | undefined): boolean {
     filled(me.dob) &&
     filled(me.street) &&
     filled(me.suburb) &&
+    filled(me.crn) &&
     me.isLegalCarer === true &&
     ccsAnswered({ approved: me.ccsApproved ?? null, applied: me.ccsApplied ?? null })
   );
 }
 
+/** Has this child's document `type` been uploaded? */
+export function hasUpload(c: DraftChild | undefined, type: string): boolean {
+  return (c?.uploads ?? []).some((u) => u.type === type && filled(u.url));
+}
+
 export function childComplete(c: DraftChild | undefined): boolean {
   if (!c) return false;
-  const medicalAnswered =
-    c.medicalNone === true ||
-    filled(c.allergies) ||
-    filled(c.conditions) ||
-    filled(c.medications) ||
-    filled(c.dietary);
+
+  // Every screening question must be an explicit yes or no. A blank is not
+  // a "no" — for anaphylaxis that difference is the whole point.
+  const screeningAnswered =
+    typeof c.anaphylaxis === "boolean" &&
+    typeof c.allergies === "boolean" &&
+    typeof c.asthma === "boolean" &&
+    typeof c.otherCondition === "boolean" &&
+    typeof c.dietaryRestrictions === "boolean" &&
+    typeof c.paracetamol === "boolean";
+
+  // A Medicare number without an expiry is unusable, so they travel
+  // together — but neither is forced on its own.
+  const medicarePaired =
+    filled(c.medicareNumber) === filled(c.medicareExpiry);
+
+  const documents = REQUIRED_CHILD_DOCUMENTS.every((d) => hasUpload(c, d.type));
+
   return (
     filled(c.firstName) &&
     filled(c.surname) &&
     filled(c.dob) &&
     filled(c.schoolName) &&
-    filled(c.yearLevel) &&
-    medicalAnswered
+    filled(c.classroom) &&
+    screeningAnswered &&
+    medicarePaired &&
+    documents
   );
 }
 
@@ -162,19 +309,125 @@ export function childrenComplete(children: DraftChild[] | undefined): boolean {
   return Array.isArray(children) && children.length > 0 && children.every(childComplete);
 }
 
-export function contactComplete(c: DraftContact | undefined): boolean {
-  return Boolean(c && filled(c.name) && filled(c.relationship) && filled(c.phone));
+export function emergencyContactComplete(
+  c: DraftEmergencyContact | undefined,
+): boolean {
+  if (!c) return false;
+  const consentsAnswered = EMERGENCY_CONSENTS.every(
+    (q) => typeof c[q.key] === "boolean",
+  );
+  return (
+    filled(c.name) && filled(c.relationship) && filled(c.phone) && consentsAnswered
+  );
 }
 
-export function contactsComplete(contacts: DraftContacts | undefined): boolean {
-  const emergency = contacts?.emergency ?? [];
-  const valid = emergency.filter(contactComplete);
-  // Two, and they must be different people — a duplicated row is the same
-  // single point of failure the rule exists to avoid.
-  const distinct = new Set(
-    valid.map((c) => (c.phone ?? "").replace(/\s+/g, "")),
+export function secondaryParentFilled(
+  sp: DraftSecondaryParent | undefined,
+): boolean {
+  return Boolean(
+    sp && (filled(sp.firstName) || filled(sp.surname) || filled(sp.email) || filled(sp.mobile)),
   );
-  return valid.length >= 2 && distinct.size >= 2;
+}
+
+function secondaryParentValid(sp: DraftSecondaryParent | undefined): boolean {
+  return Boolean(sp && filled(sp.firstName) && filled(sp.surname) && filled(sp.mobile));
+}
+
+/**
+ * Contacts step.
+ *
+ * Takes the WHOLE draft, not just `contacts`, because an emergency contact
+ * has to be checked against the primary carer — which lives on `me`.
+ */
+export function contactsComplete(d: EnrolDraft): boolean {
+  const contacts = d.contacts ?? {};
+  const me = d.me ?? {};
+  const sp = contacts.secondaryParent;
+
+  // Court orders must be answered either way — it's the switch that
+  // decides whether a second carer is mandatory.
+  if (typeof contacts.courtOrders !== "boolean") return false;
+
+  if (contacts.courtOrders === false) {
+    // No court order → a second carer is required. Daniel: "they should
+    // always add it when possible, so that should be a must."
+    if (!secondaryParentValid(sp)) return false;
+  } else {
+    // Court order → the second carer is excused, but a half-filled one is
+    // still an error rather than a silent partial record.
+    if (secondaryParentFilled(sp) && !secondaryParentValid(sp)) return false;
+    if ((contacts.courtOrderUploads ?? []).length === 0) return false;
+  }
+
+  const valid = (contacts.emergency ?? []).filter(emergencyContactComplete);
+  // ONE is enough. Daniel was explicit: don't force a second.
+  if (valid.length < 1) return false;
+
+  // An emergency contact who IS the primary or secondary carer defeats the
+  // purpose — they're the people we already couldn't reach.
+  const carerPhones = new Set(
+    [normPhone(me.mobile), normPhone(sp?.mobile)].filter(Boolean),
+  );
+  const carerNames = new Set(
+    [
+      normName(`${me.firstName ?? ""}${me.surname ?? ""}`),
+      normName(`${sp?.firstName ?? ""}${sp?.surname ?? ""}`),
+    ].filter(Boolean),
+  );
+
+  return valid.every(
+    (c) =>
+      !carerPhones.has(normPhone(c.phone)) && !carerNames.has(normName(c.name)),
+  );
+}
+
+/** Why the contacts step is blocked, for showing the parent. */
+export function contactsBlocker(d: EnrolDraft): string | null {
+  if (contactsComplete(d)) return null;
+  const contacts = d.contacts ?? {};
+  const me = d.me ?? {};
+  const sp = contacts.secondaryParent;
+
+  if (typeof contacts.courtOrders !== "boolean") {
+    return "Please answer whether any court orders or parenting plans apply.";
+  }
+  if (contacts.courtOrders === false && !secondaryParentValid(sp)) {
+    return "Please add a second parent or carer — first name, last name and mobile. If a court order means you can't, tick the court order question above.";
+  }
+  if (contacts.courtOrders === true) {
+    if (secondaryParentFilled(sp) && !secondaryParentValid(sp)) {
+      return "Please complete the second carer's first name, last name and mobile, or clear those fields.";
+    }
+    if ((contacts.courtOrderUploads ?? []).length === 0) {
+      return "Please upload a copy of the court order or parenting plan.";
+    }
+  }
+
+  const all = contacts.emergency ?? [];
+  const valid = all.filter(emergencyContactComplete);
+  if (valid.length < 1) {
+    return all.length === 0
+      ? "Please add one emergency contact."
+      : "Please complete the emergency contact's name, relationship, phone, and answer each of the authorisation questions.";
+  }
+
+  const carerPhones = new Set(
+    [normPhone(me.mobile), normPhone(sp?.mobile)].filter(Boolean),
+  );
+  const carerNames = new Set(
+    [
+      normName(`${me.firstName ?? ""}${me.surname ?? ""}`),
+      normName(`${sp?.firstName ?? ""}${sp?.surname ?? ""}`),
+    ].filter(Boolean),
+  );
+  if (
+    valid.some(
+      (c) => carerPhones.has(normPhone(c.phone)) || carerNames.has(normName(c.name)),
+    )
+  ) {
+    return "Your emergency contact must be someone other than you or the second carer.";
+  }
+  return "Please complete this step.";
 }
 
 export function billingComplete(b: DraftBilling | undefined): boolean {
@@ -215,7 +468,7 @@ export function stepComplete(step: number, d: EnrolDraft): boolean {
     case 1:
       return childrenComplete(d.children);
     case 2:
-      return contactsComplete(d.contacts);
+      return contactsComplete(d);
     case 3:
       return billingComplete(d.billing);
     case 4:
