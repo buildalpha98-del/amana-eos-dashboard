@@ -156,11 +156,14 @@ export default function ParentEnrolPage() {
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6">
       {/* Progress */}
-      <div className="mb-8">
+      <div className="mb-8 overflow-hidden">
         <div className="flex items-center justify-between">
           {ENROL_STEPS.map((s, i) => {
             const Icon = STEP_ICONS[i];
-            const done = i < step;
+            // Completeness, not position: with free navigation a parent
+            // can be on step 4 with step 2 still unfinished, and a tick
+            // there would be a lie.
+            const done = stepComplete(i, form);
             const current = i === step;
             return (
               <div key={s.key} className="flex-1 min-w-0 px-0.5 flex flex-col items-center relative">
@@ -169,8 +172,7 @@ export default function ParentEnrolPage() {
                 )}
                 <button
                   type="button"
-                  onClick={() => i <= step && goTo(i)}
-                  disabled={i > step}
+                  onClick={() => goTo(i)}
                   className={
                     // 44px square, NOT smaller: globals.css forces
                     // min-height:44px on every button under pointer:coarse,
@@ -181,9 +183,10 @@ export default function ParentEnrolPage() {
                       : done
                         ? "bg-brand/10 text-brand border border-brand"
                         : "bg-card text-muted border border-border") +
-                    (i <= step ? " cursor-pointer" : " cursor-default")
+                    " cursor-pointer"
                   }
                   aria-current={current ? "step" : undefined}
+                  aria-label={`Go to ${s.label}${done ? " (complete)" : ""}`}
                 >
                   {done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                 </button>
@@ -258,12 +261,25 @@ export default function ParentEnrolPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mt-6">
+      {/*
+        Sticky on mobile, in-flow on desktop.
+
+        Daniel: having to scroll all the way back down to press Next was
+        the friction. A SECOND Next at the top would fix the scroll but
+        add a duplicate control right beside the step icons — two things
+        that look like "continue", competing. Pinning the real one keeps
+        it one tap away with no ambiguity. Desktop has no scroll problem,
+        so it stays in the flow there.
+      */}
+      <div
+        className="flex items-center justify-between gap-3 mt-6 sticky bottom-0 sm:static bg-parent-bg sm:bg-transparent border-t border-border sm:border-t-0 -mx-3 sm:mx-0 px-3 sm:px-0 py-3 sm:py-0"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <button
           type="button"
           onClick={() => goTo(Math.max(0, step - 1))}
           disabled={step === 0}
-          className="inline-flex items-center gap-1.5 px-4 py-3 min-h-11 rounded-lg border border-border text-foreground/80 disabled:opacity-40"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-3 min-h-11 rounded-lg border border-border bg-card text-foreground/80 disabled:opacity-40 shrink-0"
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
@@ -273,7 +289,7 @@ export default function ParentEnrolPage() {
             type="button"
             onClick={() => goTo(step + 1)}
             disabled={!canAdvance}
-            className="inline-flex items-center gap-1.5 px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>
@@ -282,7 +298,7 @@ export default function ParentEnrolPage() {
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            className="inline-flex items-center gap-1.5 px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
@@ -293,7 +309,7 @@ export default function ParentEnrolPage() {
         )}
       </div>
 
-      <p className="text-center text-xs text-muted mt-4">
+      <p className="text-center text-xs text-muted mt-4 pb-2">
         Your answers save automatically. You can close this and come back
         any time — we&apos;ll pick up where you left off.
       </p>
