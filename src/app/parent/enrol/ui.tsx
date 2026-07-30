@@ -78,8 +78,16 @@ async function compressImage(file: File): Promise<File> {
   }
 }
 
+/**
+ * `text-base` (16px) on purpose, NOT `text-sm`.
+ *
+ * iOS Safari auto-zooms into any input whose font is under 16px, and once
+ * it zooms the page is left scrolled sideways with the parent hunting for
+ * the rest of the form. On a form this long that happens on every single
+ * field. Desktop steps back down to 14px via `sm:text-sm`.
+ */
 export const field =
-  "w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand";
+  "w-full px-3 py-2.5 border border-border rounded-lg text-base sm:text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand";
 
 export function Req() {
   return <span className="text-red-500"> *</span>;
@@ -144,7 +152,8 @@ export function YesNo({
           onClick={() => onChange(opt.v)}
           aria-pressed={value === opt.v}
           className={
-            "px-4 py-2 rounded-lg border text-sm font-medium transition-colors " +
+            // min-h-11 ≈ 44px, the smallest comfortable tap target.
+            "px-4 py-2 min-h-11 min-w-16 rounded-lg border text-sm font-medium transition-colors " +
             (value === opt.v
               ? "border-brand bg-brand/10 text-brand"
               : "border-border bg-card text-muted hover:border-brand/40")

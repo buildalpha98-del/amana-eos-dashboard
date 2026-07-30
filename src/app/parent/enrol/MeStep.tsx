@@ -15,7 +15,7 @@ import {
   type CcsApplied,
   type CcsApproved,
 } from "@/lib/enrol-ccs";
-import { AUSTRALIAN_STATES } from "@/components/enrol/types";
+import { AUSTRALIAN_STATES, CULTURAL_OPTIONS } from "@/components/enrol/types";
 
 export interface MeData {
   firstName?: string;
@@ -24,6 +24,7 @@ export interface MeData {
   dob?: string;
   gender?: string;
   languageSpoken?: string;
+  culturalBackground?: string;
   crn?: string;
   street?: string;
   suburb?: string;
@@ -131,6 +132,20 @@ export function MeStep({
           </label>
           <input id="me-lang" className={field} value={data.languageSpoken ?? ""}
             onChange={(e) => onChange({ languageSpoken: e.target.value })} placeholder="English" />
+        </div>
+        {/* Reg 160(3)(i): the record must show the cultural background of
+            the child AND their parents. */}
+        <div>
+          <label htmlFor="me-cultural" className="block text-sm font-medium text-foreground mb-1">
+            Your cultural background <span className="text-red-500">*</span>
+          </label>
+          <select id="me-cultural" className={field} value={data.culturalBackground ?? ""}
+            onChange={(e) => onChange({ culturalBackground: e.target.value })}>
+            <option value="">Select...</option>
+            {CULTURAL_OPTIONS.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
       </div>
 

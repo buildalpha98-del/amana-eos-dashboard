@@ -158,6 +158,10 @@ export const POST = withParentAuth(async (req, ctx) => {
       medications: c.medications ?? "",
       doctorName: c.doctorName ?? "",
       doctorPhone: c.doctorPhone ?? "",
+      doctorAddress: c.doctorAddress ?? "",
+      immunisationStatus: c.immunisationStatus ?? "",
+      additionalNeeds: c.additionalNeeds ?? null,
+      additionalNeedsDetail: c.additionalNeedsDetail ?? "",
       medicareNumber: c.medicareNumber ?? "",
       medicareExpiry: c.medicareExpiry ?? "",
     },
@@ -287,6 +291,20 @@ export const POST = withParentAuth(async (req, ctx) => {
           dietaryRequirements: child.dietaryDetail ? [child.dietaryDetail] : [],
           anaphylaxisActionPlan: child.anaphylaxis === true,
           medicareNumber: child.medicareNumber || null,
+          vaccinationStatus: child.immunisationStatus || null,
+          additionalNeeds: child.additionalNeedsDetail || null,
+          // Reg 160(3)(f). custodyArrangements is the column the Services
+          // medical + sign-out screens already read, so naming the
+          // restricted person here puts it in front of the educator who
+          // needs it rather than burying it in the submission blob.
+          custodyArrangements:
+            contacts.courtOrders === true
+              ? {
+                  type: "court_order",
+                  details: contacts.courtOrderRestrictedPersons ?? "",
+                  courtOrderUrl: contacts.courtOrderUploads?.[0]?.url ?? null,
+                }
+              : undefined,
           // Stays "pending" until staff approve — canBook() reads this, so
           // creating it active would let a family book before review.
           status: "pending",

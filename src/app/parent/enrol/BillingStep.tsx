@@ -18,6 +18,13 @@
  */
 
 import { ShieldCheck } from "lucide-react";
+import {
+  CREDIT_CARD_FEE,
+  DIRECT_DEBIT_FEE,
+  dishonourDescription,
+  feeDescription,
+  feeExample,
+} from "@/lib/enrol-fees";
 import { field, Field } from "./ui";
 import {
   anySessionSelected,
@@ -231,6 +238,39 @@ export function BillingStep({
             <option value="credit_card">Credit or debit card</option>
           </select>
         </Field>
+
+        {payment.method && (
+          <div className="rounded-lg border border-border bg-surface p-3 space-y-1">
+            <p className="text-xs font-semibold text-foreground">
+              {payment.method === "bank_account"
+                ? "Direct debit fees"
+                : "Card payment fees"}
+            </p>
+            <p className="text-xs text-muted leading-relaxed">
+              A processing fee of{" "}
+              <strong className="text-foreground">
+                {feeDescription(
+                  payment.method === "bank_account"
+                    ? DIRECT_DEBIT_FEE
+                    : CREDIT_CARD_FEE,
+                )}
+              </strong>{" "}
+              applies.{" "}
+              {payment.method === "bank_account" &&
+                feeExample(DIRECT_DEBIT_FEE)}{" "}
+              We also charge{" "}
+              <strong className="text-foreground">
+                {dishonourDescription(
+                  payment.method === "bank_account"
+                    ? DIRECT_DEBIT_FEE
+                    : CREDIT_CARD_FEE,
+                )}
+              </strong>
+              , so please make sure there are enough funds available on your
+              payment day.
+            </p>
+          </div>
+        )}
 
         {payment.method === "bank_account" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -151,14 +151,15 @@ export default function ParentEnrolPage() {
             return (
               <div key={s.key} className="flex-1 flex flex-col items-center relative">
                 {i > 0 && (
-                  <span className="absolute top-5 right-1/2 w-full border-t border-dashed border-border -z-10" />
+                  <span className="absolute top-4 sm:top-5 right-1/2 w-full border-t border-dashed border-border -z-10" />
                 )}
                 <button
                   type="button"
                   onClick={() => i <= step && goTo(i)}
                   disabled={i > step}
                   className={
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors " +
+                    // 32px on mobile so five circles + gaps fit 375px.
+                    "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors shrink-0 " +
                     (current
                       ? "bg-brand text-white"
                       : done
@@ -171,7 +172,7 @@ export default function ParentEnrolPage() {
                   {done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                 </button>
                 <span className={
-                  "mt-2 text-xs font-medium " +
+                  "mt-2 text-2xs sm:text-xs font-medium text-center leading-tight " +
                   (current ? "text-brand" : "text-muted")
                 }>
                   {s.label}
@@ -263,7 +264,7 @@ export default function ParentEnrolPage() {
           type="button"
           onClick={() => goTo(Math.max(0, step - 1))}
           disabled={step === 0}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border text-foreground/80 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 px-4 py-3 min-h-11 rounded-lg border border-border text-foreground/80 disabled:opacity-40"
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
@@ -274,7 +275,7 @@ export default function ParentEnrolPage() {
             onClick={() => goTo(step + 1)}
             disabled={!canAdvance}
             title={!canAdvance ? "Please complete the required fields" : undefined}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>
@@ -283,7 +284,7 @@ export default function ParentEnrolPage() {
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-5 py-3 min-h-11 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>

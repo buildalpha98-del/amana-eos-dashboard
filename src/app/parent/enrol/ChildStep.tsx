@@ -25,6 +25,7 @@ import {
 } from "./ui";
 import {
   ENROLMENTS_EMAIL,
+  IMMUNISATION_STATUS_OPTIONS,
   formatMedicareExpiry,
   medicareExpiryValid,
   OPTIONAL_CHILD_DOCUMENTS,
@@ -350,6 +351,36 @@ export function ChildStep({
               onChange={(v) => patch(i, { paracetamol: v })}
             />
 
+            {/* Reg 160(3)(j) — special considerations / additional needs. */}
+            <ScreeningQuestion
+              label="Does your child have any additional needs, or a disability, that we should plan for?"
+              value={c.additionalNeeds}
+              onChange={(v) => patch(i, { additionalNeeds: v })}
+            >
+              <p>
+                Tell us as much as you&apos;d like below. We&apos;ll talk it
+                through with you before your child starts so we can put the
+                right support in place.
+              </p>
+            </ScreeningQuestion>
+
+            {c.additionalNeeds && (
+              <Field
+                id={`c${i}-needs-detail`}
+                label="Please tell us about your child's additional needs"
+              >
+                <textarea
+                  id={`c${i}-needs-detail`}
+                  rows={3}
+                  className={field}
+                  value={c.additionalNeedsDetail ?? ""}
+                  onChange={(e) =>
+                    patch(i, { additionalNeedsDetail: e.target.value })
+                  }
+                />
+              </Field>
+            )}
+
             <Field
               id={`c${i}-meds`}
               label="Medications we may need to administer"
@@ -374,7 +405,7 @@ export function ChildStep({
                 onChange={(e) => patch(i, { doctorName: e.target.value })}
               />
             </Field>
-            <Field id={`c${i}-docphone`} label="Doctor's phone">
+            <Field id={`c${i}-docphone`} label="Doctor's phone" required>
               <input
                 id={`c${i}-docphone`}
                 type="tel"
@@ -382,6 +413,42 @@ export function ChildStep({
                 value={c.doctorPhone ?? ""}
                 onChange={(e) => patch(i, { doctorPhone: e.target.value })}
               />
+            </Field>
+            {/* Reg 162(a) requires the practitioner's ADDRESS as well. */}
+            <Field
+              id={`c${i}-docaddr`}
+              label="Doctor's address"
+              required
+              className="sm:col-span-2"
+            >
+              <input
+                id={`c${i}-docaddr`}
+                className={field}
+                value={c.doctorAddress ?? ""}
+                onChange={(e) => patch(i, { doctorAddress: e.target.value })}
+                placeholder="Practice street address"
+              />
+            </Field>
+            {/* Reg 162(g) — the status, distinct from the uploaded record. */}
+            <Field
+              id={`c${i}-immun`}
+              label="Immunisation status"
+              required
+              className="sm:col-span-2"
+            >
+              <select
+                id={`c${i}-immun`}
+                className={field}
+                value={c.immunisationStatus ?? ""}
+                onChange={(e) => patch(i, { immunisationStatus: e.target.value })}
+              >
+                <option value="">Select…</option>
+                {IMMUNISATION_STATUS_OPTIONS.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
             </Field>
           </div>
 

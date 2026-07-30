@@ -82,6 +82,24 @@ export function ContactsStep({
               value={data.courtOrderUploads?.[0]}
               onChange={setCourtUpload}
             />
+            {/* Reg 160(3)(f). An educator deciding whether to release a
+                child at the door needs the NAME, not "an order exists". */}
+            <Field
+              id="court-restricted"
+              label="Who is restricted from contact with or collecting your child?"
+              required
+              hint="Full names. If nobody is restricted and the order covers something else, write 'None'."
+            >
+              <textarea
+                id="court-restricted"
+                rows={2}
+                className={field}
+                value={data.courtOrderRestrictedPersons ?? ""}
+                onChange={(e) =>
+                  onChange({ courtOrderRestrictedPersons: e.target.value })
+                }
+              />
+            </Field>
           </div>
         )}
       </div>
@@ -161,6 +179,48 @@ export function ContactsStep({
             }
           />
         </Field>
+        <div className="sm:col-span-2 space-y-2">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={secondary.sameAddressAsPrimary ?? false}
+              onChange={(e) =>
+                onChange({
+                  secondaryParent: {
+                    ...secondary,
+                    sameAddressAsPrimary: e.target.checked,
+                    ...(e.target.checked ? { address: "" } : {}),
+                  },
+                })
+              }
+              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+            />
+            <span className="text-sm text-foreground">
+              They live at the same address as me
+            </span>
+          </label>
+
+          {!secondary.sameAddressAsPrimary && (
+            <Field
+              id="sp-address"
+              label="Their address"
+              required={secondaryRequired}
+            >
+              <input
+                id="sp-address"
+                className={field}
+                value={secondary.address ?? ""}
+                onChange={(e) =>
+                  onChange({
+                    secondaryParent: { ...secondary, address: e.target.value },
+                  })
+                }
+                placeholder="Street, suburb, postcode"
+              />
+            </Field>
+          )}
+        </div>
+
         <Field id="sp-rel" label="Relationship to child">
           <select
             id="sp-rel"
@@ -225,18 +285,24 @@ export function ContactsStep({
                 ))}
               </select>
             </Field>
-            <Field
-              id={`ec${i}-phone`}
-              label="Phone"
-              required
-              className="sm:col-span-2"
-            >
+            <Field id={`ec${i}-phone`} label="Phone" required>
               <input
                 id={`ec${i}-phone`}
                 type="tel"
                 className={field}
                 value={c.phone ?? ""}
                 onChange={(e) => patchEmergency(i, { phone: e.target.value })}
+              />
+            </Field>
+            {/* Reg 160(3)(d)-(e) require the ADDRESS of an emergency
+                contact and of anyone authorised to collect the child. */}
+            <Field id={`ec${i}-address`} label="Address" required>
+              <input
+                id={`ec${i}-address`}
+                className={field}
+                value={c.address ?? ""}
+                onChange={(e) => patchEmergency(i, { address: e.target.value })}
+                placeholder="Street, suburb, postcode"
               />
             </Field>
           </div>
