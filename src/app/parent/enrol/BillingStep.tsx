@@ -28,6 +28,7 @@ import {
 import { field, Field } from "./ui";
 import {
   anySessionSelected,
+  normaliseSessions,
   SESSION_ROWS,
   WEEKDAYS,
   type DraftBilling,
@@ -90,6 +91,7 @@ export function BillingStep({
   onPaymentChange: (patch: Partial<PaymentEntry>) => void;
 }) {
   const sessions = data.sessions ?? {};
+  const isCasual = data.bookingType === "casual";
 
   const toggleDay = (rowKey: string, day: string) => {
     const current = sessions[rowKey] ?? [];
@@ -128,11 +130,17 @@ export function BillingStep({
             id="b-type"
             className={field}
             value={data.bookingType ?? ""}
-            onChange={(e) =>
+            onChange={(e) => {
+              const bookingType = e.target
+                .value as DraftBilling["bookingType"];
+              // Re-shape what's already ticked: a permanent booking holds
+              // weekdays, a casual one a single marker. Without this the
+              // two formats mix and leak into the roster day list.
               onChange({
-                bookingType: e.target.value as DraftBilling["bookingType"],
-              })
-            }
+                bookingType,
+                sessions: normaliseSessions(data.sessions, bookingType),
+              });
+            }}
           >
             <option value="">Select…</option>
             <option value="permanent">Permanent — same days each week</option>
@@ -141,47 +149,47 @@ export function BillingStep({
         </Field>
       </div>
 
-      {/* Program on the left, its days or session time on the right —
-          matching the layout Daniel supplied. One click per change. */}
+      {/* Program name with its time underneath. On a permanent booking
+          the weekdays sit alongside; on a casual one it's a single tick,
+          because "which days" has no meaning for ad-hoc care — we just
+          need to know which programs they're aiming at. */}
       <div>
-        <span className="block text-sm font-medium text-foreground mb-3">
+        <span className="block text-sm font-medium text-foreground mb-1">
           Which sessions do you need? <span className="text-red-500">*</span>
         </span>
+        <p className="text-xs text-muted mb-3">
+          {isCasual
+            ? "Tick the programs you expect to book, so we know what to plan for."
+            : "Pick the days you need for each program."}
+        </p>
 
         <div className="space-y-1">
           {SESSION_ROWS.map((row) => {
             const picked = sessions[row.key] ?? [];
+            const showDays = row.perDay && !isCasual;
             return (
               <div
                 key={row.key}
-                className="grid grid-cols-1 sm:grid-cols-[minmax(0,11rem)_1fr] gap-2 sm:gap-4 items-start py-2.5 border-b border-border last:border-b-0"
+                className="grid grid-cols-1 sm:grid-cols-[minmax(0,11rem)_1fr] gap-2 sm:gap-4 items-start py-3 border-b border-border last:border-b-0"
               >
                 <div className="sm:text-right sm:pt-1.5">
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="block text-sm font-semibold text-foreground">
                     {row.label}
                   </span>
-                  {/* Rendered inline, not as a title tooltip: a tooltip
-                      needs a hover, so on a phone this text — which
-                      explains what the program actually IS — could never
-                      be read. */}
-                  {row.help && (
-                    <p className="text-xs text-muted mt-0.5 leading-snug sm:max-w-[11rem] sm:ml-auto">
-                      {row.help}
-                    </p>
-                  )}
+                  <span className="block text-xs text-muted mt-0.5">
+                    {row.time}
+                  </span>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {row.perDay ? (
+                  {showDays ? (
                     WEEKDAYS.map((d) => (
-                      // Chips rather than bare checkboxes: a 16px box is
-                      // well under a usable tap target, and these are a
-                      // required control on the smallest screen.
                       <button
                         key={d}
                         type="button"
                         onClick={() => toggleDay(row.key, d)}
                         aria-pressed={picked.includes(d)}
+                        aria-label={`${row.label} — ${d}`}
                         className={
                           "px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
                           (picked.includes(d)
@@ -198,14 +206,15 @@ export function BillingStep({
                       type="button"
                       onClick={() => toggleSession(row.key)}
                       aria-pressed={picked.length > 0}
+                      aria-label={row.label}
                       className={
-                        "px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
+                        "px-4 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
                         (picked.length > 0
                           ? "border-brand bg-brand/10 text-brand"
                           : "border-border bg-card text-muted hover:border-brand/40")
                       }
                     >
-                      {row.time}
+                      {picked.length > 0 ? "Selected" : "Select"}
                     </button>
                   )}
                 </div>

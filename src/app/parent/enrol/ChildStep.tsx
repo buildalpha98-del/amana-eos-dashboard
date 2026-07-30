@@ -33,7 +33,7 @@ import {
   type DraftChild,
   type DraftUpload,
 } from "@/lib/enrol-draft";
-import { CULTURAL_OPTIONS, KNOWN_SCHOOL_OPTIONS } from "@/components/enrol/types";
+import { KNOWN_SCHOOL_OPTIONS } from "@/components/enrol/types";
 
 // NOT named `children`: React treats that prop specially, and handing it
 // an array of plain objects is asking for a confusing render-time error.
@@ -150,21 +150,6 @@ export function ChildStep({
                 value={c.crn ?? ""}
                 onChange={(e) => patch(i, { crn: e.target.value })}
               />
-            </Field>
-            <Field id={`c${i}-cultural`} label="Cultural background">
-              <select
-                id={`c${i}-cultural`}
-                className={field}
-                value={c.culturalBackground ?? ""}
-                onChange={(e) => patch(i, { culturalBackground: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {CULTURAL_OPTIONS.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
             </Field>
             <Field id={`c${i}-medicare`} label="Medicare number" required>
               <input
@@ -429,27 +414,33 @@ export function ChildStep({
                 placeholder="Practice street address"
               />
             </Field>
-            {/* Reg 162(g) — the status, distinct from the uploaded record. */}
-            <Field
-              id={`c${i}-immun`}
-              label="Immunisation status"
-              required
-              className="sm:col-span-2"
-            >
-              <select
-                id={`c${i}-immun`}
-                className={field}
-                value={c.immunisationStatus ?? ""}
-                onChange={(e) => patch(i, { immunisationStatus: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {IMMUNISATION_STATUS_OPTIONS.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
-            </Field>
+          </div>
+
+          {/* Reg 162(g), asked plainly. A tick beats a dropdown for three
+              options, and "medical exemption" has to be offered or those
+              families are forced to answer inaccurately. */}
+          <div>
+            <span className="block text-sm font-medium text-foreground mb-2">
+              Is your child fully immunised?<span className="text-red-500"> *</span>
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {IMMUNISATION_STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => patch(i, { immunisationStatus: opt })}
+                  aria-pressed={c.immunisationStatus === opt}
+                  className={
+                    "px-4 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
+                    (c.immunisationStatus === opt
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-border bg-card text-muted hover:border-brand/40")
+                  }
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
           </div>
 
           <SectionHeading>Documents</SectionHeading>

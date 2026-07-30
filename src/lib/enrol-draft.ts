@@ -70,6 +70,11 @@ export interface DraftChild {
   classroom?: string;
   crn?: string;
   countryOfBirth?: string;
+  /**
+   * @deprecated No longer asked per child — reg 160(3)(i) is satisfied
+   * from the primary carer's answer, which submit copies down. Retained
+   * so drafts started before this change still read.
+   */
   culturalBackground?: string;
   medicareNumber?: string;
   /** MM/YYYY — cards only ever show month and year. */
@@ -181,37 +186,6 @@ export interface DraftBilling {
  * on the left, and either the five weekdays or a single session time on
  * the right. Editing a row is one click, which is the whole point.
  */
-export const SESSION_ROWS: {
-  key: string;
-  label: string;
-  help?: string;
-  /** Weekday checkboxes when true, a single time checkbox when false. */
-  perDay: boolean;
-  /** Shown as the single option's label when `perDay` is false. */
-  time?: string;
-}[] = [
-  {
-    key: "beforeSchool",
-    label: "Before school care",
-    help: "We collect your child from home-room or the school gate and take them to the service before the school day starts.",
-    perDay: true,
-  },
-  { key: "riseAndShine", label: "Rise and Shine", perDay: false, time: "7–8:30am" },
-  {
-    key: "afterSchool",
-    label: "After school care",
-    help: "We collect your child at the end of the school day and care for them until you arrive.",
-    perDay: true,
-  },
-  {
-    key: "amanaAfternoons",
-    label: "Amana Afternoons",
-    perDay: false,
-    time: "3:30–6:30pm",
-  },
-  { key: "holidayQuest", label: "Holiday Quest", perDay: false, time: "7am–6pm" },
-];
-
 export interface DraftAgreement {
   firstAid?: boolean | null;
   medication?: boolean | null;
@@ -300,6 +274,49 @@ export const EMERGENCY_CONSENTS = [
   },
 ];
 
+export const SESSION_ROWS: {
+  key: string;
+  label: string;
+  time: string;
+  /** Offers weekday selection on a permanent booking. */
+  perDay: boolean;
+}[] = [
+  { key: "riseAndShine", label: "Rise and Shine", time: "6:30–8:30am", perDay: true },
+  { key: "amanaAfternoons", label: "Amana Afternoons", time: "3–6:30pm", perDay: true },
+  { key: "holidayQuest", label: "Holiday Quest", time: "7am–6pm", perDay: false },
+];
+
+/** Weekday names, for telling a real day apart from the "yes" marker. */
+const WEEKDAY_SET = new Set<string>(WEEKDAYS);
+
+/**
+ * Keep `sessions` consistent when the booking type changes.
+ *
+ * A permanent booking stores weekday names; a casual one stores ["yes"].
+ * Switching between them without this leaves "yes" sitting in a weekday
+ * list (and vice versa), which then leaks into the flattened day list
+ * rosters read.
+ */
+export function normaliseSessions(
+  sessions: Record<string, string[]> | undefined,
+  bookingType: string | undefined,
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const row of SESSION_ROWS) {
+    const picked = sessions?.[row.key] ?? [];
+    if (picked.length === 0) continue;
+    if (!row.perDay || bookingType !== "permanent") {
+      out[row.key] = ["yes"];
+    } else {
+      const days = picked.filter((d) => WEEKDAY_SET.has(d));
+      // Was a casual tick — keep it selected rather than silently
+      // dropping their choice; they just pick the days now.
+      out[row.key] = days;
+    }
+  }
+  return out;
+}
+
 /** Documents every child needs before we can accept them. */
 export const REQUIRED_CHILD_DOCUMENTS = [
   { type: "birth_certificate", label: "Birth certificate" },
@@ -307,15 +324,16 @@ export const REQUIRED_CHILD_DOCUMENTS = [
 ] as const;
 
 /**
- * Reg 162(g). "Exemption" is a real, lawful category (medical
- * contraindication or a recognised exemption) and omitting it would force
- * those families to answer inaccurately.
+ * Reg 162(g), asked as "Is your child fully immunised?".
+ *
+ * "Medical exemption" is a real, lawful category — a child with a medical
+ * contraindication is still eligible to attend, and without this option
+ * those families would have to answer inaccurately.
  */
 export const IMMUNISATION_STATUS_OPTIONS = [
-  "Up to date",
-  "Not up to date / catching up",
+  "Yes",
+  "No",
   "Medical exemption",
-  "Other exemption",
 ] as const;
 
 export const OPTIONAL_CHILD_DOCUMENTS = [
