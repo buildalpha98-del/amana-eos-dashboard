@@ -4,6 +4,16 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+
+/**
+ * Routes under /parent that a signed-OUT visitor must be able to reach.
+ * Anything not listed here requires a valid parent session.
+ */
+const PUBLIC_PARENT_ROUTES = [
+  "/parent/login",
+  "/parent/signup",
+  "/parent/confirm",
+];
 import {
   Home,
   Users,
@@ -55,8 +65,15 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
     registerParentServiceWorker().catch(() => {});
   }, [isAuthenticated]);
 
-  // On the login page, render children directly without shell
-  if (pathname === "/parent/login") {
+  // Public parent routes — rendered bare, with no shell and no auth gate.
+  //
+  // 2026-07-30: this used to list ONLY /parent/login, so /parent/signup and
+  // /parent/confirm fell through to the `!isAuthenticated` branch below and
+  // rendered nothing while the auth provider bounced the visitor away. A
+  // parent creating their first account is BY DEFINITION not authenticated,
+  // so the sign-up and confirmation pages must never be gated — that showed
+  // up as "session expired" on a page they'd never even seen.
+  if (PUBLIC_PARENT_ROUTES.includes(pathname)) {
     return <>{children}</>;
   }
 

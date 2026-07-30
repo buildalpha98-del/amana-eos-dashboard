@@ -15,8 +15,7 @@ import { Loader2, MailCheck } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 
 export default function ParentSignupPage() {
-  const [firstName, setFirstName] = useState("");
-  const [surname, setSurname] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -27,12 +26,7 @@ export default function ParentSignupPage() {
   const passwordsMatch = password === confirm;
   const longEnough = password.length >= 10;
   const canSubmit =
-    !!email &&
-    !!firstName.trim() &&
-    !!surname.trim() &&
-    longEnough &&
-    passwordsMatch &&
-    !loading;
+    !!email && !!fullName.trim() && longEnough && passwordsMatch && !loading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,12 +37,7 @@ export default function ParentSignupPage() {
     try {
       await mutateApi("/api/parent/auth/signup", {
         method: "POST",
-        body: {
-          email,
-          password,
-          firstName: firstName.trim(),
-          surname: surname.trim(),
-        },
+        body: { email, password, fullName: fullName.trim() },
       });
       setSent(true);
     } catch (err) {
@@ -90,30 +79,17 @@ export default function ParentSignupPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="su-first" className="block text-sm font-medium text-foreground mb-1">
-                  First name
+                <label htmlFor="su-name" className="block text-sm font-medium text-foreground mb-1">
+                  Full name
                 </label>
                 <input
-                  id="su-first"
+                  id="su-name"
                   type="text"
                   required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  autoComplete="given-name"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                />
-              </div>
-              <div>
-                <label htmlFor="su-last" className="block text-sm font-medium text-foreground mb-1">
-                  Last name
-                </label>
-                <input
-                  id="su-last"
-                  type="text"
-                  required
-                  value={surname}
-                  onChange={(e) => setSurname(e.target.value)}
-                  autoComplete="family-name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Sara Ahmed"
+                  autoComplete="name"
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
                 />
               </div>
@@ -187,7 +163,7 @@ export default function ParentSignupPage() {
                 className="w-full inline-flex items-center justify-center gap-2 bg-brand text-white font-medium px-4 py-3 rounded-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create account
+                Sign up
               </button>
 
               <p className="text-center text-xs text-muted">

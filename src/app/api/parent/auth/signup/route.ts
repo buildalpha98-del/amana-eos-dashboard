@@ -24,10 +24,12 @@ const signupSchema = z.object({
   // data, so it sits above the 8-char staff minimum. Breach-checked in
   // createParentAccount.
   password: z.string().min(10, "Password must be at least 10 characters"),
-  // 2026-07-30: full name is now required at sign-up — it's how staff
-  // identify the account before any enrolment data exists.
-  firstName: z.string().trim().min(1, "Enter your first name").max(100),
-  surname: z.string().trim().min(1, "Enter your last name").max(100),
+  // 2026-07-30: parents give ONE "Full name" field, matching how they
+  // think of it. Split on the last space for storage, since firstName is
+  // what we address them by in email and surname is what staff sort on.
+  // A single-word name keeps the whole thing as firstName rather than
+  // inventing an empty surname.
+  fullName: z.string().trim().min(1, "Enter your full name").max(200),
 });
 
 export const POST = withApiHandler(async (req) => {
@@ -49,11 +51,18 @@ export const POST = withApiHandler(async (req) => {
       "Check your inbox — we've sent a link to confirm your email address.",
   });
 
+  // Split the single "Full name" field for storage: firstName is what we
+  // address them by in email, surname is what staff sort on. A one-word
+  // name stays whole rather than inventing an empty surname.
+  const nameParts = parsed.data.fullName.split(/\s+/).filter(Boolean);
+  const firstName = nameParts[0] ?? parsed.data.fullName;
+  const surname = nameParts.length > 1 ? nameParts.slice(1).join(" ") : null;
+
   const result = await createParentAccount({
     email,
     password: parsed.data.password,
-    firstName: parsed.data.firstName ?? null,
-    surname: parsed.data.surname ?? null,
+    firstName,
+    surname,
   });
 
   const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
@@ -61,7 +70,7 @@ export const POST = withApiHandler(async (req) => {
 
   try {
     const { subject, html } = await parentVerifyEmail({
-      name: parsed.data.firstName,
+      name: firstName,
       link,
       alreadyRegistered: result.alreadyExisted,
     });
