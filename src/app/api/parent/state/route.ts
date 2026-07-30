@@ -20,15 +20,32 @@ export const GET = withParentAuth(async (_req, ctx) => {
       })
     : [];
 
-  const state = getParentEnrolmentState(enrolments);
-
-  // A draft only matters for the "continue where you left off" wording.
   const draft = ctx.parent.accountId
     ? await prisma.enrolmentDraft.findUnique({
         where: { accountId: ctx.parent.accountId },
         select: { currentStep: true, submittedAt: true },
       })
     : null;
+
+  let state = getParentEnrolmentState(enrolments);
+
+  /**
+   * A parent who has JUST submitted must not be sent back into the form.
+   *
+   * enrolmentIds comes from the session JWT, which was signed at LOGIN —
+   * before this enrolment existed. withParentAuth only ever filters that
+   * list down against the database, so a new submission can never appear
+   * in it. The result was the gate bouncing a family straight back into
+   * the form they had just finished.
+   *
+   * The submit route now re-issues the cookie, but that only helps the
+   * session that did the submitting. This is the durable check: the draft
+   * belongs to the account, and `submittedAt` is proof they finished,
+   * with no 500-row scan of enrolment JSON on every page load.
+   */
+  if (state === "needs_enrolment" && draft?.submittedAt) {
+    state = "pending_review";
+  }
 
   return NextResponse.json({
     state,

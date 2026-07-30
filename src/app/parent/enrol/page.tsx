@@ -130,9 +130,12 @@ export default function ParentEnrolPage() {
       await queryClient.invalidateQueries({ queryKey: ["parent", "state"] });
       toast({
         description:
-          "Enrolment submitted. We'll be in touch once our team has reviewed it.",
+          "Enrolment submitted. We'll be in touch within one business day.",
       });
-      router.replace("/parent/children");
+      // The portal home, not /parent/children — at this point the child
+      // records are still pending review, so a children page would be the
+      // emptiest possible landing for someone who just finished the form.
+      router.replace("/parent");
     } catch (err) {
       toast({
         variant: "destructive",
