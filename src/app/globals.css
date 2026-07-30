@@ -24,6 +24,10 @@
   --color-brand-hover: #003D52;
   --color-accent: #FECE00;
   --color-accent-light: #FDE68A;
+  /* Cosmic Latte — the Family Portal page background. Was hardcoded as
+     bg-[#FFFAE6] in ParentShell and the enrolment form; a token so the
+     sticky action bar can match the page behind it exactly. */
+  --color-parent-bg: #FFFAE6;
   --color-background: #FAF8F5;
   --color-card: #FFFFFF;
   --color-sidebar: #002E3D;

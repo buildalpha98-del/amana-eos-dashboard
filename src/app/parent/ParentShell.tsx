@@ -103,7 +103,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // Show nothing while auth check is pending
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FFFAE6] flex items-center justify-center">
+      <div className="min-h-screen bg-parent-bg flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-brand border-t-transparent rounded-full" />
       </div>
     );
@@ -119,7 +119,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   // dead ends.
   if (mustEnrol) {
     return (
-      <div data-v2="parent" className="parent-portal min-h-screen bg-[#FFFAE6]">
+      <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
         <header className="h-14 bg-brand flex items-center px-4 shadow-md">
           <span className="text-white font-heading font-semibold">
             Amana OSHC
@@ -146,7 +146,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div data-v2="parent" className="parent-portal min-h-screen bg-[#FFFAE6]">
+    <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
       {/* ─── Header ─────────────────────────────────────────── */}
       <header className="fixed top-0 inset-x-0 h-14 bg-brand z-30 flex items-center justify-between px-4 shadow-md">
         <Link href="/parent" className="flex items-center gap-2">
