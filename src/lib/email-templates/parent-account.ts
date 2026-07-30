@@ -72,9 +72,14 @@ export async function enrolmentReceivedEmail(params: {
       <p>In the meantime you can sign in to the Family Portal any time to
       see where things are up to.</p>
       ${buttonHtml("Go to my Family Portal", `${base}/parent`)}
-      <p style="font-size:13px;color:#6b7280;">Bookings open up once your
-      enrolment is approved. Any questions before then, just reply to this
-      email or contact us at enrolments@amanaoshc.com.au.</p>
+      <p><strong>One thing to know:</strong> the Family Portal is our new
+      system and we're still building it. Insha'Allah we'll let you know
+      as soon as it's fully up and running. You'll receive a separate
+      email within 24 hours with your login details for <strong>OWNA</strong>,
+      the parent app we currently use for bookings and daily updates.</p>
+      <p style="font-size:13px;color:#6b7280;">Any questions in the
+      meantime, just reply to this email or contact us at
+      enrolments@amanaoshc.com.au.</p>
     `,
       "family",
     ),
