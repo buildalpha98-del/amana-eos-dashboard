@@ -130,7 +130,12 @@ export const PATCH = withParentAuth(async (req, { parent }) => {
   const serviceIds = [...new Set(enrolments.map((e) => e.serviceId).filter(Boolean))] as string[];
 
   if (serviceIds.length === 0) {
-    throw ApiError.badRequest("No contact record found");
+    // 2026-07-30: a newly-verified parent has no enrolment and therefore no
+    // CentreContact yet. That's the normal first-login state, not an error
+    // — throwing here greeted them with "No contact record found" on their
+    // very first page load. Nothing to record against, so accept the call
+    // and no-op.
+    return NextResponse.json({ ok: true, skipped: "no_contact_record" });
   }
 
   const contact = await prisma.centreContact.findFirst({
