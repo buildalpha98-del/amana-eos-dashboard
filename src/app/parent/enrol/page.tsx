@@ -8,22 +8,59 @@
  * to it, so leaving mid-way and coming back (even on another device)
  * resumes exactly where they were.
  *
- * Steps 2-5 (Child, Contacts, Billing, Agreement) are stubbed with their
- * headings so the progress bar is honest about what's coming; they're the
- * next commit. The Me step is fully wired.
+ * All five steps are live. Completeness rules live in
+ * src/lib/enrol-draft.ts and are shared with the submit route, so the
+ * button and the server can't disagree about what "finished" means.
  */
 
-import { useMemo, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Loader2, Cloud, CloudOff, User, Baby, Phone, CreditCard, ClipboardCheck } from "lucide-react";
-import { useEnrolmentDraft, type DraftData } from "@/hooks/useEnrolmentDraft";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Cloud,
+  CloudOff,
+  User,
+  Baby,
+  Phone,
+  CreditCard,
+  ClipboardCheck,
+  AlertTriangle,
+} from "lucide-react";
+import { useEnrolmentDraft } from "@/hooks/useEnrolmentDraft";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import { ENROL_STEPS } from "./steps";
 import { MeStep, type MeData } from "./MeStep";
-import { ccsAnswered } from "@/lib/enrol-ccs";
+import { ChildStep } from "./ChildStep";
+import { ContactsStep } from "./ContactsStep";
+import {
+  BillingStep,
+  EMPTY_PAYMENT,
+  paymentEntered,
+  type PaymentEntry,
+} from "./BillingStep";
+import { AgreementStep } from "./AgreementStep";
+import {
+  stepComplete,
+  draftSubmittable,
+  type DraftAgreement,
+  type DraftBilling,
+  type DraftChild,
+  type DraftContacts,
+  type EnrolDraft,
+} from "@/lib/enrol-draft";
 
 const STEP_ICONS = [User, Baby, Phone, CreditCard, ClipboardCheck];
+const LAST_STEP = ENROL_STEPS.length - 1;
 
 export default function ParentEnrolPage() {
-  const { initialData, initialStep, isLoading, save, saveState } =
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { initialData, initialStep, isLoading, save, flush, saveState } =
     useEnrolmentDraft();
 
   // Overlay rather than hydrate. Copying the loaded draft into state via
@@ -31,44 +68,66 @@ export default function ParentEnrolPage() {
   // AND a race where a slow query can clobber what's already been typed.
   // Instead the saved draft is the base and local edits sit on top, so
   // before the first keystroke `form` simply IS the saved draft.
-  const [edits, setEdits] = useState<DraftData | null>(null);
+  const [edits, setEdits] = useState<EnrolDraft | null>(null);
   const [stepOverride, setStepOverride] = useState<number | null>(null);
-  const form = edits ?? initialData;
+  const form: EnrolDraft = (edits ?? initialData) as EnrolDraft;
   const step = stepOverride ?? initialStep;
 
-  const me = (form.me ?? {}) as MeData;
+  // Payment lives OUTSIDE the draft on purpose — never autosaved. See the
+  // header comment in BillingStep.tsx.
+  const [payment, setPayment] = useState<PaymentEntry>(EMPTY_PAYMENT);
+  const [submitting, setSubmitting] = useState(false);
 
-  const patchMe = (patch: Partial<MeData>) => {
+  const patch = (p: Partial<EnrolDraft>) => {
     setEdits((prev) => {
-      const base = prev ?? initialData;
-      const next = { ...base, me: { ...(base.me as MeData), ...patch } };
-      save(next, step);
+      const base = prev ?? (initialData as EnrolDraft);
+      const next = { ...base, ...p };
+      save(next as Record<string, unknown>, step);
       return next;
     });
   };
 
-  const meComplete = useMemo(
-    () =>
-      Boolean(
-        me.firstName?.trim() &&
-          me.surname?.trim() &&
-          me.mobile?.trim() &&
-          me.dob &&
-          me.street?.trim() &&
-          me.suburb?.trim() &&
-          me.isLegalCarer &&
-          ccsAnswered({
-            approved: me.ccsApproved ?? null,
-            applied: me.ccsApplied ?? null,
-          }),
-      ),
-    [me],
-  );
+  const children = form.children ?? [{}];
+
+  const canAdvance = stepComplete(step, form);
+  const canSubmit =
+    draftSubmittable(form) && paymentEntered(payment) && !submitting;
 
   const goTo = (next: number) => {
     setStepOverride(next);
-    save(form, next);
+    save(form as Record<string, unknown>, next);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      // Make sure the last keystroke is on the server before we ask it to
+      // validate what's there — the debounce would otherwise still be in
+      // flight and the submit would fail on stale data.
+      await flush();
+      await mutateApi("/api/parent/enrolment-draft/submit", {
+        method: "POST",
+        body: { payment },
+      });
+      // The gate in ParentShell reads this; without invalidating, they'd be
+      // bounced straight back into the form they just submitted.
+      await queryClient.invalidateQueries({ queryKey: ["parent", "state"] });
+      toast({
+        description:
+          "Enrolment submitted. We'll be in touch once our team has reviewed it.",
+      });
+      router.replace("/parent/children");
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description:
+          err instanceof Error
+            ? err.message
+            : "We couldn't submit your enrolment. Please try again.",
+      });
+      setSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -135,15 +194,56 @@ export default function ParentEnrolPage() {
       </div>
 
       <div className="bg-card rounded-xl border border-border p-5 sm:p-6">
-        {step === 0 ? (
-          <MeStep data={me} onChange={patchMe} />
-        ) : (
-          <p className="text-sm text-muted py-8 text-center">
-            The {ENROL_STEPS[step].label} step is coming next. Your progress
-            so far is saved.
-          </p>
+        {step === 0 && (
+          <MeStep
+            data={(form.me ?? {}) as MeData}
+            onChange={(p) => patch({ me: { ...(form.me ?? {}), ...p } })}
+          />
+        )}
+        {step === 1 && (
+          <ChildStep
+            items={children as DraftChild[]}
+            onChange={(next) => patch({ children: next })}
+          />
+        )}
+        {step === 2 && (
+          <ContactsStep
+            data={(form.contacts ?? {}) as DraftContacts}
+            onChange={(p) => patch({ contacts: { ...(form.contacts ?? {}), ...p } })}
+          />
+        )}
+        {step === 3 && (
+          <BillingStep
+            data={(form.billing ?? {}) as DraftBilling}
+            onChange={(p) => patch({ billing: { ...(form.billing ?? {}), ...p } })}
+            payment={payment}
+            onPaymentChange={(p) => setPayment((prev) => ({ ...prev, ...p }))}
+          />
+        )}
+        {step === 4 && (
+          <AgreementStep
+            data={(form.agreement ?? {}) as DraftAgreement}
+            onChange={(p) =>
+              patch({ agreement: { ...(form.agreement ?? {}), ...p } })
+            }
+          />
         )}
       </div>
+
+      {/* On the final step, say WHY submit is disabled. A dead button with
+          no explanation is the worst possible end to a long form. */}
+      {step === LAST_STEP && !canSubmit && !submitting && (
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
+          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            {!stepComplete(4, form)
+              ? "Please answer every consent, accept the terms and privacy policy, and type your name to sign."
+              : !paymentEntered(payment)
+                ? "Please go back to Billing and enter your payment details — they aren't saved between visits."
+                : "Some earlier steps are incomplete. Use the circles above to go back and finish them."}
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center justify-between mt-6">
         <button
@@ -154,15 +254,31 @@ export default function ParentEnrolPage() {
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
-        <button
-          type="button"
-          onClick={() => goTo(Math.min(ENROL_STEPS.length - 1, step + 1))}
-          disabled={step === 0 && !meComplete}
-          title={step === 0 && !meComplete ? "Please complete the required fields" : undefined}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Next <ChevronRight className="w-4 h-4" />
-        </button>
+
+        {step < LAST_STEP ? (
+          <button
+            type="button"
+            onClick={() => goTo(step + 1)}
+            disabled={!canAdvance}
+            title={!canAdvance ? "Please complete the required fields" : undefined}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next <ChevronRight className="w-4 h-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!canSubmit}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {submitting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
+            ) : (
+              <>Submit enrolment <Check className="w-4 h-4" /></>
+            )}
+          </button>
+        )}
       </div>
 
       <p className="text-center text-xs text-muted mt-4">
