@@ -15,13 +15,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { withParentAuth } from "@/lib/parent-auth";
+import {
+  setParentSessionCookie,
+  signParentJwt,
+  withParentAuth,
+} from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { encryptField } from "@/lib/field-encryption";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { normaliseEmail } from "@/lib/parent-account";
-import { secondaryCarerInviteEmail } from "@/lib/email-templates/parent-account";
+import {
+  enrolmentReceivedEmail,
+  secondaryCarerInviteEmail,
+} from "@/lib/email-templates/parent-account";
 import {
   draftSubmittable,
   firstIncompleteStep,
@@ -362,5 +369,51 @@ export const POST = withParentAuth(async (req, ctx) => {
     }
   }
 
-  return NextResponse.json({ ok: true, submissionId: submission.id });
+  // ── Confirm receipt to the family ────────────────────────────────────
+  // Swallowed like the carer invite: a mail failure must never look like
+  // a failed enrolment to someone who just finished a 5-step form.
+  try {
+    const { subject, html } = await enrolmentReceivedEmail({
+      name: me.firstName?.trim() || "there",
+      childNames: enrichedChildren
+        .map((c) => c.firstName)
+        .filter(Boolean) as string[],
+    });
+    await sendEmail({ to: ctx.parent.email, subject, html });
+  } catch (err) {
+    logger.warn("Enrolment confirmation email failed to send", {
+      submissionId: submission.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  const res = NextResponse.json({ ok: true, submissionId: submission.id });
+
+  /**
+   * Re-issue the session with the new enrolment attached.
+   *
+   * enrolmentIds is baked into the JWT at login, and withParentAuth only
+   * ever filters it DOWN against the database — so without this the
+   * enrolment we just created would be invisible to every subsequent
+   * request, and the gate would send this family straight back into the
+   * form they had just completed.
+   */
+  try {
+    const jwt = await signParentJwt({
+      email: ctx.parent.email,
+      name: ctx.parent.name,
+      enrolmentIds: [...ctx.parent.enrolmentIds, submission.id],
+      accountId,
+    });
+    setParentSessionCookie(res, jwt);
+  } catch (err) {
+    // /api/parent/state also treats a submitted draft as "submitted", so
+    // a failure here degrades rather than trapping them in the form.
+    logger.warn("Could not refresh parent session after enrolment", {
+      submissionId: submission.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  return res;
 });

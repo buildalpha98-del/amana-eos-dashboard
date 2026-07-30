@@ -41,6 +41,48 @@ export async function parentVerifyEmail(params: {
 
 
 /**
+ * Sent the moment a family submits their enrolment.
+ *
+ * Two jobs: reassure them it arrived (a long form ending in silence reads
+ * as "did that work?"), and set an expectation for what happens next so
+ * they aren't left wondering whether to chase us.
+ */
+export async function enrolmentReceivedEmail(params: {
+  name: string;
+  childNames: string[];
+}): Promise<{ subject: string; html: string }> {
+  const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+
+  const child =
+    params.childNames.length === 1
+      ? params.childNames[0]
+      : params.childNames.length > 1
+        ? `${params.childNames.slice(0, -1).join(", ")} and ${params.childNames.at(-1)}`
+        : "your child";
+
+  return {
+    subject: "We've received your enrolment — Amana OSHC",
+    html: await baseLayout(
+      `
+      <p>Hi ${params.name},</p>
+      <p>Thank you — we've received ${child}'s enrolment.</p>
+      <p>Our team will review the details and get back to you within
+      <strong>one business day</strong> to confirm the enrolment. If we
+      need anything else, we'll give you a call on the number you gave us.</p>
+      <p>In the meantime you can sign in to the Family Portal any time to
+      see where things are up to.</p>
+      ${buttonHtml("Go to my Family Portal", `${base}/parent`)}
+      <p style="font-size:13px;color:#6b7280;">Bookings open up once your
+      enrolment is approved. Any questions before then, just reply to this
+      email or contact us at enrolments@amanaoshc.com.au.</p>
+    `,
+      "family",
+    ),
+  };
+}
+
+
+/**
  * Sent to the second parent/carer named on a submitted enrolment, letting
  * them know they have access to the Family Portal for their child.
  *
