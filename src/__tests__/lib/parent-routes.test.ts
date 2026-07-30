@@ -46,3 +46,24 @@ describe("no duplicated auth gates", () => {
     expect(src).not.toMatch(/pathname\s*[!=]==\s*["']\/parent\/login["']/);
   });
 });
+
+describe("401 handling on public parent routes", () => {
+  // The bug this pins: an earlier guard checked "am I already AT the
+  // redirect target", which silenced /parent/login but left /parent/signup
+  // toasting and reloading in a loop. The rule has to be "is this a public
+  // parent route", because none of them have a session to expire.
+  const src = readFileSync(
+    "src/components/providers/QueryProvider.tsx",
+    "utf8",
+  );
+
+  it("suppresses the session-expired redirect on ALL public parent routes", () => {
+    expect(src).toContain("isPublicParentRoute");
+  });
+
+  it("does not gate on equality with the redirect target", () => {
+    // e.g. `window.location.pathname === target` — too narrow, and the
+    // exact mistake that left signup looping.
+    expect(src).not.toMatch(/pathname\s*===\s*target/);
+  });
+});

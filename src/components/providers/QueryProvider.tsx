@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 import { useState, useRef } from "react";
 import { toast } from "@/hooks/useToast";
+import { isPublicParentRoute } from "@/lib/parent-routes";
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -35,20 +36,35 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   const handleSessionExpired = () => {
     if (isRedirecting.current) return;
     isRedirecting.current = true;
-    // 2026-07-30: parents were being bounced to the STAFF login, where
-    // their credentials don't work — a dead end that reads as "my account
-    // is broken". Send them to their own sign-in instead.
-    const isParentArea =
-      typeof window !== "undefined" &&
-      window.location.pathname.startsWith("/parent");
-    const target = isParentArea ? "/parent/login" : "/login";
-    // Already on the sign-in page? A 401 there is expected (a bad password,
-    // or a stray unauthenticated query) and redirecting would reload the
-    // page, remount whatever 401'd, and loop forever.
-    if (typeof window !== "undefined" && window.location.pathname === target) {
+    const pathname =
+      typeof window !== "undefined" ? window.location.pathname : "";
+
+    // 2026-07-30: on a PUBLIC parent page (login, signup, confirm) there is
+    // no session to expire — the visitor hasn't got one yet, by definition.
+    // A 401 there means a stray authenticated request fired, which is a bug
+    // to fix at the source, but it must never produce a "session expired"
+    // toast or a redirect: the redirect reloads the page, remounts whatever
+    // 401'd, and loops. Suppress entirely and log so it stays findable.
+    //
+    // Deliberately keyed on the ROUTE rather than on "am I already at the
+    // redirect target" — an earlier version only matched the target, which
+    // silenced /parent/login while leaving /parent/signup looping.
+    if (isPublicParentRoute(pathname)) {
       isRedirecting.current = false;
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "[auth] 401 on public parent route — an authenticated query is " +
+            "firing for a signed-out visitor:",
+          pathname,
+        );
+      }
       return;
     }
+
+    // Parents were being bounced to the STAFF login, where their
+    // credentials don't work — a dead end that reads as "my account is
+    // broken". Send them to their own sign-in instead.
+    const target = pathname.startsWith("/parent") ? "/parent/login" : "/login";
     toast({ description: "Session expired. Please sign in again." });
     setTimeout(() => {
       window.location.href = target;
