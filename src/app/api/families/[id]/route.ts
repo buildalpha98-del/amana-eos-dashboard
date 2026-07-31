@@ -1,4 +1,6 @@
 /**
+ * GET    /api/families/:id — one family: contacts, children, billing.
+ * PATCH  /api/families/:id — family name + billing arrangement.
  * DELETE /api/families/:id — remove a parent ACCOUNT.
  *
  * 2026-07-30, per Daniel: "for the test account that I made, I wanna be
@@ -15,11 +17,237 @@
  * Owner-only, and logged before the delete so the audit trail survives.
  */
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
+import { anchorDayValid, isBillingFrequency } from "@/lib/family-billing";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+/**
+ * Enrolments are linked to an account by the parent's EMAIL inside a JSON
+ * column, not a foreign key. Shared by GET and PATCH so the two can't
+ * disagree about which submissions belong to a family.
+ */
+async function submissionsForEmail(email: string) {
+  const all = await prisma.enrolmentSubmission.findMany({
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+      primaryParent: true,
+      secondaryParent: true,
+      emergencyContacts: true,
+      paymentMethod: true,
+      paymentDetails: true,
+      childRecords: {
+        select: {
+          id: true,
+          firstName: true,
+          surname: true,
+          status: true,
+          dob: true,
+          schoolName: true,
+          yearLevel: true,
+          ccsStatus: true,
+          service: { select: { id: true, name: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 500,
+  });
+
+  return all.filter((s) => {
+    const p = s.primaryParent as Record<string, unknown> | null;
+    return (
+      p && typeof p.email === "string" && p.email.toLowerCase().trim() === email
+    );
+  });
+}
+
+export const GET = withApiAuth(
+  async (_req, _session, context) => {
+    const { id } = await (context as unknown as Ctx).params;
+
+    const account = await prisma.parentAccount.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        surname: true,
+        familyName: true,
+        emailVerifiedAt: true,
+        lastLoginAt: true,
+        createdAt: true,
+        billingFrequency: true,
+        billingAnchorDay: true,
+        billingLimitCents: true,
+        billingNotes: true,
+        enrolmentDraft: {
+          select: { currentStep: true, updatedAt: true, submittedAt: true },
+        },
+      },
+    });
+    if (!account) throw ApiError.notFound("Family not found");
+
+    const subs = await submissionsForEmail(account.email);
+    const latest = subs[0] ?? null;
+
+    // Bank/card details are MASKED here. The full value is encrypted and
+    // only ever released by POST /api/enrolments/[id]/payment, which is
+    // owner/head_office-only — this endpoint is open to admin too, so it
+    // must not become a side door around that.
+    const masked = (latest?.paymentDetails ?? null) as Record<
+      string,
+      unknown
+    > | null;
+    const payment = masked
+      ? {
+          method: latest?.paymentMethod ?? null,
+          lastFour: masked.lastFour ?? null,
+          cardType: masked.cardType ?? null,
+          bsbLastThree: masked.bsbLastThree ?? null,
+          accountLastFour: masked.accountLastFour ?? null,
+          hasEncryptedDetails: typeof masked.raw === "string",
+          enrolmentId: latest?.id ?? null,
+        }
+      : null;
+
+    return NextResponse.json({
+      id: account.id,
+      email: account.email,
+      familyName: account.familyName || account.surname || null,
+      contactName:
+        [account.firstName, account.surname].filter(Boolean).join(" ") || null,
+      emailVerified: Boolean(account.emailVerifiedAt),
+      lastLoginAt: account.lastLoginAt,
+      createdAt: account.createdAt,
+      enrolmentState: getParentEnrolmentState(subs),
+      draft: account.enrolmentDraft
+        ? {
+            currentStep: account.enrolmentDraft.currentStep,
+            updatedAt: account.enrolmentDraft.updatedAt,
+            submittedAt: account.enrolmentDraft.submittedAt,
+          }
+        : null,
+      billing: {
+        frequency: account.billingFrequency,
+        anchorDay: account.billingAnchorDay,
+        limitCents: account.billingLimitCents,
+        notes: account.billingNotes,
+      },
+      payment,
+      primaryParent: latest?.primaryParent ?? null,
+      secondaryParent: latest?.secondaryParent ?? null,
+      emergencyContacts: latest?.emergencyContacts ?? null,
+      enrolments: subs.map((s) => ({
+        id: s.id,
+        status: s.status,
+        createdAt: s.createdAt,
+      })),
+      children: subs.flatMap((s) =>
+        s.childRecords.map((c) => ({
+          id: c.id,
+          name: `${c.firstName} ${c.surname}`.trim(),
+          status: c.status,
+          dob: c.dob,
+          schoolName: c.schoolName,
+          classroom: c.yearLevel,
+          ccsStatus: c.ccsStatus,
+          serviceName: c.service?.name ?? null,
+          serviceId: c.service?.id ?? null,
+        })),
+      ),
+    });
+  },
+  { roles: ["owner", "head_office", "admin"] },
+);
+
+const patchSchema = z.object({
+  familyName: z.string().trim().max(120).nullable().optional(),
+  billingFrequency: z.string().nullable().optional(),
+  billingAnchorDay: z.number().int().nullable().optional(),
+  billingLimitCents: z.number().int().min(0).max(100_000_00).nullable().optional(),
+  billingNotes: z.string().max(2000).nullable().optional(),
+});
+
+export const PATCH = withApiAuth(
+  async (req, _session, context) => {
+    const { id } = await (context as unknown as Ctx).params;
+    const parsed = patchSchema.safeParse(await parseJsonBody(req));
+    if (!parsed.success) {
+      throw ApiError.badRequest(parsed.error.issues[0].message);
+    }
+    const d = parsed.data;
+
+    if (
+      d.billingFrequency !== undefined &&
+      d.billingFrequency !== null &&
+      !isBillingFrequency(d.billingFrequency)
+    ) {
+      throw ApiError.badRequest(
+        "Billing frequency must be weekly, fortnightly or monthly.",
+      );
+    }
+
+    const existing = await prisma.parentAccount.findUnique({
+      where: { id },
+      select: { billingFrequency: true },
+    });
+    if (!existing) throw ApiError.notFound("Family not found");
+
+    // Validate the day against the frequency being SAVED, not the stored
+    // one — otherwise switching monthly→weekly leaves day 28 in place and
+    // silently means "the 28th weekday".
+    const effectiveFrequency =
+      d.billingFrequency !== undefined
+        ? d.billingFrequency
+        : existing.billingFrequency;
+    if (
+      d.billingAnchorDay !== undefined &&
+      !anchorDayValid(effectiveFrequency, d.billingAnchorDay)
+    ) {
+      throw ApiError.badRequest(
+        effectiveFrequency === "monthly"
+          ? "Billing day must be between 1 and 28 — later days don't exist in every month."
+          : "Billing day must be a weekday (1 = Monday, 7 = Sunday).",
+      );
+    }
+
+    const updated = await prisma.parentAccount.update({
+      where: { id },
+      data: {
+        ...(d.familyName !== undefined ? { familyName: d.familyName || null } : {}),
+        ...(d.billingFrequency !== undefined
+          ? { billingFrequency: d.billingFrequency || null }
+          : {}),
+        ...(d.billingAnchorDay !== undefined
+          ? { billingAnchorDay: d.billingAnchorDay }
+          : {}),
+        ...(d.billingLimitCents !== undefined
+          ? { billingLimitCents: d.billingLimitCents }
+          : {}),
+        ...(d.billingNotes !== undefined
+          ? { billingNotes: d.billingNotes || null }
+          : {}),
+      },
+      select: {
+        familyName: true,
+        billingFrequency: true,
+        billingAnchorDay: true,
+        billingLimitCents: true,
+        billingNotes: true,
+      },
+    });
+
+    return NextResponse.json({ ok: true, ...updated });
+  },
+  { roles: ["owner", "head_office", "admin"] },
+);
 
 export const DELETE = withApiAuth(
   async (_req, session, context) => {

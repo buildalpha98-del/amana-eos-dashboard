@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 /**
  * /families — staff view of parent accounts and their children.
  *
@@ -32,7 +34,15 @@ interface Family {
   draftUpdatedAt: string | null;
   enrolmentCount: number;
   reminderSentAt: string | null;
-  children: { id: string; name: string; status: string }[];
+  familyName: string | null;
+  services: { id: string; name: string }[];
+  children: {
+    id: string;
+    name: string;
+    status: string;
+    schoolName: string | null;
+    serviceName: string | null;
+  }[];
 }
 
 const STATE_META: Record<
@@ -162,6 +172,7 @@ export default function FamiliesPage() {
                       <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">Family</th>
                       <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">Status</th>
                       <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">Children</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">Service</th>
                       <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">Email</th>
                       <th className="text-left px-4 py-3 font-medium text-muted text-xs uppercase tracking-wide">Last login</th>
                       <th className="px-4 py-3" />
@@ -173,8 +184,17 @@ export default function FamiliesPage() {
                       return (
                         <tr key={f.id} className="hover:bg-surface/40">
                           <td className="px-4 py-3">
-                            <p className="font-medium text-foreground">{f.name ?? "—"}</p>
-                            <p className="text-xs text-muted">{f.email}</p>
+                            <Link
+                              href={`/families/${f.id}`}
+                              className="font-medium text-brand hover:underline"
+                            >
+                              {f.familyName
+                                ? `The ${f.familyName} family`
+                                : (f.name ?? f.email)}
+                            </Link>
+                            <p className="text-xs text-muted">
+                              {f.name ? `${f.name} · ${f.email}` : f.email}
+                            </p>
                           </td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-2xs font-medium ${meta.className}`}>
@@ -192,6 +212,15 @@ export default function FamiliesPage() {
                             ) : (
                               <span className="text-foreground/80">
                                 {f.children.map((c) => c.name).join(", ")}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted">
+                            {f.services.length === 0 ? (
+                              <span className="text-muted/50">—</span>
+                            ) : (
+                              <span className="text-foreground/80">
+                                {f.services.map((sv) => sv.name).join(", ")}
                               </span>
                             )}
                           </td>

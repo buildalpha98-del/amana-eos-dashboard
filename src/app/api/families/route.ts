@@ -21,6 +21,7 @@ export const GET = withApiAuth(
               { email: { contains: search, mode: "insensitive" } },
               { firstName: { contains: search, mode: "insensitive" } },
               { surname: { contains: search, mode: "insensitive" } },
+              { familyName: { contains: search, mode: "insensitive" } },
             ],
           }
         : undefined,
@@ -33,6 +34,10 @@ export const GET = withApiAuth(
         lastLoginAt: true,
         createdAt: true,
         enrolmentReminderSentAt: true,
+        familyName: true,
+        billingFrequency: true,
+        billingAnchorDay: true,
+        billingLimitCents: true,
         enrolmentDraft: { select: { currentStep: true, updatedAt: true, submittedAt: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -48,7 +53,17 @@ export const GET = withApiAuth(
         status: true,
         createdAt: true,
         primaryParent: true,
-        childRecords: { select: { id: true, firstName: true, surname: true, status: true } },
+        serviceId: true,
+        childRecords: {
+          select: {
+            id: true,
+            firstName: true,
+            surname: true,
+            status: true,
+            schoolName: true,
+            service: { select: { id: true, name: true } },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 1000,
@@ -67,10 +82,31 @@ export const GET = withApiAuth(
 
     const families = accounts.map((a) => {
       const subs = byEmail.get(a.email) ?? [];
+      // The service is recorded per CHILD, so read it from there rather
+      // than the submission — a family can have children at two centres.
+      const services = Array.from(
+        new Map(
+          subs
+            .flatMap((s) => s.childRecords)
+            .map((c) => c.service)
+            .filter((sv): sv is { id: string; name: string } => Boolean(sv))
+            .map((sv) => [sv.id, sv]),
+        ).values(),
+      );
+
       return {
         id: a.id,
         email: a.email,
         name: [a.firstName, a.surname].filter(Boolean).join(" ") || null,
+        // Falls back to the sign-up surname for accounts that predate the
+        // familyName column and haven't submitted an enrolment yet.
+        familyName: a.familyName || a.surname || null,
+        services,
+        billing: {
+          frequency: a.billingFrequency,
+          anchorDay: a.billingAnchorDay,
+          limitCents: a.billingLimitCents,
+        },
         emailVerified: Boolean(a.emailVerifiedAt),
         lastLoginAt: a.lastLoginAt,
         createdAt: a.createdAt,
@@ -84,6 +120,8 @@ export const GET = withApiAuth(
             id: c.id,
             name: `${c.firstName} ${c.surname}`.trim(),
             status: c.status,
+            schoolName: c.schoolName,
+            serviceName: c.service?.name ?? null,
           })),
         ),
       };
