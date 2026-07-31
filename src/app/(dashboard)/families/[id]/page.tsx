@@ -23,6 +23,8 @@ import {
   Mail,
   ChevronRight,
   CalendarClock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -49,6 +51,17 @@ interface FamilyChild {
   serviceName: string | null;
 }
 
+interface RevealedPayment {
+  method: string | null;
+  accountName?: string;
+  bsb?: string;
+  accountNumber?: string;
+  cardName?: string;
+  cardNumber?: string;
+  expiryMonth?: string;
+  expiryYear?: string;
+}
+
 interface FamilyDetail {
   id: string;
   email: string;
@@ -61,6 +74,14 @@ interface FamilyDetail {
     anchorDay: number | null;
     limitCents: number | null;
     notes: string | null;
+    startDate: string | null;
+    periodStart: string | null;
+    nextBillingDate: string | null;
+    weeks: number | null;
+    autoInvoice: boolean;
+    pauseDebiting: boolean;
+    reminderDate: string | null;
+    reminderNotes: string | null;
   };
   payment: {
     method: string | null;
@@ -72,6 +93,12 @@ interface FamilyDetail {
     enrolmentId: string | null;
   } | null;
   children: FamilyChild[];
+}
+
+/** ISO instant → "YYYY-MM-DD" for a date input. */
+function dateOnly(v: string | null | undefined): string | null {
+  if (!v) return null;
+  return v.slice(0, 10);
 }
 
 const field =
@@ -103,12 +130,28 @@ export default function FamilyDetailPage({
     anchorDay: data?.billing.anchorDay ?? null,
     limitCents: data?.billing.limitCents ?? null,
     notes: data?.billing.notes ?? null,
+    startDate: dateOnly(data?.billing.startDate),
+    periodStart: dateOnly(data?.billing.periodStart),
+    nextBillingDate: dateOnly(data?.billing.nextBillingDate),
+    weeks: data?.billing.weeks ?? null,
+    autoInvoice: data?.billing.autoInvoice ?? true,
+    pauseDebiting: data?.billing.pauseDebiting ?? false,
+    reminderDate: dateOnly(data?.billing.reminderDate),
+    reminderNotes: data?.billing.reminderNotes ?? null,
     ...(edits ?? {}),
   } as {
     frequency: string | null;
     anchorDay: number | null;
     limitCents: number | null;
     notes: string | null;
+    startDate: string | null;
+    periodStart: string | null;
+    nextBillingDate: string | null;
+    weeks: number | null;
+    autoInvoice: boolean;
+    pauseDebiting: boolean;
+    reminderDate: string | null;
+    reminderNotes: string | null;
   };
 
   const limitValue =
@@ -124,6 +167,25 @@ export default function FamilyDetailPage({
       setLimitInput(null);
       toast({ description: "Billing arrangement saved." });
     },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
+  /**
+   * Revealing bank details is a privileged, audited read — owner and state
+   * manager only, enforced server-side. It is never fetched with the page;
+   * staff have to ask for it, which is what makes the audit entry mean
+   * something.
+   */
+  const [revealed, setRevealed] = useState<RevealedPayment | null>(null);
+
+  const reveal = useMutation({
+    mutationFn: () =>
+      mutateApi<RevealedPayment>(
+        `/api/enrolments/${data?.payment?.enrolmentId}/payment`,
+        { method: "POST", body: {} },
+      ),
+    onSuccess: (r) => setRevealed(r),
     onError: (err: Error) =>
       toast({ variant: "destructive", description: err.message }),
   });
@@ -156,6 +218,14 @@ export default function FamilyDetailPage({
       billingAnchorDay: billing.anchorDay,
       billingLimitCents: cents,
       billingNotes: billing.notes,
+      billingStartDate: billing.startDate,
+      billingPeriodStart: billing.periodStart,
+      nextBillingDate: billing.nextBillingDate,
+      billingWeeks: billing.weeks,
+      autoInvoice: billing.autoInvoice,
+      pauseDebiting: billing.pauseDebiting,
+      billingReminderDate: billing.reminderDate,
+      billingReminderNotes: billing.reminderNotes,
     });
   };
 
@@ -186,9 +256,7 @@ export default function FamilyDetailPage({
       </Link>
 
       <PageHeader
-        title={
-          data.familyName ? `The ${data.familyName} family` : "Family account"
-        }
+        title={data.familyName || data.contactName || "Family account"}
         description={data.contactName ?? data.email}
       />
 
@@ -337,11 +405,70 @@ export default function FamilyDetailPage({
                   ? `Direct debit — BSB •••${data.payment.bsbLastThree ?? "•••"}, account ••••${data.payment.accountLastFour ?? "••••"}`
                   : `${data.payment.cardType ?? "Card"} ending ${data.payment.lastFour ?? "••••"}`}
               </p>
-              <p className="text-xs text-muted mt-1">
-                Shown masked. {data.payment.hasEncryptedDetails
-                  ? "The full details are encrypted and can be retrieved by an owner or state manager for OWNA porting."
-                  : "No encrypted copy is stored for this enrolment."}
-              </p>
+              {revealed ? (
+                <dl className="mt-2 text-sm space-y-1">
+                  {revealed.method === "bank_account" ? (
+                    <>
+                      <div className="flex gap-2">
+                        <dt className="text-muted w-28 shrink-0">Account name</dt>
+                        <dd className="text-foreground font-mono">{revealed.accountName}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted w-28 shrink-0">BSB</dt>
+                        <dd className="text-foreground font-mono">{revealed.bsb}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted w-28 shrink-0">Account no.</dt>
+                        <dd className="text-foreground font-mono">{revealed.accountNumber}</dd>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex gap-2">
+                        <dt className="text-muted w-28 shrink-0">Name on card</dt>
+                        <dd className="text-foreground font-mono">{revealed.cardName}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted w-28 shrink-0">Number</dt>
+                        <dd className="text-foreground font-mono">{revealed.cardNumber}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted w-28 shrink-0">Expiry</dt>
+                        <dd className="text-foreground font-mono">
+                          {revealed.expiryMonth}/{revealed.expiryYear}
+                        </dd>
+                      </div>
+                    </>
+                  )}
+                </dl>
+              ) : (
+                <p className="text-xs text-muted mt-1">
+                  {data.payment.hasEncryptedDetails
+                    ? "Stored encrypted. Reveal to get the full BSB and account number for a reimbursement — every reveal is recorded in the audit log."
+                    : "No encrypted copy is stored for this enrolment, so the full number can't be recovered."}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2 mt-3">
+                {data.payment.hasEncryptedDetails && !revealed && (
+                  <Button
+                    variant="outline"
+                    onClick={() => reveal.mutate()}
+                    disabled={reveal.isPending}
+                  >
+                    {reveal.isPending ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Revealing…</>
+                    ) : (
+                      <><Eye className="w-4 h-4" /> Reveal full details</>
+                    )}
+                  </Button>
+                )}
+                {revealed && (
+                  <Button variant="ghost" onClick={() => setRevealed(null)}>
+                    <EyeOff className="w-4 h-4" /> Hide
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -469,6 +596,148 @@ export default function FamilyDetailPage({
               Maximum per debit. Leave blank for no cap.
             </p>
           </div>
+        </div>
+
+        {/* Invoicing schedule. A weekday alone can't say "starting from
+            the week of 3 April, bill on the 13th" — that needs real
+            dates, so the cycle is anchored to them. */}
+        <h3 className="text-sm font-semibold text-foreground mt-6 pt-4 border-t border-border">
+          Invoicing schedule
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
+          <div>
+            <label htmlFor="fb-start" className="block text-sm font-medium text-foreground mb-1">
+              Billing start date
+            </label>
+            <input
+              id="fb-start"
+              type="date"
+              className={field}
+              value={billing.startDate ?? ""}
+              onChange={(e) =>
+                setEdits((prev) => ({ ...(prev ?? {}), startDate: e.target.value || null }))
+              }
+            />
+            <p className="mt-1 text-xs text-muted">
+              Attendances and charges before this date are ignored.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="fb-period" className="block text-sm font-medium text-foreground mb-1">
+              For period starting
+            </label>
+            <input
+              id="fb-period"
+              type="date"
+              className={field}
+              value={billing.periodStart ?? ""}
+              onChange={(e) =>
+                setEdits((prev) => ({ ...(prev ?? {}), periodStart: e.target.value || null }))
+              }
+            />
+            <p className="mt-1 text-xs text-muted">
+              First day of the period the next invoice covers.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="fb-next" className="block text-sm font-medium text-foreground mb-1">
+              Next billing date
+            </label>
+            <input
+              id="fb-next"
+              type="date"
+              className={field}
+              value={billing.nextBillingDate ?? ""}
+              onChange={(e) =>
+                setEdits((prev) => ({ ...(prev ?? {}), nextBillingDate: e.target.value || null }))
+              }
+            />
+            <p className="mt-1 text-xs text-muted">
+              When that invoice goes out.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="fb-weeks" className="block text-sm font-medium text-foreground mb-1">
+              Weeks per cycle
+            </label>
+            <input
+              id="fb-weeks"
+              type="number"
+              min={1}
+              max={52}
+              className={field}
+              value={billing.weeks ?? ""}
+              onChange={(e) =>
+                setEdits((prev) => ({
+                  ...(prev ?? {}),
+                  weeks: e.target.value ? Number(e.target.value) : null,
+                }))
+              }
+            />
+          </div>
+          <div>
+            <label htmlFor="fb-remind" className="block text-sm font-medium text-foreground mb-1">
+              Reminder date
+            </label>
+            <input
+              id="fb-remind"
+              type="date"
+              className={field}
+              value={billing.reminderDate ?? ""}
+              onChange={(e) =>
+                setEdits((prev) => ({ ...(prev ?? {}), reminderDate: e.target.value || null }))
+              }
+            />
+          </div>
+          <div>
+            <label htmlFor="fb-remind-notes" className="block text-sm font-medium text-foreground mb-1">
+              Reminder notes
+            </label>
+            <input
+              id="fb-remind-notes"
+              className={field}
+              value={billing.reminderNotes ?? ""}
+              onChange={(e) =>
+                setEdits((prev) => ({ ...(prev ?? {}), reminderNotes: e.target.value }))
+              }
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 mt-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={billing.autoInvoice}
+              onChange={(e) =>
+                setEdits((prev) => ({ ...(prev ?? {}), autoInvoice: e.target.checked }))
+              }
+              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+            />
+            <span className="text-sm text-foreground">
+              Auto-invoice this family
+              <span className="block text-xs text-muted">
+                Untick to raise their invoices by hand.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={billing.pauseDebiting}
+              onChange={(e) =>
+                setEdits((prev) => ({ ...(prev ?? {}), pauseDebiting: e.target.checked }))
+              }
+              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+            />
+            <span className="text-sm text-foreground">
+              Pause debiting
+              <span className="block text-xs text-muted">
+                Keeps the arrangement but takes no payment — for a payment
+                plan or a family in hardship.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="mt-4">

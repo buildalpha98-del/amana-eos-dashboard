@@ -6494,6 +6494,31 @@ model ParentAccount {
   // money don't mix, and this figure is compared against real charges.
   billingLimitCents Int?
   billingNotes      String? @db.Text
+
+  // ── Invoicing schedule ───────────────────────────────────────────────
+  // Modelled on what OWNA exposes, because that's the shape the office
+  // already reasons in. Daniel: "billing day, and then starting week of —
+  // e.g. starting from the week of 3 April, the billing date would be the
+  // 13th." A weekday alone can't express that, so the cycle is anchored to
+  // real DATES: which period it covers, when the next invoice goes out,
+  // and how many weeks each cycle spans.
+  //
+  // Anything before this is ignored when generating invoices.
+  billingStartDate  DateTime? @db.Date
+  // The period the NEXT invoice covers, and when it is raised.
+  billingPeriodStart DateTime? @db.Date
+  nextBillingDate   DateTime? @db.Date
+  // Weeks per invoice cycle (1 = weekly, 2 = fortnightly, 4 = monthly-ish).
+  billingWeeks      Int?
+  // Inverted from OWNA's "Do NOT Auto Invoice" so the default is the safe,
+  // expected behaviour rather than depending on a false meaning "on".
+  autoInvoice       Boolean  @default(true)
+  // Suspends the debit without losing the arrangement — a payment plan or
+  // a family in hardship, where deleting the setup would lose the history.
+  pauseDebiting     Boolean  @default(false)
+  // Staff follow-up, surfaced in the communication diary.
+  billingReminderDate  DateTime? @db.Date
+  billingReminderNotes String?   @db.Text
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
