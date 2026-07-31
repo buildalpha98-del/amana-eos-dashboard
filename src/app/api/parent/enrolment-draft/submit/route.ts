@@ -329,6 +329,18 @@ export const POST = withParentAuth(async (req, ctx) => {
       data: { submittedAt: new Date() },
     });
 
+    // The household's name, from the PRIMARY carer's surname. Stored on
+    // the account so the Families list has something to show and staff can
+    // correct it — blended families and differing surnames are normal.
+    // Only set when blank, so a staff correction is never overwritten by a
+    // later resubmission.
+    if (me.surname?.trim()) {
+      await tx.parentAccount.updateMany({
+        where: { id: accountId, OR: [{ familyName: null }, { familyName: "" }] },
+        data: { familyName: me.surname.trim() },
+      });
+    }
+
     return sub;
   });
 

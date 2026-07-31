@@ -6472,6 +6472,28 @@ model ParentAccount {
   // enrolment. Stored so the Families list can show "reminded 2 days ago"
   // and staff don't unknowingly send the same parent three emails.
   enrolmentReminderSentAt DateTime?
+
+  // ── Family identity ──────────────────────────────────────────────────
+  // 2026-07-31: the household's name, taken from the PRIMARY carer's
+  // surname when they submit their enrolment. Stored rather than derived
+  // so staff can correct it — blended families, hyphenated names and
+  // parents with different surnames to their children are all normal, and
+  // guessing wrong every time you render the list is worse than storing
+  // it once.
+  familyName String?
+
+  // ── Billing arrangement ──────────────────────────────────────────────
+  // Kept on the account rather than a separate model: the family IS the
+  // billing entity here, and a one-to-one table would be indirection with
+  // no second owner.
+  billingFrequency  String? // "weekly" | "fortnightly" | "monthly"
+  // Day the debit falls. 1-7 (Mon-Sun) for weekly/fortnightly, 1-28 for
+  // monthly — capped at 28 so a February billing date always exists.
+  billingAnchorDay  Int?
+  // Optional ceiling per debit, in CENTS. Integer on purpose: floats and
+  // money don't mix, and this figure is compared against real charges.
+  billingLimitCents Int?
+  billingNotes      String? @db.Text
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
