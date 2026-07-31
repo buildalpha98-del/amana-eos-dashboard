@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Baby,
   Sun,
   LayoutDashboard,
@@ -160,7 +161,10 @@ export const navItems: NavItem[] = [
   // (accessed from the Financials page). Kept as an entry so ⌘K search
   // and the middleware page-access checker recognise it.
   { href: "/financials/family-balances", label: "Family Balances", icon: DollarSign, section: "Operations", tooltip: "Chase log for outstanding parent balances", roles: ["owner", "head_office", "admin"], hidden: true },
-  { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Financials
+  // Unfolded 2026-07-31: billing stops being a side-report once this
+  // system is the one actually invoicing families (OWNA replacement).
+  { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Invoices, statements and payments", roles: ALL_NON_MARKETING, core: true },
+  { href: "/billing/aged-debtors", label: "Aged Debtors", icon: AlertTriangle, section: "Operations", tooltip: "Outstanding invoices by age, computed from issued invoices", roles: ["owner", "head_office", "admin"], core: true },
   // 2026-07-05 nav consolidation phase 2: /reports folded in as the
   // "Reports" view; /messaging → Contact Centre tab; /conversions → CRM
   // view; five marketing satellites → /marketing Field Ops / Team Ops
