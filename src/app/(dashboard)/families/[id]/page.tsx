@@ -95,6 +95,8 @@ export default function FamilyDetailPage({
   // slow refetch must not clobber what staff are mid-way through typing.
   const [edits, setEdits] = useState<Record<string, unknown> | null>(null);
   const [limitInput, setLimitInput] = useState<string | null>(null);
+  const [familyNameInput, setFamilyNameInput] = useState<string | null>(null);
+  const familyNameValue = familyNameInput ?? data?.familyName ?? "";
 
   const billing = {
     frequency: data?.billing.frequency ?? null,
@@ -121,6 +123,18 @@ export default function FamilyDetailPage({
       setEdits(null);
       setLimitInput(null);
       toast({ description: "Billing arrangement saved." });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
+  const saveName = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      mutateApi(`/api/families/${id}`, { method: "PATCH", body }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["families"] });
+      setFamilyNameInput(null);
+      toast({ description: "Family name saved." });
     },
     onError: (err: Error) =>
       toast({ variant: "destructive", description: err.message }),
@@ -181,6 +195,45 @@ export default function FamilyDetailPage({
       {/* ── Contact ─────────────────────────────────────────── */}
       <section className="bg-card rounded-xl border border-border p-5">
         <h2 className="text-sm font-semibold text-foreground mb-3">Account</h2>
+
+        {/* Editable: the name is seeded from the primary carer's surname,
+            which is right most of the time and wrong often enough that
+            staff need the last word. */}
+        <div className="mb-4 max-w-sm">
+          <label
+            htmlFor="f-name"
+            className="block text-sm font-medium text-foreground mb-1"
+          >
+            Family name
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="f-name"
+              className={field}
+              value={familyNameValue}
+              onChange={(e) => setFamilyNameInput(e.target.value)}
+              placeholder="e.g. Rahman"
+            />
+            <Button
+              variant="outline"
+              onClick={() =>
+                saveName.mutate({ familyName: familyNameValue.trim() || null })
+              }
+              disabled={
+                saveName.isPending ||
+                familyNameInput === null ||
+                familyNameValue.trim() === (data.familyName ?? "")
+              }
+            >
+              {saveName.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </div>
+        </div>
+
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div>
             <dt className="text-muted text-xs uppercase tracking-wide">Email</dt>
