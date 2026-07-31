@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Trash2, Users, Loader2, Send } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { BulkBillingPanel } from "@/components/families/BulkBillingPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -126,9 +127,15 @@ export default function FamiliesPage() {
   });
 
   const families = data?.families ?? [];
+  const familyOptions = families.map((f) => ({
+    id: f.id,
+    label: f.familyName ?? f.name ?? f.email,
+  }));
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <BulkBillingPanel families={familyOptions} />
+
       <PageHeader
         title="Families"
         description="Parent accounts, their enrolment progress, and their children."

@@ -46,6 +46,12 @@ function normaliseStatus(value: string): ChildStatusFilter {
 export default function ChildrenPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
+  // Children with no service or school sort LAST, not first — an unset
+  // value isn't "before A", it's "unknown", and burying it keeps the top
+  // of the list useful.
+  const [sortBy, setSortBy] = useState<
+    "firstName" | "surname" | "service" | "school" | "status"
+  >("firstName");
   // Deep-linkable: /children?id=<childId> opens the detail panel —
   // the ⌘K palette lands here (2026-07-06). window.location, not
   // useSearchParams, to avoid a Suspense boundary.
@@ -58,7 +64,45 @@ export default function ChildrenPage() {
     search: search || undefined,
   });
 
-  const children = data?.children || [];
+  const rawChildren = data?.children || [];
+
+  /**
+   * Client-side sort. The list is already capped by the API's page size,
+   * so sorting here avoids a round trip per click — and staff scanning for
+   * a child care far more about it being ordered than about it being
+   * ordered server-side.
+   */
+  const children = [...rawChildren].sort((a, b) => {
+    switch (sortBy) {
+      case "surname":
+        return (
+          (a.surname ?? "").localeCompare(b.surname ?? "") ||
+          (a.firstName ?? "").localeCompare(b.firstName ?? "")
+        );
+      case "service":
+        return (
+          (a.service?.name ?? "\uffff").localeCompare(
+            b.service?.name ?? "\uffff",
+          ) || (a.firstName ?? "").localeCompare(b.firstName ?? "")
+        );
+      case "school":
+        return (
+          (a.schoolName ?? "\uffff").localeCompare(b.schoolName ?? "\uffff") ||
+          (a.firstName ?? "").localeCompare(b.firstName ?? "")
+        );
+      case "status":
+        return (
+          (a.status ?? "").localeCompare(b.status ?? "") ||
+          (a.firstName ?? "").localeCompare(b.firstName ?? "")
+        );
+      case "firstName":
+      default:
+        return (
+          (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
+          (a.surname ?? "").localeCompare(b.surname ?? "")
+        );
+    }
+  });
 
   const counts = {
     all: data?.total || 0,
@@ -130,6 +174,25 @@ export default function ChildrenPage() {
             aria-label="Search children"
             className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="child-sort" className="text-sm text-muted shrink-0">
+            Sort by
+          </label>
+          <select
+            id="child-sort"
+            value={sortBy}
+            onChange={(e) =>
+              setSortBy(e.target.value as typeof sortBy)
+            }
+            className="px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-brand/30"
+          >
+            <option value="firstName">First name</option>
+            <option value="surname">Last name</option>
+            <option value="service">Service</option>
+            <option value="school">School</option>
+            <option value="status">Status</option>
+          </select>
         </div>
       </div>
 

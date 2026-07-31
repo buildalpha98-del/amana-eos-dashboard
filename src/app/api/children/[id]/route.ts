@@ -24,6 +24,21 @@ const patchSchema = z.object({
     .optional()
     .nullable(),
   crn: z.string().max(20).optional().nullable(),
+
+  // ── OSHC detail fields (2026-07-31) ──
+  preferredName: z.string().max(100).optional().nullable(),
+  livesWith: z.string().max(120).optional().nullable(),
+  mainLanguageAtHome: z.string().max(120).optional().nullable(),
+  languagesOtherThanEnglish: z.string().max(200).optional().nullable(),
+  englishAssistance: z.boolean().optional(),
+  indigenousStatus: z.string().max(60).optional().nullable(),
+  // Bounded so a mistyped DOB can't land here as a year of arrival.
+  yearOfArrival: z.number().int().min(1900).max(2100).optional().nullable(),
+  isStaffChild: z.boolean().optional(),
+  suppressBirthdayPost: z.boolean().optional(),
+  ownSunscreen: z.boolean().optional(),
+  noAppPosting: z.boolean().optional(),
+  allowSocialMediaPost: z.boolean().optional(),
   photo: z.string().url().optional().nullable(),
   enrolmentDate: z.string().datetime().optional().nullable(),
   exitDate: z.string().datetime().optional().nullable(),

@@ -218,14 +218,10 @@ export default function FamilyDetailPage({
       billingAnchorDay: billing.anchorDay,
       billingLimitCents: cents,
       billingNotes: billing.notes,
-      billingStartDate: billing.startDate,
       billingPeriodStart: billing.periodStart,
       nextBillingDate: billing.nextBillingDate,
-      billingWeeks: billing.weeks,
       autoInvoice: billing.autoInvoice,
       pauseDebiting: billing.pauseDebiting,
-      billingReminderDate: billing.reminderDate,
-      billingReminderNotes: billing.reminderNotes,
     });
   };
 
@@ -604,24 +600,7 @@ export default function FamilyDetailPage({
         <h3 className="text-sm font-semibold text-foreground mt-6 pt-4 border-t border-border">
           Invoicing schedule
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
-          <div>
-            <label htmlFor="fb-start" className="block text-sm font-medium text-foreground mb-1">
-              Billing start date
-            </label>
-            <input
-              id="fb-start"
-              type="date"
-              className={field}
-              value={billing.startDate ?? ""}
-              onChange={(e) =>
-                setEdits((prev) => ({ ...(prev ?? {}), startDate: e.target.value || null }))
-              }
-            />
-            <p className="mt-1 text-xs text-muted">
-              Attendances and charges before this date are ignored.
-            </p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
           <div>
             <label htmlFor="fb-period" className="block text-sm font-medium text-foreground mb-1">
               For period starting
@@ -653,54 +632,9 @@ export default function FamilyDetailPage({
               }
             />
             <p className="mt-1 text-xs text-muted">
-              When that invoice goes out.
+              When that invoice goes out — not when charging starts.
+              Everything before it is still included.
             </p>
-          </div>
-          <div>
-            <label htmlFor="fb-weeks" className="block text-sm font-medium text-foreground mb-1">
-              Weeks per cycle
-            </label>
-            <input
-              id="fb-weeks"
-              type="number"
-              min={1}
-              max={52}
-              className={field}
-              value={billing.weeks ?? ""}
-              onChange={(e) =>
-                setEdits((prev) => ({
-                  ...(prev ?? {}),
-                  weeks: e.target.value ? Number(e.target.value) : null,
-                }))
-              }
-            />
-          </div>
-          <div>
-            <label htmlFor="fb-remind" className="block text-sm font-medium text-foreground mb-1">
-              Reminder date
-            </label>
-            <input
-              id="fb-remind"
-              type="date"
-              className={field}
-              value={billing.reminderDate ?? ""}
-              onChange={(e) =>
-                setEdits((prev) => ({ ...(prev ?? {}), reminderDate: e.target.value || null }))
-              }
-            />
-          </div>
-          <div>
-            <label htmlFor="fb-remind-notes" className="block text-sm font-medium text-foreground mb-1">
-              Reminder notes
-            </label>
-            <input
-              id="fb-remind-notes"
-              className={field}
-              value={billing.reminderNotes ?? ""}
-              onChange={(e) =>
-                setEdits((prev) => ({ ...(prev ?? {}), reminderNotes: e.target.value }))
-              }
-            />
           </div>
         </div>
 
