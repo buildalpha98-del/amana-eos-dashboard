@@ -36,7 +36,7 @@ export const POST = withApiAuth(
     }
 
     const decrypted = decryptField(details.raw as string);
-    const parsed = JSON.parse(decrypted);
+    const parsed = normalisePaymentShape(JSON.parse(decrypted));
 
     await prisma.activityLog.create({
       data: {
@@ -83,6 +83,45 @@ const putSchema = z.object({
   accountNumber: z.string().optional(),
 });
 
+/**
+ * Two encrypted shapes exist in the wild, and they disagree on field names.
+ *
+ *   public form   (/api/enrol)                accountName / bsb / accountNumber
+ *   parent portal (/api/parent/enrolment-draft/submit)
+ *                                             bankAccountName / bankBsb /
+ *                                             bankAccountNumber
+ *
+ * The card fields diverge the same way (expiryMonth vs cardExpiryMonth).
+ * The Families page read only the first set, so revealing a portal-submitted
+ * enrolment "succeeded" and rendered entirely blank rows — which is what
+ * Daniel saw as "nothing gets revealed".
+ *
+ * Normalised HERE rather than in the UI so every consumer — this page, any
+ * future export, the OWNA port — gets one shape without each re-learning
+ * the history.
+ */
+function normalisePaymentShape(raw: unknown): Record<string, unknown> {
+  const p = (raw ?? {}) as Record<string, unknown>;
+  const pick = (...keys: string[]) => {
+    for (const k of keys) {
+      const v = p[k];
+      if (typeof v === "string" && v.trim() !== "") return v;
+    }
+    return undefined;
+  };
+  return {
+    method: p.method,
+    accountName: pick("accountName", "bankAccountName"),
+    bsb: pick("bsb", "bankBsb"),
+    accountNumber: pick("accountNumber", "bankAccountNumber"),
+    cardName: pick("cardName"),
+    cardNumber: pick("cardNumber"),
+    expiryMonth: pick("expiryMonth", "cardExpiryMonth"),
+    expiryYear: pick("expiryYear", "cardExpiryYear"),
+    ccv: pick("ccv", "cardCcv"),
+  };
+}
+
 function detectCardType(number: string): string {
   const n = number.replace(/\D/g, "");
   if (/^4/.test(n)) return "Visa";
@@ -125,7 +164,8 @@ export const PUT = withApiAuth(
 
     let raw: string | null = null;
     try {
-      raw = encryptField(JSON.stringify(d));
+      // Canonical shape only — see normalisePaymentShape.
+      raw = encryptField(JSON.stringify(normalisePaymentShape(d)));
     } catch {
       // Unlike the enrolment path, refuse rather than degrade: staff typed
       // these expecting them to be retrievable, and storing only a mask

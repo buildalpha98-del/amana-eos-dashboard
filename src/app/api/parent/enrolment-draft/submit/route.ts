@@ -115,7 +115,25 @@ export const POST = withParentAuth(async (req, ctx) => {
   }
 
   try {
-    if (payment) encryptedRaw = encryptField(JSON.stringify(payment));
+    // Canonical field names, matching the public form and what
+    // /api/enrolments/[id]/payment expects. Storing the raw request shape
+    // here is what produced two incompatible encrypted formats and a
+    // reveal that rendered blank.
+    if (payment) {
+      encryptedRaw = encryptField(
+        JSON.stringify({
+          method: payment.method,
+          accountName: payment.bankAccountName,
+          bsb: payment.bankBsb,
+          accountNumber: payment.bankAccountNumber,
+          cardName: payment.cardName,
+          cardNumber: payment.cardNumber,
+          expiryMonth: payment.cardExpiryMonth,
+          expiryYear: payment.cardExpiryYear,
+          ccv: payment.cardCcv,
+        }),
+      );
+    }
   } catch (err) {
     // Degrade exactly as the public form does: masked data is always
     // stored, the encrypted copy is a bonus. Losing it must not cost the
