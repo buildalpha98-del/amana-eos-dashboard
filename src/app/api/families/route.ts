@@ -13,6 +13,11 @@ export const GET = withApiAuth(
   async (req) => {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim().toLowerCase();
+    // Scopes the list to families with a child at this service — the
+    // per-service Families tab. Filtered AFTER assembly rather than in the
+    // account query, because the account→service link runs through the
+    // enrolment's children, not a column on ParentAccount.
+    const serviceId = searchParams.get("serviceId")?.trim() || null;
 
     const accounts = await prisma.parentAccount.findMany({
       where: search
@@ -127,7 +132,11 @@ export const GET = withApiAuth(
       };
     });
 
-    return NextResponse.json({ families });
+    const scoped = serviceId
+      ? families.filter((f) => f.services.some((sv) => sv.id === serviceId))
+      : families;
+
+    return NextResponse.json({ families: scoped });
   },
   { roles: ["owner", "head_office", "admin"] },
 );

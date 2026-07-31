@@ -11,6 +11,7 @@ import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
+  Baby,
   Building2,
   BarChart3,
   Mountain,
@@ -56,6 +57,7 @@ import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
 import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
 import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
+import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
@@ -140,6 +142,18 @@ const tabGroups: TabGroup[] = [
     label: "Staff",
     icon: Users,
     subTabs: [],
+  },
+  // 2026-07-31, per Daniel: a per-service view of who attends here, so a
+  // coordinator can answer "which children/families are at this centre?"
+  // without filtering the org-wide Growth lists.
+  {
+    key: "family",
+    label: "Families",
+    icon: Users,
+    subTabs: [
+      { key: "families", label: "Families", icon: Users },
+      { key: "children", label: "Children", icon: Baby },
+    ],
   },
   {
     key: "daily",
@@ -420,6 +434,12 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "daily" && currentSubKey === "roll-call" && (
           <ServiceRollCallTab serviceId={service.id} serviceName={service.name} />
+        )}
+        {activeGroup === "family" && currentSubKey === "families" && (
+          <ServiceFamiliesTab serviceId={service.id} serviceName={service.name} />
+        )}
+        {activeGroup === "family" && currentSubKey === "children" && (
+          <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
         )}
         {activeGroup === "daily" && currentSubKey === "children" && (
           <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
