@@ -6297,6 +6297,29 @@ model Child {
   room                  String? // dashboard-controlled room label; decoupled from OWNA's ownaRoomName
   tags                  String[]             @default([]) // optional filter tags; empty-array default means existing rows don't need backfill
   photo                 String? // URL to profile photo (Vercel Blob)
+
+  // ── OSHC enrolment record (2026-07-31) ───────────────────────────────
+  // Modelled on the fields OWNA collects, trimmed to what school-age care
+  // actually needs. Toileting and sleep-check were deliberately NOT
+  // carried over — they're under-24-month concerns and meaningless here.
+  preferredName            String? // what educators actually call them
+  livesWith                String? // "Both parents", "Mother", shared care…
+  // Reg 160(3)(h)-(i): language and cultural background of the child.
+  mainLanguageAtHome       String?
+  languagesOtherThanEnglish String?
+  englishAssistance        Boolean  @default(false)
+  // Collected for reporting; "Neither" is a real answer, so null means
+  // "not asked yet" rather than "no".
+  indigenousStatus         String?
+  yearOfArrival            Int? // if not born in Australia
+  // Drives the staff discount, so it's a billing input, not just a note.
+  isStaffChild             Boolean  @default(false)
+  // ── Posting / consent preferences ──
+  suppressBirthdayPost     Boolean  @default(false)
+  ownSunscreen             Boolean  @default(false)
+  noAppPosting             Boolean  @default(false)
+  allowSocialMediaPost     Boolean  @default(false)
+
   status                String               @default("pending") // pending, active, withdrawn
   // OWNA sync fields
   ownaChildId           String?              @unique

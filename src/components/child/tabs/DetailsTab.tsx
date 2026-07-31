@@ -29,6 +29,19 @@ interface FormState {
   exitDate: string;
   exitCategory: string;
   exitReason: string;
+  // ── OSHC detail fields ──
+  preferredName: string;
+  livesWith: string;
+  mainLanguageAtHome: string;
+  languagesOtherThanEnglish: string;
+  indigenousStatus: string;
+  yearOfArrival: string;
+  englishAssistance: boolean;
+  isStaffChild: boolean;
+  suppressBirthdayPost: boolean;
+  ownSunscreen: boolean;
+  noAppPosting: boolean;
+  allowSocialMediaPost: boolean;
 }
 
 function toDateInput(date: Date | string | null | undefined): string {
@@ -75,6 +88,18 @@ function buildInitial(child: ChildProfileRecord): FormState {
     exitDate: "",
     exitCategory: "",
     exitReason: "",
+    preferredName: child.preferredName ?? "",
+    livesWith: child.livesWith ?? "",
+    mainLanguageAtHome: child.mainLanguageAtHome ?? "",
+    languagesOtherThanEnglish: child.languagesOtherThanEnglish ?? "",
+    indigenousStatus: child.indigenousStatus ?? "",
+    yearOfArrival: child.yearOfArrival ? String(child.yearOfArrival) : "",
+    englishAssistance: child.englishAssistance ?? false,
+    isStaffChild: child.isStaffChild ?? false,
+    suppressBirthdayPost: child.suppressBirthdayPost ?? false,
+    ownSunscreen: child.ownSunscreen ?? false,
+    noAppPosting: child.noAppPosting ?? false,
+    allowSocialMediaPost: child.allowSocialMediaPost ?? false,
   };
 }
 
@@ -111,13 +136,32 @@ export function DetailsTab({ child, canEdit }: DetailsTabProps) {
       "gender",
       "exitCategory",
       "exitReason",
+      "preferredName",
+      "livesWith",
+      "mainLanguageAtHome",
+      "languagesOtherThanEnglish",
+      "indigenousStatus",
     ];
     for (const key of stringKeys) {
       if (form[key] !== initial[key]) {
         const value = String(form[key]).trim();
         // Allow clearing nullable fields
         if (value === "") {
-          if (key === "photo" || key === "gender" || key === "crn" || key === "exitCategory" || key === "exitReason") {
+          // Every one of these is nullable, so blanking the box must
+          // actually clear the value rather than silently doing nothing.
+          const CLEARABLE = new Set([
+            "photo",
+            "gender",
+            "crn",
+            "exitCategory",
+            "exitReason",
+            "preferredName",
+            "livesWith",
+            "mainLanguageAtHome",
+            "languagesOtherThanEnglish",
+            "indigenousStatus",
+          ]);
+          if (CLEARABLE.has(key as string)) {
             diff[key] = null;
           }
           continue;
@@ -131,6 +175,23 @@ export function DetailsTab({ child, canEdit }: DetailsTabProps) {
       if (form[key] !== initial[key]) {
         diff[key] = toIsoOrNull(form[key] as string);
       }
+    }
+
+    const boolKeys: (keyof FormState)[] = [
+      "englishAssistance",
+      "isStaffChild",
+      "suppressBirthdayPost",
+      "ownSunscreen",
+      "noAppPosting",
+      "allowSocialMediaPost",
+    ];
+    for (const key of boolKeys) {
+      if (form[key] !== initial[key]) diff[key] = form[key];
+    }
+
+    if (form.yearOfArrival !== initial.yearOfArrival) {
+      const raw = form.yearOfArrival.trim();
+      diff.yearOfArrival = raw === "" ? null : Number(raw);
     }
 
     if (Object.keys(diff).length === 0) {
@@ -288,6 +349,86 @@ export function DetailsTab({ child, canEdit }: DetailsTabProps) {
               placeholder="Optional notes"
               className="sm:col-span-2"
             />
+
+            <div className="sm:col-span-2 pt-3 mt-1 border-t border-border">
+              <h4 className="text-sm font-semibold text-foreground">
+                Background &amp; language
+              </h4>
+            </div>
+            <Input
+              label="Preferred name"
+              value={form.preferredName}
+              onChange={(v) => update("preferredName", v)}
+              placeholder="What educators call them"
+            />
+            <Input
+              label="Lives with"
+              value={form.livesWith}
+              onChange={(v) => update("livesWith", v)}
+              placeholder="e.g. Both parents, Mother, shared care"
+            />
+            <Input
+              label="Main language at home"
+              value={form.mainLanguageAtHome}
+              onChange={(v) => update("mainLanguageAtHome", v)}
+              placeholder="e.g. Arabic"
+            />
+            <Input
+              label="Languages other than English"
+              value={form.languagesOtherThanEnglish}
+              onChange={(v) => update("languagesOtherThanEnglish", v)}
+            />
+            <Input
+              label="Aboriginal / Torres Strait Islander status"
+              value={form.indigenousStatus}
+              onChange={(v) => update("indigenousStatus", v)}
+              placeholder="e.g. Aboriginal, Torres Strait Islander, Both, Neither"
+            />
+            <Input
+              label="Year of arrival in Australia"
+              value={form.yearOfArrival}
+              onChange={(v) => update("yearOfArrival", v)}
+              placeholder="Leave blank if born here"
+            />
+
+            <div className="sm:col-span-2 pt-3 mt-1 border-t border-border">
+              <h4 className="text-sm font-semibold text-foreground">
+                Flags &amp; consents
+              </h4>
+            </div>
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Check
+                label="Needs English assistance"
+                checked={form.englishAssistance}
+                onChange={(v) => update("englishAssistance", v)}
+              />
+              <Check
+                label="Child of a staff member"
+                hint="Also enables staff discounting."
+                checked={form.isStaffChild}
+                onChange={(v) => update("isStaffChild", v)}
+              />
+              <Check
+                label="Don't post their birthday"
+                checked={form.suppressBirthdayPost}
+                onChange={(v) => update("suppressBirthdayPost", v)}
+              />
+              <Check
+                label="Brings their own sunscreen"
+                checked={form.ownSunscreen}
+                onChange={(v) => update("ownSunscreen", v)}
+              />
+              <Check
+                label="No posting about this child"
+                checked={form.noAppPosting}
+                onChange={(v) => update("noAppPosting", v)}
+              />
+              <Check
+                label="Social media posts allowed"
+                checked={form.allowSocialMediaPost}
+                onChange={(v) => update("allowSocialMediaPost", v)}
+              />
+            </div>
           </div>
         ) : (
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -304,6 +445,40 @@ export function DetailsTab({ child, canEdit }: DetailsTabProps) {
             <Field label="Year level" value={child.yearLevel ?? "—"} />
             <Field label="CRN" value={child.crn ?? "—"} />
             <Field label="Status" value={child.status} />
+            <Field label="Preferred name" value={child.preferredName ?? "—"} />
+            <Field label="Lives with" value={child.livesWith ?? "—"} />
+            <Field
+              label="Main language at home"
+              value={child.mainLanguageAtHome ?? "—"}
+            />
+            <Field
+              label="Languages other than English"
+              value={child.languagesOtherThanEnglish ?? "—"}
+            />
+            <Field
+              label="Aboriginal / Torres Strait Islander"
+              value={child.indigenousStatus ?? "—"}
+            />
+            <Field
+              label="Year of arrival"
+              value={child.yearOfArrival ? String(child.yearOfArrival) : "—"}
+            />
+            <Field
+              label="Flags"
+              className="sm:col-span-2"
+              value={
+                [
+                  child.englishAssistance && "English assistance",
+                  child.isStaffChild && "Staff member's child",
+                  child.suppressBirthdayPost && "No birthday post",
+                  child.ownSunscreen && "Own sunscreen",
+                  child.noAppPosting && "No posting",
+                  child.allowSocialMediaPost && "Social media OK",
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "None set"
+              }
+            />
           </dl>
         )}
       </div>
@@ -552,6 +727,34 @@ function Select({
           </option>
         ))}
       </select>
+    </label>
+  );
+}
+
+/** Checkbox with an optional hint, matching the Input/Textarea helpers. */
+function Check({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+      />
+      <span className="text-sm text-foreground">
+        {label}
+        {hint && <span className="block text-xs text-muted">{hint}</span>}
+      </span>
     </label>
   );
 }
