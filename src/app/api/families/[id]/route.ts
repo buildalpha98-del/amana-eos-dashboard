@@ -87,6 +87,14 @@ export const GET = withApiAuth(
         billingAnchorDay: true,
         billingLimitCents: true,
         billingNotes: true,
+        billingStartDate: true,
+        billingPeriodStart: true,
+        nextBillingDate: true,
+        billingWeeks: true,
+        autoInvoice: true,
+        pauseDebiting: true,
+        billingReminderDate: true,
+        billingReminderNotes: true,
         enrolmentDraft: {
           select: { currentStep: true, updatedAt: true, submittedAt: true },
         },
@@ -139,6 +147,14 @@ export const GET = withApiAuth(
         anchorDay: account.billingAnchorDay,
         limitCents: account.billingLimitCents,
         notes: account.billingNotes,
+        startDate: account.billingStartDate,
+        periodStart: account.billingPeriodStart,
+        nextBillingDate: account.nextBillingDate,
+        weeks: account.billingWeeks,
+        autoInvoice: account.autoInvoice,
+        pauseDebiting: account.pauseDebiting,
+        reminderDate: account.billingReminderDate,
+        reminderNotes: account.billingReminderNotes,
       },
       payment,
       primaryParent: latest?.primaryParent ?? null,
@@ -173,7 +189,33 @@ const patchSchema = z.object({
   billingAnchorDay: z.number().int().nullable().optional(),
   billingLimitCents: z.number().int().min(0).max(100_000_00).nullable().optional(),
   billingNotes: z.string().max(2000).nullable().optional(),
+  // Dates arrive as "YYYY-MM-DD" from a date input.
+  billingStartDate: z.string().nullable().optional(),
+  billingPeriodStart: z.string().nullable().optional(),
+  nextBillingDate: z.string().nullable().optional(),
+  billingWeeks: z.number().int().min(1).max(52).nullable().optional(),
+  autoInvoice: z.boolean().optional(),
+  pauseDebiting: z.boolean().optional(),
+  billingReminderDate: z.string().nullable().optional(),
+  billingReminderNotes: z.string().max(2000).nullable().optional(),
 });
+
+/**
+ * "YYYY-MM-DD" → Date, or null.
+ *
+ * Parsed as UTC midnight on purpose: these are calendar dates, not
+ * instants. `new Date("2026-04-13")` is already UTC, but building one from
+ * local parts would shift the stored day for anyone east of Greenwich —
+ * which is everyone here.
+ */
+function parseDate(v: string | null | undefined): Date | null | undefined {
+  if (v === undefined) return undefined;
+  if (v === null || v.trim() === "") return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.trim());
+  if (!m) return undefined;
+  const d = new Date(`${v.trim()}T00:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
 
 export const PATCH = withApiAuth(
   async (req, _session, context) => {
@@ -218,6 +260,23 @@ export const PATCH = withApiAuth(
       );
     }
 
+    // Reject a malformed date rather than storing null — silently
+    // clearing a billing date staff meant to set is how an invoice run
+    // quietly skips a family.
+    const dateFields: Record<string, Date | null> = {};
+    for (const key of [
+      "billingStartDate",
+      "billingPeriodStart",
+      "nextBillingDate",
+      "billingReminderDate",
+    ] as const) {
+      const parsedDate = parseDate(d[key]);
+      if (parsedDate === undefined && d[key] !== undefined) {
+        throw ApiError.badRequest(`${key} must be a date in YYYY-MM-DD format.`);
+      }
+      if (parsedDate !== undefined) dateFields[key] = parsedDate;
+    }
+
     const updated = await prisma.parentAccount.update({
       where: { id },
       data: {
@@ -234,6 +293,15 @@ export const PATCH = withApiAuth(
         ...(d.billingNotes !== undefined
           ? { billingNotes: d.billingNotes || null }
           : {}),
+        ...dateFields,
+        ...(d.billingWeeks !== undefined ? { billingWeeks: d.billingWeeks } : {}),
+        ...(d.autoInvoice !== undefined ? { autoInvoice: d.autoInvoice } : {}),
+        ...(d.pauseDebiting !== undefined
+          ? { pauseDebiting: d.pauseDebiting }
+          : {}),
+        ...(d.billingReminderNotes !== undefined
+          ? { billingReminderNotes: d.billingReminderNotes || null }
+          : {}),
       },
       select: {
         familyName: true,
@@ -241,6 +309,14 @@ export const PATCH = withApiAuth(
         billingAnchorDay: true,
         billingLimitCents: true,
         billingNotes: true,
+        billingStartDate: true,
+        billingPeriodStart: true,
+        nextBillingDate: true,
+        billingWeeks: true,
+        autoInvoice: true,
+        pauseDebiting: true,
+        billingReminderDate: true,
+        billingReminderNotes: true,
       },
     });
 

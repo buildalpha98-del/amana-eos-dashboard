@@ -188,9 +188,7 @@ export default function FamiliesPage() {
                               href={`/families/${f.id}`}
                               className="font-medium text-brand hover:underline"
                             >
-                              {f.familyName
-                                ? `The ${f.familyName} family`
-                                : (f.name ?? f.email)}
+                              {f.familyName ?? f.name ?? f.email}
                             </Link>
                             <p className="text-xs text-muted">
                               {f.name ? `${f.name} · ${f.email}` : f.email}
