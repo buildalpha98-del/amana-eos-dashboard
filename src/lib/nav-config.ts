@@ -188,6 +188,7 @@ export const navItems: NavItem[] = [
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING , core: true },
   // 2026-07-30: staff view of parent ACCOUNTS (the login side), as opposed
   // to /enrolments which lists submitted forms. Sits beside it in Growth.
+  { href: "/waitlist", label: "Waitlist", icon: Users, section: "Growth", tooltip: "Families waiting for a place, in order", roles: ALL_NON_MARKETING, core: true },
   { href: "/families", label: "Families", icon: Users, section: "Growth", tooltip: "Parent accounts, enrolment progress and children", roles: ALL_NON_MARKETING },
   // Unfolded 2026-07-31: staff need to find a child by name when a parent
   // calls or emails without saying which service they attend. Searching
