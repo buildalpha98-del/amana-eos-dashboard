@@ -18,13 +18,19 @@ import {
 } from "@/lib/enrol-fees";
 
 /**
- * Public policy documents. These pages must EXIST and be current — a
- * checkbox saying "I have read and accept" a document the family was never
- * shown is not an enforceable acceptance, and for the privacy policy it
- * doesn't meet APP 1/5 either.
+ * Public policy documents.
+ *
+ * PRIVACY points at a page in THIS app, not the marketing site.
+ * amanaoshc.com.au/privacy returned 404 while the form asked families to
+ * tick "I have read and accept the privacy policy" — accepting a document
+ * you cannot open is not an acceptance, and APP 1 requires the policy to
+ * actually be available. Hosting it here means the link can't rot
+ * independently of the form that depends on it.
+ *
+ * TERMS still points at the marketing site, which serves a live page.
  */
 const TERMS_URL = "https://amanaoshc.com.au/terms";
-const PRIVACY_URL = "https://amanaoshc.com.au/privacy";
+const PRIVACY_URL = "/privacy";
 
 const CONSENTS: {
   key: keyof DraftAgreement;
