@@ -23,6 +23,7 @@ import { DailyInfoWidgets } from "@/components/parent/DailyInfoWidgets";
 import { TimelineWidget } from "@/components/parent/TimelineWidget";
 import { InstallBanner } from "@/components/parent/InstallBanner";
 import { OwnaTransitionNotice } from "@/components/parent/OwnaTransitionNotice";
+import { ParentFeed } from "@/components/parent/ParentFeed";
 import { CentreInfoCard } from "@/components/parent/CentreInfoCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,11 @@ export default function ParentHomeV1() {
       {/* Temporary: we're still on OWNA day to day. Remove when the
           portal goes fully live. */}
       <OwnaTransitionNotice />
+
+      {/* Posts from the service. The timeline API and the staff composer
+          both already existed — parents just had no way to SEE the
+          result, so every post staff wrote went nowhere. */}
+      <ParentFeed />
 
       {/* Greeting */}
       <div>

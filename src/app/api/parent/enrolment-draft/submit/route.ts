@@ -342,6 +342,59 @@ export const POST = withParentAuth(async (req, ctx) => {
       });
     }
 
+    /**
+     * Authorised pickup list.
+     *
+     * Nothing used to create these on a fresh enrolment — only the
+     * sibling-copy path did — so a new family ended up with an EMPTY
+     * pickup list despite having just named a second carer and emergency
+     * contacts with pickup permission. Educators at the door then had
+     * nothing to check against.
+     *
+     * The SECOND CARER is always added (Daniel, 2026-08-01: they should
+     * automatically be an authorised pickup), with their full name and
+     * mobile so staff can identify and reach them.
+     */
+    const pickupRows: {
+      name: string;
+      relationship: string;
+      phone: string;
+      isEmergencyContact: boolean;
+    }[] = [];
+
+    const sp = contacts.secondaryParent;
+    if (sp?.firstName?.trim() && sp?.mobile?.trim()) {
+      pickupRows.push({
+        name: [sp.firstName, sp.surname].filter(Boolean).join(" ").trim(),
+        relationship: sp.relationship?.trim() || "Parent / carer",
+        phone: sp.mobile.trim(),
+        isEmergencyContact: false,
+      });
+    }
+
+    for (const c of emergencyContacts) {
+      if (c.consentPickup !== true) continue;
+      if (!c.name?.trim() || !c.phone?.trim()) continue;
+      pickupRows.push({
+        name: c.name.trim(),
+        relationship: c.relationship?.trim() || "Emergency contact",
+        phone: c.phone.trim(),
+        isEmergencyContact: true,
+      });
+    }
+
+    if (pickupRows.length > 0) {
+      const childIds = await tx.child.findMany({
+        where: { enrolmentId: sub.id },
+        select: { id: true },
+      });
+      await tx.authorisedPickup.createMany({
+        data: childIds.flatMap((child) =>
+          pickupRows.map((r) => ({ ...r, childId: child.id, active: true })),
+        ),
+      });
+    }
+
     await tx.enrolmentDraft.update({
       where: { id: draftRow.id },
       data: { submittedAt: new Date() },
