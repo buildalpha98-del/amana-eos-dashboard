@@ -39,6 +39,7 @@ import {
   parseDollarsToCents,
   WEEKDAY_NAMES,
 } from "@/lib/family-billing";
+import { formatMoney } from "@/lib/money";
 
 interface FamilyChild {
   id: string;
@@ -49,6 +50,24 @@ interface FamilyChild {
   classroom: string | null;
   ccsStatus: string | null;
   serviceName: string | null;
+}
+
+interface LedgerEntry {
+  id: string;
+  date: string;
+  kind: "charge" | "payment";
+  description: string;
+  reference: string | null;
+  serviceName: string | null;
+  amountCents: number;
+  balanceCents: number;
+}
+
+interface LedgerResponse {
+  entries: LedgerEntry[];
+  balanceCents: number;
+  chargedCents: number;
+  paidCents: number;
 }
 
 interface RevealedPayment {
@@ -177,6 +196,12 @@ export default function FamilyDetailPage({
    * staff have to ask for it, which is what makes the audit entry mean
    * something.
    */
+  const { data: ledger, isLoading: ledgerLoading } = useQuery<LedgerResponse>({
+    queryKey: ["families", id, "transactions"],
+    queryFn: () => fetchApi(`/api/families/${id}/transactions`),
+    retry: 2,
+  });
+
   const [revealed, setRevealed] = useState<RevealedPayment | null>(null);
 
   const reveal = useMutation({
@@ -467,6 +492,112 @@ export default function FamilyDetailPage({
               </div>
             </div>
           </div>
+        )}
+      </section>
+
+      {/* ── Account transactions ────────────────────────────── */}
+      <section className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <h2 className="text-sm font-semibold text-foreground">
+            Account transactions
+          </h2>
+          {ledger && (
+            <span
+              className={
+                "text-sm font-semibold shrink-0 " +
+                (ledger.balanceCents > 0
+                  ? "text-red-700 dark:text-red-400"
+                  : ledger.balanceCents < 0
+                    ? "text-green-700 dark:text-green-400"
+                    : "text-muted")
+              }
+            >
+              {ledger.balanceCents > 0
+                ? `${formatMoney(ledger.balanceCents)} owing`
+                : ledger.balanceCents < 0
+                  ? `${formatMoney(-ledger.balanceCents)} in credit`
+                  : "Settled"}
+            </span>
+          )}
+        </div>
+
+        {ledgerLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : !ledger || ledger.entries.length === 0 ? (
+          <p className="text-sm text-muted">
+            No invoices or payments on this account yet.
+          </p>
+        ) : (
+          <>
+            <div className="flex gap-6 text-xs text-muted mb-3">
+              <span>
+                Charged{" "}
+                <strong className="text-foreground">
+                  {formatMoney(ledger.chargedCents)}
+                </strong>
+              </span>
+              <span>
+                Paid{" "}
+                <strong className="text-foreground">
+                  {formatMoney(ledger.paidCents)}
+                </strong>
+              </span>
+            </div>
+            <div className="overflow-x-auto -mx-5">
+              <table className="w-full text-sm">
+                <thead className="bg-surface/60 border-y border-border">
+                  <tr>
+                    <th className="text-left px-5 py-2 font-medium text-muted text-xs uppercase tracking-wide">
+                      Date
+                    </th>
+                    <th className="text-left px-3 py-2 font-medium text-muted text-xs uppercase tracking-wide">
+                      Description
+                    </th>
+                    <th className="text-right px-3 py-2 font-medium text-muted text-xs uppercase tracking-wide">
+                      Amount
+                    </th>
+                    <th className="text-right px-5 py-2 font-medium text-muted text-xs uppercase tracking-wide">
+                      Balance
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {/* Newest first for reading; the running balance was
+                      computed oldest-first on the server. */}
+                  {[...ledger.entries].reverse().map((e) => (
+                    <tr key={`${e.kind}-${e.id}`}>
+                      <td className="px-5 py-2 whitespace-nowrap text-muted">
+                        {e.date.slice(0, 10)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="text-foreground">{e.description}</span>
+                        {(e.reference || e.serviceName) && (
+                          <span className="block text-2xs text-muted">
+                            {[e.serviceName, e.reference]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        )}
+                      </td>
+                      <td
+                        className={
+                          "px-3 py-2 text-right whitespace-nowrap " +
+                          (e.amountCents < 0
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-foreground")
+                        }
+                      >
+                        {formatMoney(e.amountCents)}
+                      </td>
+                      <td className="px-5 py-2 text-right whitespace-nowrap text-muted">
+                        {formatMoney(e.balanceCents)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
 
