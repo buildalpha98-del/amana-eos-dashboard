@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText, AlertCircle, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, FileText, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useParentStatements, useParentStatementDetail, type StatementRecord } from "@/hooks/useParentPortal";
 import { SectionLabel, StatusBadge, type StatusVariant } from "@/components/parent/ui";
+import { PaymentMethodCard } from "@/components/parent/PaymentMethodCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
@@ -110,30 +111,7 @@ export default function BillingPage() {
         )}
       </section>
 
-      {/* Payment Methods */}
-      <section>
-        <SectionLabel label="Payment Method" />
-        <div className="warm-card">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-[color:var(--color-brand)]" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
-                Direct Debit — BSB 000-000
-              </p>
-              <p className="text-xs text-[color:var(--color-muted)]">
-                Account ending in 1234
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
-            <p className="text-xs text-[color:var(--color-muted)]">
-              To update your payment method, please contact the centre.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PaymentMethodCard />
     </div>
   );
 }
