@@ -18,6 +18,7 @@ import {
   type ParentChild,
   type AttendanceDay,
 } from "@/hooks/useParentPortal";
+import { GalleryTab, DocumentsTab, PickupsTab } from "./ChildDetailV1";
 import { LearningJournalSection } from "./LearningJournalSection";
 import { MedicationLogSection } from "./MedicationLogSection";
 import {
@@ -76,6 +77,28 @@ export default function ChildDetailV2() {
 
       {/* ─── Medication log ───────────────────────────── */}
       <MedicationLogSection childId={child.id} />
+
+      {/*
+        Gallery, documents and pickups reuse the v1 implementations
+        rather than being reimplemented here. They had working APIs and
+        no v2 surface, so turning on NEXT_PUBLIC_PARENT_PORTAL_V2 would
+        have silently taken three features off families. Sharing the
+        components keeps the flag a visual toggle, not a feature cut.
+      */}
+      <section aria-label="Photos">
+        <SectionLabel label="Photos" />
+        <GalleryTab childId={child.id} />
+      </section>
+
+      <section aria-label="Documents">
+        <SectionLabel label="Documents" />
+        <DocumentsTab childId={child.id} />
+      </section>
+
+      <section aria-label="Authorised for pickup">
+        <SectionLabel label="Authorised for pickup" />
+        <PickupsTab childId={child.id} />
+      </section>
 
       {/* ─── This week's menu (compact link to children page) ─── */}
       {child.serviceId && (

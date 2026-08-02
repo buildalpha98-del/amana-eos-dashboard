@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * GalleryTab, DocumentsTab and PickupsTab are EXPORTED (2026-08-01) so
+ * ChildDetailV2 can render the same features.
+ *
+ * The v2 redesign only ever consumed attendance, medications and
+ * observations, so gallery, documents and pickups had working APIs and no
+ * v2 surface — turning on NEXT_PUBLIC_PARENT_PORTAL_V2 would have
+ * silently removed three features families already had. Sharing the
+ * implementation means the flag is a visual toggle, not a feature cut,
+ * and the two versions can't drift.
+ */
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -324,7 +335,7 @@ function groupByWeek(days: AttendanceDay[]): (AttendanceDay | null)[][] {
 
 // ── Gallery Tab ─────────────────────────────────────────
 
-function GalleryTab({ childId }: { childId: string }) {
+export function GalleryTab({ childId }: { childId: string }) {
   const { data: images, isLoading } = useChildGallery(childId);
   const [lightbox, setLightbox] = useState<GalleryImage | null>(null);
 
@@ -592,7 +603,7 @@ const PARENT_DOC_TYPES = [
   { value: "OTHER", label: "Other" },
 ];
 
-function DocumentsTab({ childId }: { childId: string }) {
+export function DocumentsTab({ childId }: { childId: string }) {
   const [docs, setDocs] = useState<ChildDocForParent[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -743,7 +754,7 @@ interface PickupPerson {
   photoUrl: string | null;
 }
 
-function PickupsTab({ childId }: { childId: string }) {
+export function PickupsTab({ childId }: { childId: string }) {
   const [pickups, setPickups] = useState<PickupPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
