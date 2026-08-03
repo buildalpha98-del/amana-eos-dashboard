@@ -6,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { isTodayOrFutureInServiceTz } from "@/lib/timezone";
 import { isTrustedBlobUrl } from "@/lib/trusted-urls";
 import { getParentChildIds } from "../route";
+import { parseJsonField } from "@/lib/schemas/json-fields";
+import {
+  casualBookingSettingsSchema,
+  type CasualBookingSettings,
+} from "@/lib/service-settings";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -111,11 +116,25 @@ export const DELETE = withParentAuth(async (_req, ctx) => {
 
   const booking = await getBookingForParent(bookingId, ctx.parent.enrolmentIds);
 
-  // Only casual bookings can be cancelled by parent
+  // Cancelling a PERMANENT booking is off unless the centre turns it on:
+  // a recurring pattern drives ratios, rosters and invoices, so it's the
+  // office's to change. Parents mark the single day as not attending
+  // instead, which leaves the pattern intact.
   if (booking.type !== "casual") {
-    throw ApiError.badRequest(
-      "Only casual bookings can be cancelled. Contact your centre for permanent booking changes.",
+    const service = await prisma.service.findUnique({
+      where: { id: booking.serviceId },
+      select: { casualBookingSettings: true },
+    });
+    const settings = parseJsonField<CasualBookingSettings | null>(
+      service?.casualBookingSettings,
+      casualBookingSettingsSchema.nullable(),
+      null,
     );
+    if (!settings?.policy?.allowRecurringCancellation) {
+      throw ApiError.badRequest(
+        "Regular weekly bookings are changed by head office. To skip just this day, mark it as not attending — or message head office to change the pattern.",
+      );
+    }
   }
 
   // Must be at least 24 hours in the future

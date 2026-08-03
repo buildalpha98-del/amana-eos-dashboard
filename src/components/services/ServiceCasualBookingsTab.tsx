@@ -11,7 +11,11 @@ import { isAdminRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 import {
   casualBookingSettingsSchema,
+  roomFees,
+  roomLabel,
+  type BookingPolicy,
   type CasualBookingSettings,
+  type SessionTimes,
 } from "@/lib/service-settings";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +71,7 @@ type SettingsBlob = {
   bsc: SessionSetting;
   asc: SessionSetting;
   vc: SessionSetting;
+  policy?: BookingPolicy;
 };
 
 function parseInitial(
@@ -84,6 +89,7 @@ function parseInitial(
     bsc: parsed.data.bsc ?? { ...defaultSettings.bsc },
     asc: parsed.data.asc ?? { ...defaultSettings.asc },
     vc: parsed.data.vc ?? { ...defaultSettings.vc },
+    policy: parsed.data.policy,
   };
 }
 
@@ -118,6 +124,8 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
   const [settings, setSettings] = useState<SettingsBlob>(() =>
     parseInitial(service.casualBookingSettings),
   );
+  const sessionTimes =
+    (service as { sessionTimes?: SessionTimes | null }).sessionTimes ?? null;
 
   const saveMutation = useMutation({
     mutationFn: (payload: SettingsBlob) =>
@@ -239,6 +247,37 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                 </label>
               </div>
 
+              {/* Price comes from Rooms & fees when a tier is linked, so
+                  a fee rise happens once rather than being remembered
+                  here as well and quietly diverging. */}
+              <label className="block text-xs text-muted mb-3">
+                Fee
+                <select
+                  value={s.feeTierId ?? ""}
+                  disabled={!canEdit}
+                  onChange={(e) =>
+                    updateSession(type, {
+                      feeTierId: e.target.value || undefined,
+                    })
+                  }
+                  className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand"
+                  aria-label={`${SESSION_SHORT[type]} price source`}
+                >
+                  <option value="">Use the amount below</option>
+                  {roomFees(sessionTimes, type).map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} — {formatCurrency(f.amountCents / 100)}
+                    </option>
+                  ))}
+                </select>
+                {roomFees(sessionTimes, type).length === 0 && (
+                  <span className="block mt-1 text-2xs text-muted">
+                    No fees set for {roomLabel(sessionTimes, type)} yet — add
+                    them under Service Info → Rooms &amp; fees.
+                  </span>
+                )}
+              </label>
+
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-xs text-muted">
                   Fee (AUD)
@@ -247,13 +286,13 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                     min={0}
                     step={0.01}
                     value={s.fee}
-                    disabled={!canEdit}
+                    disabled={!canEdit || Boolean(s.feeTierId)}
                     onChange={(e) =>
                       updateSession(type, {
                         fee: Number(e.target.value) || 0,
                       })
                     }
-                    className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
                     aria-label={`${SESSION_SHORT[type]} fee`}
                   />
                 </label>
@@ -334,6 +373,45 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
             </div>
           );
         })}
+      </div>
+
+      {/* ── Booking policy ──────────────────────────────────── */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-1">
+          Booking policy
+        </h3>
+        <p className="text-xs text-muted mb-3">
+          Applies to permanent weekly bookings, not casual ones.
+        </p>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={Boolean(settings.policy?.allowRecurringCancellation)}
+            disabled={!canEdit}
+            onChange={(e) =>
+              setSettings((prev) => ({
+                ...prev,
+                policy: {
+                  ...prev.policy,
+                  allowRecurringCancellation: e.target.checked,
+                },
+              }))
+            }
+            className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+          />
+          <span className="text-sm text-foreground">
+            Parents can cancel their own recurring bookings
+            {/* Off by default on purpose: a recurring pattern drives
+                ratios, rosters and invoices. With it off, parents mark a
+                single day as not attending, which leaves the pattern
+                intact, and pattern changes go through head office. */}
+            <span className="block text-xs text-muted">
+              Off (recommended): parents mark a single day as{" "}
+              <strong>not attending</strong> instead, and message head office
+              to change the pattern itself.
+            </span>
+          </span>
+        </label>
       </div>
 
       {/* ── Save button ─────────────────────────────────────── */}

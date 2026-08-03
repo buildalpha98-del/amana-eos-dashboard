@@ -8,6 +8,7 @@ import {
   roomLabelWithTimes,
   roomFees,
   formatTime,
+  resolveCasualFee,
 } from "@/lib/service-settings";
 
 // ---------------------------------------------------------------------------
@@ -378,5 +379,71 @@ describe("rooms — labels, times and fees", () => {
       asc: { start: "15:00", end: "18:00" },
     });
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe("resolveCasualFee — casual price follows Rooms & fees", () => {
+  const rooms = {
+    asc: {
+      start: "15:00",
+      end: "18:30",
+      fees: [
+        { id: "full", name: "Full session", amountCents: 3400 },
+        { id: "short", name: "Short session", amountCents: 2200 },
+      ],
+    },
+  };
+
+  it("charges the linked room fee, not the typed-in one", () => {
+    // The point of linking: a fee rise happens once, in Rooms & fees.
+    const fee = resolveCasualFee(
+      { asc: { fee: 25, feeTierId: "full" } },
+      rooms,
+      "asc",
+    );
+    expect(fee).toBe(34);
+  });
+
+  it("falls back to the typed amount when nothing is linked", () => {
+    expect(resolveCasualFee({ asc: { fee: 25 } }, rooms, "asc")).toBe(25);
+  });
+
+  it("falls back when the linked tier has been deleted", () => {
+    // Not silent: the caller still gets a number, but this is the case
+    // worth knowing about — a deleted tier must not charge nothing.
+    const fee = resolveCasualFee(
+      { asc: { fee: 25, feeTierId: "deleted" } },
+      rooms,
+      "asc",
+    );
+    expect(fee).toBe(25);
+  });
+
+  it("is 0 for a session with no configuration at all", () => {
+    expect(resolveCasualFee(null, rooms, "bsc")).toBe(0);
+    expect(resolveCasualFee({}, rooms, "bsc")).toBe(0);
+  });
+
+  it("accepts a policy blob alongside the session settings", () => {
+    const parsed = casualBookingSettingsSchema.safeParse({
+      asc: {
+        enabled: true,
+        fee: 0,
+        feeTierId: "full",
+        spots: 5,
+        cutOffHours: 24,
+        days: ["mon"],
+      },
+      policy: { allowRecurringCancellation: true },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("still accepts settings saved before the policy existed", () => {
+    const parsed = casualBookingSettingsSchema.safeParse({
+      bsc: { enabled: true, fee: 20, spots: 4, cutOffHours: 12, days: ["tue"] },
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.policy).toBeUndefined();
   });
 });
