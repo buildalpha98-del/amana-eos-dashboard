@@ -27,6 +27,7 @@ import {
   Radio,
   ClipboardList,
   Wallet,
+  Receipt,
   LayoutList,
   UtensilsCrossed,
   ShieldCheck,
@@ -52,6 +53,7 @@ import { WeeklyDataEntry } from "@/components/services/WeeklyDataEntry";
 import { ServiceCommTab } from "@/components/services/ServiceCommTab";
 import { ServiceAttendanceTab } from "@/components/services/ServiceAttendanceTab";
 import { ServiceBudgetTab } from "@/components/services/ServiceBudgetTab";
+import { FamilyBillingSection } from "@/components/billing/FamilyBillingSection";
 import { ServicePurchaseApprovalsTab } from "@/components/services/ServicePurchaseApprovalsTab";
 import { ServiceProgramTab } from "@/components/services/ServiceProgramTab";
 import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
@@ -219,6 +221,12 @@ const tabGroups: TabGroup[] = [
     icon: Wallet,
     subTabs: [
       { key: "budget", label: "Budget", icon: Wallet },
+      // 2026-08-03, per Daniel: family billing belongs where the centre
+      // is, not only on the org-wide page. Same records, scoped — and
+      // the bulk panel's "all families" is confined to this centre.
+      // adminOnly because /api/families is owner/head_office/admin — a
+      // coordinator would otherwise reach a tab that only ever errors.
+      { key: "billing", label: "Billing", icon: Receipt, adminOnly: true },
       // 2026-06-29: "Financials" sub-tab removed — it was a stub that
       // just pointed users at the global /financials page. If admins
       // want per-service P&L they now navigate to Financials from the
@@ -544,6 +552,12 @@ export default function ServiceDetailPage() {
         {/* Finance group */}
         {activeGroup === "finance" && currentSubKey === "budget" && (
           <ServiceBudgetTab serviceId={service.id} />
+        )}
+        {activeGroup === "finance" && currentSubKey === "billing" && (
+          <FamilyBillingSection
+            serviceId={service.id}
+            serviceName={service.name}
+          />
         )}
         {activeGroup === "finance" && currentSubKey === "approvals" && (
           <ServicePurchaseApprovalsTab
