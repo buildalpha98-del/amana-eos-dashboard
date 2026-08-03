@@ -6820,6 +6820,28 @@ model ParentPost {
   authorId    String?
   author      User?          @relation("PostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
   isCommunity Boolean        @default(false) // If true, visible to all parents at the service. If false, only tagged children's parents.
+
+  // ── Scheduling (2026-08-01) ──────────────────────────────────────────
+  // draft | scheduled | published. Default "published" so every existing
+  // row stays visible after the migration — the alternative would hide
+  // every post already live.
+  status      String         @default("published")
+  // When the post becomes visible. Null = immediately.
+  //
+  // Visibility is evaluated at READ time (publishAt <= now) rather than
+  // by a cron flipping a flag: a cron that fails or lags means a
+  // scheduled post silently never appears, whereas a comparison can't
+  // drift.
+  publishAt   DateTime?
+
+  // ── Curriculum tagging ───────────────────────────────────────────────
+  // MTOP, not EYLF — MTOP is the school-age framework, and offering both
+  // invites tagging an OSHC post against the birth-to-five one.
+  mtopOutcomes String[]      @default([])
+  nqsAreas     String[]      @default([])
+  // Links to the program activities this post evidences.
+  programActivityIds String[] @default([])
+
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -6829,6 +6851,7 @@ model ParentPost {
 
   @@index([serviceId])
   @@index([createdAt])
+  @@index([status, publishAt])
 }
 
 model ParentPostChildTag {

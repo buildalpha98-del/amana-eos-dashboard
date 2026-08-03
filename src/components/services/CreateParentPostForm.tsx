@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createParentPostSchema, type CreateParentPostInput } from "@/lib/schemas/parent-post";
 import { useCreateParentPost, useUpdateParentPost, type ParentPost } from "@/hooks/useParentPosts";
+import { MTOP_OUTCOMES, NQS_AREAS, nqsLabel } from "@/lib/curriculum";
 import { useChildren } from "@/hooks/useChildren";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { FormField } from "@/components/ui/form/FormField";
@@ -28,6 +29,10 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
   const updatePost = useUpdateParentPost(serviceId);
   const { data: childrenData } = useChildren({ serviceId, status: "active" });
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
+  const [mtop, setMtop] = useState<string[]>([]);
+  const [nqs, setNqs] = useState<string[]>([]);
+  // Scheduling. Empty = publish now; a local datetime string otherwise.
+  const [publishAt, setPublishAt] = useState<string>("");
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -142,6 +147,17 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
       ...data,
       mediaUrls,
       childIds: data.isCommunity ? [] : selectedChildIds,
+      mtopOutcomes: mtop,
+      nqsAreas: nqs,
+      // datetime-local has no timezone, so it's read as LOCAL time and
+      // converted to an instant here. Sending the raw string would be
+      // interpreted as UTC and shift the post by the offset.
+      ...(publishAt
+        ? {
+            status: "scheduled" as const,
+            publishAt: new Date(publishAt).toISOString(),
+          }
+        : { status: "published" as const }),
     };
 
     if (isEditing) {
@@ -278,6 +294,26 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
 
           {!isCommunity && (
             <FormField label="Tag Children">
+              {children.length > 0 && (
+                <label className="flex items-center gap-2 px-2 py-1.5 mb-1 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedChildIds.length === children.length &&
+                      children.length > 0
+                    }
+                    onChange={(e) =>
+                      setSelectedChildIds(
+                        e.target.checked ? children.map((c) => c.id) : [],
+                      )
+                    }
+                    className="w-4 h-4 rounded border-border text-brand focus:ring-brand"
+                  />
+                  <span className="text-sm font-medium">
+                    Select all children ({children.length})
+                  </span>
+                </label>
+              )}
               <div className="border border-border rounded-lg max-h-48 overflow-y-auto p-2 space-y-1">
                 {children.length === 0 ? (
                   <p className="text-sm text-muted p-2">No enrolled children found</p>
@@ -307,6 +343,78 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
               )}
             </FormField>
           )}
+
+          {/* Curriculum tagging — MTOP is the school-age framework, so
+              EYLF is deliberately not offered here. */}
+          <FormField label="My Time, Our Place (MTOP) outcomes">
+            <div className="flex flex-wrap gap-2">
+              {MTOP_OUTCOMES.map((o) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  title={o.description}
+                  onClick={() =>
+                    setMtop((prev) =>
+                      prev.includes(o.label)
+                        ? prev.filter((x) => x !== o.label)
+                        : [...prev, o.label],
+                    )
+                  }
+                  aria-pressed={mtop.includes(o.label)}
+                  className={
+                    "px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
+                    (mtop.includes(o.label)
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-border bg-card text-muted hover:border-brand/40")
+                  }
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </FormField>
+
+          <FormField label="NQS quality areas">
+            <div className="flex flex-wrap gap-2">
+              {NQS_AREAS.map((a) => (
+                <button
+                  key={a.code}
+                  type="button"
+                  title={a.label}
+                  onClick={() =>
+                    setNqs((prev) =>
+                      prev.includes(a.code)
+                        ? prev.filter((x) => x !== a.code)
+                        : [...prev, a.code],
+                    )
+                  }
+                  aria-pressed={nqs.includes(a.code)}
+                  aria-label={nqsLabel(a.code)}
+                  className={
+                    "px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
+                    (nqs.includes(a.code)
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-border bg-card text-muted hover:border-brand/40")
+                  }
+                >
+                  {a.code}
+                </button>
+              ))}
+            </div>
+          </FormField>
+
+          <FormField label="Schedule">
+            <input
+              type="datetime-local"
+              value={publishAt}
+              onChange={(e) => setPublishAt(e.target.value)}
+              className="w-full px-3 py-2.5 border border-border rounded-lg text-base sm:text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30"
+            />
+            <p className="mt-1 text-xs text-muted">
+              Leave blank to publish immediately. A time in the past
+              publishes straight away rather than sitting pending.
+            </p>
+          </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={handleClose}>

@@ -35,6 +35,16 @@ export const GET = withParentAuth(async (req, { parent }) => {
   const posts = await prisma.parentPost.findMany({
     where: {
       serviceId: { in: serviceIds }, // Always scope to parent's services
+      // Drafts are never visible, and a scheduled post only becomes
+      // visible once publishAt has passed. Evaluated here rather than by
+      // a cron flipping a flag — a cron that fails means a scheduled post
+      // silently never appears, whereas this comparison can't drift.
+      status: { not: "draft" },
+      AND: [
+        {
+          OR: [{ publishAt: null }, { publishAt: { lte: new Date() } }],
+        },
+      ],
       OR: [
         { isCommunity: true },
         ...(childIds.length > 0
