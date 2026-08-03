@@ -292,10 +292,20 @@ function EnrolmentRow({
       </div>
 
       {/* Status */}
-      <div className="sm:col-span-2 flex items-center">
+      <div className="sm:col-span-2 flex items-center gap-1.5 flex-wrap">
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badge.color}`}>
           {badge.label}
         </span>
+        {/*
+          An enrolment with no service has children on no roll and no
+          invoices. It looks perfectly healthy in this list otherwise, so
+          it needs to say so here — open it and use "Assign to service".
+        */}
+        {!s.serviceId && (
+          <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300">
+            No service
+          </span>
+        )}
       </div>
 
       {/* Actions */}

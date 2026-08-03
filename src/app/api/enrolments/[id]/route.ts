@@ -23,13 +23,31 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   const submission = await prisma.enrolmentSubmission.findUnique({
     where: { id },
+    include: {
+      // The Child ROWS, not the submission's `children` JSON blob. Assigning
+      // or copying an enrolment to a service acts on these rows, and the
+      // JSON has no ids to act on.
+      childRecords: {
+        select: { id: true, firstName: true, surname: true, serviceId: true, status: true },
+        orderBy: { firstName: "asc" },
+      },
+    },
   });
 
   if (!submission) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(submission);
+  // EnrolmentSubmission holds serviceId as a plain column with no relation,
+  // so the name is a second lookup rather than an include.
+  const service = submission.serviceId
+    ? await prisma.service.findUnique({
+        where: { id: submission.serviceId },
+        select: { id: true, name: true },
+      })
+    : null;
+
+  return NextResponse.json({ ...submission, service });
 });
 
 export const PATCH = withApiAuth(async (req, session, context) => {
