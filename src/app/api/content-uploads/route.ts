@@ -28,15 +28,25 @@ const ALLOWED_MIME = new Set([
   "image/jpeg",
   "image/webp",
   "image/svg+xml",
+  // 2026-08-04: service maps. Centres are as likely to have the school's
+  // site plan as a PDF as a photo of a printed one.
+  "application/pdf",
 ]);
 
-const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+/**
+ * 2 MB for images, 8 MB for PDFs — a scanned site plan is routinely
+ * larger than a photo, and bouncing one with "too big" and no way to
+ * shrink it is how the field ends up empty.
+ */
+const MAX_SIZE = 2 * 1024 * 1024;
+const MAX_SIZE_PDF = 8 * 1024 * 1024;
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/png": ".png",
   "image/jpeg": ".jpg",
   "image/webp": ".webp",
   "image/svg+xml": ".svg",
+  "application/pdf": ".pdf",
 };
 
 export const POST = withApiAuth(
@@ -56,12 +66,13 @@ export const POST = withApiAuth(
     }
     if (!ALLOWED_MIME.has(file.type)) {
       throw ApiError.badRequest(
-        `Unsupported type ${file.type || "(none)"}; allowed: PNG, JPEG, WebP, SVG`,
+        `Unsupported type ${file.type || "(none)"}; allowed: PNG, JPEG, WebP, SVG, PDF`,
       );
     }
-    if (file.size > MAX_SIZE) {
+    const limit = file.type === "application/pdf" ? MAX_SIZE_PDF : MAX_SIZE;
+    if (file.size > limit) {
       throw ApiError.badRequest(
-        `File too large (${(file.size / 1024 / 1024).toFixed(2)} MB); max 2 MB`,
+        `File too large (${(file.size / 1024 / 1024).toFixed(2)} MB); max ${limit / 1024 / 1024} MB`,
       );
     }
 

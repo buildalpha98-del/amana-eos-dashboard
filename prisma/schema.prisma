@@ -6527,6 +6527,10 @@ model ParentAccount {
   // deleting them. Deleting loses the enrolment history and the billing
   // arrangement; a family who leaves, or who is in dispute, needs the
   // access gone but the record kept. Null = active.
+  // 2026-08-04: the "Add Amana to your phone" card on the portal home.
+  // Against the ACCOUNT, not localStorage — a parent who dismisses it on
+  // their phone shouldn't meet it again on the tablet.
+  appInstallCardDismissedAt DateTime?
   deactivatedAt   DateTime?
   deactivatedById String?
   deactivatedReason String?
