@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Download, FileText, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useParentStatements, useParentStatementDetail, type StatementRecord } from "@/hooks/useParentPortal";
 import { SectionLabel, StatusBadge, type StatusVariant } from "@/components/parent/ui";
-import { PaymentMethodCard } from "@/components/parent/PaymentMethodCard";
+import { PaymentMethodCard, NextDebitRow } from "@/components/parent/PaymentMethodCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +30,6 @@ export default function BillingPage() {
   const statements = data?.statements ?? [];
   const summary = data?.summary ?? { currentBalance: 0, overdueCount: 0 };
 
-  const nextDebitDate = getNextDebitDate();
 
   return (
     <div className="space-y-6">
@@ -69,14 +68,12 @@ export default function BillingPage() {
             </span>
           )}
         </div>
-        <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[color:var(--color-muted)]">Next Direct Debit</span>
-            <span className="text-sm font-medium text-[color:var(--color-foreground)]">
-              {nextDebitDate}
-            </span>
-          </div>
-        </div>
+        {/* Only shown when staff have actually set a debit date. This
+            used to render "the 1st of next month", computed client-side
+            and identical for every family regardless of their real
+            arrangement — the same class of bug as the hardcoded bank
+            details on this page. Silence beats a confident wrong date. */}
+        <NextDebitRow />
       </div>
 
       {/* Statements */}
@@ -335,15 +332,6 @@ function StatementDetail({ statementId }: { statementId: string }) {
 
 // ── Helpers ──────────────────────────────────────────────
 
-function getNextDebitDate(): string {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return next.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 // ── Skeleton ────────────────────────────────────────────
 

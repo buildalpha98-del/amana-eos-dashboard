@@ -198,7 +198,17 @@ export const COMMAND_ACTIONS: CommandAction[] = [
     section: "Quick nav",
     icon: ClipboardCheck,
     predicate: () => true,
-    handler: (_ctx, router) => router.push("/roll-call"),
+    // /roll-call has not existed since 2026-04-29 — this pushed straight
+    // to a 404. Roll call lives on the service page's Daily Ops tab, so
+    // route there, falling back to the service picker like the other
+    // service-scoped actions do.
+    handler: (ctx, router) => {
+      router.push(
+        ctx.serviceId
+          ? `/services/${ctx.serviceId}?tab=daily&sub=roll-call`
+          : "/services",
+      );
+    },
   },
   {
     id: "todays-menu",
