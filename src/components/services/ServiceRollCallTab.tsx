@@ -578,6 +578,15 @@ function RollCallRow({
                 Casual
               </span>
             )}
+            {/* Their first ever session. Sits beside the name rather than
+                in the detail panel: it's the one thing you want to know
+                BEFORE you greet a child nobody recognises. */}
+            {entry.isFirstSession && (
+              <span className="inline-flex items-center gap-1 text-2xs font-bold px-1.5 py-0.5 rounded-full bg-brand text-white uppercase tracking-wide">
+                <Sparkles className="w-3 h-3" />
+                First day
+              </span>
+            )}
           </div>
           {entry.child.yearLevel && (
             <p className="text-xs text-muted">{entry.child.yearLevel}</p>
