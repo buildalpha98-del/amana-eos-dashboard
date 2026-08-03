@@ -29,6 +29,7 @@ import {
   enrolmentReceivedEmail,
   secondaryCarerInviteEmail,
 } from "@/lib/email-templates/parent-account";
+import { matchSchoolToService } from "@/lib/school-service-match";
 import {
   draftSubmittable,
   firstIncompleteStep,
@@ -252,9 +253,47 @@ export const POST = withParentAuth(async (req, ctx) => {
     url: u.url,
   }));
 
+  /**
+   * Attach the enrolment to a SERVICE.
+   *
+   * The form records a school; every operational view is keyed to a
+   * service. Nothing joined them, so submitted children were created with
+   * serviceId null — present in the database but absent from their
+   * centre's children list, roll, ratios and billing.
+   *
+   * Resolved per child, because siblings can attend different campuses.
+   * An unmatched or ambiguous school leaves serviceId null on purpose:
+   * staff assign it when they approve, which is visible and fixable.
+   * Guessing would put a child on the wrong centre's roll and invoice.
+   */
+  const activeServices = await prisma.service.findMany({
+    where: { status: "active" },
+    select: { id: true, name: true },
+  });
+
+  const serviceIdForChild = new Map<number, string | null>();
+  enrichedChildren.forEach((c, i) => {
+    const match = matchSchoolToService(c.schoolName, activeServices);
+    serviceIdForChild.set(i, match.serviceId);
+    if (!match.serviceId) {
+      logger.warn("Enrolment: could not match school to a service", {
+        school: c.schoolName,
+        ambiguous: match.ambiguous,
+        score: match.score,
+      });
+    }
+  });
+
+  // The submission's own service: the first child's, when they agree.
+  const distinct = new Set(
+    Array.from(serviceIdForChild.values()).filter(Boolean),
+  );
+  const submissionServiceId = distinct.size === 1 ? [...distinct][0]! : null;
+
   const submission = await prisma.$transaction(async (tx) => {
     const sub = await tx.enrolmentSubmission.create({
       data: {
+        serviceId: submissionServiceId,
         primaryParent,
         secondaryParent: contacts.secondaryParent?.firstName
           ? (contacts.secondaryParent as unknown as object)
@@ -283,7 +322,7 @@ export const POST = withParentAuth(async (req, ctx) => {
       },
     });
 
-    for (const child of enrichedChildren) {
+    for (const [childIndex, child] of enrichedChildren.entries()) {
       const conditions: string[] = [];
       if (child.anaphylaxis) conditions.push("Anaphylaxis");
       if (child.allergies) conditions.push("Allergies");
@@ -295,6 +334,9 @@ export const POST = withParentAuth(async (req, ctx) => {
       await tx.child.create({
         data: {
           enrolmentId: sub.id,
+          // Null when the school didn't resolve — staff assign on
+          // approval rather than the child silently joining a centre.
+          serviceId: serviceIdForChild.get(childIndex) ?? null,
           firstName: child.firstName ?? "",
           surname: child.surname ?? "",
           dob: child.dob ? new Date(child.dob) : null,
