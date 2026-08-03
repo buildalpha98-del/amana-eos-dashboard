@@ -4,10 +4,10 @@
  * 2026-07-31, first piece of the OWNA billing replacement.
  *
  * Computed from real Statements, NOT the manually-imported
- * OverdueFeeRecord register at /billing/overdue. That register was a
- * stopgap for chasing debt that lived in OWNA; this is the same question
- * answered from invoices this system actually issued, so it stays correct
- * without anyone re-importing a spreadsheet.
+ * OverdueFeeRecord register behind /api/billing/overdue. That register was
+ * a stopgap for debt that lived in OWNA, and it has no page at all — its
+ * CRUD and importer are unreachable (2026-08-01 orphan sweep). This
+ * answers the same question from invoices this system actually issued.
  *
  * Only ISSUED statements count. A draft is not a debt — including drafts
  * would show families owing money they've never been asked for.

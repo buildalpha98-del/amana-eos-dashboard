@@ -3,9 +3,12 @@
 /**
  * /billing/aged-debtors — who owes what, oldest first.
  *
- * Distinct from /billing/overdue, which is a manually-imported register of
- * debt that lived in OWNA. This is computed from invoices this system
- * issued, so it stays correct without anyone re-importing a spreadsheet.
+ * Distinct from the OverdueFeeRecord register behind /api/billing/overdue —
+ * a manually-imported record of debt that lived in OWNA. NOTE: that API
+ * has full CRUD and an XLSX importer but NO page, so it is currently
+ * unreachable (found in the 2026-08-01 orphan sweep). This report is
+ * computed from invoices this system issued, so it stays correct without
+ * anyone re-importing a spreadsheet.
  */
 
 import { Fragment, useState } from "react";

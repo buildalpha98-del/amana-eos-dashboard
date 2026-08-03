@@ -22,6 +22,13 @@ import { toast } from "@/hooks/useToast";
 import { SectionLabel } from "@/components/parent/ui";
 import { Skeleton } from "@/components/ui/Skeleton";
 
+interface PaymentResponse {
+  payment: MaskedPayment | null;
+  nextBillingDate: string | null;
+  billingFrequency: string | null;
+  debitingPaused: boolean;
+}
+
 interface MaskedPayment {
   method: string | null;
   lastFour: string | null;
@@ -50,7 +57,7 @@ export function PaymentMethodCard() {
     ccv: "",
   });
 
-  const { data, isLoading } = useQuery<{ payment: MaskedPayment | null }>({
+  const { data, isLoading } = useQuery<PaymentResponse>({
     queryKey: ["parent", "payment"],
     queryFn: () => fetchApi("/api/parent/payment"),
     retry: 1,
@@ -331,5 +338,58 @@ export function PaymentMethodCard() {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * The family's next debit date — or nothing at all.
+ *
+ * Renders NOTHING when staff haven't set a schedule, or when debiting is
+ * paused. The previous version computed "the 1st of next month" in the
+ * browser and showed it to every parent regardless of their actual
+ * arrangement, which is a confident wrong answer about when money leaves
+ * someone's account. Silence is better.
+ */
+export function NextDebitRow() {
+  const { data } = useQuery<PaymentResponse>({
+    queryKey: ["parent", "payment"],
+    queryFn: () => fetchApi("/api/parent/payment"),
+    retry: 1,
+  });
+
+  if (!data) return null;
+
+  if (data.debitingPaused) {
+    return (
+      <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[color:var(--color-muted)]">
+            Direct debit
+          </span>
+          <span className="text-sm font-medium text-[color:var(--color-foreground)]">
+            Paused — please contact the centre
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data.nextBillingDate) return null;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-[color:var(--color-muted)]">
+          Next direct debit
+        </span>
+        <span className="text-sm font-medium text-[color:var(--color-foreground)]">
+          {new Date(data.nextBillingDate).toLocaleDateString("en-AU", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
+        </span>
+      </div>
+    </div>
   );
 }

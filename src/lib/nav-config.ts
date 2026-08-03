@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Baby,
+  LayoutList,
   Sun,
   LayoutDashboard,
   Eye,
@@ -132,6 +133,8 @@ export const navItems: NavItem[] = [
   { href: "/my-training", label: "My Training", icon: GraduationCap, section: "Home", tooltip: "Your induction and ongoing training courses", core: true },
   { href: "/surveys", label: "My Surveys", icon: ClipboardList, section: "Home", tooltip: "Surveys sent to you — feedback, check-ins, culture", core: true },
   { href: "/queue", label: "My Queue", icon: Inbox, section: "Home", tooltip: "Reports and tasks assigned to you from automation" , core: true },
+  { href: "/queue/all", label: "All Queues", icon: Inbox, section: "Home", tooltip: "Pending reports and tasks across the whole team", roles: ["owner", "head_office", "admin"], core: ["owner", "head_office", "admin"] },
+  { href: "/roster/me", label: "My Roster", icon: CalendarDays, section: "Home", tooltip: "Your published shifts and swap requests", core: true },
   { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "Home", tooltip: "Your onboarding checklist — get up to speed quickly" , core: true },
 
   // ── EOS — pure EOS methodology ────────────────────────────
@@ -152,6 +155,7 @@ export const navItems: NavItem[] = [
   { href: "/accountability-chart", label: "Accountability Chart", icon: Network, section: "EOS", tooltip: "Who's accountable for what — the org structure" },
 
   // ── Operations — day-to-day running ───────────────────────
+  { href: "/activity-library", label: "Activity Library", icon: LayoutList, section: "Operations", tooltip: "Reusable activity templates for weekly programming", roles: ALL_NON_MARKETING },
   { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING , core: true },
   // /roll-call top-level removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
   // Coordinators / staff drill into their service to access the daily roll call grid.
@@ -196,6 +200,7 @@ export const navItems: NavItem[] = [
   // behind "+N more" was costing that lookup.
   { href: "/children", label: "Children", icon: Baby, section: "Growth", tooltip: "Find any child across all services", roles: ALL_NON_MARKETING, core: true },
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING , core: true },
+  { href: "/crm/templates", label: "CRM Templates", icon: Mail, section: "Growth", tooltip: "Email templates behind automated CRM touchpoints", roles: ["owner", "head_office", "admin", "marketing"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" , core: ["marketing"] },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
@@ -254,6 +259,7 @@ export const navItems: NavItem[] = [
   // gives users a clear mental model of "where do I change config?"
   // and shrinks Admin closer to a support/tools drawer.
   { href: "/settings", label: "Settings", icon: Settings, section: "Settings" , core: true },
+  { href: "/settings/payroll", label: "Payroll Integration", icon: Receipt, section: "Settings", tooltip: "Employment Hero connection and employee sync", roles: ["owner", "head_office"] },
   { href: "/settings/organisation", label: "Org Settings", icon: Settings, section: "Settings", tooltip: "Runtime configuration — email sender, ratios, health score weights", roles: ["admin"] },
   { href: "/settings/permissions", label: "Role Permissions", icon: Shield, section: "Settings", tooltip: "Page-by-page access matrix — owner-only edit", roles: ["owner", "admin"] },
   { href: "/settings/ai-knowledge", label: "AI Knowledge", icon: Brain, section: "Settings", tooltip: "Content the AI assistant searches when staff ask questions", roles: ["owner", "head_office", "admin"] },

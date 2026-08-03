@@ -54,7 +54,28 @@ export const GET = withParentAuth(async (_req, ctx) => {
     unknown
   > | null;
 
+  // The real debit schedule, set by staff on the family account. The
+  // billing page used to invent this as "the 1st of next month" and show
+  // it to every parent regardless of their actual arrangement.
+  const account = ctx.parent.accountId
+    ? await prisma.parentAccount.findUnique({
+        where: { id: ctx.parent.accountId },
+        select: {
+          nextBillingDate: true,
+          billingFrequency: true,
+          pauseDebiting: true,
+        },
+      })
+    : null;
+
   return NextResponse.json({
+    // Null when staff haven't set a schedule — the UI must then say
+    // nothing rather than guess a date.
+    nextBillingDate: account?.pauseDebiting
+      ? null
+      : (account?.nextBillingDate ?? null),
+    billingFrequency: account?.billingFrequency ?? null,
+    debitingPaused: account?.pauseDebiting ?? false,
     payment: masked
       ? {
           method: sub?.paymentMethod ?? null,
