@@ -24,12 +24,10 @@ import {
   AlertTriangle,
   Pencil,
   Loader2,
-  Upload,
   CheckCircle2,
   FileText,
   UserCheck,
   Plus,
-  Trash2,
   Camera,
   User,
   X,
@@ -56,7 +54,7 @@ import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { ChildInformationTab } from "@/components/parent/ChildInformationTab";
 
-type Tab = "info" | "attendance" | "gallery" | "medical" | "documents" | "pickups" | "contacts";
+type Tab = "info" | "attendance" | "gallery" | "medical" | "documents" | "pickups";
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   // First, and the default: when a parent opens their child it's usually
@@ -66,8 +64,11 @@ const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: s
   { key: "gallery", label: "Gallery", icon: Camera },
   { key: "medical", label: "Medical", icon: Stethoscope },
   { key: "documents", label: "Docs", icon: FileText },
+  // Emergency contacts used to have their own tab. They're the same
+  // people, with the same numbers, as the authorised pickups — and
+  // Pickups is the list staff actually work from at the door, so two
+  // copies just meant one of them going stale.
   { key: "pickups", label: "Pickups", icon: UserCheck },
-  { key: "contacts", label: "Contacts", icon: Phone },
 ];
 
 export default function ChildDetailV1() {
@@ -159,7 +160,6 @@ export default function ChildDetailV1() {
       {activeTab === "medical" && <MedicalTab child={child} />}
       {activeTab === "documents" && <DocumentsTab childId={child.id} />}
       {activeTab === "pickups" && <PickupsTab childId={child.id} />}
-      {activeTab === "contacts" && <ContactsTab child={child} />}
     </div>
   );
 }
@@ -458,8 +458,23 @@ function MedicalTab({ child }: { child: ParentChild }) {
         </div>
       ) : (
         <>
-          {child.medicalConditions.length > 0 && (
+          {/* Stated explicitly when empty. "Nothing here" and "we asked
+              and the answer was none" look identical otherwise, and it's
+              the second one staff need before giving a child anything. */}
+          {child.medicalConditions.length > 0 ? (
             <InfoCard icon={AlertTriangle} iconColor="text-amber-600" title="Medical Conditions" items={child.medicalConditions} />
+          ) : (
+            <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-green-600" />
+                <h3 className="text-sm font-heading font-semibold text-foreground">
+                  No medical conditions recorded
+                </h3>
+              </div>
+              <p className="text-sm text-muted ml-6 mt-0.5">
+                Tap Edit Details if that changes.
+              </p>
+            </div>
           )}
           {child.allergies.length > 0 && (
             <InfoCard icon={AlertTriangle} iconColor="text-red-500" title="Allergies" items={child.allergies} />
@@ -511,7 +526,6 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
   const [medications, setMedications] = useState(child.medications.join(", "));
   const [immunisation, setImmunisation] = useState(child.immunisationStatus ?? "");
   const [dietaryNotes, setDietaryNotes] = useState("");
-  const [actionPlanUploaded, setActionPlanUploaded] = useState(false);
 
   const splitToArray = (s: string) => s.split(",").map((v) => v.trim()).filter(Boolean);
 
@@ -522,7 +536,6 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
       medications: splitToArray(medications),
       immunisationStatus: immunisation || undefined,
       dietary: dietaryNotes ? { notes: dietaryNotes } : undefined,
-      actionPlanUrl: actionPlanUploaded ? `/uploads/action-plan-${child.id}.pdf` : undefined,
     };
     updateMedical.mutate({ childId: child.id, payload }, { onSuccess: () => onOpenChange(false) });
   };
@@ -541,20 +554,15 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
             <label className="block text-xs font-medium text-foreground/70 mb-1">Dietary Notes</label>
             <textarea value={dietaryNotes} onChange={(e) => setDietaryNotes(e.target.value)} placeholder="Any dietary requirements..." maxLength={500} rows={3} className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-background/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors resize-none" />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-foreground/70 mb-1">Action Plan (Asthma/Anaphylaxis)</label>
-            {actionPlanUploaded ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-300">
-                <CheckCircle2 className="w-4 h-4" />
-                Action plan uploaded
-              </div>
-            ) : (
-              <button type="button" onClick={() => { setActionPlanUploaded(true); toast({ description: "Action plan uploaded (simulated)" }); }} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-border hover:border-brand/30 text-sm text-muted hover:text-brand transition-colors w-full justify-center min-h-[44px]">
-                <Upload className="w-4 h-4" />
-                Upload Action Plan
-              </button>
-            )}
-          </div>
+          {/* The button that used to sit here didn't upload anything —
+              it toasted "(simulated)" and wrote a URL to a file that was
+              never stored, so an action plan could read as "on file"
+              when nothing existed. Documents has a real uploader. */}
+          <p className="text-xs text-muted">
+            Asthma and anaphylaxis action plans go on the{" "}
+            <strong className="text-foreground">Documents</strong> tab, where
+            they&apos;re stored properly and your centre can see them.
+          </p>
           <button onClick={handleSave} disabled={updateMedical.isPending} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]">
             {updateMedical.isPending ? (<><Loader2 className="w-4 h-4 animate-spin" />Saving...</>) : "Save Changes"}
           </button>
@@ -611,6 +619,13 @@ const PARENT_DOC_TYPES = [
 
 export function DocumentsTab({ childId }: { childId: string }) {
   const [docs, setDocs] = useState<ChildDocForParent[]>([]);
+  // Files supplied on the enrolment form. They live on the SUBMISSION as
+  // JSON rather than as document rows, so without this a family who'd
+  // just uploaded a birth certificate saw an empty tab and no way to
+  // tell whether it had arrived.
+  const [enrolmentDocs, setEnrolmentDocs] = useState<
+    { id: string; label: string; fileName: string; fileUrl: string; uploadedAt: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -619,8 +634,16 @@ export function DocumentsTab({ childId }: { childId: string }) {
   const [docName, setDocName] = useState("");
 
   useEffect(() => {
-    fetchApi<{ documents: ChildDocForParent[] }>(`/api/parent/children/${childId}/documents`)
-      .then((res) => setDocs(res.documents ?? []))
+    fetchApi<{
+      documents: ChildDocForParent[];
+      enrolmentDocs?: {
+        id: string; label: string; fileName: string; fileUrl: string; uploadedAt: string;
+      }[];
+    }>(`/api/parent/children/${childId}/documents`)
+      .then((res) => {
+        setDocs(res.documents ?? []);
+        setEnrolmentDocs(res.enrolmentDocs ?? []);
+      })
       .catch((err) => {
         if (process.env.NODE_ENV !== "production") console.warn("Fetch child documents failed:", err);
       })
@@ -672,10 +695,44 @@ export function DocumentsTab({ childId }: { childId: string }) {
         Documents uploaded by parents are reviewed by your coordinator before being marked as verified.
       </p>
 
+      {enrolmentDocs.length > 0 && (
+        <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
+          <h3 className="text-sm font-heading font-semibold text-foreground mb-2">
+            From your enrolment form
+          </h3>
+          <ul className="space-y-2">
+            {enrolmentDocs.map((d) => (
+              <li key={d.id} className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted shrink-0" />
+                <a
+                  href={d.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-brand underline underline-offset-2 truncate"
+                >
+                  {d.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          {/* Not editable in place on purpose: the original is the record
+              of what was supplied at enrolment. A newer version goes up
+              as its own upload. */}
+          <p className="text-xs text-muted mt-2">
+            Out of date? Upload the new version above — we&apos;ll use the
+            most recent one.
+          </p>
+        </div>
+      )}
+
       {docs.length === 0 ? (
         <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
           <FileText className="w-8 h-8 text-muted mx-auto mb-2" />
-          <p className="text-muted text-sm">No documents uploaded yet.</p>
+          <p className="text-muted text-sm">
+            {enrolmentDocs.length > 0
+              ? "Nothing uploaded since your enrolment."
+              : "No documents uploaded yet."}
+          </p>
         </div>
       ) : (
         docs.map((doc) => (
@@ -888,36 +945,6 @@ export function PickupsTab({ childId }: { childId: string }) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-// ── Contacts Tab ─────────────────────────────────────────
-
-function ContactsTab({ child }: { child: ParentChild }) {
-  if (child.emergencyContacts.length === 0) {
-    return (
-      <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
-        <Phone className="w-8 h-8 text-muted mx-auto mb-2" />
-        <p className="text-muted text-sm">
-          No emergency contacts on file. You can add them in your account settings.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {child.emergencyContacts.map((contact) => (
-        <div key={contact.id} className="bg-card rounded-xl p-4 shadow-sm border border-border">
-          <h3 className="text-sm font-heading font-semibold text-foreground">{contact.name}</h3>
-          <p className="text-xs text-muted mt-0.5">{contact.relationship}</p>
-          <a href={`tel:${contact.phone}`} className="inline-flex items-center gap-1.5 mt-2 text-sm text-brand hover:text-brand-light font-medium transition-colors min-h-[44px]">
-            <Phone className="w-4 h-4" />
-            {contact.phone}
-          </a>
-        </div>
-      ))}
     </div>
   );
 }

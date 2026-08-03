@@ -22,7 +22,6 @@ import {
   X,
   Check,
   ShieldAlert,
-  Camera,
   Tag,
 } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
@@ -47,9 +46,6 @@ interface ChildInfo {
   additionalNeeds: string | null;
   medicalConditions: string[];
   address: { street?: string; suburb?: string; state?: string; postcode?: string } | null;
-  isStaffChild: boolean;
-  allowSocialMediaPost: boolean;
-  noAppPosting: boolean;
   room: string | null;
   tags: string[];
   service: { id: string; name: string } | null;
@@ -303,33 +299,13 @@ export function ChildInformationTab({ childId }: { childId: string }) {
         </p>
       </Card>
 
-      {/* ── Permissions ────────────────────────────────────
-          The family's to give and to withdraw. Shown as plain
-          statements of what happens, not policy language. */}
-      <Card title="Permissions">
-        <Toggle
-          label="Photos may be used on social media"
-          hint="Amana's public Facebook and Instagram."
-          icon={Camera}
-          checked={Boolean(value("allowSocialMediaPost"))}
-          disabled={!editing || !can("allowSocialMediaPost")}
-          onChange={(v) => set("allowSocialMediaPost", v)}
-        />
-        <Toggle
-          label="Don't post about this child in the app"
-          hint="Stops them appearing in the daily feed families see."
-          checked={Boolean(value("noAppPosting"))}
-          disabled={!editing || !can("noAppPosting")}
-          onChange={(v) => set("noAppPosting", v)}
-        />
-        <Toggle
-          label="A staff member's child"
-          hint="Let us know if you work at Amana — it affects your fees."
-          checked={Boolean(value("isStaffChild"))}
-          disabled={!editing || !can("isStaffChild")}
-          onChange={(v) => set("isStaffChild", v)}
-        />
-      </Card>
+      {/* Consent settings (social media, app posting, staff-child) are
+          deliberately NOT here. They change what the centre may publish
+          about a child and how they're billed, so they're recorded by
+          the office from what the family agreed at enrolment — a tick
+          box a parent can flip on a phone isn't the record you want to
+          rely on when someone asks why their child was in a post. Staff
+          set them on the child's Details tab. */}
 
       {data.tags.length > 0 && (
         <Card title="Tags">
@@ -394,44 +370,5 @@ function Row({
         {children}
       </span>
     </div>
-  );
-}
-
-function Toggle({
-  label,
-  hint,
-  icon: Icon,
-  checked,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label
-      className={
-        "flex items-start gap-3 " + (disabled ? "" : "cursor-pointer")
-      }
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand disabled:opacity-60"
-      />
-      <span className="text-sm text-foreground">
-        <span className="flex items-center gap-1.5">
-          {Icon && <Icon className="w-3.5 h-3.5 text-muted" />}
-          {label}
-        </span>
-        {hint && <span className="block text-xs text-muted">{hint}</span>}
-      </span>
-    </label>
   );
 }

@@ -25,7 +25,7 @@ export const GET = withParentAuth(async (_req, ctx) => {
   const childId = params?.id;
   if (!childId) throw ApiError.badRequest("childId is required");
 
-  await verifyChildAccess(childId, ctx.parent.enrolmentIds);
+  const child = await verifyChildAccess(childId, ctx.parent.enrolmentIds);
 
   // Return ChildDocument records (staff + parent uploaded)
   const documents = await prisma.childDocument.findMany({
@@ -51,8 +51,91 @@ export const GET = withParentAuth(async (_req, ctx) => {
     orderBy: { uploadedAt: "desc" },
   });
 
-  return NextResponse.json({ documents, parentDocs });
+  // Files the family uploaded during the enrolment form live on the
+  // SUBMISSION as JSON, not as ChildDocument rows — so a parent who'd
+  // just uploaded a birth certificate and an immunisation history saw an
+  // empty Documents tab and no way to tell whether it had arrived.
+  // Listed read-only; replacing one means uploading a new version, which
+  // is what the office wants anyway (the original stays as the record of
+  // what was supplied at enrolment).
+  const enrolmentDocs: EnrolmentDoc[] = [];
+  if (child.enrolmentId) {
+    const sub = await prisma.enrolmentSubmission.findUnique({
+      where: { id: child.enrolmentId },
+      select: {
+        documentUploads: true,
+        medicalFiles: true,
+        courtOrderFiles: true,
+        createdAt: true,
+      },
+    });
+    if (sub) {
+      const push = (raw: unknown, fallbackLabel: string) => {
+        for (const entry of toFileList(raw)) {
+          enrolmentDocs.push({
+            id: `enrol:${entry.url}`,
+            label: entry.label || fallbackLabel,
+            fileName: entry.name || fallbackLabel,
+            fileUrl: entry.url,
+            uploadedAt: sub.createdAt,
+          });
+        }
+      };
+      push(sub.documentUploads, "Enrolment document");
+      push(sub.medicalFiles, "Medical document");
+      push(sub.courtOrderFiles, "Court order");
+    }
+  }
+
+  return NextResponse.json({ documents, parentDocs, enrolmentDocs });
 });
+
+interface EnrolmentDoc {
+  id: string;
+  label: string;
+  fileName: string;
+  fileUrl: string;
+  uploadedAt: Date;
+}
+
+/**
+ * The enrolment form has stored uploads in more than one shape over its
+ * life — a bare array of urls, an array of objects, and a keyed object
+ * of them. Read all three rather than making old families' documents
+ * disappear.
+ */
+function toFileList(
+  raw: unknown,
+): { url: string; name?: string; label?: string }[] {
+  const out: { url: string; name?: string; label?: string }[] = [];
+  const take = (v: unknown, key?: string) => {
+    if (typeof v === "string" && v.startsWith("http")) {
+      out.push({ url: v, label: key });
+      return;
+    }
+    if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      const url = typeof o.url === "string" ? o.url : null;
+      if (url) {
+        out.push({
+          url,
+          name: typeof o.name === "string" ? o.name : undefined,
+          label: typeof o.label === "string" ? o.label : key,
+        });
+      }
+    }
+  };
+
+  if (Array.isArray(raw)) {
+    for (const v of raw) take(v);
+  } else if (raw && typeof raw === "object") {
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      if (Array.isArray(v)) for (const item of v) take(item, k);
+      else take(v, k);
+    }
+  }
+  return out;
+}
 
 const documentTypeMap: Record<string, string> = {
   immunisation: "IMMUNISATION_RECORD",
