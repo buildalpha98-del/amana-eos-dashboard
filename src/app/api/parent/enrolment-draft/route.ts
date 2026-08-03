@@ -17,6 +17,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { matchSchoolToService } from "@/lib/school-service-match";
+import { syncParentJourney } from "@/lib/parent-journey";
+import type { EnrolDraft } from "@/lib/enrol-draft";
 
 const saveSchema = z.object({
   // Intentionally unvalidated shape: autosave fires mid-typing, so it must
@@ -84,5 +87,52 @@ export const PUT = withParentAuth(async (req, ctx) => {
     select: { updatedAt: true, currentStep: true },
   });
 
+  // Put the family into the nurture flow as soon as we know which centre
+  // they're headed to. Fire-and-forget and internally guarded: a family
+  // must never lose their progress because the marketing side is down.
+  // Idempotent, so autosave calling it repeatedly is harmless.
+  void enterFormStartedFlow(accountId, parsed.data.data);
+
   return NextResponse.json({ ok: true, ...saved });
 });
+
+/**
+ * Draft → `form_started`, once the school they typed resolves to one of
+ * our services. Before that there's no centre to send anything from.
+ */
+async function enterFormStartedFlow(
+  accountId: string,
+  data: unknown,
+): Promise<void> {
+  try {
+    const draft = (data ?? {}) as EnrolDraft;
+    const child = draft.children?.[0];
+    if (!child?.schoolName) return;
+
+    const account = await prisma.parentAccount.findUnique({
+      where: { id: accountId },
+      select: { email: true, firstName: true, surname: true },
+    });
+    if (!account) return;
+
+    const services = await prisma.service.findMany({
+      where: { status: "active" },
+      select: { id: true, name: true },
+    });
+    const match = matchSchoolToService(child.schoolName, services);
+    if (!match.serviceId) return;
+
+    await syncParentJourney({
+      email: account.email,
+      serviceId: match.serviceId,
+      stage: "form_started",
+      parentName:
+        [draft.me?.firstName ?? account.firstName, draft.me?.surname ?? account.surname]
+          .filter(Boolean)
+          .join(" ") || null,
+      childName: [child.firstName, child.surname].filter(Boolean).join(" ") || null,
+    });
+  } catch {
+    // Swallowed on purpose — see syncParentJourney's own guard.
+  }
+}

@@ -45,6 +45,7 @@ import {
 } from "@/lib/family-billing";
 import { formatMoney } from "@/lib/money";
 import { MoveFamilyServiceDialog } from "@/components/families/MoveFamilyServiceDialog";
+import { serviceWithReason } from "@/lib/placement-reason";
 
 interface FamilyChild {
   id: string;
@@ -55,6 +56,8 @@ interface FamilyChild {
   classroom: string | null;
   ccsStatus: string | null;
   serviceName: string | null;
+  serviceId: string | null;
+  placementReason: string | null;
 }
 
 interface LedgerEntry {
@@ -630,7 +633,7 @@ export default function FamilyDetailPage({
                     </p>
                     <p className="text-xs text-muted truncate">
                       {[
-                        c.serviceName,
+                        serviceWithReason(c.serviceName, c.placementReason),
                         c.schoolName,
                         c.classroom,
                         c.ccsStatus ? `CCS: ${c.ccsStatus}` : null,

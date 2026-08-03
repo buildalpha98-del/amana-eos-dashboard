@@ -20,6 +20,7 @@ import { Building2 } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { AssignServiceDialog } from "@/components/enrolments/AssignServiceDialog";
+import { serviceWithReason } from "@/lib/placement-reason";
 
 export function ChildServiceCard({
   child,
@@ -31,6 +32,7 @@ export function ChildServiceCard({
     surname: string;
     serviceId: string | null;
     enrolmentId: string | null;
+    placementReason?: string | null;
     service?: { id: string; name: string } | null;
   };
   canEdit: boolean;
@@ -50,7 +52,9 @@ export function ChildServiceCard({
           <h3 className="text-sm font-semibold text-foreground">Service</h3>
           <p className="mt-1 text-sm text-foreground flex items-center gap-1.5">
             <Building2 className="w-4 h-4 text-muted shrink-0" />
-            {child.service?.name ?? (
+            {child.service?.name ? (
+              serviceWithReason(child.service.name, child.placementReason)
+            ) : (
               <span className="text-amber-700 dark:text-amber-300">
                 Not linked to a service
               </span>

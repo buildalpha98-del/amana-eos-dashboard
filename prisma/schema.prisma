@@ -6279,6 +6279,11 @@ model EnrolmentSubmission {
 // ============================================================
 
 model Child {
+  // 2026-08-03: why this child sits at THIS service. A child enrolled at
+  // two centres has two Child rows, and without this the second one looks
+  // like a duplicate or a mistake. Null = ordinary term care.
+  // Values: holiday_quest | sibling_campus | casual | transferring | other
+  placementReason String?
   id                    String               @id @default(cuid())
   enrolmentId           String?
   enrolment             EnrolmentSubmission? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
