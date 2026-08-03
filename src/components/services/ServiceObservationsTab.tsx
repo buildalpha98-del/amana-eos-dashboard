@@ -11,7 +11,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { Plus, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Plus, Sparkles, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FilterBar } from "@/components/ui/v2/FilterBar";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
@@ -21,9 +21,13 @@ import { useQuery } from "@tanstack/react-query";
 import {
   useObservations,
   useCreateObservation,
+  useUpdateObservation,
+  useDeleteObservation,
   type MtopOutcome,
   type ObservationItem,
 } from "@/hooks/useObservations";
+import { useSession } from "next-auth/react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const MTOP_FILTER_OPTIONS = [
   { value: "all", label: "All outcomes" },
@@ -85,7 +89,11 @@ export function ServiceObservationsTab({ serviceId }: { serviceId: string }) {
       ) : (
         <ul className="space-y-3">
           {data.items.map((o) => (
-            <ObservationCard key={o.id} observation={o} />
+            <ObservationCard
+              key={o.id}
+              observation={o}
+              serviceId={serviceId}
+            />
           ))}
         </ul>
       )}
@@ -120,8 +128,30 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   );
 }
 
-function ObservationCard({ observation }: { observation: ObservationItem }) {
+function ObservationCard({
+  observation,
+  serviceId,
+}: {
+  observation: ObservationItem;
+  serviceId: string;
+}) {
   const date = new Date(observation.createdAt);
+  const { data: session } = useSession();
+  const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const del = useDeleteObservation(serviceId);
+
+  /**
+   * The route allows the AUTHOR or an admin. Mirroring that here isn't
+   * duplicated security — the server still enforces it — it's so we don't
+   * show an educator a pencil that only ever returns 403.
+   */
+  const role = session?.user?.role as string | undefined;
+  const canEdit =
+    observation.authorId === session?.user?.id ||
+    role === "owner" ||
+    role === "head_office" ||
+    role === "admin";
   return (
     <li
       className={cn(
@@ -129,6 +159,13 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
         "border border-[color:var(--color-border)]",
       )}
     >
+      {editing && (
+        <EditObservationDialog
+          serviceId={serviceId}
+          observation={observation}
+          onClose={() => setEditing(false)}
+        />
+      )}
       <header className="flex items-start gap-2 mb-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap text-xs">
@@ -152,7 +189,47 @@ function ObservationCard({ observation }: { observation: ObservationItem }) {
             {observation.title}
           </h3>
         </div>
+
+        {canEdit && (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label={`Edit observation: ${observation.title}`}
+              className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-[color:var(--color-muted)] hover:text-[color:var(--color-brand)] hover:bg-[color:var(--color-surface)]"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              aria-label={`Delete observation: ${observation.title}`}
+              className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-[color:var(--color-muted)] hover:text-red-600 hover:bg-[color:var(--color-surface)]"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </header>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete observation"
+        // An observation is a learning record and may already be visible
+        // to the family, so say so rather than asking "are you sure?".
+        description={
+          observation.visibleToParent
+            ? "This observation is visible to the family and will disappear from their portal. This can't be undone."
+            : "This observation will be permanently deleted. This can't be undone."
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          del.mutate(observation.id);
+          setConfirmDelete(false);
+        }}
+      />
       <p className="text-sm text-[color:var(--color-foreground)]/80 whitespace-pre-wrap">
         {observation.narrative}
       </p>
@@ -476,5 +553,116 @@ function BrandButton({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Edit an existing observation.
+ *
+ * Deliberately narrower than the create dialog: title, narrative and
+ * parent visibility are what people actually come back to fix — a typo,
+ * a clumsy sentence, or realising it shouldn't have gone to the family.
+ * Re-tagging is rare enough that offering it here isn't worth
+ * restructuring the create dialog to share.
+ */
+function EditObservationDialog({
+  serviceId,
+  observation,
+  onClose,
+}: {
+  serviceId: string;
+  observation: ObservationItem;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(observation.title);
+  const [narrative, setNarrative] = useState(observation.narrative);
+  const [visibleToParent, setVisibleToParent] = useState(
+    observation.visibleToParent,
+  );
+  const update = useUpdateObservation(serviceId);
+
+  const dirty =
+    title !== observation.title ||
+    narrative !== observation.narrative ||
+    visibleToParent !== observation.visibleToParent;
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogTitle>Edit observation</DialogTitle>
+
+        <div className="space-y-3 mt-3">
+          <div>
+            <label htmlFor="obs-title" className="block text-sm font-medium mb-1">
+              Title
+            </label>
+            <input
+              id="obs-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2.5 border border-[color:var(--color-border)] rounded-lg text-base sm:text-sm bg-[color:var(--color-card)]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="obs-narrative" className="block text-sm font-medium mb-1">
+              Learning story
+            </label>
+            <textarea
+              id="obs-narrative"
+              rows={7}
+              value={narrative}
+              onChange={(e) => setNarrative(e.target.value)}
+              className="w-full px-3 py-2.5 border border-[color:var(--color-border)] rounded-lg text-base sm:text-sm bg-[color:var(--color-card)]"
+            />
+          </div>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={visibleToParent}
+              onChange={(e) => setVisibleToParent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-[color:var(--color-border)]"
+            />
+            <span className="text-sm">
+              Visible to the family
+              <span className="block text-xs text-[color:var(--color-muted)]">
+                {observation.visibleToParent && !visibleToParent
+                  ? "Unticking removes it from their portal."
+                  : "Shows in the family's portal."}
+              </span>
+            </span>
+          </label>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 min-h-11 text-sm text-[color:var(--color-muted)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!dirty || !title.trim() || !narrative.trim() || update.isPending}
+              onClick={() =>
+                update.mutate(
+                  {
+                    id: observation.id,
+                    title: title.trim(),
+                    narrative: narrative.trim(),
+                    visibleToParent,
+                  },
+                  { onSuccess: onClose },
+                )
+              }
+              className="px-5 min-h-11 rounded-lg bg-[color:var(--color-brand)] text-white text-sm font-medium disabled:opacity-40"
+            >
+              {update.isPending ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

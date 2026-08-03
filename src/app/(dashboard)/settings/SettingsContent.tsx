@@ -8,41 +8,43 @@ import { BulkInviteModal } from "@/components/settings/BulkInviteModal";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import {
-  Settings,
-  Users,
-  Database,
-  UserPlus,
-  Shield,
-  ShieldCheck,
-  User,
-  MoreVertical,
-  X,
   Activity,
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  BellOff,
+  Building2,
+  Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  Check,
-  Loader2,
-  Link2,
-  Unlink,
-  RefreshCw,
-  ArrowRight,
-  MapPin,
-  FileSpreadsheet,
-  Lock,
-  BellOff,
-  CheckCircle2,
-  XCircle,
-  Key,
   CloudCog,
-  Save,
   Copy,
-  AlertTriangle,
-  Building2,
-  Sparkles,
-  BarChart3,
-  Zap,
+  Database,
   DollarSign,
+  FileSpreadsheet,
+  Filter,
+  Key,
+  KeyRound,
+  Link2,
+  Loader2,
+  Lock,
+  LogOut,
+  MapPin,
+  MoreVertical,
+  RefreshCw,
+  Save,
+  Settings,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  Unlink,
+  User,
+  UserPlus,
+  Users,
+  X,
+  XCircle,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -402,6 +404,38 @@ function UserRow({
     },
   });
 
+  const revokeSessions = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}/revoke-sessions`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to sign the user out");
+      return res.json();
+    },
+    onSuccess: () =>
+      toast({
+        description: `${user.name ?? "That user"} has been signed out on every device.`,
+      }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
+  });
+
+  const resetKioskPin = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}/reset-kiosk-pin`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to reset the kiosk PIN");
+      return res.json();
+    },
+    onSuccess: () =>
+      toast({
+        description: "Kiosk PIN reset — they'll be prompted to set a new one.",
+      }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
+  });
+
   const toggleMute = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/users/${user.id}`, {
@@ -639,6 +673,29 @@ function UserRow({
                   >
                     <Lock className="w-3.5 h-3.5" />
                     Reset Password
+                  </button>
+                  {/*
+                    Both endpoints existed with no UI (2026-08-01 sweep).
+                    Sign-out-everywhere is the control you reach for when a
+                    phone is lost or someone leaves — having it only as an
+                    API meant it was unusable at exactly the moment it
+                    mattered.
+                  */}
+                  <button
+                    onClick={() => { revokeSessions.mutate(); setShowMenu(false); }}
+                    disabled={revokeSessions.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out everywhere
+                  </button>
+                  <button
+                    onClick={() => { resetKioskPin.mutate(); setShowMenu(false); }}
+                    disabled={resetKioskPin.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    Reset kiosk PIN
                   </button>
                   <button
                     onClick={() => toggleMute.mutate()}
