@@ -11,11 +11,13 @@ import {
   Calendar,
   UserPlus,
   Users,
+  AlertTriangle,
 } from "lucide-react";
 import { useEnrolments, type EnrolmentSubmission } from "@/hooks/useEnrolments";
 import { useEnrolmentApplications } from "@/hooks/useEnrolmentApplications";
 import { EnrolmentDetailPanel } from "@/components/enrolments/EnrolmentDetailPanel";
 import { SiblingEnrolmentInbox } from "@/components/enrolments/SiblingEnrolmentInbox";
+import { BackfillServiceDialog } from "@/components/enrolments/BackfillServiceDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -42,6 +44,7 @@ export default function EnrolmentsPage() {
   const router = useRouter();
   const [view, setView] = useState<"submissions" | "sibling">("submissions");
   const [activeTab, setActiveTab] = useState("all");
+  const [showBackfill, setShowBackfill] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data, isLoading } = useEnrolments(activeTab);
@@ -68,6 +71,10 @@ export default function EnrolmentsPage() {
     needs_info: submissions.filter((s) => s.status === "needs_info").length,
     archived: submissions.filter((s) => s.status === "archived").length,
   };
+
+  // Children with no service are on no roll and no invoice, so a backlog
+  // needs to announce itself rather than wait to be searched for.
+  const unplaced = submissions.filter((s) => !s.serviceId).length;
 
   return (
     <div
@@ -155,6 +162,25 @@ export default function EnrolmentsPage() {
           </div>
         ))}
       </div>
+
+      {unplaced > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40">
+          <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300 shrink-0" />
+          <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+            <strong>{unplaced}</strong>{" "}
+            {unplaced === 1 ? "enrolment isn't" : "enrolments aren't"} linked to
+            a service — those children don&apos;t appear on any roll or invoice.
+          </p>
+          <button
+            onClick={() => setShowBackfill(true)}
+            className="text-sm font-semibold px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors whitespace-nowrap"
+          >
+            Match to services
+          </button>
+        </div>
+      )}
+
+      <BackfillServiceDialog open={showBackfill} onOpenChange={setShowBackfill} />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
