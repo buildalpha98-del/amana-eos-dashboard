@@ -38,7 +38,6 @@ import {
   Users,
   Sunrise,
   Eye,
-  FileText,
   CheckCircle2,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
@@ -135,21 +134,14 @@ const tabGroups: TabGroup[] = [
   },
   {
     key: "overview",
-    // Sits beside Today as the centre's own reference card — what it's
-    // called, who runs it, when the rooms open, what they cost.
-    label: "Service Info",
+    // 2026-08-04: one tab, no sub-tabs. "Service Overview" and "About"
+    // were an editing seam, not a distinction anyone reasons about —
+    // and splitting them meant the address lived on one and the welcome
+    // text on another, so nobody could see the whole record at once.
+    // Everything a family is shown about this centre is edited here.
+    label: "Service Information",
     icon: Building2,
-    subTabs: [
-      { key: "summary", label: "Service Overview", icon: Building2 },
-      // 2026-05-16: editable per-service About / hero / key contacts /
-      // daily routine / food provider / parent onboarding. Owner / admin
-      // / head_office can edit any service; Director of Service can edit
-      // their own. Other roles see read-only.
-      // Named "About" rather than "Content": it IS the centre's about
-      // page — hero, key contacts, daily routine, food provider — and
-      // "Content" said nothing about what you'd find there.
-      { key: "content", label: "About", icon: FileText },
-    ],
+    subTabs: [],
   },
   // 2026-05-14: Staff tab — primary users (User.serviceId === this service)
   // + additional UserServiceMembership rows in one unified list. Admin-tier
@@ -438,11 +430,11 @@ export default function ServiceDetailPage() {
         )}
 
         {/* Overview group — Summary (default) | Content */}
-        {activeGroup === "overview" && currentSubKey !== "content" && (
-          <ServiceOverviewTab service={service} users={users || []} />
-        )}
-        {activeGroup === "overview" && currentSubKey === "content" && (
-          <ServiceContentTab serviceId={service.id} />
+        {activeGroup === "overview" && (
+          <div className="space-y-6">
+            <ServiceOverviewTab service={service} users={users || []} />
+            <ServiceContentTab serviceId={service.id} />
+          </div>
         )}
 
         {/* Staff group (no subtabs) — assignments management */}

@@ -69,6 +69,32 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     orderBy: { name: "asc" },
   });
 
+  // Resolve the policy documents each centre has selected. Fetched in one
+  // query across all of them, and filtered to category "policy" here so a
+  // stale id pointing at some other document can't leak an HR file into a
+  // parent's portal.
+  const wantedPolicyIds = new Set<string>();
+  const contentByService = new Map(
+    services.map((s) => {
+      const merged = mergeServiceContent(s.content);
+      for (const id of merged.policyDocumentIds) wantedPolicyIds.add(id);
+      return [s.id, merged];
+    }),
+  );
+
+  const policyDocs =
+    wantedPolicyIds.size > 0
+      ? await prisma.document.findMany({
+          where: {
+            id: { in: [...wantedPolicyIds] },
+            category: "policy",
+            deleted: false,
+          },
+          select: { id: true, title: true, fileUrl: true, fileName: true },
+        })
+      : [];
+  const policyById = new Map(policyDocs.map((d) => [d.id, d]));
+
   const centres = services.map((s) => ({
     id: s.id,
     name: s.name,
@@ -78,7 +104,17 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       .join(", "),
     phone: s.phone,
     email: s.email,
-    content: mergeServiceContent(s.content),
+    content: contentByService.get(s.id)!,
+    // Order follows the admin's selection, not the database's.
+    policies: (contentByService.get(s.id)?.policyDocumentIds ?? [])
+      .map((id) => policyById.get(id))
+      .filter((d): d is NonNullable<typeof d> => Boolean(d))
+      .map((d) => ({
+        id: d.id,
+        name: d.title,
+        fileUrl: d.fileUrl,
+        fileName: d.fileName,
+      })),
     sessionTimes: s.sessionTimes,
   }));
 

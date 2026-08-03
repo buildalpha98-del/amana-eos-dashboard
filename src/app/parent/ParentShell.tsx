@@ -19,6 +19,7 @@ import {
   MessageCircle,
   DollarSign,
   Settings,
+  MapPin,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,10 @@ import { registerParentServiceWorker } from "@/lib/push/register";
 const NAV_ITEMS = [
   { href: "/parent", label: "Home", icon: Home },
   { href: "/parent/children", label: "Children", icon: Users },
+  // 2026-08-04: the page existed and read real per-centre content, but
+  // nothing in the app linked to it — every director who filled in their
+  // centre's welcome text had been writing into a void.
+  { href: "/parent/my-centre", label: "My Centre", icon: MapPin },
   { href: "/parent/bookings", label: "Bookings", icon: Calendar },
   { href: "/parent/messages", label: "Messages", icon: MessageCircle },
   { href: "/parent/billing", label: "Billing", icon: DollarSign },
