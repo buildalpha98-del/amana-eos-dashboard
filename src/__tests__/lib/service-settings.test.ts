@@ -4,6 +4,10 @@ import {
   casualBookingSettingsSchema,
   fortnightPatternSchema,
   bookingPrefsSchema,
+  roomLabel,
+  roomLabelWithTimes,
+  roomFees,
+  formatTime,
 } from "@/lib/service-settings";
 
 // ---------------------------------------------------------------------------
@@ -270,5 +274,109 @@ describe("bookingPrefsSchema", () => {
         },
       }),
     ).toThrow();
+  });
+});
+
+describe("rooms — labels, times and fees", () => {
+  it("falls back to Amana's own room names when a service hasn't set one", () => {
+    // Nobody here says "BSC". An unconfigured centre should still read
+    // the way staff and parents speak.
+    expect(roomLabel(null, "bsc")).toBe("Rise and Shine");
+    expect(roomLabel(null, "asc")).toBe("Amana Afternoons");
+    expect(roomLabel({ bsc: { start: "06:30", end: "09:00" } }, "bsc")).toBe(
+      "Rise and Shine",
+    );
+  });
+
+  it("uses the service's own name when set", () => {
+    expect(
+      roomLabel(
+        { bsc: { label: "Sunrise Club", start: "06:30", end: "09:00" } },
+        "bsc",
+      ),
+    ).toBe("Sunrise Club");
+  });
+
+  it("formats times the way a parent reads them", () => {
+    expect(formatTime("06:30")).toBe("6:30am");
+    expect(formatTime("15:00")).toBe("3:00pm");
+    expect(formatTime("00:15")).toBe("12:15am");
+    expect(formatTime("12:00")).toBe("12:00pm");
+    // Blank input must not become "NaN:NaNam" on a booking form.
+    expect(formatTime(null)).toBe("");
+    expect(formatTime("nonsense")).toBe("");
+  });
+
+  it("renders the label parents see on the booking form", () => {
+    expect(
+      roomLabelWithTimes(
+        { asc: { start: "15:00", end: "18:30" } },
+        "asc",
+      ),
+    ).toBe("Amana Afternoons (3:00pm – 6:30pm)");
+    // Unconfigured still reads properly, using the defaults.
+    expect(roomLabelWithTimes(null, "bsc")).toBe(
+      "Rise and Shine (6:30am – 9:00am)",
+    );
+  });
+
+  it("accepts several fees on one room, each with its own window", () => {
+    // A full session and a short session are the same room at different
+    // hours — that's why a fee carries times, not just a number.
+    const parsed = sessionTimesSchema.safeParse({
+      bsc: {
+        label: "Rise and Shine",
+        start: "06:30",
+        end: "09:00",
+        fees: [
+          { id: "fee-1", name: "Full session", amountCents: 2800 },
+          {
+            id: "fee-2",
+            name: "Short session",
+            start: "07:30",
+            end: "09:00",
+            amountCents: 2000,
+          },
+        ],
+      },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("returns fees cheapest first", () => {
+    const fees = roomFees(
+      {
+        asc: {
+          start: "15:00",
+          end: "18:30",
+          fees: [
+            { id: "a", name: "Full", amountCents: 3400 },
+            { id: "b", name: "Short", amountCents: 2200 },
+          ],
+        },
+      },
+      "asc",
+    );
+    expect(fees.map((f) => f.name)).toEqual(["Short", "Full"]);
+  });
+
+  it("rejects a fee in dollars rather than cents", () => {
+    // 28.5 as a float here would round its way into an invoice.
+    const parsed = sessionTimesSchema.safeParse({
+      bsc: {
+        start: "06:30",
+        end: "09:00",
+        fees: [{ id: "f", name: "Full", amountCents: 28.5 }],
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("still accepts the old shape, which had no label or fees", () => {
+    const parsed = sessionTimesSchema.safeParse({
+      bsc: { start: "06:30", end: "08:45" },
+      asc: { start: "15:00", end: "18:00" },
+    });
+    expect(parsed.success).toBe(true);
   });
 });

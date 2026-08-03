@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { ApprovalsSessionTimesCard } from "./ApprovalsSessionTimesCard";
+import { RoomsAndFeesCard } from "./RoomsAndFeesCard";
 
 export function ServiceInfoCard({
   service,
@@ -273,6 +274,10 @@ export function ServiceInfoCard({
 
       {/* Service Approvals & Session Times */}
       <ApprovalsSessionTimesCard service={service} canEdit={canEdit} />
+
+      {/* Room names, hours and the fees under each. Below approvals
+          because it's the thing staff actually change. */}
+      <RoomsAndFeesCard service={service} canEdit={canEdit} />
     </>
   );
 }
