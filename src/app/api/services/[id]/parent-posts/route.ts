@@ -75,7 +75,22 @@ export const POST = withApiAuth(
       );
     }
 
-    const { childIds, ...data } = parsed.data;
+    const { childIds, publishAt, ...rest } = parsed.data;
+
+    // A post scheduled for a time already past is just a published post —
+    // treat it as one rather than leaving it in a state that looks
+    // pending forever.
+    const at = publishAt ? new Date(publishAt) : null;
+    const effectiveStatus =
+      rest.status === "scheduled" && (!at || at.getTime() <= Date.now())
+        ? "published"
+        : rest.status;
+
+    const data = {
+      ...rest,
+      status: effectiveStatus,
+      publishAt: effectiveStatus === "scheduled" ? at : null,
+    };
 
     // If not a community post, at least one child must be tagged
     if (!data.isCommunity && childIds.length === 0) {

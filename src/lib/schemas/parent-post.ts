@@ -32,11 +32,24 @@ const safeMediaUrl = z
     { message: "Media URL must be from an approved storage domain" },
   );
 
+/** Scheduling + curriculum tagging, shared by create and update. */
+const schedulingAndTags = {
+  status: z.enum(["draft", "scheduled", "published"]).default("published"),
+  // ISO instant. Null/absent = publish immediately.
+  publishAt: z.string().datetime().nullable().optional(),
+  mtopOutcomes: z.array(z.string().max(40)).max(5).default([]),
+  nqsAreas: z.array(z.string().max(10)).max(7).default([]),
+  programActivityIds: z.array(z.string().min(1)).max(20).default([]),
+};
+
 export const createParentPostSchema = z.object({
+  ...schedulingAndTags,
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
   content: z.string().min(1, "Content is required").max(5000, "Content too long"),
   type: z.enum(parentPostTypes).default("observation"),
-  mediaUrls: z.array(safeMediaUrl).max(6, "Maximum 6 media files").default([]),
+  // 30, not 6 — an excursion post covers a whole afternoon and six photos
+  // is not enough, which is why the reference form allows 30.
+  mediaUrls: z.array(safeMediaUrl).max(30, "Maximum 30 media files").default([]),
   isCommunity: z.boolean().default(false),
   childIds: z.array(z.string().min(1)).max(200, "Too many children tagged").default([]),
 });
@@ -44,10 +57,15 @@ export const createParentPostSchema = z.object({
 export type CreateParentPostInput = z.input<typeof createParentPostSchema>;
 
 export const updateParentPostSchema = z.object({
+  status: z.enum(["draft", "scheduled", "published"]).optional(),
+  publishAt: z.string().datetime().nullable().optional(),
+  mtopOutcomes: z.array(z.string().max(40)).max(5).optional(),
+  nqsAreas: z.array(z.string().max(10)).max(7).optional(),
+  programActivityIds: z.array(z.string().min(1)).max(20).optional(),
   title: z.string().min(1, "Title is required").max(200, "Title too long").optional(),
   content: z.string().min(1, "Content is required").max(5000, "Content too long").optional(),
   type: z.enum(parentPostTypes).optional(),
-  mediaUrls: z.array(safeMediaUrl).max(6, "Maximum 6 media files").optional(),
+  mediaUrls: z.array(safeMediaUrl).max(30, "Maximum 30 media files").optional(),
   isCommunity: z.boolean().optional(),
   childIds: z.array(z.string().min(1)).max(200, "Too many children tagged").optional(),
 });
