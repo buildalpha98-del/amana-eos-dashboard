@@ -138,12 +138,15 @@ const tabGroups: TabGroup[] = [
     label: "Overview",
     icon: Building2,
     subTabs: [
-      { key: "summary", label: "Summary", icon: Building2 },
+      { key: "summary", label: "Service Overview", icon: Building2 },
       // 2026-05-16: editable per-service About / hero / key contacts /
       // daily routine / food provider / parent onboarding. Owner / admin
       // / head_office can edit any service; Director of Service can edit
       // their own. Other roles see read-only.
-      { key: "content", label: "Content", icon: FileText },
+      // Named "About" rather than "Content": it IS the centre's about
+      // page — hero, key contacts, daily routine, food provider — and
+      // "Content" said nothing about what you'd find there.
+      { key: "content", label: "About", icon: FileText },
     ],
   },
   // 2026-05-14: Staff tab — primary users (User.serviceId === this service)
