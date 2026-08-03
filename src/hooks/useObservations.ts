@@ -114,6 +114,64 @@ export function useCreateObservation(serviceId: string) {
   });
 }
 
+/**
+ * Edit an observation.
+ *
+ * The PATCH route has existed since the feature shipped; nothing ever
+ * called it, so an educator who mistyped a child's learning story had no
+ * way to correct it. The route enforces author-or-admin server-side, so
+ * this hook doesn't need to duplicate that check — but the UI should
+ * still hide the control for people who'd only get a 403.
+ */
+export interface UpdateObservationArgs {
+  id: string;
+  title?: string;
+  narrative?: string;
+  mtopOutcomes?: MtopOutcome[];
+  interests?: string[];
+  mediaUrls?: string[];
+  visibleToParent?: boolean;
+}
+
+export function useUpdateObservation(serviceId: string) {
+  const qc = useQueryClient();
+  return useMutation<ObservationItem, Error, UpdateObservationArgs>({
+    mutationFn: ({ id, ...body }) =>
+      mutateApi<ObservationItem>(
+        `/api/services/${serviceId}/observations/${id}`,
+        { method: "PATCH", body },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["observations", serviceId] });
+      toast({ description: "Observation updated" });
+    },
+    onError: (err) =>
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to update observation",
+      }),
+  });
+}
+
+export function useDeleteObservation(serviceId: string) {
+  const qc = useQueryClient();
+  return useMutation<unknown, Error, string>({
+    mutationFn: (id) =>
+      mutateApi(`/api/services/${serviceId}/observations/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["observations", serviceId] });
+      toast({ description: "Observation deleted" });
+    },
+    onError: (err) =>
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to delete observation",
+      }),
+  });
+}
+
 // Parent-side: only returns visibleToParent=true observations for a child
 export interface ParentObservationItem {
   id: string;
