@@ -86,6 +86,27 @@ describe("matchSchoolToService", () => {
     expect(r.ambiguous).toBe(true);
   });
 
+  it("matches on a DISTINCTIVE word even when the names differ", () => {
+    // The cases Daniel flagged: the form's wording never matches a
+    // service name exactly, but a word unique to one centre pins it.
+    expect(matchSchoolToService("AIA KKCC", SERVICES).serviceId).toBe("svc-aia");
+    expect(
+      matchSchoolToService("Al-Taqwa College", [
+        ...SERVICES,
+        { id: "svc-taqwa", name: "Amana OSHC Taqwa" },
+      ]).serviceId,
+    ).toBe("svc-taqwa");
+  });
+
+  it("still refuses when a name points at two centres at once", () => {
+    // "Greenacre" and "Officer" belong to different services — a school
+    // string containing both is a naming problem for a human, not
+    // something to average away.
+    const r = matchSchoolToService("Greenacre Officer", SERVICES);
+    expect(r.serviceId).toBeNull();
+    expect(r.ambiguous).toBe(true);
+  });
+
   it("returns null for a school we don't service", () => {
     const r = matchSchoolToService("Some Other Public School", SERVICES);
     expect(r.serviceId).toBeNull();

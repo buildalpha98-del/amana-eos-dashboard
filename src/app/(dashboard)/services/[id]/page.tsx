@@ -105,6 +105,9 @@ interface TabGroup {
 const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
   { key: "attendance", label: "Attendance", icon: ClipboardList },
   { key: "roll-call", label: "Roll Call", icon: ClipboardCheck },
+  // Moved here from the Families group 2026-08-01 per Daniel — posting
+  // about the day is part of running the day.
+  { key: "posts", label: "Posts", icon: MessageCircle },
   // 2026-08-01: records WHO dropped off / collected, which Reg 158 wants
   // and the roll couldn't capture (signedInById is a staff User).
   { key: "sign-in-out", label: "Sign In / Out", icon: LogIn },
@@ -160,9 +163,6 @@ const tabGroups: TabGroup[] = [
     subTabs: [
       { key: "families", label: "Families", icon: Users },
       { key: "children", label: "Children", icon: Baby },
-      // 2026-08-01: the composer lived at an ORPHAN route nothing linked
-      // to, so staff couldn't find it. This is its home.
-      { key: "posts", label: "Posts", icon: MessageCircle },
     ],
   },
   {
@@ -442,6 +442,9 @@ export default function ServiceDetailPage() {
             serviceName={service.name}
           />
         )}
+        {activeGroup === "daily" && currentSubKey === "posts" && (
+          <ParentCommunicationPanel serviceId={service.id} embedded />
+        )}
         {activeGroup === "daily" && currentSubKey === "sign-in-out" && (
           <ServiceSignInOutTab serviceId={service.id} serviceName={service.name} />
         )}
@@ -450,9 +453,6 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "family" && currentSubKey === "families" && (
           <ServiceFamiliesTab serviceId={service.id} serviceName={service.name} />
-        )}
-        {activeGroup === "family" && currentSubKey === "posts" && (
-          <ParentCommunicationPanel serviceId={service.id} embedded />
         )}
         {activeGroup === "family" && currentSubKey === "children" && (
           <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />

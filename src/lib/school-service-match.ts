@@ -44,9 +44,11 @@ export function tokenise(s: string): string[] {
 /**
  * Fraction of the SCHOOL's meaningful words found in the service name.
  *
- * Scored against the school rather than symmetrically: a service name may
- * carry extra words ("Amana OSHC Minaret Springvale Before & After"),
- * and penalising it for being more specific would lose real matches.
+ * Kept for the simple case and for tests, but NOT the primary signal —
+ * see matchSchoolToService. Plain overlap fails exactly where it matters:
+ * "AIA KKCC" vs "Amana OSHC AIA Coburg" scores 0.5 in both directions
+ * because each side carries one word the other lacks, yet "AIA" plainly
+ * identifies the centre.
  */
 export function matchScore(schoolName: string, serviceName: string): number {
   const school = tokenise(schoolName);
@@ -54,6 +56,29 @@ export function matchScore(schoolName: string, serviceName: string): number {
   if (school.length === 0) return 0;
   const hits = school.filter((w) => service.has(w)).length;
   return hits / school.length;
+}
+
+/**
+ * How identifying a word is across the whole service list.
+ *
+ * A word in exactly ONE service name ("springvale", "aia", "taqwa")
+ * pins the centre down. A word in several ("minaret", "malek") narrows
+ * it but cannot decide between campuses. This is the difference plain
+ * overlap can't see, and it's what makes the match work on the real
+ * names rather than idealised ones.
+ */
+export function buildTokenIndex(
+  services: ServiceLike[],
+): Map<string, Set<string>> {
+  const index = new Map<string, Set<string>>();
+  for (const svc of services) {
+    for (const t of tokenise(svc.name)) {
+      const set = index.get(t) ?? new Set<string>();
+      set.add(svc.id);
+      index.set(t, set);
+    }
+  }
+  return index;
 }
 
 export interface ServiceLike {
@@ -75,9 +100,19 @@ export const MATCH_THRESHOLD = 0.6;
 /**
  * Best service for a school name, or null.
  *
- * Returns null when nothing clears the threshold OR when the top two are
- * tied — "Minaret" alone shouldn't silently pick Springvale over Officer
- * just because it sorts first.
+ * Two passes:
+ *
+ *  1. UNIQUE TOKEN. If the school shares a word with exactly one service
+ *     and that word appears in no other service, that's the centre.
+ *     Catches "AIA KKCC" -> "Amana OSHC AIA Coburg" and "Al-Taqwa
+ *     College" -> "Amana OSHC Taqwa", which plain overlap misses.
+ *  2. OVERLAP. Otherwise fall back to word overlap, taking the better of
+ *     the two directions so a service isn't penalised for a longer name.
+ *
+ * Still refuses to guess. If two services tie, or nothing clears the
+ * threshold, this returns null and staff assign it — a wrong match puts a
+ * child on the wrong roll, ratio and invoice, which is far worse than an
+ * enrolment somebody has to place by hand.
  */
 export function matchSchoolToService(
   schoolName: string | null | undefined,
@@ -91,8 +126,41 @@ export function matchSchoolToService(
   };
   if (!schoolName?.trim() || services.length === 0) return none;
 
+  const schoolTokens = tokenise(schoolName);
+  if (schoolTokens.length === 0) return none;
+
+  // ── Pass 1: a word that belongs to exactly one service ──
+  const index = buildTokenIndex(services);
+  const pinned = new Set<string>();
+  for (const t of schoolTokens) {
+    const owners = index.get(t);
+    if (owners && owners.size === 1) pinned.add([...owners][0]);
+  }
+  if (pinned.size === 1) {
+    const id = [...pinned][0];
+    const svc = services.find((s) => s.id === id)!;
+    return {
+      serviceId: svc.id,
+      serviceName: svc.name,
+      score: 1,
+      ambiguous: false,
+    };
+  }
+  if (pinned.size > 1) {
+    // The school name points at two different centres at once — that's a
+    // naming problem a human needs to look at, not something to average.
+    return { ...none, ambiguous: true };
+  }
+
+  // ── Pass 2: best overlap, whichever direction reads better ──
   const scored = services
-    .map((s) => ({ s, score: matchScore(schoolName, s.name) }))
+    .map((s) => ({
+      s,
+      score: Math.max(
+        matchScore(schoolName, s.name),
+        matchScore(s.name, schoolName),
+      ),
+    }))
     .sort((a, b) => b.score - a.score);
 
   const best = scored[0];
@@ -100,8 +168,6 @@ export function matchSchoolToService(
 
   const runnerUp = scored[1];
   if (runnerUp && runnerUp.score === best.score) {
-    // A tie is genuine ambiguity — say so rather than coin-flipping a
-    // child onto one of two centres.
     return { ...none, score: best.score, ambiguous: true };
   }
 
