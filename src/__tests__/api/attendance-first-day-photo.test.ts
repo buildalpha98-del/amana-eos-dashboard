@@ -26,16 +26,12 @@ vi.mock("@/lib/logger", () => ({
   generateRequestId: () => "test-req-id",
 }));
 
-const sendSmsMock = vi.fn();
-vi.mock("@/lib/sms", () => ({
-  sendSms: (...args: unknown[]) => sendSmsMock(...args),
-  normaliseAuMobile: (raw: string) => {
-    if (!raw) return null;
-    const cleaned = raw.replace(/[^\d+]/g, "");
-    if (cleaned.startsWith("+61") && cleaned.length === 12) return cleaned;
-    if (cleaned.startsWith("04") && cleaned.length === 10) return `+61${cleaned.slice(1)}`;
-    return null;
-  },
+// 2026-08-03: this route no longer sends SMS. The photo goes to the
+// family's portal as a message, so the collaborator to assert against is
+// the conversation + notification, not a text gateway.
+const notifyMock = vi.fn(async () => {});
+vi.mock("@/lib/parent-notifications", () => ({
+  createInAppNotification: (...args: unknown[]) => notifyMock(...(args as [])),
 }));
 
 import { POST } from "@/app/api/attendance/[id]/first-day-photo/route";
@@ -50,7 +46,10 @@ describe("POST /api/attendance/[id]/first-day-photo", () => {
   beforeEach(() => {
     _clearUserActiveCache();
     vi.clearAllMocks();
-    sendSmsMock.mockReset();
+    notifyMock.mockClear();
+    prismaMock.conversation.create.mockResolvedValue({ id: "conv-1" });
+    prismaMock.centreContact.findFirst.mockResolvedValue({ id: "cc-1" });
+    prismaMock.attendanceRecord.update.mockResolvedValue({ id: "att-1" });
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
   });
 
@@ -113,7 +112,7 @@ describe("POST /api/attendance/[id]/first-day-photo", () => {
     expect(res.status).toBe(409);
   });
 
-  it("returns 400 when child has no parent mobile on file", async () => {
+  it("returns 400 when the child has no parent email on file", async () => {
     mockSession({ id: "user-1", name: "Tester", role: "admin" });
     prismaMock.attendanceRecord.findUnique.mockResolvedValue({
       id: "att-1",
@@ -135,24 +134,15 @@ describe("POST /api/attendance/[id]/first-day-photo", () => {
       ctx("att-1"),
     );
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toMatch(/mobile/i);
+    expect(prismaMock.conversation.create).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when parent mobile is not a valid AU number", async () => {
+  it("returns 400 when the family has no contact at this centre", async () => {
+    // Without a CentreContact the parent portal can't authenticate the
+    // conversation, so it would be written and never readable.
     mockSession({ id: "user-1", name: "Tester", role: "admin" });
-    prismaMock.attendanceRecord.findUnique.mockResolvedValue({
-      id: "att-1",
-      childId: "child-1",
-      serviceId: "svc-1",
-      firstDayPhotoSentAt: null,
-      child: {
-        firstName: "Mira",
-        surname: "Khan",
-        enrolment: { primaryParent: { firstName: "Aysha", surname: "Khan", mobile: "not-a-number" } },
-      },
-      service: { name: "Amana OSHC Minaret" },
-    });
+    prismaMock.attendanceRecord.findUnique.mockResolvedValue(RECORD());
+    prismaMock.centreContact.findFirst.mockResolvedValue(null);
 
     const res = await POST(
       createRequest("POST", "/api/attendance/att-1/first-day-photo", {
@@ -161,100 +151,13 @@ describe("POST /api/attendance/[id]/first-day-photo", () => {
       ctx("att-1"),
     );
     expect(res.status).toBe(400);
-  });
-
-  it("dispatches SMS and updates record on happy path", async () => {
-    mockSession({ id: "user-1", name: "Tester", role: "admin" });
-    prismaMock.attendanceRecord.findUnique.mockResolvedValue({
-      id: "att-1",
-      childId: "child-1",
-      serviceId: "svc-1",
-      firstDayPhotoSentAt: null,
-      child: {
-        firstName: "Mira",
-        surname: "Khan",
-        enrolment: { primaryParent: { firstName: "Aysha", surname: "Khan", mobile: "0412345678" } },
-      },
-      service: { name: "Amana OSHC Minaret" },
-    });
-    prismaMock.attendanceRecord.update.mockResolvedValue({});
-    sendSmsMock.mockResolvedValue({ ok: true, provider: "messagemedia", messageIds: ["m-1"] });
-
-    const res = await POST(
-      createRequest("POST", "/api/attendance/att-1/first-day-photo", {
-        body: { photoUrl: PHOTO },
-      }),
-      ctx("att-1"),
-    );
-
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.ok).toBe(true);
-    expect(json.sentTo).toBe("+61412345678");
-
-    expect(sendSmsMock).toHaveBeenCalledOnce();
-    const smsArg = sendSmsMock.mock.calls[0][0];
-    expect(smsArg.to.number).toBe("+61412345678");
-    expect(smsArg.body).toContain("Mira");
-    expect(smsArg.body).toContain("Amana OSHC Minaret");
-    expect(smsArg.body).toContain(PHOTO);
-
-    expect(prismaMock.attendanceRecord.update).toHaveBeenCalledOnce();
-    const updateArgs = prismaMock.attendanceRecord.update.mock.calls[0][0];
-    expect(updateArgs.where).toEqual({ id: "att-1" });
-    expect(updateArgs.data.firstDayPhotoUrl).toBe(PHOTO);
-    expect(updateArgs.data.firstDayPhotoSentTo).toBe("+61412345678");
-    expect(updateArgs.data.firstDayPhotoSentAt).toBeInstanceOf(Date);
-  });
-
-  it("does NOT update record if SMS dispatch fails", async () => {
-    mockSession({ id: "user-1", name: "Tester", role: "admin" });
-    prismaMock.attendanceRecord.findUnique.mockResolvedValue({
-      id: "att-1",
-      childId: "child-1",
-      serviceId: "svc-1",
-      firstDayPhotoSentAt: null,
-      child: {
-        firstName: "Mira",
-        surname: "Khan",
-        enrolment: { primaryParent: { firstName: "Aysha", surname: "Khan", mobile: "0412345678" } },
-      },
-      service: { name: "Amana OSHC Minaret" },
-    });
-    sendSmsMock.mockResolvedValue({ ok: false, reason: "not_configured" });
-
-    const res = await POST(
-      createRequest("POST", "/api/attendance/att-1/first-day-photo", {
-        body: { photoUrl: PHOTO },
-      }),
-      ctx("att-1"),
-    );
-
-    expect(res.status).toBe(400);
+    expect(prismaMock.conversation.create).not.toHaveBeenCalled();
     expect(prismaMock.attendanceRecord.update).not.toHaveBeenCalled();
   });
 
-  it("falls back to CentreContact mobile when primaryParent.mobile is missing", async () => {
-    mockSession({ id: "user-1", name: "Tester", role: "admin" });
-    prismaMock.attendanceRecord.findUnique.mockResolvedValue({
-      id: "att-1",
-      childId: "child-1",
-      serviceId: "svc-1",
-      firstDayPhotoSentAt: null,
-      child: {
-        firstName: "Mira",
-        surname: "Khan",
-        enrolment: {
-          primaryParent: { firstName: "Aysha", surname: "Khan", email: "ParentA@example.com" },
-        },
-      },
-      service: { name: "Amana OSHC Minaret" },
-    });
-    prismaMock.centreContact.findFirst.mockResolvedValue({
-      mobile: "0498765432",
-    });
-    prismaMock.attendanceRecord.update.mockResolvedValue({});
-    sendSmsMock.mockResolvedValue({ ok: true, provider: "messagemedia", messageIds: ["m-1"] });
+  it("sends the photo as a portal message and notifies the parent", async () => {
+    mockSession({ id: "user-9", name: "Sara", role: "admin" });
+    prismaMock.attendanceRecord.findUnique.mockResolvedValue(RECORD());
 
     const res = await POST(
       createRequest("POST", "/api/attendance/att-1/first-day-photo", {
@@ -262,11 +165,78 @@ describe("POST /api/attendance/[id]/first-day-photo", () => {
       }),
       ctx("att-1"),
     );
-
     expect(res.status).toBe(200);
-    // Lowercased + trimmed for lookup
-    const lookupArgs = prismaMock.centreContact.findFirst.mock.calls[0][0];
-    expect(lookupArgs.where.email).toBe("parenta@example.com");
-    expect(sendSmsMock.mock.calls[0][0].to.number).toBe("+61498765432");
+
+    // The photo is an ATTACHMENT on a real conversation, not a link in a
+    // body — that's what puts it in the child's gallery and keeps it
+    // behind a login.
+    const convo = (prismaMock.conversation.create as unknown as {
+      mock: { calls: { 0: { data: Record<string, unknown> } }[] };
+    }).mock.calls[0][0].data;
+    expect(convo.serviceId).toBe("svc-1");
+    expect(convo.familyId).toBe("cc-1");
+    expect(
+      (convo.messages as { create: { attachmentUrls: string[]; senderType: string } })
+        .create.attachmentUrls,
+    ).toEqual([PHOTO]);
+    expect(
+      (convo.messages as { create: { senderType: string } }).create.senderType,
+    ).toBe("staff");
+
+    // And the bell, or it sits unread in a portal nobody opened.
+    expect(notifyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentEmail: "aysha@example.com",
+        type: "message",
+        link: "/parent/messages/conv-1",
+      }),
+    );
+
+    expect(prismaMock.attendanceRecord.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "att-1" },
+        data: expect.objectContaining({
+          firstDayPhotoUrl: PHOTO,
+          firstDayPhotoSentTo: "aysha@example.com",
+        }),
+      }),
+    );
+  });
+
+  it("lowercases the email so the portal lookup matches", async () => {
+    mockSession({ id: "user-1", name: "Tester", role: "admin" });
+    prismaMock.attendanceRecord.findUnique.mockResolvedValue(
+      RECORD("  Aysha@Example.COM "),
+    );
+
+    const res = await POST(
+      createRequest("POST", "/api/attendance/att-1/first-day-photo", {
+        body: { photoUrl: PHOTO },
+      }),
+      ctx("att-1"),
+    );
+    expect(res.status).toBe(200);
+    expect(prismaMock.centreContact.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { email: "aysha@example.com", serviceId: "svc-1" },
+      }),
+    );
   });
 });
+
+function RECORD(email = "aysha@example.com") {
+  return {
+    id: "att-1",
+    childId: "child-1",
+    serviceId: "svc-1",
+    firstDayPhotoSentAt: null,
+    child: {
+      firstName: "Mira",
+      surname: "Khan",
+      enrolment: {
+        primaryParent: { firstName: "Aysha", surname: "Khan", email },
+      },
+    },
+    service: { name: "Amana OSHC Minaret" },
+  };
+}

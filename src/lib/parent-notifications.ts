@@ -32,6 +32,9 @@ async function createInAppNotification(data: {
   }
 }
 
+/** Exposed so attendance/first-day flows can raise the bell too. */
+export { createInAppNotification };
+
 // ── Booking Confirmed ───────────────────────────────────
 
 export async function notifyBookingConfirmed(bookingId: string) {
