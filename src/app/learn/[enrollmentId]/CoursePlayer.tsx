@@ -25,6 +25,12 @@ export interface CoursePlayerProps {
   courseTitle: string;
   modules: PlayerModule[];
   initialCompletedIds: string[];
+  /**
+   * True when the viewer is NOT the enrolled learner (admin preview). The
+   * player becomes read-only: no auto-completion (it would 403 against the
+   * learner's enrollment), no quiz attempts, and free navigation.
+   */
+  readOnly?: boolean;
 }
 
 export function CoursePlayer({
@@ -32,6 +38,7 @@ export function CoursePlayer({
   courseTitle,
   modules,
   initialCompletedIds,
+  readOnly = false,
 }: CoursePlayerProps) {
   const completeModule = useCompleteModule();
   const [completed, setCompleted] = useState<Set<string>>(
@@ -55,8 +62,10 @@ export function CoursePlayer({
   }, [index]);
 
   // Auto-mark non-quiz modules complete once the dwell floor is met, so
-  // progress persists even if the learner closes the tab.
+  // progress persists even if the learner closes the tab. Never in read-only
+  // preview — the mutation targets the learner's enrollment and would 403.
   useEffect(() => {
+    if (readOnly) return;
     if (!current || current.type === "quiz") return;
     if (completed.has(current.id) || markedRef.current.has(current.id)) return;
     if (seconds >= requiredSecondsOnPage(current)) {
@@ -79,18 +88,20 @@ export function CoursePlayer({
 
   if (!current) return null;
 
-  const canAdvance = canAdvanceModule(current, {
-    timeOnPageSec: seconds,
-    quizPassed: quizPassed.has(current.id),
-    alreadyComplete: completed.has(current.id),
-  });
+  const canAdvance =
+    readOnly ||
+    canAdvanceModule(current, {
+      timeOnPageSec: seconds,
+      quizPassed: quizPassed.has(current.id),
+      alreadyComplete: completed.has(current.id),
+    });
   const isLast = index === modules.length - 1;
   const progressPct = Math.round((completed.size / modules.length) * 100);
   const remainingDwell = Math.max(0, requiredSecondsOnPage(current) - seconds);
 
   function goNext() {
     if (isLast) {
-      setShowCompletion(true);
+      if (!readOnly) setShowCompletion(true);
       return;
     }
     setIndex((i) => Math.min(i + 1, modules.length - 1));
@@ -115,7 +126,14 @@ export function CoursePlayer({
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[280px_1fr]">
+    <div className="mx-auto max-w-6xl px-4 py-6">
+      {readOnly && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+          Read-only preview — you are viewing another learner&apos;s enrolment.
+          Nothing you do here is recorded, and quiz attempts are disabled.
+        </div>
+      )}
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       {/* Module list */}
       <aside className="lg:sticky lg:top-6 lg:self-start">
         <div className="mb-3">
@@ -131,7 +149,7 @@ export function CoursePlayer({
           {modules.map((m, i) => {
             const done = completed.has(m.id);
             const active = i === index;
-            const reachable = i <= index || done;
+            const reachable = readOnly || i <= index || done;
             return (
               <li key={m.id}>
                 <button
@@ -167,14 +185,21 @@ export function CoursePlayer({
           <>
             <ModuleContent module={current} />
             <div className="mt-6">
-              <QuizPlayer
-                moduleId={current.id}
-                alreadyPassed={completed.has(current.id)}
-                onPassed={() => {
-                  setQuizPassed((prev) => new Set(prev).add(current.id));
-                  setCompleted((prev) => new Set(prev).add(current.id));
-                }}
-              />
+              {readOnly ? (
+                <div className="rounded-xl border border-border bg-surface/50 p-4 text-sm text-muted">
+                  Quiz attempts are disabled in preview — attempts would record
+                  against a real enrolment.
+                </div>
+              ) : (
+                <QuizPlayer
+                  moduleId={current.id}
+                  alreadyCompleted={completed.has(current.id)}
+                  onPassed={() => {
+                    setQuizPassed((prev) => new Set(prev).add(current.id));
+                    setCompleted((prev) => new Set(prev).add(current.id));
+                  }}
+                />
+              )}
             </div>
           </>
         ) : (
@@ -204,7 +229,7 @@ export function CoursePlayer({
             )}
             <button
               onClick={goNext}
-              disabled={!canAdvance}
+              disabled={!canAdvance || (readOnly && isLast)}
               className="inline-flex items-center gap-1 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isLast ? "Finish course" : "Next"}
@@ -213,6 +238,7 @@ export function CoursePlayer({
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 }

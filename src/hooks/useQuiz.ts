@@ -19,7 +19,9 @@ export interface StartQuizResponse {
 export interface SubmitQuizResponse {
   score: number;
   passed: boolean;
-  results: { questionId: string; correct: boolean; correctIndex: number }[];
+  results: { questionId: string; correct: boolean }[];
+  // correctIndex is in DISPLAY space — the position within this attempt's
+  // shuffled options. It's the only answer index in the payload, by design.
   explanations: { questionId: string; correctIndex: number; explanation: string | null }[];
 }
 
