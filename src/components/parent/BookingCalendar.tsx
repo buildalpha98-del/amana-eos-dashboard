@@ -37,6 +37,11 @@ interface BookingCalendarProps {
   bookings: BookingEntry[];
 }
 
+/**
+ * Short codes are fine HERE — a calendar cell has room for a word, not a
+ * room name. The full name shows in the booking dialog and on the
+ * centre page, where there's space to say it properly.
+ */
 const SESSION_LABELS: Record<string, string> = { bsc: "BSC", asc: "ASC", vc: "VC" };
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 

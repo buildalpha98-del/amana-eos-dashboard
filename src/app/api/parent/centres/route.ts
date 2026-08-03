@@ -60,6 +60,11 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       phone: true,
       email: true,
       content: true,
+      // Room names, hours and fees. Parents see "Rise and Shine
+      // (6:30am – 9:00am)", not "BSC" — the labels are per-centre, so
+      // they have to travel with the centre rather than be hardcoded
+      // in the booking form.
+      sessionTimes: true,
     },
     orderBy: { name: "asc" },
   });
@@ -74,6 +79,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     phone: s.phone,
     email: s.email,
     content: mergeServiceContent(s.content),
+    sessionTimes: s.sessionTimes,
   }));
 
   return NextResponse.json({ centres });
