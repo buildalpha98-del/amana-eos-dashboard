@@ -139,7 +139,16 @@ export const PUT = withParentAuth(async (req, ctx) => {
     if (!d.cardName?.trim()) {
       throw ApiError.badRequest("Please enter the name on the card.");
     }
-    masked = { lastFour: num.slice(-4), cardType: detectCardType(num) };
+    // Expiry lives in the MASK, not just the encrypted blob. A month
+    // and year alone aren't PCI-sensitive without the PAN, and keeping
+    // them readable is what lets a reminder job find cards about to
+    // expire without decrypting every family's card number.
+    masked = {
+      lastFour: num.slice(-4),
+      cardType: detectCardType(num),
+      expiryMonth: d.expiryMonth ?? null,
+      expiryYear: d.expiryYear ?? null,
+    };
   }
 
   let raw: string | null = null;

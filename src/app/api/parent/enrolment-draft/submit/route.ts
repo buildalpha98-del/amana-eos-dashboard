@@ -106,6 +106,10 @@ export const POST = withParentAuth(async (req, ctx) => {
     maskedPayment = {
       lastFour: payment.cardNumber.replace(/\D/g, "").slice(-4),
       cardType: detectCardType(payment.cardNumber),
+      // Readable expiry so the card-expiry reminder job can find cards
+      // about to lapse without decrypting anyone's number.
+      expiryMonth: payment.cardExpiryMonth ?? null,
+      expiryYear: payment.cardExpiryYear ?? null,
     };
   } else if (payment?.method === "bank_account" && payment.bankAccountNumber) {
     maskedPayment = {

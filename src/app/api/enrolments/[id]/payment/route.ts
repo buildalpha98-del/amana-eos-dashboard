@@ -159,7 +159,13 @@ export const PUT = withApiAuth(
       if (!d.cardName?.trim()) {
         throw ApiError.badRequest("Name on card is required.");
       }
-      masked = { lastFour: num.slice(-4), cardType: detectCardType(num) };
+      masked = {
+        lastFour: num.slice(-4),
+        cardType: detectCardType(num),
+        // Readable expiry — see the parent payment route for why.
+        expiryMonth: d.expiryMonth ?? null,
+        expiryYear: d.expiryYear ?? null,
+      };
     }
 
     let raw: string | null = null;
