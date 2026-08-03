@@ -32,7 +32,19 @@ interface FamilyOption {
 const control =
   "px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/30";
 
-export function BulkBillingPanel({ families }: { families: FamilyOption[] }) {
+export function BulkBillingPanel({
+  families,
+  serviceId,
+  serviceName,
+}: {
+  families: FamilyOption[];
+  /**
+   * Confines "all families" to one centre. Without it, pressing apply
+   * from a service page would rewrite every family in the organisation.
+   */
+  serviceId?: string;
+  serviceName?: string;
+}) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -49,7 +61,12 @@ export function BulkBillingPanel({ families }: { families: FamilyOption[] }) {
     mutationFn: (body: Record<string, unknown>) =>
       mutateApi<{ updated: number }>("/api/families/bulk-billing", {
         method: "POST",
-        body: { ...body, familyIds: selected, allActive },
+        body: {
+          ...body,
+          familyIds: selected,
+          allActive,
+          ...(serviceId ? { serviceId } : {}),
+        },
       }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["families"] });
@@ -63,7 +80,7 @@ export function BulkBillingPanel({ families }: { families: FamilyOption[] }) {
 
   const targetCount = allActive ? families.length : selected.length;
   const targetLabel = allActive
-    ? `all ${families.length} families`
+    ? `all ${families.length} families${serviceName ? ` at ${serviceName}` : ""}`
     : `${selected.length} selected`;
 
   const guard = (run: () => void) => {
@@ -114,7 +131,9 @@ export function BulkBillingPanel({ families }: { families: FamilyOption[] }) {
                 className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
               />
               <span className="text-sm text-foreground">
-                All families ({families.length})
+                {serviceName
+                  ? `All families at ${serviceName} (${families.length})`
+                  : `All families (${families.length})`}
               </span>
             </label>
             {!allActive && (

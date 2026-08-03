@@ -32,6 +32,14 @@ const bodySchema = z.object({
    * billing.
    */
   allActive: z.boolean().optional(),
+  /**
+   * Confine `allActive` to one centre's families.
+   *
+   * Without this, pressing "apply to all" from a service's billing page
+   * would rewrite every family in the organisation — the one mistake in
+   * this endpoint you couldn't undo from the UI.
+   */
+  serviceId: z.string().min(1).optional(),
 
   nextBillingDate: z.string().nullable().optional(),
   billingPeriodStart: z.string().nullable().optional(),
@@ -100,8 +108,28 @@ export const POST = withApiAuth(
       throw ApiError.badRequest("Nothing to update — set at least one field.");
     }
 
+    // "All active" at a service means the families whose children sit
+    // there, resolved through the enrolment's email join (there's no FK
+    // between ParentAccount and EnrolmentSubmission).
+    let scopedIds: string[] | null = null;
+    if (b.allActive && b.serviceId) {
+      const emails = await emailsAtService(b.serviceId);
+      const accounts = await prisma.parentAccount.findMany({
+        where: { email: { in: [...emails] } },
+        select: { id: true },
+      });
+      scopedIds = accounts.map((a) => a.id);
+      if (scopedIds.length === 0) {
+        return NextResponse.json({ ok: true, updated: 0 });
+      }
+    }
+
     const result = await prisma.parentAccount.updateMany({
-      where: b.allActive ? {} : { id: { in: ids } },
+      where: scopedIds
+        ? { id: { in: scopedIds } }
+        : b.allActive
+          ? {}
+          : { id: { in: ids } },
       data,
     });
 
@@ -109,7 +137,11 @@ export const POST = withApiAuth(
     // reconstruct later ("why is everyone being debited on a Thursday?").
     logger.info("Bulk billing update", {
       userId: session?.user?.id,
-      scope: b.allActive ? "all" : `${ids.length} selected`,
+      scope: scopedIds
+        ? `all at service ${b.serviceId}`
+        : b.allActive
+          ? "all"
+          : `${ids.length} selected`,
       fields: Object.keys(data),
       updated: result.count,
     });
@@ -132,3 +164,33 @@ export const POST = withApiAuth(
   },
   { roles: ["owner", "head_office"] },
 );
+
+/**
+ * Primary-parent emails of every non-withdrawn child at a service.
+ *
+ * Filtered in JS rather than with a Prisma JSON path filter: the email
+ * lives in a JSON blob and isn't reliably normalised, so a path filter is
+ * case-sensitive and quietly misses families.
+ */
+async function emailsAtService(serviceId: string): Promise<Set<string>> {
+  const subs = await prisma.enrolmentSubmission.findMany({
+    select: {
+      primaryParent: true,
+      childRecords: { select: { serviceId: true, status: true } },
+    },
+    take: 2000,
+  });
+
+  const emails = new Set<string>();
+  for (const sub of subs) {
+    const here = sub.childRecords.some(
+      (c) => c.serviceId === serviceId && c.status !== "withdrawn",
+    );
+    if (!here) continue;
+    const p = sub.primaryParent as Record<string, unknown> | null;
+    if (p && typeof p.email === "string") {
+      emails.add(p.email.toLowerCase().trim());
+    }
+  }
+  return emails;
+}
