@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { CENTRE_AVATAR_STARTER_DATA } from "../src/lib/seed/centre-avatar-starter-data";
 import { SEED_SEQUENCES } from "../src/lib/sequence-seed-data";
 import { seedInduction } from "./seed-induction";
+import { seedAmbassadors } from "./seed-ambassadors";
 
 const prisma = new PrismaClient();
 
@@ -2905,6 +2906,11 @@ Don't list every child by name. Don't invent events or meals — use only what's
   // slots are all guarded by existence checks in seedInduction, so this
   // is safe to re-run on every Vercel build without duplicating rows.
   await seedInduction(prisma);
+
+  // ── Amana Ambassadors course (LMS, library track) ─────────────
+  // Idempotent: course found by (title + track); modules only seeded when the
+  // course has none, so dashboard edits survive redeploys.
+  await seedAmbassadors(prisma);
 
   console.log("\nSeed complete!");
 }
