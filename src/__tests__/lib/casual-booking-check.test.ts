@@ -20,7 +20,7 @@ describe("checkCasualBookingAllowed", () => {
       currentCasualBookings: 0,
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toMatch(/not configured/i);
+    if (!r.ok) expect(r.reason).toMatch(/aren't open online/i);
   });
 
   it("400 when session-type entry is missing", () => {
@@ -32,7 +32,7 @@ describe("checkCasualBookingAllowed", () => {
       currentCasualBookings: 0,
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toMatch(/not configured|not accepted/i);
+    if (!r.ok) expect(r.reason).toMatch(/aren't open online|doesn't take casual/i);
   });
 
   it("400 when session-type is disabled", () => {
@@ -44,7 +44,7 @@ describe("checkCasualBookingAllowed", () => {
       currentCasualBookings: 0,
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toMatch(/not accepted/i);
+    if (!r.ok) expect(r.reason).toMatch(/doesn't take casual/i);
   });
 
   it("400 when booking date's day isn't in days[]", () => {
@@ -57,7 +57,8 @@ describe("checkCasualBookingAllowed", () => {
       currentCasualBookings: 0,
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toMatch(/not available on/i);
+    // Names the room the family knows, not the session code.
+    if (!r.ok) expect(r.reason).toMatch(/doesn't run on Saturday|doesn't run on/i);
   });
 
   it("400 when cutOffHours not met", () => {
@@ -82,7 +83,7 @@ describe("checkCasualBookingAllowed", () => {
       currentCasualBookings: 2,
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toMatch(/no casual spots/i);
+    if (!r.ok) expect(r.reason).toMatch(/is full that day/i);
   });
 
   it("200 for valid booking", () => {

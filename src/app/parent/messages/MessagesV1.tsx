@@ -39,7 +39,8 @@ export default function MessagesV1() {
             Messages
           </h1>
           <p className="text-sm text-muted mt-1">
-            Chat with your centre.
+            Message head office directly. Educators at your centre can&apos;t
+            see these — they come straight to the office team.
           </p>
         </div>
         <button

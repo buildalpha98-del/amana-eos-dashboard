@@ -6,7 +6,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBookingRequestNotification } from "@/lib/notifications/bookings";
 import { logger } from "@/lib/logger";
-import { casualBookingSettingsSchema, type CasualBookingSettings } from "@/lib/service-settings";
+import { casualBookingSettingsSchema, type CasualBookingSettings, type SessionTimes } from "@/lib/service-settings";
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
 import { parseJsonField } from "@/lib/schemas/json-fields";
 
@@ -120,6 +120,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
       ascCasualRate: true,
       vcDailyRate: true,
       casualBookingSettings: true,
+      // Refusals name the room the way the family knows it.
+      sessionTimes: true,
     },
   });
   if (!service) {
@@ -166,6 +168,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
         bookingDate,
         now: new Date(),
         currentCasualBookings: currentCount,
+        sessionTimes: service.sessionTimes as SessionTimes | null,
       });
       if (!check.ok) {
         throw ApiError.badRequest(check.reason);

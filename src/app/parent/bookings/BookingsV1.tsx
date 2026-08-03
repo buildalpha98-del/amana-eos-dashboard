@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Calendar,
   CalendarDays,
@@ -9,6 +10,7 @@ import {
   AlertTriangle,
   XCircle,
   Clock,
+  Info,
 } from "lucide-react";
 import {
   useParentBookings,
@@ -90,6 +92,25 @@ export default function BookingsV1() {
         <Plus className="w-4 h-4" />
         Request Casual Booking
       </button>
+
+      {/* Recurring bookings aren't self-serve — changing a permanent
+          pattern moves ratios, rosters and invoices, so it goes through
+          the office. Said here rather than leaving parents to hunt for
+          a button that doesn't exist. */}
+      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-surface">
+        <Info className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+        <p className="text-sm text-foreground">
+          Need to change your <strong>regular weekly days</strong>? Head to{" "}
+          <Link
+            href="/parent/messages"
+            className="text-brand font-semibold underline underline-offset-2"
+          >
+            Messages
+          </Link>{" "}
+          and message head office — we&apos;ll update them for you. Casual
+          one-off sessions can be booked here.
+        </p>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface rounded-xl p-1">
