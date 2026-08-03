@@ -104,7 +104,7 @@ describe("POST /api/parent/bookings/bulk — casual enforcement (4b)", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/^Booking 2:/);
-    expect(body.error).toMatch(/not available on/i);
+    expect(body.error).toMatch(/doesn't run on/i);
   });
 
   it("400 when service has no casualBookingSettings", async () => {
@@ -121,7 +121,7 @@ describe("POST /api/parent/bookings/bulk — casual enforcement (4b)", () => {
     );
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/not configured/i);
+    expect(body.error).toMatch(/aren't open online/i);
   });
 
   it("400 when spots exhausted for one of the items", async () => {
@@ -135,7 +135,7 @@ describe("POST /api/parent/bookings/bulk — casual enforcement (4b)", () => {
     );
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/no casual spots/i);
+    expect(body.error).toMatch(/is full that day/i);
   });
 
   it("201 with skipped=1 when one item is a duplicate (findUnique returns existing row)", async () => {

@@ -1,4 +1,5 @@
-import type { CasualBookingSettings } from "@/lib/service-settings";
+import type { CasualBookingSettings, SessionTimes } from "@/lib/service-settings";
+import { roomLabel } from "@/lib/service-settings";
 
 export type SessionType = "bsc" | "asc" | "vc";
 
@@ -11,6 +12,12 @@ interface CheckInput {
   now: Date;
   /** Existing casual bookings (status in [requested, confirmed]) for this (service, date, sessionType). */
   currentCasualBookings: number;
+  /**
+   * The centre's room configuration, so refusals name the room the way
+   * the family knows it. "Casual ASC is not configured" means nothing to
+   * someone who was told the room is called Amana Afternoons.
+   */
+  sessionTimes?: SessionTimes | null;
 }
 
 export type CheckResult =
@@ -43,23 +50,32 @@ const DAY_KEY = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
  */
 export function checkCasualBookingAllowed(input: CheckInput): CheckResult {
   const { settings, sessionType, bookingDate, now, currentCasualBookings } = input;
+  const room = roomLabel(input.sessionTimes ?? null, sessionType);
+
+  // Every refusal below tells the family what to do next. "Not
+  // configured" is a fact about our database, not an answer to someone
+  // trying to book their child in.
+  const ASK_OFFICE = "Please message head office and we'll sort it out.";
 
   if (!settings) {
-    return { ok: false, reason: "Casual bookings not configured for this service" };
+    return {
+      ok: false,
+      reason: `Casual bookings aren't open online at this centre yet. ${ASK_OFFICE}`,
+    };
   }
 
   const s = settings[sessionType];
   if (!s) {
     return {
       ok: false,
-      reason: `Casual ${sessionType.toUpperCase()} is not configured for this service`,
+      reason: `Casual bookings for ${room} aren't open online yet. ${ASK_OFFICE}`,
     };
   }
 
   if (!s.enabled) {
     return {
       ok: false,
-      reason: `Casual ${sessionType.toUpperCase()} bookings are not accepted at this service`,
+      reason: `${room} doesn't take casual bookings at this centre. ${ASK_OFFICE}`,
     };
   }
 
@@ -67,7 +83,7 @@ export function checkCasualBookingAllowed(input: CheckInput): CheckResult {
   if (!s.days.includes(dayKey)) {
     return {
       ok: false,
-      reason: `Casual ${sessionType.toUpperCase()} is not available on ${DAY_LABEL[dayKey]} at this service`,
+      reason: `${room} doesn't run on ${DAY_LABEL[dayKey]} at this centre.`,
     };
   }
 
@@ -80,7 +96,10 @@ export function checkCasualBookingAllowed(input: CheckInput): CheckResult {
   }
 
   if (currentCasualBookings >= s.spots) {
-    return { ok: false, reason: "No casual spots available for this session" };
+    return {
+      ok: false,
+      reason: `${room} is full that day. Message head office and we'll add you to the list.`,
+    };
   }
 
   return { ok: true };

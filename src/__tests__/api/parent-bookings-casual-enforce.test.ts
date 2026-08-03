@@ -100,7 +100,8 @@ describe("POST /api/parent/bookings — casual enforcement (4b)", () => {
     });
     const res = await POST(postBody(baseBooking));
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/not configured/i);
+    // Refusals now tell the family what to do next.
+    expect((await res.json()).error).toMatch(/aren't open online|message head office/i);
   });
 
   it("400 when session type disabled", async () => {
@@ -143,7 +144,7 @@ describe("POST /api/parent/bookings — casual enforcement (4b)", () => {
     prismaMock.booking.count.mockResolvedValue(2); // equals settings.spots
     const res = await POST(postBody(baseBooking));
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/no casual spots/i);
+    expect((await res.json()).error).toMatch(/is full that day/i);
   });
 
   it("201 on valid booking", async () => {
@@ -174,6 +175,6 @@ describe("POST /api/parent/bookings — casual enforcement (4b)", () => {
     const statuses = [resA.status, resB.status].sort();
     expect(statuses).toEqual([201, 400]);
     const loser = resA.status === 400 ? resA : resB;
-    expect((await loser.json()).error).toMatch(/no casual spots/i);
+    expect((await loser.json()).error).toMatch(/is full that day/i);
   });
 });

@@ -31,6 +31,7 @@ import {
   Plus,
   Trash2,
   Camera,
+  User,
   X,
 } from "lucide-react";
 import {
@@ -53,10 +54,14 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { ChildInformationTab } from "@/components/parent/ChildInformationTab";
 
-type Tab = "attendance" | "gallery" | "medical" | "documents" | "pickups" | "contacts";
+type Tab = "info" | "attendance" | "gallery" | "medical" | "documents" | "pickups" | "contacts";
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  // First, and the default: when a parent opens their child it's usually
+  // to check or correct something here, not to read the timetable.
+  { key: "info", label: "Info", icon: User },
   { key: "attendance", label: "Attendance", icon: CalendarDays },
   { key: "gallery", label: "Gallery", icon: Camera },
   { key: "medical", label: "Medical", icon: Stethoscope },
@@ -67,7 +72,7 @@ const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: s
 
 export default function ChildDetailV1() {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<Tab>("attendance");
+  const [activeTab, setActiveTab] = useState<Tab>("info");
 
   const { data: children, isLoading: childrenLoading } = useParentChildren();
   const { data: attendance, isLoading: attendanceLoading } =
@@ -142,6 +147,7 @@ export default function ChildDetailV1() {
       </div>
 
       {/* Tab content */}
+      {activeTab === "info" && <ChildInformationTab childId={child.id} />}
       {activeTab === "attendance" && (
         <AttendanceTab
           childId={child.id}

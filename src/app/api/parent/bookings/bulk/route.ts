@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { casualBookingSettingsSchema, type CasualBookingSettings } from "@/lib/service-settings";
+import { casualBookingSettingsSchema, type CasualBookingSettings, type SessionTimes } from "@/lib/service-settings";
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
 import { parseJsonField } from "@/lib/schemas/json-fields";
 
@@ -51,7 +51,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
 
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { id: true, casualBookingSettings: true },
+    // sessionTimes so refusals name the room the family knows.
+    select: { id: true, casualBookingSettings: true, sessionTimes: true },
   });
   if (!service) {
     throw ApiError.notFound("Service not found");
@@ -101,6 +102,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
           bookingDate,
           now,
           currentCasualBookings: currentCount,
+        sessionTimes: service.sessionTimes as SessionTimes | null,
         });
         if (!check.ok) {
           throw ApiError.badRequest(`Booking ${i + 1}: ${check.reason}`);

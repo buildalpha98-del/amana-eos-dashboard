@@ -135,7 +135,9 @@ const tabGroups: TabGroup[] = [
   },
   {
     key: "overview",
-    label: "Overview",
+    // Sits beside Today as the centre's own reference card — what it's
+    // called, who runs it, when the rooms open, what they cost.
+    label: "Service Info",
     icon: Building2,
     subTabs: [
       { key: "summary", label: "Service Overview", icon: Building2 },
