@@ -37,6 +37,11 @@ export const POST = withApiHandler(async (req) => {
   const account = await authenticateParent(email, parsed.data.password);
   // Same message for unknown-email and wrong-password — no enumeration.
   if (!account) throw ApiError.unauthorized("Incorrect email or password.");
+  if (account.deactivated) {
+    throw ApiError.forbidden(
+      "This account has been switched off. Please contact your service.",
+    );
+  }
 
   const { enrolmentIds, parentName } = await findEnrolmentIdsForEmail(email);
 
