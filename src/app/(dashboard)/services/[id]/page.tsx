@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   Baby,
   Building2,
+  MessageCircle,
   BarChart3,
   Mountain,
   CheckSquare,
@@ -57,6 +58,7 @@ import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
 import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
 import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
+import { ParentCommunicationPanel } from "./parent-communication/page";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
@@ -153,6 +155,9 @@ const tabGroups: TabGroup[] = [
     subTabs: [
       { key: "families", label: "Families", icon: Users },
       { key: "children", label: "Children", icon: Baby },
+      // 2026-08-01: the composer lived at an ORPHAN route nothing linked
+      // to, so staff couldn't find it. This is its home.
+      { key: "posts", label: "Posts", icon: MessageCircle },
     ],
   },
   {
@@ -437,6 +442,9 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "family" && currentSubKey === "families" && (
           <ServiceFamiliesTab serviceId={service.id} serviceName={service.name} />
+        )}
+        {activeGroup === "family" && currentSubKey === "posts" && (
+          <ParentCommunicationPanel serviceId={service.id} embedded />
         )}
         {activeGroup === "family" && currentSubKey === "children" && (
           <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
