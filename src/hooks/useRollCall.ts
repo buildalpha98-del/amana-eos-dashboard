@@ -245,7 +245,10 @@ export function useSendFirstDayPhoto() {
       });
     },
     onSuccess: (_data, variables) => {
-      toast({ description: "First-day photo SMS sent to parent" });
+      toast({
+        description:
+          "Photo sent to the family's portal — they'll get a notification.",
+      });
       queryClient.invalidateQueries({
         queryKey: ["roll-call", variables.serviceId, variables.date, variables.sessionType],
       });

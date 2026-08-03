@@ -743,7 +743,7 @@ function RollCallRow({
                         ) : (
                           <Camera className="w-3.5 h-3.5" />
                         )}
-                        First-day photo SMS
+                        Send first-day photo
                       </button>
                     )
                   )}
