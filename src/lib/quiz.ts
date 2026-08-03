@@ -66,6 +66,20 @@ function seedFor(ctx: AttemptCtx, questionId: string): number {
 }
 
 /**
+ * Stable fingerprint of a question set (ids + option text, in order). Stored on
+ * the attempt at start and compared at submit: if a question's options were
+ * edited mid-attempt, the display→canonical mapping the learner saw no longer
+ * matches what submit would re-derive, so the attempt must be restarted rather
+ * than silently mis-scored.
+ */
+export function questionsFingerprint(
+  questions: Array<Pick<QuizQuestion, "id" | "options">>,
+): string {
+  const canonical = questions.map((q) => [q.id, q.options]);
+  return deriveSeed(JSON.stringify(canonical)).toString(16);
+}
+
+/**
  * Build the client-facing question set for an attempt: shuffled options, no
  * correct index, no explanation.
  */
@@ -94,13 +108,15 @@ export function displayCorrectIndex(ctx: AttemptCtx, q: QuizQuestion): number {
 
 export type SubmittedAnswer = { questionId: string; selectedIndex: number };
 
+// results deliberately carries NO answer index: the canonical index must never
+// share a payload with display-space indices (that ambiguity caused a real
+// wrong-highlight bug). Explanations carry the DISPLAY-space index instead.
 export type ScoreResult = {
   score: number; // 0–100
   passed: boolean;
   results: Array<{
     questionId: string;
     correct: boolean;
-    correctIndex: number; // original index of the right answer (for explanations)
   }>;
 };
 
@@ -126,7 +142,6 @@ export function scoreAttempt(
     return {
       questionId: q.id,
       correct: originalPicked === q.correctIndex,
-      correctIndex: q.correctIndex,
     };
   });
 

@@ -310,8 +310,6 @@ interface StaffCourseViewerProps {
   userId: string | undefined;
   expandedModuleId: string | null;
   setExpandedModuleId: (id: string | null) => void;
-  revealedAnswers: Set<string>;
-  setRevealedAnswers: React.Dispatch<React.SetStateAction<Set<string>>>;
   onModuleProgress: (enrollmentId: string, moduleId: string, completed: boolean) => void;
   isUpdating: boolean;
 }
@@ -321,8 +319,6 @@ function StaffCourseViewer({
   userId,
   expandedModuleId,
   setExpandedModuleId,
-  revealedAnswers,
-  setRevealedAnswers,
   onModuleProgress,
   isUpdating,
 }: StaffCourseViewerProps) {
@@ -579,8 +575,6 @@ export interface LmsCoursesTabProps {
   selectedCourseLoading: boolean;
   setEnrollForm: (form: { userIds: string[]; dueDate: string }) => void;
   setShowEnroll: (show: boolean) => void;
-  revealedAnswers: Set<string>;
-  setRevealedAnswers: React.Dispatch<React.SetStateAction<Set<string>>>;
   userId: string | undefined;
   unenrollStaff: UnenrollMutation;
   updateModuleProgress: UpdateModuleProgressMutation;
@@ -602,8 +596,6 @@ export function LmsCoursesTab({
   selectedCourseLoading,
   setEnrollForm,
   setShowEnroll,
-  revealedAnswers,
-  setRevealedAnswers,
   userId,
   unenrollStaff,
   updateModuleProgress,
@@ -913,8 +905,6 @@ export function LmsCoursesTab({
                   userId={userId}
                   expandedModuleId={expandedModuleId}
                   setExpandedModuleId={setExpandedModuleId}
-                  revealedAnswers={revealedAnswers}
-                  setRevealedAnswers={setRevealedAnswers}
                   onModuleProgress={handleModuleProgress}
                   isUpdating={updateModuleProgress.isPending}
                 />

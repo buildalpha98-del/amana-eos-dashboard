@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { onModuleProgressed } from "@/lib/induction";
+import { recalcEnrollmentStatus } from "@/lib/lms-progress";
 
 const bodySchema = z.object({
   enrollmentId: z.string().min(1),
@@ -78,30 +79,7 @@ export const POST = withApiAuth(async (req, session) => {
     },
   });
 
-  // Recompute enrollment status from required-module completion.
-  const full = await prisma.lMSEnrollment.findUnique({
-    where: { id: enrollmentId },
-    include: {
-      course: { include: { modules: { where: { isRequired: true }, select: { id: true } } } },
-      moduleProgress: true,
-    },
-  });
-  if (full) {
-    const requiredIds = full.course.modules.map((m) => m.id);
-    const completedRequired = full.moduleProgress.filter(
-      (p) => p.completed && requiredIds.includes(p.moduleId),
-    ).length;
-    const anyStarted = full.moduleProgress.some((p) => p.completed);
-    const allDone = requiredIds.length > 0 && completedRequired >= requiredIds.length;
-    await prisma.lMSEnrollment.update({
-      where: { id: enrollmentId },
-      data: {
-        status: allDone ? "completed" : anyStarted ? "in_progress" : "enrolled",
-        startedAt: anyStarted && !full.startedAt ? new Date() : undefined,
-        completedAt: allDone ? new Date() : null,
-      },
-    });
-  }
+  await recalcEnrollmentStatus(enrollmentId);
 
   const inductionStatus = await onModuleProgressed(userId);
   return NextResponse.json({ ok: true, inductionStatus });
