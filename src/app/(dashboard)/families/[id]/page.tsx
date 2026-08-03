@@ -13,6 +13,7 @@
  */
 
 import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -25,6 +26,9 @@ import {
   CalendarClock,
   Eye,
   EyeOff,
+  Building2,
+  Ban,
+  Trash2,
 } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -40,6 +44,7 @@ import {
   WEEKDAY_NAMES,
 } from "@/lib/family-billing";
 import { formatMoney } from "@/lib/money";
+import { MoveFamilyServiceDialog } from "@/components/families/MoveFamilyServiceDialog";
 
 interface FamilyChild {
   id: string;
@@ -86,7 +91,11 @@ interface FamilyDetail {
   email: string;
   familyName: string | null;
   contactName: string | null;
+  firstName: string | null;
+  surname: string | null;
   emailVerified: boolean;
+  deactivatedAt: string | null;
+  deactivatedReason: string | null;
   enrolmentState: string;
   billing: {
     frequency: string | null;
@@ -141,8 +150,31 @@ export default function FamilyDetailPage({
   // slow refetch must not clobber what staff are mid-way through typing.
   const [edits, setEdits] = useState<Record<string, unknown> | null>(null);
   const [limitInput, setLimitInput] = useState<string | null>(null);
+  const router = useRouter();
   const [familyNameInput, setFamilyNameInput] = useState<string | null>(null);
+  // Overlaid rather than hydrated, same as the billing block: a refetch
+  // mid-edit must not clobber what staff are typing.
+  const [accountEdits, setAccountEdits] = useState<{
+    firstName: string;
+    surname: string;
+    email: string;
+  } | null>(null);
+  const [showMoveService, setShowMoveService] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [deactivateReason, setDeactivateReason] = useState("");
   const familyNameValue = familyNameInput ?? data?.familyName ?? "";
+  // No service column on the family — their centre is wherever the
+  // children are, so it's read back off them.
+  const familyServices = [
+    ...new Set(
+      (data?.children ?? []).map((c) => c.serviceName).filter(Boolean),
+    ),
+  ] as string[];
+  const account = accountEdits ?? {
+    firstName: data?.firstName ?? "",
+    surname: data?.surname ?? "",
+    email: data?.email ?? "",
+  };
 
   const billing = {
     frequency: data?.billing.frequency ?? null,
@@ -222,6 +254,33 @@ export default function FamilyDetailPage({
       await queryClient.invalidateQueries({ queryKey: ["families"] });
       setFamilyNameInput(null);
       toast({ description: "Family name saved." });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
+  const saveAccount = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      mutateApi(`/api/families/${id}`, { method: "PATCH", body }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["families"] });
+      setAccountEdits(null);
+      setConfirmDeactivate(false);
+      toast({ description: "Account updated." });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
+
+  const deleteAccount = useMutation({
+    mutationFn: () => mutateApi(`/api/families/${id}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["families"] });
+      toast({
+        description:
+          "Login account deleted. The enrolment and children were kept.",
+      });
+      router.push("/families");
     },
     onError: (err: Error) =>
       toast({ variant: "destructive", description: err.message }),
@@ -323,19 +382,86 @@ export default function FamilyDetailPage({
           </div>
         </div>
 
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        {/* The account holder's own details. The email is the LOGIN, so
+            changing it changes how this family signs in — said plainly
+            rather than left for someone to discover. */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
           <div>
-            <dt className="text-muted text-xs uppercase tracking-wide">Email</dt>
-            <dd className="text-foreground mt-0.5 flex items-center gap-1.5 break-all">
-              <Mail className="w-3.5 h-3.5 shrink-0 text-muted" />
-              {data.email}
-            </dd>
+            <label htmlFor="f-first" className="block text-sm font-medium text-foreground mb-1">
+              First name
+            </label>
+            <input
+              id="f-first"
+              className={field}
+              value={account.firstName}
+              onChange={(e) =>
+                setAccountEdits({ ...account, firstName: e.target.value })
+              }
+            />
           </div>
+          <div>
+            <label htmlFor="f-surname" className="block text-sm font-medium text-foreground mb-1">
+              Surname
+            </label>
+            <input
+              id="f-surname"
+              className={field}
+              value={account.surname}
+              onChange={(e) =>
+                setAccountEdits({ ...account, surname: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label htmlFor="f-email" className="block text-sm font-medium text-foreground mb-1">
+              Email (login)
+            </label>
+            <input
+              id="f-email"
+              type="email"
+              className={field}
+              value={account.email}
+              onChange={(e) =>
+                setAccountEdits({ ...account, email: e.target.value })
+              }
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() =>
+              saveAccount.mutate({
+                firstName: account.firstName.trim() || null,
+                surname: account.surname.trim() || null,
+                email: account.email.trim(),
+              })
+            }
+            disabled={saveAccount.isPending || accountEdits === null}
+          >
+            {saveAccount.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              "Save account details"
+            )}
+          </Button>
+          {accountEdits?.email.trim().toLowerCase() !==
+            data.email.toLowerCase() &&
+            accountEdits !== null && (
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Changing the email changes how this family signs in.
+              </p>
+            )}
+        </div>
+
+        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm mt-4 pt-4 border-t border-border">
           <div>
             <dt className="text-muted text-xs uppercase tracking-wide">
               Email verified
             </dt>
-            <dd className="text-foreground mt-0.5">
+            <dd className="text-foreground mt-0.5 flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 shrink-0 text-muted" />
               {data.emailVerified ? "Yes" : "Not yet"}
             </dd>
           </div>
@@ -347,8 +473,139 @@ export default function FamilyDetailPage({
               {data.enrolmentState.replace(/_/g, " ")}
             </dd>
           </div>
+          <div>
+            <dt className="text-muted text-xs uppercase tracking-wide">
+              Portal access
+            </dt>
+            <dd className="text-foreground mt-0.5">
+              {data.deactivatedAt ? (
+                <span className="text-amber-700 dark:text-amber-300">
+                  Switched off
+                  {data.deactivatedReason ? ` — ${data.deactivatedReason}` : ""}
+                </span>
+              ) : (
+                "Active"
+              )}
+            </dd>
+          </div>
         </dl>
+
+        {/* ── Service ──────────────────────────────────────────
+            A family has no service column of its own: their centre IS
+            wherever their children sit. So this reads from the children
+            and moving the family moves them. */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <dt className="text-muted text-xs uppercase tracking-wide">Service</dt>
+          <div className="mt-1 flex items-center gap-3 flex-wrap">
+            <span className="text-sm text-foreground">
+              {familyServices.length === 0
+                ? "Not linked to a service"
+                : familyServices.join(", ")}
+            </span>
+            {data.children.length > 0 && (
+              <Button variant="outline" onClick={() => setShowMoveService(true)}>
+                <Building2 className="w-4 h-4" />
+                Move to service
+              </Button>
+            )}
+          </div>
+          {familyServices.length > 1 && (
+            <p className="text-xs text-muted mt-1">
+              This family&apos;s children are split across centres.
+            </p>
+          )}
+        </div>
+
+        {/* ── Access ───────────────────────────────────────────
+            Deactivate keeps the record and the billing arrangement;
+            delete removes only the login. Both are here because a family
+            who leaves needs one of them, and neither existed. */}
+        <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-3">
+          {data.deactivatedAt ? (
+            <Button
+              variant="outline"
+              onClick={() => saveAccount.mutate({ deactivated: false })}
+              disabled={saveAccount.isPending}
+            >
+              Switch access back on
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeactivate(true)}
+              disabled={saveAccount.isPending}
+            >
+              <Ban className="w-4 h-4" />
+              Switch off portal access
+            </Button>
+          )}
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Delete the login for ${data.email}?\n\nTheir enrolment, children and billing history are KEPT — only the sign-in account goes. Switching access off is usually what you want instead.`,
+                )
+              ) {
+                deleteAccount.mutate();
+              }
+            }}
+            disabled={deleteAccount.isPending}
+          >
+            {deleteAccount.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            Delete login
+          </Button>
+        </div>
+
+        {confirmDeactivate && (
+          <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 space-y-2">
+            <label htmlFor="f-deact" className="block text-sm font-medium text-foreground">
+              Why? (shown to staff, not the family)
+            </label>
+            <input
+              id="f-deact"
+              className={field}
+              value={deactivateReason}
+              onChange={(e) => setDeactivateReason(e.target.value)}
+              placeholder="e.g. Left the service, Dec 2026"
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={() =>
+                  saveAccount.mutate({
+                    deactivated: true,
+                    deactivatedReason: deactivateReason.trim() || null,
+                  })
+                }
+                disabled={saveAccount.isPending}
+              >
+                Switch off access
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setConfirmDeactivate(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
+
+      <MoveFamilyServiceDialog
+        familyId={id}
+        childRecords={data.children.map((c) => ({
+          id: c.id,
+          name: c.name,
+          serviceName: c.serviceName,
+        }))}
+        open={showMoveService}
+        onOpenChange={setShowMoveService}
+      />
 
       {/* ── Children ────────────────────────────────────────── */}
       <section className="bg-card rounded-xl border border-border p-5">

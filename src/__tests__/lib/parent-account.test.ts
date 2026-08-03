@@ -168,7 +168,19 @@ describe("authenticateParent", () => {
       emailVerifiedAt: null, firstName: null, surname: null,
     });
     const res = await authenticateParent("a@b.com", "realpassword");
-    expect(res?.accountId).toBe("acc");
+    expect(res && "accountId" in res ? res.accountId : null).toBe("acc");
+  });
+
+  it("REFUSES a deactivated account even with the right password", async () => {
+    // Staff switching a family off has to actually keep them out — the
+    // record survives, the access doesn't.
+    mockPrisma.parentAccount.findUnique.mockResolvedValue({
+      id: "acc", email: "a@b.com", passwordHash: await hash("realpassword", 4),
+      emailVerifiedAt: new Date(), firstName: null, surname: null,
+      deactivatedAt: new Date(),
+    });
+    const res = await authenticateParent("a@b.com", "realpassword");
+    expect(res).toEqual({ deactivated: true });
   });
 
   it("succeeds for a verified account with the right password", async () => {

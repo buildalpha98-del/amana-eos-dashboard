@@ -240,7 +240,11 @@ export async function confirmParentEmail(rawToken: string): Promise<{
 export async function authenticateParent(
   email: string,
   password: string,
-): Promise<{ accountId: string; email: string; name: string | null } | null> {
+): Promise<
+  | { accountId: string; email: string; name: string | null; deactivated?: false }
+  | { deactivated: true }
+  | null
+> {
   const emailLower = normaliseEmail(email);
   const account = await prisma.parentAccount.findUnique({
     where: { email: emailLower },
@@ -251,11 +255,17 @@ export async function authenticateParent(
       emailVerifiedAt: true,
       firstName: true,
       surname: true,
+      deactivatedAt: true,
     },
   });
 
   if (!account) return null;
   if (!(await compare(password, account.passwordHash))) return null;
+
+  // Reported only AFTER the password checks out — telling an anonymous
+  // caller which addresses are deactivated would be enumeration. Someone
+  // who knows the password has earned a straight answer.
+  if (account.deactivatedAt) return { deactivated: true };
 
   // 2026-07-31: an UNVERIFIED address can now sign in. Verification moved
   // to the enrolment-approval email — making a family verify before they

@@ -6,6 +6,7 @@ import { Loader2, Pencil, X, Save, AlertTriangle, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 import type { ChildProfileRecord } from "../types";
+import { ChildServiceCard } from "./ChildServiceCard";
 
 interface DetailsTabProps {
   child: ChildProfileRecord;
@@ -220,6 +221,8 @@ export function DetailsTab({ child, canEdit }: DetailsTabProps) {
 
   return (
     <div className="space-y-6">
+      <ChildServiceCard child={child} canEdit={canEdit} />
+
       <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-foreground">Child details</h3>

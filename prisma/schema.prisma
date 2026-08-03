@@ -6514,6 +6514,13 @@ model ParentAccount {
   // enrolment. Stored so the Families list can show "reminded 2 days ago"
   // and staff don't unknowingly send the same parent three emails.
   enrolmentReminderSentAt DateTime?
+  // 2026-08-03: staff can switch a family's portal access off without
+  // deleting them. Deleting loses the enrolment history and the billing
+  // arrangement; a family who leaves, or who is in dispute, needs the
+  // access gone but the record kept. Null = active.
+  deactivatedAt   DateTime?
+  deactivatedById String?
+  deactivatedReason String?
 
   // ── Family identity ──────────────────────────────────────────────────
   // 2026-07-31: the household's name, taken from the PRIMARY carer's
