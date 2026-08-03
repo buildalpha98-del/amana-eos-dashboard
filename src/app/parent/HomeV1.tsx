@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import {
-  ChevronRight,
   AlertCircle,
-  FileEdit,
-  CalendarDays,
-  Phone,
-  MessageCircle,
+  Building2,
   Calendar,
+  CalendarDays,
+  ChevronRight,
+  FileEdit,
+  MessageCircle,
+  Phone,
   UserPlus,
 } from "lucide-react";
 import {
@@ -56,6 +57,27 @@ export default function ParentHomeV1() {
           both already existed — parents just had no way to SEE the
           result, so every post staff wrote went nowhere. */}
       <ParentFeed />
+
+      {/* Centre info — contacts, routine, food, what to expect. Linked
+          from Home rather than added as a 7th bottom tab, which would
+          crowd the mobile bar. */}
+      <Link
+        href="/parent/my-centre"
+        className="warm-card flex items-center gap-3 hover:opacity-90"
+      >
+        <div className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center shrink-0">
+          <Building2 className="w-5 h-5 text-[color:var(--color-brand)]" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
+            About your centre
+          </p>
+          <p className="text-xs text-[color:var(--color-muted)]">
+            Key contacts, daily routine, food and what to expect
+          </p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-[color:var(--color-muted)] shrink-0" />
+      </Link>
 
       {/* Greeting */}
       <div>

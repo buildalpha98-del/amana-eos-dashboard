@@ -54,8 +54,29 @@ const typeBadgeColors: Record<string, string> = {
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
 
-export default function ParentCommunicationPage() {
-  const { id } = useParams<{ id: string }>();
+/**
+ * Renders as BOTH a standalone page and a tab inside the service detail
+ * view.
+ *
+ * This route was an ORPHAN (found 2026-08-01): nothing linked to it — not
+ * the service tabs, not the nav — so staff could only reach the post
+ * composer by typing the URL. The whole parent-posts pipeline existed and
+ * was unreachable from either end: staff couldn't find the composer, and
+ * families had no feed.
+ *
+ * Taking serviceId as an optional prop lets the service page mount this
+ * as a tab without moving 350 lines, and keeps the direct URL working for
+ * anyone who has it bookmarked.
+ */
+export function ParentCommunicationPanel({
+  serviceId,
+  embedded = false,
+}: {
+  serviceId?: string;
+  embedded?: boolean;
+}) {
+  const params = useParams<{ id: string }>();
+  const id = serviceId ?? params?.id;
   const { data: session } = useSession();
   const { data, isLoading, error } = useParentPosts(id);
   const deletePost = useDeleteParentPost(id);
@@ -78,8 +99,8 @@ export default function ParentCommunicationPage() {
   return (
     <div>
       <PageHeader
-        title="Parent Communication"
-        description="Create posts and announcements visible to parents in the portal"
+        title={embedded ? "Posts" : "Parent Communication"}
+        description="Create posts and announcements families see in their portal feed"
         primaryAction={{
           label: "Create Post",
           icon: Plus,
@@ -345,4 +366,9 @@ function CommentThread({ serviceId, postId }: { serviceId: string; postId: strin
       </form>
     </div>
   );
+}
+
+/** Standalone route wrapper — keeps /services/[id]/parent-communication working. */
+export default function ParentCommunicationPage() {
+  return <ParentCommunicationPanel />;
 }
