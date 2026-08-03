@@ -43,9 +43,6 @@ const updateChildSchema = z.object({
   livesWith: z.string().trim().max(120).nullable().optional(),
   countryOfBirth: z.string().trim().max(120).nullable().optional(),
   additionalNeeds: z.string().trim().max(2000).nullable().optional(),
-  allowSocialMediaPost: z.boolean().optional(),
-  noAppPosting: z.boolean().optional(),
-  isStaffChild: z.boolean().optional(),
 });
 
 const updateMedicalSchema = z.object({
@@ -96,7 +93,9 @@ export const GET = withParentAuth(async (_req, ctx) => {
       additionalNeeds: true,
       medicalConditions: true,
       vaccinationStatus: true,
-      // Consent and classification the family can see and correct.
+      // Read-only for parents: these decide what we may publish about a
+      // child and how they're billed, so the office records them from
+      // what the family agreed at enrolment.
       isStaffChild: true,
       allowSocialMediaPost: true,
       noAppPosting: true,
@@ -148,11 +147,6 @@ export const GET = withParentAuth(async (_req, ctx) => {
       "livesWith",
       "countryOfBirth",
       "additionalNeeds",
-      // Consent is the family's to give and to withdraw — it would be
-      // strange to show it and make them ring the office to change it.
-      "allowSocialMediaPost",
-      "noAppPosting",
-      "isStaffChild",
     ],
   });
 });
