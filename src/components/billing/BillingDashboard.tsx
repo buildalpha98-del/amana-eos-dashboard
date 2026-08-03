@@ -1,8 +1,19 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, DollarSign, FileText, AlertTriangle, Send, CreditCard, Eye, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CreditCard,
+  DollarSign,
+  Eye,
+  FileText,
+  Plus,
+  Send,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { GenerateStatementDialog } from "@/components/billing/GenerateStatementDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -57,6 +68,7 @@ export function BillingDashboard() {
 
   // Dialogs / panels
   const [newOpen, setNewOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<{
     statementId: string;
     contactId: string;
@@ -124,6 +136,20 @@ export function BillingDashboard() {
           icon: Plus,
           onClick: () => setNewOpen(true),
         }}
+        secondaryActions={[
+          {
+            label: "Generate from bookings",
+            icon: Sparkles,
+            onClick: () => setGenerateOpen(true),
+          },
+        ]}
+      />
+
+      {/* Builds a draft from what a child actually attended, instead of
+          requiring every line to be retyped by hand. */}
+      <GenerateStatementDialog
+        open={generateOpen}
+        onOpenChange={setGenerateOpen}
       />
 
       {/* Summary Cards */}

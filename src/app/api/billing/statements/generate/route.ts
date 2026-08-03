@@ -1,0 +1,210 @@
+/**
+ * POST /api/billing/statements/generate — draft an invoice from a
+ * family's actual bookings for a period.
+ *
+ * THE GAP THIS CLOSES: POST /api/billing/statements requires the caller
+ * to supply every line item by hand. Nothing derived them from what a
+ * child actually attended, so invoicing a family meant a staff member
+ * retyping each session from another screen. That's the billing loop not
+ * closing — and it's the reason invoicing still happens in OWNA.
+ *
+ * Produces a DRAFT. Staff review and issue it; this never sends anything
+ * to a family on its own.
+ */
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
+import { sumDollars, fromCents } from "@/lib/money";
+
+const bodySchema = z.object({
+  contactId: z.string().min(1),
+  serviceId: z.string().min(1),
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+const SESSION_LABEL: Record<string, string> = {
+  bsc: "Before school care",
+  asc: "After school care",
+  vc: "Vacation care",
+};
+
+/** Calendar dates, parsed as UTC — these are days, not instants. */
+const day = (s: string) => new Date(`${s}T00:00:00.000Z`);
+
+export const POST = withApiAuth(
+  async (req, session) => {
+    const parsed = bodySchema.safeParse(await parseJsonBody(req));
+    if (!parsed.success) {
+      throw ApiError.badRequest(parsed.error.issues[0].message);
+    }
+    const { contactId, serviceId, periodStart, periodEnd, dueDate } = parsed.data;
+
+    const start = day(periodStart);
+    const end = day(periodEnd);
+    if (end < start) {
+      throw ApiError.badRequest("The period end can't be before the start.");
+    }
+
+    const contact = await prisma.centreContact.findUnique({
+      where: { id: contactId },
+      select: { id: true, email: true, serviceId: true },
+    });
+    if (!contact) throw ApiError.notFound("Family not found");
+
+    // The family's children AT THIS SERVICE. A family with a child at
+    // another centre must not have that child's sessions land on this
+    // centre's invoice.
+    const children = await prisma.child.findMany({
+      where: {
+        serviceId,
+        enrolment: { primaryParent: { path: ["email"], equals: contact.email } },
+      },
+      select: { id: true, firstName: true, surname: true },
+    });
+
+    if (children.length === 0) {
+      throw ApiError.badRequest(
+        "No children found for this family at this service.",
+      );
+    }
+    const childIds = children.map((c) => c.id);
+    const nameById = new Map(children.map((c) => [c.id, c.firstName]));
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        childId: { in: childIds },
+        serviceId,
+        date: { gte: start, lte: end },
+        // Only sessions that actually stand. A requested-but-never-approved
+        // or cancelled booking is not a charge.
+        status: "confirmed",
+      },
+      select: {
+        id: true,
+        childId: true,
+        date: true,
+        sessionType: true,
+        fee: true,
+        ccsApplied: true,
+        gapFee: true,
+      },
+      orderBy: [{ date: "asc" }],
+    });
+
+    if (bookings.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        reason: "no_bookings",
+        message: "No confirmed sessions in that period.",
+      });
+    }
+
+    /**
+     * DOUBLE-BILLING GUARD.
+     *
+     * A session already on a live invoice must never be billed again.
+     * Matched on child + date + sessionType, which is exactly the
+     * uniqueness Booking itself enforces. Void statements are excluded —
+     * voiding is how staff undo an invoice, so those sessions are
+     * legitimately re-billable.
+     */
+    const alreadyBilled = await prisma.statementLineItem.findMany({
+      where: {
+        childId: { in: childIds },
+        date: { gte: start, lte: end },
+        statement: { status: { not: "void" } },
+      },
+      select: { childId: true, date: true, sessionType: true },
+    });
+    const billedKey = new Set(
+      alreadyBilled.map(
+        (l) => `${l.childId}|${l.date.toISOString().slice(0, 10)}|${l.sessionType}`,
+      ),
+    );
+
+    const fresh = bookings.filter(
+      (b) =>
+        !billedKey.has(
+          `${b.childId}|${b.date.toISOString().slice(0, 10)}|${b.sessionType}`,
+        ),
+    );
+    const skipped = bookings.length - fresh.length;
+
+    if (fresh.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        reason: "all_billed",
+        message: `All ${bookings.length} sessions in that period are already on an invoice.`,
+      });
+    }
+
+    const lineItems = fresh.map((b) => {
+      const gross = b.fee ?? 0;
+      const ccs = b.ccsApplied ?? 0;
+      // Trust a stored gap when present; otherwise derive it. Deriving in
+      // cents so a float subtraction can't leave 0.009999 behind.
+      const gap =
+        b.gapFee ?? fromCents(sumDollars([gross]) - sumDollars([ccs]));
+      return {
+        childId: b.childId,
+        date: b.date,
+        sessionType: b.sessionType,
+        description: `${nameById.get(b.childId) ?? "Child"} — ${
+          SESSION_LABEL[b.sessionType] ?? b.sessionType
+        } ${b.date.toISOString().slice(0, 10)}`,
+        grossFee: gross,
+        ccsHours: 0,
+        ccsRate: 0,
+        ccsAmount: ccs,
+        gapAmount: gap,
+      };
+    });
+
+    // Totals in cents, then back — summing floats across a fortnight of
+    // sessions drifts, and this figure is what a family is asked to pay.
+    const totalFeesCents = sumDollars(lineItems.map((l) => l.grossFee));
+    const totalCcsCents = sumDollars(lineItems.map((l) => l.ccsAmount));
+    const gapCents = sumDollars(lineItems.map((l) => l.gapAmount));
+
+    const statement = await prisma.statement.create({
+      data: {
+        contactId,
+        serviceId,
+        periodStart: start,
+        periodEnd: end,
+        totalFees: fromCents(totalFeesCents),
+        totalCcs: fromCents(totalCcsCents),
+        gapFee: fromCents(gapCents),
+        amountPaid: 0,
+        balance: fromCents(gapCents),
+        // Draft, always. Staff review before a family sees anything.
+        status: "draft",
+        ...(dueDate ? { dueDate: day(dueDate) } : {}),
+        lineItems: { create: lineItems },
+      },
+      include: { lineItems: true },
+    });
+
+    logger.info("Statement generated from bookings", {
+      userId: session?.user?.id,
+      statementId: statement.id,
+      contactId,
+      serviceId,
+      sessions: fresh.length,
+      skippedAlreadyBilled: skipped,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      statement,
+      sessionsBilled: fresh.length,
+      skippedAlreadyBilled: skipped,
+    });
+  },
+  { roles: ["owner", "head_office", "admin"] },
+);
