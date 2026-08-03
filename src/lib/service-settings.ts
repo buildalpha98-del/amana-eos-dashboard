@@ -106,15 +106,41 @@ export function roomFees(
 const dayEnum = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
 const sessionSettingSchema = z.object({
   enabled: z.boolean(),
+  /**
+   * Fallback price, in DOLLARS, kept for services that haven't set up
+   * fee tiers on the room yet. Prefer `feeTierId`.
+   */
   fee: z.number().nonnegative(),
+  /**
+   * The room fee this casual session charges at. Set it and the price
+   * follows Rooms & fees, so a fee rise happens in one place instead of
+   * being remembered here as well and quietly diverging.
+   */
+  feeTierId: z.string().optional(),
   spots: z.number().int().nonnegative(),
   cutOffHours: z.number().int().nonnegative(),
   days: z.array(dayEnum),
 });
+
+/** Service-wide booking policy, as opposed to per-session config. */
+const bookingPolicySchema = z.object({
+  /**
+   * Whether a parent may cancel a PERMANENT booking themselves.
+   *
+   * Off by default, and that's the safe default: a recurring pattern
+   * drives ratios, rosters and invoices, so it's changed by the office.
+   * Parents mark a single day as "not attending" instead, which is an
+   * absence and leaves the pattern intact.
+   */
+  allowRecurringCancellation: z.boolean().optional(),
+});
+export type BookingPolicy = z.infer<typeof bookingPolicySchema>;
+
 export const casualBookingSettingsSchema = z.object({
   bsc: sessionSettingSchema.optional(),
   asc: sessionSettingSchema.optional(),
   vc: sessionSettingSchema.optional(),
+  policy: bookingPolicySchema.optional(),
 });
 export type CasualBookingSettings = z.infer<typeof casualBookingSettingsSchema>;
 
@@ -138,3 +164,33 @@ export const bookingPrefsSchema = z
   })
   .passthrough();
 export type BookingPrefs = z.infer<typeof bookingPrefsSchema>;
+
+
+/**
+ * What a casual session costs, in DOLLARS.
+ *
+ * Reads the linked room fee tier first, so the price lives in one place
+ * — Rooms & fees — rather than being typed twice and drifting. Falls
+ * back to the per-session `fee` for services configured before tiers
+ * existed, and finally to 0.
+ */
+export function resolveCasualFee(
+  settings: { bsc?: { fee: number; feeTierId?: string }; asc?: { fee: number; feeTierId?: string }; vc?: { fee: number; feeTierId?: string } } | null | undefined,
+  sessionTimes: SessionTimes | null | undefined,
+  key: SessionKey,
+): number {
+  const session = settings?.[key];
+  if (!session) return 0;
+
+  if (session.feeTierId) {
+    const tier = (sessionTimes?.[key]?.fees ?? []).find(
+      (f) => f.id === session.feeTierId,
+    );
+    // A tier that's been deleted must NOT silently fall back to a stale
+    // typed-in number — that's how a family gets charged last year's
+    // price. Fall back only when nothing was ever linked.
+    if (tier) return tier.amountCents / 100;
+  }
+
+  return session.fee ?? 0;
+}
