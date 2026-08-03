@@ -21,6 +21,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
+import { isPlacementReason } from "@/lib/placement-reason";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -34,6 +35,12 @@ const bodySchema = z.object({
    * and another on Tuesday is real, so this is a choice, not a default.
    */
   move: z.boolean().default(false),
+  /**
+   * Why they're going to the second centre — Holiday Quest, a sibling's
+   * campus, and so on. Without it the copy reads as a duplicate record
+   * rather than a deliberate second placement.
+   */
+  placementReason: z.string().max(40).nullable().optional(),
 });
 
 export const POST = withApiAuth(
@@ -44,6 +51,10 @@ export const POST = withApiAuth(
       throw ApiError.badRequest(parsed.error.issues[0].message);
     }
     const { serviceId, childIds, move } = parsed.data;
+  const placementReason =
+    parsed.data.placementReason && isPlacementReason(parsed.data.placementReason)
+      ? parsed.data.placementReason
+      : null;
 
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
@@ -188,6 +199,7 @@ export const POST = withApiAuth(
             indigenousStatus: c.indigenousStatus,
             vaccinationStatus: c.vaccinationStatus,
             additionalNeeds: c.additionalNeeds,
+            placementReason,
             // Pending until the receiving centre confirms — same gate as
             // any new enrolment, so canBook() holds.
             status: "pending",

@@ -14,6 +14,7 @@ import { useChildren, type ChildRecord } from "@/hooks/useChildren";
 import { ChildDetailPanel } from "@/components/children/ChildDetailPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { serviceWithReason } from "@/lib/placement-reason";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -283,7 +284,8 @@ function ChildRow({ child, onClick }: { child: ChildRecord; onClick: () => void 
       <div className="sm:col-span-2 flex items-center gap-1.5">
         <Building2 className="h-3.5 w-3.5 text-foreground/30 shrink-0 hidden sm:block" />
         <span className="text-xs text-foreground/60 truncate">
-          {child.service?.name || "Unassigned"}
+          {serviceWithReason(child.service?.name, child.placementReason) ||
+            "Unassigned"}
         </span>
       </div>
 

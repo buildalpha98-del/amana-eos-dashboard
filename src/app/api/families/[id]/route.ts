@@ -53,6 +53,7 @@ async function submissionsForEmail(email: string) {
           schoolName: true,
           yearLevel: true,
           ccsStatus: true,
+          placementReason: true,
           service: { select: { id: true, name: true } },
         },
       },
@@ -183,6 +184,7 @@ export const GET = withApiAuth(
           ccsStatus: c.ccsStatus,
           serviceName: c.service?.name ?? null,
           serviceId: c.service?.id ?? null,
+          placementReason: c.placementReason,
         })),
       ),
     });

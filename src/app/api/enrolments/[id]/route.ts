@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
+import { syncParentJourney } from "@/lib/parent-journey";
 import { sendEmail } from "@/lib/email";
 import { reissueVerification } from "@/lib/parent-account";
 import { enrolmentApprovedEmail } from "@/lib/email-templates/parent-account";
@@ -80,7 +81,7 @@ const { id } = await context!.params!;
     });
 
     // When confirmed (processed), activate children + generate bookings + create parent CentreContacts
-    let contactsToInvite: {
+    const contactsToInvite: {
       contactId: string;
       childFirstName?: string;
     }[] = [];
@@ -192,7 +193,68 @@ const { id } = await context!.params!;
         logger.error("Enrolment approval email failed", { enrolmentId: id, err });
       }
     })();
+
+    // ── Hand the family to the onboarding flow ───────────────────────
+    // The first-session sequence (reminder the day before, day-1 and
+    // day-3 check-ins, week-2 feedback, referral invite, NPS) is anchored
+    // on the date they actually start, which is the booking preference
+    // they gave in the form. Approval is the first moment that date is
+    // real, so it's the right place to hand over.
+    void (async () => {
+      try {
+        const primary = updated.primaryParent as {
+          email?: string;
+          firstName?: string;
+          surname?: string;
+        } | null;
+        if (!primary?.email || !updated.serviceId) return;
+
+        const kids = await prisma.child.findMany({
+          where: { enrolmentId: id },
+          select: { firstName: true, surname: true, bookingPrefs: true },
+        });
+        const firstSessionDate = earliestStartDate(kids);
+        const kid = kids[0];
+
+        await syncParentJourney({
+          email: primary.email,
+          serviceId: updated.serviceId,
+          stage: firstSessionDate ? "first_session" : "enrolled",
+          parentName:
+            [primary.firstName, primary.surname].filter(Boolean).join(" ") ||
+            null,
+          childName: kid
+            ? [kid.firstName, kid.surname].filter(Boolean).join(" ")
+            : null,
+          firstSessionDate,
+        });
+      } catch (err) {
+        logger.error("Could not start onboarding flow", { enrolmentId: id, err });
+      }
+    })();
   }
 
   return NextResponse.json(updated);
 });
+
+/**
+ * The soonest start date across a family's children.
+ *
+ * Siblings can start on different days; the onboarding run should begin
+ * with the first child through the door, not an arbitrary one.
+ */
+function earliestStartDate(
+  kids: { bookingPrefs: unknown }[],
+): Date | null {
+  const dates = kids
+    .map((k) => {
+      const prefs = k.bookingPrefs as { startDate?: string } | null;
+      if (!prefs?.startDate) return null;
+      const d = new Date(prefs.startDate);
+      return Number.isNaN(d.getTime()) ? null : d;
+    })
+    .filter((d): d is Date => d !== null);
+
+  if (dates.length === 0) return null;
+  return new Date(Math.min(...dates.map((d) => d.getTime())));
+}

@@ -30,6 +30,7 @@ import {
   secondaryCarerInviteEmail,
 } from "@/lib/email-templates/parent-account";
 import { matchSchoolToService } from "@/lib/school-service-match";
+import { cancelPreEnrolmentNurture } from "@/lib/nurture-scheduler";
 import {
   draftSubmittable,
   firstIncompleteStep,
@@ -514,6 +515,24 @@ export const POST = withParentAuth(async (req, ctx) => {
       submissionId: submission.id,
       error: err instanceof Error ? err.message : String(err),
     });
+  }
+
+  // ── Stop the pre-enrolment chase ─────────────────────────────────────
+  // They've just finished the form; "need a hand with the form?" arriving
+  // the next morning is the kind of thing families remember. The stage
+  // stays where it is — staff still have to confirm the placement — so
+  // this cancels the nudges without pretending they're enrolled.
+  for (const serviceId of new Set(
+    [...serviceIdForChild.values()].filter(Boolean) as string[],
+  )) {
+    try {
+      await cancelPreEnrolmentNurture(ctx.parent.email, serviceId);
+    } catch (err) {
+      logger.warn("Could not cancel pre-enrolment nurture", {
+        submissionId: submission.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   const res = NextResponse.json({ ok: true, submissionId: submission.id });

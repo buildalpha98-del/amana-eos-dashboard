@@ -27,6 +27,7 @@ import {
   DialogDescription,
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
+import { PLACEMENT_REASONS } from "@/lib/placement-reason";
 
 interface ServiceOption {
   id: string;
@@ -68,6 +69,10 @@ export function AssignServiceDialog({
   const [serviceId, setServiceId] = useState("");
   const [selected, setSelected] = useState<string[]>(childRecords.map((c) => c.id));
   const [move, setMove] = useState(false);
+  // Why they attend the second centre. Blank = ordinary term care, which
+  // is most placements, so it stays unlabelled rather than adding noise
+  // to every roll.
+  const [reason, setReason] = useState("");
 
   const { data: services } = useQuery<ServiceOption[]>({
     queryKey: ["services", "options"],
@@ -88,6 +93,7 @@ export function AssignServiceDialog({
             // list would stop assign() treating it as the whole enrolment.
             ...(selected.length === childRecords.length ? {} : { childIds: selected }),
             ...(mode === "duplicate" ? { move } : {}),
+            ...(reason ? { placementReason: reason } : {}),
           },
         },
       ),
@@ -187,6 +193,32 @@ export function AssignServiceDialog({
               </p>
             </div>
           )}
+
+          <div>
+            <label
+              htmlFor="as-reason"
+              className="block text-sm font-medium mb-1"
+            >
+              Why this centre? <span className="text-muted">(optional)</span>
+            </label>
+            <select
+              id="as-reason"
+              className={control}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            >
+              <option value="">Regular term care</option>
+              {PLACEMENT_REASONS.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted">
+              Shown in brackets beside the service, so it&apos;s obvious why
+              they appear on a second centre&apos;s list.
+            </p>
+          </div>
 
           {mode === "duplicate" && (
             <label className="flex items-start gap-3 cursor-pointer">

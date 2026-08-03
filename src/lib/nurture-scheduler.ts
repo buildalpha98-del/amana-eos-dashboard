@@ -111,6 +111,43 @@ const STAGE_CANCEL_MAP: Record<string, string[]> = {
 const WEBSITE_SKIP_TEMPLATE_KEYS = new Set(["welcome"]);
 
 /**
+ * Stop the pre-enrolment chase for a family who has just submitted.
+ *
+ * Their enquiry stage doesn't advance yet — staff still have to confirm
+ * the placement — but "need a hand with the form?" landing the morning
+ * after they finished it is the kind of thing families remember.
+ */
+export async function cancelPreEnrolmentNurture(
+  email: string,
+  serviceId: string,
+): Promise<void> {
+  const contact = await prisma.centreContact.findFirst({
+    where: { email: email.trim().toLowerCase(), serviceId },
+    select: { id: true },
+  });
+  if (!contact) return;
+
+  const stale = await prisma.sequenceStepExecution.findMany({
+    where: {
+      status: "pending",
+      enrolment: { contactId: contact.id },
+      step: { templateKey: { in: PRE_ENROLMENT_KEYS } },
+    },
+    select: { id: true },
+  });
+  if (stale.length === 0) return;
+
+  await prisma.sequenceStepExecution.updateMany({
+    where: { id: { in: stale.map((e) => e.id) } },
+    data: { status: "cancelled" },
+  });
+  logger.info("Cancelled pre-enrolment nurture after form submission", {
+    serviceId,
+    cancelled: stale.length,
+  });
+}
+
+/**
  * Cancel pending SequenceStepExecutions for this contact+enquiry whose step
  * template is in `templateKeys`. Done as find-then-updateMany-by-id so it works
  * across Prisma versions (relation filters aren't reliably supported in

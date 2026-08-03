@@ -24,6 +24,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { generateBookings } from "@/lib/booking-generator";
+import { isPlacementReason } from "@/lib/placement-reason";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,8 @@ const bodySchema = z.object({
    * enrolment isn't always right.
    */
   childIds: z.array(z.string().min(1)).optional(),
+  /** Why they attend this centre — e.g. Holiday Quest. Null clears it. */
+  placementReason: z.string().max(40).nullable().optional(),
 });
 
 export const POST = withApiAuth(
@@ -45,6 +48,11 @@ export const POST = withApiAuth(
       throw ApiError.badRequest(parsed.error.issues[0].message);
     }
     const { serviceId, childIds } = parsed.data;
+    const reasonGiven = parsed.data.placementReason !== undefined;
+    const placementReason =
+      parsed.data.placementReason && isPlacementReason(parsed.data.placementReason)
+        ? parsed.data.placementReason
+        : null;
 
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
@@ -97,7 +105,10 @@ export const POST = withApiAuth(
       if (targetChildren.length > 0) {
         await tx.child.updateMany({
           where: { id: { in: targetChildren.map((c) => c.id) } },
-          data: { serviceId },
+          // The reason belongs to the CHILD's placement, not the
+          // submission — siblings at the same centre can be there for
+          // different reasons.
+          data: { serviceId, ...(reasonGiven ? { placementReason } : {}) },
         });
       }
 
