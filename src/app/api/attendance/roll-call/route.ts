@@ -220,6 +220,18 @@ const actionSchema = z.object({
    * upsert semantics for the AttendanceRecord row itself.
    */
   clientMutationId: z.string().uuid().optional(),
+  /**
+   * Who physically dropped off or collected the child.
+   *
+   * Regulation 158 wants a record of that person, not only the staff
+   * member who tapped the screen — and `signedInById` references a User,
+   * so a parent or grandparent could never be represented. Optional so
+   * existing callers (offline queue, bulk roll-call) keep working
+   * unchanged.
+   */
+  signedByName: z.string().trim().max(120).optional(),
+  signMethod: z.enum(["staff", "parent_kiosk", "parent_app"]).optional(),
+  signature: z.string().max(200_000).optional(),
 });
 
 /**
@@ -249,7 +261,7 @@ export const POST = withApiAuth(async (req, session) => {
     throw ApiError.badRequest("Validation failed", parsed.error.flatten().fieldErrors);
   }
 
-  const { childId, serviceId, date, sessionType, action, absenceReason, notes, occurredAt } = parsed.data;
+  const { childId, serviceId, date, sessionType, action, absenceReason, notes, occurredAt, signedByName, signMethod, signature } = parsed.data;
   const dateObj = parseDateUTC(date);
   const uniqueKey = {
     childId_serviceId_date_sessionType: {
@@ -273,6 +285,9 @@ export const POST = withApiAuth(async (req, session) => {
           status: "present",
           signInTime,
           signedInById: session.user.id,
+          ...(signedByName ? { signedInByName: signedByName } : {}),
+          ...(signMethod ? { signedInMethod: signMethod } : {}),
+          ...(signature ? { signedInSignature: signature } : {}),
           notes,
         },
         create: {
@@ -283,6 +298,9 @@ export const POST = withApiAuth(async (req, session) => {
           status: "present",
           signInTime,
           signedInById: session.user.id,
+          ...(signedByName ? { signedInByName: signedByName } : {}),
+          ...(signMethod ? { signedInMethod: signMethod } : {}),
+          ...(signature ? { signedInSignature: signature } : {}),
           notes,
         },
       });
@@ -298,6 +316,9 @@ export const POST = withApiAuth(async (req, session) => {
         update: {
           signOutTime,
           signedOutById: session.user.id,
+          ...(signedByName ? { signedOutByName: signedByName } : {}),
+          ...(signMethod ? { signedOutMethod: signMethod } : {}),
+          ...(signature ? { signedOutSignature: signature } : {}),
         },
         create: {
           childId,

@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   Baby,
   Building2,
+  LogIn,
   MessageCircle,
   BarChart3,
   Mountain,
@@ -59,6 +60,7 @@ import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
 import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
 import { ParentCommunicationPanel } from "./parent-communication/page";
+import { ServiceSignInOutTab } from "@/components/services/ServiceSignInOutTab";
 import { ServiceFamiliesTab } from "@/components/services/ServiceFamiliesTab";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
@@ -103,6 +105,9 @@ interface TabGroup {
 const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
   { key: "attendance", label: "Attendance", icon: ClipboardList },
   { key: "roll-call", label: "Roll Call", icon: ClipboardCheck },
+  // 2026-08-01: records WHO dropped off / collected, which Reg 158 wants
+  // and the roll couldn't capture (signedInById is a staff User).
+  { key: "sign-in-out", label: "Sign In / Out", icon: LogIn },
   { key: "children", label: "Children", icon: Users },
   { key: "medication", label: "Medication", icon: Activity },
   { key: "ratios", label: "Ratios", icon: Users },
@@ -436,6 +441,9 @@ export default function ServiceDetailPage() {
             serviceId={service.id}
             serviceName={service.name}
           />
+        )}
+        {activeGroup === "daily" && currentSubKey === "sign-in-out" && (
+          <ServiceSignInOutTab serviceId={service.id} serviceName={service.name} />
         )}
         {activeGroup === "daily" && currentSubKey === "roll-call" && (
           <ServiceRollCallTab serviceId={service.id} serviceName={service.name} />

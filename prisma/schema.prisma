@@ -3732,6 +3732,25 @@ model AttendanceRecord {
   signedOutById       String?
   signedInBy          User?       @relation("SignInRecorder", fields: [signedInById], references: [id], onDelete: SetNull)
   signedOutBy         User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
+
+  // ── Who actually signed (2026-08-01) ─────────────────────────────────
+  // signedInById references User, i.e. STAFF. There was no way to record
+  // a PARENT or authorised person signing a child in or out — which is
+  // what Regulation 158 actually asks for: a record of the person who
+  // delivered or collected the child, and their signature.
+  //
+  // Stored as a name + method rather than a foreign key because the
+  // signer is often an authorised pickup person or a grandparent, not
+  // anyone with a login.
+  signedInByName      String?
+  signedOutByName     String?
+  // "staff" | "parent_kiosk" | "parent_app"
+  signedInMethod      String?
+  signedOutMethod     String?
+  // Drawn signature, stored as a data URL. Nullable because a kiosk PIN
+  // is an acceptable alternative and not every service will use ink.
+  signedInSignature   String?     @db.Text
+  signedOutSignature  String?     @db.Text
   absenceReason       String?
   notes               String?     @db.Text
   // ── First-day photo SMS (Amana Way stage 5) ──
