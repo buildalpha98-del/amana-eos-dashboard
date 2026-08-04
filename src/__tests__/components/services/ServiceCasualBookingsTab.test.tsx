@@ -124,12 +124,12 @@ describe("ServiceCasualBookingsTab", () => {
 
     expect(
       screen.getByText(
-        /Parents can book casual BSC up to 24 hours before the session at \$36\.00 \(10 spots available\)\./i,
+        /Parents can book casual Rise and Shine up to 24 hours before the session at \$36\.00 \(10 spots available\)\./i,
       ),
     ).toBeDefined();
     expect(
       screen.getByText(
-        /Parents can book casual ASC up to 12 hours before the session at \$42\.00 \(8 spots available\)\./i,
+        /Parents can book casual Amana Afternoons up to 12 hours before the session at \$42\.00 \(8 spots available\)\./i,
       ),
     ).toBeDefined();
   });

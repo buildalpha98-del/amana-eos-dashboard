@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -44,6 +44,48 @@ const NAV_ITEMS = [
   { href: "/parent/account", label: "Account", icon: Settings },
 ] as const;
 
+/**
+ * The four tabs that stay on the bar, and the centre action button.
+ *
+ * Seven tabs across a phone gave each one about 53px — under the 44px
+ * target once you allow for the icon, and a row of tiny words nobody
+ * reads. OWNA solves this with a "+" in the middle; same idea here, but
+ * the button is the Amana mark rather than a plus, because it opens a
+ * menu of things to do rather than only creating something.
+ *
+ * Home and Children are the two people open most; Messages carries the
+ * unread badge; Account is where you go to leave. Everything else lives
+ * behind the button.
+ */
+const TAB_ITEMS = [
+  { href: "/parent", label: "Home", icon: Home },
+  { href: "/parent/children", label: "Children", icon: Users },
+  { href: "/parent/messages", label: "Messages", icon: MessageCircle },
+  { href: "/parent/account", label: "Account", icon: Settings },
+] as const;
+
+/** What the centre button opens. */
+const ACTION_ITEMS = [
+  {
+    href: "/parent/bookings",
+    label: "Bookings",
+    hint: "Your calendar, and casual sessions",
+    icon: Calendar,
+  },
+  {
+    href: "/parent/my-centre",
+    label: "My Centre",
+    hint: "Where to find us, contacts, policies",
+    icon: MapPin,
+  },
+  {
+    href: "/parent/billing",
+    label: "Billing",
+    hint: "Statements and payment details",
+    icon: DollarSign,
+  },
+] as const;
+
 export function ParentShell({ children }: { children: React.ReactNode }) {
   return (
     <ParentAuthProvider>
@@ -73,6 +115,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   });
   const mustEnrol = parentState?.state === "needs_enrolment";
   const { data: conversations } = useParentConversations();
+  const [actionsOpen, setActionsOpen] = useState(false);
   const unreadCount = (conversations ?? []).reduce(
     (sum, c) => sum + (c.unreadCount ?? 0),
     0,
@@ -239,32 +282,101 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
         className="sm:hidden fixed bottom-0 inset-x-0 h-16 bg-brand border-t border-white/10 z-30 flex items-stretch"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        {NAV_ITEMS.map((item) => {
+        {TAB_ITEMS.map((item, i) => {
           const isActive =
             item.href === "/parent"
               ? pathname === "/parent"
               : pathname.startsWith(item.href);
           const showBadge = item.href === "/parent/messages" && unreadCount > 0;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors min-h-[44px]",
-                isActive ? "text-accent" : "text-white/60",
+            <Fragment key={item.href}>
+              {/* The action button sits dead centre, between the second
+                  and third tab, so it's under the thumb rather than at
+                  an edge. */}
+              {i === 2 && (
+                <button
+                  type="button"
+                  onClick={() => setActionsOpen(true)}
+                  aria-label="More"
+                  aria-haspopup="dialog"
+                  className="relative flex-1 flex items-center justify-center min-h-[44px]"
+                >
+                  <span className="absolute -top-4 w-14 h-14 rounded-full bg-accent shadow-lg flex items-center justify-center ring-4 ring-brand">
+                    <Image
+                      src="/logo-icon-white.svg"
+                      alt=""
+                      width={22}
+                      height={30}
+                      className="brightness-0"
+                    />
+                  </span>
+                </button>
               )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="text-2xs font-medium">{item.label}</span>
-              {showBadge && (
-                <span className="absolute top-1 right-[calc(50%-2px)] translate-x-3 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-2xs font-bold">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </Link>
+              <Link
+                href={item.href}
+                className={cn(
+                  "relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors min-h-[44px]",
+                  isActive ? "text-accent" : "text-white/60",
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-2xs font-medium">{item.label}</span>
+                {showBadge && (
+                  <span className="absolute top-1 right-[calc(50%-2px)] translate-x-3 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-2xs font-bold">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            </Fragment>
           );
         })}
       </nav>
+
+      {/* What the centre button opens. A sheet rather than more tabs:
+          these are places you go occasionally, and putting them on the
+          bar made every tab too narrow to hit. */}
+      {actionsOpen && (
+        <div
+          className="sm:hidden fixed inset-0 z-40"
+          role="dialog"
+          aria-modal="true"
+          aria-label="More"
+        >
+          <button
+            aria-label="Close"
+            onClick={() => setActionsOpen(false)}
+            className="absolute inset-0 bg-black/40"
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 bg-card rounded-t-2xl p-4 pb-8 space-y-1"
+            style={{
+              paddingBottom: "max(2rem, env(safe-area-inset-bottom, 0px))",
+            }}
+          >
+            <div className="flex justify-center pb-3">
+              <span className="w-10 h-1 rounded-full bg-border" />
+            </div>
+            {ACTION_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setActionsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface min-h-11"
+              >
+                <span className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center shrink-0">
+                  <item.icon className="w-5 h-5 text-brand" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-foreground">
+                    {item.label}
+                  </span>
+                  <span className="block text-xs text-muted">{item.hint}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

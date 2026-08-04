@@ -54,7 +54,9 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
 
   const [selectedChild, setSelectedChild] = useState<ParentChild | null>(null);
   const [date, setDate] = useState("");
-  const [sessionType, setSessionType] = useState<"bsc" | "asc" | "vc" | "">("");
+  // A string, not the three literals: a centre can name extra booking
+  // types (Rooms & fees), and those codes are just as valid here.
+  const [sessionType, setSessionType] = useState<string>("");
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);

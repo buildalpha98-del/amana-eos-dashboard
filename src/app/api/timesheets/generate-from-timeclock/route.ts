@@ -198,7 +198,13 @@ export const POST = withApiAuth(
         shiftEnd: shift.actualEnd!,
         breakMinutes: 0,
         totalHours,
-        shiftType: SESSION_TO_SHIFT_TYPE[shift.sessionType],
+        // The enum gained spare slots a centre names itself; those have
+        // no dedicated shift type, so they roster as a general shift
+        // rather than crashing the generator.
+        shiftType:
+          SESSION_TO_SHIFT_TYPE[
+            shift.sessionType as keyof typeof SESSION_TO_SHIFT_TYPE
+          ] ?? "shift_asc",
         payRate,
         notes: "Generated from timeclock",
       });

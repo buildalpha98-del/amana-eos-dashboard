@@ -44,7 +44,20 @@ interface BookingCalendarProps {
  * centre page, where there's space to say it properly.
  */
 /** Order the day panel lists sessions in — morning before afternoon. */
-const SESSION_ORDER = ["bsc", "asc", "vc"] as const;
+/**
+ * Order sessions appear in. Includes the four spare slots so a centre
+ * that has named one shows it here too; unnamed slots simply never have
+ * bookings or availability, so they render nothing.
+ */
+const SESSION_ORDER = [
+  "bsc",
+  "asc",
+  "vc",
+  "extra1",
+  "extra2",
+  "extra3",
+  "extra4",
+] as const;
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ── Hooks ────────────────────────────────────────────────
