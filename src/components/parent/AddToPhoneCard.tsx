@@ -33,6 +33,20 @@ const ANDROID_STEPS = [
   'Tap "Install"',
 ];
 
+/**
+ * True when the page is running as an installed app rather than in a
+ * browser tab. `display-mode: standalone` covers Android and installed
+ * PWAs; `navigator.standalone` is the iOS Safari equivalent, which
+ * predates the standard and is still the only signal there.
+ */
+function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+
 export function AddToPhoneCard() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -56,9 +70,12 @@ export function AddToPhoneCard() {
     },
   });
 
-  // Nothing while we're finding out — flashing the card up and pulling it
-  // away is worse than a moment of blank space.
+  // Nothing while we're finding out — flashing the card up and pulling
+  // it away is worse than a moment of blank space.
   if (isLoading || data?.appInstallCardDismissed) return null;
+  // Already installed: they're reading this INSIDE the app it's telling
+  // them to install.
+  if (isStandalone()) return null;
 
   return (
     <section
