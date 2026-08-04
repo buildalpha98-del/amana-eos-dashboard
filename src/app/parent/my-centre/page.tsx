@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { SectionLabel } from "@/components/parent/ui";
+import { ParentFeed } from "@/components/parent/ParentFeed";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface Contact {
@@ -138,6 +139,16 @@ export default function MyCentrePage() {
           ))}
         </div>
       )}
+
+      {/*
+        Centre updates. Moved here from Home on 2026-08-04 — announcements
+        and anything important now live with everything else about the
+        centre, rather than competing with this week's sessions.
+
+        Above the welcome text on purpose: the welcome is read once, the
+        updates are why someone opens this tab again.
+      */}
+      <ParentFeed heading="Centre updates" />
 
       {/* ── 1. Welcome + vision ──────────────────────────── */}
       <section className="warm-card overflow-hidden">
