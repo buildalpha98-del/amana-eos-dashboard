@@ -63,11 +63,14 @@ export function ParentFeed({
   childId,
   childFirstName,
   heading,
+  types,
 }: {
   /** Narrow to posts this child is tagged in — "Abdul's moments". */
   childId?: string;
   childFirstName?: string;
   heading?: string;
+  /** Limit to certain categories, e.g. ["announcement"]. */
+  types?: string[];
 } = {}) {
   const qc = useQueryClient();
   const label =
@@ -78,11 +81,12 @@ export function ParentFeed({
     useInfiniteQuery<FeedPage>({
       // Keyed by child so the whole-centre feed and a child's moments
       // don't share a cache entry and overwrite each other.
-      queryKey: ["parent", "timeline", childId ?? "all"],
+      queryKey: ["parent", "timeline", childId ?? "all", types?.join(",") ?? ""],
       queryFn: ({ pageParam }) =>
         fetchApi(
           `/api/parent/timeline?limit=10` +
             (childId ? `&childId=${encodeURIComponent(childId)}` : "") +
+            (types?.length ? `&types=${encodeURIComponent(types.join(","))}` : "") +
             (pageParam ? `&cursor=${encodeURIComponent(String(pageParam))}` : ""),
         ),
       initialPageParam: undefined as string | undefined,

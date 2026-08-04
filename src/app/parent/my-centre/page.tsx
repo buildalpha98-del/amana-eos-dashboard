@@ -141,14 +141,19 @@ export default function MyCentrePage() {
       )}
 
       {/*
-        Centre updates. Moved here from Home on 2026-08-04 — announcements
-        and anything important now live with everything else about the
-        centre, rather than competing with this week's sessions.
+        Announcements and reminders only — the notices a family comes
+        looking for, alongside everything else about the centre. The full
+        feed (photos, observations, programme and food updates) is on
+        Home, so the two lists have different jobs instead of being the
+        same posts rendered twice.
 
-        Above the welcome text on purpose: the welcome is read once, the
-        updates are why someone opens this tab again.
+        Above the welcome text on purpose: the welcome is read once, a
+        notice is why someone opens this tab again.
       */}
-      <ParentFeed heading="Centre updates" />
+      <ParentFeed
+        heading="Announcements"
+        types={["announcement", "reminder"]}
+      />
 
       {/* ── 1. Welcome + vision ──────────────────────────── */}
       <section className="warm-card overflow-hidden">

@@ -34,6 +34,17 @@ export const GET = withParentAuth(async (req, { parent }) => {
    * trusted: an arbitrary childId here would otherwise read another
    * family's tagged posts.
    */
+  /**
+   * Narrow to certain post categories, e.g. announcements only.
+   *
+   * Lets Home carry the whole feed while My Centre carries just the
+   * important notices, without the two being identical lists.
+   */
+  const types = (url.searchParams.get("types") ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
   const requestedChildId = url.searchParams.get("childId");
   const onlyChildId =
     requestedChildId && childIds.includes(requestedChildId)
@@ -69,6 +80,7 @@ export const GET = withParentAuth(async (req, { parent }) => {
         },
       ],
       ...(onlyChildId ? { tags: { some: { childId: onlyChildId } } } : {}),
+      ...(types.length > 0 ? { type: { in: types as never } } : {}),
     },
     orderBy: { createdAt: "desc" },
     take: limit + 1,

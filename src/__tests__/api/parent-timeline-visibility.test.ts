@@ -115,3 +115,35 @@ describe("GET /api/parent/timeline", () => {
     expect(mockPrisma.parentPost.findMany).not.toHaveBeenCalled();
   });
 });
+
+describe("GET /api/parent/timeline — category filter", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.enrolmentSubmission.findMany.mockResolvedValue([
+      { serviceId: "svc-1", childRecords: [{ id: "mine-1" }] },
+    ]);
+    mockPrisma.parentPost.findMany.mockResolvedValue([]);
+    mockPrisma.centreContact.findMany.mockResolvedValue([]);
+    mockPrisma.parentPostLike.findMany.mockResolvedValue([]);
+  });
+
+  it("returns every category by default — Home shows the lot", async () => {
+    await GET(req());
+    const where = mockPrisma.parentPost.findMany.mock.calls[0][0].where;
+    expect(where.type).toBeUndefined();
+  });
+
+  it("narrows to the requested categories", async () => {
+    // My Centre asks for announcements + reminders so it isn't the same
+    // list as Home rendered a second time.
+    await GET(req("?types=announcement,reminder"));
+    const where = mockPrisma.parentPost.findMany.mock.calls[0][0].where;
+    expect(where.type).toEqual({ in: ["announcement", "reminder"] });
+  });
+
+  it("ignores blank entries in the list", async () => {
+    await GET(req("?types=announcement,,%20,reminder"));
+    const where = mockPrisma.parentPost.findMany.mock.calls[0][0].where;
+    expect(where.type).toEqual({ in: ["announcement", "reminder"] });
+  });
+});
