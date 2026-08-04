@@ -15,10 +15,12 @@ export type PlayerModuleType =
  *
  * An anti-skip floor so a learner can't scroll to the bottom and click through
  * instantly. `duration` is an author estimate (minutes) shown in the UI; we do
- * not force the whole estimate — 60s is enough to prevent instant skipping.
+ * not force the whole estimate. 30s (was 60s, lowered 2026-08-04 per
+ * Daniel) is enough to stop instant skipping without making a short
+ * slide feel like a punishment.
  */
 export function requiredSecondsOnPage(_module: { duration?: number | null }): number {
-  return 60;
+  return 30;
 }
 
 /**
