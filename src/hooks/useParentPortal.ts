@@ -92,7 +92,7 @@ export interface UpdateAccountPayload {
 export interface BookingRecord {
   id: string;
   date: string;
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: string;
   status: "requested" | "confirmed" | "waitlisted" | "cancelled" | "absent_notified";
   type: "permanent" | "casual" | "vacation_care";
   fee: number | null;
@@ -107,7 +107,7 @@ export interface BookingRecord {
 export interface AbsenceRecord {
   id: string;
   date: string;
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: string;
   isIllness: boolean;
   medicalCertificateUrl: string | null;
   notes: string | null;
@@ -125,7 +125,7 @@ export interface CreateBookingPayload {
   childId: string;
   serviceId: string;
   date: string; // YYYY-MM-DD
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: string;
 }
 
 export interface MarkAbsentPayload {

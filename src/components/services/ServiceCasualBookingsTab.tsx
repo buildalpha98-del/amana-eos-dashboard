@@ -11,6 +11,7 @@ import { isAdminRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 import {
   casualBookingSettingsSchema,
+  activeSessionKeys,
   roomFees,
   roomLabel,
   RECURRING_CANCEL_DAYS,
@@ -21,7 +22,20 @@ import {
 import { cn } from "@/lib/utils";
 
 // ── Constants ─────────────────────────────────────────────────
-const SESSION_TYPES = ["bsc", "asc", "vc"] as const;
+// Whatever this centre actually runs — the three core programmes plus
+// any extra slot they've named in Rooms & fees.
+// The card list follows what this centre actually runs — the three core
+// programmes plus any extra slot named in Rooms & fees. Computed inside
+// the component; this constant is only the type source.
+const SESSION_TYPES = [
+  "bsc",
+  "asc",
+  "vc",
+  "extra1",
+  "extra2",
+  "extra3",
+  "extra4",
+] as const;
 type SessionType = (typeof SESSION_TYPES)[number];
 
 /**
@@ -30,17 +44,20 @@ type SessionType = (typeof SESSION_TYPES)[number];
  * "Holiday Quest" — because that's what staff and families call them.
  * "Before School Care (BSC)" is the filing code, not the programme.
  */
-const SESSION_LABELS: Record<SessionType, string> = {
+const SESSION_LABELS: Partial<Record<SessionType, string>> = {
   bsc: "Rise and Shine",
   asc: "Amana Afternoons",
   vc: "Holiday Quest",
 };
 
-const SESSION_SHORT: Record<SessionType, string> = {
+/** Short form for aria labels. Extra slots fall back to their code. */
+const SESSION_SHORT: Partial<Record<SessionType, string>> = {
   bsc: "BSC",
   asc: "ASC",
   vc: "VC",
 };
+
+const shortLabel = (t: SessionType) => SESSION_SHORT[t] ?? t;
 
 const DAYS: {
   key: "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -74,7 +91,7 @@ const defaultSettings: Required<{
 };
 
 type SessionSetting = NonNullable<CasualBookingSettings["bsc"]>;
-type SettingsBlob = {
+type SettingsBlob = Partial<Record<SessionType, SessionSetting>> & {
   bsc: SessionSetting;
   asc: SessionSetting;
   vc: SessionSetting;
@@ -133,6 +150,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
   );
   const sessionTimes =
     (service as { sessionTimes?: SessionTimes | null }).sessionTimes ?? null;
+  const activeTypes = activeSessionKeys(sessionTimes) as SessionType[];
 
   const saveMutation = useMutation({
     mutationFn: (payload: SettingsBlob) =>
@@ -164,7 +182,8 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
 
   function toggleDay(type: SessionType, day: SessionSetting["days"][number]) {
     setSettings((prev) => {
-      const existing = prev[type].days;
+      // A slot the centre has just named has no settings row yet.
+      const existing = prev[type]?.days ?? [];
       const nextDays = existing.includes(day)
         ? existing.filter((d) => d !== day)
         : [...existing, day];
@@ -173,12 +192,12 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
   }
 
   const previewLines = useMemo(() => {
-    return SESSION_TYPES.map((t) => {
+    return activeTypes.map((t) => {
       const s = settings[t];
-      if (!s.enabled) return null;
-      return `Parents can book casual ${SESSION_SHORT[t]} up to ${s.cutOffHours} hours before the session at ${formatCurrency(s.fee)} (${s.spots} ${s.spots === 1 ? "spot" : "spots"} available).`;
+      if (!s?.enabled) return null;
+      return `Parents can book casual ${roomLabel(sessionTimes, t)} up to ${s.cutOffHours} hours before the session at ${formatCurrency(s.fee)} (${s.spots} ${s.spots === 1 ? "spot" : "spots"} available).`;
     }).filter((line): line is string => line !== null);
-  }, [settings]);
+  }, [settings, activeTypes, sessionTimes]);
 
   function handleSave() {
     saveMutation.mutate(settings);
@@ -225,10 +244,12 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
         )}
       </div>
 
-      {/* ── Three session cards ─────────────────────────────── */}
+      {/* ── One card per programme this centre runs ──────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {SESSION_TYPES.map((type) => {
-          const s = settings[type];
+        {activeTypes.map((type) => {
+          // A slot named a moment ago has no saved settings row yet, so
+          // it starts from the defaults rather than crashing the card.
+          const s = settings[type] ?? { ...defaultSessionSetting, days: [] };
           return (
             <div
               key={type}
@@ -248,7 +269,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                       updateSession(type, { enabled: e.target.checked })
                     }
                     className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
-                    aria-label={`Enable casual bookings for ${SESSION_SHORT[type]}`}
+                    aria-label={`Enable casual bookings for ${shortLabel(type)}`}
                   />
                   Enabled
                 </label>
@@ -268,7 +289,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                     })
                   }
                   className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand"
-                  aria-label={`${SESSION_SHORT[type]} price source`}
+                  aria-label={`${shortLabel(type)} price source`}
                 >
                   <option value="">Use the amount below</option>
                   {roomFees(sessionTimes, type).map((f) => (
@@ -300,7 +321,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                       })
                     }
                     className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
-                    aria-label={`${SESSION_SHORT[type]} fee`}
+                    aria-label={`${shortLabel(type)} fee`}
                   />
                 </label>
                 <label className="block text-xs text-muted">
@@ -320,7 +341,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                       })
                     }
                     className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand"
-                    aria-label={`${SESSION_SHORT[type]} spots`}
+                    aria-label={`${shortLabel(type)} spots`}
                   />
                 </label>
                 <label className="block text-xs text-muted col-span-2">
@@ -340,7 +361,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                       })
                     }
                     className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand"
-                    aria-label={`${SESSION_SHORT[type]} cut-off hours`}
+                    aria-label={`${shortLabel(type)} cut-off hours`}
                   />
                 </label>
               </div>
@@ -369,7 +390,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                           checked={checked}
                           disabled={!canEdit}
                           onChange={() => toggleDay(type, d.key)}
-                          aria-label={`${SESSION_SHORT[type]} ${d.label}`}
+                          aria-label={`${shortLabel(type)} ${d.label}`}
                         />
                         {d.label}
                       </label>

@@ -42,10 +42,35 @@ export const sessionTimesSchema = z
     bsc: roomSchema.optional(),
     asc: roomSchema.optional(),
     vc: roomSchema.optional(),
+    extra1: roomSchema.optional(),
+    extra2: roomSchema.optional(),
+    extra3: roomSchema.optional(),
+    extra4: roomSchema.optional(),
   })
   .partial();
 export type SessionTimes = z.infer<typeof sessionTimesSchema>;
-export type SessionKey = "bsc" | "asc" | "vc";
+export type SessionKey =
+  | "bsc"
+  | "asc"
+  | "vc"
+  | "extra1"
+  | "extra2"
+  | "extra3"
+  | "extra4";
+
+/** The three that exist at every centre. */
+export const CORE_SESSION_KEYS: SessionKey[] = ["bsc", "asc", "vc"];
+
+/**
+ * Spare slots a centre names itself. Unnamed ones are hidden everywhere
+ * — an unconfigured "Extra 3" on a booking form is worse than nothing.
+ */
+export const EXTRA_SESSION_KEYS: SessionKey[] = [
+  "extra1",
+  "extra2",
+  "extra3",
+  "extra4",
+];
 
 /**
  * What a room is called and when it runs before anyone configures it.
@@ -60,9 +85,33 @@ export const DEFAULT_ROOMS: Record<
   bsc: { label: "Rise and Shine", start: "06:30", end: "09:00" },
   asc: { label: "Amana Afternoons", start: "15:00", end: "18:30" },
   vc: { label: "Holiday Quest", start: "07:00", end: "18:00" },
+  // No default label: an extra slot only exists once a centre names it.
+  extra1: { label: "", start: "", end: "" },
+  extra2: { label: "", start: "", end: "" },
+  extra3: { label: "", start: "", end: "" },
+  extra4: { label: "", start: "", end: "" },
 };
 
-export const SESSION_KEYS: SessionKey[] = ["bsc", "asc", "vc"];
+export const SESSION_KEYS: SessionKey[] = [
+  ...CORE_SESSION_KEYS,
+  ...EXTRA_SESSION_KEYS,
+];
+
+/**
+ * Session keys this centre actually uses: the three core programmes,
+ * plus any extra slot that has been named.
+ *
+ * Everything parent-facing should iterate THIS, not SESSION_KEYS — an
+ * empty "Extra 2" on a booking form is worse than no option at all.
+ */
+export function activeSessionKeys(
+  sessionTimes: SessionTimes | null | undefined,
+): SessionKey[] {
+  return [
+    ...CORE_SESSION_KEYS,
+    ...EXTRA_SESSION_KEYS.filter((k) => sessionTimes?.[k]?.label?.trim()),
+  ];
+}
 
 /** "06:30" → "6:30am". Blank input gives blank output, not "NaN". */
 export function formatTime(hhmm: string | null | undefined): string {
@@ -78,7 +127,11 @@ export function roomLabel(
   sessionTimes: SessionTimes | null | undefined,
   key: SessionKey,
 ): string {
-  return sessionTimes?.[key]?.label?.trim() || DEFAULT_ROOMS[key].label;
+  // Falls back to the slot code for an unnamed extra, so a stray one
+  // looks unfinished on screen rather than rendering as blank.
+  return (
+    sessionTimes?.[key]?.label?.trim() || DEFAULT_ROOMS[key].label || key
+  );
 }
 
 /** "Rise and Shine (6:30am – 9:00am)" — the form parents read it in. */
@@ -161,6 +214,10 @@ export const casualBookingSettingsSchema = z.object({
   bsc: sessionSettingSchema.optional(),
   asc: sessionSettingSchema.optional(),
   vc: sessionSettingSchema.optional(),
+  extra1: sessionSettingSchema.optional(),
+  extra2: sessionSettingSchema.optional(),
+  extra3: sessionSettingSchema.optional(),
+  extra4: sessionSettingSchema.optional(),
   policy: bookingPolicySchema.optional(),
 });
 export type CasualBookingSettings = z.infer<typeof casualBookingSettingsSchema>;
@@ -196,7 +253,10 @@ export type BookingPrefs = z.infer<typeof bookingPrefsSchema>;
  * existed, and finally to 0.
  */
 export function resolveCasualFee(
-  settings: { bsc?: { fee: number; feeTierId?: string }; asc?: { fee: number; feeTierId?: string }; vc?: { fee: number; feeTierId?: string } } | null | undefined,
+  settings:
+    | Partial<Record<SessionKey, { fee: number; feeTierId?: string }>>
+    | null
+    | undefined,
   sessionTimes: SessionTimes | null | undefined,
   key: SessionKey,
 ): number {

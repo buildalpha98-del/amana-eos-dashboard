@@ -115,6 +115,19 @@ enum SessionType {
   bsc
   asc
   vc
+  // 2026-08-04: four spare slots a centre can name and enable itself
+  // (Service Info → Rooms & fees). Generic codes rather than named ones
+  // because the code is written into every Booking, AttendanceRecord and
+  // fortnight pattern — it has to be stable forever, while the LABEL is
+  // the centre's to change whenever they like.
+  //
+  // Four, not unlimited: Postgres enum values can be added but never
+  // removed, so an open-ended list would accumulate dead values no one
+  // can clear. If a centre ever needs a fifth, adding it is one line.
+  extra1
+  extra2
+  extra3
+  extra4
 }
 
 enum BookingStatus {

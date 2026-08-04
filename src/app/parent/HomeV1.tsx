@@ -2,9 +2,6 @@
 
 import Link from "next/link";
 import {
-  CalendarDays,
-  FileEdit,
-  MessageCircle,
 } from "lucide-react";
 import {
   useParentProfile,
@@ -83,62 +80,16 @@ export default function ParentHomeV1() {
       {/* Only renders when the family has an application in flight. */}
       <EnrolmentApplicationsWidget />
 
-      {/* Quick actions */}
-      <section aria-label="Quick actions">
-        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          <QuickAction
-            href="/parent/account"
-            icon={FileEdit}
-            label="Update Details"
-          />
-          <QuickAction
-            href="/parent/children"
-            icon={CalendarDays}
-            label="View Attendance"
-          />
-          <QuickAction href="/parent/messages" icon={MessageCircle} label="Messages" />
-        </div>
-      </section>
+      {/*
+        Quick actions and the tiles under them are gone (2026-08-04).
+        Update Details, View Attendance and Messages were three taps to
+        places already one tap away in the tab bar — a shortcut to
+        somewhere adjacent is just a second door.
+      */}
     </div>
   );
 }
 
-// ── Quick action button ──────────────────────────────────
-
-function QuickAction({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-1.5 bg-card rounded-xl p-4 shadow-sm border border-border hover:shadow-md hover:border-brand/20 transition-all active:scale-[0.98] min-h-[80px] justify-center"
-    >
-      <Icon className="w-5 h-5 text-brand" />
-      <span className="text-xs font-medium text-foreground text-center leading-tight">
-        {label}
-      </span>
-    </Link>
-  );
-}
-
-// ── Upcoming Sessions Widget ────────────────────────────
-
-/**
- * The coming week, across every child, soonest first.
- *
- * A week rather than "the next three": a parent checking on Sunday night
- * wants the shape of the week, and three rows in a two-child family is
- * Monday and half of Tuesday.
- */
 function UpcomingSessionsWidget() {
   const { data } = useParentBookings("upcoming");
 

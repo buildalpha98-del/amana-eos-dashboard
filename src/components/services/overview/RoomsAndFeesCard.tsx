@@ -22,7 +22,10 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { toast } from "@/hooks/useToast";
 import { useUpdateService } from "@/hooks/useServices";
 import {
+  activeSessionKeys,
+  CORE_SESSION_KEYS,
   DEFAULT_ROOMS,
+  EXTRA_SESSION_KEYS,
   SESSION_KEYS,
   formatTime,
   roomLabel,
@@ -166,6 +169,7 @@ export function RoomsAndFeesCard({
           <h3 className="text-sm font-semibold text-foreground">Rooms &amp; fees</h3>
           <p className="text-xs text-muted mt-0.5">
             What each room is called here, when it runs, and what it costs.
+          Name an extra room to add another booking type.
           </p>
         </div>
         {canEdit && (
@@ -183,7 +187,9 @@ export function RoomsAndFeesCard({
       </div>
 
       <div className="space-y-3">
-        {SESSION_KEYS.map((key) => {
+        {/* Only rooms this centre actually uses. An unnamed spare slot
+            isn't a room yet — it's an empty field waiting in the editor. */}
+        {activeSessionKeys(saved).map((key) => {
           const room = saved?.[key];
           const configured = Boolean(room?.start && room?.end);
           return (
@@ -242,7 +248,7 @@ export function RoomsAndFeesCard({
           <DialogTitle>Rooms &amp; fees</DialogTitle>
 
           <div className="mt-4 space-y-6 max-h-[65vh] overflow-y-auto pr-1">
-            {SESSION_KEYS.map((key) => {
+            {CORE_SESSION_KEYS.map((key) => {
               const r = rooms[key];
               return (
                 <div key={key} className="rounded-lg border border-border p-4">
@@ -432,6 +438,91 @@ export function RoomsAndFeesCard({
                 </div>
               );
             })}
+
+            {/* ── Extra booking types ─────────────────────────────
+                Four spare slots. Give one a name and it becomes a real
+                booking type everywhere: the casual settings, the parent
+                booking calendar, the roll. Leave it blank and it stays
+                invisible — an unconfigured room on a booking form is
+                worse than no option at all.
+
+                The CODE behind each slot is fixed forever (it's written
+                into every booking and attendance record); only the name
+                is yours to change. */}
+            <div className="rounded-lg border border-dashed border-border p-4 space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-foreground">
+                  Extra booking types
+                </h4>
+                <p className="text-xs text-muted mt-0.5">
+                  Name one to add another programme — a homework club, an
+                  early-finish session. Clear the name to retire it (existing
+                  bookings keep their history).
+                </p>
+              </div>
+
+              {EXTRA_SESSION_KEYS.map((key) => {
+                const r = rooms[key];
+                return (
+                  <div
+                    key={key}
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+                  >
+                    <div className="sm:col-span-3">
+                      <label
+                        htmlFor={`rm-${key}-label`}
+                        className="block text-sm font-medium text-foreground mb-1"
+                      >
+                        Name
+                      </label>
+                      <input
+                        id={`rm-${key}-label`}
+                        className={field}
+                        value={r.label}
+                        placeholder="e.g. Homework Club — leave blank if unused"
+                        onChange={(e) => update(key, { label: e.target.value })}
+                      />
+                    </div>
+                    {r.label.trim() && (
+                      <>
+                        <div>
+                          <label
+                            htmlFor={`rm-${key}-start`}
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
+                            Starts
+                          </label>
+                          <input
+                            id={`rm-${key}-start`}
+                            type="time"
+                            className={field}
+                            value={r.start}
+                            onChange={(e) =>
+                              update(key, { start: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor={`rm-${key}-end`}
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
+                            Ends
+                          </label>
+                          <input
+                            id={`rm-${key}-end`}
+                            type="time"
+                            className={field}
+                            value={r.end}
+                            onChange={(e) => update(key, { end: e.target.value })}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
