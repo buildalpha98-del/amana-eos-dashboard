@@ -263,9 +263,18 @@ function PostCard({
               key={url}
               className="relative aspect-square rounded-lg overflow-hidden bg-[color:var(--color-surface)]"
             >
+              {/* A blob that has since been deleted, or one uploaded on a
+                  preview deployment (its own store) and read in
+                  production, 404s. Show a neutral tile rather than the
+                  browser's broken-image icon. */}
               <Image
                 src={url}
                 alt={post.title || "Post photo"}
+                onError={(e) => {
+                  const el = e.currentTarget;
+                  el.style.display = "none";
+                  el.parentElement?.classList.add("post-photo-missing");
+                }}
                 fill
                 sizes="(max-width: 640px) 50vw, 300px"
                 className="object-cover"
