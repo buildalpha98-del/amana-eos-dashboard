@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { programmeName } from "@/lib/programme-names";
 import { AddToPhoneCard } from "@/components/parent/AddToPhoneCard";
+import { ParentFeed } from "@/components/parent/ParentFeed";
 
 export default function ParentHomeV1() {
   const { data: profile, isLoading, error } = useParentProfile();
@@ -63,11 +64,18 @@ export default function ParentHomeV1() {
 
       <UpcomingSessionsWidget />
 
-      {/* Centre updates and announcements moved to My Centre (2026-08-04).
-          Home was also rendering them TWICE — ParentFeed and the older
-          TimelineWidget read the same endpoint, so every post appeared
-          in both, and the older card still offered a Comment box against
-          an endpoint that now refuses comments. */}
+      {/*
+        Every post from the family's centre, tagged or not.
+
+        Back on Home per Daniel (2026-08-04) after a brief move to My
+        Centre. My Centre keeps the ANNOUNCEMENTS — the notices you go
+        looking for — so the two lists have different jobs rather than
+        being the same feed rendered twice, which is what Home was doing
+        before (ParentFeed and the old TimelineWidget both read the same
+        endpoint).
+      */}
+      <ParentFeed />
+
 
       {/* Today's menu and programme. */}
       <DailyInfoWidgets />
