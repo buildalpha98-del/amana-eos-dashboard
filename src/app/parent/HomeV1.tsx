@@ -25,7 +25,7 @@ export default function ParentHomeV1() {
     return (
       <div className="text-center py-12">
         <p className="text-muted text-sm">
-          Unable to load your information. Please try again later.
+          We couldn't load your details just now — pull down to refresh, or try again in a moment.
         </p>
       </div>
     );
