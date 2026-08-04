@@ -29,15 +29,25 @@ export function getServiceScope(session: Session | null): string | null {
 }
 
 /**
- * Returns the Australian state to filter services by for State Manager (admin) users.
- * Returns null for owner / head_office / member / staff (they use different scoping).
+ * State-based scoping. Always null since 2026-08-04 — admins see every
+ * centre, everywhere.
+ *
+ * WHY THE FUNCTION SURVIVES: ~25 routes call it and AND its result into
+ * their `where`. Returning null makes every one of them a no-op, which
+ * is a far safer change than editing 25 query builders — and if
+ * state scoping ever comes back it comes back in one place.
+ *
+ * WHAT WAS WRONG: admins were deliberately excluded from centre-
+ * membership scoping (see centre-scope.ts) on the assumption that state
+ * would scope them instead. So an admin assigned to every centre still
+ * saw only their own state's, and the centre-access screen showed
+ * assignments that did nothing. Two scoping systems, one silently
+ * overriding the other.
+ *
+ * `User.state` still exists and is still worth recording — it just no
+ * longer restricts what anyone can see.
  */
-export function getStateScope(session: Session | null): string | null {
-  if (!session?.user) return null;
-  const role = session.user.role as string;
-  if (role === "admin" && session.user.state) {
-    return session.user.state as string;
-  }
+export function getStateScope(_session: Session | null): string | null {
   return null;
 }
 

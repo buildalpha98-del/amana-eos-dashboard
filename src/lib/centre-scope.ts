@@ -63,8 +63,14 @@ export async function getCentreScope(
     return { serviceIds: null };
   }
 
-  // Admin: scoped by state — handled downstream with getStateScope.
-  // Return null here so state-based filtering applies instead of serviceId filtering.
+  // Admin: every centre, everywhere.
+  //
+  // 2026-08-04: this used to return null so that state-based filtering
+  // applied downstream instead. That made an admin's centre assignments
+  // meaningless — the access screen showed every centre while the
+  // enquiry form showed one state's — so state scoping was retired
+  // rather than layered on top of a second system. Null here now means
+  // what it says.
   if (role === "admin") {
     return { serviceIds: null };
   }
