@@ -53,6 +53,7 @@ import { cn } from "@/lib/utils";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { ChildInformationTab } from "@/components/parent/ChildInformationTab";
+import { ParentFeed } from "@/components/parent/ParentFeed";
 
 type Tab = "info" | "attendance" | "gallery" | "medical" | "documents" | "pickups";
 
@@ -148,7 +149,18 @@ export default function ChildDetailV1() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "info" && <ChildInformationTab childId={child.id} />}
+      {activeTab === "info" && (
+        <div className="space-y-6">
+          <ChildInformationTab childId={child.id} />
+          {/* Posts this child is tagged in. Only ever this family's own
+              children are named — the server filters the tag list to
+              their childIds before it leaves the building. */}
+          <ParentFeed
+            childId={child.id}
+            childFirstName={child.firstName}
+          />
+        </div>
+      )}
       {activeTab === "attendance" && (
         <AttendanceTab
           childId={child.id}

@@ -77,14 +77,26 @@ export const POST = withApiAuth(
 
     const { childIds, publishAt, ...rest } = parsed.data;
 
+    /**
+     * Educators can WRITE a post but not publish one.
+     *
+     * They're the ones in the room when something worth photographing
+     * happens, and routing every post through the Director is how a feed
+     * goes quiet. But a post is a photo of somebody's child going out to
+     * every family at the centre, and that deserves a second pair of
+     * eyes. Their posts land as drafts for the Director to release.
+     */
+    const educatorOnly = session.user.role === "staff";
+    const status = educatorOnly ? "draft" : rest.status;
+
     // A post scheduled for a time already past is just a published post —
     // treat it as one rather than leaving it in a state that looks
     // pending forever.
     const at = publishAt ? new Date(publishAt) : null;
     const effectiveStatus =
-      rest.status === "scheduled" && (!at || at.getTime() <= Date.now())
+      status === "scheduled" && (!at || at.getTime() <= Date.now())
         ? "published"
-        : rest.status;
+        : status;
 
     const data = {
       ...rest,
@@ -92,13 +104,11 @@ export const POST = withApiAuth(
       publishAt: effectiveStatus === "scheduled" ? at : null,
     };
 
-    // If not a community post, at least one child must be tagged
-    if (!data.isCommunity && childIds.length === 0) {
-      return NextResponse.json(
-        { error: "Non-community posts must tag at least one child" },
-        { status: 400 },
-      );
-    }
+    // 2026-08-04: the "non-community posts must tag a child" check is
+    // gone. Tagging no longer decides who can SEE a post — every family
+    // at the centre sees every published post, and tags decide which
+    // child's page it also appears on. An untagged post is an ordinary
+    // centre-wide update, not an error.
 
     // Atomic: verify service + verify children + create post + log activity
     const post = await prisma.$transaction(async (tx) => {
@@ -172,6 +182,17 @@ export const POST = withApiAuth(
         logger.error("Post notification failed", { postId: post.id, err }),
       );
     }
+
+    // ── NOTIFICATION HOOK (next phase) ───────────────────────────────
+    // When a post becomes visible — effectiveStatus === "published" — fan
+    // out to the centre's families: a ParentNotification row each (see
+    // createInAppNotification in src/lib/parent-notifications.ts), a web
+    // push where subscribed, and an optional daily digest email.
+    //
+    // Deliberately NOT built here. A post reaching every family at a
+    // centre is the highest-volume notification we'd have, so it needs
+    // batching and a per-family frequency preference first — sending one
+    // push per post would train families to turn them off.
 
     return NextResponse.json(post, { status: 201 });
   },

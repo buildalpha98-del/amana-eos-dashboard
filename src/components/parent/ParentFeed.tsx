@@ -59,15 +59,30 @@ function timeAgo(iso: string): string {
   });
 }
 
-export function ParentFeed() {
+export function ParentFeed({
+  childId,
+  childFirstName,
+  heading,
+}: {
+  /** Narrow to posts this child is tagged in — "Abdul's moments". */
+  childId?: string;
+  childFirstName?: string;
+  heading?: string;
+} = {}) {
   const qc = useQueryClient();
+  const label =
+    heading ??
+    (childFirstName ? `${childFirstName}'s moments` : "Latest from your centre");
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInfiniteQuery<FeedPage>({
-      queryKey: ["parent", "timeline"],
+      // Keyed by child so the whole-centre feed and a child's moments
+      // don't share a cache entry and overwrite each other.
+      queryKey: ["parent", "timeline", childId ?? "all"],
       queryFn: ({ pageParam }) =>
         fetchApi(
           `/api/parent/timeline?limit=10` +
+            (childId ? `&childId=${encodeURIComponent(childId)}` : "") +
             (pageParam ? `&cursor=${encodeURIComponent(String(pageParam))}` : ""),
         ),
       initialPageParam: undefined as string | undefined,
@@ -80,7 +95,7 @@ export function ParentFeed() {
   if (isLoading) {
     return (
       <section>
-        <SectionLabel label="What's happening" />
+        <SectionLabel label={label} />
         <div className="space-y-3">
           <Skeleton className="h-40 rounded-[var(--radius-lg)]" />
           <Skeleton className="h-40 rounded-[var(--radius-lg)]" />
@@ -89,16 +104,38 @@ export function ParentFeed() {
     );
   }
 
-  // An empty feed is normal for a new family — don't dress it up as an
-  // error, and don't render a heading over nothing.
-  if (posts.length === 0) return null;
+  if (posts.length === 0) {
+    // On Home, stay silent — a new family shouldn't meet a heading over
+    // nothing. On a child's page the section was explicitly asked for,
+    // so say why it's empty instead of vanishing.
+    if (!childId) return null;
+    return (
+      <section aria-label={label}>
+        <SectionLabel label={label} />
+        <div className="warm-card text-center py-6">
+          <Camera className="w-6 h-6 mx-auto text-[color:var(--color-muted)] mb-2" />
+          <p className="text-sm text-[color:var(--color-muted)]">
+            {childFirstName
+              ? `${childFirstName} hasn't been tagged in a post yet.`
+              : "Nothing here yet."}
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Service updates">
-      <SectionLabel label="What's happening" />
+      <SectionLabel label={label} />
       <div className="space-y-4">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} onChanged={() => qc.invalidateQueries({ queryKey: ["parent", "timeline"] })} />
+          <PostCard
+            key={post.id}
+            post={post}
+            onChanged={() =>
+              qc.invalidateQueries({ queryKey: ["parent", "timeline"] })
+            }
+          />
         ))}
       </div>
 
@@ -130,8 +167,9 @@ function PostCard({
   onChanged: () => void;
 }) {
   const qc = useQueryClient();
-  const [showComment, setShowComment] = useState(false);
-  const [comment, setComment] = useState("");
+  // Long posts collapse. A photo-led feed stops being scannable the
+  // moment one newsletter-length update pushes everything else off screen.
+  const [expanded, setExpanded] = useState(false);
 
   const like = useMutation({
     mutationFn: () =>
@@ -168,22 +206,9 @@ function PostCard({
     onSettled: onChanged,
   });
 
-  const addComment = useMutation({
-    mutationFn: (body: { content: string }) =>
-      mutateApi(`/api/parent/posts/${post.id}/comments`, {
-        method: "POST",
-        body,
-      }),
-    onSuccess: () => {
-      setComment("");
-      setShowComment(false);
-      onChanged();
-      toast({ description: "Comment added." });
-    },
-    onError: (err: Error) =>
-      toast({ variant: "destructive", description: err.message }),
-  });
-
+  // Comments are deliberately absent from the parent portal: a photo of
+  // one child with a comment thread under it is a conversation other
+  // families can read. Likes stay — they're private to the sender.
   const taggedNames = post.tags
     .map((t) => t.child.firstName)
     .filter(Boolean);
@@ -200,7 +225,6 @@ function PostCard({
           </p>
           <p className="text-xs text-[color:var(--color-muted)]">
             {timeAgo(post.createdAt)}
-            {taggedNames.length > 0 && ` · with ${taggedNames.join(", ")}`}
           </p>
         </div>
       </header>
@@ -210,9 +234,22 @@ function PostCard({
           {post.title}
         </h3>
       )}
-      <p className="text-sm text-[color:var(--color-foreground)]/85 leading-relaxed whitespace-pre-wrap">
-        {post.content}
-      </p>
+      <PostBody
+        text={post.content}
+        expanded={expanded}
+        onExpand={() => setExpanded(true)}
+      />
+
+      {/*
+        Only this family's children are ever named. The server already
+        filters the tag list to their own childIds, so there is nothing
+        here to leak — this renders what it was given.
+      */}
+      {taggedNames.length > 0 && (
+        <p className="mt-2 text-xs text-[color:var(--color-brand)] font-medium">
+          Featuring: {taggedNames.join(", ")}
+        </p>
+      )}
 
       {post.mediaUrls.length > 0 && (
         <div
@@ -254,49 +291,78 @@ function PostCard({
         >
           <Heart
             className={
-              "w-4 h-4 " +
-              (post.likedByMe ? "fill-red-500 text-red-500" : "")
+              "w-4 h-4 " + (post.likedByMe ? "fill-red-500 text-red-500" : "")
             }
           />
           {post.likeCount > 0 && post.likeCount}
         </button>
+      </footer>
+    </article>
+  );
+}
+
+const COLLAPSE_AT = 280;
+
+/**
+ * Post body with a "Read more" fold, and bare URLs turned into links.
+ *
+ * Auto-linked rather than rendered as rich HTML: staff type into a plain
+ * textarea, and the one thing they paste that needs to be clickable is a
+ * link. Escaping is not a concern because this builds React elements
+ * from split text — nothing is ever passed as HTML.
+ */
+function PostBody({
+  text,
+  expanded,
+  onExpand,
+}: {
+  text: string;
+  expanded: boolean;
+  onExpand: () => void;
+}) {
+  const long = text.length > COLLAPSE_AT;
+  const shown = expanded || !long ? text : text.slice(0, COLLAPSE_AT).trimEnd();
+
+  return (
+    <div>
+      <p className="text-sm text-[color:var(--color-foreground)]/85 leading-relaxed whitespace-pre-wrap">
+        {linkify(shown)}
+        {long && !expanded && "…"}
+      </p>
+      {long && !expanded && (
         <button
           type="button"
-          onClick={() => setShowComment((v) => !v)}
-          aria-expanded={showComment}
-          className="inline-flex items-center gap-1.5 min-h-11 text-sm text-[color:var(--color-muted)]"
+          onClick={onExpand}
+          className="mt-1 text-sm font-medium text-[color:var(--color-brand)] min-h-11"
         >
-          <MessageCircle className="w-4 h-4" />
-          {post.commentCount > 0 && post.commentCount}
+          Read more
         </button>
-      </footer>
-
-      {showComment && (
-        <div className="mt-2 flex gap-2">
-          <input
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Add a comment…"
-            aria-label="Add a comment"
-            className="flex-1 px-3 py-2.5 border border-[color:var(--color-border)] rounded-lg text-base sm:text-sm bg-white"
-          />
-          <button
-            type="button"
-            onClick={() =>
-              comment.trim() && addComment.mutate({ content: comment.trim() })
-            }
-            disabled={!comment.trim() || addComment.isPending}
-            className="px-4 min-h-11 rounded-lg bg-[color:var(--color-brand)] text-white text-sm font-medium disabled:opacity-40"
-          >
-            {addComment.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              "Post"
-            )}
-          </button>
-        </div>
       )}
-    </article>
+    </div>
+  );
+}
+
+// Split with the global form, TEST with a separate non-global one.
+// `RegExp.test` on a /g regex advances lastIndex between calls, so
+// reusing one here would link every second URL and skip the rest.
+const URL_SPLIT = /(https?:\/\/[^\s]+)/g;
+const IS_URL = /^https?:\/\/[^\s]+$/;
+
+function linkify(text: string): React.ReactNode[] {
+  return text.split(URL_SPLIT).map((part, i) =>
+    IS_URL.test(part) ? (
+      <a
+        key={`${part}-${i}`}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[color:var(--color-brand)] underline underline-offset-2 break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
   );
 }
 

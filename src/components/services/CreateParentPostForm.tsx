@@ -7,6 +7,7 @@ import { createParentPostSchema, type CreateParentPostInput } from "@/lib/schema
 import { useCreateParentPost, useUpdateParentPost, type ParentPost } from "@/hooks/useParentPosts";
 import { MTOP_OUTCOMES, NQS_AREAS, nqsLabel } from "@/lib/curriculum";
 import { useChildren } from "@/hooks/useChildren";
+import { downscaleImage } from "@/lib/downscale-image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { FormField } from "@/components/ui/form/FormField";
 import { FormInput } from "@/components/ui/form/FormInput";
@@ -121,8 +122,12 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
 
       setUploading((n) => n + 1);
       try {
+        // Shrink before it leaves the phone. A post with four camera
+        // originals is a 20 MB upload over school wifi and a 20 MB
+        // download for every family who scrolls past it.
+        const toSend = await downscaleImage(file);
         const fd = new FormData();
-        fd.append("file", file);
+        fd.append("file", toSend);
         const res = await fetch("/api/upload/image", { method: "POST", body: fd });
         if (!res.ok) {
           const payload = (await res.json().catch(() => ({}))) as { error?: string };

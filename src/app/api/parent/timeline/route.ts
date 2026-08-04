@@ -27,11 +27,34 @@ export const GET = withParentAuth(async (req, { parent }) => {
   const url = new URL(req.url);
   const cursor = url.searchParams.get("cursor") ?? undefined;
   const limit = safeLimit(url.searchParams.get("limit"), 20, 50);
+  /**
+   * Narrow the feed to one child's tagged posts — "Abdul's moments".
+   *
+   * Validated against the parent's own children below rather than
+   * trusted: an arbitrary childId here would otherwise read another
+   * family's tagged posts.
+   */
+  const requestedChildId = url.searchParams.get("childId");
+  const onlyChildId =
+    requestedChildId && childIds.includes(requestedChildId)
+      ? requestedChildId
+      : null;
+  if (requestedChildId && !onlyChildId) {
+    // Asked for a child that isn't theirs — empty, not someone else's.
+    return NextResponse.json({ items: [], nextCursor: undefined });
+  }
 
-  // Fetch posts where:
-  // a) isCommunity=true AND serviceId matches, OR
-  // b) Post has a tag linking to one of the parent's children AND the post
-  //    belongs to one of the parent's services (prevents cross-service leak)
+  // Every published post for the family's centre(s).
+  //
+  // 2026-08-04: the old query also required `isCommunity` OR a tag
+  // matching one of this family's children, which meant an untagged
+  // observation reached nobody and a tagged one quietly became private.
+  // Tagging now decides which child's page a post appears on, NOT who
+  // can see it — everyone at a centre sees that centre's posts, and the
+  // per-child view is a filter on top rather than a permission.
+  //
+  // Cross-service leaks are prevented by serviceId scoping alone, which
+  // is the check that was actually doing that work all along.
   const posts = await prisma.parentPost.findMany({
     where: {
       serviceId: { in: serviceIds }, // Always scope to parent's services
@@ -45,12 +68,7 @@ export const GET = withParentAuth(async (req, { parent }) => {
           OR: [{ publishAt: null }, { publishAt: { lte: new Date() } }],
         },
       ],
-      OR: [
-        { isCommunity: true },
-        ...(childIds.length > 0
-          ? [{ tags: { some: { childId: { in: childIds } } } }]
-          : []),
-      ],
+      ...(onlyChildId ? { tags: { some: { childId: onlyChildId } } } : {}),
     },
     orderBy: { createdAt: "desc" },
     take: limit + 1,
