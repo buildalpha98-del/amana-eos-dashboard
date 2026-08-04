@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     booking: { findUnique: vi.fn(), update: vi.fn() },
+    service: { findUnique: vi.fn() },
     absence: { create: vi.fn(), deleteMany: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -48,13 +49,16 @@ vi.mock("@/app/api/parent/bookings/route", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { PATCH } from "@/app/api/parent/bookings/[bookingId]/route";
+import { PATCH, DELETE } from "@/app/api/parent/bookings/[bookingId]/route";
 
 const mockPrisma = prisma as unknown as {
   booking: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   absence: { create: ReturnType<typeof vi.fn>; deleteMany: ReturnType<typeof vi.fn> };
   $transaction: ReturnType<typeof vi.fn>;
+  service: { findUnique: ReturnType<typeof vi.fn> };
 };
+
+const mockService = mockPrisma.service;
 
 const inHours = (h: number) => new Date(Date.now() + h * 60 * 60 * 1000);
 
@@ -150,5 +154,58 @@ describe("PATCH /api/parent/bookings/[bookingId] — action: attending", () => {
     const res = await call({ isIllness: true, notes: "Fever" });
     expect(res.status).toBe(200);
     expect(mockPrisma.absence.create).toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /api/parent/bookings/[bookingId] — cancellation windows", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.booking.update.mockResolvedValue({ id: "bk-1", status: "cancelled" });
+    mockService.findUnique.mockResolvedValue({ casualBookingSettings: null });
+  });
+
+  const del = () =>
+    DELETE(
+      new Request("http://localhost/api/parent/bookings/bk-1", {
+        method: "DELETE",
+      }) as never,
+      { params: Promise.resolve({ bookingId: "bk-1" }) } as never,
+    );
+
+  it("lets a family cancel a recurring booking a week out", async () => {
+    mockPrisma.booking.findUnique.mockResolvedValue(
+      booking({ type: "permanent", status: "confirmed", date: inHours(8 * 24) }),
+    );
+    expect((await del()).status).toBe(200);
+  });
+
+  it("refuses a recurring booking inside the week", async () => {
+    // The roster and the catering are already set against that number.
+    mockPrisma.booking.findUnique.mockResolvedValue(
+      booking({ type: "permanent", status: "confirmed", date: inHours(3 * 24) }),
+    );
+    const res = await del();
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/not attending|7 or more days/i);
+    expect(mockPrisma.booking.update).not.toHaveBeenCalled();
+  });
+
+  it("keeps the 24-hour window for casual", async () => {
+    mockPrisma.booking.findUnique.mockResolvedValue(
+      booking({ type: "casual", status: "confirmed", date: inHours(48) }),
+    );
+    expect((await del()).status).toBe(200);
+  });
+
+  it("blocks casual entirely when the centre has switched it off", async () => {
+    mockService.findUnique.mockResolvedValue({
+      casualBookingSettings: { policy: { blockCasualCancellation: true } },
+    });
+    mockPrisma.booking.findUnique.mockResolvedValue(
+      booking({ type: "casual", status: "confirmed", date: inHours(200) }),
+    );
+    const res = await del();
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/head office/i);
   });
 });

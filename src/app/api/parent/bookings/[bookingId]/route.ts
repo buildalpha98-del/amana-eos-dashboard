@@ -9,6 +9,7 @@ import { getParentChildIds } from "../route";
 import { parseJsonField } from "@/lib/schemas/json-fields";
 import {
   casualBookingSettingsSchema,
+  RECURRING_CANCEL_DAYS,
   type CasualBookingSettings,
 } from "@/lib/service-settings";
 
@@ -175,35 +176,48 @@ export const DELETE = withParentAuth(async (_req, ctx) => {
 
   const booking = await getBookingForParent(bookingId, ctx.parent.enrolmentIds);
 
-  // Cancelling a PERMANENT booking is off unless the centre turns it on:
-  // a recurring pattern drives ratios, rosters and invoices, so it's the
-  // office's to change. Parents mark the single day as not attending
-  // instead, which leaves the pattern intact.
-  if (booking.type !== "casual") {
-    const service = await prisma.service.findUnique({
-      where: { id: booking.serviceId },
-      select: { casualBookingSettings: true },
-    });
-    const settings = parseJsonField<CasualBookingSettings | null>(
-      service?.casualBookingSettings,
-      casualBookingSettingsSchema.nullable(),
-      null,
-    );
-    if (!settings?.policy?.allowRecurringCancellation) {
+  const service = await prisma.service.findUnique({
+    where: { id: booking.serviceId },
+    select: { casualBookingSettings: true },
+  });
+  const settings = parseJsonField<CasualBookingSettings | null>(
+    service?.casualBookingSettings,
+    casualBookingSettingsSchema.nullable(),
+    null,
+  );
+
+  const daysUntil =
+    (new Date(booking.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+
+  if (booking.type === "casual") {
+    // Some centres cost a casual place the moment it's taken, so a late
+    // cancellation is a fee argument rather than a freed spot. Off by
+    // default — the standard cut-off rule below still applies.
+    if (settings?.policy?.blockCasualCancellation) {
       throw ApiError.badRequest(
-        "Regular weekly bookings are changed by head office. To skip just this day, mark it as not attending — or message head office to change the pattern.",
+        "Casual bookings can't be cancelled online at this centre. Message head office if something's changed.",
       );
     }
-  }
-
-  // Must be at least 24 hours in the future
-  const bookingDate = new Date(booking.date);
-  const now = new Date();
-  const hoursUntil = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-  if (hoursUntil < 24) {
-    throw ApiError.badRequest(
-      "Bookings can only be cancelled at least 24 hours in advance.",
-    );
+    if (daysUntil * 24 < 24) {
+      throw ApiError.badRequest(
+        "Bookings can only be cancelled at least 24 hours in advance.",
+      );
+    }
+  } else {
+    /**
+     * Recurring bookings: a week or more out, or not at all.
+     *
+     * A fixed rule rather than a per-centre toggle. Inside the week the
+     * roster and the catering are already set against that number, and
+     * a rule families have to look up per centre isn't one they'll
+     * follow. To skip a single day they mark it not attending, which
+     * leaves the pattern intact.
+     */
+    if (daysUntil < RECURRING_CANCEL_DAYS) {
+      throw ApiError.badRequest(
+        `Regular weekly bookings can only be cancelled ${RECURRING_CANCEL_DAYS} or more days ahead. To skip just this day, mark it as not attending — or message head office to change the pattern.`,
+      );
+    }
   }
 
   // Can only cancel requested or confirmed bookings
