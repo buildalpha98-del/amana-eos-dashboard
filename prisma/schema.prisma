@@ -168,6 +168,13 @@ enum ParentPostType {
   announcement
   reminder
   newsletter
+  // 2026-08-04: the categories families actually reason about. Added
+  // alongside the originals rather than replacing them — every existing
+  // post carries one of the old values, and a rename would be a data
+  // migration to gain nothing.
+  programme
+  food
+  celebration
 }
 
 enum ActivityCategory {

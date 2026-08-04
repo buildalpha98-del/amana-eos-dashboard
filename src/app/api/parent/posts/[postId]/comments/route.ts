@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
-import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { ApiError } from "@/lib/api-error";
 import { safeLimit } from "@/lib/pagination";
 import { canParentAccessPost } from "@/lib/parent-post-visibility";
-import { resolveParentContactForService } from "@/lib/parent-contact";
 
 // ---------------------------------------------------------------------------
 // Shared shape
@@ -86,33 +84,19 @@ export const GET = withParentAuth(async (req, { parent, params }) => {
 // POST — create (parent author)
 // ---------------------------------------------------------------------------
 
-const createBodySchema = z.object({
-  body: z.string().trim().min(1).max(2000),
-});
-
-export const POST = withParentAuth(async (req, { parent, params }) => {
-  const { postId } = (await params) as { postId: string };
-  const access = await canParentAccessPost(parent, postId);
-  if (!access.post) throw ApiError.notFound("Post not found");
-  if (!access.allowed) throw ApiError.forbidden("No access to this post");
-  const contact = await resolveParentContactForService(parent, access.post.serviceId);
-  if (!contact) throw ApiError.forbidden("No contact record for this service");
-
-  const parsed = createBodySchema.safeParse(await parseJsonBody(req));
-  if (!parsed.success) {
-    throw ApiError.badRequest("Invalid body", parsed.error.flatten());
-  }
-
-  const row = await prisma.parentPostComment.create({
-    data: {
-      postId,
-      parentAuthorId: contact.id,
-      body: parsed.data.body,
-    },
-    include: {
-      parentAuthor: { select: { firstName: true, lastName: true } },
-      staffAuthor: { select: { name: true } },
-    },
-  });
-  return NextResponse.json(serialise(row), { status: 201 });
+/**
+ * Parents cannot comment.
+ *
+ * 2026-08-04: a photo of one child with a comment thread under it is a
+ * conversation every other family at the centre can read, and there's no
+ * moderation queue behind it. Refused at the API rather than only hidden
+ * in the app — the endpoint is reachable whatever the UI renders.
+ *
+ * The GET above still works, so any comments left before this stay
+ * readable rather than silently disappearing.
+ */
+export const POST = withParentAuth(async () => {
+  throw ApiError.forbidden(
+    "Comments aren't available. Message head office if you'd like to reply.",
+  );
 });
