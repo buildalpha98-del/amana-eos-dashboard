@@ -191,7 +191,7 @@ export function IDSSection({
                     }
                   }}
                   placeholder="Add notes or description..."
-                  className="w-full text-sm text-muted border border-border rounded-md p-2 resize-none h-20 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-surface/50"
+                  className="w-full text-sm text-muted border border-border rounded-md p-2 resize-y min-h-20 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-surface/50"
                 />
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted">Priority:</span>
@@ -260,7 +260,7 @@ export function IDSSection({
                       value={newTodoDescription}
                       onChange={(e) => setNewTodoDescription(e.target.value)}
                       placeholder="Description (optional)..."
-                      className="w-full px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 h-16 resize-none"
+                      className="w-full px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-16 resize-y"
                     />
                     {/* Multi-select assignees */}
                     <div>

@@ -349,7 +349,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                     setForm((f) => ({ ...f, description: e.target.value }))
                   }
                   rows={2}
-                  className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-y"
                   placeholder="Add details..."
                 />
               </div>
