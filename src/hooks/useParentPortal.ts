@@ -675,9 +675,17 @@ export interface DailyProgram {
   programmeBrand: string | null;
 }
 
+export interface WeekDayInfo {
+  day: string;
+  menu: DailyMenuItem[];
+  program: DailyProgram[];
+}
+
 export interface DailyInfoResponse {
   todayMenu: { items: DailyMenuItem[] } | null;
   todayProgram: DailyProgram[];
+  /** Monday–Friday of the current week — menu and programme per day. */
+  week?: WeekDayInfo[];
 }
 
 export function useParentDailyInfo() {
