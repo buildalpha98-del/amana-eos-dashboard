@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifyPostPublished } from "@/lib/notifications/posts";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { createParentPostSchema } from "@/lib/schemas/parent-post";
@@ -183,16 +184,13 @@ export const POST = withApiAuth(
       );
     }
 
-    // ── NOTIFICATION HOOK (next phase) ───────────────────────────────
-    // When a post becomes visible — effectiveStatus === "published" — fan
-    // out to the centre's families: a ParentNotification row each (see
-    // createInAppNotification in src/lib/parent-notifications.ts), a web
-    // push where subscribed, and an optional daily digest email.
-    //
-    // Deliberately NOT built here. A post reaching every family at a
-    // centre is the highest-volume notification we'd have, so it needs
-    // batching and a per-family frequency preference first — sending one
-    // push per post would train families to turn them off.
+    // Fan out to the centre's families: every post raises the in-app
+    // bell; only announcements and reminders buzz phones — one push per
+    // observation is how families turn notifications off. Fire-and-
+    // forget: a notification failure must never fail the post.
+    if (effectiveStatus === "published") {
+      notifyPostPublished(post.id).catch(() => {});
+    }
 
     return NextResponse.json(post, { status: 201 });
   },

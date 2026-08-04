@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
 } from "lucide-react";
 import {
   useParentProfile,
   useParentBookings,
+  type BookingRecord,
   useParentEnrolmentApplications,
 } from "@/hooks/useParentPortal";
 import { DailyInfoWidgets } from "@/components/parent/DailyInfoWidgets";
@@ -15,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { programmeName } from "@/lib/programme-names";
 import { AddToPhoneCard } from "@/components/parent/AddToPhoneCard";
 import { ParentFeed } from "@/components/parent/ParentFeed";
+import { MarkAbsentSheet } from "@/components/parent/MarkAbsentSheet";
+import { TodayStrip } from "@/components/parent/TodayStrip";
 
 export default function ParentHomeV1() {
   const { data: profile, isLoading, error } = useParentProfile();
@@ -25,7 +29,7 @@ export default function ParentHomeV1() {
     return (
       <div className="text-center py-12">
         <p className="text-muted text-sm">
-          We couldn't load your details just now — pull down to refresh, or try again in a moment.
+          We couldn&apos;t load your details just now — pull down to refresh, or try again in a moment.
         </p>
       </div>
     );
@@ -59,6 +63,11 @@ export default function ParentHomeV1() {
       */}
       <AddToPhoneCard />
 
+      {/* Where each child is right now — signed in, picked up, by whom.
+          Above the sessions list because it answers today before the
+          week. Hidden on days with nothing to report. */}
+      <TodayStrip />
+
       <UpcomingSessionsWidget />
 
       {/*
@@ -90,8 +99,25 @@ export default function ParentHomeV1() {
   );
 }
 
+/** Today or tomorrow — the window where "not coming" is urgent enough
+ *  to deserve a spot on the row rather than a trip to Bookings. */
+function isSoon(iso: string): boolean {
+  const d = new Date(iso);
+  const limit = new Date();
+  limit.setDate(limit.getDate() + 2);
+  limit.setHours(0, 0, 0, 0);
+  return d < limit;
+}
+
 function UpcomingSessionsWidget() {
   const { data } = useParentBookings("upcoming");
+  /**
+   * "He's sick, we're not coming" is the most common urgent job in the
+   * app, and it used to live three screens deep. Today's and tomorrow's
+   * sessions carry a "Not coming?" action right here — two taps from
+   * opening the app to told-the-centre.
+   */
+  const [absentTarget, setAbsentTarget] = useState<BookingRecord | null>(null);
 
   const weekEnd = new Date();
   weekEnd.setDate(weekEnd.getDate() + 7);
@@ -160,9 +186,22 @@ function UpcomingSessionsWidget() {
               )}>
                 {b.status === "confirmed" ? "Confirmed" : "Requested"}
               </span>
+              {isSoon(b.date) && b.status === "confirmed" && (
+                <button
+                  type="button"
+                  onClick={() => setAbsentTarget(b)}
+                  className="text-xs font-medium text-muted underline underline-offset-2 shrink-0 min-h-11"
+                >
+                  Not coming?
+                </button>
+              )}
             </div>
           );
         })}
+        <MarkAbsentSheet
+          booking={absentTarget}
+          onClose={() => setAbsentTarget(null)}
+        />
       </div>
     </section>
   );
