@@ -145,7 +145,7 @@ export function TodoDetailPanel({
                   saveField("description", description || null);
               }}
               rows={3}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-y"
               placeholder="Add details..."
             />
           </div>

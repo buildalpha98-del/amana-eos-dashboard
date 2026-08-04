@@ -22,7 +22,7 @@ export function SegueSection({
         value={notes}
         onChange={(e) => onUpdate(e.target.value)}
         placeholder="Capture good news shared by team members..."
-        className="w-full h-40 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+        className="w-full min-h-40 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
       />
     </div>
   );
