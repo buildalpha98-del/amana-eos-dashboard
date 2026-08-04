@@ -12,6 +12,7 @@ import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { programmeName } from "@/lib/programme-names";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -42,7 +43,8 @@ interface BookingCalendarProps {
  * room name. The full name shows in the booking dialog and on the
  * centre page, where there's space to say it properly.
  */
-const SESSION_LABELS: Record<string, string> = { bsc: "BSC", asc: "ASC", vc: "VC" };
+/** Order the day panel lists sessions in — morning before afternoon. */
+const SESSION_ORDER = ["bsc", "asc", "vc"] as const;
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ── Hooks ────────────────────────────────────────────────
@@ -108,7 +110,6 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
   const now = new Date();
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedSession, setSelectedSession] = useState<string>("asc");
 
   const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
   const monthKey = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}`;
@@ -146,12 +147,20 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
     setSelectedDate(selectedDate === dateStr ? null : dateStr);
   }
 
-  function handleBookDay() {
+  /**
+   * Book ONE named programme on the selected day.
+   *
+   * Takes the session explicitly. With the per-programme toggle gone
+   * there is no "current" one to fall back on, and silently defaulting
+   * to afternoons would book a family into the wrong session — the kind
+   * of mistake you only find out about at 6:30am.
+   */
+  function handleBookDay(sessionType: string) {
     if (!selectedDate) return;
     bulkBooking.mutate({
       childId,
       serviceId,
-      bookings: [{ date: selectedDate, sessionType: selectedSession }],
+      bookings: [{ date: selectedDate, sessionType }],
     });
     setSelectedDate(null);
   }
@@ -180,22 +189,13 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
           </button>
         </div>
 
-        <div className="flex rounded-lg border border-border overflow-hidden">
-          {(["bsc", "asc", "vc"] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setSelectedSession(st)}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium transition-colors",
-                selectedSession === st
-                  ? "bg-brand text-white"
-                  : "bg-card text-muted hover:bg-surface",
-              )}
-            >
-              {SESSION_LABELS[st]}
-            </button>
-          ))}
-        </div>
+        {/*
+          The per-programme toggle is gone (2026-08-04). A family with a
+          child in Rise and Shine AND Amana Afternoons had to flip
+          between two calendars to see one day, and the toggle looked
+          like a filter on what was booked rather than a view switch.
+          Every programme now shows at once, one dot each.
+        */}
       </div>
 
       {/* Weekday headers */}
@@ -213,30 +213,41 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
           if (!day) return <div key={i} />;
 
           const dateStr = day.toISOString().split("T")[0];
-          const bookingKey = `${dateStr}-${selectedSession}`;
-          const booking = bookingMap.get(bookingKey);
-          const avail = availMap.get(bookingKey);
+          // Every session booked that day, so two sessions render two dots.
+          const dayBookings = SESSION_ORDER.map((st) => ({
+            sessionType: st,
+            booking: bookingMap.get(`${dateStr}-${st}`),
+          })).filter((x) => x.booking);
+          const avail = availMap.get(`${dateStr}-asc`);
           const isToday = dateStr === todayStr;
           const isPast = day < new Date(todayStr);
           const isSelected = dateStr === selectedDate;
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
           let bgClass = "bg-card hover:bg-surface";
-          let dotColor = "";
+          const dots: string[] = [];
 
-          if (booking) {
-            if (booking.status === "confirmed") {
-              bgClass = "bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-950/50";
-              dotColor = "bg-green-500";
-            } else if (booking.status === "requested") {
-              bgClass = "bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/50";
-              dotColor = "bg-amber-500";
+          if (dayBookings.length > 0) {
+            // Tinted by the "weakest" state on the day — one session still
+            // awaiting confirmation shouldn't read as a settled day.
+            const anyRequested = dayBookings.some(
+              (x) => x.booking?.status === "requested",
+            );
+            bgClass = anyRequested
+              ? "bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/50"
+              : "bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-950/50";
+            for (const x of dayBookings) {
+              dots.push(
+                x.booking?.status === "requested"
+                  ? "bg-amber-500"
+                  : "bg-green-500",
+              );
             }
           } else if (avail && avail.available === 0) {
             bgClass = "bg-red-50 dark:bg-red-950/40";
-            dotColor = "bg-red-400";
+            dots.push("bg-red-400");
           } else if (avail && avail.available > 0 && !isPast && !isWeekend) {
-            dotColor = "bg-muted/30";
+            dots.push("bg-muted/30");
           }
 
           return (
@@ -255,8 +266,15 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
               <span className={cn("font-medium", isToday ? "text-brand" : "text-foreground")}>
                 {day.getDate()}
               </span>
-              {dotColor && (
-                <span className={cn("w-1.5 h-1.5 rounded-full mt-0.5", dotColor)} />
+              {dots.length > 0 && (
+                <span className="flex items-center gap-0.5 mt-0.5">
+                  {dots.map((c, di) => (
+                    <span
+                      key={di}
+                      className={cn("w-1.5 h-1.5 rounded-full", c)}
+                    />
+                  ))}
+                </span>
               )}
             </button>
           );
@@ -279,40 +297,86 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
               weekday: "long",
               day: "numeric",
               month: "long",
-            })}{" "}
-            — {SESSION_LABELS[selectedSession]}
+            })}
           </p>
 
-          {bookingMap.get(`${selectedDate}-${selectedSession}`) ? (
-            <p className="text-xs text-muted mt-2">
-              Already booked ({bookingMap.get(`${selectedDate}-${selectedSession}`)?.status})
-            </p>
-          ) : (
-            <div className="mt-3">
-              {(() => {
-                const a = availMap.get(`${selectedDate}-${selectedSession}`);
-                if (a && a.available === 0) {
-                  return <p className="text-xs text-red-600">No spots available for this session.</p>;
-                }
-                return (
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted">
-                      {a ? `${a.available} spot${a.available !== 1 ? "s" : ""} available` : "Availability unknown"}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      iconLeft={<Calendar className="w-4 h-4" />}
-                      loading={bulkBooking.isPending}
-                      onClick={handleBookDay}
+          {/* What's actually booked that day, named the way families
+              know it — "Rise and Shine Club", never "BSC". */}
+          {(() => {
+            const booked = SESSION_ORDER.map((st) => ({
+              st,
+              booking: bookingMap.get(`${selectedDate}-${st}`),
+            })).filter((x) => x.booking);
+
+            if (booked.length > 0) {
+              return (
+                <ul className="mt-2 space-y-1">
+                  {booked.map(({ st, booking }) => (
+                    <li
+                      key={st}
+                      className="flex items-center gap-2 text-sm text-foreground"
                     >
-                      Request Booking
-                    </Button>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
+                      <span
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full shrink-0",
+                          booking?.status === "requested"
+                            ? "bg-amber-500"
+                            : "bg-green-500",
+                        )}
+                      />
+                      {programmeName(st)}
+                      <span className="text-xs text-muted ml-auto capitalize">
+                        {booking?.status === "requested"
+                          ? "Pending"
+                          : "Confirmed"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              );
+            }
+
+            // Nothing booked: offer each programme that still has room,
+            // named, so the family chooses rather than us guessing.
+            const open = SESSION_ORDER.map((st) => ({
+              st,
+              avail: availMap.get(`${selectedDate}-${st}`),
+            })).filter((x) => !x.avail || x.avail.available > 0);
+
+            if (open.length === 0) {
+              return (
+                <p className="text-xs text-red-600 mt-2">
+                  No spots available that day.
+                </p>
+              );
+            }
+
+            return (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-muted">Nothing booked yet.</p>
+                {open.map(({ st, avail }) => (
+                  <Button
+                    key={st}
+                    size="sm"
+                    variant="outline"
+                    className="w-full justify-between"
+                    loading={bulkBooking.isPending}
+                    onClick={() => handleBookDay(st)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Request {programmeName(st)}
+                    </span>
+                    {avail && (
+                      <span className="text-xs text-muted">
+                        {avail.available} left
+                      </span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

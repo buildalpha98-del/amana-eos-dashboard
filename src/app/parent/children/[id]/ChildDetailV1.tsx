@@ -16,7 +16,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
-  CalendarDays,
   Stethoscope,
   Phone,
   Pill,
@@ -34,13 +33,10 @@ import {
 } from "lucide-react";
 import {
   useParentChildren,
-  useChildAttendance,
   useUpdateChildMedical,
   type ParentChild,
-  type AttendanceDay,
   type UpdateChildMedicalPayload,
 } from "@/hooks/useParentPortal";
-import { useChildAttendanceDetail } from "@/hooks/useChildAttendanceDetail";
 import { useChildGallery, type GalleryImage } from "@/hooks/useChildGallery";
 import {
   Dialog,
@@ -55,13 +51,12 @@ import { toast } from "@/hooks/useToast";
 import { ChildInformationTab } from "@/components/parent/ChildInformationTab";
 import { ParentFeed } from "@/components/parent/ParentFeed";
 
-type Tab = "info" | "attendance" | "gallery" | "medical" | "documents" | "pickups";
+type Tab = "info" | "gallery" | "medical" | "documents" | "pickups";
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   // First, and the default: when a parent opens their child it's usually
   // to check or correct something here, not to read the timetable.
   { key: "info", label: "Info", icon: User },
-  { key: "attendance", label: "Attendance", icon: CalendarDays },
   { key: "gallery", label: "Photos", icon: Camera },
   { key: "medical", label: "Medical", icon: Stethoscope },
   { key: "documents", label: "Docs", icon: FileText },
@@ -77,8 +72,6 @@ export default function ChildDetailV1() {
   const [activeTab, setActiveTab] = useState<Tab>("info");
 
   const { data: children, isLoading: childrenLoading } = useParentChildren();
-  const { data: attendance, isLoading: attendanceLoading } =
-    useChildAttendance(id);
 
   const child = children?.find((c) => c.id === id);
 
@@ -150,13 +143,6 @@ export default function ChildDetailV1() {
 
       {/* Tab content */}
       {activeTab === "info" && <ChildInformationTab childId={child.id} />}
-      {activeTab === "attendance" && (
-        <AttendanceTab
-          childId={child.id}
-          attendance={attendance ?? []}
-          loading={attendanceLoading}
-        />
-      )}
       {activeTab === "gallery" && (
         <ParentFeed childId={child.id} childFirstName={child.firstName} />
       )}
@@ -169,178 +155,8 @@ export default function ChildDetailV1() {
 
 // ── Attendance Tab ───────────────────────────────────────
 
-const SESSION_LABELS_ATT: Record<string, string> = {
-  bsc: "Before School Care",
-  asc: "After School Care",
-  vc: "Vacation Care",
-};
 
-function formatAttTime(dt: string | null | undefined): string {
-  if (!dt) return "";
-  return new Date(dt).toLocaleTimeString("en-AU", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
 
-function AttendanceTab({
-  childId,
-  attendance,
-  loading,
-}: {
-  childId: string;
-  attendance: AttendanceDay[];
-  loading: boolean;
-}) {
-  const todayStr = new Date().toISOString().split("T")[0];
-  const { data: todayDetail } = useChildAttendanceDetail(childId, todayStr);
-
-  return (
-    <div className="space-y-4">
-      {/* Today's live status card */}
-      {todayDetail && todayDetail.source === "individual" && todayDetail.sessions.length > 0 && (
-        <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Today</h3>
-          <div className="space-y-2.5">
-            {todayDetail.sessions.map((s) => (
-              <div key={s.sessionType} className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted">
-                    {SESSION_LABELS_ATT[s.sessionType ?? ""] ?? s.sessionType}
-                  </p>
-                  {s.status === "present" && (
-                    <p className="text-sm text-foreground mt-0.5">
-                      Signed in {formatAttTime(s.signInTime)}
-                      {s.signedInBy && <span className="text-muted"> by {s.signedInBy}</span>}
-                      {s.signOutTime && (
-                        <span className="text-muted"> · Out {formatAttTime(s.signOutTime)}</span>
-                      )}
-                    </p>
-                  )}
-                  {s.status === "absent" && (
-                    <p className="text-sm text-red-600 mt-0.5">
-                      Absent{s.absenceReason && ` — ${s.absenceReason}`}
-                    </p>
-                  )}
-                  {s.status === "booked" && (
-                    <p className="text-sm text-amber-600 mt-0.5">Not yet arrived</p>
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    "text-2xs font-semibold px-2 py-0.5 rounded-full",
-                    s.status === "present" ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300" :
-                    s.status === "absent" ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400" :
-                    "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
-                  )}
-                >
-                  {s.status === "present" ? "Present" : s.status === "absent" ? "Absent" : "Booked"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 30-day calendar grid */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-10 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : attendance.length === 0 ? (
-        <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
-          <CalendarDays className="w-8 h-8 text-muted mx-auto mb-2" />
-          <p className="text-muted text-sm">
-            No attendance records found for the last 30 days.
-          </p>
-        </div>
-      ) : (
-        <>
-          <p className="text-xs text-muted">Last 30 days</p>
-          <div className="grid grid-cols-5 gap-1 text-center">
-            {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
-              <span key={d} className="text-2xs font-semibold text-muted uppercase">
-                {d}
-              </span>
-            ))}
-          </div>
-          {groupByWeek(attendance).map((week, wi) => (
-            <div key={wi} className="grid grid-cols-5 gap-1">
-              {week.map((day, di) => (
-                <div
-                  key={di}
-                  className={cn(
-                    "aspect-square rounded-lg flex flex-col items-center justify-center text-2xs",
-                    day === null
-                      ? "bg-transparent"
-                      : day.status === "present"
-                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
-                        : day.status === "absent"
-                          ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400"
-                          : "bg-surface text-muted"
-                  )}
-                >
-                  {day && (
-                    <>
-                      <span className="font-medium">{new Date(day.date).getDate()}</span>
-                      <span className="text-[8px]">
-                        {day.status === "present" ? "Present" : day.status === "absent" ? "Absent" : "—"}
-                      </span>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-          <div className="flex items-center gap-4 justify-center pt-2">
-            <LegendDot color="bg-green-500" label="Present" />
-            <LegendDot color="bg-red-500" label="Absent" />
-            <LegendDot color="bg-border" label="No session" />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1 text-2xs text-muted">
-      <span className={cn("w-2 h-2 rounded-full", color)} />
-      {label}
-    </span>
-  );
-}
-
-function groupByWeek(days: AttendanceDay[]): (AttendanceDay | null)[][] {
-  if (days.length === 0) return [];
-  const sorted = [...days].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const weeks: (AttendanceDay | null)[][] = [];
-  let currentWeek: (AttendanceDay | null)[] = [];
-
-  for (const day of sorted) {
-    const date = new Date(day.date);
-    const dow = date.getDay();
-    if (dow === 0 || dow === 6) continue;
-    const slotIndex = dow - 1;
-    if (currentWeek.length > slotIndex) {
-      while (currentWeek.length < 5) currentWeek.push(null);
-      weeks.push(currentWeek);
-      currentWeek = [];
-    }
-    while (currentWeek.length < slotIndex) currentWeek.push(null);
-    currentWeek.push(day);
-  }
-
-  if (currentWeek.length > 0) {
-    while (currentWeek.length < 5) currentWeek.push(null);
-    weeks.push(currentWeek);
-  }
-  return weeks;
-}
 
 // ── Gallery Tab ─────────────────────────────────────────
 

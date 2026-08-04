@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { SectionLabel } from "@/components/parent/ui";
-import { ParentFeed } from "@/components/parent/ParentFeed";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface Contact {
@@ -141,19 +140,10 @@ export default function MyCentrePage() {
       )}
 
       {/*
-        Announcements and reminders only — the notices a family comes
-        looking for, alongside everything else about the centre. The full
-        feed (photos, observations, programme and food updates) is on
-        Home, so the two lists have different jobs instead of being the
-        same posts rendered twice.
-
-        Above the welcome text on purpose: the welcome is read once, a
-        notice is why someone opens this tab again.
+        No feed here (2026-08-04, per Daniel). Posts and announcements
+        all live on Home — this tab is the centre's reference card:
+        where we are, who to call, how the day runs, the policies.
       */}
-      <ParentFeed
-        heading="Announcements"
-        types={["announcement", "reminder"]}
-      />
 
       {/* ── 1. Welcome + vision ──────────────────────────── */}
       <section className="warm-card overflow-hidden">
