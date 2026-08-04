@@ -12,9 +12,7 @@ import {
   useParentEnrolmentApplications,
 } from "@/hooks/useParentPortal";
 import { DailyInfoWidgets } from "@/components/parent/DailyInfoWidgets";
-import { TimelineWidget } from "@/components/parent/TimelineWidget";
 import { OwnaTransitionNotice } from "@/components/parent/OwnaTransitionNotice";
-import { ParentFeed } from "@/components/parent/ParentFeed";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { programmeName } from "@/lib/programme-names";
@@ -65,19 +63,17 @@ export default function ParentHomeV1() {
 
       <UpcomingSessionsWidget />
 
-      {/* Posts from the service. Left in place deliberately: the feed is
-          a separate task, and Home is currently the only surface a
-          parent can see a post on — removing it here would take the
-          feature away rather than move it. */}
-      <ParentFeed />
+      {/* Centre updates and announcements moved to My Centre (2026-08-04).
+          Home was also rendering them TWICE — ParentFeed and the older
+          TimelineWidget read the same endpoint, so every post appeared
+          in both, and the older card still offered a Comment box against
+          an endpoint that now refuses comments. */}
 
       {/* Today's menu and programme. */}
       <DailyInfoWidgets />
 
       {/* Only renders when the family has an application in flight. */}
       <EnrolmentApplicationsWidget />
-
-      <TimelineWidget />
 
       {/* Quick actions */}
       <section aria-label="Quick actions">

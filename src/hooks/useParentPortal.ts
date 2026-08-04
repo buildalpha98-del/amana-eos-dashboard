@@ -657,44 +657,6 @@ export function useParentPostLikeToggle() {
   });
 }
 
-interface CommentsResponse {
-  items: PostComment[];
-  nextCursor?: string;
-}
-
-export function useParentPostComments(postId: string | null) {
-  return useQuery<CommentsResponse>({
-    queryKey: ["parent", "post-comments", postId],
-    queryFn: () =>
-      fetchApi<CommentsResponse>(`/api/parent/posts/${postId}/comments?limit=50`),
-    retry: 2,
-    staleTime: 15_000,
-    enabled: !!postId,
-  });
-}
-
-export function useCreateParentPostComment(postId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: string) =>
-      mutateApi<PostComment>(`/api/parent/posts/${postId}/comments`, {
-        method: "POST",
-        body: { body },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["parent", "post-comments", postId] });
-      queryClient.invalidateQueries({ queryKey: ["parent-timeline"] });
-    },
-    onError: (err: Error) => {
-      toast({
-        variant: "destructive",
-        description: err.message || "Couldn't post comment.",
-      });
-    },
-  });
-}
-
-// ── Daily Info (Menu + Program) ─────────────────────────
 
 export interface DailyMenuItem {
   slot: string;
