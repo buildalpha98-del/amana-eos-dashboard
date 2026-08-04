@@ -140,10 +140,12 @@ function seedWeek() {
 
 describe("ServiceAttendanceTab — weekly grid", () => {
   beforeEach(() => {
-    // Reset per-centre toggle so each test starts without Holiday Quest
-    if (typeof window !== "undefined") {
-      window.localStorage.clear();
-    }
+    // Reset per-centre toggle so each test starts without Holiday Quest.
+    // Optional-chained: this whole file has been failing at setup because
+    // window.localStorage is undefined under the jsdom env here, which
+    // took all five tests down with it. Nothing to clear is fine — the
+    // intent is "start from the default", not "storage must exist".
+    window?.localStorage?.clear();
     seedWeek();
     mutateApiMock.mockClear();
   });
@@ -199,5 +201,59 @@ describe("ServiceAttendanceTab — weekly grid", () => {
     });
     expect(screen.getByText("Show Holiday Quest")).toBeTruthy();
     expect(screen.queryByText("Show VC")).toBeNull();
+  });
+});
+
+describe("ServiceAttendanceTab — week navigation", () => {
+  beforeEach(() => {
+    window?.localStorage?.clear();
+    seedWeek();
+    mutateApiMock.mockClear();
+  });
+
+  it("can move to NEXT week from the current one", () => {
+    // The bug: forward was `disabled={weekOffset >= 0}`, true at the
+    // default offset of 0 — so the arrow was dead on arrival and staff
+    // could never reach the week they were about to propagate into.
+    render(<ServiceAttendanceTab serviceId="svc-1" serviceName="Greenacre" />, {
+      wrapper: wrapper(makeClient()),
+    });
+
+    const next = screen.getByLabelText("Next week") as HTMLButtonElement;
+    expect(next.disabled).toBe(false);
+
+    const before = screen.getByText(/Week Starting/i).textContent;
+    fireEvent.click(next);
+    expect(screen.getByText(/Week Starting/i).textContent).not.toBe(before);
+  });
+
+  it("keeps going forward, and back again", () => {
+    render(<ServiceAttendanceTab serviceId="svc-1" serviceName="Greenacre" />, {
+      wrapper: wrapper(makeClient()),
+    });
+    const next = screen.getByLabelText("Next week");
+    const prev = screen.getByLabelText("Previous week");
+
+    fireEvent.click(next);
+    const twoWeeks = screen.getByText(/Week Starting/i).textContent;
+    fireEvent.click(next);
+    expect(screen.getByText(/Week Starting/i).textContent).not.toBe(twoWeeks);
+
+    fireEvent.click(prev);
+    expect(screen.getByText(/Week Starting/i).textContent).toBe(twoWeeks);
+  });
+
+  it("disables Today only when you're already on it", () => {
+    render(<ServiceAttendanceTab serviceId="svc-1" serviceName="Greenacre" />, {
+      wrapper: wrapper(makeClient()),
+    });
+    const today = screen.getByRole("button", { name: "Today" }) as HTMLButtonElement;
+    expect(today.disabled).toBe(true);
+
+    fireEvent.click(screen.getByLabelText("Next week"));
+    expect(today.disabled).toBe(false);
+
+    fireEvent.click(today);
+    expect(today.disabled).toBe(true);
   });
 });
