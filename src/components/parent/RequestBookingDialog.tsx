@@ -40,7 +40,12 @@ interface Centre {
   sessionTimes?: SessionTimes | null;
   /** Session keys this centre has enabled for casual bookings. */
   casualSessions?: string[];
+  /** Weekdays each enabled session runs, e.g. { asc: ["mon","tue"] }. */
+  casualSessionDays?: Record<string, string[]>;
 }
+
+/** getDay() index → the key staff configure days under. */
+const DAY_KEY = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 /** Local calendar date as YYYY-MM-DD — toISOString() would shift the
  *  day for anyone east of Greenwich, which is everyone here. */
@@ -175,9 +180,38 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
   const centre = centreData?.centres.find(
     (c) => c.id === selectedChild?.serviceId,
   );
-  const bookableSessions = ((centre?.casualSessions ?? []) as string[]).filter(
-    (k): k is SessionKey => (SESSION_KEYS as string[]).includes(k),
-  );
+  const sessionDays = centre?.casualSessionDays ?? {};
+
+  /**
+   * Weekdays at least one enabled session runs.
+   *
+   * The day strip only shows these. Most centres run Monday to Friday,
+   * so Saturday and Sunday simply don't appear — a weekend chip that
+   * 400s when pressed is a trap, not an option. A centre that IS open
+   * Saturdays (its staff ticked Sat under Casual Bookings) gets its
+   * Saturday chips back automatically. Before a child is chosen we
+   * default to weekdays rather than showing nothing.
+   */
+  const openWeekdays = useMemo(() => {
+    const lists = Object.values(sessionDays);
+    if (lists.length === 0) return new Set(["mon", "tue", "wed", "thu", "fri"]);
+    return new Set(lists.flat());
+  }, [sessionDays]);
+
+  const bookableSessions = ((centre?.casualSessions ?? []) as string[])
+    .filter((k): k is SessionKey => (SESSION_KEYS as string[]).includes(k))
+    // Only sessions that run on EVERY day picked — offering Rise and
+    // Shine for a set that includes a day it doesn't run would fail the
+    // request after the button press.
+    .filter(
+      (k) =>
+        dates.length === 0 ||
+        dates.every((iso) =>
+          (sessionDays[k] ?? []).includes(
+            DAY_KEY[new Date(`${iso}T00:00:00`).getDay()],
+          ),
+        ),
+    );
 
   // The rooms belong to the CHILD's centre — siblings at different
   // campuses can have different room names and hours.
@@ -204,7 +238,16 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
                 <button
                   key={child.id}
                   type="button"
-                  onClick={() => setSelectedChild(child)}
+                  onClick={() => {
+                    setSelectedChild(child);
+                    // Siblings can be at different centres with different
+                    // operating days — days picked for one may not exist
+                    // at the other, so a switch clears the picks rather
+                    // than carrying invalid ones into the request.
+                    if (child.serviceId !== selectedChild?.serviceId) {
+                      setDates([]);
+                    }
+                  }}
                   className={cn(
                     "w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all min-h-[44px]",
                     selectedChild?.id === child.id
@@ -251,10 +294,11 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
 
             <div className="-mx-1 overflow-x-auto">
               <div className="flex gap-2 px-1 pb-1">
-                {upcoming.map((d) => {
+                {upcoming
+                  .filter((d) => openWeekdays.has(DAY_KEY[d.getDay()]))
+                  .map((d) => {
                   const iso = toIsoDate(d);
                   const picked = dates.includes(iso);
-                  const weekend = d.getDay() === 0 || d.getDay() === 6;
                   return (
                     <button
                       key={iso}
@@ -265,9 +309,7 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
                         "shrink-0 w-14 py-2 rounded-xl border-2 flex flex-col items-center justify-center transition-all min-h-[56px]",
                         picked
                           ? "border-brand bg-brand text-white"
-                          : weekend
-                            ? "border-border/60 text-muted"
-                            : "border-border text-foreground",
+                          : "border-border text-foreground",
                       )}
                     >
                       <span className="text-2xs uppercase tracking-wide">

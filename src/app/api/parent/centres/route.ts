@@ -34,6 +34,29 @@ function enabledCasualSessions(raw: unknown): string[] {
     .map(([key]) => key);
 }
 
+/**
+ * Which weekdays each ENABLED session actually runs.
+ *
+ * The booking form needs this to hide days a family can't book at all —
+ * most centres run Monday to Friday, and a Saturday chip that 400s when
+ * pressed is a trap, not an option. Read from the same per-session
+ * `days` list staff configure under Daily Ops → Casual Bookings, so a
+ * centre that IS open Saturdays gets its Saturday back automatically.
+ */
+function enabledCasualSessionDays(raw: unknown): Record<string, string[]> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, string[]> = {};
+  for (const [key, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (key === "policy" || !v || typeof v !== "object") continue;
+    const session = v as { enabled?: unknown; days?: unknown };
+    if (session.enabled !== true) continue;
+    out[key] = Array.isArray(session.days)
+      ? session.days.filter((d): d is string => typeof d === "string")
+      : [];
+  }
+  return out;
+}
+
 export const GET = withParentAuth(async (_req, { parent }) => {
   // Look up every Service the parent's children attend. Children attendance
   // comes through `EnrolmentSubmission.childRecords[].serviceId` and the
@@ -127,6 +150,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     email: s.email,
     content: contentByService.get(s.id)!,
     casualSessions: enabledCasualSessions(s.casualBookingSettings),
+    casualSessionDays: enabledCasualSessionDays(s.casualBookingSettings),
     // Order follows the admin's selection, not the database's.
     policies: (contentByService.get(s.id)?.policyDocumentIds ?? [])
       .map((id) => policyById.get(id))
