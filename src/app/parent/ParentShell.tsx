@@ -60,7 +60,11 @@ const NAV_ITEMS = [
 const TAB_ITEMS = [
   { href: "/parent", label: "Home", icon: Home },
   { href: "/parent/children", label: "Children", icon: Users },
-  { href: "/parent/messages", label: "Messages", icon: MessageCircle },
+  // 2026-08-05, per Daniel: My Centre earns the bar spot and Messages
+  // moves behind the action button. The unread badge moves WITH it —
+  // onto the button and the sheet row — or unread messages would go
+  // silently invisible.
+  { href: "/parent/my-centre", label: "My Centre", icon: MapPin },
   { href: "/parent/account", label: "Account", icon: Settings },
 ] as const;
 
@@ -73,10 +77,10 @@ const ACTION_ITEMS = [
     icon: Calendar,
   },
   {
-    href: "/parent/my-centre",
-    label: "My Centre",
-    hint: "Where to find us, contacts, policies",
-    icon: MapPin,
+    href: "/parent/messages",
+    label: "Messages",
+    hint: "Message head office directly",
+    icon: MessageCircle,
   },
   {
     href: "/parent/billing",
@@ -287,7 +291,9 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
             item.href === "/parent"
               ? pathname === "/parent"
               : pathname.startsWith(item.href);
-          const showBadge = item.href === "/parent/messages" && unreadCount > 0;
+          // Messages lives behind the action button now, so no tab
+          // carries its badge — the button and the sheet row do.
+          const showBadge = false as boolean;
           return (
             <Fragment key={item.href}>
               {/* The action button sits dead centre, between the second
@@ -302,12 +308,22 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                   className="relative flex-1 flex items-center justify-center min-h-[44px]"
                 >
                   <span className="absolute -top-4 w-14 h-14 rounded-full bg-accent shadow-lg flex items-center justify-center ring-4 ring-brand">
+                    {/* Messages is in the sheet this opens, so its unread
+                        count surfaces here — otherwise a waiting reply is
+                        invisible until someone happens to open the menu. */}
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-2xs font-bold ring-2 ring-brand">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                    {/* Midnight Green mark on the Jonquil circle — the
+                        brand-approved pairing. The old brightness-0
+                        filter faked BLACK, which is in nobody's palette. */}
                     <Image
-                      src="/logo-icon-white.svg"
+                      src="/logo-icon-green.svg"
                       alt=""
                       width={22}
                       height={30}
-                      className="brightness-0"
                     />
                   </span>
                 </button>
@@ -366,12 +382,17 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
                 <span className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center shrink-0">
                   <item.icon className="w-5 h-5 text-brand" />
                 </span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-foreground">
                     {item.label}
                   </span>
                   <span className="block text-xs text-muted">{item.hint}</span>
                 </span>
+                {item.href === "/parent/messages" && unreadCount > 0 && (
+                  <span className="w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-2xs font-bold shrink-0">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </Link>
             ))}
           </div>

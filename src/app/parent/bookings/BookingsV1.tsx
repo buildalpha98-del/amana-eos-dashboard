@@ -115,7 +115,7 @@ export default function BookingsV1() {
         className="sm:hidden w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] min-h-[48px]"
       >
         <Plus className="w-4 h-4" />
-        Request Casual Booking
+        Book a casual session
       </button>
 
       {/* Recurring bookings aren't self-serve — changing a permanent

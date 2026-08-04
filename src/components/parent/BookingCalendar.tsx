@@ -95,7 +95,7 @@ function useBulkBooking() {
       toast({ description: "Booking request submitted" });
     },
     onError: (err: Error) => {
-      toast({ variant: "destructive", description: err.message || "Failed to submit booking" });
+      toast({ variant: "destructive", description: err.message || "That booking didn\u2019t go through — try again, or message head office." });
     },
   });
 }

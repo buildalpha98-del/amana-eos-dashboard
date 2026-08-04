@@ -114,24 +114,41 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
   const [sessionType, setSessionType] = useState<string>("");
 
   /**
-   * The next four weeks, starting tomorrow.
+   * One week of days at a time, paged by "This week / Next week / …".
    *
-   * A strip of real days rather than a date field: on a phone, tapping
-   * "Thu 7" is one gesture where a date input is a spinner, a scroll and
-   * a confirm. Four weeks because casual care is planned within the
-   * month — beyond that the centre's spots aren't loaded anyway.
+   * Parents think in weeks — "Tuesday and Thursday NEXT week" — so the
+   * picker matches that: a named week, its days, and arrows to move.
+   * A 28-day scroll strip made them count chips to find a week; a date
+   * field made them spin a wheel. Six weeks out covers school-holiday
+   * planning without paging into months the centre hasn't loaded.
    */
-  const upcoming = useMemo(() => {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const MAX_WEEK = 5;
+
+  const weekDays = useMemo(() => {
+    const monday = new Date();
+    monday.setHours(0, 0, 0, 0);
+    const dow = monday.getDay();
+    monday.setDate(monday.getDate() - (dow === 0 ? 6 : dow - 1) + weekOffset * 7);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const out: Date[] = [];
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 1);
-    for (let i = 0; i < 28; i++) {
-      out.push(new Date(d));
-      d.setDate(d.getDate() + 1);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      // Today and earlier can't be casually booked (24h cut-off), so
+      // this week starts at tomorrow rather than showing dead chips.
+      if (d > today) out.push(d);
     }
     return out;
-  }, []);
+  }, [weekOffset]);
+
+  const weekName =
+    weekOffset === 0
+      ? "This week"
+      : weekOffset === 1
+        ? "Next week"
+        : `In ${weekOffset} weeks`;
 
   const resetForm = () => {
     setSelectedChild(null);
@@ -192,11 +209,14 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
    * Saturday chips back automatically. Before a child is chosen we
    * default to weekdays rather than showing nothing.
    */
-  const openWeekdays = useMemo(() => {
-    const lists = Object.values(sessionDays);
-    if (lists.length === 0) return new Set(["mon", "tue", "wed", "thu", "fri"]);
-    return new Set(lists.flat());
-  }, [sessionDays]);
+  // Plain derivation, no memo: it's a handful of array ops per render,
+  // and memoising on `sessionDays` (a fresh `?? {}` object each render)
+  // was defeating the React Compiler's own memoisation of the component.
+  const lists = Object.values(sessionDays);
+  const openWeekdays =
+    lists.length === 0
+      ? new Set(["mon", "tue", "wed", "thu", "fri"])
+      : new Set(lists.flat());
 
   const bookableSessions = ((centre?.casualSessions ?? []) as string[])
     .filter((k): k is SessionKey => (SESSION_KEYS as string[]).includes(k))
@@ -222,7 +242,7 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogTitle>Request Casual Booking</DialogTitle>
+        <DialogTitle>Book a casual session</DialogTitle>
         <DialogDescription>
           Select a child, date, and session type for the booking.
         </DialogDescription>
@@ -292,9 +312,35 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
               )}
             </div>
 
-            <div className="-mx-1 overflow-x-auto">
-              <div className="flex gap-2 px-1 pb-1">
-                {upcoming
+            {/* Week pager — parents plan in weeks, so the picker names
+                them. Picks are KEPT while paging: choosing Tuesday this
+                week and Thursday next is the whole point. */}
+            <div className="flex items-center justify-between mb-2">
+              <button
+                type="button"
+                onClick={() => setWeekOffset((w) => Math.max(0, w - 1))}
+                disabled={weekOffset === 0}
+                aria-label="Earlier week"
+                className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-foreground disabled:opacity-30"
+              >
+                ←
+              </button>
+              <span className="text-sm font-semibold text-foreground">
+                {weekName}
+              </span>
+              <button
+                type="button"
+                onClick={() => setWeekOffset((w) => Math.min(MAX_WEEK, w + 1))}
+                disabled={weekOffset >= MAX_WEEK}
+                aria-label="Later week"
+                className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-foreground disabled:opacity-30"
+              >
+                →
+              </button>
+            </div>
+
+            <div className="flex gap-2 justify-center flex-wrap">
+              {weekDays
                   .filter((d) => openWeekdays.has(DAY_KEY[d.getDay()]))
                   .map((d) => {
                   const iso = toIsoDate(d);
@@ -324,17 +370,24 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
                     </button>
                   );
                 })}
-              </div>
             </div>
-            <p className="mt-1 text-2xs text-muted">
-              Tap as many days as you need.
+            {weekDays.filter((d) => openWeekdays.has(DAY_KEY[d.getDay()]))
+              .length === 0 && (
+              <p className="text-xs text-muted text-center py-2">
+                {weekOffset === 0
+                  ? "This week's sessions have passed — try next week."
+                  : "No bookable days that week."}
+              </p>
+            )}
+            <p className="mt-1 text-2xs text-muted text-center">
+              Tap as many days as you like — across different weeks too.
             </p>
           </div>
 
           {/* Session type */}
           <div>
             <label className="block text-xs font-medium text-foreground/70 mb-2">
-              Session Type
+              Which programme?
             </label>
             {bookableSessions.length === 0 ? (
               <p className="text-xs text-muted">

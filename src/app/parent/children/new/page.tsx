@@ -35,7 +35,7 @@ export default function NewChildPage() {
         </Link>
         <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
           <p className="text-muted text-sm">
-            Unable to load your profile. Please try again.
+            We couldn't load your details just now — try again in a moment.
           </p>
         </div>
       </div>
