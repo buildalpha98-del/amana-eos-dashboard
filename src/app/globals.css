@@ -523,3 +523,59 @@ td, th {
   text-align: center;
   padding: 0.5rem;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Parent portal — the things that separate "a website in a browser"
+   from "an app".
+
+   Scoped to .parent-portal so none of it touches the staff dashboard,
+   which is a desktop tool and wants ordinary web behaviour.
+   ───────────────────────────────────────────────────────────────────── */
+
+.parent-portal {
+  /* iOS paints a grey box over anything tapped. Nothing else on a phone
+     does that, and it's the single loudest "this is a web page" tell. */
+  -webkit-tap-highlight-color: transparent;
+
+  /* Stops the whole document rubber-banding past its ends. Scrollable
+     regions inside still bounce, which is the behaviour people expect. */
+  overscroll-behavior-y: contain;
+
+  /* Long-press on a card or a tab shouldn't offer "Copy" / "Look Up". */
+  -webkit-touch-callout: none;
+}
+
+/* …but text people might genuinely want to copy stays selectable:
+   a centre's phone number, an address, a policy name. */
+.parent-portal p,
+.parent-portal h1,
+.parent-portal h2,
+.parent-portal h3,
+.parent-portal input,
+.parent-portal textarea,
+.parent-portal a[href^="tel:"],
+.parent-portal a[href^="mailto:"] {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Press feedback. A native control acknowledges the touch before the
+   navigation happens; a link that only changes on :hover feels dead on a
+   device with no pointer. */
+@media (hover: none) {
+  .parent-portal a:active,
+  .parent-portal button:not(:disabled):active {
+    transform: scale(0.985);
+    transition: transform 60ms ease-out;
+  }
+}
+
+/* Landscape notch: keep the fixed chrome clear of the sensor housing.
+   Scoped to header/nav — `.bg-brand` alone would also indent every
+   brand-coloured BUTTON in the app. */
+.parent-portal > header,
+.parent-portal > nav {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}

@@ -125,7 +125,13 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   if (mustEnrol) {
     return (
       <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
-        <header className="h-14 bg-brand flex items-center px-4 shadow-md">
+        <header
+          className="bg-brand flex items-center px-4 shadow-md"
+          style={{
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            height: "calc(3.5rem + env(safe-area-inset-top, 0px))",
+          }}
+        >
           <span className="text-white font-heading font-semibold">
             Amana OSHC
           </span>
@@ -153,7 +159,15 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div data-v2="parent" className="parent-portal min-h-screen bg-parent-bg">
       {/* ─── Header ─────────────────────────────────────────── */}
-      <header className="fixed top-0 inset-x-0 h-14 bg-brand z-30 flex items-center justify-between px-4 shadow-md">
+      {/* The bar itself stays 56px; the inset is padding ABOVE it, so the
+          status bar sits on brand colour rather than over the logo. */}
+      <header
+        className="fixed top-0 inset-x-0 bg-brand z-30 flex items-center justify-between px-4 shadow-md"
+        style={{
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          height: "calc(3.5rem + env(safe-area-inset-top, 0px))",
+        }}
+      >
         <Link href="/parent" className="flex items-center gap-2">
           <Image
             src="/logo-icon-white.svg"
@@ -213,7 +227,10 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ─── Main content ───────────────────────────────────── */}
-      <main className="pt-14 pb-20 sm:pb-8">
+      <main
+        className="pb-20 sm:pb-8"
+        style={{ paddingTop: "calc(3.5rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="max-w-2xl mx-auto px-4 py-6">{children}</div>
       </main>
 

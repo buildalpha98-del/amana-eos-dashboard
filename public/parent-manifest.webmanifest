@@ -25,5 +25,37 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "categories": [
+    "education",
+    "lifestyle"
+  ],
+  "shortcuts": [
+    {
+      "name": "Bookings",
+      "short_name": "Bookings",
+      "url": "/parent/bookings",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "url": "/parent/messages",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
