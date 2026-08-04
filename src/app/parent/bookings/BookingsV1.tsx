@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import {
   Calendar,
   CalendarDays,
@@ -11,6 +14,7 @@ import {
   XCircle,
   Clock,
   Info,
+  RotateCcw,
 } from "lucide-react";
 import {
   useParentBookings,
@@ -46,6 +50,25 @@ export default function BookingsV1() {
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
   const { data, isLoading } = useParentBookings(activeTab);
   const cancelBooking = useCancelBooking();
+  const qc = useQueryClient();
+
+  /**
+   * Undo an absence. Same endpoint as marking absent, opposite action —
+   * the server owns the 24-hour rule, this just asks.
+   */
+  const markAttending = useMutation({
+    mutationFn: (bookingId: string) =>
+      mutateApi(`/api/parent/bookings/${bookingId}`, {
+        method: "PATCH",
+        body: { action: "attending" },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["parent", "bookings"] });
+      toast({ description: "Marked as attending again." });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
 
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [absentBooking, setAbsentBooking] = useState<BookingRecord | null>(null);
@@ -207,6 +230,7 @@ export default function BookingsV1() {
                     booking={booking}
                     isUpcoming={activeTab === "upcoming"}
                     onMarkAbsent={() => setAbsentBooking(booking)}
+                    onMarkAttending={() => markAttending.mutate(booking.id)}
                     onCancel={() => setCancelTarget(booking)}
                   />
                 ))}
@@ -251,11 +275,13 @@ function BookingCard({
   booking,
   isUpcoming,
   onMarkAbsent,
+  onMarkAttending,
   onCancel,
 }: {
   booking: BookingRecord;
   isUpcoming: boolean;
   onMarkAbsent: () => void;
+  onMarkAttending: () => void;
   onCancel: () => void;
 }) {
   const status = STATUS_STYLES[booking.status] ?? STATUS_STYLES.requested;
@@ -265,6 +291,13 @@ function BookingCard({
     isUpcoming &&
     booking.status === "confirmed" &&
     isTodayOrFutureInServiceTz(booking.date);
+
+  // Changing their mind. Same 24-hour window as cancelling: after that
+  // the centre has staffed and catered to the number.
+  const canUndoAbsence =
+    isUpcoming &&
+    booking.status === "absent_notified" &&
+    isMoreThanHoursAway(booking.date, 24);
 
   const canCancel =
     isUpcoming &&
@@ -320,8 +353,17 @@ function BookingCard({
       )}
 
       {/* Actions */}
-      {(canMarkAbsent || canCancel) && (
+      {(canMarkAbsent || canUndoAbsence || canCancel) && (
         <div className="flex items-center gap-4 mt-3 ml-12">
+          {canUndoAbsence && (
+            <button
+              onClick={onMarkAttending}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-light transition-colors min-h-[44px]"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              They&apos;re coming after all
+            </button>
+          )}
           {canMarkAbsent && (
             <button
               onClick={onMarkAbsent}
