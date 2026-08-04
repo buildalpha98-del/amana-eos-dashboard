@@ -18,6 +18,22 @@ import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
 import { mergeServiceContent } from "@/lib/service-content-shared";
 
+/**
+ * Session keys this centre is currently accepting casual bookings for.
+ *
+ * Read permissively — an unparseable blob means "nothing enabled",
+ * which shows the family no options rather than every option.
+ */
+function enabledCasualSessions(raw: unknown): string[] {
+  if (!raw || typeof raw !== "object") return [];
+  return Object.entries(raw as Record<string, unknown>)
+    .filter(([key, v]) => {
+      if (key === "policy" || !v || typeof v !== "object") return false;
+      return (v as { enabled?: unknown }).enabled === true;
+    })
+    .map(([key]) => key);
+}
+
 export const GET = withParentAuth(async (_req, { parent }) => {
   // Look up every Service the parent's children attend. Children attendance
   // comes through `EnrolmentSubmission.childRecords[].serviceId` and the
@@ -60,6 +76,11 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       phone: true,
       email: true,
       content: true,
+      // Which programmes this centre takes casual bookings for. Parents
+      // must only ever be offered a programme the centre has turned ON —
+      // otherwise Holiday Quest (and any unused extra room) shows up as
+      // bookable at a centre that doesn't run it.
+      casualBookingSettings: true,
       // Room names, hours and fees. Parents see "Rise and Shine
       // (6:30am – 9:00am)", not "BSC" — the labels are per-centre, so
       // they have to travel with the centre rather than be hardcoded
@@ -105,6 +126,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     phone: s.phone,
     email: s.email,
     content: contentByService.get(s.id)!,
+    casualSessions: enabledCasualSessions(s.casualBookingSettings),
     // Order follows the admin's selection, not the database's.
     policies: (contentByService.get(s.id)?.policyDocumentIds ?? [])
       .map((id) => policyById.get(id))
