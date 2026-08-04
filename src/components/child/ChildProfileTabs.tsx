@@ -9,6 +9,7 @@ import { RoomDaysTab } from "./tabs/RoomDaysTab";
 import { RelationshipsTab } from "./tabs/RelationshipsTab";
 import { MedicalTab } from "./tabs/MedicalTab";
 import { AttendancesTab } from "./tabs/AttendancesTab";
+import { ChildEnrolmentDocsCard } from "@/components/children/ChildEnrolmentDocsCard";
 import { ChildDocumentsTab } from "@/components/children/ChildDocumentsTab";
 import type { ChildProfileRecord } from "./types";
 
@@ -108,7 +109,18 @@ export function ChildProfileTabs({
         )}
         {active === "medical" && <MedicalTab child={child} canEdit={canEdit} />}
         {active === "attendances" && <AttendancesTab child={child} />}
-        {active === "documents" && <ChildDocumentsTab childId={child.id} />}
+        {active === "documents" && (
+          <div className="space-y-4">
+            {/* The enrolment form and its attachments, above the
+                staff-uploaded documents — it's the first thing anyone
+                opening this tab is looking for. */}
+            <ChildEnrolmentDocsCard
+              childId={child.id}
+              enrolmentId={child.enrolmentId ?? null}
+            />
+            <ChildDocumentsTab childId={child.id} />
+          </div>
+        )}
       </div>
     </div>
   );

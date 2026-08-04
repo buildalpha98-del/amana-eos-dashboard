@@ -62,7 +62,7 @@ const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: s
   // to check or correct something here, not to read the timetable.
   { key: "info", label: "Info", icon: User },
   { key: "attendance", label: "Attendance", icon: CalendarDays },
-  { key: "gallery", label: "Gallery", icon: Camera },
+  { key: "gallery", label: "Photos", icon: Camera },
   { key: "medical", label: "Medical", icon: Stethoscope },
   { key: "documents", label: "Docs", icon: FileText },
   // Emergency contacts used to have their own tab. They're the same
@@ -149,18 +149,7 @@ export default function ChildDetailV1() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "info" && (
-        <div className="space-y-6">
-          <ChildInformationTab childId={child.id} />
-          {/* Posts this child is tagged in. Only ever this family's own
-              children are named — the server filters the tag list to
-              their childIds before it leaves the building. */}
-          <ParentFeed
-            childId={child.id}
-            childFirstName={child.firstName}
-          />
-        </div>
-      )}
+      {activeTab === "info" && <ChildInformationTab childId={child.id} />}
       {activeTab === "attendance" && (
         <AttendanceTab
           childId={child.id}
@@ -168,7 +157,9 @@ export default function ChildDetailV1() {
           loading={attendanceLoading}
         />
       )}
-      {activeTab === "gallery" && <GalleryTab childId={child.id} />}
+      {activeTab === "gallery" && (
+        <ParentFeed childId={child.id} childFirstName={child.firstName} />
+      )}
       {activeTab === "medical" && <MedicalTab child={child} />}
       {activeTab === "documents" && <DocumentsTab childId={child.id} />}
       {activeTab === "pickups" && <PickupsTab childId={child.id} />}
