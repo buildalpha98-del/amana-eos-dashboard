@@ -122,7 +122,14 @@ function getMonthDays(year: number, month: number): Array<Date | null> {
 export function BookingCalendar({ childId, serviceId, bookings }: BookingCalendarProps) {
   const now = new Date();
   const [monthOffset, setMonthOffset] = useState(0);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  /**
+   * Days the family is picking, not just one.
+   *
+   * A parent booking casual care almost never wants a single day — it's
+   * "Tuesday and Thursday next week while I'm working". Booking them one
+   * at a time meant four taps and four confirmations for two days.
+   */
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
 
   const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
   const monthKey = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}`;
@@ -157,7 +164,11 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
   const todayStr = now.toISOString().split("T")[0];
 
   function handleDayClick(dateStr: string) {
-    setSelectedDate(selectedDate === dateStr ? null : dateStr);
+    setSelectedDates((prev) =>
+      prev.includes(dateStr)
+        ? prev.filter((d) => d !== dateStr)
+        : [...prev, dateStr].sort(),
+    );
   }
 
   /**
@@ -169,13 +180,15 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
    * of mistake you only find out about at 6:30am.
    */
   function handleBookDay(sessionType: string) {
-    if (!selectedDate) return;
+    if (selectedDates.length === 0) return;
+    // One request for the lot — the endpoint already took an array; the
+    // UI was just only ever sending it one.
     bulkBooking.mutate({
       childId,
       serviceId,
-      bookings: [{ date: selectedDate, sessionType }],
+      bookings: selectedDates.map((date) => ({ date, sessionType })),
     });
-    setSelectedDate(null);
+    setSelectedDates([]);
   }
 
   return (
@@ -234,7 +247,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
           const avail = availMap.get(`${dateStr}-asc`);
           const isToday = dateStr === todayStr;
           const isPast = day < new Date(todayStr);
-          const isSelected = dateStr === selectedDate;
+          const isSelected = selectedDates.includes(dateStr);
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
           let bgClass = "bg-card hover:bg-surface";
@@ -294,6 +307,12 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
         })}
       </div>
 
+      {/* Nothing else says you can pick more than one, and a calendar
+          that takes multiple taps looks broken until you know. */}
+      <p className="text-center text-2xs text-muted">
+        Tap any day — pick several to book them together.
+      </p>
+
       {/* Legend */}
       <div className="flex items-center gap-3 justify-center text-2xs text-muted">
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" />Confirmed</span>
@@ -302,72 +321,103 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" />Full</span>
       </div>
 
-      {/* Day detail + book action */}
-      {selectedDate && (
+      {/* Selection panel. Shows what's already booked when a single day
+          is picked; once two or more are selected it becomes a request
+          for the set, because that's the point of picking several. */}
+      {selectedDates.length > 0 && (
         <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
-          <p className="text-sm font-semibold text-foreground">
-            {new Date(selectedDate).toLocaleDateString("en-AU", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-semibold text-foreground">
+              {selectedDates.length === 1
+                ? new Date(selectedDates[0]).toLocaleDateString("en-AU", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })
+                : `${selectedDates.length} days selected`}
+            </p>
+            <button
+              onClick={() => setSelectedDates([])}
+              className="text-xs text-muted underline underline-offset-2 min-h-11"
+            >
+              Clear
+            </button>
+          </div>
 
-          {/* What's actually booked that day, named the way families
-              know it — "Rise and Shine Club", never "BSC". */}
+          {selectedDates.length > 1 && (
+            <p className="mt-1 text-xs text-muted">
+              {selectedDates
+                .map((d) =>
+                  new Date(d).toLocaleDateString("en-AU", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  }),
+                )
+                .join(" · ")}
+            </p>
+          )}
+
           {(() => {
-            const booked = SESSION_ORDER.map((st) => ({
-              st,
-              booking: bookingMap.get(`${selectedDate}-${st}`),
-            })).filter((x) => x.booking);
+            // Existing bookings are only meaningful for ONE day — across
+            // a set they'd be a wall of statuses nobody reads.
+            if (selectedDates.length === 1) {
+              const day = selectedDates[0];
+              const booked = SESSION_ORDER.map((st) => ({
+                st,
+                booking: bookingMap.get(`${day}-${st}`),
+              })).filter((x) => x.booking);
 
-            if (booked.length > 0) {
-              return (
-                <ul className="mt-2 space-y-1">
-                  {booked.map(({ st, booking }) => (
-                    <li
-                      key={st}
-                      className="flex items-center gap-2 text-sm text-foreground"
-                    >
-                      <span
-                        className={cn(
-                          "w-1.5 h-1.5 rounded-full shrink-0",
-                          booking?.status === "requested"
-                            ? "bg-amber-500"
-                            : "bg-green-500",
-                        )}
-                      />
-                      {programmeName(st)}
-                      <span className="text-xs text-muted ml-auto capitalize">
-                        {booking?.status === "requested"
-                          ? "Pending"
-                          : "Confirmed"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              );
+              if (booked.length > 0) {
+                return (
+                  <ul className="mt-2 space-y-1">
+                    {booked.map(({ st, booking }) => (
+                      <li
+                        key={st}
+                        className="flex items-center gap-2 text-sm text-foreground"
+                      >
+                        <span
+                          className={cn(
+                            "w-1.5 h-1.5 rounded-full shrink-0",
+                            booking?.status === "requested"
+                              ? "bg-amber-500"
+                              : "bg-green-500",
+                          )}
+                        />
+                        {programmeName(st)}
+                        <span className="text-xs text-muted ml-auto">
+                          {booking?.status === "requested"
+                            ? "Pending"
+                            : "Confirmed"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              }
             }
 
-            // Nothing booked: offer each programme that still has room,
-            // named, so the family chooses rather than us guessing.
-            const open = SESSION_ORDER.map((st) => ({
-              st,
-              avail: availMap.get(`${selectedDate}-${st}`),
-            })).filter((x) => !x.avail || x.avail.available > 0);
+            // Which programmes still have room on EVERY selected day —
+            // offering one that's full on the Thursday would fail half
+            // the request after they'd pressed the button.
+            const open = SESSION_ORDER.filter((st) =>
+              selectedDates.every((d) => {
+                const a = availMap.get(`${d}-${st}`);
+                return !a || a.available > 0;
+              }),
+            );
 
             if (open.length === 0) {
               return (
                 <p className="text-xs text-red-600 mt-2">
-                  No spots available that day.
+                  No programme has spots on every day you&apos;ve picked.
                 </p>
               );
             }
 
             return (
               <div className="mt-3 space-y-2">
-                <p className="text-xs text-muted">Nothing booked yet.</p>
-                {open.map(({ st, avail }) => (
+                {open.map((st) => (
                   <Button
                     key={st}
                     size="sm"
@@ -380,11 +430,11 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
                       <Calendar className="w-4 h-4" />
                       Request {programmeName(st)}
                     </span>
-                    {avail && (
-                      <span className="text-xs text-muted">
-                        {avail.available} left
-                      </span>
-                    )}
+                    <span className="text-xs text-muted">
+                      {selectedDates.length === 1
+                        ? "1 day"
+                        : `${selectedDates.length} days`}
+                    </span>
                   </Button>
                 ))}
               </div>
