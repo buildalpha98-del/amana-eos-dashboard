@@ -85,7 +85,10 @@ function useBulkBooking() {
     }) => mutateApi("/api/parent/bookings/bulk", { method: "POST", body: data }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["booking-availability"] });
-      queryClient.invalidateQueries({ queryKey: ["parent-bookings"] });
+      // ["parent", "bookings"] — the key the bookings list actually
+      // uses. "parent-bookings" matched nothing, so a new booking never
+      // showed until something else happened to refetch.
+      queryClient.invalidateQueries({ queryKey: ["parent", "bookings"] });
       toast({ description: "Booking request submitted" });
     },
     onError: (err: Error) => {
@@ -137,6 +140,21 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
 
   const { data: availability } = useAvailability(serviceId, monthKey);
   const bulkBooking = useBulkBooking();
+
+  /**
+   * Programmes this centre takes casual bookings for. Same source the
+   * request dialog uses, so the two can't disagree about what a family
+   * is allowed to book.
+   */
+  const { data: centreData } = useQuery<{
+    centres: { id: string; casualSessions?: string[] }[];
+  }>({
+    queryKey: ["parent", "centres"],
+    queryFn: () => fetchApi("/api/parent/centres"),
+    retry: 1,
+  });
+  const enabledSessions =
+    centreData?.centres.find((c) => c.id === serviceId)?.casualSessions ?? [];
 
   const days = useMemo(
     () => getMonthDays(viewDate.getFullYear(), viewDate.getMonth()),
@@ -400,11 +418,17 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
             // Which programmes still have room on EVERY selected day —
             // offering one that's full on the Thursday would fail half
             // the request after they'd pressed the button.
-            const open = SESSION_ORDER.filter((st) =>
-              selectedDates.every((d) => {
-                const a = availMap.get(`${d}-${st}`);
-                return !a || a.available > 0;
-              }),
+            // Only programmes the centre has enabled AND that have room
+            // on EVERY selected day. Availability alone isn't enough:
+            // a session with no settings has no availability record, so
+            // "no data" would read as "plenty of room".
+            const open = SESSION_ORDER.filter(
+              (st) =>
+                enabledSessions.includes(st) &&
+                selectedDates.every((d) => {
+                  const a = availMap.get(`${d}-${st}`);
+                  return !a || a.available > 0;
+                }),
             );
 
             if (open.length === 0) {

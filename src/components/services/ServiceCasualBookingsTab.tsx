@@ -244,6 +244,20 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
         )}
       </div>
 
+      {/* Families are offered a programme only once it's ENABLED below.
+          An unnamed extra room, or Holiday Quest at a centre that
+          doesn't run vacation care, must never appear on their booking
+          form — so this list is the switch, not a display. */}
+      <p className="text-xs text-muted">
+        Parents can only book a programme that&apos;s enabled here. To add
+        another — a homework club, an early-finish session — name a spare
+        room under{" "}
+        <strong className="text-foreground">
+          Service Information → Rooms &amp; fees
+        </strong>
+        , then enable it below.
+      </p>
+
       {/* ── One card per programme this centre runs ──────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {activeTypes.map((type) => {
