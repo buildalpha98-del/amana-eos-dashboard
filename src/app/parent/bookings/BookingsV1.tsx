@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { programmeName } from "@/lib/programme-names";
 import { RECURRING_CANCEL_DAYS } from "@/lib/service-settings";
 import {
   Calendar,
@@ -259,7 +260,7 @@ export default function BookingsV1() {
           open={!!cancelTarget}
           onOpenChange={(open) => !open && setCancelTarget(null)}
           title="Cancel Booking"
-          description={`Are you sure you want to cancel ${cancelTarget.child.firstName}'s ${cancelTarget.sessionType.toUpperCase()} session?`}
+          description={`Are you sure you want to cancel ${cancelTarget.child.firstName}'s ${programmeName(cancelTarget.sessionType)} session?`}
           confirmLabel="Yes, Cancel"
           onConfirm={handleCancel}
           variant="danger"
@@ -337,12 +338,12 @@ function BookingCard({
         <div className="flex items-center gap-2 shrink-0">
           <span
             className={cn(
-              "inline-flex px-2 py-0.5 rounded-full text-2xs font-semibold uppercase",
+              "inline-flex px-2 py-0.5 rounded-full text-2xs font-semibold",
               session.bg,
               session.text
             )}
           >
-            {booking.sessionType.toUpperCase()}
+            {programmeName(booking.sessionType)}
           </span>
           <span
             className={cn(

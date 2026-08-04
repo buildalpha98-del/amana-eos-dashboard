@@ -44,6 +44,9 @@ interface BookingCalendarProps {
  * centre page, where there's space to say it properly.
  */
 /** Order the day panel lists sessions in — morning before afternoon. */
+/** getDay() index → the key staff configure days under. */
+const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
 /**
  * Order sessions appear in. Includes the four spare slots so a centre
  * that has named one shows it here too; unnamed slots simply never have
@@ -147,14 +150,30 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
    * is allowed to book.
    */
   const { data: centreData } = useQuery<{
-    centres: { id: string; casualSessions?: string[] }[];
+    centres: {
+      id: string;
+      casualSessions?: string[];
+      casualSessionDays?: Record<string, string[]>;
+    }[];
   }>({
     queryKey: ["parent", "centres"],
     queryFn: () => fetchApi("/api/parent/centres"),
     retry: 1,
   });
-  const enabledSessions =
-    centreData?.centres.find((c) => c.id === serviceId)?.casualSessions ?? [];
+  const centre = centreData?.centres.find((c) => c.id === serviceId);
+  const enabledSessions = centre?.casualSessions ?? [];
+  /**
+   * Weekdays any enabled session runs. The calendar used to hard-disable
+   * Saturday and Sunday for everyone — wrong in both directions: a
+   * weekend centre couldn't take weekend bookings, and a Mon–Fri centre
+   * still showed tappable-looking weekend cells. Now the centre's own
+   * settings decide, with Mon–Fri as the fallback while they load.
+   */
+  const openWeekdays = useMemo(() => {
+    const lists = Object.values(centre?.casualSessionDays ?? {});
+    if (lists.length === 0) return new Set(["mon", "tue", "wed", "thu", "fri"]);
+    return new Set(lists.flat());
+  }, [centre?.casualSessionDays]);
 
   const days = useMemo(
     () => getMonthDays(viewDate.getFullYear(), viewDate.getMonth()),
@@ -266,7 +285,7 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
           const isToday = dateStr === todayStr;
           const isPast = day < new Date(todayStr);
           const isSelected = selectedDates.includes(dateStr);
-          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const isClosed = !openWeekdays.has(DAY_KEYS[day.getDay()]);
 
           let bgClass = "bg-card hover:bg-surface";
           const dots: string[] = [];
@@ -290,21 +309,21 @@ export function BookingCalendar({ childId, serviceId, bookings }: BookingCalenda
           } else if (avail && avail.available === 0) {
             bgClass = "bg-red-50 dark:bg-red-950/40";
             dots.push("bg-red-400");
-          } else if (avail && avail.available > 0 && !isPast && !isWeekend) {
+          } else if (avail && avail.available > 0 && !isPast && !isClosed) {
             dots.push("bg-muted/30");
           }
 
           return (
             <button
               key={i}
-              onClick={() => !isPast && !isWeekend && handleDayClick(dateStr)}
-              disabled={isPast || isWeekend}
+              onClick={() => !isPast && !isClosed && handleDayClick(dateStr)}
+              disabled={isPast || isClosed}
               className={cn(
                 "aspect-square rounded-lg flex flex-col items-center justify-center text-xs relative transition-all",
                 bgClass,
                 isToday && "ring-2 ring-brand",
                 isSelected && "ring-2 ring-accent",
-                (isPast || isWeekend) && "opacity-40 cursor-default",
+                (isPast || isClosed) && "opacity-40 cursor-default",
               )}
             >
               <span className={cn("font-medium", isToday ? "text-brand" : "text-foreground")}>
