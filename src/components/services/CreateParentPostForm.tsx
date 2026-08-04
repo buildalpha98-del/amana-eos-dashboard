@@ -44,7 +44,6 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
   const {
     register,
     handleSubmit,
-    watch,
     reset,
     formState: { errors },
   } = useForm<CreateParentPostInput>({
@@ -54,7 +53,8 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
       content: "",
       type: "observation",
       mediaUrls: [],
-      isCommunity: false,
+      // Every published post is centre-wide.
+      isCommunity: true,
       childIds: [],
     },
   });
@@ -66,7 +66,7 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
         content: editingPost.content,
         type: editingPost.type as "observation" | "announcement" | "reminder",
         mediaUrls: editingPost.mediaUrls,
-        isCommunity: editingPost.isCommunity,
+        isCommunity: true,
         childIds: [],
       });
       setSelectedChildIds(editingPost.tags.map((t) => t.childId));
@@ -77,7 +77,8 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
         content: "",
         type: "observation",
         mediaUrls: [],
-        isCommunity: false,
+        // Every published post is centre-wide.
+      isCommunity: true,
         childIds: [],
       });
       setSelectedChildIds([]);
@@ -86,7 +87,6 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
     setUploadError(null);
   }, [editingPost, reset]);
 
-  const isCommunity = watch("isCommunity");
   const children = childrenData?.children ?? [];
 
   function toggleChild(childId: string) {
@@ -151,7 +151,8 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
     const payload = {
       ...data,
       mediaUrls,
-      childIds: data.isCommunity ? [] : selectedChildIds,
+      // Always sent: tagging no longer suppresses the tag list.
+      childIds: selectedChildIds,
       mtopOutcomes: mtop,
       nqsAreas: nqs,
       // datetime-local has no timezone, so it's read as LOCAL time and
@@ -280,25 +281,24 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
             <FormField label="Type" error={errors.type}>
               <FormSelect registration={register("type")} hasError={!!errors.type}>
                 <option value="observation">Observation</option>
+                <option value="programme">Programme</option>
+                <option value="food">Food</option>
+                <option value="celebration">Celebration</option>
                 <option value="announcement">Announcement</option>
                 <option value="reminder">Reminder</option>
               </FormSelect>
             </FormField>
 
-            <FormField label="Community Post">
-              <label className="flex items-center gap-2 mt-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  {...register("isCommunity")}
-                  className="w-4 h-4 rounded border-border text-brand focus:ring-brand"
-                />
-                <span className="text-sm text-muted">Visible to all parents</span>
-              </label>
-            </FormField>
+            {/*
+              The "Community post — visible to all parents" tick is gone.
+              Every published post now reaches every family at the centre,
+              so the box could only ever mislead: leaving it unticked used
+              to make a post private to the tagged families, which is not
+              what anyone reading "community post" would expect.
+            */}
           </div>
 
-          {!isCommunity && (
-            <FormField label="Tag Children">
+          <FormField label="Tag children (optional)">
               {children.length > 0 && (
                 <label className="flex items-center gap-2 px-2 py-1.5 mb-1 rounded cursor-pointer">
                   <input
@@ -341,13 +341,12 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
                   ))
                 )}
               </div>
-              {!isCommunity && selectedChildIds.length === 0 && (
-                <p className="mt-1 text-xs text-amber-600">
-                  Select at least one child, or mark as community post
-                </p>
-              )}
-            </FormField>
-          )}
+            <p className="mt-1 text-xs text-muted">
+              Everyone at this centre sees this post. Tagging decides whose
+              child page it also appears on — and only that family is ever
+              shown their child&apos;s name.
+            </p>
+          </FormField>
 
           {/* Curriculum tagging — MTOP is the school-age framework, so
               EYLF is deliberately not offered here. */}
