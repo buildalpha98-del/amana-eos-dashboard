@@ -13,6 +13,7 @@ import {
   casualBookingSettingsSchema,
   roomFees,
   roomLabel,
+  RECURRING_CANCEL_DAYS,
   type BookingPolicy,
   type CasualBookingSettings,
   type SessionTimes,
@@ -23,10 +24,16 @@ import { cn } from "@/lib/utils";
 const SESSION_TYPES = ["bsc", "asc", "vc"] as const;
 type SessionType = (typeof SESSION_TYPES)[number];
 
+/**
+ * Fallbacks only. The heading shown is the centre's OWN room name from
+ * Service Info → Rooms & fees — "Rise and Shine", "Amana Afternoons",
+ * "Holiday Quest" — because that's what staff and families call them.
+ * "Before School Care (BSC)" is the filing code, not the programme.
+ */
 const SESSION_LABELS: Record<SessionType, string> = {
-  bsc: "Before School Care (BSC)",
-  asc: "After School Care (ASC)",
-  vc: "Vacation Care (VC)",
+  bsc: "Rise and Shine",
+  asc: "Amana Afternoons",
+  vc: "Holiday Quest",
 };
 
 const SESSION_SHORT: Record<SessionType, string> = {
@@ -230,7 +237,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
             >
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-foreground">
-                  {SESSION_LABELS[type]}
+                  {roomLabel(sessionTimes, type)}
                 </h4>
                 <label className="inline-flex items-center gap-2 text-xs text-muted">
                   <input
@@ -272,8 +279,8 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                 </select>
                 {roomFees(sessionTimes, type).length === 0 && (
                   <span className="block mt-1 text-2xs text-muted">
-                    No fees set for {roomLabel(sessionTimes, type)} yet — add
-                    them under Service Info → Rooms &amp; fees.
+                    No fees set for {roomLabel(sessionTimes, type)}
+                    {" "}yet — add them under Service Info → Rooms &amp; fees.
                   </span>
                 )}
               </label>
@@ -376,42 +383,53 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
       </div>
 
       {/* ── Booking policy ──────────────────────────────────── */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <h3 className="text-sm font-semibold text-foreground mb-1">
-          Booking policy
-        </h3>
-        <p className="text-xs text-muted mb-3">
-          Applies to permanent weekly bookings, not casual ones.
-        </p>
+      <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            Booking policy
+          </h3>
+        </div>
+
         <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
-            checked={Boolean(settings.policy?.allowRecurringCancellation)}
+            checked={Boolean(settings.policy?.blockCasualCancellation)}
             disabled={!canEdit}
             onChange={(e) =>
               setSettings((prev) => ({
                 ...prev,
                 policy: {
                   ...prev.policy,
-                  allowRecurringCancellation: e.target.checked,
+                  blockCasualCancellation: e.target.checked,
                 },
               }))
             }
             className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
           />
           <span className="text-sm text-foreground">
-            Parents can cancel their own recurring bookings
-            {/* Off by default on purpose: a recurring pattern drives
-                ratios, rosters and invoices. With it off, parents mark a
-                single day as not attending, which leaves the pattern
-                intact, and pattern changes go through head office. */}
+            Casual bookings can&apos;t be cancelled at all
             <span className="block text-xs text-muted">
-              Off (recommended): parents mark a single day as{" "}
-              <strong>not attending</strong> instead, and message head office
-              to change the pattern itself.
+              For centres that cost a casual place the moment it&apos;s taken.
+              Off: families can cancel up to each session&apos;s cut-off above.
             </span>
           </span>
         </label>
+
+        {/* Not a setting. A rule families have to look up per centre
+            isn't one they'll follow, and every centre rosters on the
+            same weekly cycle. */}
+        <div className="pt-3 border-t border-border">
+          <p className="text-sm text-foreground">Recurring bookings</p>
+          <p className="text-xs text-muted mt-0.5">
+            Families can cancel a regular weekly booking{" "}
+            <strong>{RECURRING_CANCEL_DAYS} or more days ahead</strong>. Inside
+            that week they can&apos;t — the roster and catering are already set
+            against the number — so they mark the single day as{" "}
+            <strong>not attending</strong> instead, or message head office to
+            change the pattern. This applies at every centre and isn&apos;t
+            configurable here.
+          </p>
+        </div>
       </div>
 
       {/* ── Save button ─────────────────────────────────────── */}

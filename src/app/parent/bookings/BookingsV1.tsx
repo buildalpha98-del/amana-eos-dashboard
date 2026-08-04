@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { RECURRING_CANCEL_DAYS } from "@/lib/service-settings";
 import {
   Calendar,
   CalendarDays,
@@ -299,11 +300,21 @@ function BookingCard({
     booking.status === "absent_notified" &&
     isMoreThanHoursAway(booking.date, 24);
 
+  /**
+   * Cancel is offered on both kinds now, with the window each one gets:
+   * casual up to 24 hours out, recurring a week. The server owns both
+   * rules — this only decides whether to show a button that would work.
+   *
+   * The centre can also switch casual cancellation off entirely, which
+   * this can't see; that path is refused server-side with a message
+   * pointing at head office.
+   */
   const canCancel =
     isUpcoming &&
-    booking.type === "casual" &&
     (booking.status === "requested" || booking.status === "confirmed") &&
-    isMoreThanHoursAway(booking.date, 24);
+    (booking.type === "casual"
+      ? isMoreThanHoursAway(booking.date, 24)
+      : isMoreThanHoursAway(booking.date, RECURRING_CANCEL_DAYS * 24));
 
   return (
     <div className="bg-card rounded-xl p-4 shadow-sm border border-border">

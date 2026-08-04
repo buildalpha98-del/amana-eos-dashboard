@@ -125,15 +125,36 @@ const sessionSettingSchema = z.object({
 /** Service-wide booking policy, as opposed to per-session config. */
 const bookingPolicySchema = z.object({
   /**
-   * Whether a parent may cancel a PERMANENT booking themselves.
+   * Casual bookings can't be cancelled by the family at all.
    *
-   * Off by default, and that's the safe default: a recurring pattern
-   * drives ratios, rosters and invoices, so it's changed by the office.
-   * Parents mark a single day as "not attending" instead, which is an
-   * absence and leaves the pattern intact.
+   * Off by default, which leaves the standard rule in place: cancel up
+   * to the session's cut-off. Some centres cost a casual place the
+   * moment it's taken, and for them a late cancellation is a fee
+   * argument rather than a freed spot.
+   */
+  blockCasualCancellation: z.boolean().optional(),
+
+  /**
+   * 2026-08-04: `allowRecurringCancellation` is retired. Cancelling a
+   * recurring booking is no longer a per-centre toggle — it's a fixed
+   * rule (see RECURRING_CANCEL_DAYS): a week or more out, a family can
+   * cancel; inside the week they can't, because the roster and the
+   * catering are already set against that number.
+   *
+   * Kept in the schema so existing stored settings still parse rather
+   * than failing validation on the next save.
    */
   allowRecurringCancellation: z.boolean().optional(),
 });
+
+/**
+ * How far ahead a family must be to cancel a recurring booking.
+ *
+ * One week, fixed org-wide rather than per centre. A rule families have
+ * to look up per centre isn't a rule they'll follow, and every centre
+ * rosters on the same weekly cycle.
+ */
+export const RECURRING_CANCEL_DAYS = 7;
 export type BookingPolicy = z.infer<typeof bookingPolicySchema>;
 
 export const casualBookingSettingsSchema = z.object({
