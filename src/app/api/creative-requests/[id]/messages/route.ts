@@ -46,6 +46,11 @@ export const GET = withApiAuth(async (_req, session, context) => {
 
 // ---------------------------------------------------------------------------
 // POST — add a message. `internal` is only honoured for fulfiller roles.
+//
+// Deliberately NOT status-gated (unlike PATCH's terminal-state guard):
+// delivered/cancelled requests can still receive messages — post-delivery
+// follow-ups ("can we get a re-export at A3?") and cancellation questions
+// are legitimate conversation, not edits to the request itself.
 // ---------------------------------------------------------------------------
 
 const postBodySchema = z.object({

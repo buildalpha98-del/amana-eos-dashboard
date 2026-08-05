@@ -230,6 +230,17 @@ describe("GET /api/creative-requests/[id]", () => {
     );
     expect(res.status).toBe(200);
   });
+
+  it("only includes brief-level attachments (excludes message attachments, including internal-note ones)", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    await GET_DETAIL(
+      createRequest("GET", "/api/creative-requests/cr1"),
+      ctx("cr1"),
+    );
+    const findArgs = prismaMock.creativeRequest.findUnique.mock.calls[0][0];
+    expect(findArgs.include.attachments).toEqual({ where: { messageId: null } });
+  });
 });
 
 describe("PATCH /api/creative-requests/[id]", () => {
