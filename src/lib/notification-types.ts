@@ -51,6 +51,9 @@ export const NOTIFICATION_TYPES = {
   CREATIVE_REQUEST_ASSIGNED: "creative_request_assigned",
   CREATIVE_REQUEST_STATUS: "creative_request_status",
   CREATIVE_REQUEST_MESSAGE: "creative_request_message",
+  // 2026-08-05: creative-request proofing loop (Marketing Hub Phase 2).
+  CREATIVE_REQUEST_PROOF_READY: "creative_request_proof_ready",
+  CREATIVE_REQUEST_PROOF_DECISION: "creative_request_proof_decision",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

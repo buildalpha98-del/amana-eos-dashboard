@@ -6,7 +6,7 @@
  * have already committed; every helper try/catches and logs but never throws.
  */
 import type { Prisma, PrismaClient } from "@prisma/client";
-import type { CreativeRequestStatus } from "@prisma/client";
+import type { CreativeRequestStatus, ProofDecision } from "@prisma/client";
 import { NOTIFICATION_TYPES, type NotificationType } from "@/lib/notification-types";
 import { STATUS_LABELS } from "@/lib/creative-request/constants";
 import { logger } from "@/lib/logger";
@@ -133,5 +133,65 @@ export async function notifyRequestMessage(
     );
   } catch (err) {
     logger.error("creative-request notify (message) failed", { err, requestId: request.id });
+  }
+}
+
+/** Proof uploaded → the requester ("proof ready for your review").
+ *  Skips when the uploader IS the requester (marketing self-request). */
+export async function notifyProofReady(
+  db: Db,
+  request: RequestSummary,
+  version: number,
+  actorId: string,
+): Promise<void> {
+  try {
+    if (request.requestedById === actorId) return;
+    await createFor(
+      db,
+      [request.requestedById],
+      NOTIFICATION_TYPES.CREATIVE_REQUEST_PROOF_READY,
+      `${request.requestNumber}: proof v${version} ready for review`,
+      request.title,
+      link(request),
+    );
+  } catch (err) {
+    logger.error("creative-request notify (proof ready) failed", { err, requestId: request.id });
+  }
+}
+
+/** Decision made → the assignee, or every marketing user if unassigned. */
+export async function notifyProofDecision(
+  db: Db,
+  request: RequestSummary,
+  version: number,
+  decision: ProofDecision,
+  actorId: string,
+): Promise<void> {
+  try {
+    const label: Record<ProofDecision, string> = {
+      approved: "approved",
+      approved_with_changes: "approved with changes",
+      changes_requested: "changes requested",
+    };
+    let targets: string[];
+    if (request.assigneeId) {
+      targets = [request.assigneeId];
+    } else {
+      const marketers = await db.user.findMany({
+        where: { role: "marketing", active: true },
+        select: { id: true },
+      });
+      targets = marketers.map((u) => u.id);
+    }
+    await createFor(
+      db,
+      targets.filter((id) => id !== actorId),
+      NOTIFICATION_TYPES.CREATIVE_REQUEST_PROOF_DECISION,
+      `${request.requestNumber}: proof v${version} ${label[decision]}`,
+      request.title,
+      link(request),
+    );
+  } catch (err) {
+    logger.error("creative-request notify (proof decision) failed", { err, requestId: request.id });
   }
 }

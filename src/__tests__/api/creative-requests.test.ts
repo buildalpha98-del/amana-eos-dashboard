@@ -27,9 +27,13 @@ vi.mock("@/lib/rate-limit", () => ({
 import { GET as GET_LIST, POST as POST_CREATE } from "@/app/api/creative-requests/route";
 import { GET as GET_DETAIL, PATCH as PATCH_REQUEST } from "@/app/api/creative-requests/[id]/route";
 import { GET as GET_MESSAGES, POST as POST_MESSAGE } from "@/app/api/creative-requests/[id]/messages/route";
+import { GET as GET_PROOFS, POST as POST_PROOF } from "@/app/api/creative-requests/[id]/proofs/route";
+import { POST as POST_DECISION } from "@/app/api/creative-requests/[id]/proofs/[proofId]/decision/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
+const decisionCtx = (id: string, proofId: string) =>
+  ({ params: Promise.resolve({ id, proofId }) }) as never;
 
 const baseRequest = {
   id: "cr1",
@@ -464,5 +468,343 @@ describe("POST /api/creative-requests/[id]/messages", () => {
     const createArgs = prismaMock.creativeRequestMessage.create.mock.calls[0][0];
     expect(createArgs.data.internal).toBe(true);
     expect(prismaMock.userNotification.createMany).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 2: proofs + decisions
+// ---------------------------------------------------------------------------
+
+const proofBaseRequest = {
+  ...baseRequest,
+  pausedAt: null as Date | null,
+  pausedMs: 0,
+};
+
+const validFileUrl = "https://abc123.public.blob.vercel-storage.com/draft.pdf";
+
+describe("POST /api/creative-requests/[id]/proofs", () => {
+  it("403s a member (requester) trying to upload a proof", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    const res = await POST_PROOF(
+      createRequest("POST", "/api/creative-requests/cr1/proofs", {
+        body: { fileName: "draft.pdf", fileUrl: validFileUrl },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("409s when the request status is new (upload not yet allowed)", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(proofBaseRequest as never);
+    const res = await POST_PROOF(
+      createRequest("POST", "/api/creative-requests/cr1/proofs", {
+        body: { fileName: "draft.pdf", fileUrl: validFileUrl },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("happy path: v1 upload transitions to in_review, pauses the clock, notifies the requester", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...proofBaseRequest,
+      status: "in_progress",
+    } as never);
+    prismaMock.creativeRequestProof.findFirst.mockResolvedValue(null);
+    prismaMock.creativeRequestProof.create.mockResolvedValue({
+      id: "p1",
+      requestId: "cr1",
+      version: 1,
+      fileName: "draft.pdf",
+      fileUrl: validFileUrl,
+      fileSize: 2000,
+      mimeType: "application/pdf",
+      note: null,
+      uploadedById: "mkt-1",
+      decision: null,
+      decisionNote: null,
+      decidedById: null,
+      decidedAt: null,
+      createdAt: new Date(),
+    } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...proofBaseRequest,
+      status: "in_review",
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+
+    const res = await POST_PROOF(
+      createRequest("POST", "/api/creative-requests/cr1/proofs", {
+        body: {
+          fileName: "draft.pdf",
+          fileUrl: validFileUrl,
+          fileSize: 2000,
+          mimeType: "application/pdf",
+        },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(201);
+
+    const createArgs = prismaMock.creativeRequestProof.create.mock.calls[0][0];
+    expect(createArgs.data.version).toBe(1);
+
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.status).toBe("in_review");
+    expect(updateArgs.data.inReviewAt).toBeInstanceOf(Date);
+    expect(updateArgs.data.pausedAt).toBeInstanceOf(Date);
+
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
+  });
+
+  it("increments the version when a prior proof exists", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...proofBaseRequest,
+      status: "in_progress",
+    } as never);
+    prismaMock.creativeRequestProof.findFirst.mockResolvedValue({ version: 2 } as never);
+    prismaMock.creativeRequestProof.create.mockResolvedValue({
+      id: "p3",
+      requestId: "cr1",
+      version: 3,
+    } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...proofBaseRequest,
+      status: "in_review",
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+
+    const res = await POST_PROOF(
+      createRequest("POST", "/api/creative-requests/cr1/proofs", {
+        body: { fileName: "draft-v3.pdf", fileUrl: validFileUrl },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(201);
+    const createArgs = prismaMock.creativeRequestProof.create.mock.calls[0][0];
+    expect(createArgs.data.version).toBe(3);
+  });
+
+  it("rejects a javascript: fileUrl", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...proofBaseRequest,
+      status: "in_progress",
+    } as never);
+    const res = await POST_PROOF(
+      createRequest("POST", "/api/creative-requests/cr1/proofs", {
+        body: { fileName: "x.pdf", fileUrl: "javascript:alert(1)" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/creative-requests/[id]/proofs", () => {
+  it("member owner sees their request's proof versions", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(proofBaseRequest as never);
+    prismaMock.creativeRequestProof.findMany.mockResolvedValue([
+      { id: "p1", version: 1 },
+    ] as never);
+    const res = await GET_PROOFS(
+      createRequest("GET", "/api/creative-requests/cr1/proofs"),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("404s a non-participant", async () => {
+    mockSession({ id: "member-2", name: "Other", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(proofBaseRequest as never);
+    const res = await GET_PROOFS(
+      createRequest("GET", "/api/creative-requests/cr1/proofs"),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("POST /api/creative-requests/[id]/proofs/[proofId]/decision", () => {
+  const inReviewRequest = {
+    ...proofBaseRequest,
+    status: "in_review",
+    pausedAt: new Date(Date.now() - 5000),
+    pausedMs: 1000,
+  };
+  const undecidedProof = {
+    id: "p1",
+    requestId: "cr1",
+    version: 1,
+    fileName: "draft.pdf",
+    fileUrl: validFileUrl,
+    fileSize: null,
+    mimeType: null,
+    note: null,
+    uploadedById: "mkt-1",
+    decision: null,
+    decisionNote: null,
+    decidedById: null,
+    decidedAt: null,
+    createdAt: new Date(),
+  };
+
+  it("requester approves: claims the proof, banks pause time, sets status approved", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(inReviewRequest as never);
+    prismaMock.creativeRequestProof.findUnique.mockResolvedValue(undecidedProof as never);
+    prismaMock.creativeRequestProof.findFirst.mockResolvedValue({ id: "p1" } as never);
+    prismaMock.creativeRequestProof.updateMany.mockResolvedValue({ count: 1 } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...inReviewRequest,
+      status: "approved",
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+
+    const res = await POST_DECISION(
+      createRequest("POST", "/api/creative-requests/cr1/proofs/p1/decision", {
+        body: { decision: "approved" },
+      }),
+      decisionCtx("cr1", "p1"),
+    );
+    expect(res.status).toBe(200);
+
+    const claimArgs = prismaMock.creativeRequestProof.updateMany.mock.calls[0][0];
+    expect(claimArgs.where).toEqual({ id: "p1", decision: null });
+    expect(claimArgs.data.decision).toBe("approved");
+    expect(claimArgs.data.decidedById).toBe("member-1");
+    expect(claimArgs.data.decidedAt).toBeInstanceOf(Date);
+
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.status).toBe("approved");
+    expect(updateArgs.data.pausedAt).toBeNull();
+    expect(updateArgs.data.pausedMs).toBeGreaterThanOrEqual(1000);
+  });
+
+  it("approved_with_changes without a note → 400", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(inReviewRequest as never);
+    prismaMock.creativeRequestProof.findUnique.mockResolvedValue(undecidedProof as never);
+    prismaMock.creativeRequestProof.findFirst.mockResolvedValue({ id: "p1" } as never);
+
+    const res = await POST_DECISION(
+      createRequest("POST", "/api/creative-requests/cr1/proofs/p1/decision", {
+        body: { decision: "approved_with_changes" },
+      }),
+      decisionCtx("cr1", "p1"),
+    );
+    expect(res.status).toBe(400);
+    expect(prismaMock.creativeRequestProof.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("changes_requested with a note → status changes_requested", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(inReviewRequest as never);
+    prismaMock.creativeRequestProof.findUnique.mockResolvedValue(undecidedProof as never);
+    prismaMock.creativeRequestProof.findFirst.mockResolvedValue({ id: "p1" } as never);
+    prismaMock.creativeRequestProof.updateMany.mockResolvedValue({ count: 1 } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...inReviewRequest,
+      status: "changes_requested",
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+
+    const res = await POST_DECISION(
+      createRequest("POST", "/api/creative-requests/cr1/proofs/p1/decision", {
+        body: { decision: "changes_requested", note: "Please make the logo bigger" },
+      }),
+      decisionCtx("cr1", "p1"),
+    );
+    expect(res.status).toBe(200);
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.status).toBe("changes_requested");
+  });
+
+  it("409s an already-decided proof", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(inReviewRequest as never);
+    prismaMock.creativeRequestProof.findUnique.mockResolvedValue({
+      ...undecidedProof,
+      decision: "approved",
+    } as never);
+
+    const res = await POST_DECISION(
+      createRequest("POST", "/api/creative-requests/cr1/proofs/p1/decision", {
+        body: { decision: "approved" },
+      }),
+      decisionCtx("cr1", "p1"),
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("409s a race-lost claim and never touches the request", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(inReviewRequest as never);
+    prismaMock.creativeRequestProof.findUnique.mockResolvedValue(undecidedProof as never);
+    prismaMock.creativeRequestProof.findFirst.mockResolvedValue({ id: "p1" } as never);
+    prismaMock.creativeRequestProof.updateMany.mockResolvedValue({ count: 0 } as never);
+
+    const res = await POST_DECISION(
+      createRequest("POST", "/api/creative-requests/cr1/proofs/p1/decision", {
+        body: { decision: "approved" },
+      }),
+      decisionCtx("cr1", "p1"),
+    );
+    expect(res.status).toBe(409);
+    expect(prismaMock.creativeRequest.update).not.toHaveBeenCalled();
+  });
+
+  it("409s a superseded proof (a newer version exists)", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(inReviewRequest as never);
+    prismaMock.creativeRequestProof.findUnique.mockResolvedValue(undecidedProof as never);
+    prismaMock.creativeRequestProof.findFirst.mockResolvedValue({ id: "p2" } as never);
+
+    const res = await POST_DECISION(
+      createRequest("POST", "/api/creative-requests/cr1/proofs/p1/decision", {
+        body: { decision: "approved" },
+      }),
+      decisionCtx("cr1", "p1"),
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("404s a non-participant", async () => {
+    mockSession({ id: "member-2", name: "Other", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(inReviewRequest as never);
+
+    const res = await POST_DECISION(
+      createRequest("POST", "/api/creative-requests/cr1/proofs/p1/decision", {
+        body: { decision: "approved" },
+      }),
+      decisionCtx("cr1", "p1"),
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("a fulfiller may also decide on behalf of the requester", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(inReviewRequest as never);
+    prismaMock.creativeRequestProof.findUnique.mockResolvedValue(undecidedProof as never);
+    prismaMock.creativeRequestProof.findFirst.mockResolvedValue({ id: "p1" } as never);
+    prismaMock.creativeRequestProof.updateMany.mockResolvedValue({ count: 1 } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...inReviewRequest,
+      status: "approved",
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+
+    const res = await POST_DECISION(
+      createRequest("POST", "/api/creative-requests/cr1/proofs/p1/decision", {
+        body: { decision: "approved" },
+      }),
+      decisionCtx("cr1", "p1"),
+    );
+    expect(res.status).toBe(200);
   });
 });
