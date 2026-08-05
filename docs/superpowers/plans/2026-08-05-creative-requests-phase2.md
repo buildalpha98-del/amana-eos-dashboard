@@ -660,9 +660,9 @@ export const POST = withApiAuth(async (req, session, context) => {
 
 - [ ] **Step 4: eslint on touched files + `npx next build`; commit** `feat(creative-requests): proofing UI + checklist + cancel confirm`
 
-### Task 6: Board chips + archive filter + assignment email
+### Task 6: Board chips + archive filter
 
-**Files:** Modify `src/components/requests/RequestCard.tsx`, `src/components/requests/RequestBoard.tsx`, `src/components/requests/MyRequestsList.tsx`, `src/app/api/creative-requests/[id]/route.ts`
+**Files:** Modify `src/components/requests/RequestCard.tsx`, `src/components/requests/RequestBoard.tsx`, `src/components/requests/MyRequestsList.tsx`
 
 - [ ] **Step 1: RequestCard** — when `request.pausedAt`, render a `⏸ Waiting on centre` chip (surface/muted, italic) INSTEAD of the due chip; otherwise compute the due chip from `effectiveDueDate(new Date(request.dueDate), request.pausedMs, request.pausedAt ? new Date(request.pausedAt) : null)`.
 
