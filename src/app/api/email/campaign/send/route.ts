@@ -14,8 +14,9 @@ import {
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
 import { getEmailBranding } from "@/lib/email-branding";
+import { getSuppressedEmails } from "@/lib/email-suppression";
 
-import { parseJsonBody } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   templateId: z.string().optional().nullable(),
   subject: z.string().min(1).max(500),
@@ -184,8 +185,27 @@ if (!isBrevoConfigured()) {
     }
   }
 
+  // ── Suppression filtering ───────────────────────────────────────
+  // getSuppressedEmails returns a LOWERCASED set — compare lowercase to
+  // lowercase, or the filter silently matches nothing.
+  const suppressed = await getSuppressedEmails(recipients.map((r) => r.email));
+  const suppressedCount = recipients.filter((r) =>
+    suppressed.has(r.email.toLowerCase()),
+  ).length;
+  recipients = recipients.filter((r) => !suppressed.has(r.email.toLowerCase()));
+
+  if (recipients.length === 0) {
+    if (messageType === "enquiry") {
+      throw ApiError.conflict(
+        "This recipient has unsubscribed or bounced — email them individually if genuinely needed",
+      );
+    }
+    throw ApiError.badRequest("All recipients are suppressed or unsubscribed");
+  }
+
   // ── Send via Brevo ────────────────────────────────────────────
   let externalId: string | undefined;
+  let externalIdType: string | undefined;
   let status = "sent";
 
   try {
@@ -197,6 +217,7 @@ if (!isBrevoConfigured()) {
         scheduledAt: body.scheduledAt ?? undefined,
       });
       externalId = result.messageId;
+      externalIdType = "brevo_message";
     } else {
       const result = await sendCampaignEmail({
         recipients,
@@ -205,6 +226,7 @@ if (!isBrevoConfigured()) {
         scheduledAt: body.scheduledAt ?? undefined,
       });
       externalId = String(result.campaignId);
+      externalIdType = "brevo_campaign";
     }
 
     if (body.scheduledAt) {
@@ -221,6 +243,8 @@ if (!isBrevoConfigured()) {
         channel: "email",
         messageType,
         externalId: undefined,
+        // No send happened — nothing to disambiguate.
+        externalIdType: undefined,
         recipientCount: recipients.length,
         status: "failed",
         errorMessage,
@@ -229,7 +253,7 @@ if (!isBrevoConfigured()) {
         entityType,
         entityId,
         renderedHtml: html,
-        payload: raw as object,
+        payload: { ...(raw as object), _suppressedCount: suppressedCount },
       },
     });
 
@@ -251,6 +275,7 @@ if (!isBrevoConfigured()) {
       channel: "email",
       messageType,
       externalId,
+      externalIdType,
       recipientCount: recipients.length,
       status,
       subject: body.subject,
@@ -258,7 +283,7 @@ if (!isBrevoConfigured()) {
       entityType,
       entityId,
       renderedHtml: html,
-      payload: raw as object,
+      payload: { ...(raw as object), _suppressedCount: suppressedCount },
     },
   });
 
@@ -307,6 +332,7 @@ if (!isBrevoConfigured()) {
     success: true,
     deliveryLogId: deliveryLog.id,
     recipientCount: recipients.length,
+    suppressedCount,
     status,
   });
 });

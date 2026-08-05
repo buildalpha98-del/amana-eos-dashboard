@@ -168,6 +168,7 @@ export const POST = withApiHandler(async (req) => {
         serviceCode: serviceCode.toUpperCase() === "ALL" ? null : serviceCode,
         messageType: tags?.[0] || "newsletter",
         externalId: messageId,
+        externalIdType: "brevo_message",
         recipientCount: recipients.length,
         status,
         payload: {
