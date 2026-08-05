@@ -538,39 +538,39 @@ enum TouchpointType {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  name           String
-  email          String    @unique
-  passwordHash   String
-  role           Role      @default(member)
-  avatar         String?
-  active         Boolean   @default(true)
-  serviceId      String?
-  service        Service?  @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
-  state          String? // Australian state for State Manager scoping (VIC, NSW, QLD, etc.)
+  id                       String    @id @default(cuid())
+  name                     String
+  email                    String    @unique
+  passwordHash             String
+  role                     Role      @default(member)
+  avatar                   String?
+  active                   Boolean   @default(true)
+  serviceId                String?
+  service                  Service?  @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
+  state                    String? // Australian state for State Manager scoping (VIC, NSW, QLD, etc.)
   // 2026-05-12: free-form admin-managed tags for /team filtering and
   // org-specific grouping (e.g. "nsw", "lead-trainer", "weekend-only").
   // Always lowercased + trimmed at write time so "NSW" and "nsw" are
   // the same tag. Default empty array so existing rows don't need a
   // backfill. Max 20 per user enforced at the API layer.
-  tags           String[]  @default([])
-  tokenVersion   Int       @default(0) // Bump to invalidate all existing sessions
-  mfaSecret      String? // Encrypted TOTP secret (null = MFA not enrolled)
-  mfaBackupCodes String[] // Hashed one-time recovery codes
-  mfaEnabledAt   DateTime? // Non-null = MFA is active
-  lastLoginAt    DateTime? // Updated on each successful sign-in
+  tags                     String[]  @default([])
+  tokenVersion             Int       @default(0) // Bump to invalidate all existing sessions
+  mfaSecret                String? // Encrypted TOTP secret (null = MFA not enrolled)
+  mfaBackupCodes           String[] // Hashed one-time recovery codes
+  mfaEnabledAt             DateTime? // Non-null = MFA is active
+  lastLoginAt              DateTime? // Updated on each successful sign-in
   // 2026-05-04 (timeclock v1): 4-digit PIN used at the kiosk to clock
   // in/out. Staff sets it themselves in My Portal; admin can `reset`
   // (clear the hash, never read it). `kioskPinSetAt` lets us flag
   // "PIN required before you can use the kiosk" for first-time users.
-  kioskPinHash   String?
-  kioskPinSetAt  DateTime?
+  kioskPinHash             String?
+  kioskPinSetAt            DateTime?
   // 2026-06-01: maps this User to their Employment Hero Payroll employee
   // record so My Portal can surface payslips/leave/expenses. Nullable —
   // not every dashboard user is in payroll (e.g. casuals during trial,
   // historical accounts). Populated by the daily sync cron based on email
   // match; admins can manually override for unmatched users.
-  employmentHeroEmployeeId Int? @unique
+  employmentHeroEmployeeId Int?      @unique
   // 2026-06-01 (right to disconnect — Fair Work Act s333M, in force
   // Aug 2024). Staff-set preference: "don't message me between these
   // hours." Stored as HH:MM strings to avoid timezone/`@db.Time`
@@ -579,13 +579,13 @@ model User {
   // we'd lose evidence of an explicit refusal pattern).
   // When `quietHoursStart > quietHoursEnd` the window wraps midnight
   // (e.g. "20:00" → "07:00" = evening + overnight + early morning).
-  quietHoursStart String?
-  quietHoursEnd   String?
+  quietHoursStart          String?
+  quietHoursEnd            String?
   // Free-form expansion — "no contact on weekends", "calls OK in
   // genuine emergencies only", etc. Helps managers calibrate.
-  quietHoursNotes String?   @db.Text
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  quietHoursNotes          String?   @db.Text
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   ownedRocks                    Rock[]                         @relation("RockOwner")
   assignedTodos                 Todo[]                         @relation("TodoAssignee")
@@ -605,6 +605,7 @@ model User {
   assignedDocuments             Document[]                     @relation("DocumentAssignee")
   uploadedAttachments           Attachment[]                   @relation("AttachmentUploader")
   assignedTickets               SupportTicket[]                @relation("TicketAssignee")
+  createdParentForms            ParentForm[]                   @relation("ParentFormCreator")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
   dismissedNotifications        NotificationDismissal[]
   marketingPosts                MarketingPost[]                @relation("MarketingPostAssignee")
@@ -648,44 +649,44 @@ model User {
 
   // Performance review back-refs (separate from PerformanceCase —
   // reviews are scheduled assessments, cases are disciplinary records).
-  performanceReviews     PerformanceReview[] @relation("ReviewSubject")
-  reviewsReviewing       PerformanceReview[] @relation("ReviewReviewer")
-  reviewsCreated         PerformanceReview[] @relation("ReviewCreator")
+  performanceReviews PerformanceReview[] @relation("ReviewSubject")
+  reviewsReviewing   PerformanceReview[] @relation("ReviewReviewer")
+  reviewsCreated     PerformanceReview[] @relation("ReviewCreator")
 
   // Position description assignment. The PD library is the formal
   // "this is what this job is" document — separate from contracts
   // (legal terms) and from the role enum (auth bucket).
-  positionDescriptionId           String?
-  positionDescription             PositionDescription? @relation("UserPositionDescription", fields: [positionDescriptionId], references: [id], onDelete: SetNull)
-  positionDescriptionAssignedAt   DateTime?
-  createdPositionDescriptions     PositionDescription[] @relation("PDCreator")
+  positionDescriptionId         String?
+  positionDescription           PositionDescription?  @relation("UserPositionDescription", fields: [positionDescriptionId], references: [id], onDelete: SetNull)
+  positionDescriptionAssignedAt DateTime?
+  createdPositionDescriptions   PositionDescription[] @relation("PDCreator")
 
   // Reference checks — back-refs for both subject-side (checks ABOUT
   // this user during their hiring) and checker-side (checks this user
   // PERFORMED on others). Subject-side is the primary use case.
-  referenceChecks                 ReferenceCheck[] @relation("RefCheckSubject")
-  performedReferenceChecks        ReferenceCheck[] @relation("RefCheckChecker")
+  referenceChecks          ReferenceCheck[] @relation("RefCheckSubject")
+  performedReferenceChecks ReferenceCheck[] @relation("RefCheckChecker")
 
   // Diversity & inclusion self-disclosed profile (opt-in). Withdrawal
   // hard-deletes the row, so the relation cascades.
-  diversityProfile                DiversityProfile?
+  diversityProfile DiversityProfile?
 
   // Per-(userId, threshold) dedup marker for the visa-expiry alert
   // cron. Mirrors ComplianceCertificateAlert but keyed on User
   // because visa lives on the User row, not a separate cert record.
-  visaAlerts             VisaAlert[]       @relation("UserVisaAlerts")
+  visaAlerts VisaAlert[] @relation("UserVisaAlerts")
 
   // Back-ref for SafeReport.reviewedBy — SafeReport has NO reporterId
   // (anonymity is the whole point). This relation only tracks who
   // *reviewed* / *resolved* a report; never who filed it.
-  reviewedSafeReports    SafeReport[]      @relation("SafeReportReviewer")
+  reviewedSafeReports SafeReport[] @relation("SafeReportReviewer")
 
   // Per-User separation record (Fair Work termination evidence).
   // Complements StaffOffboarding (operational checklist) — Separation
   // is the legal-fact record of why and how they left.
-  separationRecord       SeparationRecord? @relation("SeparationSubject")
-  recordedSeparations    SeparationRecord[] @relation("SeparationRecorder")
-  finalisedSeparations   SeparationRecord[] @relation("SeparationFinaliser")
+  separationRecord     SeparationRecord?  @relation("SeparationSubject")
+  recordedSeparations  SeparationRecord[] @relation("SeparationRecorder")
+  finalisedSeparations SeparationRecord[] @relation("SeparationFinaliser")
 
   // Casual conversion elections — Closing Loopholes No. 2 Act 2024
   // (employee-choice model). Multiple records possible over a casual's
@@ -694,14 +695,14 @@ model User {
   respondedConversions      CasualConversionElection[] @relation("CasualConversionResponder")
 
   // Workers Compensation claims (Health & WHS section).
-  workersCompClaims         WorkersCompensationClaim[] @relation("WCClaimant")
-  createdWCClaims           WorkersCompensationClaim[] @relation("WCClaimCreator")
-  closedWCClaims            WorkersCompensationClaim[] @relation("WCClaimCloser")
+  workersCompClaims WorkersCompensationClaim[] @relation("WCClaimant")
+  createdWCClaims   WorkersCompensationClaim[] @relation("WCClaimCreator")
+  closedWCClaims    WorkersCompensationClaim[] @relation("WCClaimCloser")
 
   // Reasonable adjustment records (Disability Discrimination Act 1992
   // defence). Sensitive — admin-only.
-  reasonableAdjustments     ReasonableAdjustment[]   @relation("AdjustmentSubject")
-  recordedAdjustments       ReasonableAdjustment[]   @relation("AdjustmentRecorder")
+  reasonableAdjustments ReasonableAdjustment[] @relation("AdjustmentSubject")
+  recordedAdjustments   ReasonableAdjustment[] @relation("AdjustmentRecorder")
 
   // Purchase-approval requests — staff submit these from the service
   // Finance tab when they need to buy something with personal funds.
@@ -741,31 +742,31 @@ model User {
   inductionClearedById   String?
   inductionGraceUntil    DateTime?
   inductionOverrideUntil DateTime?
-  bankDetailsNote   String?
-  bankAccountName   String?
-  bankBSB           String?
-  bankAccountNumber String?
-  xeroEmployeeId    String?
+  bankDetailsNote        String?
+  bankAccountName        String?
+  bankBSB                String?
+  bankAccountNumber      String?
+  xeroEmployeeId         String?
 
   // ── HR Relations ─────────────────────────────────────────────
-  emergencyContacts        EmergencyContact[]
-  qualifications           StaffQualification[]
-  pdRecords                ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
-  contracts                EmploymentContract[]            @relation("ContractEmployee")
+  emergencyContacts         EmergencyContact[]
+  qualifications            StaffQualification[]
+  pdRecords                 ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
+  contracts                 EmploymentContract[]            @relation("ContractEmployee")
   // Back-ref for contracts where this user signed as the issuing
   // admin. 2026-06-02 — two-party contract signature feature.
-  signedContractsAsAdmin   EmploymentContract[]            @relation("ContractAdminSigner")
-  createdContractTemplates ContractTemplate[]              @relation("TemplateCreator")
-  updatedContractTemplates ContractTemplate[]              @relation("TemplateUpdater")
-  createdContractCustomTags ContractCustomTag[]            @relation("ContractCustomTagCreator")
-  leaveRequests            LeaveRequest[]                  @relation("LeaveRequester")
-  approvedLeaves           LeaveRequest[]                  @relation("LeaveApprover")
-  leaveBalances            LeaveBalance[]
-  timesheetEntries         TimesheetEntry[]                @relation("TimesheetStaff")
-  policyDocVersionUploads  PolicyDocumentVersion[]         @relation("PolicyDocVersionUploader")
-  policyDocAcks            PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
-  offboardings             StaffOffboarding[]              @relation("OffboardingUser")
-  apiKeys                  ApiKey[]                        @relation("ApiKeyCreator")
+  signedContractsAsAdmin    EmploymentContract[]            @relation("ContractAdminSigner")
+  createdContractTemplates  ContractTemplate[]              @relation("TemplateCreator")
+  updatedContractTemplates  ContractTemplate[]              @relation("TemplateUpdater")
+  createdContractCustomTags ContractCustomTag[]             @relation("ContractCustomTagCreator")
+  leaveRequests             LeaveRequest[]                  @relation("LeaveRequester")
+  approvedLeaves            LeaveRequest[]                  @relation("LeaveApprover")
+  leaveBalances             LeaveBalance[]
+  timesheetEntries          TimesheetEntry[]                @relation("TimesheetStaff")
+  policyDocVersionUploads   PolicyDocumentVersion[]         @relation("PolicyDocVersionUploader")
+  policyDocAcks             PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
+  offboardings              StaffOffboarding[]              @relation("OffboardingUser")
+  apiKeys                   ApiKey[]                        @relation("ApiKeyCreator")
 
   // ── CRM Relations ───────────────────────────────────────────
   assignedLeads           Lead[]                         @relation("LeadAssignee")
@@ -813,7 +814,7 @@ model User {
   // ── Onboarding & Preferences ──────────────────────
   gettingStartedProgress Json? // Tracks completed checklist items per role
   notificationPrefs      Json? // { overdueTodos: true, newAssignments: true, ... }
-  notificationsMuted     Boolean @default(false) // master mute — no external pings (email/push); in-app kept
+  notificationsMuted     Boolean                 @default(false) // master mute — no external pings (email/push); in-app kept
   // 2026-07-24: opt-in for cron/system nudges (overdue todos, compliance
   // alerts, meeting reminders, weekly digest, etc.). Default is OFF for
   // everyone; the recipient resolver auto-includes leadership roles
@@ -821,7 +822,7 @@ model User {
   // service's shared inbox email. Flip this to `true` for the select
   // non-leadership individuals who should ALSO be nudged (e.g. a specific
   // OSHC Coordinator who wants a copy of their centre's alerts).
-  receivesNudges         Boolean @default(false)
+  receivesNudges         Boolean                 @default(false)
   systemBanners          SystemBannerDismissal[] @relation("BannerDismissals")
   internalFeedback       InternalFeedback[]      @relation("FeedbackAuthor")
 
@@ -869,14 +870,14 @@ model User {
   notifications UserNotification[] @relation("UserNotifications")
 
   // ── Staff Rostering ──────────────────────────────
-  rosterShifts        RosterShift[]      @relation("UserRosterShifts")
-  createdRosterShifts RosterShift[]      @relation("CreatedRosterShifts")
+  rosterShifts                    RosterShift[]            @relation("UserRosterShifts")
+  createdRosterShifts             RosterShift[]            @relation("CreatedRosterShifts")
   // 2026-06-11: responsible-person register entries this user is named on / created.
   responsiblePersonEntries        ResponsiblePersonEntry[] @relation("UserResponsiblePersonEntries")
   createdResponsiblePersonEntries ResponsiblePersonEntry[] @relation("CreatedResponsiblePersonEntries")
-  proposedShiftSwaps  ShiftSwapRequest[] @relation("ProposedShiftSwaps")
-  targetShiftSwaps    ShiftSwapRequest[] @relation("TargetShiftSwaps")
-  approvedShiftSwaps  ShiftSwapRequest[] @relation("ApprovedShiftSwaps")
+  proposedShiftSwaps              ShiftSwapRequest[]       @relation("ProposedShiftSwaps")
+  targetShiftSwaps                ShiftSwapRequest[]       @relation("TargetShiftSwaps")
+  approvedShiftSwaps              ShiftSwapRequest[]       @relation("ApprovedShiftSwaps")
 
   // ── Marketing Cockpit (Sprint 2) ─────────────────
   contentTeamRole        ContentTeamRole?
@@ -965,30 +966,30 @@ model CalendarIntegration {
 }
 
 model VisionTractionOrganiser {
-  id                String   @id @default(cuid())
-  coreValues        String[]
-  corePurpose       String?
-  coreNiche         String?
-  tenYearTarget     String?  @db.Text
-  threeYearPicture  String?  @db.Text // legacy freeform — superseded by the threeYear* fields below; rendered read-only until cleared
-  threeYearFutureDate   DateTime?
-  threeYearRevenue      String?
-  threeYearProfit       String?
-  threeYearMeasurables  String?  @db.Text
-  threeYearLooksLike    String?  @db.Text
-  oneYearFutureDate     DateTime?
-  oneYearRevenue        String?
-  oneYearProfit         String?
-  oneYearMeasurables    String?  @db.Text
-  marketingStrategy String?  @db.Text // legacy freeform — superseded by the four gtm* fields below; rendered read-only until cleared
-  gtmTargetMarket   String?  @db.Text
-  gtmThreeUniques   String?  @db.Text
-  gtmProvenProcess  String?  @db.Text
-  gtmGuarantee      String?  @db.Text
-  sectionLabels     Json? // Custom section titles e.g. { tenYearTarget: "5-Year Target" }
-  updatedAt         DateTime @updatedAt
-  updatedById       String?
-  updatedBy         User?    @relation("VTOUpdater", fields: [updatedById], references: [id])
+  id                   String    @id @default(cuid())
+  coreValues           String[]
+  corePurpose          String?
+  coreNiche            String?
+  tenYearTarget        String?   @db.Text
+  threeYearPicture     String?   @db.Text // legacy freeform — superseded by the threeYear* fields below; rendered read-only until cleared
+  threeYearFutureDate  DateTime?
+  threeYearRevenue     String?
+  threeYearProfit      String?
+  threeYearMeasurables String?   @db.Text
+  threeYearLooksLike   String?   @db.Text
+  oneYearFutureDate    DateTime?
+  oneYearRevenue       String?
+  oneYearProfit        String?
+  oneYearMeasurables   String?   @db.Text
+  marketingStrategy    String?   @db.Text // legacy freeform — superseded by the four gtm* fields below; rendered read-only until cleared
+  gtmTargetMarket      String?   @db.Text
+  gtmThreeUniques      String?   @db.Text
+  gtmProvenProcess     String?   @db.Text
+  gtmGuarantee         String?   @db.Text
+  sectionLabels        Json? // Custom section titles e.g. { tenYearTarget: "5-Year Target" }
+  updatedAt            DateTime  @updatedAt
+  updatedById          String?
+  updatedBy            User?     @relation("VTOUpdater", fields: [updatedById], references: [id])
 
   oneYearGoals OneYearGoal[]
 }
@@ -1084,9 +1085,9 @@ model Todo {
   completedAt DateTime?
   updatedAt   DateTime   @updatedAt
 
-  assignees  TodoAssignee[] @relation("TodoAssignees")
-  aiDrafts   AiTaskDraft[]  @relation("TodoAiDraft")
-  sourceCall VapiCall?      @relation("TodoFromCall")
+  assignees             TodoAssignee[]        @relation("TodoAssignees")
+  aiDrafts              AiTaskDraft[]         @relation("TodoAiDraft")
+  sourceCall            VapiCall?             @relation("TodoFromCall")
   // 2026-07-23: reverse side of FamilyBalanceContact.followUpTodo.
   // Only populated when the parent contact had outcome=no_answer
   // and the endpoint auto-generated a follow-up.
@@ -2335,17 +2336,18 @@ model Service {
 
   // ── Holiday Quest Relations ──────────────────────────────
   holidayQuests HolidayQuestDay[] @relation("ServiceHolidayQuest")
+  parentForms   ParentForm[]      @relation("ServiceParentForms")
 
   // ── OWNA Integration Relations ──────────────────────────
-  bookingForecasts        BookingForecast[]       @relation("ServiceBookings")
-  rosterShifts            RosterShift[]           @relation("ServiceRosterShifts")
+  bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
+  rosterShifts             RosterShift[]            @relation("ServiceRosterShifts")
   // 2026-06-11: responsible-person register entries for this service.
   responsiblePersonEntries ResponsiblePersonEntry[] @relation("ServiceResponsiblePersons")
   // 2026-05-04 (timeclock v1): kiosks registered to this service.
-  kiosks                  Kiosk[]                 @relation("ServiceKiosks")
+  kiosks                   Kiosk[]                  @relation("ServiceKiosks")
   // 2026-05-04 (shift templates v1): saved shift patterns for this service.
-  shiftTemplates          ShiftTemplate[]         @relation("ServiceShiftTemplates")
-  conversionOpportunities ConversionOpportunity[] @relation("ServiceConversions")
+  shiftTemplates           ShiftTemplate[]          @relation("ServiceShiftTemplates")
+  conversionOpportunities  ConversionOpportunity[]  @relation("ServiceConversions")
 
   // ── Compliance Audit Relations ─────────────────────────
   audits AuditInstance[] @relation("ServiceAudits")
@@ -3475,8 +3477,8 @@ model LMSCourse {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  modules      LMSModule[]
-  enrollments  LMSEnrollment[]
+  modules       LMSModule[]
+  enrollments   LMSEnrollment[]
   calendarSlots TrainingCalendarSlot[] @relation("CalendarCourse")
 
   @@index([status])
@@ -3569,21 +3571,21 @@ model LMSQuizQuestion {
 }
 
 model LMSQuizAttempt {
-  id            String        @id @default(cuid())
-  enrollmentId  String
-  enrollment    LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  moduleId      String
-  module        LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  answers       Json          @default("[]") // [{questionId, selectedIndex}]
-  score         Float         @default(0)
-  passed        Boolean       @default(false)
-  attemptNumber Int
-  submittedAt   DateTime? // null = in-progress (created at GET); set on POST submit
+  id                 String        @id @default(cuid())
+  enrollmentId       String
+  enrollment         LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  moduleId           String
+  module             LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  answers            Json          @default("[]") // [{questionId, selectedIndex}]
+  score              Float         @default(0)
+  passed             Boolean       @default(false)
+  attemptNumber      Int
+  submittedAt        DateTime? // null = in-progress (created at GET); set on POST submit
   // Fingerprint of the question set (ids + options) served at start. Submit
   // rejects (409) if it no longer matches — an option edit mid-attempt would
   // otherwise silently corrupt the display→canonical answer mapping.
   optionsFingerprint String?
-  createdAt     DateTime      @default(now())
+  createdAt          DateTime      @default(now())
 
   // Shuffle seed is derived from (enrollmentId + moduleId + attemptNumber),
   // all persisted here, so submit re-derives the exact permutation. No seed column.
@@ -3742,20 +3744,20 @@ model DailyAttendance {
 }
 
 model AttendanceRecord {
-  id                  String      @id @default(cuid())
-  childId             String
-  child               Child       @relation("ChildAttendance", fields: [childId], references: [id], onDelete: Cascade)
-  serviceId           String
-  service             Service     @relation("ServiceIndividualAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
-  date                DateTime    @db.Date
-  sessionType         SessionType
-  status              String      @default("booked") // booked, present, absent
-  signInTime          DateTime?
-  signOutTime         DateTime?
-  signedInById        String?
-  signedOutById       String?
-  signedInBy          User?       @relation("SignInRecorder", fields: [signedInById], references: [id], onDelete: SetNull)
-  signedOutBy         User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
+  id            String      @id @default(cuid())
+  childId       String
+  child         Child       @relation("ChildAttendance", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service     @relation("ServiceIndividualAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime    @db.Date
+  sessionType   SessionType
+  status        String      @default("booked") // booked, present, absent
+  signInTime    DateTime?
+  signOutTime   DateTime?
+  signedInById  String?
+  signedOutById String?
+  signedInBy    User?       @relation("SignInRecorder", fields: [signedInById], references: [id], onDelete: SetNull)
+  signedOutBy   User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
 
   // ── Who actually signed (2026-08-01) ─────────────────────────────────
   // signedInById references User, i.e. STAFF. There was no way to record
@@ -3773,16 +3775,16 @@ model AttendanceRecord {
   signedOutMethod     String?
   // Drawn signature, stored as a data URL. Nullable because a kiosk PIN
   // is an acceptable alternative and not every service will use ink.
-  signedInSignature   String?     @db.Text
-  signedOutSignature  String?     @db.Text
+  signedInSignature   String?   @db.Text
+  signedOutSignature  String?   @db.Text
   absenceReason       String?
-  notes               String?     @db.Text
+  notes               String?   @db.Text
   // ── First-day photo SMS (Amana Way stage 5) ──
   firstDayPhotoUrl    String?
   firstDayPhotoSentAt DateTime?
   firstDayPhotoSentTo String? // recipient mobile in E.164 — audit trail
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
   @@index([serviceId, date, sessionType])
@@ -4157,21 +4159,21 @@ model PolicyDocumentAcknowledgement {
 // ============================================================
 
 model EmploymentContract {
-  id                  String               @id @default(cuid())
+  id                  String         @id @default(cuid())
   userId              String
-  user                User                 @relation("ContractEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  user                User           @relation("ContractEmployee", fields: [userId], references: [id], onDelete: Cascade)
   contractType        ContractType
   awardLevel          AwardLevel?
   awardLevelCustom    String?
   payRate             Float
   hoursPerWeek        Float?
-  startDate           DateTime             @db.Date
-  endDate             DateTime?            @db.Date
-  status              ContractStatus       @default(contract_draft)
+  startDate           DateTime       @db.Date
+  endDate             DateTime?      @db.Date
+  status              ContractStatus @default(contract_draft)
   documentUrl         String?
   documentId          String?
   signedAt            DateTime?
-  acknowledgedByStaff Boolean              @default(false)
+  acknowledgedByStaff Boolean        @default(false)
   acknowledgedAt      DateTime?
 
   // ── Two-party signatures (2026-06-02) ────────────────────────────
@@ -4185,28 +4187,28 @@ model EmploymentContract {
   // Legacy contracts (issued before this feature) leave these null;
   // the render-html signature placeholder substitution treats null
   // as "no signature available" and renders blank.
-  adminSignatureDataUrl  String?           @db.Text
-  adminSignedById        String?
-  adminSignedBy          User?             @relation("ContractAdminSigner", fields: [adminSignedById], references: [id], onDelete: SetNull)
-  adminSignedAt          DateTime?
-  staffSignatureDataUrl  String?           @db.Text
+  adminSignatureDataUrl String?              @db.Text
+  adminSignedById       String?
+  adminSignedBy         User?                @relation("ContractAdminSigner", fields: [adminSignedById], references: [id], onDelete: SetNull)
+  adminSignedAt         DateTime?
+  staffSignatureDataUrl String?              @db.Text
   // staffSignedAt is intentionally NOT a new column — `acknowledgedAt`
   // already records the moment the staff member completed their
   // acknowledgement, which under the new flow IS the signature.
-  notes               String?              @db.Text
-  previousContractId  String?
-  previousContract    EmploymentContract?  @relation("ContractHistory", fields: [previousContractId], references: [id])
-  supersededBy        EmploymentContract[] @relation("ContractHistory")
-  templateId          String?
-  template            ContractTemplate?    @relation("ContractFromTemplate", fields: [templateId], references: [id], onDelete: SetNull)
-  templateValues      Json?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  notes                 String?              @db.Text
+  previousContractId    String?
+  previousContract      EmploymentContract?  @relation("ContractHistory", fields: [previousContractId], references: [id])
+  supersededBy          EmploymentContract[] @relation("ContractHistory")
+  templateId            String?
+  template              ContractTemplate?    @relation("ContractFromTemplate", fields: [templateId], references: [id], onDelete: SetNull)
+  templateValues        Json?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   // Back-ref for CasualConversionElection — when this contract was the
   // result of an accepted conversion election, the election row points
   // back here. Unique because one contract = one election (or null).
-  conversionElection  CasualConversionElection? @relation("ConversionResultContract")
+  conversionElection CasualConversionElection? @relation("ConversionResultContract")
 
   @@index([userId])
   @@index([status])
@@ -4363,21 +4365,21 @@ model TimesheetEntry {
 // ============================================================
 
 model OffboardingPack {
-  id          String   @id @default(cuid())
-  name        String
-  description String?  @db.Text
-  serviceId   String?
-  service     Service? @relation("ServiceOffboardingPacks", fields: [serviceId], references: [id], onDelete: SetNull)
-  isDefault   Boolean  @default(false)
+  id                        String           @id @default(cuid())
+  name                      String
+  description               String?          @db.Text
+  serviceId                 String?
+  service                   Service?         @relation("ServiceOffboardingPacks", fields: [serviceId], references: [id], onDelete: SetNull)
+  isDefault                 Boolean          @default(false)
   // 2026-07-08: employment-type-aware packs. When set, the assign
   // endpoint auto-picks this pack for departing staff whose active
   // contract has a matching type. Empty array = fallback / manual only.
   // Introduced with the MA000120 Casual + Permanent packs so casuals
   // don't get the full-time NES notice checklist and vice versa.
   applicableEmploymentTypes EmploymentType[] @default([])
-  deleted     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  deleted                   Boolean          @default(false)
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
 
   tasks       OffboardingTask[]
   assignments StaffOffboarding[]
@@ -5261,10 +5263,9 @@ model ParentEnquiry {
   touchpoints  ParentEnquiryTouchpoint[]
   nurtureSteps ParentNurtureStep[]
   sourceCall   VapiCall?                 @relation("EnquiryFromCall")
+  stageEvents  ParentEnquiryStageEvent[]
 
   @@index([serviceId])
-  stageEvents ParentEnquiryStageEvent[]
-
   @@index([stage])
   @@index([assigneeId])
   @@index([nextActionDue])
@@ -5339,13 +5340,13 @@ model Referral {
 // ============================================================
 
 model RecruitmentVacancy {
-  id                    String                 @id @default(cuid())
+  id                    String         @id @default(cuid())
   serviceId             String
-  service               Service                @relation("ServiceVacancies", fields: [serviceId], references: [id])
+  service               Service        @relation("ServiceVacancies", fields: [serviceId], references: [id])
   role                  String // educator, senior_educator, coordinator, director
   employmentType        EmploymentType
   qualificationRequired String? // none, cert_iii, diploma
-  status                String                 @default("open") // open, interviewing, offered, filled, cancelled
+  status                String         @default("open") // open, interviewing, offered, filled, cancelled
 
   // Optional link to the Position Description library — when set,
   // the vacancy detail surface shows the PD inline so interviewers
@@ -5598,7 +5599,7 @@ model IncidentRecord {
   // SetNull on the FK in the back-relation so an incident can be
   // deleted without taking the WC record with it (the claim is its
   // own legal artifact at that point).
-  workersCompClaims     WorkersCompensationClaim[] @relation("IncidentWCClaim")
+  workersCompClaims WorkersCompensationClaim[] @relation("IncidentWCClaim")
 
   @@index([serviceId])
   @@index([incidentDate])
@@ -6307,7 +6308,7 @@ model Child {
   // two centres has two Child rows, and without this the second one looks
   // like a duplicate or a mistake. Null = ordinary term care.
   // Values: holiday_quest | sibling_campus | casual | transferring | other
-  placementReason String?
+  placementReason       String?
   id                    String               @id @default(cuid())
   enrolmentId           String?
   enrolment             EnrolmentSubmission? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
@@ -6350,32 +6351,32 @@ model Child {
   // Modelled on the fields OWNA collects, trimmed to what school-age care
   // actually needs. Toileting and sleep-check were deliberately NOT
   // carried over — they're under-24-month concerns and meaningless here.
-  preferredName            String? // what educators actually call them
-  livesWith                String? // "Both parents", "Mother", shared care…
+  preferredName             String? // what educators actually call them
+  livesWith                 String? // "Both parents", "Mother", shared care…
   // Reg 160(3)(h)-(i): language and cultural background of the child.
-  mainLanguageAtHome       String?
+  mainLanguageAtHome        String?
   languagesOtherThanEnglish String?
-  englishAssistance        Boolean  @default(false)
+  englishAssistance         Boolean @default(false)
   // Collected for reporting; "Neither" is a real answer, so null means
   // "not asked yet" rather than "no".
-  indigenousStatus         String?
-  yearOfArrival            Int? // if not born in Australia
+  indigenousStatus          String?
+  yearOfArrival             Int? // if not born in Australia
   // Drives the staff discount, so it's a billing input, not just a note.
-  isStaffChild             Boolean  @default(false)
+  isStaffChild              Boolean @default(false)
   // ── Posting / consent preferences ──
-  suppressBirthdayPost     Boolean  @default(false)
-  ownSunscreen             Boolean  @default(false)
-  noAppPosting             Boolean  @default(false)
-  allowSocialMediaPost     Boolean  @default(false)
+  suppressBirthdayPost      Boolean @default(false)
+  ownSunscreen              Boolean @default(false)
+  noAppPosting              Boolean @default(false)
+  allowSocialMediaPost      Boolean @default(false)
 
-  status                String               @default("pending") // pending, active, withdrawn
+  status       String    @default("pending") // pending, active, withdrawn
   // OWNA sync fields
-  ownaChildId           String?              @unique
-  ownaRoomId            String?
-  ownaRoomName          String?
-  ownaSyncedAt          DateTime?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
+  ownaChildId  String?   @unique
+  ownaRoomId   String?
+  ownaRoomName String?
+  ownaSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   bookings           Booking[]            @relation("ChildBookings")
   absences           Absence[]            @relation("ChildAbsences")
@@ -6524,25 +6525,25 @@ model SequenceStepExecution {
 // forgot-password path, so a parent can never be locked out of their
 // own enrolment.
 model ParentAccount {
-  id           String    @id @default(cuid())
+  id                        String    @id @default(cuid())
   // Always stored lowercased+trimmed — the lookup path depends on it.
-  email        String    @unique
-  passwordHash String
+  email                     String    @unique
+  passwordHash              String
   // Null until the parent clicks the emailed confirmation link. Gates
   // login: an unverified account cannot start an enrolment.
-  emailVerifiedAt DateTime?
+  emailVerifiedAt           DateTime?
   // Captured at sign-up so we can address them in the confirmation email
   // before any enrolment data exists.
-  firstName    String?
-  surname      String?
+  firstName                 String?
+  surname                   String?
   // Set when an existing family claims their pre-account enrolments, so
   // the one-time backfill is auditable and never re-runs.
-  claimedAt    DateTime?
-  lastLoginAt  DateTime?
+  claimedAt                 DateTime?
+  lastLoginAt               DateTime?
   // 2026-07-30: when staff last nudged this family to finish their
   // enrolment. Stored so the Families list can show "reminded 2 days ago"
   // and staff don't unknowingly send the same parent three emails.
-  enrolmentReminderSentAt DateTime?
+  enrolmentReminderSentAt   DateTime?
   // 2026-08-03: staff can switch a family's portal access off without
   // deleting them. Deleting loses the enrolment history and the billing
   // arrangement; a family who leaves, or who is in dispute, needs the
@@ -6551,9 +6552,9 @@ model ParentAccount {
   // Against the ACCOUNT, not localStorage — a parent who dismisses it on
   // their phone shouldn't meet it again on the tablet.
   appInstallCardDismissedAt DateTime?
-  deactivatedAt   DateTime?
-  deactivatedById String?
-  deactivatedReason String?
+  deactivatedAt             DateTime?
+  deactivatedById           String?
+  deactivatedReason         String?
 
   // ── Family identity ──────────────────────────────────────────────────
   // 2026-07-31: the household's name, taken from the PRIMARY carer's
@@ -6586,25 +6587,25 @@ model ParentAccount {
   // and how many weeks each cycle spans.
   //
   // Anything before this is ignored when generating invoices.
-  billingStartDate  DateTime? @db.Date
+  billingStartDate     DateTime? @db.Date
   // The period the NEXT invoice covers, and when it is raised.
-  billingPeriodStart DateTime? @db.Date
-  nextBillingDate   DateTime? @db.Date
+  billingPeriodStart   DateTime? @db.Date
+  nextBillingDate      DateTime? @db.Date
   // Weeks per invoice cycle (1 = weekly, 2 = fortnightly, 4 = monthly-ish).
-  billingWeeks      Int?
+  billingWeeks         Int?
   // Inverted from OWNA's "Do NOT Auto Invoice" so the default is the safe,
   // expected behaviour rather than depending on a false meaning "on".
-  autoInvoice       Boolean  @default(true)
+  autoInvoice          Boolean   @default(true)
   // Suspends the debit without losing the arrangement — a payment plan or
   // a family in hardship, where deleting the setup would lose the history.
-  pauseDebiting     Boolean  @default(false)
+  pauseDebiting        Boolean   @default(false)
   // Staff follow-up, surfaced in the communication diary.
   billingReminderDate  DateTime? @db.Date
   billingReminderNotes String?   @db.Text
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  verifications ParentEmailVerification[]
+  verifications  ParentEmailVerification[]
   enrolmentDraft EnrolmentDraft?
 
   @@index([email])
@@ -6884,25 +6885,25 @@ model ParentPost {
   // draft | scheduled | published. Default "published" so every existing
   // row stays visible after the migration — the alternative would hide
   // every post already live.
-  status      String         @default("published")
+  status    String    @default("published")
   // When the post becomes visible. Null = immediately.
   //
   // Visibility is evaluated at READ time (publishAt <= now) rather than
   // by a cron flipping a flag: a cron that fails or lags means a
   // scheduled post silently never appears, whereas a comparison can't
   // drift.
-  publishAt   DateTime?
+  publishAt DateTime?
 
   // ── Curriculum tagging ───────────────────────────────────────────────
   // MTOP, not EYLF — MTOP is the school-age framework, and offering both
   // invites tagging an OSHC post against the birth-to-five one.
-  mtopOutcomes String[]      @default([])
-  nqsAreas     String[]      @default([])
+  mtopOutcomes       String[] @default([])
+  nqsAreas           String[] @default([])
   // Links to the program activities this post evidences.
   programActivityIds String[] @default([])
 
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   tags     ParentPostChildTag[]
   likes    ParentPostLike[]
@@ -6955,6 +6956,48 @@ model ParentPostComment {
 }
 
 // ── Parent Notifications (In-App Bell) ──────────────────
+
+// ── Parent forms ───────────────────────────────────────────────────────
+// Permission slips, policy acknowledgements, excursion consents — the
+// paper a centre needs a family's signature on, without the paper.
+model ParentForm {
+  id          String    @id @default(cuid())
+  serviceId   String
+  service     Service   @relation("ServiceParentForms", fields: [serviceId], references: [id], onDelete: Cascade)
+  title       String
+  description String?   @db.Text
+  /// The document itself (PDF or image in blob storage). Optional — an
+  /// acknowledgement can be pure text ("I agree to the sun-safety policy").
+  fileUrl     String?
+  fileName    String?
+  /// Signatures wanted by this date. Informational, not enforced.
+  dueDate     DateTime? @db.Date
+  status      String    @default("active") // active | archived
+  createdById String?
+  createdBy   User?     @relation("ParentFormCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  signatures ParentFormSignature[]
+
+  @@index([serviceId, status])
+}
+
+model ParentFormSignature {
+  id          String     @id @default(cuid())
+  formId      String
+  form        ParentForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  /// The signing convention the enrolment form already uses: a typed
+  /// full name, stored with the moment it was given.
+  parentEmail String
+  signedName  String
+  signedAt    DateTime   @default(now())
+
+  // One signature per family per form — signing twice is a no-op, not
+  // a second row.
+  @@unique([formId, parentEmail])
+  @@index([parentEmail])
+}
 
 model ParentNotification {
   id          String   @id @default(cuid())
@@ -7283,7 +7326,6 @@ model EmailTemplateOverride {
   updatedAt   DateTime @updatedAt
 }
 
-
 // ─────────────────────────────────────────────────────────────────────
 // HR — Performance & disciplinary cases (2026-06-01)
 // ─────────────────────────────────────────────────────────────────────
@@ -7303,57 +7345,57 @@ model EmailTemplateOverride {
 // so the audit chain survives.
 
 model PerformanceCase {
-  id          String                @id @default(cuid())
+  id String @id @default(cuid())
 
   // Subject of the case — the staff member it concerns.
-  userId      String
-  user        User                  @relation("CaseSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("CaseSubject", fields: [userId], references: [id], onDelete: Cascade)
 
   // Manager / admin who logged it.
-  raisedById  String
-  raisedBy    User                  @relation("CaseRaiser", fields: [raisedById], references: [id])
+  raisedById String
+  raisedBy   User   @relation("CaseRaiser", fields: [raisedById], references: [id])
 
   // Manager who closed it out (null while open).
-  closedById  String?
-  closedBy    User?                 @relation("CaseCloser", fields: [closedById], references: [id])
+  closedById String?
+  closedBy   User?   @relation("CaseCloser", fields: [closedById], references: [id])
 
-  type        PerformanceCaseType
-  status      PerformanceCaseStatus @default(open)
+  type   PerformanceCaseType
+  status PerformanceCaseStatus @default(open)
 
-  title       String                @db.VarChar(200)
-  summary     String                @db.Text
+  title   String @db.VarChar(200)
+  summary String @db.Text
 
   // The date the incident/conversation/etc actually happened. Separate
   // from `createdAt` because cases are often logged days after the fact.
-  occurredAt  DateTime              @db.Date
+  occurredAt DateTime  @db.Date
   // Optional follow-up review date (e.g. PIP review in 4 weeks).
-  followUpAt  DateTime?             @db.Date
+  followUpAt DateTime? @db.Date
 
   // Free-text resolution — what was the outcome. Null until closed.
-  outcome     String?               @db.Text
-  closedAt    DateTime?
+  outcome  String?   @db.Text
+  closedAt DateTime?
 
   // Optional attachment — typically the signed warning letter PDF,
   // PIP document, or supporting evidence. Stored as Vercel Blob URL.
-  fileUrl     String?
-  fileName    String?
+  fileUrl  String?
+  fileName String?
 
   // Confidential flag — restricts visibility to owner role only.
   // Use for sensitive allegations where even other admins shouldn't
   // see the detail (e.g. allegations of harassment against a colleague).
-  confidential Boolean              @default(false)
+  confidential Boolean @default(false)
 
   // Soft delete — Fair Work retention is 7 years; physical deletion
   // is restricted to owner and stays a future concern.
-  deleted     Boolean               @default(false)
+  deleted Boolean @default(false)
 
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Back-ref for SeparationRecord — when a dismissal record references
   // this case as the justifying disciplinary chain. Many separations
   // CAN cite the same case (rare but legal), so it's a list.
-  separations SeparationRecord[]    @relation("SeparationCase")
+  separations SeparationRecord[] @relation("SeparationCase")
 
   @@index([userId, status])
   @@index([type, occurredAt])
@@ -7435,69 +7477,69 @@ model VisaAlert {
 // retained 7 years per Fair Work record-keeping.
 
 model PerformanceReview {
-  id              String              @id @default(cuid())
+  id String @id @default(cuid())
 
   // Subject of the review — the staff member being reviewed.
-  userId          String
-  user            User                @relation("ReviewSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("ReviewSubject", fields: [userId], references: [id], onDelete: Cascade)
 
   // The manager assigned to complete the review. Selected by the admin
   // at creation time (the User model has no direct "manager" relation,
   // so we can't auto-default — typically the centre Director or the
   // service manager from `Service.managerId` where applicable).
-  reviewerUserId  String?
-  reviewer        User?               @relation("ReviewReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+  reviewerUserId String?
+  reviewer       User?   @relation("ReviewReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
 
   // Whoever created the cycle (admin scheduling it).
-  createdById     String
-  createdBy       User                @relation("ReviewCreator", fields: [createdById], references: [id])
+  createdById String
+  createdBy   User   @relation("ReviewCreator", fields: [createdById], references: [id])
 
-  type            ReviewType
-  status          ReviewStatus        @default(scheduled)
+  type   ReviewType
+  status ReviewStatus @default(scheduled)
 
   // The review period this assessment covers. e.g. probation review =
   // start date → 75 days later; annual = anniversary year.
-  periodStart     DateTime            @db.Date
-  periodEnd       DateTime            @db.Date
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
   // When the completed review is due.
-  dueDate         DateTime            @db.Date
+  dueDate     DateTime @db.Date
 
   // ── Self-assessment (phase 2 workflow, columns ready now) ──
-  selfAssessment       String?        @db.Text
-  selfStrengths        String?        @db.Text
-  selfImprovements     String?        @db.Text
-  selfSubmittedAt      DateTime?
+  selfAssessment   String?   @db.Text
+  selfStrengths    String?   @db.Text
+  selfImprovements String?   @db.Text
+  selfSubmittedAt  DateTime?
 
   // ── Manager assessment ──
-  managerAssessment    String?        @db.Text
-  managerStrengths     String?        @db.Text
-  managerImprovements  String?        @db.Text
-  managerSubmittedAt   DateTime?
+  managerAssessment   String?   @db.Text
+  managerStrengths    String?   @db.Text
+  managerImprovements String?   @db.Text
+  managerSubmittedAt  DateTime?
 
   // Optional overall rating. Nullable so a review can be completed
   // without a rating where the type doesn't call for one (e.g. a
   // check-in conversation).
-  overallRating        ReviewRating?
+  overallRating ReviewRating?
 
   // Staff acknowledgement — they've seen and signed off (or noted
   // disagreement in `acknowledgementNotes`).
   acknowledgedAt       DateTime?
-  acknowledgementNotes String?        @db.Text
+  acknowledgementNotes String?   @db.Text
 
   // Admin-only HR commentary. Never returned to the subject.
-  privateNotes         String?        @db.Text
+  privateNotes String? @db.Text
 
   // When the review was finalised end-to-end (status = completed).
-  completedAt          DateTime?
+  completedAt DateTime?
 
   // Soft delete — 7-year Fair Work retention.
-  deleted              Boolean         @default(false)
+  deleted Boolean @default(false)
 
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Per-review goals carried forward.
-  goals                PerformanceReviewGoal[]
+  goals PerformanceReviewGoal[]
 
   @@index([userId, status])
   @@index([reviewerUserId, status])
@@ -7506,19 +7548,19 @@ model PerformanceReview {
 }
 
 enum ReviewType {
-  probation         // ~75 days after start; binary pass/extend/end
-  mid_year          // Light-touch check-in mid annual cycle
-  annual            // Yearly full review
-  ad_hoc            // Manager-initiated outside the normal cadence
+  probation // ~75 days after start; binary pass/extend/end
+  mid_year // Light-touch check-in mid annual cycle
+  annual // Yearly full review
+  ad_hoc // Manager-initiated outside the normal cadence
 }
 
 enum ReviewStatus {
-  scheduled                  // Created, not yet open for self-assessment
-  self_assessment            // Subject can fill self-assessment
-  manager_review             // Subject submitted; manager writing assessment
-  awaiting_acknowledgement   // Manager submitted; subject must sign off
-  completed                  // Acknowledged + closed
-  cancelled                  // Cycle abandoned (subject left, etc.)
+  scheduled // Created, not yet open for self-assessment
+  self_assessment // Subject can fill self-assessment
+  manager_review // Subject submitted; manager writing assessment
+  awaiting_acknowledgement // Manager submitted; subject must sign off
+  completed // Acknowledged + closed
+  cancelled // Cycle abandoned (subject left, etc.)
 }
 
 enum ReviewRating {
@@ -7534,27 +7576,27 @@ enum ReviewRating {
 // mid-year check-ins can mark progress without re-opening the review.
 
 model PerformanceReviewGoal {
-  id            String         @id @default(cuid())
-  reviewId      String
-  review        PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  id       String            @id @default(cuid())
+  reviewId String
+  review   PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
-  title         String         @db.VarChar(200)
-  description   String?        @db.Text
+  title       String  @db.VarChar(200)
+  description String? @db.Text
 
   // Optional target date. Nullable for open-ended development goals.
-  dueDate       DateTime?      @db.Date
+  dueDate DateTime? @db.Date
 
-  status        ReviewGoalStatus @default(not_started)
+  status ReviewGoalStatus @default(not_started)
 
   // Manager's running notes on this goal between reviews.
-  progressNotes String?        @db.Text
+  progressNotes String? @db.Text
 
   // Render order in the UI — managers like to put the most important
   // goal first.
-  sortOrder     Int            @default(0)
+  sortOrder Int @default(0)
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([reviewId, sortOrder])
 }
@@ -7564,7 +7606,7 @@ enum ReviewGoalStatus {
   in_progress
   achieved
   not_achieved
-  deferred       // Carried forward to a later cycle
+  deferred // Carried forward to a later cycle
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -7584,41 +7626,41 @@ enum ReviewGoalStatus {
 // references survive even after a PD is no longer in active use.
 
 model PositionDescription {
-  id                String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Short identifying title. Used as the link label everywhere.
-  title             String   @db.VarChar(200)
+  title String @db.VarChar(200)
 
   // Plain-text fields (markdown-friendly via the viewer). All are
   // long-form so the same component renders any PD consistently.
-  summary           String   @db.Text
-  responsibilities  String   @db.Text
-  selectionCriteria String   @db.Text
-  qualifications    String   @db.Text
+  summary           String @db.Text
+  responsibilities  String @db.Text
+  selectionCriteria String @db.Text
+  qualifications    String @db.Text
 
   // Optional hint matching this PD to a Role. Used in the assignment
   // picker to surface PDs that "fit" the staff member's role, but not
   // enforced — a staff-role user can still hold a Lead PD.
-  targetRole        Role?
+  targetRole Role?
 
-  status            PDStatus @default(draft)
+  status PDStatus @default(draft)
 
-  publishedAt       DateTime?
-  archivedAt        DateTime?
+  publishedAt DateTime?
+  archivedAt  DateTime?
 
-  createdById       String
-  createdBy         User     @relation("PDCreator", fields: [createdById], references: [id])
+  createdById String
+  createdBy   User   @relation("PDCreator", fields: [createdById], references: [id])
 
   // Users currently assigned this PD. SetNull on PD delete so a
   // mistakenly deleted PD doesn't cascade-delete staff records.
-  assignedUsers     User[]   @relation("UserPositionDescription")
+  assignedUsers User[] @relation("UserPositionDescription")
 
   // Vacancies linked to this PD — interviewers see the PD inline on
   // the vacancy detail surface.
-  vacancies         RecruitmentVacancy[] @relation("VacancyPositionDescription")
+  vacancies RecruitmentVacancy[] @relation("VacancyPositionDescription")
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, targetRole])
   @@index([targetRole])
@@ -7648,43 +7690,43 @@ enum PDStatus {
 // Retention: 7 years per Fair Work record-keeping. Soft delete only.
 
 model ReferenceCheck {
-  id                  String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Subject of the check — the (prospective) hire.
-  userId              String
-  user                User     @relation("RefCheckSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("RefCheckSubject", fields: [userId], references: [id], onDelete: Cascade)
 
   // Who performed the check.
-  checkedById         String
-  checkedBy           User     @relation("RefCheckChecker", fields: [checkedById], references: [id])
+  checkedById String
+  checkedBy   User   @relation("RefCheckChecker", fields: [checkedById], references: [id])
 
   // Referee identity
-  refereeName         String   @db.VarChar(200)
-  refereeRelationship String   @db.VarChar(200)
-  refereeOrganisation String?  @db.VarChar(200)
+  refereeName         String  @db.VarChar(200)
+  refereeRelationship String  @db.VarChar(200)
+  refereeOrganisation String? @db.VarChar(200)
   refereePhone        String?
   refereeEmail        String?
 
-  method              RefCheckMethod
-  contactedAt         DateTime?
+  method      RefCheckMethod
+  contactedAt DateTime?
 
-  status              RefCheckStatus           @default(pending)
-  recommendation      RefCheckRecommendation?
+  status         RefCheckStatus          @default(pending)
+  recommendation RefCheckRecommendation?
 
   // Free-form structured notes — capture what was discussed. v1
   // doesn't enforce a fixed Q&A list; admins write down what was said.
-  notes               String   @db.Text
-  redFlags            String?  @db.Text
+  notes    String  @db.Text
+  redFlags String? @db.Text
 
   // Specific anti-fraud / quality flags
-  employmentVerified  Boolean?
-  wouldRehire         Boolean?
+  employmentVerified Boolean?
+  wouldRehire        Boolean?
 
   // 7-year Fair Work retention via soft delete.
-  deleted             Boolean  @default(false)
+  deleted Boolean @default(false)
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, status])
   @@index([checkedById])
@@ -7699,11 +7741,11 @@ enum RefCheckMethod {
 }
 
 enum RefCheckStatus {
-  pending           // Created but not yet contacted
-  contacted         // Attempted; awaiting response
-  completed         // Done, notes captured
-  unable_to_reach   // Couldn't get hold of the referee
-  declined          // Referee declined to provide a reference
+  pending // Created but not yet contacted
+  contacted // Attempted; awaiting response
+  completed // Done, notes captured
+  unable_to_reach // Couldn't get hold of the referee
+  declined // Referee declined to provide a reference
 }
 
 enum RefCheckRecommendation {
@@ -7734,15 +7776,15 @@ enum RefCheckRecommendation {
 //     read another user's profile are 403'd.
 
 model DiversityProfile {
-  id                     String   @id @default(cuid())
-  userId                 String   @unique
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Gender identity — modeled per ABS Standard for Sex and Gender
   // Variables 2020. `prefer_to_self_describe` opens a free-text field
   // (genderSelfDescribed). Null = not disclosed.
-  genderIdentity         DiversityGender?
-  genderSelfDescribed    String?  @db.VarChar(200)
+  genderIdentity      DiversityGender?
+  genderSelfDescribed String?          @db.VarChar(200)
 
   // Cultural background — free text. Culture is too varied for an enum.
   culturalIdentity       String?  @db.VarChar(200)
@@ -7751,25 +7793,25 @@ model DiversityProfile {
   languageAtHome         String?  @db.VarChar(200)
 
   // Indigenous identity (ABS Standard).
-  indigenousIdentity     DiversityIndigenous?
+  indigenousIdentity DiversityIndigenous?
 
   // Disability — high-level disclosure + optional self-described detail.
-  disabilityStatus       DiversityDisability?
-  disabilityType         String?  @db.VarChar(200)
+  disabilityStatus DiversityDisability?
+  disabilityType   String?              @db.VarChar(200)
 
   // Carer responsibilities (relevant for flexible work + family-friendly
   // policy planning).
-  carerStatus            DiversityCarer?
+  carerStatus DiversityCarer?
 
   // Australian Defence Force veteran status.
-  veteranStatus          Boolean?
+  veteranStatus Boolean?
 
   // Explicit consent stamp — set when first saved, refreshed on update.
   // Used in the privacy notice ("you opted in on YYYY-MM-DD").
-  consentGivenAt         DateTime
+  consentGivenAt DateTime
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum DiversityGender {
@@ -7822,30 +7864,30 @@ enum DiversityCarer {
 // pattern for a new column and a 7-year audit footprint.
 
 model PurchaseApproval {
-  id           String  @id @default(cuid())
+  id String @id @default(cuid())
 
-  serviceId    String
-  service      Service @relation("ServicePurchaseApprovals", fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation("ServicePurchaseApprovals", fields: [serviceId], references: [id], onDelete: Cascade)
 
   // Who's asking to buy the thing.
   requestedById String
   requestedBy   User   @relation("PurchaseApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
 
-  vendor       String  @db.VarChar(200)   // e.g. "Officeworks"
-  product      String  @db.VarChar(500)   // e.g. "Pack of coloring pens (50 ct)"
-  costCents    Int                        // e.g. 2000 = $20.00
-  reason       String? @db.Text           // optional rationale
+  vendor    String  @db.VarChar(200) // e.g. "Officeworks"
+  product   String  @db.VarChar(500) // e.g. "Pack of coloring pens (50 ct)"
+  costCents Int // e.g. 2000 = $20.00
+  reason    String? @db.Text // optional rationale
 
-  status       PurchaseApprovalStatus @default(pending)
+  status PurchaseApprovalStatus @default(pending)
 
   // Decision audit.
   decidedById  String?
-  decidedBy    User?    @relation("PurchaseApprovalDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedBy    User?     @relation("PurchaseApprovalDecider", fields: [decidedById], references: [id], onDelete: SetNull)
   decidedAt    DateTime?
-  decisionNote String?  @db.Text   // admin's note on approve/reject
+  decisionNote String?   @db.Text // admin's note on approve/reject
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([serviceId, status])
   @@index([requestedById, status])
@@ -7856,7 +7898,7 @@ enum PurchaseApprovalStatus {
   pending
   approved
   rejected
-  cancelled  // requester withdrew before decision
+  cancelled // requester withdrew before decision
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -7877,19 +7919,19 @@ enum PurchaseApprovalStatus {
 // useful enough that we don't want them pruning aggressively.
 
 model EhWebhookEvent {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  eventType       String   @db.VarChar(100)
+  eventType       String  @db.VarChar(100)
   // EH provides an event ID we can dedup on. Optional because not
   // every event type carries one.
-  providerEventId String?  @db.VarChar(200)
+  providerEventId String? @db.VarChar(200)
   payload         Json
 
-  receivedAt      DateTime @default(now())
-  processedAt     DateTime?
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
   // Free-text error from the handler when processing failed. Null
   // when processedAt is set successfully.
-  error           String?  @db.Text
+  error       String?   @db.Text
 
   @@unique([providerEventId])
   @@index([eventType, receivedAt])
@@ -7919,51 +7961,51 @@ model EhWebhookEvent {
 //     once truly resolved.
 
 model SafeReport {
-  id          String              @id @default(cuid())
+  id String @id @default(cuid())
 
   // What the report is about — drives triage. `child_safety` is
   // separately flagged because it carries mandatory-reporting
   // implications and may need to be escalated to authorities.
-  category    SafeReportCategory
+  category SafeReportCategory
 
   // Optional service context. Reports about the whole org leave this
   // null. Helps the reviewer route + scope follow-up.
-  serviceId   String?
-  service     Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
 
   // The report itself. Up to ~20k chars (enforced at zod layer).
-  content     String              @db.Text
+  content String @db.Text
 
-  status      SafeReportStatus    @default(received)
+  status SafeReportStatus @default(received)
 
   // Private to the reviewer — never displayed to anyone except the
   // owner/reviewer. Things like "called Mirna 12 May, agreed to mediate."
-  reviewNotes String?             @db.Text
+  reviewNotes String? @db.Text
 
   reviewedById String?
-  reviewedBy   User?               @relation("SafeReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedBy   User?   @relation("SafeReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  resolvedAt   DateTime?
+  resolvedAt DateTime?
 
   // Soft delete for "received in error / resolved with no further
   // action needed and we'd like to declutter." Owner only.
-  deleted      Boolean             @default(false)
+  deleted Boolean @default(false)
 
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
   @@index([category, createdAt])
 }
 
 enum SafeReportCategory {
-  harassment           // Including sexual harassment (positive-duty)
-  discrimination       // Sex, race, disability, age, religion, etc
+  harassment // Including sexual harassment (positive-duty)
+  discrimination // Sex, race, disability, age, religion, etc
   bullying
-  safety               // WHS / hazard concerns
-  conduct              // General staff conduct concerns
-  retaliation          // Retaliation against another reporter — critical
-  child_safety         // Child Safe Standards concerns — most urgent
+  safety // WHS / hazard concerns
+  conduct // General staff conduct concerns
+  retaliation // Retaliation against another reporter — critical
+  child_safety // Child Safe Standards concerns — most urgent
   other
 }
 
@@ -7994,36 +8036,36 @@ enum SafeReportStatus {
 // Retention: 7 years (Fair Work record-keeping). Soft-delete only.
 
 model SeparationRecord {
-  id              String           @id @default(cuid())
+  id String @id @default(cuid())
 
   // ONE separation per user (re-hires get a new record under a new
   // User row or we soft-delete + recreate). Unique constraint enforces.
-  userId          String           @unique
-  user            User             @relation("SeparationSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user   User   @relation("SeparationSubject", fields: [userId], references: [id], onDelete: Cascade)
 
-  reason          SeparationReason
+  reason       SeparationReason
   // Free-text expansion of reason. Required at the UI layer for any
   // dismissal type (capacity / misconduct) so the why is documented.
-  reasonDetail    String?          @db.Text
+  reasonDetail String?          @db.Text
 
   // Timeline.
-  noticeStartDate DateTime?        @db.Date
-  lastWorkingDay  DateTime         @db.Date
+  noticeStartDate   DateTime? @db.Date
+  lastWorkingDay    DateTime  @db.Date
   noticePeriodWeeks Float?
 
   // Final-pay tracking — the most common dispute source after dismissal.
-  finalPayProcessed   Boolean      @default(false)
+  finalPayProcessed   Boolean   @default(false)
   finalPayProcessedAt DateTime?
-  finalPayNotes       String?      @db.Text
+  finalPayNotes       String?   @db.Text
 
   // Reference letter.
-  referenceLetterIssued Boolean    @default(false)
+  referenceLetterIssued Boolean @default(false)
   referenceLetterUrl    String?
-  referenceNotes        String?    @db.Text
+  referenceNotes        String? @db.Text
 
   // Rehire eligibility — drives the casual pool / re-recruitment view.
-  eligibleForRehire Boolean        @default(true)
-  rehireNotes       String?        @db.Text
+  eligibleForRehire Boolean @default(true)
+  rehireNotes       String? @db.Text
 
   // Employment Hero termination sync (2026-07-08).
   // When a Separation record is created / updated with a lastWorkingDay
@@ -8032,7 +8074,7 @@ model SeparationRecord {
   // sync timestamp here on success and the error message on failure so
   // the SeparationTab can show a status badge + retry button.
   ehTerminationSyncedAt DateTime?
-  ehTerminationError    String?    @db.Text
+  ehTerminationError    String?   @db.Text
 
   // Exit interview — separate from the offboarding pack so it's an
   // explicit fact, not just one task in a list.
@@ -8046,8 +8088,8 @@ model SeparationRecord {
   performanceCase   PerformanceCase? @relation("SeparationCase", fields: [performanceCaseId], references: [id], onDelete: SetNull)
 
   // Audit.
-  recordedById  String
-  recordedBy    User             @relation("SeparationRecorder", fields: [recordedById], references: [id])
+  recordedById String
+  recordedBy   User   @relation("SeparationRecorder", fields: [recordedById], references: [id])
 
   // ── Finalisation (2026-06-01) ─────────────────────────────
   // `finalisedAt` is the point of no return: when set, the system
@@ -8056,7 +8098,7 @@ model SeparationRecord {
   // Owner-only action via POST /api/separations/[id]/finalise.
   finalisedAt   DateTime?
   finalisedById String?
-  finalisedBy   User?            @relation("SeparationFinaliser", fields: [finalisedById], references: [id], onDelete: SetNull)
+  finalisedBy   User?     @relation("SeparationFinaliser", fields: [finalisedById], references: [id], onDelete: SetNull)
 
   // If specified at finalisation, who took over the leaving staff
   // member's ownership of Rocks / open Todos / Issues. Null = no
@@ -8064,10 +8106,10 @@ model SeparationRecord {
   successorUserId String?
 
   // Soft delete — Fair Work retention is 7 years.
-  deleted       Boolean          @default(false)
+  deleted Boolean @default(false)
 
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([reason])
   @@index([lastWorkingDay])
@@ -8076,13 +8118,13 @@ model SeparationRecord {
 
 enum SeparationReason {
   resignation
-  dismissal_capacity         // unable to perform the role
-  dismissal_misconduct       // serious or sustained misconduct
+  dismissal_capacity // unable to perform the role
+  dismissal_misconduct // serious or sustained misconduct
   redundancy
-  end_of_contract            // fixed-term contract completed
+  end_of_contract // fixed-term contract completed
   mutual_separation
   retirement
-  abandonment                // stopped showing up; no contact
+  abandonment // stopped showing up; no contact
   deceased
   other
 }
@@ -8102,42 +8144,42 @@ enum SeparationReason {
 // where casuals can submit their own election.
 
 model CasualConversionElection {
-  id              String                    @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId          String
-  user            User                      @relation("CasualConversionUser", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("CasualConversionUser", fields: [userId], references: [id], onDelete: Cascade)
 
   // The Act gives the employee the choice — part-time vs full-time.
-  requestedType   ConversionRequestType
+  requestedType ConversionRequestType
 
   // When the election was lodged (employee → employer).
-  electedAt       DateTime                  @default(now())
+  electedAt     DateTime @default(now())
   // Optional context the employee provided in their written request.
-  electionNotes   String?                   @db.Text
+  electionNotes String?  @db.Text
 
   // ─── Employer response ─────────────────────────────────────
   // Per s66B(2), employer must respond in writing within 21 days.
   // The dashboard surface shows a countdown ticker when this is null.
-  respondedAt     DateTime?
-  respondedById   String?
-  respondedBy     User?                     @relation("CasualConversionResponder", fields: [respondedById], references: [id], onDelete: SetNull)
-  response        ConversionResponse?
+  respondedAt    DateTime?
+  respondedById  String?
+  respondedBy    User?               @relation("CasualConversionResponder", fields: [respondedById], references: [id], onDelete: SetNull)
+  response       ConversionResponse?
   // REQUIRED for declined responses. Per s66B(3) the only valid grounds
   // are limited (operational, position not existing in 12mo, etc).
   // Free text so admin can document the specific grounds cited.
-  declineReasons  String?                   @db.Text
+  declineReasons String?             @db.Text
 
   // If accepted, link to the new EmploymentContract that was issued.
   // SetNull because deleting the contract shouldn't cascade-delete the
   // election record — the election history stands regardless.
-  newContractId   String?                   @unique
-  newContract     EmploymentContract?       @relation("ConversionResultContract", fields: [newContractId], references: [id], onDelete: SetNull)
+  newContractId String?             @unique
+  newContract   EmploymentContract? @relation("ConversionResultContract", fields: [newContractId], references: [id], onDelete: SetNull)
 
   // Soft delete only — Fair Work retention is 7 years.
-  deleted         Boolean                   @default(false)
+  deleted Boolean @default(false)
 
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, electedAt])
   @@index([response])
@@ -8170,60 +8212,60 @@ enum ConversionResponse {
 // per Fair Work + workers comp scheme record-keeping.
 
 model WorkersCompensationClaim {
-  id              String                @id @default(cuid())
+  id String @id @default(cuid())
 
   // Claimant — the injured staff member.
-  userId          String
-  user            User                  @relation("WCClaimant", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("WCClaimant", fields: [userId], references: [id], onDelete: Cascade)
 
   // Optional originating incident.
-  incidentId      String?
-  incident        IncidentRecord?       @relation("IncidentWCClaim", fields: [incidentId], references: [id], onDelete: SetNull)
+  incidentId String?
+  incident   IncidentRecord? @relation("IncidentWCClaim", fields: [incidentId], references: [id], onDelete: SetNull)
 
   // Insurer / claim metadata.
-  claimNumber     String?               // e.g. "WC-2026-001234"
-  insurerName     String?               // e.g. "iCare", "Allianz Workers Comp"
-  insurerContact  String?               @db.Text // claims manager name + email/phone
+  claimNumber    String? // e.g. "WC-2026-001234"
+  insurerName    String? // e.g. "iCare", "Allianz Workers Comp"
+  insurerContact String? @db.Text // claims manager name + email/phone
 
-  status          WCClaimStatus         @default(lodged)
+  status WCClaimStatus @default(lodged)
 
   // Timeline.
-  dateOfInjury    DateTime              @db.Date
-  dateLodged      DateTime              @db.Date
-  dateOfDecision  DateTime?             @db.Date
+  dateOfInjury   DateTime  @db.Date
+  dateLodged     DateTime  @db.Date
+  dateOfDecision DateTime? @db.Date
 
   // Injury detail (free text for flexibility — body part can be
   // multi-site, mechanism is highly varied).
-  injuryDescription String?             @db.Text
+  injuryDescription String? @db.Text
   bodyPart          String?
-  mechanismOfInjury String?             @db.Text
+  mechanismOfInjury String? @db.Text
 
   // Return to work tracking — the most operational piece.
-  rtwPlanCreated      Boolean           @default(false)
+  rtwPlanCreated      Boolean   @default(false)
   rtwPlanUrl          String?
-  rtwStartDate        DateTime?         @db.Date
-  rtwFullCapacityDate DateTime?         @db.Date
-  currentRestrictions String?           @db.Text
+  rtwStartDate        DateTime? @db.Date
+  rtwFullCapacityDate DateTime? @db.Date
+  currentRestrictions String?   @db.Text
 
   // Payment status (high-level — we don't replicate the insurer's
   // ledger, just flag whether weekly payments are active).
-  weeklyPaymentActive Boolean           @default(false)
+  weeklyPaymentActive Boolean @default(false)
   weeklyPaymentRate   Float?
   medicalExpensesPaid Float?
 
-  notes           String?               @db.Text
+  notes String? @db.Text
 
-  closedAt        DateTime?
-  closedById      String?
-  closedBy        User?                 @relation("WCClaimCloser", fields: [closedById], references: [id], onDelete: SetNull)
+  closedAt   DateTime?
+  closedById String?
+  closedBy   User?     @relation("WCClaimCloser", fields: [closedById], references: [id], onDelete: SetNull)
 
-  createdById     String
-  createdBy       User                  @relation("WCClaimCreator", fields: [createdById], references: [id])
+  createdById String
+  createdBy   User   @relation("WCClaimCreator", fields: [createdById], references: [id])
 
-  deleted         Boolean               @default(false)
+  deleted Boolean @default(false)
 
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, status])
   @@index([incidentId])
@@ -8256,48 +8298,48 @@ enum WCClaimStatus {
 // disability information.
 
 model ReasonableAdjustment {
-  id              String                       @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId          String
-  user            User                         @relation("AdjustmentSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("AdjustmentSubject", fields: [userId], references: [id], onDelete: Cascade)
 
   // The request
-  requestedAt     DateTime                     @db.Date
-  requestSummary  String                       @db.Text
+  requestedAt    DateTime @db.Date
+  requestSummary String   @db.Text
 
   // Free-text context — disability or protected attribute the
   // adjustment relates to. Optional because the employee may not
   // wish to specify (and the employer can't insist).
-  contextNotes    String?                      @db.Text
+  contextNotes String? @db.Text
 
   // Assessment
-  assessedAt      DateTime?                    @db.Date
+  assessedAt      DateTime? @db.Date
   // What was considered: alternatives weighed, who was consulted
   // (OT, medical, HR advisor), trade-offs.
-  assessmentNotes String?                      @db.Text
+  assessmentNotes String?   @db.Text
 
   // Decision
-  status          ReasonableAdjustmentStatus   @default(under_assessment)
-  decisionAt      DateTime?                    @db.Date
-  decisionDetail  String?                      @db.Text
+  status         ReasonableAdjustmentStatus @default(under_assessment)
+  decisionAt     DateTime?                  @db.Date
+  decisionDetail String?                    @db.Text
   // REQUIRED when status=declined per DDA. Free text so admin can
   // document the specific "unjustifiable hardship" basis.
-  declineReasons  String?                      @db.Text
+  declineReasons String?                    @db.Text
 
   // Review schedule — adjustments aren't set-and-forget.
-  reviewAt        DateTime?                    @db.Date
+  reviewAt DateTime? @db.Date
 
   // Optional attachment — medical note, OT recommendation, etc.
-  fileUrl         String?
-  fileName        String?
+  fileUrl  String?
+  fileName String?
 
   // Audit
-  recordedById    String
-  recordedBy      User                         @relation("AdjustmentRecorder", fields: [recordedById], references: [id])
+  recordedById String
+  recordedBy   User   @relation("AdjustmentRecorder", fields: [recordedById], references: [id])
 
-  deleted         Boolean                      @default(false)
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, status])
   @@index([reviewAt])
@@ -8305,10 +8347,10 @@ model ReasonableAdjustment {
 
 enum ReasonableAdjustmentStatus {
   under_assessment
-  provided              // exactly as requested
-  modified              // alternative provided, not exact match
+  provided // exactly as requested
+  modified // alternative provided, not exact match
   declined
-  withdrawn             // employee withdrew the request
+  withdrawn // employee withdrew the request
   no_longer_needed
 }
 
@@ -8357,28 +8399,28 @@ enum SurveyQuestionType {
   multi_choice
   short_text
   long_text
-  rating           // 1-5 stars
+  rating // 1-5 stars
 }
 
 enum SurveyAudience {
-  all_staff              // every active User
-  by_role                // filter to specific Role values
-  by_service             // filter to specific service IDs
-  by_employment_type     // filter to specific EmploymentType values
+  all_staff // every active User
+  by_role // filter to specific Role values
+  by_service // filter to specific service IDs
+  by_employment_type // filter to specific EmploymentType values
 }
 
 model Survey {
-  id              String       @id @default(cuid())
-  title           String
-  description     String?      @db.Text
-  status          SurveyStatus @default(draft)
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  status      SurveyStatus @default(draft)
 
   // When true, SurveyResponse.respondentId is nullified before storage
   // (so results can still be aggregated but individuals can't be
   // identified — critical for satisfaction / feedback surveys).
-  anonymous       Boolean      @default(false)
+  anonymous Boolean @default(false)
 
-  audience        SurveyAudience @default(all_staff)
+  audience                SurveyAudience   @default(all_staff)
   // Filters used when the audience type demands them. Empty arrays for
   // the other types. We deliberately don't join on User at the schema
   // level — audience is evaluated at read time in /api/surveys so
@@ -8387,57 +8429,57 @@ model Survey {
   audienceServiceIds      String[]         @default([])
   audienceEmploymentTypes EmploymentType[] @default([])
 
-  closesAt        DateTime?
-  publishedAt     DateTime?
+  closesAt    DateTime?
+  publishedAt DateTime?
 
-  createdById     String
-  createdBy       User         @relation("SurveyCreator", fields: [createdById], references: [id])
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  deleted         Boolean      @default(false)
+  createdById String
+  createdBy   User     @relation("SurveyCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deleted     Boolean  @default(false)
 
-  questions       SurveyQuestion[]
-  responses       SurveyResponse[]
-  todos           Todo[]           @relation("SurveyTodos")
+  questions SurveyQuestion[]
+  responses SurveyResponse[]
+  todos     Todo[]           @relation("SurveyTodos")
 
   @@index([status])
   @@index([createdById])
 }
 
 model SurveyQuestion {
-  id            String             @id @default(cuid())
-  surveyId      String
-  survey        Survey             @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  type          SurveyQuestionType
-  title         String
-  description   String?            @db.Text
-  required      Boolean            @default(true)
+  id          String             @id @default(cuid())
+  surveyId    String
+  survey      Survey             @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  type        SurveyQuestionType
+  title       String
+  description String?            @db.Text
+  required    Boolean            @default(true)
   // Options for single_choice / multi_choice. Empty for other types.
   // Order preserved from the array; option index is stable so answer
   // rows can reference by integer position.
-  options       String[]           @default([])
-  sortOrder     Int                @default(0)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  options     String[]           @default([])
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
-  answers       SurveyAnswer[]
+  answers SurveyAnswer[]
 
   @@index([surveyId])
 }
 
 model SurveyResponse {
-  id            String    @id @default(cuid())
-  surveyId      String
-  survey        Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  surveyId     String
+  survey       Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   // Null when the survey is anonymous. We still enforce one-response-
   // per-user via a separate anonymous-cookie fingerprint (not stored
   // here) — anonymous surveys accept unlimited responses per browser
   // in this MVP; deferring anti-brigading to a later iteration.
-  respondentId  String?
-  respondent    User?     @relation("SurveyRespondent", fields: [respondentId], references: [id], onDelete: SetNull)
-  submittedAt   DateTime  @default(now())
+  respondentId String?
+  respondent   User?    @relation("SurveyRespondent", fields: [respondentId], references: [id], onDelete: SetNull)
+  submittedAt  DateTime @default(now())
 
-  answers       SurveyAnswer[]
+  answers SurveyAnswer[]
 
   // Enforced only for non-anonymous surveys — a non-null respondentId
   // uniquely maps to at most one response per survey. Anonymous
@@ -8450,19 +8492,19 @@ model SurveyResponse {
 }
 
 model SurveyAnswer {
-  id           String         @id @default(cuid())
-  responseId   String
-  response     SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
-  questionId   String
-  question     SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  id         String         @id @default(cuid())
+  responseId String
+  response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   // Exactly one of these fields is populated based on the question's
   // type. Kept as separate typed columns rather than a JSON blob so
   // aggregation queries (count per option, avg rating) stay cheap.
-  yesNo         Boolean?           // yes_no
-  choiceIndexes Int[]     @default([]) // single_choice (1 elem) / multi_choice
-  textValue     String?   @db.Text     // short_text / long_text
-  ratingValue   Int?                    // rating 1-5
+  yesNo         Boolean? // yes_no
+  choiceIndexes Int[]    @default([]) // single_choice (1 elem) / multi_choice
+  textValue     String?  @db.Text // short_text / long_text
+  ratingValue   Int? // rating 1-5
 
   @@unique([responseId, questionId])
   @@index([responseId])
@@ -8490,8 +8532,8 @@ enum FamilyContactMethod {
 }
 
 enum FamilyContactOutcome {
-  answered        // spoke to them; check notes for what was agreed
-  no_answer       // didn't pick up / didn't reply — auto-generates follow-up Todo
+  answered // spoke to them; check notes for what was agreed
+  no_answer // didn't pick up / didn't reply — auto-generates follow-up Todo
   promised_payment
   disputed
   payment_plan
@@ -8499,7 +8541,7 @@ enum FamilyContactOutcome {
 }
 
 model FamilyBalanceContact {
-  id             String                @id @default(cuid())
+  id             String               @id @default(cuid())
   // Denormalised on purpose — Amana's OWNA account codes don't currently
   // map cleanly to a dashboard entity, and Daniel wants to type these in
   // free-form as he chases balances. Add an accountId FK later when we
@@ -8508,11 +8550,11 @@ model FamilyBalanceContact {
   parentName     String
   mobileNumber   String?
   parentEmail    String?
-  amountOwing    Decimal               @db.Decimal(10, 2)
-  contactedAt    DateTime              @default(now())
+  amountOwing    Decimal              @db.Decimal(10, 2)
+  contactedAt    DateTime             @default(now())
   contactMethod  FamilyContactMethod
   outcome        FamilyContactOutcome
-  outcomeNotes   String?               @db.Text
+  outcomeNotes   String?              @db.Text
   // Populated automatically to `contactedAt + 1 day` when outcome =
   // no_answer, at which point a Todo is also created. Admin can adjust
   // via the edit form. Null for outcomes that don't need a follow-up.
@@ -8520,14 +8562,14 @@ model FamilyBalanceContact {
   // Link back to the auto-generated follow-up Todo (if any) so
   // completing/deleting the contact can propagate. Nullable; only set
   // when outcome triggered a Todo.
-  followUpTodoId String?               @unique
-  followUpTodo   Todo?                 @relation("FamilyContactFollowUp", fields: [followUpTodoId], references: [id], onDelete: SetNull)
+  followUpTodoId String?              @unique
+  followUpTodo   Todo?                @relation("FamilyContactFollowUp", fields: [followUpTodoId], references: [id], onDelete: SetNull)
   serviceId      String?
-  service        Service?              @relation("ServiceFamilyBalanceContacts", fields: [serviceId], references: [id], onDelete: SetNull)
+  service        Service?             @relation("ServiceFamilyBalanceContacts", fields: [serviceId], references: [id], onDelete: SetNull)
   createdById    String
-  createdBy      User                  @relation("FamilyBalanceContactCreator", fields: [createdById], references: [id])
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  createdBy      User                 @relation("FamilyBalanceContactCreator", fields: [createdById], references: [id])
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([serviceId])
   @@index([contactedAt])
