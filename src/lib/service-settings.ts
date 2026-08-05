@@ -34,6 +34,22 @@ const roomSchema = z.object({
   start: z.string().regex(HHMM),
   end: z.string().regex(HHMM),
   fees: z.array(feeTierSchema).max(12).optional(),
+  /**
+   * How many children this room can hold at once. Optional because most
+   * centres run one number for the whole service — but a room that
+   * carries its own capacity can be checked against approved places and
+   * against the educators its ratio demands (see room-configuration.ts).
+   */
+  capacity: z.number().int().min(0).max(500).optional(),
+  /**
+   * Minimum educator:child ratio for this room, "1:15" style. Omitted
+   * means the service (or federal) default applies — a room should not
+   * silently carry a looser ratio than the service it sits in.
+   */
+  ratio: z
+    .string()
+    .regex(/^\d+:\d+$/, "Ratio looks like 1:15")
+    .optional(),
 });
 
 // ── sessionTimes ────────────────────────────────────────────
