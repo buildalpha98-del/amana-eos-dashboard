@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { ProofDecision } from "@prisma/client";
 import { isFulfillerRole } from "@/lib/creative-request/constants";
+import { proofInclude, requestInclude } from "@/lib/creative-request/include";
 import { DECISION_TO_STATUS, decisionNoteRequired } from "@/lib/creative-request/proof-rules";
 import { applyStatusChange } from "@/lib/creative-request/status-change";
 import { notifyProofDecision } from "@/lib/creative-request/notify";
@@ -79,8 +80,12 @@ export const POST = withApiAuth(async (req, session, context) => {
   const updatedRequest = await prisma.creativeRequest.update({
     where: { id },
     data: applyStatusChange(request, DECISION_TO_STATUS[decision], now),
+    include: requestInclude,
   });
-  const updatedProof = await prisma.creativeRequestProof.findUnique({ where: { id: proofId } });
+  const updatedProof = await prisma.creativeRequestProof.findUnique({
+    where: { id: proofId },
+    include: proofInclude,
+  });
 
   await notifyProofDecision(prisma, request, proof.version, decision, session.user.id);
   return NextResponse.json({ proof: updatedProof, request: updatedRequest });

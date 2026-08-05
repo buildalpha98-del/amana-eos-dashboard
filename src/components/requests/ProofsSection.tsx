@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ProofDecision } from "@prisma/client";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
@@ -47,14 +47,25 @@ export function ProofsSection({
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [note, setNote] = useState("");
-  const [pendingDecision, setPendingDecision] = useState<ProofDecision | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<{
+    proofId: string;
+    kind: ProofDecision;
+  } | null>(null);
   const [decisionNote, setDecisionNote] = useState("");
 
   const proofs = data?.proofs ?? [];
   const latest = proofs[0];
+  const latestId = latest?.id;
   const canDecide =
     request.status === "in_review" && (isOwner || fulfiller) && !!latest && !latest.decision;
   const canSend = fulfiller && canUploadProof(request.status);
+
+  // A newer proof arriving invalidates any decision note in flight — it was
+  // written against the previous version.
+  useEffect(() => {
+    setPendingDecision(null);
+    setDecisionNote("");
+  }, [latestId]);
 
   async function handleUpload(files: FileList | null) {
     const file = files?.[0];
@@ -92,12 +103,11 @@ export function ProofsSection({
     }
   }
 
-  function submitDecision(decision: ProofDecision) {
-    if (!latest) return;
+  function submitDecision(proofId: string, decision: ProofDecision) {
     decideProof.mutate(
       {
         id: requestId,
-        proofId: latest.id,
+        proofId,
         decision,
         note: decisionNote.trim() || undefined,
       },
@@ -164,7 +174,7 @@ export function ProofsSection({
                     <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
-                        onClick={() => submitDecision("approved")}
+                        onClick={() => submitDecision(p.id, "approved")}
                         disabled={decideProof.isPending}
                       >
                         Approve
@@ -172,7 +182,9 @@ export function ProofsSection({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setPendingDecision("approved_with_changes")}
+                        onClick={() =>
+                          setPendingDecision({ proofId: p.id, kind: "approved_with_changes" })
+                        }
                         disabled={decideProof.isPending}
                       >
                         Approve with changes
@@ -181,7 +193,9 @@ export function ProofsSection({
                         size="sm"
                         variant="outline"
                         className="border-red-600 text-red-600 hover:bg-red-600/8 focus-visible:ring-red-500/50 dark:border-red-500 dark:text-red-400"
-                        onClick={() => setPendingDecision("changes_requested")}
+                        onClick={() =>
+                          setPendingDecision({ proofId: p.id, kind: "changes_requested" })
+                        }
                         disabled={decideProof.isPending}
                       >
                         Request changes
@@ -194,7 +208,7 @@ export function ProofsSection({
                 ) : (
                   <div>
                     <label className="text-xs font-semibold text-foreground block">
-                      {pendingDecision === "approved_with_changes"
+                      {pendingDecision.kind === "approved_with_changes"
                         ? "What minor fixes are needed?"
                         : "What changes are needed?"}
                       <textarea
@@ -208,10 +222,12 @@ export function ProofsSection({
                     <div className="flex gap-2 mt-2">
                       <Button
                         size="sm"
-                        onClick={() => submitDecision(pendingDecision)}
+                        onClick={() =>
+                          submitDecision(pendingDecision.proofId, pendingDecision.kind)
+                        }
                         disabled={decideProof.isPending || !decisionNote.trim()}
                       >
-                        {pendingDecision === "approved_with_changes"
+                        {pendingDecision.kind === "approved_with_changes"
                           ? "Approve with changes"
                           : "Request changes"}
                       </Button>

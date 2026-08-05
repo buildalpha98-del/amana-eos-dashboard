@@ -289,6 +289,13 @@ export function useDecideProof() {
       qc.invalidateQueries({ queryKey: ["creative-request", vars.id] });
       qc.invalidateQueries({ queryKey: ["creative-requests"] });
     },
+    // Refresh even on failure — a 409 (superseded / already decided) means the
+    // panel is stale, and refetching makes the decision buttons disappear.
+    onSettled: (_data, _err, vars) => {
+      qc.invalidateQueries({ queryKey: ["creative-request-proofs", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-request", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-requests"] });
+    },
     onError,
   });
 }

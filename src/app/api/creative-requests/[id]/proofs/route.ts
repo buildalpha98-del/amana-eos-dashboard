@@ -5,16 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { attachmentInputSchema } from "@/lib/creative-request/attachment-schema";
 import { isFulfillerRole } from "@/lib/creative-request/constants";
+import { proofInclude } from "@/lib/creative-request/include";
 import { canUploadProof } from "@/lib/creative-request/proof-rules";
 import { applyStatusChange } from "@/lib/creative-request/status-change";
 import { notifyProofReady } from "@/lib/creative-request/notify";
 
 type RouteCtx = { params: Promise<{ id: string }> };
-
-const proofInclude = {
-  uploadedBy: { select: { id: true, name: true } },
-  decidedBy: { select: { id: true, name: true } },
-} as const;
 
 async function loadForParticipant(id: string, userId: string, role: string) {
   const request = await prisma.creativeRequest.findUnique({
