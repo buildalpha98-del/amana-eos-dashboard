@@ -49,7 +49,9 @@ export function RequestBoard({ onOpen }: { onOpen: (id: string) => void }) {
           isDelivered && !showArchivedDelivered
             ? columnItems.filter((r) => !isArchivedDelivery(r.deliveredAt))
             : columnItems;
-        const archivedCount = isDelivered ? columnItems.length - visibleItems.length : 0;
+        const archivedCount = isDelivered
+          ? columnItems.filter((r) => isArchivedDelivery(r.deliveredAt)).length
+          : 0;
         return (
           <div
             key={status}
