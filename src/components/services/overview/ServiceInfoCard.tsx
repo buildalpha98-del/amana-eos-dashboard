@@ -13,6 +13,7 @@ import {
 
 import { ApprovalsSessionTimesCard } from "./ApprovalsSessionTimesCard";
 import { RoomsAndFeesCard } from "./RoomsAndFeesCard";
+import { ParentFormsCard } from "./ParentFormsCard";
 
 export function ServiceInfoCard({
   service,
@@ -278,6 +279,7 @@ export function ServiceInfoCard({
       {/* Room names, hours and the fees under each. Below approvals
           because it's the thing staff actually change. */}
       <RoomsAndFeesCard service={service} canEdit={canEdit} />
+      <ParentFormsCard serviceId={service.id} canEdit={canEdit} />
     </>
   );
 }
