@@ -49,4 +49,13 @@ describe("createWithNumberRetry", () => {
     await expect(createWithNumberRetry(attempt, generate)).rejects.toThrow("boom");
     expect(attempt).toHaveBeenCalledTimes(1);
   });
+
+  it("rethrows the last P2002 error when every attempt is exhausted", async () => {
+    const attempt = vi.fn(async () => {
+      throw Object.assign(new Error("dup"), { code: "P2002" });
+    });
+    const generate = vi.fn().mockResolvedValue("REQ-2026-0001");
+    await expect(createWithNumberRetry(attempt, generate)).rejects.toThrow("dup");
+    expect(attempt).toHaveBeenCalledTimes(3);
+  });
 });
