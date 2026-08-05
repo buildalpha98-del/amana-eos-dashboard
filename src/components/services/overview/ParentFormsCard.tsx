@@ -17,6 +17,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
+  Download,
   FileSignature,
   FileText,
   Loader2,
@@ -104,6 +105,40 @@ export function ParentFormsCard({
     onError: (e: Error) =>
       toast({ variant: "destructive", description: e.message }),
   });
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  /**
+   * The signature record as a branded PDF — who signed, for which child,
+   * when, and who's still owing. This is the page for the compliance
+   * folder, so it works for archived forms too.
+   */
+  async function downloadSignatures(form: FormRow) {
+    setDownloadingId(form.id);
+    try {
+      const data = await fetchApi<
+        import("@/lib/form-signatures-pdf").SignatureRecordData
+      >(`/api/services/${serviceId}/parent-forms/${form.id}/signatures`);
+      const { generateSignatureRecordPdf } = await import(
+        "@/lib/form-signatures-pdf"
+      );
+      const doc = await generateSignatureRecordPdf(data);
+      const slug = form.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+        .slice(0, 60);
+      doc.save(`signatures-${slug || "form"}.pdf`);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description:
+          err instanceof Error ? err.message : "Could not build the PDF",
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -304,6 +339,19 @@ export function ParentFormsCard({
                     ` · needed by ${new Date(f.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => downloadSignatures(f)}
+                disabled={downloadingId === f.id}
+                aria-label={`Download signature record for ${f.title}`}
+                className="p-2 rounded-lg text-muted hover:text-foreground hover:bg-surface min-h-11 min-w-11"
+              >
+                {downloadingId === f.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+              </button>
               {canEdit && (
                 <button
                   type="button"
@@ -320,9 +368,37 @@ export function ParentFormsCard({
       )}
 
       {archived.length > 0 && (
-        <p className="text-xs text-muted">
-          {archived.length} archived — signatures kept.
-        </p>
+        <div>
+          <p className="text-xs font-medium text-muted mb-1">
+            Archived — hidden from families, signatures kept
+          </p>
+          <ul className="divide-y divide-border">
+            {archived.map((f) => (
+              <li key={f.id} className="py-2 flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-muted truncate">{f.title}</p>
+                  <p className="text-xs text-muted">
+                    {f.signatureCount}{" "}
+                    {f.signatureCount === 1 ? "signature" : "signatures"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => downloadSignatures(f)}
+                  disabled={downloadingId === f.id}
+                  aria-label={`Download signature record for ${f.title}`}
+                  className="p-2 rounded-lg text-muted hover:text-foreground hover:bg-surface min-h-11 min-w-11"
+                >
+                  {downloadingId === f.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
