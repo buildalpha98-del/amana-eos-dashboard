@@ -199,6 +199,17 @@ describe("applyStatusChange", () => {
     expect(data.changesRequestedAt).toEqual(now);
   });
 
+  it("clamps pausedMs below Int32 max (month-long pause must not overflow)", () => {
+    const enteredAt = new Date("2026-07-01T00:00:00Z");
+    const now = new Date("2026-08-05T00:00:00Z"); // 35 days later
+    const data = applyStatusChange(
+      { status: "in_review", pausedAt: enteredAt, pausedMs: 0 },
+      "approved",
+      now,
+    );
+    expect(data.pausedMs).toBe(2_000_000_000);
+  });
+
   it("does not touch pause fields on unrelated transitions", () => {
     const now = new Date();
     const data = applyStatusChange({ ...base, status: "briefed" }, "in_progress", now);
@@ -273,9 +284,14 @@ export function applyStatusChange(
     data.pausedAt = now;
   } else if (wasPaused && !willPause) {
     data.pausedAt = null;
-    data.pausedMs =
+    // Clamp: pausedMs is a signed Int32 column (max ~24.8 days of ms). A
+    // proof ignored for a month must not 500 the transition that leaves
+    // in_review — cap the banked total instead.
+    data.pausedMs = Math.min(
+      2_000_000_000,
       existing.pausedMs +
-      (existing.pausedAt ? Math.max(0, now.getTime() - existing.pausedAt.getTime()) : 0);
+        (existing.pausedAt ? Math.max(0, now.getTime() - existing.pausedAt.getTime()) : 0),
+    );
   }
   return data;
 }
@@ -321,13 +337,16 @@ Add matching quick assertions to the existing `creative-request-constants.test.t
 - [ ] **Step 2: notify.ts additions**
 
 ```ts
-/** Proof uploaded → the requester ("proof ready for your review"). */
+/** Proof uploaded → the requester ("proof ready for your review").
+ *  Skips when the uploader IS the requester (marketing self-request). */
 export async function notifyProofReady(
   db: Db,
   request: RequestSummary,
   version: number,
+  actorId: string,
 ): Promise<void> {
   try {
+    if (request.requestedById === actorId) return;
     await createFor(
       db,
       [request.requestedById],
@@ -386,7 +405,7 @@ export async function notifyProofDecision(
 Cover:
 - `POST /proofs`: 403 for the requester (member) — proof upload is fulfiller-only; 409 when status is `new` (canUploadProof false); happy path from `in_progress` — asserts `creativeRequestProof.create` with `version: 1` (mock `creativeRequestProof.findFirst` → null), `creativeRequest.update` with `status: "in_review"`, `inReviewAt` Date, `pausedAt` Date, and `userNotification.createMany` called (requester notified); version increments (mock `findFirst` → `{ version: 2 }` → creates v3); fileUrl `javascript:` → 400.
 - `GET /proofs`: member owner sees them; non-participant 404.
-- `POST /proofs/[proofId]/decision`: requester approves → proof updated with decision/decidedById/decidedAt AND request status → `approved` with `pausedMs` accumulated + `pausedAt` null; `approved_with_changes` WITHOUT note → 400; `changes_requested` with note → status `changes_requested`; deciding an already-decided proof → 409; non-participant → 404; fulfiller may also decide (on-behalf) → 200.
+- `POST /proofs/[proofId]/decision`: requester approves → proof claimed via `updateMany({ where: { id, decision: null }})` (assert the where clause) with decision/decidedById/decidedAt AND request status → `approved` with `pausedMs` accumulated + `pausedAt` null; `approved_with_changes` WITHOUT note → 400; `changes_requested` with note → status `changes_requested`; already-decided proof (mock `decision` set) → 409; race-lost claim (mock `updateMany` → `{count: 0}`) → 409 and `creativeRequest.update` NOT called; superseded proof (mock latest `findFirst` returning a different id) → 409; non-participant → 404; fulfiller may also decide (on-behalf) → 200.
 
 - [ ] **Step 4: Implement `proofs/route.ts`**
 
@@ -396,7 +415,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
+import { attachmentInputSchema } from "@/lib/creative-request/attachment-schema";
 import { isFulfillerRole } from "@/lib/creative-request/constants";
 import { canUploadProof } from "@/lib/creative-request/proof-rules";
 import { applyStatusChange } from "@/lib/creative-request/status-change";
@@ -436,11 +455,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
 });
 
 // POST — upload a proof (fulfiller only). Auto-transitions to in_review.
-const uploadSchema = z.object({
-  fileName: z.string().min(1).max(300),
-  fileUrl: safeAttachmentUrl,
-  fileSize: z.number().int().min(0).optional(),
-  mimeType: z.string().max(200).optional(),
+// Single-source Blob validation: extend the shared attachment schema.
+const uploadSchema = attachmentInputSchema.extend({
   note: z.string().max(5000).optional(),
 });
 
@@ -468,27 +484,39 @@ export const POST = withApiAuth(async (req, session, context) => {
   const version = (latest?.version ?? 0) + 1;
 
   const now = new Date();
-  const [proof] = await prisma.$transaction([
-    prisma.creativeRequestProof.create({
-      data: {
-        requestId: id,
-        version,
-        fileName: parsed.data.fileName,
-        fileUrl: parsed.data.fileUrl,
-        fileSize: parsed.data.fileSize ?? null,
-        mimeType: parsed.data.mimeType ?? null,
-        note: parsed.data.note ?? null,
-        uploadedById: session.user.id,
-      },
-      include: proofInclude,
-    }),
-    prisma.creativeRequest.update({
-      where: { id },
-      data: applyStatusChange(request, "in_review", now),
-    }),
-  ]);
+  let proof;
+  try {
+    [proof] = await prisma.$transaction([
+      prisma.creativeRequestProof.create({
+        data: {
+          requestId: id,
+          version,
+          fileName: parsed.data.fileName,
+          fileUrl: parsed.data.fileUrl,
+          fileSize: parsed.data.fileSize ?? null,
+          mimeType: parsed.data.mimeType ?? null,
+          note: parsed.data.note ?? null,
+          uploadedById: session.user.id,
+        },
+        include: proofInclude,
+      }),
+      prisma.creativeRequest.update({
+        where: { id },
+        data: applyStatusChange(request, "in_review", now),
+      }),
+    ]);
+  } catch (err) {
+    // findFirst+1 outside the transaction is deliberately simple — the
+    // marketing team is effectively single-writer per request. If two
+    // uploads do race, @@unique([requestId, version]) turns the loser
+    // into a clean retryable conflict instead of a 500.
+    if ((err as { code?: string }).code === "P2002") {
+      throw ApiError.conflict("A proof was just uploaded — refresh and try again");
+    }
+    throw err;
+  }
 
-  await notifyProofReady(prisma, request, version);
+  await notifyProofReady(prisma, request, version, session.user.id);
   return NextResponse.json({ proof }, { status: 201 });
 });
 ```
@@ -540,6 +568,18 @@ export const POST = withApiAuth(async (req, session, context) => {
   if (request.status !== "in_review") {
     throw ApiError.conflict("This request is not awaiting a proof decision");
   }
+  // Only the LATEST version is decidable. A superseded-but-undecided proof
+  // (fulfiller pulled a proof back via manual PATCH, then sent a new one)
+  // must not drive the request status. Orphaned undecided proofs are
+  // deliberately left as history — no backfill decision is recorded.
+  const latest = await prisma.creativeRequestProof.findFirst({
+    where: { requestId: id },
+    orderBy: { version: "desc" },
+    select: { id: true },
+  });
+  if (latest && latest.id !== proofId) {
+    throw ApiError.conflict("A newer proof supersedes this one — review the latest version");
+  }
 
   const raw = await parseJsonBody(req);
   const parsed = decisionSchema.safeParse(raw);
@@ -552,19 +592,24 @@ export const POST = withApiAuth(async (req, session, context) => {
   }
 
   const now = new Date();
-  const [updatedProof] = await prisma.$transaction([
-    prisma.creativeRequestProof.update({
-      where: { id: proofId },
-      data: { decision, decisionNote: note?.trim() || null, decidedById: session.user.id, decidedAt: now },
-    }),
-    prisma.creativeRequest.update({
-      where: { id },
-      data: applyStatusChange(request, DECISION_TO_STATUS[decision], now),
-    }),
-  ]);
+  // Race-proof claim: the conditional updateMany means two simultaneous
+  // decisions can't both land — the loser matches zero rows and 409s
+  // before the request status is touched.
+  const claimed = await prisma.creativeRequestProof.updateMany({
+    where: { id: proofId, decision: null },
+    data: { decision, decisionNote: note?.trim() || null, decidedById: session.user.id, decidedAt: now },
+  });
+  if (claimed.count === 0) {
+    throw ApiError.conflict("This proof has already been decided");
+  }
+  const updatedRequest = await prisma.creativeRequest.update({
+    where: { id },
+    data: applyStatusChange(request, DECISION_TO_STATUS[decision], now),
+  });
+  const updatedProof = await prisma.creativeRequestProof.findUnique({ where: { id: proofId } });
 
   await notifyProofDecision(prisma, request, proof.version, decision, session.user.id);
-  return NextResponse.json({ proof: updatedProof });
+  return NextResponse.json({ proof: updatedProof, request: updatedRequest });
 });
 ```
 
@@ -581,7 +626,7 @@ export const POST = withApiAuth(async (req, session, context) => {
 - POST create seeds `checklist` from `DEFAULT_CHECKLISTS[type]` (assert `create` data.checklist is the mapped `[{label, done:false}...]`).
 
 - [ ] **Step 2: Implement**
-- `[id]/route.ts`: extend the `existing` select with `pausedAt: true, pausedMs: true`; replace the inline status/timestamp block with `Object.assign(data, applyStatusChange(existing, patch.status, new Date()))` (keep `isValidTransition` + cancellationReason handling exactly as-is). Add to `patchBodySchema`: `checklist: z.array(z.object({ label: z.string().min(1).max(300), done: z.boolean() })).max(30).optional()`; checklist is fulfiller-only (the requester cancel-only guard already blocks it — verify the `isCancelOnly` check also requires `patch.checklist === undefined`, add it).
+- `[id]/route.ts`: extend the `existing` select with `pausedAt: true, pausedMs: true`; replace the inline status/timestamp block with `Object.assign(data, applyStatusChange(existing, patch.status, new Date()))` (keep `isValidTransition` + cancellationReason handling exactly as-is). Add to `patchBodySchema`: `checklist: z.array(z.object({ label: z.string().min(1).max(300), done: z.boolean() })).max(30).optional()`; add the write: `if (patch.checklist !== undefined) data.checklist = patch.checklist;`. Checklist is fulfiller-only — extend the `isCancelOnly` check to also require `patch.checklist === undefined`.
 - `route.ts` POST: `checklist: DEFAULT_CHECKLISTS[data.type].map((label) => ({ label, done: false }))` in the create data.
 
 - [ ] **Step 3: Full API test file green; commit** `feat(creative-requests): pause-aware PATCH + fulfiller checklists`
@@ -625,13 +670,13 @@ export const POST = withApiAuth(async (req, session, context) => {
 
 - [ ] **Step 3: MyRequestsList** — when `pausedAt` and status `in_review`, the plain-language status becomes "Ready for your review" (already is) — additionally bold the row title (visual cue). Skip if noisy; optional.
 
-- [ ] **Step 4: Assignment email** — in `[id]/route.ts`, after `notifyRequestAssigned`, also send the existing assignment email: read `src/lib/send-assignment-email.ts` for the exact signature and call it fire-and-forget (`.catch(() => {})` is NOT allowed — follow how coordinator-todos calls it, including its own error handling; if it throws internally-safe, call with await inside try/catch that logs). Only when assigneeId actually changed and is non-null. Add a route test asserting the email helper was called (mock it with `vi.mock`).
+- [ ] **Step 4: Assignment email — DROPPED from Phase 2.** Investigation during plan review found `send-assignment-email.ts` supports only `todo|rock|issue`, has no creative-request template, and its `shouldReceiveNudge` gate excludes marketing-role assignees entirely — the primary audience would get no email. In-app + push notifications (Phase 1) already cover assignment. Deferred to Phase 3 with a proper template + a deliberate decision on the nudge gate.
 
-- [ ] **Step 5: eslint + tests + build; commit** `feat(creative-requests): pause chips, board archive, assignment email`
+- [ ] **Step 5: eslint + tests + build; commit** `feat(creative-requests): pause chips + board archive`
 
 ### Task 7: Final verification + PR
 
-- [ ] Full gates: 4 feature test files green (expect ~60+ tests total), `npm test` no NEW failures vs the 11 known, feature-file eslint clean, `npx prisma generate && npx next build` passes.
+- [ ] Full gates: all 6 creative-request test files green (`creative-requests.test.ts` + the 5 lib files incl. new proof-rules and status-change; expect ~70 tests total), `npm test` no NEW failures vs the 11 known, feature-file eslint clean, `npx prisma generate && npx next build` passes.
 - [ ] CLAUDE.md: extend the Creative Requests section with two lines — proofs/decisions model + pause semantics; checklist Json.
 - [ ] Final holistic reviewer over the phase 2 diff (cross-cutting: decision routes vs UI buttons, pause maths server vs `effectiveDueDate` UI, migration matches schema).
 - [ ] Push branch, `gh pr create` (base main) with summary, safety (additive migration), test plan, and the deferred-to-human smoke test items.
