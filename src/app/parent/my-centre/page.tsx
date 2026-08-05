@@ -18,7 +18,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import {
   Building2,
@@ -30,10 +30,10 @@ import {
   UtensilsCrossed,
   Users,
 } from "lucide-react";
-import { fetchApi, mutateApi } from "@/lib/fetch-api";
-import { toast } from "@/hooks/useToast";
+import { fetchApi } from "@/lib/fetch-api";
 import { useParentDailyInfo } from "@/hooks/useParentPortal";
 import { SectionLabel } from "@/components/parent/ui";
+import { ParentFormsSection } from "@/components/parent/ParentFormsList";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface Contact {
@@ -466,157 +466,12 @@ function WeekTab() {
   );
 }
 
-interface ParentFormRow {
-  id: string;
-  title: string;
-  description: string | null;
-  fileUrl: string | null;
-  dueDate: string | null;
-  serviceName: string;
-  signed: { signedName: string; signedAt: string } | null;
-}
-
-/**
- * Policies to read, forms to sign — one Documents home.
- *
- * Signing is a typed full name, the same convention the enrolment form
- * uses. The first signature is the one kept; a re-tap can't rewrite the
- * timestamp that matters.
- */
 function DocumentsTab({ policies }: { policies: Policy[] }) {
-  const qc = useQueryClient();
-  const [signingId, setSigningId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-
-  const { data } = useQuery<{ forms: ParentFormRow[] }>({
-    queryKey: ["parent", "forms"],
-    queryFn: () => fetchApi("/api/parent/forms"),
-    retry: 1,
-  });
-  const forms = data?.forms ?? [];
-
-  const sign = useMutation({
-    mutationFn: (body: { formId: string; signedName: string }) =>
-      mutateApi("/api/parent/forms", { method: "POST", body }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["parent", "forms"] });
-      setSigningId(null);
-      setName("");
-      toast({ description: "Signed — thank you." });
-    },
-    onError: (e: Error) =>
-      toast({ variant: "destructive", description: e.message }),
-  });
-
-  const unsigned = forms.filter((f) => !f.signed);
-  const signed = forms.filter((f) => f.signed);
-
   return (
     <div className="space-y-5">
-      {forms.length > 0 && (
-        <section className="space-y-3">
-          <SectionLabel label="Forms to sign" />
-          {unsigned.length === 0 && (
-            <p className="text-sm text-[color:var(--color-muted)]">
-              All signed — nothing waiting on you.
-            </p>
-          )}
-          {unsigned.map((f) => (
-            <div key={f.id} className="warm-card space-y-2">
-              <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
-                {f.title}
-              </p>
-              {f.description && (
-                <p className="text-sm text-[color:var(--color-foreground)]/85 whitespace-pre-wrap">
-                  {f.description}
-                </p>
-              )}
-              {f.fileUrl && (
-                <a
-                  href={f.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-[color:var(--color-brand)] underline underline-offset-2 min-h-11"
-                >
-                  <FileText className="w-4 h-4" />
-                  Read the document
-                </a>
-              )}
-              {f.dueDate && (
-                <p className="text-xs text-[color:var(--color-muted)]">
-                  Needed by{" "}
-                  {new Date(f.dueDate).toLocaleDateString("en-AU", {
-                    day: "numeric",
-                    month: "long",
-                  })}
-                </p>
-              )}
-
-              {signingId === f.id ? (
-                <div className="space-y-2 pt-1">
-                  <label
-                    htmlFor={`sign-${f.id}`}
-                    className="block text-xs font-medium text-[color:var(--color-muted)]"
-                  >
-                    Type your full name to sign
-                  </label>
-                  <input
-                    id={`sign-${f.id}`}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Aysha Khan"
-                    className="w-full px-3 py-2.5 border border-[color:var(--color-border)] rounded-lg text-base bg-white"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        sign.mutate({ formId: f.id, signedName: name.trim() })
-                      }
-                      disabled={sign.isPending || name.trim().length === 0}
-                      className="flex-1 py-2.5 rounded-xl bg-[color:var(--color-brand)] text-white text-sm font-semibold min-h-11 disabled:opacity-50"
-                    >
-                      {sign.isPending ? "Signing…" : "Sign"}
-                    </button>
-                    <button
-                      onClick={() => setSigningId(null)}
-                      className="px-4 rounded-xl border border-[color:var(--color-border)] text-sm min-h-11"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setSigningId(f.id)}
-                  className="w-full py-2.5 rounded-xl bg-[color:var(--color-brand)] text-white text-sm font-semibold min-h-11"
-                >
-                  Sign this form
-                </button>
-              )}
-            </div>
-          ))}
-
-          {signed.length > 0 && (
-            <div className="warm-card divide-y divide-[color:var(--color-border)]">
-              {signed.map((f) => (
-                <div key={f.id} className="py-2.5 first:pt-0 last:pb-0">
-                  <p className="text-sm text-[color:var(--color-foreground)]">
-                    {f.title}
-                  </p>
-                  <p className="text-xs text-[color:var(--color-muted)]">
-                    Signed by {f.signed!.signedName} on{" "}
-                    {new Date(f.signed!.signedAt).toLocaleDateString("en-AU", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      {/* Shared with /parent/forms (behind the action button) so the two
+          surfaces can't drift. */}
+      <ParentFormsSection />
 
       <section className="space-y-3">
         <SectionLabel label="Policies and procedures" />

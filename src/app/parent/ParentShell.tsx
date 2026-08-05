@@ -20,6 +20,7 @@ import {
   DollarSign,
   Settings,
   MapPin,
+  FileSignature,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,12 @@ const ACTION_ITEMS = [
     label: "Messages",
     hint: "Message head office directly",
     icon: MessageCircle,
+  },
+  {
+    href: "/parent/forms",
+    label: "Forms",
+    hint: "Consents and sign-offs from your centre",
+    icon: FileSignature,
   },
   {
     href: "/parent/billing",

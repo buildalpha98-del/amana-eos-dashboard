@@ -59,6 +59,7 @@ export function ParentFormsCard({
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [perChild, setPerChild] = useState(false);
 
   const { data } = useQuery<{ forms: FormRow[] }>({
     queryKey: ["service", serviceId, "parent-forms"],
@@ -81,6 +82,7 @@ export function ParentFormsCard({
       setDueDate("");
       setFileUrl("");
       setFileName("");
+      setPerChild(false);
       toast({
         description: "Form published — families have been notified.",
       });
@@ -185,6 +187,23 @@ export function ParentFormsCard({
               placeholder="What it covers, in a sentence or two."
             />
           </div>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={perChild}
+              onChange={(e) => setPerChild(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+            />
+            <span className="text-sm text-foreground">
+              One signature per child
+              <span className="block text-xs text-muted">
+                For CWAs, medical consents — anything where signing for one
+                child says nothing about their sibling. Off: one signature
+                covers the family (a DDR, a general policy).
+              </span>
+            </span>
+          </label>
+
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <label
@@ -250,6 +269,7 @@ export function ParentFormsCard({
               onClick={() =>
                 create.mutate({
                   title: title.trim(),
+                  perChild,
                   ...(description.trim() ? { description: description.trim() } : {}),
                   ...(dueDate ? { dueDate } : {}),
                   ...(fileUrl ? { fileUrl, fileName } : {}),

@@ -16,6 +16,8 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 
 const signSchema = z.object({
   formId: z.string().min(1),
+  /** Required when the form is per-child (CWA, medical consent). */
+  childId: z.string().min(1).optional(),
   /**
    * Two parts minimum. A single letter is a tap, not a signature — and
    * this row may one day be read out in a dispute about consent.
@@ -30,22 +32,33 @@ const signSchema = z.object({
     }),
 });
 
-async function familyServiceIds(enrolmentIds: string[]): Promise<string[]> {
+async function familyContext(enrolmentIds: string[]) {
   const enrolments = await prisma.enrolmentSubmission.findMany({
     where: { id: { in: enrolmentIds }, status: { not: "draft" } },
-    select: { serviceId: true, childRecords: { select: { serviceId: true } } },
+    select: {
+      serviceId: true,
+      childRecords: {
+        where: { status: { not: "withdrawn" } },
+        select: { id: true, firstName: true, serviceId: true },
+      },
+    },
   });
-  const ids = new Set<string>();
+  const serviceIds = new Set<string>();
+  const children: { id: string; firstName: string; serviceId: string | null }[] = [];
   for (const e of enrolments) {
-    if (e.serviceId) ids.add(e.serviceId);
-    for (const c of e.childRecords) if (c.serviceId) ids.add(c.serviceId);
+    if (e.serviceId) serviceIds.add(e.serviceId);
+    for (const c of e.childRecords) {
+      if (c.serviceId) serviceIds.add(c.serviceId);
+      children.push(c);
+    }
   }
-  return [...ids];
+  return { serviceIds: [...serviceIds], children };
 }
 
 export const GET = withParentAuth(async (_req, { parent }) => {
-  const serviceIds = await familyServiceIds(parent.enrolmentIds);
-  if (serviceIds.length === 0) return NextResponse.json({ forms: [] });
+  const { serviceIds, children } = await familyContext(parent.enrolmentIds);
+  if (serviceIds.length === 0)
+    return NextResponse.json({ forms: [], children: [] });
 
   const email = parent.email.toLowerCase().trim();
   const forms = await prisma.parentForm.findMany({
@@ -57,7 +70,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       // has signed is the centre's business, not the neighbours'.
       signatures: {
         where: { parentEmail: email },
-        select: { signedName: true, signedAt: true },
+        select: { signedName: true, signedAt: true, childId: true },
       },
     },
   });
@@ -70,9 +83,15 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       fileUrl: f.fileUrl,
       fileName: f.fileName,
       dueDate: f.dueDate,
+      perChild: f.perChild,
       serviceName: f.service.name,
-      signed: f.signatures[0] ?? null,
+      // Family-level: at most one row. Per-child: one per signed child.
+      signed: f.perChild ? null : (f.signatures.find((x) => !x.childId) ?? null),
+      signatures: f.signatures,
     })),
+    // For per-child forms the client needs to render one sign action per
+    // child at that centre.
+    children,
   });
 });
 
@@ -81,12 +100,12 @@ export const POST = withParentAuth(async (req, { parent }) => {
   if (!parsed.success) {
     throw ApiError.badRequest(parsed.error.issues[0].message);
   }
-  const { formId, signedName } = parsed.data;
+  const { formId, childId, signedName } = parsed.data;
   const email = parent.email.toLowerCase().trim();
 
   const form = await prisma.parentForm.findUnique({
     where: { id: formId },
-    select: { id: true, serviceId: true, status: true },
+    select: { id: true, serviceId: true, status: true, perChild: true },
   });
   if (!form || form.status !== "active") {
     throw ApiError.notFound("This form isn't available any more.");
@@ -94,17 +113,37 @@ export const POST = withParentAuth(async (req, { parent }) => {
 
   // The family must actually belong to the form's centre — otherwise a
   // guessed id lets anyone sign anything.
-  const serviceIds = await familyServiceIds(parent.enrolmentIds);
+  const { serviceIds, children } = await familyContext(parent.enrolmentIds);
   if (!serviceIds.includes(form.serviceId)) {
     throw ApiError.forbidden("This form belongs to a different centre.");
   }
 
-  const signature = await prisma.parentFormSignature.upsert({
-    where: { formId_parentEmail: { formId, parentEmail: email } },
-    // Signing twice keeps the FIRST signature: the original timestamp is
-    // the legally interesting one, and a re-tap must not rewrite it.
-    update: {},
-    create: { formId, parentEmail: email, signedName },
+  // Per-child forms (a CWA, a medical consent) are signed FOR a child,
+  // and only one of this family's own children at that centre.
+  if (form.perChild) {
+    const child = children.find((c) => c.id === childId);
+    if (!childId || !child) {
+      throw ApiError.badRequest("Choose which child you're signing for.");
+    }
+    if (child.serviceId !== form.serviceId) {
+      throw ApiError.badRequest(
+        "This form belongs to a different centre to that child.",
+      );
+    }
+  }
+
+  // Signing twice keeps the FIRST signature: the original timestamp is
+  // the legally interesting one, and a re-tap must not rewrite it. The
+  // uniqueness itself is guarded by partial indexes in the database, so
+  // a race between two taps still can't produce two rows.
+  const effectiveChildId = form.perChild ? childId! : null;
+  const existing = await prisma.parentFormSignature.findFirst({
+    where: { formId, parentEmail: email, childId: effectiveChildId },
+  });
+  if (existing) return NextResponse.json({ ok: true, signature: existing });
+
+  const signature = await prisma.parentFormSignature.create({
+    data: { formId, parentEmail: email, signedName, childId: effectiveChildId },
   });
 
   return NextResponse.json({ ok: true, signature });

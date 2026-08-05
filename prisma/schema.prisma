@@ -6378,14 +6378,15 @@ model Child {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  bookings           Booking[]            @relation("ChildBookings")
-  absences           Absence[]            @relation("ChildAbsences")
-  documents          ParentDocument[]     @relation("ChildDocuments")
-  childDocuments     ChildDocument[]      @relation("ChildProfileDocuments")
-  authorisedPickups  AuthorisedPickup[]   @relation("ChildPickups")
-  postTags           ParentPostChildTag[] @relation("ChildPostTags")
-  attendanceRecords  AttendanceRecord[]   @relation("ChildAttendance")
-  statementLineItems StatementLineItem[]  @relation("ChildStatementLines")
+  bookings           Booking[]             @relation("ChildBookings")
+  absences           Absence[]             @relation("ChildAbsences")
+  documents          ParentDocument[]      @relation("ChildDocuments")
+  childDocuments     ChildDocument[]       @relation("ChildProfileDocuments")
+  authorisedPickups  AuthorisedPickup[]    @relation("ChildPickups")
+  postTags           ParentPostChildTag[]  @relation("ChildPostTags")
+  formSignatures     ParentFormSignature[] @relation("ChildFormSignatures")
+  attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
+  statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
 
   // ── NQS relations ─────────────────────────────────
   observations  LearningObservation[]      @relation("ChildObservations")
@@ -6972,6 +6973,10 @@ model ParentForm {
   fileName    String?
   /// Signatures wanted by this date. Informational, not enforced.
   dueDate     DateTime? @db.Date
+  /// One signature PER CHILD rather than per family. This is the CWA /
+  /// medical-consent shape: "signed for Abdul" says nothing about his
+  /// sister, so each child needs their own row.
+  perChild    Boolean   @default(false)
   status      String    @default("active") // active | archived
   createdById String?
   createdBy   User?     @relation("ParentFormCreator", fields: [createdById], references: [id], onDelete: SetNull)
@@ -6991,11 +6996,16 @@ model ParentFormSignature {
   /// full name, stored with the moment it was given.
   parentEmail String
   signedName  String
+  /// Set when the form is per-child (CWA, medical consent). Null for a
+  /// family-level form. Uniqueness lives in two PARTIAL indexes in SQL —
+  /// a plain composite unique treats NULLs as distinct and would allow
+  /// double family signatures — so the model carries no @@unique and the
+  /// API checks before creating.
+  childId     String?
+  child       Child?     @relation("ChildFormSignatures", fields: [childId], references: [id], onDelete: Cascade)
   signedAt    DateTime   @default(now())
 
-  // One signature per family per form — signing twice is a no-op, not
-  // a second row.
-  @@unique([formId, parentEmail])
+  @@index([formId, parentEmail])
   @@index([parentEmail])
 }
 

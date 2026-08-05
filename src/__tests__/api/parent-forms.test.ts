@@ -11,7 +11,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     enrolmentSubmission: { findMany: vi.fn() },
     parentForm: { findMany: vi.fn(), findUnique: vi.fn() },
-    parentFormSignature: { upsert: vi.fn() },
+    parentFormSignature: { findFirst: vi.fn(), create: vi.fn() },
   },
 }));
 
@@ -46,7 +46,10 @@ const mockPrisma = prisma as unknown as {
     findMany: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
   };
-  parentFormSignature: { upsert: ReturnType<typeof vi.fn> };
+  parentFormSignature: {
+    findFirst: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+  };
 };
 
 const req = (body?: unknown) =>
@@ -60,9 +63,16 @@ describe("/api/parent/forms", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPrisma.enrolmentSubmission.findMany.mockResolvedValue([
-      { serviceId: "svc-1", childRecords: [{ serviceId: "svc-1" }] },
+      {
+        serviceId: "svc-1",
+        childRecords: [
+          { id: "kid-1", firstName: "Abdul", serviceId: "svc-1" },
+          { id: "kid-2", firstName: "Amira", serviceId: "svc-1" },
+        ],
+      },
     ]);
-    mockPrisma.parentFormSignature.upsert.mockResolvedValue({
+    mockPrisma.parentFormSignature.findFirst.mockResolvedValue(null);
+    mockPrisma.parentFormSignature.create.mockResolvedValue({
       id: "sig-1",
       signedAt: new Date(),
     });
@@ -84,19 +94,65 @@ describe("/api/parent/forms", () => {
       id: "form-1",
       serviceId: "svc-1",
       status: "active",
+      perChild: false,
     });
     const res = await POST(req({ formId: "form-1", signedName: "Jane Doe" }));
     expect(res.status).toBe(200);
-
-    const args = mockPrisma.parentFormSignature.upsert.mock.calls[0][0];
-    expect(args.create).toMatchObject({
-      formId: "form-1",
-      parentEmail: "jane@example.com",
-      signedName: "Jane Doe",
+    expect(mockPrisma.parentFormSignature.create).toHaveBeenCalledWith({
+      data: {
+        formId: "form-1",
+        parentEmail: "jane@example.com",
+        signedName: "Jane Doe",
+        childId: null,
+      },
     });
-    // Signing twice keeps the FIRST signature — the original timestamp
-    // is the legally interesting one, and a re-tap must not rewrite it.
-    expect(args.update).toEqual({});
+  });
+
+  it("signing twice keeps the FIRST signature", async () => {
+    // The original timestamp is the legally interesting one; a re-tap
+    // must not rewrite it or add a second row.
+    mockPrisma.parentForm.findUnique.mockResolvedValue({
+      id: "form-1",
+      serviceId: "svc-1",
+      status: "active",
+      perChild: false,
+    });
+    mockPrisma.parentFormSignature.findFirst.mockResolvedValue({
+      id: "sig-existing",
+      signedAt: new Date("2026-08-01"),
+    });
+    const res = await POST(req({ formId: "form-1", signedName: "Jane Doe" }));
+    expect(res.status).toBe(200);
+    expect(mockPrisma.parentFormSignature.create).not.toHaveBeenCalled();
+  });
+
+  it("per-child form: requires a child, and one of THIS family's", async () => {
+    // The CWA shape — signing for Abdul says nothing about Amira.
+    mockPrisma.parentForm.findUnique.mockResolvedValue({
+      id: "cwa-1",
+      serviceId: "svc-1",
+      status: "active",
+      perChild: true,
+    });
+
+    // No child chosen → told to choose, not silently family-signed.
+    let res = await POST(req({ formId: "cwa-1", signedName: "Jane Doe" }));
+    expect(res.status).toBe(400);
+
+    // Someone else's child → refused.
+    res = await POST(
+      req({ formId: "cwa-1", signedName: "Jane Doe", childId: "not-ours" }),
+    );
+    expect(res.status).toBe(400);
+
+    // Their own child → signed FOR that child.
+    res = await POST(
+      req({ formId: "cwa-1", signedName: "Jane Doe", childId: "kid-1" }),
+    );
+    expect(res.status).toBe(200);
+    expect(mockPrisma.parentFormSignature.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ formId: "cwa-1", childId: "kid-1" }),
+    });
   });
 
   it("rejects a single-word signature", async () => {
@@ -108,7 +164,7 @@ describe("/api/parent/forms", () => {
     const res = await POST(req({ formId: "form-1", signedName: "Jane" }));
     expect(res.status).toBe(400);
     // A single letter is a tap, not a signature.
-    expect(mockPrisma.parentFormSignature.upsert).not.toHaveBeenCalled();
+    expect(mockPrisma.parentFormSignature.create).not.toHaveBeenCalled();
   });
 
   it("refuses a form from a centre the family isn't at", async () => {
@@ -120,7 +176,7 @@ describe("/api/parent/forms", () => {
     });
     const res = await POST(req({ formId: "form-x", signedName: "Jane Doe" }));
     expect(res.status).toBe(403);
-    expect(mockPrisma.parentFormSignature.upsert).not.toHaveBeenCalled();
+    expect(mockPrisma.parentFormSignature.create).not.toHaveBeenCalled();
   });
 
   it("won't sign an archived form", async () => {
