@@ -26,6 +26,7 @@ vi.mock("@/lib/rate-limit", () => ({
 
 import { GET as GET_LIST, POST as POST_CREATE } from "@/app/api/creative-requests/route";
 import { GET as GET_DETAIL, PATCH as PATCH_REQUEST } from "@/app/api/creative-requests/[id]/route";
+import { GET as GET_MESSAGES, POST as POST_MESSAGE } from "@/app/api/creative-requests/[id]/messages/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
@@ -367,5 +368,89 @@ describe("PATCH /api/creative-requests/[id]", () => {
       ctx("cr1"),
     );
     expect(res.status).toBe(409);
+  });
+});
+
+describe("GET /api/creative-requests/[id]/messages", () => {
+  const messages = [
+    { id: "m1", requestId: "cr1", authorId: "member-1", author: { id: "member-1", name: "Mirna" }, body: "Logo bigger please", internal: false, createdAt: new Date(), attachments: [] },
+    { id: "m2", requestId: "cr1", authorId: "mkt-1", author: { id: "mkt-1", name: "Tracie" }, body: "QR was regenerated", internal: true, createdAt: new Date(), attachments: [] },
+  ];
+
+  it("requester never receives internal messages", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequestMessage.findMany.mockResolvedValue(
+      messages.filter((m) => !m.internal) as never,
+    );
+    const res = await GET_MESSAGES(
+      createRequest("GET", "/api/creative-requests/cr1/messages"),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    const findArgs = prismaMock.creativeRequestMessage.findMany.mock.calls[0][0];
+    expect(findArgs.where.internal).toBe(false);
+  });
+
+  it("marketing receives the full thread", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequestMessage.findMany.mockResolvedValue(messages as never);
+    const res = await GET_MESSAGES(
+      createRequest("GET", "/api/creative-requests/cr1/messages"),
+      ctx("cr1"),
+    );
+    const findArgs = prismaMock.creativeRequestMessage.findMany.mock.calls[0][0];
+    expect(findArgs.where.internal).toBeUndefined();
+  });
+});
+
+describe("POST /api/creative-requests/[id]/messages", () => {
+  it("404s a non-participant member (existence not leaked)", async () => {
+    mockSession({ id: "member-2", name: "Other", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await POST_MESSAGE(
+      createRequest("POST", "/api/creative-requests/cr1/messages", {
+        body: { body: "hi" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("forces internal=false for the requester", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequestMessage.create.mockResolvedValue({
+      id: "m3", requestId: "cr1", authorId: "member-1", body: "hi", internal: false, createdAt: new Date(), author: { id: "member-1", name: "Mirna" }, attachments: [],
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 0 } as never);
+    const res = await POST_MESSAGE(
+      createRequest("POST", "/api/creative-requests/cr1/messages", {
+        body: { body: "hi", internal: true }, // requester tries to flag internal
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(201);
+    const createArgs = prismaMock.creativeRequestMessage.create.mock.calls[0][0];
+    expect(createArgs.data.internal).toBe(false);
+  });
+
+  it("marketing internal note is stored internal and creates no requester notification", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequestMessage.create.mockResolvedValue({
+      id: "m4", requestId: "cr1", authorId: "mkt-1", body: "note", internal: true, createdAt: new Date(), author: { id: "mkt-1", name: "Tracie" }, attachments: [],
+    } as never);
+    const res = await POST_MESSAGE(
+      createRequest("POST", "/api/creative-requests/cr1/messages", {
+        body: { body: "note", internal: true },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(201);
+    const createArgs = prismaMock.creativeRequestMessage.create.mock.calls[0][0];
+    expect(createArgs.data.internal).toBe(true);
+    expect(prismaMock.userNotification.createMany).not.toHaveBeenCalled();
   });
 });

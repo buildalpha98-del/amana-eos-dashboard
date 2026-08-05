@@ -19,7 +19,7 @@ import {
 } from "@/lib/creative-request/constants";
 import { notifyRequestSubmitted } from "@/lib/creative-request/notify";
 import { requestInclude } from "@/lib/creative-request/include";
-import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
+import { attachmentInputSchema } from "@/lib/creative-request/attachment-schema";
 
 // ---------------------------------------------------------------------------
 // GET — list. Fulfiller roles see everything (queue); centre roles are
@@ -70,13 +70,6 @@ export const GET = withApiAuth(async (req, session) => {
 // POST — create. Any authenticated dashboard role can submit.
 // ---------------------------------------------------------------------------
 
-const attachmentSchema = z.object({
-  fileName: z.string().min(1).max(300),
-  fileUrl: safeAttachmentUrl,
-  fileSize: z.number().int().min(0).optional(),
-  mimeType: z.string().max(200).optional(),
-});
-
 const createBodySchema = z.object({
   title: z.string().min(1).max(300),
   type: z.nativeEnum(CreativeRequestType),
@@ -87,7 +80,7 @@ const createBodySchema = z.object({
   serviceId: z.string().optional().nullable(),
   priority: z.nativeEnum(TicketPriority).optional(),
   dueDate: z.coerce.date().optional(),
-  attachments: z.array(attachmentSchema).max(10).default([]),
+  attachments: z.array(attachmentInputSchema).max(10).default([]),
 });
 
 export const POST = withApiAuth(async (req, session) => {
