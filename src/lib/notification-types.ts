@@ -46,6 +46,11 @@ export const NOTIFICATION_TYPES = {
   // with an auto-created Todo so the survey also shows up in their
   // regular task list.
   SURVEY_ASSIGNED: "survey_assigned",
+  // 2026-08-05: creative-request ticketing (Marketing Hub Phase 1).
+  CREATIVE_REQUEST_SUBMITTED: "creative_request_submitted",
+  CREATIVE_REQUEST_ASSIGNED: "creative_request_assigned",
+  CREATIVE_REQUEST_STATUS: "creative_request_status",
+  CREATIVE_REQUEST_MESSAGE: "creative_request_message",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
