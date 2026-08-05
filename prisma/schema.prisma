@@ -934,10 +934,12 @@ model User {
 
   // 2026-08-05 (creative requests v1): tickets requested/fulfilled between
   // centre staff and the marketing team.
-  creativeRequestsRequested CreativeRequest[]           @relation("CreativeRequestsRequested")
-  creativeRequestsAssigned  CreativeRequest[]           @relation("CreativeRequestsAssigned")
-  creativeRequestMessages   CreativeRequestMessage[]    @relation("CreativeRequestMessages")
-  creativeRequestUploads    CreativeRequestAttachment[] @relation("CreativeRequestUploads")
+  creativeRequestsRequested     CreativeRequest[]           @relation("CreativeRequestsRequested")
+  creativeRequestsAssigned      CreativeRequest[]           @relation("CreativeRequestsAssigned")
+  creativeRequestMessages       CreativeRequestMessage[]    @relation("CreativeRequestMessages")
+  creativeRequestUploads        CreativeRequestAttachment[] @relation("CreativeRequestUploads")
+  creativeRequestProofsUploaded CreativeRequestProof[]      @relation("CreativeRequestProofsUploaded")
+  creativeRequestProofsDecided  CreativeRequestProof[]      @relation("CreativeRequestProofsDecided")
 
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
@@ -1860,11 +1862,22 @@ model CreativeRequest {
   cancelledAt        DateTime?
   cancellationReason String?   @db.Text
 
+  /// Turnaround-pause accounting. pausedAt is set while status is in_review
+  /// (waiting on the requester); on exit the elapsed ms accumulate into
+  /// pausedMs. Effective due date = dueDate + pausedMs (+ live pause).
+  pausedAt DateTime?
+  pausedMs Int       @default(0)
+
+  /// Fulfiller checklist [{ label, done }], seeded from the type's default
+  /// at create. Null for requests created before Phase 2.
+  checklist Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   messages    CreativeRequestMessage[]
   attachments CreativeRequestAttachment[]
+  proofs      CreativeRequestProof[]
 
   @@index([status])
   @@index([assigneeId])
@@ -1906,6 +1919,44 @@ model CreativeRequestAttachment {
   uploadedBy   User?                   @relation("CreativeRequestUploads", fields: [uploadedById], references: [id], onDelete: SetNull)
   createdAt    DateTime                @default(now())
 
+  @@index([requestId])
+}
+
+enum ProofDecision {
+  approved
+  approved_with_changes
+  changes_requested
+}
+
+/// A versioned proof (draft deliverable) sent to the requester for review.
+/// One undecided proof at a time per request; decisions drive request status.
+model CreativeRequestProof {
+  id        String          @id @default(cuid())
+  requestId String
+  request   CreativeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  /// 1-based, unique per request; assigned server-side (max + 1).
+  version   Int
+  fileName  String
+  /// Vercel Blob URL — validated by safeAttachmentUrl at the API boundary.
+  fileUrl   String
+  fileSize  Int?
+  mimeType  String?
+  /// Optional note from the designer accompanying the proof.
+  note      String?         @db.Text
+
+  uploadedById String?
+  uploadedBy   User?   @relation("CreativeRequestProofsUploaded", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  decision     ProofDecision?
+  /// Required for approved_with_changes and changes_requested (Ziflow rule).
+  decisionNote String?        @db.Text
+  decidedById  String?
+  decidedBy    User?          @relation("CreativeRequestProofsDecided", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([requestId, version])
   @@index([requestId])
 }
 
