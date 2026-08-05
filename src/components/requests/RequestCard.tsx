@@ -1,11 +1,19 @@
 "use client";
 
 import type { CreativeRequestItem } from "@/hooks/useCreativeRequests";
-import { TYPE_LABELS } from "@/lib/creative-request/constants";
+import { TYPE_LABELS, effectiveDueDate } from "@/lib/creative-request/constants";
 
-function dueChip(dueDate: string, status: string) {
+function pausedChip() {
+  return (
+    <span className="text-2xs italic font-semibold rounded px-1.5 py-0.5 bg-surface text-muted">
+      ⏸ Waiting on centre
+    </span>
+  );
+}
+
+function dueChip(dueDate: Date, status: string) {
   if (["delivered", "cancelled"].includes(status)) return null;
-  const days = Math.ceil((new Date(dueDate).getTime() - Date.now()) / 86_400_000);
+  const days = Math.ceil((dueDate.getTime() - Date.now()) / 86_400_000);
   if (days < 0)
     return (
       <span className="text-2xs font-semibold rounded px-1.5 py-0.5 bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300">
@@ -38,6 +46,11 @@ export function RequestCard({
   request: CreativeRequestItem;
   onOpen: (id: string) => void;
 }) {
+  const due = effectiveDueDate(
+    new Date(request.dueDate),
+    request.pausedMs,
+    request.pausedAt ? new Date(request.pausedAt) : null,
+  );
   return (
     <button
       type="button"
@@ -52,7 +65,7 @@ export function RequestCard({
         <span className="text-2xs font-semibold rounded px-1.5 py-0.5 bg-surface text-muted">
           {TYPE_LABELS[request.type]}
         </span>
-        {dueChip(request.dueDate, request.status)}
+        {request.pausedAt ? pausedChip() : dueChip(due, request.status)}
         {request.service && (
           <span className="text-2xs text-muted">{request.service.name}</span>
         )}

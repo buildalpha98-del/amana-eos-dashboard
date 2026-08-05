@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useCreativeRequests } from "@/hooks/useCreativeRequests";
 import { STATUS_LABELS } from "@/lib/creative-request/constants";
 import type { CreativeRequestStatus } from "@prisma/client";
@@ -16,8 +17,16 @@ const BOARD_COLUMNS: CreativeRequestStatus[] = [
   "delivered",
 ];
 
+const ARCHIVE_AFTER_MS = 14 * 86_400_000;
+
+function isArchivedDelivery(deliveredAt: string | null): boolean {
+  if (!deliveredAt) return false;
+  return Date.now() - new Date(deliveredAt).getTime() >= ARCHIVE_AFTER_MS;
+}
+
 export function RequestBoard({ onOpen }: { onOpen: (id: string) => void }) {
   const { data, isLoading } = useCreativeRequests();
+  const [showArchivedDelivered, setShowArchivedDelivered] = useState(false);
 
   if (isLoading) {
     return (
@@ -34,7 +43,13 @@ export function RequestBoard({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2" aria-label="Request pipeline">
       {BOARD_COLUMNS.map((status) => {
-        const items = requests.filter((r) => r.status === status);
+        const columnItems = requests.filter((r) => r.status === status);
+        const isDelivered = status === "delivered";
+        const visibleItems =
+          isDelivered && !showArchivedDelivered
+            ? columnItems.filter((r) => !isArchivedDelivery(r.deliveredAt))
+            : columnItems;
+        const archivedCount = isDelivered ? columnItems.length - visibleItems.length : 0;
         return (
           <div
             key={status}
@@ -45,17 +60,28 @@ export function RequestBoard({ onOpen }: { onOpen: (id: string) => void }) {
                 {STATUS_LABELS[status]}
               </h3>
               <span className="text-2xs bg-card border border-border rounded-full px-1.5 text-foreground">
-                {items.length}
+                {visibleItems.length}
               </span>
             </div>
             <div className="space-y-2">
-              {items.map((r) => (
+              {visibleItems.map((r) => (
                 <RequestCard key={r.id} request={r} onOpen={onOpen} />
               ))}
-              {items.length === 0 && (
+              {visibleItems.length === 0 && (
                 <p className="text-2xs text-muted px-1 py-3">Nothing here</p>
               )}
             </div>
+            {isDelivered && archivedCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowArchivedDelivered((v) => !v)}
+                className="text-2xs text-muted px-1 pt-2 hover:text-foreground"
+              >
+                {showArchivedDelivered
+                  ? "Hide archived"
+                  : `${archivedCount} archived · Show`}
+              </button>
+            )}
           </div>
         );
       })}
