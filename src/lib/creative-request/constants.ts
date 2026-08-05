@@ -107,3 +107,26 @@ export const TYPE_LABELS: Record<CreativeRequestType, string> = {
   merch: "Merch / uniform",
   other: "Something else",
 };
+
+/** Effective due date once requester-wait time is credited back. */
+export function effectiveDueDate(
+  dueDate: Date,
+  pausedMs: number,
+  pausedAt: Date | null,
+  now = new Date(),
+): Date {
+  const live = pausedAt ? Math.max(0, now.getTime() - pausedAt.getTime()) : 0;
+  return new Date(dueDate.getTime() + pausedMs + live);
+}
+
+/** Fulfiller checklist seeded onto new requests, per type. */
+export const DEFAULT_CHECKLISTS: Record<CreativeRequestType, string[]> = {
+  flyer: ["Confirm brief & copy", "Draft design", "Proof to requester", "Final files delivered"],
+  poster: ["Confirm brief & copy", "Draft design", "Proof to requester", "Print-ready PDF delivered"],
+  social_tile: ["Confirm brief & copy", "Draft tiles", "Proof to requester", "Exports delivered"],
+  table_cover: ["Confirm brief & dimensions", "Draft design", "Proof to requester", "Vendor brief raised"],
+  banner_signage: ["Confirm brief & dimensions", "Draft design", "Proof to requester", "Vendor brief raised"],
+  email_header: ["Confirm brief & copy", "Draft design", "Proof to requester", "Assets delivered"],
+  merch: ["Confirm brief, sizes & quantity", "Draft artwork", "Proof to requester", "Vendor brief raised"],
+  other: ["Confirm brief", "Draft", "Proof to requester", "Delivered"],
+};
