@@ -35,7 +35,7 @@ export const SUPPRESSION_EVENTS: ReadonlySet<CanonicalEmailEvent> = new Set([
 
 /** Soft bounces, deferrals etc. are deliberately ignored (return null). */
 export function normalizeBrevoEvent(event: string): CanonicalEmailEvent | null {
-  return EVENT_MAP[event] ?? null;
+  return Object.prototype.hasOwnProperty.call(EVENT_MAP, event) ? EVENT_MAP[event] : null;
 }
 
 export interface ParsedBrevoEvent {

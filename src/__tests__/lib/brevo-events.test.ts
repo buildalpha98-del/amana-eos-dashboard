@@ -21,6 +21,11 @@ describe("normalizeBrevoEvent", () => {
       expect(normalizeBrevoEvent(e)).toBeNull();
     }
   });
+  it("does not resolve inherited Object.prototype keys", () => {
+    for (const e of ["toString", "constructor", "hasOwnProperty", "valueOf"]) {
+      expect(normalizeBrevoEvent(e)).toBeNull();
+    }
+  });
 });
 
 describe("SUPPRESSION_EVENTS", () => {
