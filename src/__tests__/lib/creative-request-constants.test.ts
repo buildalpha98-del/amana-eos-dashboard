@@ -6,6 +6,8 @@ import {
   STATUS_TIMESTAMP_FIELD,
   TURNAROUND_BUSINESS_DAYS,
   FULFILLER_ROLES,
+  effectiveDueDate,
+  DEFAULT_CHECKLISTS,
 } from "@/lib/creative-request/constants";
 
 describe("isValidTransition", () => {
@@ -57,5 +59,43 @@ describe("maps", () => {
     expect(STATUS_TIMESTAMP_FIELD.delivered).toBe("deliveredAt");
     expect(STATUS_TIMESTAMP_FIELD.new).toBeNull();
     expect(FULFILLER_ROLES).toContain("marketing");
+  });
+});
+
+describe("effectiveDueDate", () => {
+  it("credits live pause time (still paused, no banked ms)", () => {
+    const dueDate = new Date("2026-08-05T00:00:00Z");
+    const pausedAt = new Date("2026-08-01T00:00:00Z");
+    const now = new Date("2026-08-01T05:00:00Z"); // 5h into the pause
+    expect(effectiveDueDate(dueDate, 0, pausedAt, now).toISOString()).toBe(
+      new Date(dueDate.getTime() + 5 * 3_600_000).toISOString(),
+    );
+  });
+
+  it("credits banked pausedMs when not currently paused", () => {
+    const dueDate = new Date("2026-08-05T00:00:00Z");
+    const bankedMs = 2 * 3_600_000; // 2h banked from an earlier pause
+    expect(effectiveDueDate(dueDate, bankedMs, null).toISOString()).toBe(
+      new Date(dueDate.getTime() + bankedMs).toISOString(),
+    );
+  });
+
+  it("credits banked AND live pause together (second review round)", () => {
+    const dueDate = new Date("2026-08-05T00:00:00Z");
+    const bankedMs = 2 * 3_600_000; // 2h from round one
+    const pausedAt = new Date("2026-08-02T00:00:00Z");
+    const now = new Date("2026-08-02T03:00:00Z"); // 3h into round two
+    expect(effectiveDueDate(dueDate, bankedMs, pausedAt, now).toISOString()).toBe(
+      new Date(dueDate.getTime() + 5 * 3_600_000).toISOString(),
+    );
+  });
+});
+
+describe("DEFAULT_CHECKLISTS", () => {
+  it("covers all 8 request types with a non-empty checklist", () => {
+    expect(Object.keys(DEFAULT_CHECKLISTS)).toHaveLength(8);
+    for (const items of Object.values(DEFAULT_CHECKLISTS)) {
+      expect(items.length).toBeGreaterThan(0);
+    }
   });
 });

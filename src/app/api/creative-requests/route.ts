@@ -13,6 +13,7 @@ import {
   generateRequestNumber,
 } from "@/lib/creative-request/request-number";
 import {
+  DEFAULT_CHECKLISTS,
   defaultDueDate,
   isBeforeToday,
   isFulfillerRole,
@@ -112,6 +113,7 @@ export const POST = withApiAuth(async (req, session) => {
           priority: data.priority ?? "normal",
           dueDate,
           requestedById: session.user.id,
+          checklist: DEFAULT_CHECKLISTS[data.type].map((label) => ({ label, done: false })),
           attachments: {
             create: data.attachments.map((a) => ({
               fileName: a.fileName,

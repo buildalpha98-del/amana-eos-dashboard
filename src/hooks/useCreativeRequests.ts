@@ -6,6 +6,7 @@ import { toast } from "@/hooks/useToast";
 import type {
   CreativeRequestStatus,
   CreativeRequestType,
+  ProofDecision,
   TicketPriority,
 } from "@prisma/client";
 
@@ -20,6 +21,27 @@ export interface RequestAttachment {
   fileSize: number | null;
   mimeType: string | null;
   messageId: string | null;
+}
+
+export interface ChecklistItem {
+  label: string;
+  done: boolean;
+}
+
+export interface RequestProof {
+  id: string;
+  version: number;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number | null;
+  mimeType: string | null;
+  note: string | null;
+  decision: ProofDecision | null;
+  decisionNote: string | null;
+  decidedAt: string | null;
+  uploadedBy: { id: string; name: string | null } | null;
+  decidedBy: { id: string; name: string | null } | null;
+  createdAt: string;
 }
 
 export interface CreativeRequestItem {
@@ -48,6 +70,9 @@ export interface CreativeRequestItem {
   deliveredAt: string | null;
   cancelledAt: string | null;
   cancellationReason: string | null;
+  checklist: ChecklistItem[] | null;
+  pausedAt: string | null;
+  pausedMs: number;
   createdAt: string;
   updatedAt: string;
   attachments: RequestAttachment[];
@@ -89,6 +114,7 @@ export interface PatchRequestInput {
   priority?: TicketPriority;
   dueDate?: string;
   cancellationReason?: string;
+  checklist?: ChecklistItem[];
 }
 
 const onError = (err: Error) => {
@@ -153,6 +179,17 @@ export function useRequestMessages(id: string | null) {
   });
 }
 
+export function useRequestProofs(id: string | null) {
+  return useQuery({
+    queryKey: ["creative-request-proofs", id],
+    queryFn: () =>
+      fetchApi<{ proofs: RequestProof[] }>(`/api/creative-requests/${id}/proofs`),
+    enabled: !!id,
+    retry: 2,
+    staleTime: 15_000,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mutations — all with destructive-toast onError
 // ---------------------------------------------------------------------------
@@ -207,6 +244,57 @@ export function usePostRequestMessage() {
       }),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["creative-request-messages", vars.id] });
+    },
+    onError,
+  });
+}
+
+export function useUploadProof() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: AttachmentInput & { id: string; note?: string }) =>
+      mutateApi<{ proof: RequestProof }>(`/api/creative-requests/${id}/proofs`, {
+        method: "POST",
+        body: input,
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["creative-request-proofs", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-request", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-requests"] });
+      toast({ description: "Proof sent for review — the requester has been notified" });
+    },
+    onError,
+  });
+}
+
+export function useDecideProof() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      proofId,
+      ...input
+    }: {
+      id: string;
+      proofId: string;
+      decision: ProofDecision;
+      note?: string;
+    }) =>
+      mutateApi<{ proof: RequestProof; request: CreativeRequestItem }>(
+        `/api/creative-requests/${id}/proofs/${proofId}/decision`,
+        { method: "POST", body: input },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["creative-request-proofs", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-request", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-requests"] });
+    },
+    // Refresh even on failure — a 409 (superseded / already decided) means the
+    // panel is stale, and refetching makes the decision buttons disappear.
+    onSettled: (_data, _err, vars) => {
+      qc.invalidateQueries({ queryKey: ["creative-request-proofs", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-request", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-requests"] });
     },
     onError,
   });

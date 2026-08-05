@@ -16,6 +16,7 @@ import {
   usePostRequestMessage,
   useRequestMessages,
 } from "@/hooks/useCreativeRequests";
+import { ProofsSection } from "@/components/requests/ProofsSection";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export function RequestDetailPanel({
@@ -37,12 +38,14 @@ export function RequestDetailPanel({
   const [draft, setDraft] = useState("");
   const [internal, setInternal] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  // Suspend the panel's Escape handler while the confirm dialog is open —
+  const [confirmOwnCancel, setConfirmOwnCancel] = useState(false);
+  // Suspend the panel's Escape handler while either confirm dialog is open —
   // otherwise Escape would dismiss both layers at once.
-  useEscapeClose(onClose, !confirmCancel);
+  useEscapeClose(onClose, !confirmCancel && !confirmOwnCancel);
 
   const request = data?.request;
   const messages = messagesData?.messages ?? [];
+  const checklist = request?.checklist ?? [];
   const isOwner = request?.requestedById === currentUserId;
   const canCancel =
     isOwner && !fulfiller && request && ["new", "briefed"].includes(request.status);
@@ -56,6 +59,14 @@ export function RequestDetailPanel({
       { id: requestId, body: draft.trim(), internal: fulfiller && internal },
       { onSuccess: () => setDraft("") },
     );
+  }
+
+  function toggleChecklistItem(index: number) {
+    if (!request?.checklist) return;
+    const next = request.checklist.map((item, i) =>
+      i === index ? { ...item, done: !item.done } : item,
+    );
+    patch.mutate({ id: requestId, checklist: next });
   }
 
   return (
@@ -96,6 +107,7 @@ export function RequestDetailPanel({
                     month: "short",
                   })}
                   {request.requestedBy?.name ? ` · requested by ${request.requestedBy.name}` : ""}
+                  {request.pausedAt ? " · ⏸ waiting on centre review" : ""}
                 </div>
               </div>
               <button type="button" onClick={onClose} aria-label="Close" className="text-muted hover:text-foreground">
@@ -125,13 +137,7 @@ export function RequestDetailPanel({
               <div className="mt-4">
                 <Button
                   variant="destructive"
-                  onClick={() =>
-                    patch.mutate({
-                      id: requestId,
-                      status: "cancelled",
-                      cancellationReason: "Cancelled by requester",
-                    })
-                  }
+                  onClick={() => setConfirmOwnCancel(true)}
                   disabled={patch.isPending}
                 >
                   Cancel request
@@ -181,6 +187,43 @@ export function RequestDetailPanel({
                 </section>
               )}
             </div>
+
+            {fulfiller && checklist.length > 0 && (
+              <section className="mt-6">
+                <h3 className="text-2xs font-semibold uppercase tracking-wide text-muted">
+                  Checklist · {checklist.filter((c) => c.done).length}/
+                  {checklist.length} done
+                </h3>
+                <div className="mt-2 space-y-1">
+                  {checklist.map((item, i) => (
+                    <label
+                      key={`${item.label}-${i}`}
+                      className="flex items-center gap-2 text-sm text-foreground cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.done}
+                        onChange={() => toggleChecklistItem(i)}
+                        disabled={
+                          patch.isPending ||
+                          ["delivered", "cancelled"].includes(request.status)
+                        }
+                      />
+                      <span className={item.done ? "line-through text-muted" : ""}>
+                        {item.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <ProofsSection
+              requestId={requestId}
+              request={request}
+              fulfiller={fulfiller}
+              isOwner={isOwner}
+            />
 
             <section className="mt-6">
               <h3 className="text-2xs font-semibold uppercase tracking-wide text-muted">Thread</h3>
@@ -260,6 +303,25 @@ export function RequestDetailPanel({
               cancellationReason: "Cancelled by marketing team",
             },
             { onSuccess: () => setConfirmCancel(false) },
+          )
+        }
+      />
+      <ConfirmDialog
+        open={confirmOwnCancel}
+        onOpenChange={setConfirmOwnCancel}
+        title="Cancel this request?"
+        description="The marketing team will be notified and the request can't be reopened."
+        confirmLabel="Cancel request"
+        variant="danger"
+        loading={patch.isPending}
+        onConfirm={() =>
+          patch.mutate(
+            {
+              id: requestId,
+              status: "cancelled",
+              cancellationReason: "Cancelled by requester",
+            },
+            { onSuccess: () => setConfirmOwnCancel(false) },
           )
         }
       />
