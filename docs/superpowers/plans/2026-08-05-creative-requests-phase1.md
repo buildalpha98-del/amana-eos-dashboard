@@ -2778,7 +2778,7 @@ In `src/lib/role-permissions.ts`:
 2. Add `"/requests"` to the `member` array in `rolePageAccess`.
 3. Add `"/requests"` to the `staff` array.
 4. Add `"/requests"` to the `marketing` array.
-5. Leave `eos_viewer`/`eos_implementer` untouched (EOS-only roles don't request design work). Note: the `eos` implementer list is derived as `allPages.filter(p => !ADMIN_EXCLUDED.has(p))` (~line 452), so adding `/requests` to `allPages` gives eos_implementer access automatically — this is ACCEPTED for Phase 1 (they can submit requests like anyone); do not add an exclusion.
+5. Leave `eos_viewer`/`eos_implementer` untouched (both are hardcoded arrays; neither gains `/requests`). Note: the separate `eos` role's list is derived as `allPages.filter(p => !ADMIN_EXCLUDED.has(p))` (~line 456), so adding `/requests` to `allPages` gives the `eos` role access automatically — this is ACCEPTED for Phase 1 (they can submit requests like anyone); do not add an exclusion. (Corrected 2026-08-05: an earlier revision of this note conflated `eos` with `eos_implementer`.)
 
 - [ ] **Step 3: Verify the wiring**
 
