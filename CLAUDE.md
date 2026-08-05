@@ -91,6 +91,13 @@
 - **Report Viewer**: slide-over panel with markdown rendering, interactive checklists, alerts, metrics, PDF export
 - **Staff Sync**: `POST /api/cowork/staff/sync` for registry-based user upsert
 
+## Creative Requests (Marketing Hub Phase 1, 2026-08-05)
+- **What**: centre staff submit design briefs (poster, flyer, table cover…) at `/requests`; marketing works a staged queue. Pipeline: `new → briefed → in_progress → in_review → changes_requested → approved → delivered` (+`cancelled`) — transitions validated server-side via `TRANSITIONS` in `src/lib/creative-request/constants.ts`.
+- **Lib**: `src/lib/creative-request/` — `request-number.ts` (REQ-YYYY-NNNN + P2002 retry), `constants.ts` (transitions, per-type turnaround, `isFulfillerRole`, business-day maths), `notify.ts` (in-app fan-out, swallow-on-error), `include.ts` (shared Prisma include — attachments filtered to `messageId: null` so internal-message files never leak via list/detail), `attachment-schema.ts` (Zod, `safeAttachmentUrl` Blob-host allowlist — NEVER accept raw URLs).
+- **API**: `/api/creative-requests` (list role-scoped: fulfiller roles marketing/owner/head_office/admin see all, centre roles only their own; create open to all roles), `/[id]` (GET 404s non-participants — no existence leak; PATCH: fulfiller transitions/assign, requester may only cancel while new/briefed), `/[id]/messages` (internal notes filtered at the QUERY level for requesters; `internal` flag forced false for non-fulfillers).
+- **UI**: `/requests` is role-adaptive — kanban board (fulfillers) vs "My requests" + intake modal (centre roles). Type picker sets default due date from `TURNAROUND_BUSINESS_DAYS`.
+- **Uploads** go through the existing `/api/upload` (Vercel Blob) and URLs are validated against the Blob host on every write path.
+
 ## Staff Induction & Training LMS (hard-gated)
 - **Gate is the point**: a new starter cannot be rostered or clock in until essential training is complete AND (for genuine new hires) a State Manager/Admin signs off their week-1 practical. Single source of truth: `src/lib/induction.ts` — `assertUserCleared(userId)` (throws `ApiError.forbidden`), `getInductionReadiness(userId)`, `recomputeInductionState`, `onModuleProgressed`. Pure edge-safe helpers (for middleware) in `src/lib/induction-lock.ts`.
 - **Enforced at 7 surfaces**: roster shift create (`roster/shifts` POST) + reassign (`roster/shifts/[id]` PATCH) + open-shift claim, and all clock-ins: per-shift, auto, unscheduled, and kiosk. Each calls `assertUserCleared`.

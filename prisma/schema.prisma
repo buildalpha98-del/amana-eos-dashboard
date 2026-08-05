@@ -932,6 +932,13 @@ model User {
   // 2026-07-23: family balance follow-up contacts this user logged.
   familyBalanceContactsCreated FamilyBalanceContact[] @relation("FamilyBalanceContactCreator")
 
+  // 2026-08-05 (creative requests v1): tickets requested/fulfilled between
+  // centre staff and the marketing team.
+  creativeRequestsRequested CreativeRequest[]           @relation("CreativeRequestsRequested")
+  creativeRequestsAssigned  CreativeRequest[]           @relation("CreativeRequestsAssigned")
+  creativeRequestMessages   CreativeRequestMessage[]    @relation("CreativeRequestMessages")
+  creativeRequestUploads    CreativeRequestAttachment[] @relation("CreativeRequestUploads")
+
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
   @@index([name])
@@ -1784,6 +1791,124 @@ model VendorContact {
   @@index([active])
 }
 
+// ============================================================
+// Creative Requests — centre staff request design work from the
+// marketing team (Phase 1 of the Marketing Hub rebuild).
+// Modelled on VendorBrief (numbered, staged, timestamped) +
+// SupportTicket/TicketMessage (thread).
+// ============================================================
+
+enum CreativeRequestType {
+  flyer
+  poster
+  social_tile
+  table_cover
+  banner_signage
+  email_header
+  merch
+  other
+}
+
+enum CreativeRequestStatus {
+  new
+  briefed
+  in_progress
+  in_review
+  changes_requested
+  approved
+  delivered
+  cancelled
+}
+
+model CreativeRequest {
+  id            String                @id @default(cuid())
+  /// Human-readable number — e.g. "REQ-2026-0042". Generated via
+  /// generateRequestNumber(); unique. Primary identifier in the UI.
+  requestNumber String                @unique
+  title         String
+  type          CreativeRequestType
+  status        CreativeRequestStatus @default(new)
+  /// Reuses the existing TicketPriority enum (urgent/high/normal/low).
+  priority      TicketPriority        @default(normal)
+
+  serviceId String?
+  service   Service? @relation("ServiceCreativeRequests", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  requestedById String
+  requestedBy   User    @relation("CreativeRequestsRequested", fields: [requestedById], references: [id], onDelete: Cascade)
+  assigneeId    String?
+  assignee      User?   @relation("CreativeRequestsAssigned", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  /// The free-text brief: what it's for, audience, context.
+  purpose      String  @db.Text
+  /// Verbatim copy the designer pastes without edits (Design Pickle rule).
+  exactCopy    String? @db.Text
+  /// e.g. "6ft trestle 1800×750mm", "A3", "1080×1350"
+  sizeSpec     String?
+  /// e.g. "Print-ready PDF, CMYK, 3mm bleed", "PNG"
+  outputFormat String?
+
+  /// Server-computed from type default turnaround when omitted at create.
+  dueDate DateTime
+
+  briefedAt          DateTime?
+  inProgressAt       DateTime?
+  inReviewAt         DateTime?
+  changesRequestedAt DateTime?
+  approvedAt         DateTime?
+  deliveredAt        DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages    CreativeRequestMessage[]
+  attachments CreativeRequestAttachment[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([requestedById])
+  @@index([serviceId])
+  @@index([dueDate])
+  @@index([createdAt])
+}
+
+model CreativeRequestMessage {
+  id        String          @id @default(cuid())
+  requestId String
+  request   CreativeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User            @relation("CreativeRequestMessages", fields: [authorId], references: [id], onDelete: Cascade)
+  body      String          @db.Text
+  /// Team-only note — never returned to the requester (JSM pattern).
+  internal  Boolean         @default(false)
+  createdAt DateTime        @default(now())
+
+  attachments CreativeRequestAttachment[]
+
+  @@index([requestId])
+}
+
+model CreativeRequestAttachment {
+  id           String                  @id @default(cuid())
+  requestId    String
+  request      CreativeRequest         @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  /// Null = attached to the request brief itself; set = attached to a message.
+  messageId    String?
+  message      CreativeRequestMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  fileName     String
+  /// Vercel Blob URL from POST /api/upload.
+  fileUrl      String
+  fileSize     Int?
+  mimeType     String?
+  uploadedById String?
+  uploadedBy   User?                   @relation("CreativeRequestUploads", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime                @default(now())
+
+  @@index([requestId])
+}
+
 model WhatsAppCoordinatorPost {
   id               String                 @id @default(cuid())
   serviceId        String
@@ -2445,6 +2570,10 @@ model Service {
   // 2026-07-23: family balance follow-up log — parent contact attempts
   // for outstanding balances at this centre.
   familyBalanceContacts FamilyBalanceContact[] @relation("ServiceFamilyBalanceContacts")
+
+  // 2026-08-05 (creative requests v1): design/print work requested by this
+  // centre from the marketing team.
+  creativeRequests CreativeRequest[] @relation("ServiceCreativeRequests")
 
   @@index([status])
   @@index([managerId])
