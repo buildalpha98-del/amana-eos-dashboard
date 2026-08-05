@@ -12,7 +12,11 @@ import {
   createWithNumberRetry,
   generateRequestNumber,
 } from "@/lib/creative-request/request-number";
-import { defaultDueDate, isFulfillerRole } from "@/lib/creative-request/constants";
+import {
+  defaultDueDate,
+  isBeforeToday,
+  isFulfillerRole,
+} from "@/lib/creative-request/constants";
 import { notifyRequestSubmitted } from "@/lib/creative-request/notify";
 import { requestInclude } from "@/lib/creative-request/include";
 import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
@@ -95,9 +99,7 @@ export const POST = withApiAuth(async (req, session) => {
   const data = parsed.data;
 
   const now = new Date();
-  const startOfToday = new Date(now);
-  startOfToday.setUTCHours(0, 0, 0, 0);
-  if (data.dueDate && data.dueDate < startOfToday) {
+  if (data.dueDate && isBeforeToday(data.dueDate)) {
     throw ApiError.badRequest("Due date cannot be in the past");
   }
   const dueDate = data.dueDate ?? defaultDueDate(data.type, now);

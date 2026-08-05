@@ -6,6 +6,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { CreativeRequestStatus, TicketPriority } from "@prisma/client";
 import {
   STATUS_TIMESTAMP_FIELD,
+  isBeforeToday,
   isFulfillerRole,
   isValidTransition,
 } from "@/lib/creative-request/constants";
@@ -63,6 +64,9 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     throw ApiError.badRequest("Invalid patch payload", parsed.error.flatten());
   }
   const patch = parsed.data;
+  if (patch.dueDate && isBeforeToday(patch.dueDate)) {
+    throw ApiError.badRequest("Due date cannot be in the past");
+  }
 
   const existing = await prisma.creativeRequest.findUnique({
     where: { id },
@@ -87,6 +91,10 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     if (!REQUESTER_CANCELLABLE.includes(existing.status)) {
       throw ApiError.conflict("This request is already in progress — message the team instead");
     }
+  }
+
+  if (!patch.status && (existing.status === "delivered" || existing.status === "cancelled")) {
+    throw ApiError.conflict("This request is closed");
   }
 
   const data: Record<string, unknown> = {};

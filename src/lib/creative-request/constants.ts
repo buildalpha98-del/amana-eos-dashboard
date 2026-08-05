@@ -78,6 +78,13 @@ export function defaultDueDate(type: CreativeRequestType, from = new Date()): Da
   return addBusinessDays(from, TURNAROUND_BUSINESS_DAYS[type]);
 }
 
+/** True if `d` falls before the start of today (UTC). */
+export function isBeforeToday(d: Date): boolean {
+  const t = new Date();
+  t.setUTCHours(0, 0, 0, 0);
+  return d < t;
+}
+
 /** UI labels — single source for board columns and chips. */
 export const STATUS_LABELS: Record<CreativeRequestStatus, string> = {
   new: "New",

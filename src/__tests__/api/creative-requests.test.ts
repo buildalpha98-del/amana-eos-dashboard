@@ -326,4 +326,46 @@ describe("PATCH /api/creative-requests/[id]", () => {
     expect(res.status).toBe(200);
     expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
   });
+
+  it("owner cancelling an in_progress request is rejected", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      status: "in_progress",
+    } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "cancelled" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("rejects a null dueDate", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { dueDate: null },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a non-status patch on a closed (cancelled) request", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      status: "cancelled",
+    } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { priority: "high" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(409);
+  });
 });
