@@ -411,6 +411,7 @@ describe("GET /api/creative-requests/[id]/messages", () => {
       createRequest("GET", "/api/creative-requests/cr1/messages"),
       ctx("cr1"),
     );
+    expect(res.status).toBe(200);
     const findArgs = prismaMock.creativeRequestMessage.findMany.mock.calls[0][0];
     expect(findArgs.where.internal).toBeUndefined();
   });
