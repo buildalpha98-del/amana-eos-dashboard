@@ -29,6 +29,8 @@ const createSchema = z.object({
   fileName: z.string().max(200).optional(),
   /** YYYY-MM-DD. Informational — a late signature still counts. */
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  /** One signature per child (CWA shape) rather than per family. */
+  perChild: z.boolean().optional(),
 });
 
 function assertServiceAccess(
@@ -91,6 +93,7 @@ export const POST = withApiAuth(
         fileUrl: d.fileUrl || null,
         fileName: d.fileName || null,
         dueDate: d.dueDate ? new Date(`${d.dueDate}T00:00:00.000Z`) : null,
+        perChild: d.perChild ?? false,
         createdById: session!.user.id,
       },
     });

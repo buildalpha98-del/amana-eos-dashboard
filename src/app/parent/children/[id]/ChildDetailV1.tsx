@@ -28,11 +28,13 @@ import {
   UserCheck,
   Plus,
   Camera,
+  CalendarDays,
   User,
   X,
 } from "lucide-react";
 import {
   useParentChildren,
+  useChildAttendance,
   useUpdateChildMedical,
   type ParentChild,
   type UpdateChildMedicalPayload,
@@ -50,13 +52,19 @@ import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { ChildInformationTab } from "@/components/parent/ChildInformationTab";
 import { ParentFeed } from "@/components/parent/ParentFeed";
+import { LearningJournalSection } from "./LearningJournalSection";
+import { programmeName } from "@/lib/programme-names";
 
-type Tab = "info" | "gallery" | "medical" | "documents" | "pickups";
+type Tab = "info" | "attendance" | "gallery" | "medical" | "documents" | "pickups";
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   // First, and the default: when a parent opens their child it's usually
   // to check or correct something here, not to read the timetable.
   { key: "info", label: "Info", icon: User },
+  // Real sign-in records this time. The previous attendance tab derived
+  // "present" from service-level totals and was removed for lying; this
+  // one reads the child's own AttendanceRecord rows.
+  { key: "attendance", label: "Attendance", icon: CalendarDays },
   { key: "gallery", label: "Photos", icon: Camera },
   { key: "medical", label: "Medical", icon: Stethoscope },
   { key: "documents", label: "Docs", icon: FileText },
@@ -143,8 +151,15 @@ export default function ChildDetailV1() {
 
       {/* Tab content */}
       {activeTab === "info" && <ChildInformationTab childId={child.id} />}
+      {activeTab === "attendance" && <AttendanceTab childId={child.id} />}
       {activeTab === "gallery" && (
-        <ParentFeed childId={child.id} childFirstName={child.firstName} />
+        <div className="space-y-6">
+          <ParentFeed childId={child.id} childFirstName={child.firstName} />
+          {/* Educator observations shared with the family. Rescued from
+              the deleted V2 variant — the feature was real, the surface
+              wasn't reachable. Silent when there's nothing shared. */}
+          <LearningJournalSection childId={child.id} />
+        </div>
       )}
       {activeTab === "medical" && <MedicalTab child={child} />}
       {activeTab === "documents" && <DocumentsTab childId={child.id} />}
@@ -784,6 +799,79 @@ function DetailSkeleton() {
           <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Attendance Tab ───────────────────────────────────────
+// The child's OWN sign-ins and sign-outs, with who did each — the same
+// rows the roll call writes. Times and names, not derived statuses.
+
+function AttendanceTab({ childId }: { childId: string }) {
+  const { data, isLoading } = useChildAttendance(childId);
+  const records = data?.records ?? [];
+
+  if (isLoading) return <Skeleton className="h-32 w-full rounded-xl" />;
+
+  if (records.length === 0) {
+    return (
+      <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
+        <CalendarDays className="w-8 h-8 text-muted mx-auto mb-2" />
+        <p className="text-muted text-sm">
+          No attendance yet — sessions will appear here after their first
+          sign-in.
+        </p>
+      </div>
+    );
+  }
+
+  const fmtTime = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleTimeString("en-AU", {
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : null;
+
+  return (
+    <div className="space-y-2">
+      {records.map((r) => {
+        const inAt = fmtTime(r.signInTime);
+        const outAt = fmtTime(r.signOutTime);
+        return (
+          <div
+            key={r.id}
+            className="bg-card rounded-xl p-3 shadow-sm border border-border flex items-center gap-3"
+          >
+            <div className="w-11 h-11 rounded-lg bg-brand/10 flex flex-col items-center justify-center shrink-0">
+              <span className="text-2xs font-semibold text-brand uppercase">
+                {new Date(r.date).toLocaleDateString("en-AU", { weekday: "short" })}
+              </span>
+              <span className="text-sm font-bold text-brand leading-none">
+                {new Date(r.date).getDate()}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground">
+                {programmeName(r.sessionType)}
+                <span className="text-xs text-muted font-normal ml-1.5">
+                  {new Date(r.date).toLocaleDateString("en-AU", {
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </p>
+              <p className="text-xs text-muted">
+                In {inAt}
+                {r.signedInByName ? ` by ${r.signedInByName}` : ""}
+                {outAt
+                  ? ` · Out ${outAt}${r.signedOutByName ? ` by ${r.signedOutByName}` : ""}`
+                  : " · Not signed out yet"}
+              </p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

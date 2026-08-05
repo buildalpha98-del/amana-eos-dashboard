@@ -55,11 +55,19 @@ export interface EmergencyContact {
   relationship: string;
 }
 
-export interface AttendanceDay {
+/**
+ * One REAL session this child attended — a sign-in row, not a derived
+ * status. The old AttendanceDay shape was built from service-level
+ * totals and reported "present" for children who never came.
+ */
+export interface AttendanceSession {
+  id: string;
   date: string;
-  status: "present" | "absent" | "no_session";
+  sessionType: string;
   signInTime: string | null;
   signOutTime: string | null;
+  signedInByName: string | null;
+  signedOutByName: string | null;
 }
 
 export interface UpdateAccountPayload {
@@ -194,15 +202,12 @@ export function useParentChildren() {
 }
 
 export function useChildAttendance(childId: string) {
-  return useQuery<AttendanceDay[]>({
-    queryKey: ["parent", "children", childId, "attendance"],
+  return useQuery<{ records: AttendanceSession[] }>({
+    queryKey: ["parent", "child-attendance", childId],
     queryFn: () =>
-      fetchApi<AttendanceDay[]>(
-        `/api/parent/children/${childId}/attendance`
-      ),
-    retry: 2,
-    staleTime: 30_000,
+      fetchApi(`/api/parent/children/${childId}/attendance?limit=30`),
     enabled: !!childId,
+    retry: 2,
   });
 }
 
