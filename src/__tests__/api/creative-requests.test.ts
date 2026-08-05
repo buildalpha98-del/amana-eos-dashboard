@@ -25,7 +25,10 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 
 import { GET as GET_LIST, POST as POST_CREATE } from "@/app/api/creative-requests/route";
+import { GET as GET_DETAIL, PATCH as PATCH_REQUEST } from "@/app/api/creative-requests/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
+
+const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
 
 const baseRequest = {
   id: "cr1",
@@ -203,5 +206,124 @@ describe("POST /api/creative-requests", () => {
       }),
     );
     expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/creative-requests/[id]", () => {
+  it("404s for a member who doesn't own the request", async () => {
+    mockSession({ id: "member-2", name: "Other", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await GET_DETAIL(
+      createRequest("GET", "/api/creative-requests/cr1"),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("returns the request for its owner", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await GET_DETAIL(
+      createRequest("GET", "/api/creative-requests/cr1"),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("PATCH /api/creative-requests/[id]", () => {
+  it("403s a member trying to transition someone's request", async () => {
+    mockSession({ id: "member-2", name: "Other", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "briefed" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("owner can cancel while status is new (with reason)", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      status: "cancelled",
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 0 } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "cancelled", cancellationReason: "No longer needed" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.status).toBe("cancelled");
+    expect(updateArgs.data.cancelledAt).toBeInstanceOf(Date);
+  });
+
+  it("owner cannot make a non-cancel transition", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "briefed" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("rejects an invalid transition (new → approved)", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "approved" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("marketing transition stamps the stage timestamp and notifies requester", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      status: "briefed",
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "briefed" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.briefedAt).toBeInstanceOf(Date);
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
+  });
+
+  it("marketing can assign, which notifies the assignee", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      assigneeId: "mkt-2",
+      assignee: { id: "mkt-2", name: "Akram" },
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { assigneeId: "mkt-2" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
   });
 });
