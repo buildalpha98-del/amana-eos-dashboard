@@ -14,13 +14,8 @@ import {
 } from "@/lib/creative-request/request-number";
 import { defaultDueDate, isFulfillerRole } from "@/lib/creative-request/constants";
 import { notifyRequestSubmitted } from "@/lib/creative-request/notify";
-
-export const requestInclude = {
-  service: { select: { id: true, name: true } },
-  requestedBy: { select: { id: true, name: true } },
-  assignee: { select: { id: true, name: true } },
-  attachments: true,
-} as const;
+import { requestInclude } from "@/lib/creative-request/include";
+import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
 
 // ---------------------------------------------------------------------------
 // GET — list. Fulfiller roles see everything (queue); centre roles are
@@ -73,7 +68,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 const attachmentSchema = z.object({
   fileName: z.string().min(1).max(300),
-  fileUrl: z.string().url().max(2000),
+  fileUrl: safeAttachmentUrl,
   fileSize: z.number().int().min(0).optional(),
   mimeType: z.string().max(200).optional(),
 });
@@ -100,7 +95,9 @@ export const POST = withApiAuth(async (req, session) => {
   const data = parsed.data;
 
   const now = new Date();
-  if (data.dueDate && data.dueDate < now) {
+  const startOfToday = new Date(now);
+  startOfToday.setUTCHours(0, 0, 0, 0);
+  if (data.dueDate && data.dueDate < startOfToday) {
     throw ApiError.badRequest("Due date cannot be in the past");
   }
   const dueDate = data.dueDate ?? defaultDueDate(data.type, now);

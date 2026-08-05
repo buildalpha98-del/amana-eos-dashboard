@@ -137,7 +137,12 @@ describe("POST /api/creative-requests", () => {
           serviceId: "svc1",
           sizeSpec: "6ft trestle",
           attachments: [
-            { fileName: "old-cover.jpg", fileUrl: "https://blob/x.jpg", fileSize: 1000, mimeType: "image/jpeg" },
+            {
+              fileName: "old-cover.jpg",
+              fileUrl: "https://abc123.public.blob.vercel-storage.com/x.jpg",
+              fileSize: 1000,
+              mimeType: "image/jpeg",
+            },
           ],
         },
       }),
@@ -160,6 +165,40 @@ describe("POST /api/creative-requests", () => {
           type: "poster",
           purpose: "Open day",
           dueDate: "2020-01-01",
+        },
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a javascript: attachment URL", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    const res = await POST_CREATE(
+      createRequest("POST", "/api/creative-requests", {
+        body: {
+          title: "Poster",
+          type: "poster",
+          purpose: "Open day",
+          attachments: [
+            { fileName: "x.jpg", fileUrl: "javascript:alert(1)", fileSize: 100, mimeType: "image/jpeg" },
+          ],
+        },
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an off-host attachment URL", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    const res = await POST_CREATE(
+      createRequest("POST", "/api/creative-requests", {
+        body: {
+          title: "Poster",
+          type: "poster",
+          purpose: "Open day",
+          attachments: [
+            { fileName: "x.jpg", fileUrl: "https://evil.example.com/x.png", fileSize: 100, mimeType: "image/jpeg" },
+          ],
         },
       }),
     );
