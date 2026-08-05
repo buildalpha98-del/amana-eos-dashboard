@@ -4,6 +4,17 @@ import { applyStatusChange } from "@/lib/creative-request/status-change";
 const base = { status: "in_progress", pausedAt: null, pausedMs: 0 } as const;
 
 describe("applyStatusChange", () => {
+  it("leaving in_review with a null pausedAt (pre-Phase-2 row) banks nothing and doesn't throw", () => {
+    const now = new Date("2026-08-05T00:00:00Z");
+    const data = applyStatusChange(
+      { status: "in_review", pausedAt: null, pausedMs: 5_000 },
+      "approved",
+      now,
+    );
+    expect(data.pausedAt).toBeNull();
+    expect(data.pausedMs).toBe(5_000);
+  });
+
   it("stamps the stage timestamp", () => {
     const now = new Date("2026-08-05T00:00:00Z");
     const data = applyStatusChange({ ...base }, "in_review", now);

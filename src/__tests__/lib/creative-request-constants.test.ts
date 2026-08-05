@@ -79,6 +79,16 @@ describe("effectiveDueDate", () => {
       new Date(dueDate.getTime() + bankedMs).toISOString(),
     );
   });
+
+  it("credits banked AND live pause together (second review round)", () => {
+    const dueDate = new Date("2026-08-05T00:00:00Z");
+    const bankedMs = 2 * 3_600_000; // 2h from round one
+    const pausedAt = new Date("2026-08-02T00:00:00Z");
+    const now = new Date("2026-08-02T03:00:00Z"); // 3h into round two
+    expect(effectiveDueDate(dueDate, bankedMs, pausedAt, now).toISOString()).toBe(
+      new Date(dueDate.getTime() + 5 * 3_600_000).toISOString(),
+    );
+  });
 });
 
 describe("DEFAULT_CHECKLISTS", () => {
