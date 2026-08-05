@@ -113,7 +113,9 @@ describe("POST /api/services/[id]/parent-posts", () => {
     // update. Tags now decide which child's page it also appears on, not
     // who is allowed to see it.
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
-    prismaMock.$transaction.mockImplementation(async (fn: any) => fn(prismaMock));
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: typeof prismaMock) => unknown) => fn(prismaMock),
+    );
     prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
     prismaMock.child.findMany.mockResolvedValue([]);
     prismaMock.parentPost.create.mockResolvedValue({ id: "post-1", tags: [] });
@@ -224,10 +226,11 @@ describe("POST /api/services/[id]/parent-posts", () => {
     expect(body.details?.mediaUrls).toBeDefined();
   });
 
-  it("rejects more than 6 mediaUrls", async () => {
+  it("rejects more than 30 mediaUrls", async () => {
+    // Cap raised 6 → 30 with post scheduling + curriculum tags (a076026f).
     mockSession({ id: "user-1", name: "Test", role: "admin", serviceId: SERVICE_ID });
     const mediaUrls = Array.from(
-      { length: 7 },
+      { length: 31 },
       (_, i) => `https://abc${i}.public.blob.vercel-storage.com/img-${i}.jpg`,
     );
     const req = createRequest("POST", `/api/services/${SERVICE_ID}/parent-posts`, {
@@ -239,7 +242,7 @@ describe("POST /api/services/[id]/parent-posts", () => {
     expect(body.details?.mediaUrls).toBeDefined();
   });
 
-  it("accepts up to 6 mediaUrls", async () => {
+  it("accepts up to 30 mediaUrls", async () => {
     mockSession({ id: "user-1", name: "Test", role: "admin", serviceId: SERVICE_ID });
     prismaMock.service.findUnique.mockResolvedValue({ id: SERVICE_ID });
     prismaMock.parentPost.create.mockResolvedValue({
@@ -249,7 +252,7 @@ describe("POST /api/services/[id]/parent-posts", () => {
     });
     prismaMock.activityLog.create.mockResolvedValue({});
     const mediaUrls = Array.from(
-      { length: 6 },
+      { length: 30 },
       (_, i) => `https://abc${i}.public.blob.vercel-storage.com/img-${i}.jpg`,
     );
     const req = createRequest("POST", `/api/services/${SERVICE_ID}/parent-posts`, {

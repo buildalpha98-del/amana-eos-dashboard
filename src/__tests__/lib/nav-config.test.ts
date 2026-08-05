@@ -334,6 +334,10 @@ describe("partitionNavSection", () => {
       "/services",
       "/bookings",
       "/financials",
+      // billing unfolded + made core 2026-07-31 when it became the real
+      // invoicing system (OWNA replacement); aged-debtors shipped with it.
+      "/billing",
+      "/billing/aged-debtors",
       "/compliance",
     ]);
   });
@@ -367,12 +371,12 @@ describe("stage-1 nav folds (2026-07-12)", () => {
     "/admin/ai-drafts",
     "/directory",
     "/reports/board",
-    // stage-1 batch 2 (2026-07-12)
-    "/billing",
+    // stage-1 batch 2 (2026-07-12). Two items have since been deliberately
+    // unfolded: "/billing" (2026-07-31, became the actual invoicing surface)
+    // and "/children" (cross-service child lookup was being buried).
     "/scenarios",
     "/safe-reports",
     "/policies",
-    "/children",
     "/centre-avatars",
     "/communication/whatsapp-compliance",
     "/position-descriptions",
