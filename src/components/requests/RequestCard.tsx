@@ -12,6 +12,12 @@ function dueChip(dueDate: string, status: string) {
         {Math.abs(days)}d overdue
       </span>
     );
+  if (days === 0)
+    return (
+      <span className="text-2xs font-semibold rounded px-1.5 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+        Due today
+      </span>
+    );
   if (days <= 2)
     return (
       <span className="text-2xs font-semibold rounded px-1.5 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">

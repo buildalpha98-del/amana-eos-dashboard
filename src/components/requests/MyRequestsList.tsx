@@ -1,10 +1,11 @@
 "use client";
 
+import type { CreativeRequestStatus } from "@prisma/client";
 import { useCreativeRequests } from "@/hooks/useCreativeRequests";
 import { STATUS_LABELS, TYPE_LABELS } from "@/lib/creative-request/constants";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-const STATUS_BADGE: Record<string, string> = {
+const STATUS_BADGE: Record<CreativeRequestStatus, string> = {
   new: "bg-surface text-muted",
   briefed: "bg-status-confirmed-bg text-status-confirmed-fg",
   in_progress: "bg-status-confirmed-bg text-status-confirmed-fg",
@@ -16,7 +17,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 /** Plain-language status for requesters (JSM portal pattern). */
-const REQUESTER_STATUS: Record<string, string> = {
+const REQUESTER_STATUS: Record<CreativeRequestStatus, string> = {
   new: "Submitted — awaiting triage",
   briefed: "Brief confirmed",
   in_progress: "Being designed",
@@ -63,7 +64,19 @@ export function MyRequestsList({ onOpen }: { onOpen: (id: string) => void }) {
             >
               <td className="px-4 py-3">
                 <span className="font-mono text-2xs text-muted mr-2">{r.requestNumber}</span>
-                <span className="text-foreground font-medium">{r.title}</span>
+                {/* Native button = keyboard-operable (Enter/Space) without
+                    putting role="button" on the row and breaking table
+                    semantics; the row onClick stays for mouse users. */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpen(r.id);
+                  }}
+                  className="text-foreground font-medium text-left hover:underline"
+                >
+                  {r.title}
+                </button>
               </td>
               <td className="px-4 py-3 text-muted">{TYPE_LABELS[r.type]}</td>
               <td className="px-4 py-3">

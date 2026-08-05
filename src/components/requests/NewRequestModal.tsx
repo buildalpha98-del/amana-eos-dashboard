@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { CreativeRequestType } from "@prisma/client";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   TURNAROUND_BUSINESS_DAYS,
   TYPE_LABELS,
@@ -29,6 +30,7 @@ const TYPE_ICONS: Record<CreativeRequestType, string> = {
 const TYPES = Object.keys(TYPE_LABELS) as CreativeRequestType[];
 
 export function NewRequestModal({ onClose }: { onClose: () => void }) {
+  useEscapeClose(onClose);
   const createRequest = useCreateRequest();
   const { data: servicesData } = useServices();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -80,6 +82,7 @@ export function NewRequestModal({ onClose }: { onClose: () => void }) {
   }
 
   function submit() {
+    if (uploading) return;
     if (!type || !title.trim() || !purpose.trim()) {
       toast({ variant: "destructive", description: "Pick a type and fill in the title and purpose" });
       return;
@@ -122,6 +125,7 @@ export function NewRequestModal({ onClose }: { onClose: () => void }) {
               key={t}
               type="button"
               onClick={() => setType(t)}
+              aria-pressed={type === t}
               className={`rounded-lg border p-3 text-center transition-colors ${
                 type === t
                   ? "border-brand bg-brand/5 ring-1 ring-brand"
@@ -232,7 +236,7 @@ export function NewRequestModal({ onClose }: { onClose: () => void }) {
 
         <div className="flex justify-end gap-2 mt-6">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={createRequest.isPending}>
+          <Button onClick={submit} disabled={createRequest.isPending || uploading}>
             {createRequest.isPending ? "Submitting…" : "Submit request"}
           </Button>
         </div>

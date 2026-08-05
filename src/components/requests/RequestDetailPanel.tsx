@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { CreativeRequestStatus } from "@prisma/client";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   STATUS_LABELS,
   TRANSITIONS,
@@ -27,13 +29,17 @@ export function RequestDetailPanel({
   currentUserId: string;
   onClose: () => void;
 }) {
-  const { data, isLoading } = useCreativeRequest(requestId);
+  const { data, isLoading, isError } = useCreativeRequest(requestId);
   const { data: messagesData } = useRequestMessages(requestId);
   const patch = usePatchRequest();
   const postMessage = usePostRequestMessage();
 
   const [draft, setDraft] = useState("");
   const [internal, setInternal] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  // Suspend the panel's Escape handler while the confirm dialog is open —
+  // otherwise Escape would dismiss both layers at once.
+  useEscapeClose(onClose, !confirmCancel);
 
   const request = data?.request;
   const messages = messagesData?.messages ?? [];
@@ -61,7 +67,16 @@ export function RequestDetailPanel({
         aria-modal="true"
         aria-label="Request detail"
       >
-        {isLoading || !request ? (
+        {isError ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <p className="text-sm text-muted">
+              Request not found or no longer available
+            </p>
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        ) : isLoading || !request ? (
           <Skeleton className="h-64 rounded-lg" />
         ) : (
           <>
@@ -94,7 +109,11 @@ export function RequestDetailPanel({
                   <Button
                     key={s}
                     variant={s === "cancelled" ? "destructive" : "secondary"}
-                    onClick={() => patch.mutate({ id: requestId, status: s })}
+                    onClick={() =>
+                      s === "cancelled"
+                        ? setConfirmCancel(true)
+                        : patch.mutate({ id: requestId, status: s })
+                    }
                     disabled={patch.isPending}
                   >
                     → {STATUS_LABELS[s]}
@@ -225,6 +244,25 @@ export function RequestDetailPanel({
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title="Cancel this request?"
+        description="The requester will be notified and the request can't be reopened."
+        confirmLabel="Cancel request"
+        variant="danger"
+        loading={patch.isPending}
+        onConfirm={() =>
+          patch.mutate(
+            {
+              id: requestId,
+              status: "cancelled",
+              cancellationReason: "Cancelled by marketing team",
+            },
+            { onSuccess: () => setConfirmCancel(false) },
+          )
+        }
+      />
     </div>
   );
 }
