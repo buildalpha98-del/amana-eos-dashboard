@@ -7,7 +7,7 @@
  */
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type { CreativeRequestStatus } from "@prisma/client";
-import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { NOTIFICATION_TYPES, type NotificationType } from "@/lib/notification-types";
 import { STATUS_LABELS } from "@/lib/creative-request/constants";
 import { logger } from "@/lib/logger";
 
@@ -28,7 +28,7 @@ function link(request: RequestSummary): string {
 async function createFor(
   db: Db,
   userIds: string[],
-  type: string,
+  type: NotificationType,
   title: string,
   body: string,
   requestLink: string,
