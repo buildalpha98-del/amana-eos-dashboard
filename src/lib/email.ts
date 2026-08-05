@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { isEmailSuppressed } from "@/lib/email-suppression";
+import { getSuppressedEmails } from "@/lib/email-suppression";
 import { logger } from "@/lib/logger";
 
 // Lazy singleton — Resend only initialises when actually called,
@@ -48,9 +48,10 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   const suppressed: string[] = [];
   const eligible: string[] = [];
 
-  // Check suppression for each recipient
+  // Check suppression for all recipients in one query
+  const suppressedSet = await getSuppressedEmails(recipients);
   for (const email of recipients) {
-    if (await isEmailSuppressed(email)) {
+    if (suppressedSet.has(email.toLowerCase())) {
       suppressed.push(email);
       if (process.env.NODE_ENV !== "production") logger.info("Email suppressed (bounce/complaint)", { email });
     } else {
