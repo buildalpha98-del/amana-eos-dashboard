@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { CreativeRequestStatus, TicketPriority } from "@prisma/client";
 import {
-  STATUS_TIMESTAMP_FIELD,
   isBeforeToday,
   isFulfillerRole,
   isValidTransition,
@@ -15,6 +14,7 @@ import {
   notifyRequestStatusChanged,
 } from "@/lib/creative-request/notify";
 import { requestInclude } from "@/lib/creative-request/include";
+import { applyStatusChange } from "@/lib/creative-request/status-change";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -53,6 +53,10 @@ const patchBodySchema = z
     priority: z.nativeEnum(TicketPriority).optional(),
     dueDate: z.coerce.date().optional(),
     cancellationReason: z.string().max(2000).optional(),
+    checklist: z
+      .array(z.object({ label: z.string().min(1).max(300), done: z.boolean() }))
+      .max(30)
+      .optional(),
   })
   .refine((d) => Object.keys(d).length > 0, { message: "Empty patch" });
 
@@ -70,7 +74,16 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   const existing = await prisma.creativeRequest.findUnique({
     where: { id },
-    select: { id: true, requestNumber: true, title: true, status: true, requestedById: true, assigneeId: true },
+    select: {
+      id: true,
+      requestNumber: true,
+      title: true,
+      status: true,
+      requestedById: true,
+      assigneeId: true,
+      pausedAt: true,
+      pausedMs: true,
+    },
   });
   if (!existing) throw ApiError.notFound("Request not found");
 
@@ -84,7 +97,8 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       patch.status === "cancelled" &&
       patch.assigneeId === undefined &&
       patch.priority === undefined &&
-      patch.dueDate === undefined;
+      patch.dueDate === undefined &&
+      patch.checklist === undefined;
     if (!isCancelOnly) {
       throw ApiError.forbidden("Only the marketing team can update requests");
     }
@@ -105,9 +119,13 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         `Cannot move from ${existing.status} to ${patch.status}`,
       );
     }
-    data.status = patch.status;
-    const tsField = STATUS_TIMESTAMP_FIELD[patch.status];
-    if (tsField) data[tsField] = new Date();
+    // in_review is proof-driven only — it's entered by uploading a proof
+    // (POST .../proofs), never by a manual status PATCH. Pulling BACK out
+    // of in_review via PATCH stays allowed (that's the pull-back path).
+    if (patch.status === "in_review") {
+      throw ApiError.conflict("Send a proof to move a request into review");
+    }
+    Object.assign(data, applyStatusChange(existing, patch.status, new Date()));
     if (patch.status === "cancelled") {
       data.cancellationReason = patch.cancellationReason ?? null;
     }
@@ -115,6 +133,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   if (patch.assigneeId !== undefined) data.assigneeId = patch.assigneeId;
   if (patch.priority) data.priority = patch.priority;
   if (patch.dueDate) data.dueDate = patch.dueDate;
+  if (patch.checklist !== undefined) data.checklist = patch.checklist;
 
   const updated = await prisma.creativeRequest.update({
     where: { id },

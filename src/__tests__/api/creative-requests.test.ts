@@ -30,6 +30,7 @@ import { GET as GET_MESSAGES, POST as POST_MESSAGE } from "@/app/api/creative-re
 import { GET as GET_PROOFS, POST as POST_PROOF } from "@/app/api/creative-requests/[id]/proofs/route";
 import { POST as POST_DECISION } from "@/app/api/creative-requests/[id]/proofs/[proofId]/decision/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
+import { DEFAULT_CHECKLISTS } from "@/lib/creative-request/constants";
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
 const decisionCtx = (id: string, proofId: string) =>
@@ -194,6 +195,29 @@ describe("POST /api/creative-requests", () => {
       }),
     );
     expect(res.status).toBe(400);
+  });
+
+  it("seeds the checklist from the type's default", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.count.mockResolvedValue(0);
+    prismaMock.creativeRequest.create.mockResolvedValue(baseRequest as never);
+    prismaMock.user.findMany.mockResolvedValue([{ id: "mkt-1" }] as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+
+    const res = await POST_CREATE(
+      createRequest("POST", "/api/creative-requests", {
+        body: {
+          title: "Poster for open day",
+          type: "poster",
+          purpose: "Open day",
+        },
+      }),
+    );
+    expect(res.status).toBe(201);
+    const createArgs = prismaMock.creativeRequest.create.mock.calls[0][0];
+    expect(createArgs.data.checklist).toEqual(
+      DEFAULT_CHECKLISTS.poster.map((label) => ({ label, done: false })),
+    );
   });
 
   it("rejects an off-host attachment URL", async () => {
@@ -383,6 +407,99 @@ describe("PATCH /api/creative-requests/[id]", () => {
       ctx("cr1"),
     );
     expect(res.status).toBe(409);
+  });
+
+  it("fulfiller PATCH out of in_review accumulates pausedMs and nulls pausedAt", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      status: "in_review",
+      pausedAt: twoHoursAgo,
+      pausedMs: 0,
+    } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      status: "changes_requested",
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "changes_requested" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.pausedAt).toBeNull();
+    expect(updateArgs.data.pausedMs).toBeGreaterThanOrEqual(2 * 60 * 60 * 1000);
+    expect(updateArgs.data.changesRequestedAt).toBeInstanceOf(Date);
+  });
+
+  it("fulfiller PATCH in_progress → in_review is rejected (proof-driven only)", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      status: "in_progress",
+    } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "in_review" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(409);
+    expect(prismaMock.creativeRequest.update).not.toHaveBeenCalled();
+  });
+
+  it("checklist patch: fulfiller gets 200 with the checklist in the update data, requester gets 403", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      status: "in_progress",
+    } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      status: "in_progress",
+      checklist: [{ label: "Draft design", done: true }],
+    } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { checklist: [{ label: "Draft design", done: true }] },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.checklist).toEqual([{ label: "Draft design", done: true }]);
+
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      status: "in_progress",
+    } as never);
+    const res2 = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { checklist: [{ label: "Draft design", done: true }] },
+      }),
+      ctx("cr1"),
+    );
+    expect(res2.status).toBe(403);
+  });
+
+  it("rejects a checklist item missing a label", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      status: "in_progress",
+    } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { checklist: [{ done: true }] },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(400);
   });
 });
 
