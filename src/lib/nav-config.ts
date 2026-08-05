@@ -47,6 +47,7 @@ import {
   Mail,
   Network,
   Brain,
+  Palette,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -206,6 +207,7 @@ export const navItems: NavItem[] = [
 
   // \u2500\u2500 Marketing \u2014 campaigns & brand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" , core: true },
+  { href: "/requests", label: "Design Requests", icon: Palette, section: "Growth", tooltip: "Request design work from the marketing team — posters, flyers, table covers", core: true },
   { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] , core: ["marketing"] , hidden: true }, // folded 2026-07-12 — linked from Marketing; marketing role can favourite it
   { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] , core: ["marketing"] , hidden: true }, // folded 2026-07-12 — linked from Marketing; marketing role can favourite it
 
