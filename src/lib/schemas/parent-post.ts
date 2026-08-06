@@ -61,6 +61,11 @@ export const createParentPostSchema = z.object({
   mediaUrls: z.array(safeMediaUrl).max(30, "Maximum 30 media files").default([]),
   isCommunity: z.boolean().default(false),
   childIds: z.array(z.string().min(1)).max(200, "Too many children tagged").default([]),
+  /**
+   * The post this one follows up on. Set when an educator chooses
+   * "Extend this post" — an observation, then what was done about it.
+   */
+  extendsPostId: z.string().min(1).optional(),
 });
 
 export type CreateParentPostInput = z.input<typeof createParentPostSchema>;

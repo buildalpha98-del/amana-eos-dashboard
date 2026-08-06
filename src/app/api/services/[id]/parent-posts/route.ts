@@ -39,14 +39,22 @@ export const GET = withApiAuth(async (req, session, context) => {
           child: { select: { id: true, firstName: true, surname: true } },
         },
       },
-      _count: { select: { likes: true, comments: true } },
+      // The planning cycle, both directions: what this followed up on,
+      // and what came out of it.
+      extendsPost: { select: { id: true, title: true, createdAt: true } },
+      _count: { select: { likes: true, comments: true, extensions: true } },
     },
   });
 
   const hasMore = posts.length > limit;
   const items = (hasMore ? posts.slice(0, limit) : posts).map((p) => {
     const { _count, ...rest } = p;
-    return { ...rest, likeCount: _count.likes, commentCount: _count.comments };
+    return {
+      ...rest,
+      likeCount: _count.likes,
+      commentCount: _count.comments,
+      followUpCount: _count.extensions,
+    };
   });
   const nextCursor = hasMore ? items[items.length - 1]?.id : undefined;
 
@@ -134,6 +142,28 @@ export const POST = withApiAuth(
           throw ApiError.badRequest(
             `${invalid.length} child ID(s) do not belong to this service`,
           );
+        }
+      }
+
+      // 2b. A follow-up must extend a post at THIS centre. Otherwise a
+      // guessed id would thread one service's planning cycle onto
+      // another's observation.
+      if (data.extendsPostId) {
+        const original = await tx.parentPost.findUnique({
+          where: { id: data.extendsPostId },
+          select: { id: true, serviceId: true, extendsPostId: true },
+        });
+        if (!original || original.serviceId !== id) {
+          throw ApiError.badRequest(
+            "The post you're following up on isn't at this service",
+          );
+        }
+        // One level. A follow-up to a follow-up threads back to the
+        // original observation, so the chain reads as "here's what we
+        // saw, and here is everything we did about it" rather than a
+        // chain nobody can follow.
+        if (original.extendsPostId) {
+          data.extendsPostId = original.extendsPostId;
         }
       }
 

@@ -26,9 +26,21 @@ interface CreateParentPostFormProps {
   open: boolean;
   onClose: () => void;
   editingPost?: ParentPost | null;
+  /**
+   * Set when this post follows up on an earlier observation. The
+   * composer says so, and the id is sent with the post — that link is
+   * what turns a feed into the planning cycle.
+   */
+  extendingPost?: ParentPost | null;
 }
 
-export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: CreateParentPostFormProps) {
+export function CreateParentPostForm({
+  serviceId,
+  open,
+  onClose,
+  editingPost,
+  extendingPost,
+}: CreateParentPostFormProps) {
   const createPost = useCreateParentPost(serviceId);
   const updatePost = useUpdateParentPost(serviceId);
   const { data: childrenData } = useChildren({ serviceId, status: "active" });
@@ -190,6 +202,9 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
   }
 
   function onSubmit(data: CreateParentPostInput) {
+    if (extendingPost) {
+      data = { ...data, extendsPostId: extendingPost.id };
+    }
     const payload = {
       ...data,
       mediaUrls,
@@ -240,8 +255,22 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent size="lg">
         <DialogTitle className="text-lg font-semibold">
-          {isEditing ? "Edit Post" : "Create Post"}
+          {isEditing
+            ? "Edit Post"
+            : extendingPost
+              ? "Follow up"
+              : "Create Post"}
         </DialogTitle>
+        {extendingPost && (
+          <p className="mt-1 text-sm text-muted">
+            What came out of{" "}
+            <strong className="text-foreground">
+              &ldquo;{extendingPost.title}&rdquo;
+            </strong>
+            . Families see this as its own post; the link is what shows the
+            planning cycle.
+          </p>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           {/* Amana AI. Above the fields because on a busy afternoon
               "type what happened" is easier to start than a blank title

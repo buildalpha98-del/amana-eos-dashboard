@@ -7102,11 +7102,26 @@ model ParentPost {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // ── The planning cycle (2026-08-06) ──────────────────────────────────
+  // A post can EXTEND an earlier one: you observed something, you did
+  // something about it, and this is that. NQS Element 1.3 is the
+  // assessment-and-planning cycle, and it's the element services most
+  // often sit on "Working Towards" — not because nobody observes, but
+  // because nothing shows what happened next.
+  //
+  // Self-relation rather than a join table: a follow-up extends exactly
+  // one post, and the chain is read in both directions (what did this
+  // come from / what came of it).
+  extendsPostId String?
+  extendsPost   ParentPost?  @relation("PostExtensions", fields: [extendsPostId], references: [id], onDelete: SetNull)
+  extensions    ParentPost[] @relation("PostExtensions")
+
   tags     ParentPostChildTag[]
   likes    ParentPostLike[]
   comments ParentPostComment[]
 
   @@index([serviceId])
+  @@index([extendsPostId])
   @@index([createdAt])
   @@index([status, publishAt])
 }
