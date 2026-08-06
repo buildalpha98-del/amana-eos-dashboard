@@ -14,6 +14,7 @@ import {
 import { ApprovalsSessionTimesCard } from "./ApprovalsSessionTimesCard";
 import { RoomsAndFeesCard } from "./RoomsAndFeesCard";
 import { ParentFormsCard } from "./ParentFormsCard";
+import { ExcursionsCard } from "./ExcursionsCard";
 
 export function ServiceInfoCard({
   service,
@@ -279,6 +280,14 @@ export function ServiceInfoCard({
       {/* Room names, hours and the fees under each. Below approvals
           because it's the thing staff actually change. */}
       <RoomsAndFeesCard service={service} canEdit={canEdit} />
+      {/* Excursions sit above the general forms card: an outing creates
+          a form of its own, so seeing them in that order matches how
+          they're made. */}
+      <ExcursionsCard
+        serviceId={service.id}
+        sessionTimes={service.sessionTimes}
+        canEdit={canEdit}
+      />
       <ParentFormsCard serviceId={service.id} canEdit={canEdit} />
     </>
   );

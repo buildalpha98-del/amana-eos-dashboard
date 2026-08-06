@@ -606,6 +606,8 @@ model User {
   uploadedAttachments           Attachment[]                   @relation("AttachmentUploader")
   assignedTickets               SupportTicket[]                @relation("TicketAssignee")
   createdParentForms            ParentForm[]                   @relation("ParentFormCreator")
+  createdExcursions             ServiceExcursion[]             @relation("ExcursionCreator")
+  reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
   dismissedNotifications        NotificationDismissal[]
   marketingPosts                MarketingPost[]                @relation("MarketingPostAssignee")
@@ -2511,8 +2513,9 @@ model Service {
   nurtureSteps   ParentNurtureStep[] @relation("ServiceNurtureSteps")
 
   // ── Holiday Quest Relations ──────────────────────────────
-  holidayQuests HolidayQuestDay[] @relation("ServiceHolidayQuest")
-  parentForms   ParentForm[]      @relation("ServiceParentForms")
+  holidayQuests HolidayQuestDay[]  @relation("ServiceHolidayQuest")
+  parentForms   ParentForm[]       @relation("ServiceParentForms")
+  excursions    ServiceExcursion[] @relation("ServiceExcursions")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -7164,7 +7167,63 @@ model ParentForm {
   updatedAt   DateTime  @updatedAt
 
   signatures ParentFormSignature[]
+  excursion  ServiceExcursion?     @relation("ExcursionForm")
 
+  @@index([serviceId, status])
+}
+
+/// An excursion or incursion as a thing, not a form.
+///
+/// A permission slip is only half of it. Regulation 100-102 wants a risk
+/// assessment written BEFORE the outing and reviewed, and the service
+/// needs to know how many of the attending children have actually been
+/// signed for. Holding those together is the whole point: an excursion
+/// with 31 children and 8 signatures is a fact you want on one line,
+/// not something you reconstruct from a form list the night before.
+///
+/// Permissions reuse ParentForm with `perChild: true` rather than a
+/// second signature system — a signature is a signature, and the CWA
+/// shape is already exactly right for "signed for Abdul, not Amira".
+model ServiceExcursion {
+  id          String       @id @default(cuid())
+  serviceId   String
+  service     Service      @relation("ServiceExcursions", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// excursion (they leave) | incursion (someone comes in). Different
+  /// risk profiles, same paperwork shape.
+  kind        String       @default("excursion")
+  title       String
+  /// Where they're going. Null for an incursion.
+  destination String?
+  date        DateTime     @db.Date
+  /// The programme the outing belongs to, so attendance can be derived
+  /// from that day's bookings rather than kept as a second list that
+  /// drifts. SessionType, not free text.
+  sessionType SessionType?
+  departTime  String? // "HH:mm"
+  returnTime  String? // "HH:mm"
+  transport   String? // "Walking", "Chartered bus"…
+  notes       String?      @db.Text
+
+  /// Reg 101: the written risk assessment, and evidence someone senior
+  /// actually read it. Reviewed is a separate act from uploading.
+  riskAssessmentUrl          String?
+  riskAssessmentFileName     String?
+  riskAssessmentReviewedAt   DateTime?
+  riskAssessmentReviewedById String?
+  riskAssessmentReviewedBy   User?     @relation("ExcursionRiskReviewer", fields: [riskAssessmentReviewedById], references: [id], onDelete: SetNull)
+
+  /// The permission slip families sign. Optional only because an
+  /// incursion sometimes needs none.
+  formId String?     @unique
+  form   ParentForm? @relation("ExcursionForm", fields: [formId], references: [id], onDelete: SetNull)
+
+  status      String   @default("planned") // planned | completed | cancelled
+  createdById String?
+  createdBy   User?    @relation("ExcursionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceId, date])
   @@index([serviceId, status])
 }
 
