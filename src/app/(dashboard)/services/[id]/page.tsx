@@ -71,6 +71,7 @@ import { ServiceReflectionsTab } from "@/components/services/ServiceReflectionsT
 import { ServiceIncidentsTab } from "@/components/services/ServiceIncidentsTab";
 import { ServiceObservationsTab } from "@/components/services/ServiceObservationsTab";
 import { ServiceMedicationTab } from "@/components/services/ServiceMedicationTab";
+import { ServiceHeadcountsTab } from "@/components/services/ServiceHeadcountsTab";
 import { ServiceRiskTab } from "@/components/services/ServiceRiskTab";
 import { ServiceCertExpiryCard } from "@/components/services/ServiceCertExpiryCard";
 import { ServiceRatiosTab } from "@/components/services/RatioWidget";
@@ -209,6 +210,7 @@ const tabGroups: TabGroup[] = [
       // this is where Director of Service + Educators log their own.
       { key: "incidents", label: "Incidents", icon: AlertTriangle },
       { key: "risk", label: "Risk", icon: ShieldCheck },
+      { key: "headcounts", label: "Headcounts", icon: Users },
       { key: "comms", label: "Comms", icon: Radio },
     ],
   },
@@ -541,6 +543,9 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "compliance" && currentSubKey === "risk" && (
           <ServiceRiskTab serviceId={service.id} />
+        )}
+        {activeGroup === "compliance" && currentSubKey === "headcounts" && (
+          <ServiceHeadcountsTab serviceId={service.id} />
         )}
         {activeGroup === "compliance" && currentSubKey === "comms" && (
           <ServiceCommTab serviceId={service.id} />
