@@ -35,6 +35,7 @@ import {
 } from "@/lib/service-settings";
 import { formatCents, parseDollarsToCents } from "@/lib/family-billing";
 import { analyseRoomConfiguration } from "@/lib/room-configuration";
+import { RoomDetailPanel } from "./RoomDetailPanel";
 
 interface EditableRoom {
   label: string;
@@ -116,6 +117,7 @@ export function RoomsAndFeesCard({
   const [rooms, setRooms] = useState<EditableRooms>(() =>
     toEditable(service.sessionTimes as SessionTimes | null),
   );
+  const [openRoom, setOpenRoom] = useState<SessionKey | null>(null);
 
   const saved = (service.sessionTimes ?? null) as SessionTimes | null;
   const saving = updateService.isPending;
@@ -257,9 +259,15 @@ export function RoomsAndFeesCard({
               className="rounded-lg border border-border p-3.5"
             >
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <p className="text-sm font-medium text-foreground">
+                {/* Opens the room's own view — details, fees, block-outs
+                    and who's in it, without leaving this page. */}
+                <button
+                  type="button"
+                  onClick={() => setOpenRoom(key)}
+                  className="text-sm font-medium text-foreground underline decoration-transparent underline-offset-2 hover:decoration-current"
+                >
                   {roomLabel(saved, key)}
-                </p>
+                </button>
                 <p className="text-xs text-muted flex items-center gap-1.5">
                   {room?.capacity != null && room.capacity > 0 && (
                     <span className="mr-1">
@@ -307,6 +315,15 @@ export function RoomsAndFeesCard({
           );
         })}
       </div>
+
+      <RoomDetailPanel
+        serviceId={service.id}
+        sessionKey={openRoom}
+        sessionTimes={saved}
+        approvedPlaces={service.capacity ?? null}
+        open={openRoom !== null}
+        onClose={() => setOpenRoom(null)}
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
