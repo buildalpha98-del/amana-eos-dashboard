@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { Save, CalendarClock, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { ENROLMENTS_EMAIL } from "@/lib/enrol-draft";
 import { Button } from "@/components/ui/Button";
 import { mutateApi } from "@/lib/fetch-api";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -14,7 +15,6 @@ import {
   activeSessionKeys,
   roomFees,
   roomLabel,
-  RECURRING_CANCEL_DAYS,
   type BookingPolicy,
   type CasualBookingSettings,
   type SessionTimes,
@@ -489,13 +489,13 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
         <div className="pt-3 border-t border-border">
           <p className="text-sm text-foreground">Recurring bookings</p>
           <p className="text-xs text-muted mt-0.5">
-            Families can cancel a regular weekly booking{" "}
-            <strong>{RECURRING_CANCEL_DAYS} or more days ahead</strong>. Inside
-            that week they can&apos;t — the roster and catering are already set
-            against the number — so they mark the single day as{" "}
-            <strong>not attending</strong> instead, or message head office to
-            change the pattern. This applies at every centre and isn&apos;t
-            configurable here.
+            Families <strong>can&apos;t cancel</strong> a regular weekly
+            booking in the app. To skip a single day they mark the child as{" "}
+            <strong>not attending</strong>, which keeps the place; to change
+            the pattern itself they email{" "}
+            <strong>{ENROLMENTS_EMAIL}</strong>, because that&apos;s an
+            enrolment change with fee and CCS consequences. This applies at
+            every centre and isn&apos;t configurable here.
           </p>
         </div>
       </div>

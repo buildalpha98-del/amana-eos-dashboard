@@ -3,13 +3,13 @@ import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { ENROLMENTS_EMAIL } from "@/lib/enrol-draft";
 import { isTodayOrFutureInServiceTz } from "@/lib/timezone";
 import { isTrustedBlobUrl } from "@/lib/trusted-urls";
 import { getParentChildIds } from "../route";
 import { parseJsonField } from "@/lib/schemas/json-fields";
 import {
   casualBookingSettingsSchema,
-  RECURRING_CANCEL_DAYS,
   type CasualBookingSettings,
 } from "@/lib/service-settings";
 
@@ -195,7 +195,7 @@ export const DELETE = withParentAuth(async (_req, ctx) => {
     // default — the standard cut-off rule below still applies.
     if (settings?.policy?.blockCasualCancellation) {
       throw ApiError.badRequest(
-        "Casual bookings can't be cancelled online at this centre. Message head office if something's changed.",
+        `Casual bookings can't be cancelled online at this centre. Email ${ENROLMENTS_EMAIL} if something's changed.`,
       );
     }
     if (daysUntil * 24 < 24) {
@@ -205,17 +205,19 @@ export const DELETE = withParentAuth(async (_req, ctx) => {
     }
   } else {
     /**
-     * Recurring bookings: a week or more out, or not at all.
+     * Recurring bookings can't be cancelled online at all (2026-08-06).
      *
-     * A fixed rule rather than a per-centre toggle. Inside the week the
-     * roster and the catering are already set against that number, and
-     * a rule families have to look up per centre isn't one they'll
-     * follow. To skip a single day they mark it not attending, which
-     * leaves the pattern intact.
+     * Cancelling a day out of a pattern is nearly always the wrong
+     * instrument: the family means either "not this Tuesday" — which is
+     * marking the child not attending, and keeps the place — or "change
+     * our days", which is an enrolment change with fee and CCS
+     * consequences that a cancel button can't handle. Both used to hide
+     * behind a seven-day window that let the first case silently drop a
+     * permanent place.
      */
-    if (daysUntil < RECURRING_CANCEL_DAYS) {
+    {
       throw ApiError.badRequest(
-        `Regular weekly bookings can only be cancelled ${RECURRING_CANCEL_DAYS} or more days ahead. To skip just this day, mark it as not attending — or message head office to change the pattern.`,
+        `Regular weekly bookings can't be changed online. To skip just this day, mark your child as not attending — that keeps the pattern. To change the pattern itself, email ${ENROLMENTS_EMAIL}.`,
       );
     }
   }
