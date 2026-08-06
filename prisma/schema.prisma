@@ -615,6 +615,7 @@ model User {
   illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
   illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
   createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
+  createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
   reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
@@ -2530,6 +2531,7 @@ model Service {
   staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
   illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
   blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
+  feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -7453,6 +7455,54 @@ model ServiceBlockOutDate {
   createdAt   DateTime     @default(now())
 
   @@index([serviceId, date])
+}
+
+/// A change to a room's fee — scheduled for a date, or already applied.
+///
+/// Two jobs in one table, deliberately. A centre raising fees decides in
+/// July that the rate changes in August; without this they write it in a
+/// calendar and do it by hand on the day, which is how a fee rise gets
+/// missed or applied a fortnight early. And every applied change leaves
+/// a row, so "who put the rate up, and when" has an answer — the
+/// question that arrives when a family disputes an invoice.
+///
+/// Fees themselves stay in Service.sessionTimes JSON. This table is the
+/// intent and the history, not the current price.
+model ServiceFeeChange {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceFeeChanges", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Which room the fee belongs to.
+  sessionType SessionType
+  /// The fee tier's id within that room's `fees` array.
+  feeTierId   String
+  /// Denormalised so history stays readable after a fee is renamed or
+  /// deleted. A history row that says "fee-3" answers nothing.
+  feeName     String
+
+  /// What it was, and what it becomes. Nullable "from" because a
+  /// scheduled change recorded before the first rate exists is possible.
+  fromAmountCents Int?
+  toAmountCents   Int
+  fromCasualCents Int?
+  toCasualCents   Int?
+  fromStaffCents  Int?
+  toStaffCents    Int?
+
+  /// The day the new rate starts. For an immediate edit this is today
+  /// and the row is written already applied.
+  effectiveDate DateTime @db.Date
+  /// scheduled | applied | cancelled
+  status        String   @default("scheduled")
+  appliedAt     DateTime?
+
+  createdById String?
+  createdBy   User?     @relation("FeeChangeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  note        String?
+
+  @@index([serviceId, status, effectiveDate])
+  @@index([serviceId, sessionType])
 }
 
 model ParentFormSignature {

@@ -20,6 +20,17 @@ export const feeTierSchema = z.object({
   start: z.string().regex(HHMM).optional(),
   end: z.string().regex(HHMM).optional(),
   amountCents: z.number().int().min(0).max(1_000_00),
+  /**
+   * What a CASUAL booking at this fee costs, when it differs from the
+   * regular rate. Most centres charge more for a casual day because the
+   * place wasn't committed to.
+   */
+  casualAmountCents: z.number().int().min(0).max(1_000_00).optional(),
+  /**
+   * The staff-discounted rate. Kept beside the others rather than as a
+   * separate fee so a rate rise moves one row, not three.
+   */
+  staffAmountCents: z.number().int().min(0).max(1_000_00).optional(),
 });
 export type FeeTier = z.infer<typeof feeTierSchema>;
 
