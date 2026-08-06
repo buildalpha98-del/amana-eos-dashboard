@@ -387,6 +387,30 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                     aria-label={`${shortLabel(type)} cut-off hours`}
                   />
                 </label>
+                <label className="block text-xs text-muted col-span-2">
+                  Who can book a spot
+                  <select
+                    value={s.availability ?? "all"}
+                    disabled={!canEdit}
+                    onChange={(e) =>
+                      updateSession(type, {
+                        availability: e.target.value as "all" | "enrolled",
+                      })
+                    }
+                    className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand"
+                    aria-label={`${shortLabel(type)} who can book`}
+                  >
+                    <option value="all">Any family at the centre</option>
+                    <option value="enrolled">
+                      Only children already booked into this room
+                    </option>
+                  </select>
+                  <span className="mt-1 block text-2xs">
+                    Vacation care usually takes anyone; term-time before and
+                    after school care often only has room for the families
+                    already in it.
+                  </span>
+                </label>
               </div>
 
               <div>
