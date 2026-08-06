@@ -116,6 +116,8 @@ describe("PATCH /api/parent/bookings/[bookingId] — action: attending", () => {
     mockPrisma.booking.findUnique.mockResolvedValue(booking({ date: inHours(5) }));
     const res = await call({ action: "attending" });
     expect(res.status).toBe(400);
+    // Same-day changes go to the centre, not the enrolments inbox —
+    // it's "she's coming after all", not an enrolment change.
     expect((await res.json()).error).toMatch(/head office/i);
     expect(mockPrisma.booking.update).not.toHaveBeenCalled();
   });
@@ -172,21 +174,25 @@ describe("DELETE /api/parent/bookings/[bookingId] — cancellation windows", () 
       { params: Promise.resolve({ bookingId: "bk-1" }) } as never,
     );
 
-  it("lets a family cancel a recurring booking a week out", async () => {
+  // 2026-08-06: recurring bookings are no longer cancellable online at
+  // ANY notice. "Not this Tuesday" is marking the child not attending,
+  // which keeps the place; "change our days" is an enrolment change with
+  // fee and CCS consequences. The old seven-day window let the first
+  // case silently drop a permanent place.
+  it.each([
+    ["a week out", 8 * 24],
+    ["inside the week", 3 * 24],
+    ["months away", 90 * 24],
+  ])("refuses a recurring booking %s", async (_label, hours) => {
     mockPrisma.booking.findUnique.mockResolvedValue(
-      booking({ type: "permanent", status: "confirmed", date: inHours(8 * 24) }),
-    );
-    expect((await del()).status).toBe(200);
-  });
-
-  it("refuses a recurring booking inside the week", async () => {
-    // The roster and the catering are already set against that number.
-    mockPrisma.booking.findUnique.mockResolvedValue(
-      booking({ type: "permanent", status: "confirmed", date: inHours(3 * 24) }),
+      booking({ type: "permanent", status: "confirmed", date: inHours(hours) }),
     );
     const res = await del();
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/not attending|7 or more days/i);
+    const error = (await res.json()).error;
+    // Both doors named: keep the place, or change the pattern.
+    expect(error).toMatch(/not attending/i);
+    expect(error).toMatch(/enrolments@amanaoshc\.com\.au/i);
     expect(mockPrisma.booking.update).not.toHaveBeenCalled();
   });
 
@@ -206,6 +212,6 @@ describe("DELETE /api/parent/bookings/[bookingId] — cancellation windows", () 
     );
     const res = await del();
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/head office/i);
+    expect((await res.json()).error).toMatch(/enrolments@amanaoshc\.com\.au/i);
   });
 });
