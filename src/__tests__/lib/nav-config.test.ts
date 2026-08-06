@@ -399,3 +399,60 @@ describe("stage-1 nav folds (2026-07-12)", () => {
     }
   });
 });
+
+/**
+ * 2026-08-06 — "My Portal" grouping.
+ *
+ * An Educator's sidebar used to open with eight flat links, five of them
+ * personal. The personal ones now live under their own heading so the
+ * sidebar reads as "me" then "the work".
+ */
+describe("My Portal grouping (2026-08-06)", () => {
+  const PERSONAL = [
+    "/my-portal",
+    "/my-day",
+    "/my-training",
+    "/surveys",
+    "/roster/me",
+    "/getting-started",
+  ];
+
+  it("keeps every personal page under one section", () => {
+    for (const href of PERSONAL) {
+      const item = navItems.find((i) => i.href === href);
+      expect(item?.section, href).toBe("My Portal");
+    }
+  });
+
+  it("leaves the Dashboard on its own at the top", () => {
+    // It's the landing page, not a personal tool — burying it under a
+    // collapsed group would hide the first thing anyone wants.
+    expect(navItems.find((i) => i.href === "/dashboard")?.section).toBe("Home");
+  });
+
+  it("hides My Queue from Educators but keeps it for coordinators", () => {
+    const staffHrefs = filterNavItems(navItems, "staff").map((i) => i.href);
+    const memberHrefs = filterNavItems(navItems, "member").map((i) => i.href);
+    // Nothing is ever routed to an educator, so it was a page that was
+    // always empty.
+    expect(staffHrefs).not.toContain("/queue");
+    expect(memberHrefs).toContain("/queue");
+  });
+
+  it("hides the Accountability Chart from Educators", () => {
+    // The rest of the EOS section is already hidden from them, so this
+    // was a lone item under an otherwise-empty heading.
+    const staffHrefs = filterNavItems(navItems, "staff").map((i) => i.href);
+    expect(staffHrefs).not.toContain("/accountability-chart");
+    expect(filterNavItems(navItems, "member").map((i) => i.href)).toContain(
+      "/accountability-chart",
+    );
+  });
+
+  it("still shows an Educator their own training and roster", () => {
+    const staffHrefs = filterNavItems(navItems, "staff").map((i) => i.href);
+    expect(staffHrefs).toContain("/my-training");
+    expect(staffHrefs).toContain("/roster/me");
+    expect(staffHrefs).toContain("/my-day");
+  });
+});
