@@ -614,6 +614,7 @@ model User {
   staffIncidentsSignedOff       StaffIncidentReport[]          @relation("StaffIncidentSignOff")
   illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
   illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
+  createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
   reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
@@ -2528,6 +2529,7 @@ model Service {
   visitors       ServiceVisitor[]      @relation("ServiceVisitors")
   staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
   illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
+  blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -7427,6 +7429,30 @@ model IllnessRecord {
 
   @@index([serviceId, onsetDate])
   @@index([serviceId, infectious])
+}
+
+/// A date a room (or the whole centre) isn't running.
+///
+/// Pupil-free days, centre closures, a vacation-care day that's already
+/// full by design. Without this, a coordinator's only options are to
+/// switch casual bookings off entirely — which closes every other day
+/// too — or to let families book a day nobody will be there.
+///
+/// sessionType null = the whole centre is closed that day.
+model ServiceBlockOutDate {
+  id          String       @id @default(cuid())
+  serviceId   String
+  service     Service      @relation("ServiceBlockOutDates", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime     @db.Date
+  sessionType SessionType?
+  /// Shown to families when a booking is refused, so the answer is
+  /// "we're closed for the pupil-free day", not "unavailable".
+  reason      String?
+  createdById String?
+  createdBy   User?        @relation("BlockOutDateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+
+  @@index([serviceId, date])
 }
 
 model ParentFormSignature {

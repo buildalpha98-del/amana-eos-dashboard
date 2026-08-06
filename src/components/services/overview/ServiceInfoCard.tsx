@@ -15,6 +15,7 @@ import { ApprovalsSessionTimesCard } from "./ApprovalsSessionTimesCard";
 import { RoomsAndFeesCard } from "./RoomsAndFeesCard";
 import { ParentFormsCard } from "./ParentFormsCard";
 import { ExcursionsCard } from "./ExcursionsCard";
+import { BlockOutDatesCard } from "@/components/services/BlockOutDatesCard";
 
 export function ServiceInfoCard({
   service,
@@ -283,6 +284,13 @@ export function ServiceInfoCard({
       {/* Excursions sit above the general forms card: an outing creates
           a form of its own, so seeing them in that order matches how
           they're made. */}
+      {/* Days you're not running. Next to Rooms & fees because that's
+          where the rest of "when are we open" lives. */}
+      <BlockOutDatesCard
+        serviceId={service.id}
+        sessionTimes={service.sessionTimes}
+        canEdit={canEdit}
+      />
       <ExcursionsCard
         serviceId={service.id}
         sessionTimes={service.sessionTimes}

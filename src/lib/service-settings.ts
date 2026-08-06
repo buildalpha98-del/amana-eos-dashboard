@@ -189,6 +189,21 @@ const sessionSettingSchema = z.object({
   spots: z.number().int().nonnegative(),
   cutOffHours: z.number().int().nonnegative(),
   days: z.array(dayEnum),
+  /**
+   * Who may book a casual spot in this room.
+   *
+   * "all" — any family at the centre. This is what vacation care needs:
+   *   a child who never comes after school still comes in the holidays.
+   * "enrolled" — only children who already hold a permanent booking for
+   *   this room. Term-time before/after school care is usually this:
+   *   the spare seats exist for the families already in the room, not
+   *   as a public booking channel.
+   *
+   * Defaults to "all" when unset, which is the behaviour every centre
+   * has had until now — changing the default would silently close
+   * bookings that are open today.
+   */
+  availability: z.enum(["all", "enrolled"]).optional(),
 });
 
 /** Service-wide booking policy, as opposed to per-session config. */

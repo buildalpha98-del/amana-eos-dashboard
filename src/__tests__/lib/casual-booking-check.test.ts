@@ -97,3 +97,99 @@ describe("checkCasualBookingAllowed", () => {
     expect(r.ok).toBe(true);
   });
 });
+
+/**
+ * 2026-08-06 — closures and enrolled-only rooms.
+ */
+describe("block-out dates", () => {
+  const base = {
+    settings,
+    sessionType: "bsc" as const,
+    bookingDate: new Date("2026-04-24T00:00:00Z"),
+    now: nowUtc,
+    currentCasualBookings: 0,
+  };
+
+  it("refuses a blocked-out day and says why", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      blockedOutReason: "pupil-free day",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/pupil-free day/);
+  });
+
+  it("still refuses when no reason was given", () => {
+    const r = checkCasualBookingAllowed({ ...base, blockedOutReason: "" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/isn't running that day/i);
+  });
+
+  it("closed beats full — the honest answer wins", () => {
+    // Both conditions true: the room is at capacity AND the centre is
+    // shut. Telling a family it's full would be a lie they'd act on.
+    const r = checkCasualBookingAllowed({
+      ...base,
+      currentCasualBookings: 99,
+      blockedOutReason: "centre closed",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/centre closed/);
+  });
+
+  it("null means not blocked out", () => {
+    const r = checkCasualBookingAllowed({ ...base, blockedOutReason: null });
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("enrolled-only rooms", () => {
+  const enrolledOnly: CasualBookingSettings = {
+    bsc: {
+      enabled: true,
+      fee: 40,
+      spots: 5,
+      cutOffHours: 12,
+      days: ["mon", "tue", "wed", "thu", "fri"],
+      availability: "enrolled",
+    },
+  };
+  const base = {
+    settings: enrolledOnly,
+    sessionType: "bsc" as const,
+    bookingDate: new Date("2026-04-24T00:00:00Z"),
+    now: nowUtc,
+    currentCasualBookings: 0,
+  };
+
+  it("refuses a child who isn't already booked into the room", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      childEnrolledInSession: false,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/already booked into it/i);
+  });
+
+  it("allows a child who is", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      childEnrolledInSession: true,
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it("an unset availability still means everyone — no silent closure", () => {
+    // Every centre has run "all" until now; defaulting the other way
+    // would close bookings that are open today.
+    const r = checkCasualBookingAllowed({
+      settings,
+      sessionType: "bsc",
+      bookingDate: new Date("2026-04-24T00:00:00Z"),
+      now: nowUtc,
+      currentCasualBookings: 0,
+      childEnrolledInSession: false,
+    });
+    expect(r.ok).toBe(true);
+  });
+});
