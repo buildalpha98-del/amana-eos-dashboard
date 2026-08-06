@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { AlertTriangle, Save, CalendarClock } from "lucide-react";
+import { Save, CalendarClock, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { Button } from "@/components/ui/Button";
 import { mutateApi } from "@/lib/fetch-api";
@@ -205,18 +205,27 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
 
   return (
     <div className="space-y-6">
-      {/* ── Info banner ─────────────────────────────────────── */}
+      {/* ── What's actually enforced ────────────────────────
+          This banner used to say "settings stored — not yet enforced".
+          That stopped being true when checkCasualBookingAllowed landed
+          and was wired into the parent create + bulk routes and the
+          cancellation route, but nobody deleted the warning. A stale
+          warning is worse than none: it tells a coordinator their
+          policy is decorative, so they stop trusting the settings. */}
       <div
         role="status"
-        className="flex items-start gap-3 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40 text-yellow-900 dark:text-yellow-200"
+        className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card"
       >
-        <AlertTriangle className="w-5 h-5 text-yellow-700 shrink-0 mt-0.5" />
+        <ShieldCheck className="w-5 h-5 text-brand shrink-0 mt-0.5" />
         <div className="text-sm leading-snug">
-          <p className="font-medium">Settings stored — not yet enforced</p>
-          <p className="text-yellow-800/90">
-            These settings are saved against the service but are{" "}
-            <strong>not yet enforced</strong> against parent-portal bookings.
-            Enforcement ships in a follow-up sub-project.
+          <p className="font-medium text-foreground">
+            These settings are enforced
+          </p>
+          <p className="text-muted">
+            Every one of them is checked on the server when a family books
+            through the app: the session has to be switched on, the day has
+            to be one you run, the cut-off has to be met, and there has to
+            be a spot left. Cancellation follows the policy below.
           </p>
         </div>
       </div>
