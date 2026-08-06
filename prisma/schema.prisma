@@ -607,6 +607,8 @@ model User {
   assignedTickets               SupportTicket[]                @relation("TicketAssignee")
   createdParentForms            ParentForm[]                   @relation("ParentFormCreator")
   createdExcursions             ServiceExcursion[]             @relation("ExcursionCreator")
+  conductedHeadcounts           ServiceHeadcount[]             @relation("HeadcountConductor")
+  signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
   reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
   dismissedNotifications        NotificationDismissal[]
@@ -2516,6 +2518,7 @@ model Service {
   holidayQuests HolidayQuestDay[]  @relation("ServiceHolidayQuest")
   parentForms   ParentForm[]       @relation("ServiceParentForms")
   excursions    ServiceExcursion[] @relation("ServiceExcursions")
+  headcounts    ServiceHeadcount[] @relation("ServiceHeadcounts")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -7217,6 +7220,8 @@ model ServiceExcursion {
   formId String?     @unique
   form   ParentForm? @relation("ExcursionForm", fields: [formId], references: [id], onDelete: SetNull)
 
+  headcounts ServiceHeadcount[] @relation("ExcursionHeadcounts")
+
   status      String   @default("planned") // planned | completed | cancelled
   createdById String?
   createdBy   User?    @relation("ExcursionCreator", fields: [createdById], references: [id], onDelete: SetNull)
@@ -7225,6 +7230,59 @@ model ServiceExcursion {
 
   @@index([serviceId, date])
   @@index([serviceId, status])
+}
+
+/// A headcount or an evacuation drill.
+///
+/// Reg 168(2)(e) wants emergency evacuation rehearsed and recorded, and
+/// on an OSHC service a headcount is the routine act that catches a
+/// child who walked to the wrong gate. Both are the same shape: a moment
+/// in time, who was counted, and who says the count was right.
+///
+/// Counting STAFF and VISITORS as well as children is the part people
+/// skip and regulators ask about — an evacuation record that only counts
+/// children can't prove the building was cleared.
+model ServiceHeadcount {
+  id          String            @id @default(cuid())
+  serviceId   String
+  service     Service           @relation("ServiceHeadcounts", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// head_count | evacuation_drill | excursion_head_count | bus_run
+  kind        String            @default("head_count")
+  conductedAt DateTime          @default(now())
+  /// The programme running at the time, when there is one.
+  sessionType SessionType?
+  /// Set when this count belongs to an outing, so an excursion can show
+  /// its own counts rather than them floating loose in the register.
+  excursionId String?
+  excursion   ServiceExcursion? @relation("ExcursionHeadcounts", fields: [excursionId], references: [id], onDelete: SetNull)
+
+  childrenCount Int
+  staffCount    Int      @default(0)
+  visitorsCount Int      @default(0)
+  /// Who was counted, when the counter went child-by-child. Optional: a
+  /// quick gate count is a number, and pretending otherwise would push
+  /// people to skip recording it at all.
+  childIds      String[] @default([])
+
+  /// Drills only: how long the building took to clear, and what went
+  /// wrong. "Nothing" is a valid answer; null means nobody said.
+  evacuationSeconds Int?
+  issuesIdentified  String? @db.Text
+  notes             String? @db.Text
+
+  conductedById String?
+  conductedBy   User?     @relation("HeadcountConductor", fields: [conductedById], references: [id], onDelete: SetNull)
+  /// Countersigned by someone senior. A drill nobody reviewed is a drill
+  /// that taught nobody anything.
+  signedOffAt   DateTime?
+  signedOffById String?
+  signedOffBy   User?     @relation("HeadcountSignOff", fields: [signedOffById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([serviceId, conductedAt])
+  @@index([serviceId, kind])
+  @@index([excursionId])
 }
 
 model ParentFormSignature {
