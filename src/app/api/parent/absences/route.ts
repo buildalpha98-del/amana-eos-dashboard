@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { resolveAppSettings } from "@/lib/app-settings";
 import { getParentChildIds } from "@/app/api/parent/bookings/route";
 import { sendAbsenceConfirmationNotification } from "@/lib/notifications/bookings";
 import { logger } from "@/lib/logger";
@@ -34,6 +35,19 @@ export const POST = withParentAuth(async (req, { parent }) => {
   const childIds = await getParentChildIds(parent.enrolmentIds);
   if (!childIds.has(childId)) {
     throw ApiError.forbidden("You do not have access to this child");
+  }
+
+  // The centre can switch app absences off entirely — some want them
+  // phoned through so someone hears WHY, which matters when the reason
+  // is a child-protection flag rather than a cold.
+  const svc = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { appSettings: true },
+  });
+  if (!resolveAppSettings(svc?.appSettings).parents.canMarkAbsence) {
+    throw ApiError.badRequest(
+      "This centre asks families to phone absences through rather than marking them in the app.",
+    );
   }
 
   // Validate date is today or in the future (AEST)
