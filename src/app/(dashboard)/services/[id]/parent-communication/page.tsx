@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Bell,
   Users,
+  CornerDownRight,
   Pencil,
   Trash2,
   Heart,
@@ -25,6 +26,7 @@ import {
   type ParentPost,
 } from "@/hooks/useParentPosts";
 import { CreateParentPostForm } from "@/components/services/CreateParentPostForm";
+import { NeedsFollowUpCard } from "@/components/services/NeedsFollowUpCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -83,6 +85,7 @@ export function ParentCommunicationPanel({
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingPost, setEditingPost] = useState<ParentPost | null>(null);
+  const [extendingPost, setExtendingPost] = useState<ParentPost | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
@@ -127,6 +130,11 @@ export function ParentCommunicationPanel({
         />
       ) : (
         <div className="mt-6 space-y-4">
+          <NeedsFollowUpCard
+            serviceId={id}
+            posts={posts}
+            onFollowUp={setExtendingPost}
+          />
           {posts.map((post) => {
             const TypeIcon = typeIcons[post.type] ?? MessageCircle;
             const editable = canModify(post);
@@ -153,6 +161,15 @@ export function ParentCommunicationPanel({
                   </div>
                   {editable && (
                     <div className="flex items-center gap-1 shrink-0">
+                      {/* The planning cycle: what did we DO about this. */}
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        iconLeft={<CornerDownRight className="w-3.5 h-3.5" />}
+                        onClick={() => setExtendingPost(post)}
+                        aria-label={`Follow up on ${post.title}`}
+                        title="Follow up on this"
+                      />
                       <Button
                         size="xs"
                         variant="ghost"
@@ -171,6 +188,13 @@ export function ParentCommunicationPanel({
                   )}
                 </div>
 
+                {post.extendsPost && (
+                  <p className="flex items-center gap-1.5 text-xs text-brand">
+                    <CornerDownRight className="h-3.5 w-3.5 shrink-0" />
+                    Following up on &ldquo;{post.extendsPost.title}&rdquo;
+                  </p>
+                )}
+
                 <p className="text-sm text-muted whitespace-pre-wrap">{post.content}</p>
 
                 {post.tags.length > 0 && (
@@ -184,6 +208,13 @@ export function ParentCommunicationPanel({
                       </span>
                     ))}
                   </div>
+                )}
+
+                {(post.followUpCount ?? 0) > 0 && (
+                  <p className="text-xs text-muted">
+                    {post.followUpCount} follow-up
+                    {post.followUpCount === 1 ? "" : "s"} came out of this
+                  </p>
                 )}
 
                 <div className="flex items-center gap-2 text-xs text-muted pt-1">
@@ -238,9 +269,14 @@ export function ParentCommunicationPanel({
 
       <CreateParentPostForm
         serviceId={id}
-        open={showCreate || !!editingPost}
-        onClose={() => { setShowCreate(false); setEditingPost(null); }}
+        open={showCreate || !!editingPost || !!extendingPost}
+        onClose={() => {
+          setShowCreate(false);
+          setEditingPost(null);
+          setExtendingPost(null);
+        }}
         editingPost={editingPost}
+        extendingPost={extendingPost}
       />
 
       <ConfirmDialog
