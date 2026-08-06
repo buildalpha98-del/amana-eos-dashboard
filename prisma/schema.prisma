@@ -616,6 +616,7 @@ model User {
   illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
   createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
   createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
+  debtChases                    FamilyDebtContact[]            @relation("DebtChaser")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
   reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
@@ -4873,6 +4874,7 @@ model CentreContact {
   exitSurveys           ExitSurvey[]           @relation("ContactExitSurveys")
   sequenceEnrolments    SequenceEnrolment[]    @relation("ContactSequenceEnrolments")
   statements            Statement[]            @relation("ContactStatements")
+  debtContacts          FamilyDebtContact[]    @relation("ContactDebtChases")
   payments              Payment[]              @relation("ContactPayments")
   documents             ParentDocument[]       @relation("ContactDocuments")
   supportTickets        SupportTicket[]        @relation("ParentTickets")
@@ -7503,6 +7505,33 @@ model ServiceFeeChange {
 
   @@index([serviceId, status, effectiveDate])
   @@index([serviceId, sessionType])
+}
+
+/// A record that someone chased a family about money.
+///
+/// Aged debtors could show who owed what, but not whether anyone had
+/// actually rung them — so the same family got chased twice in a week
+/// while another sat at 90 days untouched. "Nobody has contacted this
+/// family" is the most useful filter on a debtors list, and it needs a
+/// place for the contact to be written down.
+///
+/// Separate from Statement.notes because this is about the CHASE, not
+/// the invoice: one debt takes several calls, and each is its own event.
+model FamilyDebtContact {
+  id          String        @id @default(cuid())
+  contactId   String
+  contact     CentreContact @relation("ContactDebtChases", fields: [contactId], references: [id], onDelete: Cascade)
+  contactedAt DateTime      @default(now())
+  /// call | email | sms | in_person | letter
+  method      String
+  /// What came of it — a payment plan, a promise, no answer.
+  outcome     String?
+  note        String?       @db.Text
+  byId        String?
+  by          User?         @relation("DebtChaser", fields: [byId], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+
+  @@index([contactId, contactedAt])
 }
 
 model ParentFormSignature {

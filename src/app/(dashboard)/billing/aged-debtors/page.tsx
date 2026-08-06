@@ -14,7 +14,7 @@
 import { Fragment, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ChevronDown, Mail } from "lucide-react";
+import { AlertTriangle, ChevronDown, Mail, Search } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -30,7 +30,11 @@ interface FamilyDebt {
   contactId: string;
   name: string;
   email: string | null;
+  phone: string | null;
+  serviceId: string | null;
   serviceName: string | null;
+  lastContactedAt: string | null;
+  lastContactMethod: string | null;
   oldestDays: number;
   totals: Record<AgedBucketKey, number> & { total: number };
   statements: {
@@ -58,8 +62,17 @@ const BUCKET_TONE: Record<AgedBucketKey, string> = {
   d90_plus: "text-red-700 dark:text-red-400 font-semibold",
 };
 
+/** How long a family can sit unchased before it's worth surfacing. */
+const STALE_CONTACT_DAYS = 14;
+
 export default function AgedDebtorsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("");
+  const [minOwing, setMinOwing] = useState("");
+  const [contactFilter, setContactFilter] = useState<
+    "" | "never" | "stale" | "recent"
+  >("");
 
   const { data, isLoading } = useQuery<AgedResponse>({
     queryKey: ["billing", "aged-debtors"],
@@ -68,7 +81,58 @@ export default function AgedDebtorsPage() {
   });
 
   const buckets = data?.buckets ?? [];
-  const families = data?.families ?? [];
+  const allFamilies = data?.families ?? [];
+
+  // Every school on the list, so the filter offers only centres that
+  // actually owe money rather than the whole network.
+  // Plain derivations, not useMemo: the React Compiler handles this, and
+  // a hand-rolled dep array on a freshly-built array defeats it.
+  const services = [
+    ...new Set(allFamilies.map((f) => f.serviceName).filter(Boolean)),
+  ].sort() as string[];
+
+  const families = (() => {
+    const q = search.trim().toLowerCase();
+    const min = Number(minOwing);
+    const minCents =
+      minOwing.trim() !== "" && Number.isFinite(min) ? Math.round(min * 100) : null;
+    // The server's as-of time, not Date.now(): it keeps this derivation
+    // pure, and it's the same clock the ageing buckets were computed on.
+    const asOfMs = data?.asOf ? new Date(data.asOf).getTime() : 0;
+    const staleBefore = asOfMs - STALE_CONTACT_DAYS * 86400_000;
+
+    return allFamilies.filter((f) => {
+      if (q) {
+        // Name, email or phone — whatever the person on the phone has
+        // to hand.
+        const hay = [f.name, f.email, f.phone, f.serviceName]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (serviceFilter && f.serviceName !== serviceFilter) return false;
+      if (minCents != null && f.totals.total < minCents) return false;
+      if (contactFilter === "never" && f.lastContactedAt) return false;
+      if (contactFilter === "stale") {
+        // Never contacted counts as stale — it's the worst case of it.
+        if (f.lastContactedAt && new Date(f.lastContactedAt).getTime() > staleBefore) {
+          return false;
+        }
+      }
+      if (contactFilter === "recent") {
+        if (!f.lastContactedAt) return false;
+        if (new Date(f.lastContactedAt).getTime() <= staleBefore) return false;
+      }
+      return true;
+    });
+  })();
+
+  const filtering =
+    search.trim() !== "" ||
+    serviceFilter !== "" ||
+    minOwing.trim() !== "" ||
+    contactFilter !== "";
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -111,11 +175,97 @@ export default function AgedDebtorsPage() {
             </div>
           </div>
 
+          {/* Find one family, or narrow to the ones worth ringing today. */}
+          <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="lg:col-span-2">
+                <label htmlFor="ad-search" className="sr-only">
+                  Search families
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                  <input
+                    id="ad-search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Name, email, phone or school"
+                    className="w-full rounded-lg border border-border bg-card py-2.5 pl-9 pr-3 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="ad-school" className="sr-only">
+                  School
+                </label>
+                <select
+                  id="ad-school"
+                  value={serviceFilter}
+                  onChange={(e) => setServiceFilter(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                >
+                  <option value="">Every school</option>
+                  {services.map((sName) => (
+                    <option key={sName} value={sName}>
+                      {sName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="ad-min" className="sr-only">
+                  Owing at least
+                </label>
+                <input
+                  id="ad-min"
+                  inputMode="decimal"
+                  value={minOwing}
+                  onChange={(e) => setMinOwing(e.target.value)}
+                  placeholder="Owing at least $"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {(
+                [
+                  ["", "Everyone"],
+                  ["never", "Never contacted"],
+                  ["stale", `Not chased in ${STALE_CONTACT_DAYS} days`],
+                  ["recent", "Chased recently"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value || "all"}
+                  type="button"
+                  onClick={() => setContactFilter(value)}
+                  className={
+                    "min-h-9 rounded-lg px-3 text-xs font-medium transition-colors " +
+                    (contactFilter === value
+                      ? "bg-brand text-white"
+                      : "border border-border text-muted hover:bg-surface")
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+              {filtering && (
+                <span className="ml-auto text-xs text-muted">
+                  {families.length} of {allFamilies.length} families
+                </span>
+              )}
+            </div>
+          </div>
+
           {families.length === 0 ? (
             <EmptyState
               icon={AlertTriangle}
-              title="Nothing outstanding"
-              description="No issued invoice currently has a balance owing."
+              title={filtering ? "No families match" : "Nothing outstanding"}
+              description={
+                filtering
+                  ? "Try a different search, or clear the filters."
+                  : "No issued invoice currently has a balance owing."
+              }
             />
           ) : (
             <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -159,6 +309,29 @@ export default function AgedDebtorsPage() {
                               ]
                                 .filter(Boolean)
                                 .join(" · ")}
+                            </p>
+                            {/* Whether anyone has actually rung them.
+                                "Never" is the one worth seeing. */}
+                            <p
+                              className={
+                                "text-xs " +
+                                (f.lastContactedAt
+                                  ? "text-muted"
+                                  : "text-amber-700 dark:text-amber-400")
+                              }
+                            >
+                              {f.lastContactedAt
+                                ? `Last chased ${new Date(
+                                    f.lastContactedAt,
+                                  ).toLocaleDateString("en-AU", {
+                                    day: "numeric",
+                                    month: "short",
+                                  })}${
+                                    f.lastContactMethod
+                                      ? ` by ${f.lastContactMethod.replace("_", " ")}`
+                                      : ""
+                                  }`
+                                : "Never contacted"}
                             </p>
                           </td>
                           {buckets.map((b) => (
