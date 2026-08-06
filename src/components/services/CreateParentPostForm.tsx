@@ -14,6 +14,9 @@ import { FormInput } from "@/components/ui/form/FormInput";
 import { FormTextarea } from "@/components/ui/form/FormTextarea";
 import { FormSelect } from "@/components/ui/form/FormSelect";
 import { Button } from "@/components/ui/Button";
+import { Sparkles, Loader2 } from "lucide-react";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 const MAX_IMAGES = 6;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -37,6 +40,44 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // Amana AI: rough notes in, drafted post + curriculum tags out.
+  const [aiNotes, setAiNotes] = useState("");
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+
+  async function draftWithAi() {
+    setAiBusy(true);
+    try {
+      const draft = await mutateApi<{
+        title: string;
+        content: string;
+        mtop: string[];
+        nqs: string[];
+      }>(`/api/services/${serviceId}/posts/ai-draft`, {
+        method: "POST",
+        body: { notes: aiNotes.trim() },
+      });
+      // Fills the fields; it never posts. The educator reads it, edits
+      // it, and decides — the draft is a starting point, not an author.
+      setValue("title", draft.title, { shouldValidate: true });
+      setValue("content", draft.content, { shouldValidate: true });
+      if (draft.mtop.length) setMtop(draft.mtop);
+      if (draft.nqs.length) setNqs(draft.nqs);
+      setAiOpen(false);
+      toast({
+        description:
+          "Drafted below — have a read and change anything that isn't right.",
+      });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description:
+          err instanceof Error ? err.message : "Couldn't draft that one.",
+      });
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   const isEditing = !!editingPost;
   const mutation = isEditing ? updatePost : createPost;
@@ -45,6 +86,7 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CreateParentPostInput>({
     resolver: zodResolver(createParentPostSchema),
@@ -201,6 +243,71 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
           {isEditing ? "Edit Post" : "Create Post"}
         </DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
+          {/* Amana AI. Above the fields because on a busy afternoon
+              "type what happened" is easier to start than a blank title
+              box — and it fills the curriculum tags, which is the part
+              educators skip when they're rushing. */}
+          {!isEditing && (
+            <div className="rounded-lg border border-brand/25 bg-brand/5 p-3">
+              {!aiOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setAiOpen(true)}
+                  className="flex min-h-11 w-full items-center gap-2 text-left text-sm font-medium text-brand"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Write it with Amana AI
+                  <span className="font-normal text-muted">
+                    — tell it what you did
+                  </span>
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="ai-notes"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    What did the children do today?
+                  </label>
+                  <textarea
+                    id="ai-notes"
+                    rows={3}
+                    value={aiNotes}
+                    onChange={(e) => setAiNotes(e.target.value)}
+                    placeholder="Rough notes are fine — built an obstacle course in the hall, most of the group had a go, a few worked together on the tunnel bit"
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                  <p className="text-xs text-muted">
+                    It drafts the post and picks the MTOP outcomes and NQS
+                    areas. Nothing is posted — you read it first.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={draftWithAi}
+                      disabled={aiBusy || aiNotes.trim().length < 3}
+                    >
+                      {aiBusy ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" /> Drafting…
+                        </>
+                      ) : (
+                        "Draft it"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setAiOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <FormField label="Title" error={errors.title}>
             <FormInput
               registration={register("title")}
