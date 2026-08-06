@@ -94,6 +94,7 @@ export function ServiceNavTree({
   onGroupChange,
   onSubChange,
   badgeFor,
+  className,
 }: {
   groups: TabGroup[];
   activeGroup: string;
@@ -101,6 +102,8 @@ export function ServiceNavTree({
   onGroupChange: (key: string) => void;
   onSubChange: (key: string) => void;
   badgeFor?: (groupKey: string) => number | undefined;
+  /** Lets the mobile sheet drop the fixed width and the divider. */
+  className?: string;
 }) {
   // Collapsed state is per-group and starts empty — everything open.
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -145,7 +148,7 @@ export function ServiceNavTree({
   return (
     <nav
       aria-label="Service sections"
-      className="w-60 shrink-0 space-y-3 pr-1"
+      className={cn("w-60 shrink-0 space-y-3 pr-1", className)}
     >
       {favouriteRows.length > 0 && (
         <div className="rounded-xl border border-brand/20 bg-brand/5 p-2">
@@ -195,9 +198,10 @@ export function ServiceNavTree({
       {groups.map((group) => {
         const isActive = activeGroup === group.key;
         const hasSubs = group.subTabs.length > 0;
-        // The group you're in stays open: collapsing it would hide the
-        // page you're looking at.
-        const isOpen = isActive || !collapsed[group.key];
+        // Every group collapses, including the one you're in — a long
+        // group you've finished with is exactly the one you want out of
+        // the way, and the content stays on screen regardless.
+        const isOpen = !collapsed[group.key];
         const badge = badgeFor?.(group.key);
 
         return (
@@ -244,7 +248,7 @@ export function ServiceNavTree({
                   </span>
                 )}
               </button>
-              {hasSubs && !isActive && (
+              {hasSubs && (
                 <button
                   type="button"
                   onClick={() =>
