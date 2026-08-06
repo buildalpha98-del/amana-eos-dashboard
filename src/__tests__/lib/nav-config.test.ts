@@ -170,14 +170,16 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
     it.each([
       "/dashboard",
       "/services",          // their primary surface — drill in for everything
-      "/onboarding",
+      // 2026-08-06: /onboarding and /queue moved to leadership only. A
+      // Director of Service does their own training in My Training, and
+      // the automation queue is head office's inbox.
+      "/my-training",
       "/compliance",
       "/policies",
       // 2026-06-29: /leave retired from the sidebar — new leave requests
       // go through My Portal → Employment Hero. The route still resolves
       // for admins draining the historical backlog.
       "/knowledge",
-      "/queue",
       "/my-portal",
       // /profile is reachable but not surfaced in the sidebar nav (avatar menu).
     ])("still includes core nav item %s", (href) => {
@@ -339,6 +341,9 @@ describe("partitionNavSection", () => {
       "/billing",
       "/billing/aged-debtors",
       "/compliance",
+      // 2026-08-06: moved out of Growth. "Growth" is a marketing framing;
+      // asking for a poster is day-to-day operations for everyone else.
+      "/requests",
     ]);
   });
 
@@ -430,22 +435,39 @@ describe("My Portal grouping (2026-08-06)", () => {
     expect(navItems.find((i) => i.href === "/dashboard")?.section).toBe("Home");
   });
 
-  it("hides My Queue from Educators but keeps it for coordinators", () => {
-    const staffHrefs = filterNavItems(navItems, "staff").map((i) => i.href);
-    const memberHrefs = filterNavItems(navItems, "member").map((i) => i.href);
-    // Nothing is ever routed to an educator, so it was a page that was
-    // always empty.
-    expect(staffHrefs).not.toContain("/queue");
-    expect(memberHrefs).toContain("/queue");
+  it("hides My Queue from both Educators and Directors of Service", () => {
+    // An automation inbox for head office. Work reaches a centre through
+    // the centre, not through a queue.
+    for (const role of ["staff", "member"] as const) {
+      expect(filterNavItems(navItems, role).map((i) => i.href)).not.toContain(
+        "/queue",
+      );
+    }
+    expect(filterNavItems(navItems, "admin").map((i) => i.href)).toContain(
+      "/queue",
+    );
   });
 
-  it("hides the Accountability Chart from Educators", () => {
+  it("hides the Accountability Chart from centre roles", () => {
     // The rest of the EOS section is already hidden from them, so this
     // was a lone item under an otherwise-empty heading.
-    const staffHrefs = filterNavItems(navItems, "staff").map((i) => i.href);
-    expect(staffHrefs).not.toContain("/accountability-chart");
-    expect(filterNavItems(navItems, "member").map((i) => i.href)).toContain(
-      "/accountability-chart",
+    for (const role of ["staff", "member"] as const) {
+      expect(filterNavItems(navItems, role).map((i) => i.href)).not.toContain(
+        "/accountability-chart",
+      );
+    }
+  });
+
+  it("keeps Staff Lifecycle for leadership only — centre roles use My Training", () => {
+    // Two doors to the same subject with different contents behind them
+    // is worse than one.
+    for (const role of ["staff", "member"] as const) {
+      const hrefs = filterNavItems(navItems, role).map((i) => i.href);
+      expect(hrefs).not.toContain("/onboarding");
+      expect(hrefs).toContain("/my-training");
+    }
+    expect(filterNavItems(navItems, "admin").map((i) => i.href)).toContain(
+      "/onboarding",
     );
   });
 

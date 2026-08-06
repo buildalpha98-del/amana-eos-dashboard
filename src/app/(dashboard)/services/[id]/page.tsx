@@ -76,6 +76,8 @@ import { ServiceHeadcountsTab } from "@/components/services/ServiceHeadcountsTab
 import { ServiceRiskTab } from "@/components/services/ServiceRiskTab";
 import { ServiceCertExpiryCard } from "@/components/services/ServiceCertExpiryCard";
 import { ServiceRatiosTab } from "@/components/services/RatioWidget";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
+import ActivityLibraryPage from "@/app/(dashboard)/activity-library/page";
 import { ServiceNavTree } from "@/components/services/ServiceNavTree";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -179,6 +181,10 @@ const tabGroups: TabGroup[] = [
     icon: BookOpen,
     subTabs: [
       { key: "activities", label: "Activities", icon: LayoutList },
+      // 2026-08-06: the library lives WHERE programming happens. It used
+      // to be a top-level nav item, which meant leaving the centre you
+      // were planning for to fetch a template for it.
+      { key: "library", label: "Activity Library", icon: BookOpen },
       { key: "menu", label: "Menu", icon: UtensilsCrossed },
       { key: "observations", label: "Observations", icon: Eye },
     ],
@@ -269,6 +275,7 @@ export default function ServiceDetailPage() {
   const urlSub = searchParams.get("sub");
 
   const [activeGroup, setActiveGroup] = useState(urlTab || "today");
+  const [navSheetOpen, setNavSheetOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {
       daily: "attendance",
@@ -418,9 +425,11 @@ export default function ServiceDetailPage() {
         </span>
       </div>
 
-      {/* Mobile keeps the tab bar — a 240px rail on a phone is most of
-          the screen. Desktop gets the tree, which shows every page of
-          the service at once instead of hiding them behind a guess. */}
+      {/* Touch devices keep the tab bar for fast switching — a 240px
+          rail on a phone is most of the screen — plus a button that
+          opens the SAME tree in a sheet, so "see everything at once"
+          isn't a desktop-only privilege. iPad portrait is 820px wide,
+          which lands here, and it's the device this is used on most. */}
       <div className="lg:hidden">
         <ServiceTabBarV2
           groups={visibleGroups}
@@ -430,7 +439,36 @@ export default function ServiceDetailPage() {
           onSubChange={handleSubTabChange}
           badgeFor={getBadge}
         />
+        <button
+          type="button"
+          onClick={() => setNavSheetOpen(true)}
+          className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground active:bg-surface"
+        >
+          <LayoutList className="h-4 w-4 text-brand" />
+          All sections
+        </button>
       </div>
+
+      <Dialog open={navSheetOpen} onOpenChange={setNavSheetOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>All sections</DialogTitle>
+          <div className="mt-3 max-h-[70vh] overflow-y-auto">
+            <ServiceNavTree
+              groups={visibleGroups}
+              activeGroup={activeGroup}
+              activeSub={currentSubKey}
+              onGroupChange={handleGroupChange}
+              onSubChange={(k) => {
+                handleSubTabChange(k);
+                // Choosing a page is the whole reason the sheet is open.
+                setNavSheetOpen(false);
+              }}
+              badgeFor={getBadge}
+              className="w-full border-0 pr-0"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="lg:flex lg:gap-6">
         <div className="hidden lg:block">
@@ -508,6 +546,9 @@ export default function ServiceDetailPage() {
         {/* Program group */}
         {activeGroup === "program" && currentSubKey === "activities" && (
           <ServiceProgramTab serviceId={service.id} />
+        )}
+        {activeGroup === "program" && currentSubKey === "library" && (
+          <ActivityLibraryPage />
         )}
         {activeGroup === "program" && currentSubKey === "menu" && (
           <ServiceMenuTab serviceId={service.id} />
