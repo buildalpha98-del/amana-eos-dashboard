@@ -76,6 +76,7 @@ import { ServiceHeadcountsTab } from "@/components/services/ServiceHeadcountsTab
 import { ServiceRiskTab } from "@/components/services/ServiceRiskTab";
 import { ServiceCertExpiryCard } from "@/components/services/ServiceCertExpiryCard";
 import { ServiceRatiosTab } from "@/components/services/RatioWidget";
+import { ServiceNavTree } from "@/components/services/ServiceNavTree";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { isAdminRole } from "@/lib/role-permissions";
 
@@ -417,17 +418,34 @@ export default function ServiceDetailPage() {
         </span>
       </div>
 
-      <ServiceTabBarV2
-        groups={visibleGroups}
-        activeGroup={activeGroup}
-        onGroupChange={handleGroupChange}
-        activeSub={currentSubKey}
-        onSubChange={handleSubTabChange}
-        badgeFor={getBadge}
-      />
+      {/* Mobile keeps the tab bar — a 240px rail on a phone is most of
+          the screen. Desktop gets the tree, which shows every page of
+          the service at once instead of hiding them behind a guess. */}
+      <div className="lg:hidden">
+        <ServiceTabBarV2
+          groups={visibleGroups}
+          activeGroup={activeGroup}
+          onGroupChange={handleGroupChange}
+          activeSub={currentSubKey}
+          onSubChange={handleSubTabChange}
+          badgeFor={getBadge}
+        />
+      </div>
+
+      <div className="lg:flex lg:gap-6">
+        <div className="hidden lg:block">
+          <ServiceNavTree
+            groups={visibleGroups}
+            activeGroup={activeGroup}
+            activeSub={currentSubKey}
+            onGroupChange={handleGroupChange}
+            onSubChange={handleSubTabChange}
+            badgeFor={getBadge}
+          />
+        </div>
 
       {/* ── Tab Content ──────────────────────────────────────── */}
-      <div className="min-h-[40vh]">
+      <div className="min-h-[40vh] lg:min-w-0 lg:flex-1">
         {/* Today group (no subtabs) — live ops snapshot */}
         {activeGroup === "today" && (
           <ServiceTodayTab serviceId={service.id} serviceName={service.name} />
@@ -576,6 +594,7 @@ export default function ServiceDetailPage() {
             serviceName={service.name}
           />
         )}
+      </div>
       </div>
     </div>
   );
