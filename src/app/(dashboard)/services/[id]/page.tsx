@@ -71,6 +71,7 @@ import { ServiceReflectionsTab } from "@/components/services/ServiceReflectionsT
 import { ServiceIncidentsTab } from "@/components/services/ServiceIncidentsTab";
 import { ServiceObservationsTab } from "@/components/services/ServiceObservationsTab";
 import { ServiceMedicationTab } from "@/components/services/ServiceMedicationTab";
+import { ServiceRegistersTab } from "@/components/services/ServiceRegistersTab";
 import { ServiceHeadcountsTab } from "@/components/services/ServiceHeadcountsTab";
 import { ServiceRiskTab } from "@/components/services/ServiceRiskTab";
 import { ServiceCertExpiryCard } from "@/components/services/ServiceCertExpiryCard";
@@ -211,6 +212,7 @@ const tabGroups: TabGroup[] = [
       { key: "incidents", label: "Incidents", icon: AlertTriangle },
       { key: "risk", label: "Risk", icon: ShieldCheck },
       { key: "headcounts", label: "Headcounts", icon: Users },
+      { key: "registers", label: "Registers", icon: ClipboardList },
       { key: "comms", label: "Comms", icon: Radio },
     ],
   },
@@ -546,6 +548,13 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "compliance" && currentSubKey === "headcounts" && (
           <ServiceHeadcountsTab serviceId={service.id} />
+        )}
+        {activeGroup === "compliance" && currentSubKey === "registers" && (
+          <ServiceRegistersTab
+            serviceId={service.id}
+            /* A staff injury register isn't for the whole floor to read. */
+            canSeeStaffIncidents={role === "member" || hasMinRole(role, "admin")}
+          />
         )}
         {activeGroup === "compliance" && currentSubKey === "comms" && (
           <ServiceCommTab serviceId={service.id} />
