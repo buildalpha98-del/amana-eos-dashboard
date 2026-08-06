@@ -608,6 +608,12 @@ model User {
   createdParentForms            ParentForm[]                   @relation("ParentFormCreator")
   createdExcursions             ServiceExcursion[]             @relation("ExcursionCreator")
   conductedHeadcounts           ServiceHeadcount[]             @relation("HeadcountConductor")
+  recordedVisitors              ServiceVisitor[]               @relation("VisitorRecordedBy")
+  staffIncidentsAbout           StaffIncidentReport[]          @relation("StaffIncidentSubject")
+  staffIncidentsReported        StaffIncidentReport[]          @relation("StaffIncidentReporter")
+  staffIncidentsSignedOff       StaffIncidentReport[]          @relation("StaffIncidentSignOff")
+  illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
+  illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
   reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
@@ -2515,10 +2521,13 @@ model Service {
   nurtureSteps   ParentNurtureStep[] @relation("ServiceNurtureSteps")
 
   // ── Holiday Quest Relations ──────────────────────────────
-  holidayQuests HolidayQuestDay[]  @relation("ServiceHolidayQuest")
-  parentForms   ParentForm[]       @relation("ServiceParentForms")
-  excursions    ServiceExcursion[] @relation("ServiceExcursions")
-  headcounts    ServiceHeadcount[] @relation("ServiceHeadcounts")
+  holidayQuests  HolidayQuestDay[]     @relation("ServiceHolidayQuest")
+  parentForms    ParentForm[]          @relation("ServiceParentForms")
+  excursions     ServiceExcursion[]    @relation("ServiceExcursions")
+  headcounts     ServiceHeadcount[]    @relation("ServiceHeadcounts")
+  visitors       ServiceVisitor[]      @relation("ServiceVisitors")
+  staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
+  illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -6571,6 +6580,7 @@ model Child {
   authorisedPickups  AuthorisedPickup[]    @relation("ChildPickups")
   postTags           ParentPostChildTag[]  @relation("ChildPostTags")
   formSignatures     ParentFormSignature[] @relation("ChildFormSignatures")
+  illnessRecords     IllnessRecord[]       @relation("ChildIllnessRecords")
   attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
   statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
 
@@ -7283,6 +7293,125 @@ model ServiceHeadcount {
   @@index([serviceId, conductedAt])
   @@index([serviceId, kind])
   @@index([excursionId])
+}
+
+/// Who came into the service, and when they left.
+///
+/// Reg 165-166: the service must know who is on the premises. It is also
+/// the register that makes a headcount honest — "23 children, 3 staff,
+/// 1 visitor" is only checkable if the visitor signed in somewhere.
+///
+/// Signed out is nullable on purpose: someone still in the building is
+/// the normal state, and it's what the "still on site" list is built
+/// from at close.
+model ServiceVisitor {
+  id           String    @id @default(cuid())
+  serviceId    String
+  service      Service   @relation("ServiceVisitors", fields: [serviceId], references: [id], onDelete: Cascade)
+  name         String
+  organisation String?
+  /// Why they're here: contractor, parent tour, regulator, maintenance…
+  purpose      String?
+  /// Who they're here to see.
+  visitingWhom String?
+  phone        String?
+  signedInAt   DateTime  @default(now())
+  signedOutAt  DateTime?
+  /// Recorded when a visitor's WWCC was sighted at the door. Null means
+  /// nobody checked — which is different from "they don't have one".
+  wwccSighted  Boolean   @default(false)
+  wwccNumber   String?
+  notes        String?   @db.Text
+  recordedById String?
+  recordedBy   User?     @relation("VisitorRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+
+  @@index([serviceId, signedInAt])
+  @@index([serviceId, signedOutAt])
+}
+
+/// A staff injury or near-miss. Deliberately separate from
+/// IncidentRecord, which is about children: the fields differ (workers
+/// compensation, body part, treatment) and mixing them makes both
+/// registers harder to read and to report from.
+model StaffIncidentReport {
+  id                    String    @id @default(cuid())
+  serviceId             String
+  service               Service   @relation("ServiceStaffIncidents", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// The person hurt. Nullable so a casual or contractor can be recorded
+  /// by name without an account.
+  userId                String?
+  user                  User?     @relation("StaffIncidentSubject", fields: [userId], references: [id], onDelete: SetNull)
+  staffName             String
+  occurredAt            DateTime
+  /// injury | near_miss | illness | property | other
+  incidentType          String    @default("injury")
+  severity              String    @default("minor") // minor | moderate | serious | notifiable
+  location              String?
+  description           String    @db.Text
+  bodyPart              String?
+  treatment             String?   @db.Text
+  witnessNames          String?
+  /// SafeWork and the like. A notifiable incident that was never
+  /// notified is the thing this flag exists to make visible.
+  reportableToAuthority Boolean   @default(false)
+  reportedToAuthorityAt DateTime?
+  workersCompClaim      Boolean   @default(false)
+  followUpRequired      Boolean   @default(false)
+  followUpCompleted     Boolean   @default(false)
+  followUpNotes         String?   @db.Text
+
+  reportedById  String?
+  reportedBy    User?     @relation("StaffIncidentReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  signedOffAt   DateTime?
+  signedOffById String?
+  signedOffBy   User?     @relation("StaffIncidentSignOff", fields: [signedOffById], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([serviceId, occurredAt])
+  @@index([serviceId, severity])
+}
+
+/// Illness and infectious disease.
+///
+/// Reg 88: when a child has an infectious disease the service must
+/// notify families. Recording the case and the notification together is
+/// the point — an outbreak where nobody can show when parents were told
+/// is the situation this prevents.
+model IllnessRecord {
+  id                  String    @id @default(cuid())
+  serviceId           String
+  service             Service   @relation("ServiceIllnessRecords", fields: [serviceId], references: [id], onDelete: Cascade)
+  childId             String?
+  child               Child?    @relation("ChildIllnessRecords", fields: [childId], references: [id], onDelete: SetNull)
+  /// Kept alongside childId so a record survives a child leaving.
+  personName          String
+  /// child | staff — staff illness matters for exclusion periods too.
+  personType          String    @default("child")
+  illness             String
+  /// True for the notifiable list (gastro, hand foot and mouth, measles…).
+  infectious          Boolean   @default(false)
+  onsetDate           DateTime  @db.Date
+  excludedFrom        DateTime? @db.Date
+  /// When they may return. The date staff are actually asked for.
+  returnDate          DateTime? @db.Date
+  symptoms            String?   @db.Text
+  actionTaken         String?   @db.Text
+  /// Families told, and when. Reg 88's whole point.
+  familiesNotifiedAt  DateTime?
+  notifiedById        String?
+  notifiedBy          User?     @relation("IllnessNotifier", fields: [notifiedById], references: [id], onDelete: SetNull)
+  /// Public health unit, where the disease requires it.
+  authorityNotifiedAt DateTime?
+  notes               String?   @db.Text
+  recordedById        String?
+  recordedBy          User?     @relation("IllnessRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([serviceId, onsetDate])
+  @@index([serviceId, infectious])
 }
 
 model ParentFormSignature {
