@@ -7,18 +7,13 @@ import { SectionLabel, StatusBadge, type StatusVariant } from "@/components/pare
 import { PaymentMethodCard, NextDebitRow } from "@/components/parent/PaymentMethodCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { programmeName } from "@/lib/programme-names";
 
 const STATUS_TO_VARIANT: Record<string, StatusVariant> = {
   issued: "confirmed",
   paid: "in-care",
   unpaid: "requested",
   overdue: "overdue",
-};
-
-const SESSION_LABELS: Record<string, string> = {
-  bsc: "Before School Care",
-  asc: "After School Care",
-  vc: "Vacation Care",
 };
 
 export default function BillingPage() {
@@ -309,7 +304,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
                     {formatDate(item.date)}
                   </td>
                   <td className="py-1.5 px-1 text-muted">
-                    {SESSION_LABELS[item.sessionType] ?? item.sessionType}
+                    {programmeName(item.sessionType)}
                   </td>
                   <td className="py-1.5 px-1 text-right text-foreground">
                     ${item.grossFee.toFixed(2)}

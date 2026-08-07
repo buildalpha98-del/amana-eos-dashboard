@@ -125,7 +125,7 @@ export default function AccountPage() {
     return (
       <div className="text-center py-12">
         <p className="text-muted text-sm">
-          Unable to load your account information.
+          We couldn't load your account just now — try again in a moment.
         </p>
       </div>
     );
@@ -346,7 +346,7 @@ export default function AccountPage() {
           className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-950/50 text-red-600 dark:text-red-400 text-base font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
         >
           <LogOut className="w-4 h-4" />
-          {loggingOut ? "Logging out..." : "Log Out"}
+          {loggingOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
     </div>

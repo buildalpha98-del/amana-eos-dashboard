@@ -287,6 +287,63 @@ describe("PATCH /api/services/[id]", () => {
     expect(res.status).toBe(404);
   });
 
+  it("saves contact details when capacity is left blank", async () => {
+    // The bug: the details editor sends `capacity: null` for a centre
+    // that has never had one, and `z.number().optional()` rejected it —
+    // so saving a phone number failed with a bare "Validation failed".
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+    prismaMock.service.update.mockResolvedValue({ id: "svc-1", manager: null });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("PATCH", "/api/services/svc-1", {
+      body: { phone: "03 9555 1234", email: "a@b.com", capacity: null },
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: "svc-1" }) });
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.service.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ phone: "03 9555 1234", capacity: null }),
+      }),
+    );
+  });
+
+  it("skips a cleared NOT NULL rate rather than writing null to it", async () => {
+    // bscCasualRate is `Float @default(0)` — writing null would fail at
+    // the database with an error nobody can act on. A cleared field
+    // means "leave it alone".
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+    prismaMock.service.update.mockResolvedValue({ id: "svc-1", manager: null });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("PATCH", "/api/services/svc-1", {
+      body: { bscCasualRate: null, vcDailyRate: null, name: "Centre" },
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: "svc-1" }) });
+
+    expect(res.status).toBe(200);
+    const data = (prismaMock.service.update as unknown as {
+      mock: { calls: { 0: { data: Record<string, unknown> } }[] };
+    }).mock.calls[0][0].data;
+    expect(data).not.toHaveProperty("bscCasualRate");
+    // vcDailyRate IS nullable, so clearing it must still go through.
+    expect(data.vcDailyRate).toBeNull();
+  });
+
+  it("names the field it rejected instead of just 'Validation failed'", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    const req = createRequest("PATCH", "/api/services/svc-1", {
+      body: { capacity: "forty" },
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: "svc-1" }) });
+
+    expect(res.status).toBe(400);
+    // Staring at eight inputs with "Validation failed" tells you nothing.
+    expect((await res.json()).error).toMatch(/capacity/i);
+  });
+
   it("updates service name", async () => {
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });

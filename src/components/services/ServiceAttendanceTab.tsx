@@ -71,6 +71,23 @@ const attendanceImportColumns: ColumnConfig[] = [
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"] as const;
 
+/**
+ * How far the week picker can travel.
+ *
+ * Forward navigation was `disabled={weekOffset >= 0}` — true at the
+ * default offset of 0, so the → button was dead on arrival and staff
+ * could never reach next week. Which is the week they most need: the
+ * whole point of "Propagate to future weeks" is filling weeks that
+ * haven't happened yet.
+ *
+ * Bounded rather than unbounded so nobody scrolls to 2031 by holding
+ * the arrow, and every disabled state now LOOKS disabled — the old
+ * button gave no visual cue, which is why it read as broken rather
+ * than blocked.
+ */
+const MAX_WEEKS_AHEAD = 52;
+const MAX_WEEKS_BACK = 52;
+
 function getWeekDates(weekOffset: number): Date[] {
   const now = new Date();
   const dayOfWeek = now.getDay(); // 0=Sun
@@ -827,28 +844,25 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
             </h3>
             <div className="flex items-center gap-1 sm:gap-2">
               <button
-                onClick={() => {
-                  setWeekOffset((w) => w - 1);
-                }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
+                onClick={() => setWeekOffset((w) => Math.max(-MAX_WEEKS_BACK, w - 1))}
+                disabled={weekOffset <= -MAX_WEEKS_BACK}
+                aria-label="Previous week"
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 ←
               </button>
               <button
-                onClick={() => {
-                  setWeekOffset(0);
-                }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
+                onClick={() => setWeekOffset(0)}
                 disabled={weekOffset === 0}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 Today
               </button>
               <button
-                onClick={() => {
-                  setWeekOffset((w) => w + 1);
-                }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
-                disabled={weekOffset >= 0}
+                onClick={() => setWeekOffset((w) => Math.min(MAX_WEEKS_AHEAD, w + 1))}
+                disabled={weekOffset >= MAX_WEEKS_AHEAD}
+                aria-label="Next week"
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 →
               </button>

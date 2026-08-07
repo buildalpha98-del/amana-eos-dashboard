@@ -1,33 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
-  AlertCircle,
-  Building2,
-  Calendar,
-  CalendarDays,
-  ChevronRight,
-  FileEdit,
-  MessageCircle,
-  Phone,
-  UserPlus,
 } from "lucide-react";
 import {
   useParentProfile,
   useParentBookings,
-  useParentConversations,
-  useParentOnboarding,
+  type BookingRecord,
   useParentEnrolmentApplications,
-  type ParentChild,
 } from "@/hooks/useParentPortal";
 import { DailyInfoWidgets } from "@/components/parent/DailyInfoWidgets";
-import { TimelineWidget } from "@/components/parent/TimelineWidget";
-import { InstallBanner } from "@/components/parent/InstallBanner";
 import { OwnaTransitionNotice } from "@/components/parent/OwnaTransitionNotice";
-import { ParentFeed } from "@/components/parent/ParentFeed";
-import { CentreInfoCard } from "@/components/parent/CentreInfoCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { programmeName } from "@/lib/programme-names";
+import { AddToPhoneCard } from "@/components/parent/AddToPhoneCard";
+import { ParentFeed } from "@/components/parent/ParentFeed";
+import { MarkAbsentSheet } from "@/components/parent/MarkAbsentSheet";
+import { TodayStrip } from "@/components/parent/TodayStrip";
 
 export default function ParentHomeV1() {
   const { data: profile, isLoading, error } = useParentProfile();
@@ -38,7 +29,7 @@ export default function ParentHomeV1() {
     return (
       <div className="text-center py-12">
         <p className="text-muted text-sm">
-          Unable to load your information. Please try again later.
+          We couldn&apos;t load your details just now — pull down to refresh, or try again in a moment.
         </p>
       </div>
     );
@@ -46,231 +37,119 @@ export default function ParentHomeV1() {
 
   return (
     <div className="space-y-6">
-      {/* PWA install banner — only renders when eligible */}
-      <InstallBanner />
-
       {/* Temporary: we're still on OWNA day to day. Remove when the
           portal goes fully live. */}
       <OwnaTransitionNotice />
 
-      {/* Posts from the service. The timeline API and the staff composer
-          both already existed — parents just had no way to SEE the
-          result, so every post staff wrote went nowhere. */}
-      <ParentFeed />
-
-      {/* Centre info — contacts, routine, food, what to expect. Linked
-          from Home rather than added as a 7th bottom tab, which would
-          crowd the mobile bar. */}
-      <Link
-        href="/parent/my-centre"
-        className="warm-card flex items-center gap-3 hover:opacity-90"
-      >
-        <div className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center shrink-0">
-          <Building2 className="w-5 h-5 text-[color:var(--color-brand)]" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
-            About your centre
-          </p>
-          <p className="text-xs text-[color:var(--color-muted)]">
-            Key contacts, daily routine, food and what to expect
-          </p>
-        </div>
-        <ChevronRight className="w-4 h-4 text-[color:var(--color-muted)] shrink-0" />
-      </Link>
-
       {/* Greeting */}
       <div>
         <h1 className="text-2xl font-heading font-bold text-foreground">
-          Welcome back, {profile.firstName} <span aria-hidden="true">&#128075;</span>
+          Welcome back, {profile.firstName}{" "}
+          <span aria-hidden="true">&#128075;</span>
         </h1>
-        <p className="text-sm text-muted mt-1">
-          Here&apos;s an overview of your family.
-        </p>
       </div>
 
-      {/* Onboarding banner */}
-      <OnboardingBanner />
+      {/*
+        2026-08-04: Home was carrying six blocks a family never acted on —
+        two separate copies of the centre's About content, a setup
+        checklist whose items we could do ourselves, a sibling-enrolment
+        CTA, a week-of-green-dots that repeated the Children tab, and a
+        messages preview that repeated the Messages tab. All removed. The
+        centre content now lives on its own My Centre tab, which is where
+        someone looks for it.
 
-      {/* Children cards */}
-      <section aria-label="Your children">
-        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
-          Your Children
-        </h2>
+        What's left is the two things a parent opens the app FOR: getting
+        it onto their home screen, and what's on this week.
+      */}
+      <AddToPhoneCard />
 
-        {profile.children.length === 0 ? (
-          <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
-            <p className="text-muted text-sm">
-              No children found on your account. Contact your centre for assistance.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {profile.children.map((child, idx) => (
-              <ChildCard key={child.id} child={child} index={idx} />
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Where each child is right now — signed in, picked up, by whom.
+          Above the sessions list because it answers today before the
+          week. Hidden on days with nothing to report. */}
+      <TodayStrip />
 
-      {/* Enrol a Sibling CTA */}
-      {profile.children.length > 0 && (
-        <Link
-          href="/parent/enrolments/new"
-          className="flex items-center gap-3 bg-gradient-to-r from-brand/5 to-accent/10 rounded-xl p-4 border border-brand/10 hover:shadow-md transition-all active:scale-[0.99]"
-        >
-          <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-            <UserPlus className="w-5 h-5 text-brand" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-foreground">
-              Enrol a Sibling
-            </p>
-            <p className="text-xs text-muted">
-              Simplified enrolment — family details are pre-filled
-            </p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-muted shrink-0" />
-        </Link>
-      )}
-
-      {/* Enrolment Applications */}
-      <EnrolmentApplicationsWidget />
-
-      {/* Today's Menu & Program */}
-      <DailyInfoWidgets />
-
-      {/* Upcoming Sessions */}
       <UpcomingSessionsWidget />
 
-      {/* Recent Messages */}
-      <RecentMessagesWidget />
+      {/*
+        Every post from the family's centre, tagged or not.
 
-      {/* Timeline Feed */}
-      <TimelineWidget />
+        Back on Home per Daniel (2026-08-04) after a brief move to My
+        Centre. My Centre keeps the ANNOUNCEMENTS — the notices you go
+        looking for — so the two lists have different jobs rather than
+        being the same feed rendered twice, which is what Home was doing
+        before (ParentFeed and the old TimelineWidget both read the same
+        endpoint).
+      */}
+      <ParentFeed />
 
-      {/* About your centre — Director-edited per-service content */}
-      <CentreInfoCard />
 
-      {/* Quick actions */}
-      <section aria-label="Quick actions">
-        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          <QuickAction
-            href="/parent/account"
-            icon={FileEdit}
-            label="Update Details"
-          />
-          <QuickAction
-            href="/parent/children"
-            icon={CalendarDays}
-            label="View Attendance"
-          />
-          <QuickAction href="/parent/messages" icon={MessageCircle} label="Messages" />
-        </div>
-      </section>
+      {/* Today's menu and programme. */}
+      <DailyInfoWidgets />
+
+      {/* Only renders when the family has an application in flight. */}
+      <EnrolmentApplicationsWidget />
+
+      {/*
+        Quick actions and the tiles under them are gone (2026-08-04).
+        Update Details, View Attendance and Messages were three taps to
+        places already one tap away in the tab bar — a shortcut to
+        somewhere adjacent is just a second door.
+      */}
     </div>
   );
 }
 
-// ── Child card ───────────────────────────────────────────
-
-function ChildCard({ child, index }: { child: ParentChild; index: number }) {
-  const hasMedical =
-    child.medicalConditions.length > 0 || child.allergies.length > 0;
-  const { attended, total } = child.attendanceThisWeek;
-
-  return (
-    <Link
-      href={`/parent/children/${child.id}`}
-      className="block bg-card rounded-xl p-4 shadow-sm border border-border hover:shadow-md hover:border-brand/20 transition-all active:scale-[0.99]"
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-heading font-semibold text-foreground truncate">
-              {child.firstName} {child.lastName}
-            </h3>
-            {hasMedical && (
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-2xs font-semibold"
-                aria-label="Has medical conditions"
-              >
-                <AlertCircle className="w-3 h-3" />
-                Medical
-              </span>
-            )}
-          </div>
-          {child.yearLevel && (
-            <p className="text-sm text-muted mt-0.5">{child.yearLevel}</p>
-          )}
-          <p className="text-xs text-muted mt-0.5">{child.serviceName}</p>
-        </div>
-        <ChevronRight className="w-5 h-5 text-muted flex-shrink-0 mt-0.5" />
-      </div>
-
-      {/* Attendance dots */}
-      <div className="mt-3 flex items-center gap-2">
-        <span className="text-xs text-muted">This week:</span>
-        <div className="flex gap-1">
-          {Array.from({ length: total }, (_, i) => (
-            <div
-              key={i}
-              className={`w-2.5 h-2.5 rounded-full ${
-                i < attended ? "bg-green-500" : "bg-border"
-              }`}
-            />
-          ))}
-        </div>
-        <span className="text-xs font-medium text-foreground">
-          {attended} of {total} days
-        </span>
-      </div>
-    </Link>
-  );
+/** Today or tomorrow — the window where "not coming" is urgent enough
+ *  to deserve a spot on the row rather than a trip to Bookings. */
+function isSoon(iso: string): boolean {
+  const d = new Date(iso);
+  const limit = new Date();
+  limit.setDate(limit.getDate() + 2);
+  limit.setHours(0, 0, 0, 0);
+  return d < limit;
 }
-
-// ── Quick action button ──────────────────────────────────
-
-function QuickAction({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-1.5 bg-card rounded-xl p-4 shadow-sm border border-border hover:shadow-md hover:border-brand/20 transition-all active:scale-[0.98] min-h-[80px] justify-center"
-    >
-      <Icon className="w-5 h-5 text-brand" />
-      <span className="text-xs font-medium text-foreground text-center leading-tight">
-        {label}
-      </span>
-    </Link>
-  );
-}
-
-// ── Upcoming Sessions Widget ────────────────────────────
-
-const SESSION_LABELS: Record<string, string> = {
-  bsc: "BSC",
-  asc: "ASC",
-  vc: "VC",
-};
 
 function UpcomingSessionsWidget() {
   const { data } = useParentBookings("upcoming");
+  /**
+   * "He's sick, we're not coming" is the most common urgent job in the
+   * app, and it used to live three screens deep. Today's and tomorrow's
+   * sessions carry a "Not coming?" action right here — two taps from
+   * opening the app to told-the-centre.
+   */
+  const [absentTarget, setAbsentTarget] = useState<BookingRecord | null>(null);
+
+  const weekEnd = new Date();
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  weekEnd.setHours(23, 59, 59, 999);
+
   const bookings = (data?.bookings ?? [])
     .filter((b) => b.status === "confirmed" || b.status === "requested")
-    .slice(0, 3);
+    .filter((b) => new Date(b.date) <= weekEnd)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  if (bookings.length === 0) return null;
+  if (bookings.length === 0) {
+    return (
+      <section aria-label="Upcoming sessions">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
+            Upcoming Sessions
+          </h2>
+        </div>
+        <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
+          <p className="text-sm text-muted">
+            Nothing booked in the next week.
+          </p>
+          <Link
+            href="/parent/bookings"
+            className="inline-flex items-center justify-center mt-3 px-4 py-2 rounded-xl bg-brand text-white text-sm font-semibold min-h-11"
+          >
+            Book a session
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Upcoming sessions">
@@ -297,7 +176,7 @@ function UpcomingSessionsWidget() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
-                  {b.child.firstName} — {SESSION_LABELS[b.sessionType] ?? b.sessionType.toUpperCase()}
+                  {b.child.firstName} — {programmeName(b.sessionType)}
                 </p>
                 <p className="text-xs text-muted truncate">{b.service.name} · {month}</p>
               </div>
@@ -307,99 +186,24 @@ function UpcomingSessionsWidget() {
               )}>
                 {b.status === "confirmed" ? "Confirmed" : "Requested"}
               </span>
+              {isSoon(b.date) && b.status === "confirmed" && (
+                <button
+                  type="button"
+                  onClick={() => setAbsentTarget(b)}
+                  className="text-xs font-medium text-muted underline underline-offset-2 shrink-0 min-h-11"
+                >
+                  Not coming?
+                </button>
+              )}
             </div>
           );
         })}
-      </div>
-    </section>
-  );
-}
-
-// ── Recent Messages Widget ──────────────────────────────
-
-function RecentMessagesWidget() {
-  const { data } = useParentConversations();
-  const conversations = (data ?? []).slice(0, 2);
-
-  if (conversations.length === 0) return null;
-
-  return (
-    <section aria-label="Recent messages">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider">
-          Recent Messages
-        </h2>
-        <Link href="/parent/messages" className="text-xs font-medium text-brand hover:text-brand-light min-h-[44px] flex items-center">
-          View all
-        </Link>
-      </div>
-      <div className="space-y-2">
-        {conversations.map((conv) => {
-          const isUnread = (conv.unreadCount ?? 0) > 0;
-
-          return (
-            <Link
-              key={conv.id}
-              href={`/parent/messages/${conv.id}`}
-              className={cn(
-                "block bg-card rounded-xl p-3 shadow-sm border transition-all hover:shadow-md active:scale-[0.99]",
-                isUnread ? "border-brand/30" : "border-border"
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className={cn("text-sm truncate", isUnread ? "font-bold text-foreground" : "font-medium text-foreground")}>
-                  {conv.subject ?? "No subject"}
-                </p>
-                {isUnread && <span className="w-2 h-2 rounded-full bg-brand shrink-0" />}
-              </div>
-              {conv.lastMessage && (
-                <p className="text-xs text-muted mt-0.5 truncate">
-                  {conv.lastMessage.senderType === "parent" ? "You: " : "Centre: "}
-                  {conv.lastMessage.preview}
-                </p>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-// ── Onboarding Banner ───────────────────────────────────
-
-function OnboardingBanner() {
-  const { data: onboarding } = useParentOnboarding();
-  if (!onboarding) return null;
-
-  const { completedCount, totalCount } = onboarding;
-  if (completedCount >= totalCount) return null; // All done, hide banner
-
-  const pct = Math.round((completedCount / totalCount) * 100);
-
-  return (
-    <Link
-      href="/parent/getting-started"
-      className="block bg-gradient-to-r from-brand to-[#006B87] rounded-xl p-4 shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
-    >
-      <div className="flex items-center justify-between text-white">
-        <div>
-          <p className="text-sm font-semibold">
-            Get set up — {completedCount} of {totalCount} steps done
-          </p>
-          <p className="text-xs text-white/70 mt-0.5">
-            Complete your setup to get the most out of the app.
-          </p>
-        </div>
-        <ChevronRight className="w-5 h-5 text-white/70 shrink-0" />
-      </div>
-      <div className="mt-3 h-1.5 bg-white/20 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-accent rounded-full transition-all duration-500"
-          style={{ width: `${pct}%` }}
+        <MarkAbsentSheet
+          booking={absentTarget}
+          onClose={() => setAbsentTarget(null)}
         />
       </div>
-    </Link>
+    </section>
   );
 }
 

@@ -92,6 +92,24 @@ export async function sendNewMessageNotification(
         relatedType: "Message",
       });
 
+      // The portal bell too. Email and push both leave the app; a
+      // parent already inside it learns nothing without this row.
+      // Fully isolated: a bell failure (or a test double without this
+      // table) must not stop the push below.
+      try {
+        await prisma.parentNotification.create({
+          data: {
+            parentEmail: parentEmail.toLowerCase().trim(),
+            type: "message",
+            title: `New message from ${serviceName}`,
+            body: subject,
+            link: `/parent/messages/${conversation.id}`,
+          },
+        });
+      } catch (err) {
+        logger.error("message bell notification failed", { messageId, err });
+      }
+
       // Keep the payload lean — subject only, no body preview.
       sendPushToContact(conversation.family.id, {
         title: `New message from ${serviceName}`,

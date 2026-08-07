@@ -4,6 +4,7 @@ import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage/uploadFile";
+import { enrolmentDocumentsFor } from "@/lib/enrolment-documents";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -25,7 +26,7 @@ export const GET = withParentAuth(async (_req, ctx) => {
   const childId = params?.id;
   if (!childId) throw ApiError.badRequest("childId is required");
 
-  await verifyChildAccess(childId, ctx.parent.enrolmentIds);
+  const child = await verifyChildAccess(childId, ctx.parent.enrolmentIds);
 
   // Return ChildDocument records (staff + parent uploaded)
   const documents = await prisma.childDocument.findMany({
@@ -51,8 +52,13 @@ export const GET = withParentAuth(async (_req, ctx) => {
     orderBy: { uploadedAt: "desc" },
   });
 
-  return NextResponse.json({ documents, parentDocs });
+  // Shared with the staff child page, so both are reading one list
+  // rather than two that can drift apart.
+  const enrolmentDocs = await enrolmentDocumentsFor(child.enrolmentId);
+
+  return NextResponse.json({ documents, parentDocs, enrolmentDocs });
 });
+
 
 const documentTypeMap: Record<string, string> = {
   immunisation: "IMMUNISATION_RECORD",

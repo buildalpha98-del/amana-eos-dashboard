@@ -13,6 +13,11 @@ import {
 
 import { ApprovalsSessionTimesCard } from "./ApprovalsSessionTimesCard";
 import { RoomsAndFeesCard } from "./RoomsAndFeesCard";
+import { ParentFormsCard } from "./ParentFormsCard";
+import { ExcursionsCard } from "./ExcursionsCard";
+import { BlockOutDatesCard } from "@/components/services/BlockOutDatesCard";
+import { FeeChangesCard } from "./FeeChangesCard";
+import { AppSettingsCard } from "./AppSettingsCard";
 
 export function ServiceInfoCard({
   service,
@@ -278,6 +283,32 @@ export function ServiceInfoCard({
       {/* Room names, hours and the fees under each. Below approvals
           because it's the thing staff actually change. */}
       <RoomsAndFeesCard service={service} canEdit={canEdit} />
+      {/* Excursions sit above the general forms card: an outing creates
+          a form of its own, so seeing them in that order matches how
+          they're made. */}
+      {/* Days you're not running. Next to Rooms & fees because that's
+          where the rest of "when are we open" lives. */}
+      {/* Fee changes sit right under Rooms & fees — it's the same
+          subject, one step into the future. */}
+      {/* How this centre behaves — the toggles that change what the app
+          does for families and for posting. */}
+      <AppSettingsCard serviceId={service.id} canEdit={canEdit} />
+      <FeeChangesCard
+        serviceId={service.id}
+        sessionTimes={service.sessionTimes}
+        canEdit={canEdit}
+      />
+      <BlockOutDatesCard
+        serviceId={service.id}
+        sessionTimes={service.sessionTimes}
+        canEdit={canEdit}
+      />
+      <ExcursionsCard
+        serviceId={service.id}
+        sessionTimes={service.sessionTimes}
+        canEdit={canEdit}
+      />
+      <ParentFormsCard serviceId={service.id} canEdit={canEdit} />
     </>
   );
 }

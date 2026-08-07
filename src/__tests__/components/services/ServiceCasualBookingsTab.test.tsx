@@ -73,18 +73,20 @@ describe("ServiceCasualBookingsTab", () => {
     sessionRef.serviceId = null;
   });
 
-  it("renders the info banner explaining settings-only scope", () => {
+  it("tells the coordinator these settings are actually enforced", () => {
+    // 2026-08-06: this used to assert a banner reading "not yet
+    // enforced … ships in a follow-up sub-project". That follow-up had
+    // already shipped — checkCasualBookingAllowed is wired into the
+    // parent create, bulk and cancellation routes — and the stale
+    // warning was telling coordinators their policy was decorative.
     const qc = makeClient();
     render(<ServiceCasualBookingsTab service={makeService()} />, {
       wrapper: makeWrapper(qc),
     });
 
-    // Headline ("Settings stored — not yet enforced") + the body copy below
-    // both mention "not yet enforced" — use getAllByText and assert ≥1.
-    expect(screen.getAllByText(/not yet enforced/i).length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/follow-up sub-project/i),
-    ).toBeDefined();
+    expect(screen.getByText(/these settings are enforced/i)).toBeDefined();
+    expect(screen.queryByText(/not yet enforced/i)).toBeNull();
+    expect(screen.queryByText(/follow-up sub-project/i)).toBeNull();
   });
 
   it("renders the preview card with the empty-state message when no sessions are enabled", () => {
@@ -124,12 +126,12 @@ describe("ServiceCasualBookingsTab", () => {
 
     expect(
       screen.getByText(
-        /Parents can book casual BSC up to 24 hours before the session at \$36\.00 \(10 spots available\)\./i,
+        /Parents can book casual Rise and Shine up to 24 hours before the session at \$36\.00 \(10 spots available\)\./i,
       ),
     ).toBeDefined();
     expect(
       screen.getByText(
-        /Parents can book casual ASC up to 12 hours before the session at \$42\.00 \(8 spots available\)\./i,
+        /Parents can book casual Amana Afternoons up to 12 hours before the session at \$42\.00 \(8 spots available\)\./i,
       ),
     ).toBeDefined();
   });

@@ -11,10 +11,12 @@ import EmailPreview from "./EmailPreview";
 import TemplatePickerModal from "./TemplatePickerModal";
 import {
   useSendEmail,
+  useTestSend,
   useEmailPreview,
   useEmailTemplate,
   type EmailTemplateData,
 } from "@/hooks/useEmailTemplates";
+import { Button } from "@/components/ui/Button";
 import type { EmailBlock, EmailLayoutOptions } from "@/lib/email-marketing-layout";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -212,13 +214,32 @@ export function EmailComposer() {
 
   // ── Send ───────────────────────────────────────────────────
   const sendMutation = useSendEmail();
+  const testSendMutation = useTestSend();
+
+  // The editor state is always the source of truth: any template picked via
+  // ?templateId= has already been hydrated into blocks/htmlContent (and may
+  // have been edited since), so we send the composed content — never the
+  // templateId, which the campaign route would resolve FIRST, silently
+  // discarding the user's edits.
+  const composedContent =
+    mode === "blocks" ? { blocks } : { htmlContent };
+
+  function handleTestSend() {
+    testSendMutation.mutate({ subject, ...composedContent });
+  }
 
   function handleConfirmSend() {
     sendMutation.mutate(
       {
-        templateId: templateIdParam || "",
-        serviceIds: allCentres ? undefined : selectedServiceIds,
         subject,
+        ...composedContent,
+        ...(allCentres
+          ? { allCentres: true }
+          : { serviceIds: selectedServiceIds }),
+        ...(showSchedule && scheduledAt
+          ? { scheduledAt: new Date(scheduledAt).toISOString() }
+          : {}),
+        ...(postId ? { postId } : {}),
       },
       {
         onSuccess: () => {
@@ -270,6 +291,15 @@ export function EmailComposer() {
           >
             Templates
           </button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTestSend}
+            disabled={!subject.trim() || testSendMutation.isPending}
+            loading={testSendMutation.isPending}
+          >
+            Send test to me
+          </Button>
           <button
             onClick={() => setConfirmSend(true)}
             disabled={!subject.trim() || sendMutation.isPending}

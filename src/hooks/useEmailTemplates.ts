@@ -123,7 +123,10 @@ export function useSendEmail() {
       templateId?: string | null;
       subject: string;
       htmlContent?: string | null;
+      blocks?: unknown[] | null;
       serviceIds?: string[];
+      allCentres?: boolean;
+      scheduledAt?: string | null;
       enquiryId?: string | null;
       postId?: string | null;
       variables?: Record<string, string>;
@@ -139,6 +142,31 @@ export function useSendEmail() {
       qc.invalidateQueries({ queryKey: ["email-history"] });
       toast({
         description: `Email ${result.status} to ${result.recipientCount} recipient(s)`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useTestSend() {
+  return useMutation({
+    mutationFn: (data: {
+      subject: string;
+      blocks?: unknown[] | null;
+      htmlContent?: string | null;
+      templateId?: string | null;
+    }) =>
+      mutateApi<{ success: boolean; email: string; warning?: string }>(
+        "/api/email/test-send",
+        { method: "POST", body: data },
+      ),
+    onSuccess: (result) => {
+      toast({
+        description: result.warning
+          ? `Test sent to ${result.email} — ${result.warning}`
+          : `Test sent to ${result.email}`,
       });
     },
     onError: (err: Error) => {

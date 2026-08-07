@@ -253,7 +253,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
                       value={meetingNotes}
                       onChange={(e) => setMeetingNotes(e.target.value)}
                       placeholder="Paste your L10 meeting notes here... AI will extract action items with assignees."
-                      className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none resize-none"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none resize-y"
                     />
                     <button
                       onClick={handleAiExtract}

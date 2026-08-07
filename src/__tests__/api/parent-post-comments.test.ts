@@ -112,100 +112,41 @@ describe("/api/parent/posts/[postId]/comments", () => {
     });
   });
 
-  describe("POST", () => {
-    it("400 when body missing", async () => {
-      prismaMock.parentPost.findUnique.mockResolvedValue({
-        id: "p1",
-        serviceId: "s1",
-        isCommunity: true,
-        tags: [],
-      });
-      prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
-        { serviceId: "s1", childRecords: [] },
-      ]);
-      prismaMock.centreContact.findFirst.mockResolvedValue({ id: "cc1" });
-      const res = await POST(
-        createRequest("POST", "/api/parent/posts/p1/comments", { body: { body: "" } }),
-        ctx,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("400 when body exceeds 2000 chars", async () => {
-      prismaMock.parentPost.findUnique.mockResolvedValue({
-        id: "p1",
-        serviceId: "s1",
-        isCommunity: true,
-        tags: [],
-      });
-      prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
-        { serviceId: "s1", childRecords: [] },
-      ]);
-      prismaMock.centreContact.findFirst.mockResolvedValue({ id: "cc1" });
+  describe("POST — comments are closed to parents", () => {
+    // Changed 2026-08-04. A photo of one child with a comment thread
+    // under it is a conversation every other family at the centre can
+    // read, and there's no moderation behind it. Refused at the API, not
+    // just hidden in the app — the endpoint is reachable regardless of
+    // what the UI renders.
+    it("403s regardless of the body", async () => {
       const res = await POST(
         createRequest("POST", "/api/parent/posts/p1/comments", {
-          body: { body: "x".repeat(2001) },
+          body: { content: "Lovely photo!" },
         }),
-        ctx,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("201 creates a parent comment", async () => {
-      prismaMock.parentPost.findUnique.mockResolvedValue({
-        id: "p1",
-        serviceId: "s1",
-        isCommunity: true,
-        tags: [],
-      });
-      prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
-        { serviceId: "s1", childRecords: [] },
-      ]);
-      prismaMock.centreContact.findFirst.mockResolvedValue({ id: "cc1" });
-      prismaMock.parentPostComment.create.mockResolvedValue({
-        id: "c-new",
-        body: "Thanks for sharing",
-        createdAt: new Date("2026-04-23T10:00:00Z"),
-        parentAuthor: { firstName: "Jayden", lastName: "Kowaider" },
-        staffAuthor: null,
-      });
-      const res = await POST(
-        createRequest("POST", "/api/parent/posts/p1/comments", {
-          body: { body: "Thanks for sharing" },
-        }),
-        ctx,
-      );
-      expect(res.status).toBe(201);
-      const body = await res.json();
-      expect(body).toMatchObject({
-        id: "c-new",
-        body: "Thanks for sharing",
-        authorName: "Jayden K.",
-        authorType: "parent",
-      });
-      expect(prismaMock.parentPostComment.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { postId: "p1", parentAuthorId: "cc1", body: "Thanks for sharing" },
-        }),
-      );
-    });
-
-    it("403 when no CentreContact for service", async () => {
-      prismaMock.parentPost.findUnique.mockResolvedValue({
-        id: "p1",
-        serviceId: "s1",
-        isCommunity: true,
-        tags: [],
-      });
-      prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
-        { serviceId: "s1", childRecords: [] },
-      ]);
-      prismaMock.centreContact.findFirst.mockResolvedValue(null);
-      const res = await POST(
-        createRequest("POST", "/api/parent/posts/p1/comments", { body: { body: "hi" } }),
-        ctx,
+        { params: Promise.resolve({ postId: "p1" }) },
       );
       expect(res.status).toBe(403);
+      expect(prismaMock.parentPostComment.create).not.toHaveBeenCalled();
+    });
+
+    it("403s for an empty body too — no validation path around it", async () => {
+      const res = await POST(
+        createRequest("POST", "/api/parent/posts/p1/comments", {
+          body: {},
+        }),
+        { params: Promise.resolve({ postId: "p1" }) },
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("says what to do instead", async () => {
+      const res = await POST(
+        createRequest("POST", "/api/parent/posts/p1/comments", {
+          body: { content: "hi" },
+        }),
+        { params: Promise.resolve({ postId: "p1" }) },
+      );
+      expect((await res.json()).error).toMatch(/head office/i);
     });
   });
 });

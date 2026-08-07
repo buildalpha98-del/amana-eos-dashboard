@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, CheckCircle2 } from "lucide-react";
 import type { IssueData } from "@/hooks/useIssues";
 import { cn } from "@/lib/utils";
+import { AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 
 export function IDSSection({
   issues,
@@ -182,7 +183,7 @@ export function IDSSection({
 
             {selectedIssue === issue.id && (
               <div className="px-4 pb-4 border-t border-border/50 pt-3 space-y-3">
-                <textarea
+                <AutoGrowTextarea
                   defaultValue={issue.description || ""}
                   onBlur={(e) => {
                     const val = e.target.value.trim();
@@ -191,7 +192,8 @@ export function IDSSection({
                     }
                   }}
                   placeholder="Add notes or description..."
-                  className="w-full text-sm text-muted border border-border rounded-md p-2 resize-none h-20 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-surface/50"
+                  minHeight={180}
+                  className="w-full text-sm text-foreground border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-surface/50"
                 />
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted">Priority:</span>
@@ -256,11 +258,12 @@ export function IDSSection({
                         if (e.key === "Escape") setShowCreateTodo(null);
                       }}
                     />
-                    <textarea
+                    <AutoGrowTextarea
                       value={newTodoDescription}
                       onChange={(e) => setNewTodoDescription(e.target.value)}
                       placeholder="Description (optional)..."
-                      className="w-full px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 h-16 resize-none"
+                      minHeight={90}
+                      className="w-full px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                     {/* Multi-select assignees */}
                     <div>

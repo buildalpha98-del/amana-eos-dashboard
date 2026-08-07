@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { enrolmentDocumentsFor } from "@/lib/enrolment-documents";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { z } from "zod";
@@ -17,7 +18,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   const child = await prisma.child.findUnique({
     where: { id },
-    select: { id: true, serviceId: true },
+    select: { id: true, serviceId: true, enrolmentId: true },
   });
 
   if (!child) throw ApiError.notFound("Child not found");
@@ -42,7 +43,13 @@ export const GET = withApiAuth(async (req, session, context) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ documents });
+  // Files the family attached to the enrolment form. They're on the
+  // submission as JSON, not ChildDocument rows, so without this someone
+  // checking whether a birth certificate had been supplied would
+  // conclude it hadn't.
+  const enrolmentDocs = await enrolmentDocumentsFor(child.enrolmentId);
+
+  return NextResponse.json({ documents, enrolmentDocs });
 });
 
 export const POST = withApiAuth(async (req, session, context) => {

@@ -105,6 +105,38 @@ export const GET = withApiAuth(async (req, session) => {
   // 3. Build a map of childId -> attendance record
   const recordMap = new Map(records.map((r) => [r.childId, r]));
 
+  // 3b. Who has never been signed in before, anywhere.
+  //
+  // A child's first ever session is the one where nobody knows them: not
+  // their face, not the allergy, not who's allowed to collect them. Staff
+  // need that surfaced at the door, not discovered later. Computed rather
+  // than stored so it can't go stale, and scoped to a single grouped
+  // query over just the children on today's list.
+  const candidateIds = [
+    ...new Set([
+      ...bookings.map((b) => b.childId),
+      ...records.map((r) => r.childId),
+    ]),
+  ];
+  const priorAttendance =
+    candidateIds.length > 0
+      ? await prisma.attendanceRecord.groupBy({
+          by: ["childId"],
+          where: {
+            childId: { in: candidateIds },
+            // Only an actual sign-in counts. A booking they were marked
+            // absent for isn't a session they attended.
+            signInTime: { not: null },
+            // Earlier days only — being signed in this morning must not
+            // stop the badge showing for the rest of today.
+            date: { lt: date },
+          },
+          _count: { _all: true },
+        })
+      : [];
+  const hasAttendedBefore = new Set(priorAttendance.map((r) => r.childId));
+  const isFirstSession = (childId: string) => !hasAttendedBefore.has(childId);
+
   // 4. Build the unified roll call list — one row per booked child
   const bookedChildIds = new Set<string>();
   const rollCall = bookings.map((b) => {
@@ -124,6 +156,7 @@ export const GET = withApiAuth(async (req, session) => {
       notes: record?.notes ?? null,
       firstDayPhotoSentAt: record?.firstDayPhotoSentAt ?? null,
       firstDayPhotoUrl: record?.firstDayPhotoUrl ?? null,
+      isFirstSession: isFirstSession(b.childId),
     };
   });
 
@@ -169,6 +202,7 @@ export const GET = withApiAuth(async (req, session) => {
           notes: record.notes,
           firstDayPhotoSentAt: record.firstDayPhotoSentAt,
           firstDayPhotoUrl: record.firstDayPhotoUrl,
+          isFirstSession: isFirstSession(record.childId),
         });
       }
     }

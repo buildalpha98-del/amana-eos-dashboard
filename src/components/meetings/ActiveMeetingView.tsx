@@ -365,10 +365,21 @@ export function ActiveMeetingView({
     [createIssue, updateRock],
   );
 
+  /**
+   * Record a scorecard figure against a specific week.
+   *
+   * The week is passed in rather than assumed to be this one: numbers
+   * arrive late — an activation nobody had counted, a correction — and
+   * the L10 is where that gets noticed. Defaulting to the current week
+   * would file the fix against the wrong one.
+   */
   const handleScorecardEntry = useCallback(
-    (measurableId: string, value: number) => {
-      const weekOf = getWeekStart().toISOString();
-      createEntry.mutate({ measurableId, value, weekOf });
+    (measurableId: string, value: number, weekOf?: string) => {
+      createEntry.mutate({
+        measurableId,
+        value,
+        weekOf: weekOf ?? getWeekStart().toISOString(),
+      });
     },
     [createEntry]
   );

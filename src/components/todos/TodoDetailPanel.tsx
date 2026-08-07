@@ -7,6 +7,7 @@ import { X, Mountain, AlertCircle, Lock, Unlock, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
 import type { TodoStatus } from "@prisma/client";
+import { AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 
 interface UserOption {
   id: string;
@@ -137,15 +138,15 @@ export function TodoDetailPanel({
             <label className="block text-xs font-medium text-muted mb-1">
               Description
             </label>
-            <textarea
+            <AutoGrowTextarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onBlur={() => {
                 if (description !== (todo.description || ""))
                   saveField("description", description || null);
               }}
-              rows={3}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              minHeight={160}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Add details..."
             />
           </div>

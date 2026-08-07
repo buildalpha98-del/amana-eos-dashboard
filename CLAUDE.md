@@ -4,7 +4,7 @@
 - **Product**: EOS (Entrepreneurial Operating System) management dashboard for Amana OSHC (Out of School Hours Care)
 - **Stack**: Next.js 16, TypeScript, Prisma ORM 5.22, PostgreSQL, Tailwind CSS, Vercel
 - **Auth**: NextAuth.js with credential-based login
-- **Email**: Resend API with branded HTML templates
+- **Email**: TWO providers by design — Brevo for marketing/campaign sends (`src/lib/brevo.ts`), Resend for transactional/assignment (`src/lib/email.ts`, branded HTML templates). Events: `/api/webhooks/resend` AND `/api/webhooks/brevo` (Phase 3, `?secret=` auth via `BREVO_WEBHOOK_SECRET`) both write `EmailEvent`; Brevo events correlate to sends via `DeliveryLog.externalIdType` (`brevo_message` <50-recipient sends matched on message-id; `brevo_campaign` ≥50 matched on camp_id) → `EmailEvent.deliveryLogId`. Suppression (`EmailSuppression`) is enforced at EVERY send path via `getSuppressedEmails()` (batch) — campaign send, recipient-count, and the Resend wrapper; the webhook auto-suppresses on bounce/spam/unsubscribe/block. Test-send: `POST /api/email/test-send` (self-only, "[Test] " prefix, rate-limited 5/min). Creative-request assignment emails BYPASS the `shouldReceiveNudge` leadership gate on purpose (work-queue notification; the gate excludes marketing-role users) — see `send-assignment-email.ts`.
 - **State**: React Query (TanStack Query) for server state
 - **Markdown**: react-markdown + remark-gfm + rehype-sanitize (for report viewer)
 - **PDF**: jsPDF (for branded report exports)
@@ -90,6 +90,16 @@
 - **Queue System**: `/queue` page with My Queue / All Queues toggle (admin only)
 - **Report Viewer**: slide-over panel with markdown rendering, interactive checklists, alerts, metrics, PDF export
 - **Staff Sync**: `POST /api/cowork/staff/sync` for registry-based user upsert
+
+## Creative Requests (Marketing Hub Phase 1, 2026-08-05)
+- **What**: centre staff submit design briefs (poster, flyer, table cover…) at `/requests`; marketing works a staged queue. Pipeline: `new → briefed → in_progress → in_review → changes_requested → approved → delivered` (+`cancelled`) — transitions validated server-side via `TRANSITIONS` in `src/lib/creative-request/constants.ts`.
+- **Lib**: `src/lib/creative-request/` — `request-number.ts` (REQ-YYYY-NNNN + P2002 retry), `constants.ts` (transitions, per-type turnaround, `isFulfillerRole`, business-day maths), `notify.ts` (in-app fan-out, swallow-on-error), `include.ts` (shared Prisma include — attachments filtered to `messageId: null` so internal-message files never leak via list/detail), `attachment-schema.ts` (Zod, `safeAttachmentUrl` Blob-host allowlist — NEVER accept raw URLs).
+- **API**: `/api/creative-requests` (list role-scoped: fulfiller roles marketing/owner/head_office/admin see all, centre roles only their own; create open to all roles), `/[id]` (GET 404s non-participants — no existence leak; PATCH: fulfiller transitions/assign, requester may only cancel while new/briefed), `/[id]/messages` (internal notes filtered at the QUERY level for requesters; `internal` flag forced false for non-fulfillers).
+- **UI**: `/requests` is role-adaptive — kanban board (fulfillers) vs "My requests" + intake modal (centre roles). Type picker sets default due date from `TURNAROUND_BUSINESS_DAYS`.
+- **Uploads** go through the existing `/api/upload` (Vercel Blob) and URLs are validated against the Blob host on every write path.
+- **Proofing loop (Phase 2)**: `CreativeRequestProof` — versioned per request, three-state decisions (`approved` / `approved_with_changes` / `changes_requested`, notes required for the latter two) via `/api/creative-requests/[id]/proofs` (+`/[proofId]/decision`). Proof upload auto-transitions to `in_review` (the ONLY way in — manual PATCH to `in_review` 409s); decisions drive status via `DECISION_TO_STATUS`. Only the LATEST undecided proof is decidable; superseded proofs stay as history.
+- **Pause clock**: `pausedAt`/`pausedMs` on `CreativeRequest` — the turnaround clock stops while `in_review` (waiting on the requester). ALL status writes go through `applyStatusChange()` in `src/lib/creative-request/status-change.ts` (stamps stage timestamps + banks pause time, Int32-clamped); never set `status` on a request inline. UI shows `effectiveDueDate()` = dueDate + banked/live pause.
+- **Checklists**: `CreativeRequest.checklist` Json (`[{label, done}]`), seeded from `DEFAULT_CHECKLISTS[type]` at create, fulfiller-only to edit.
 
 ## Staff Induction & Training LMS (hard-gated)
 - **Gate is the point**: a new starter cannot be rostered or clock in until essential training is complete AND (for genuine new hires) a State Manager/Admin signs off their week-1 practical. Single source of truth: `src/lib/induction.ts` — `assertUserCleared(userId)` (throws `ApiError.forbidden`), `getInductionReadiness(userId)`, `recomputeInductionState`, `onModuleProgressed`. Pure edge-safe helpers (for middleware) in `src/lib/induction-lock.ts`.

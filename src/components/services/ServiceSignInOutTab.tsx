@@ -15,7 +15,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, LogIn, LogOut, Loader2, Check } from "lucide-react";
+import { Search, LogIn, LogOut, Loader2, Check, Sparkles } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -45,6 +45,8 @@ interface RollRecord {
   signOutTime: string | null;
   signedInByName?: string | null;
   signedOutByName?: string | null;
+  /** Never signed in on an earlier day — their first ever session. */
+  isFirstSession?: boolean;
 }
 
 const hhmm = (iso: string | null) =>
@@ -170,6 +172,16 @@ export function ServiceSignInOutTab({
                   <p className="text-base font-semibold text-foreground truncate">
                     {c.child.firstName} {c.child.surname}
                   </p>
+                  {/* Their first ever session. Above the times, because
+                      it changes how you greet them and who you check the
+                      handover with — and there's nobody at the door who
+                      recognises them. */}
+                  {c.isFirstSession && (
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded-full bg-brand text-white uppercase tracking-wide">
+                      <Sparkles className="w-3 h-3" />
+                      First session — introduce yourself
+                    </p>
+                  )}
                   <p className="text-xs text-muted truncate">
                     {done
                       ? `In ${inAt} · Out ${outAt}${c.signedOutByName ? ` · ${c.signedOutByName}` : ""}`

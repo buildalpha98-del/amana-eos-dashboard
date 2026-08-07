@@ -6,7 +6,13 @@ import { ApiError } from "@/lib/api-error";
 /**
  * GET /api/parent/children/[id]/gallery
  *
- * Returns all ParentPosts tagged to this child that have media (photos).
+ * Every photo of this child in one place: posts they're tagged in, plus
+ * the first-day photo staff sent their family.
+ *
+ * The first-day photo lives on the AttendanceRecord rather than as a
+ * post — it goes to one family, not the centre's feed — so without this
+ * it was reachable only by scrolling back through Messages. A parent
+ * looking for a picture of their child looks in the child's gallery.
  */
 export const GET = withParentAuth(async (_req, ctx) => {
   const params = await ctx.params;
@@ -50,16 +56,43 @@ export const GET = withParentAuth(async (_req, ctx) => {
     take: 50,
   });
 
+  // First-day photos sent to this family for this child.
+  const firstDayPhotos = await prisma.attendanceRecord.findMany({
+    where: { childId, firstDayPhotoUrl: { not: null } },
+    select: {
+      id: true,
+      firstDayPhotoUrl: true,
+      firstDayPhotoSentAt: true,
+      date: true,
+      service: { select: { name: true } },
+    },
+    orderBy: { date: "desc" },
+    take: 10,
+  });
+
   // Flatten into a gallery-friendly format
-  const gallery = posts.flatMap((post) =>
-    post.mediaUrls.map((url, i) => ({
-      id: `${post.id}-${i}`,
-      url,
-      postTitle: post.title,
-      postType: post.type,
-      authorName: post.author?.name ?? "Centre",
-      createdAt: post.createdAt,
+  const gallery = [
+    ...posts.flatMap((post) =>
+      post.mediaUrls.map((url, i) => ({
+        id: `${post.id}-${i}`,
+        url,
+        postTitle: post.title,
+        postType: post.type,
+        authorName: post.author?.name ?? "Centre",
+        createdAt: post.createdAt,
+      })),
+    ),
+    ...firstDayPhotos.map((r) => ({
+      id: `first-day-${r.id}`,
+      url: r.firstDayPhotoUrl as string,
+      postTitle: "First day",
+      postType: "first_day",
+      authorName: r.service?.name ?? "Centre",
+      createdAt: r.firstDayPhotoSentAt ?? r.date,
     })),
+  ].sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   return NextResponse.json(gallery);

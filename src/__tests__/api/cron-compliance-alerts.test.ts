@@ -26,6 +26,24 @@ vi.mock("@/lib/email-templates", () => ({
   })),
 }));
 
+// Nudge recipient resolution (2026-07-24 policy: cert owner gets NO direct
+// email — recipients are service inbox + leadership + opted-in users). The
+// real resolver hits prisma; mock it so tests control the recipient list.
+const NUDGE_EMAILS = ["centre-inbox@test.com", "leadership@test.com"];
+const resolveNudgeRecipients = vi.fn();
+vi.mock("@/lib/notification-recipients", () => ({
+  resolveNudgeRecipients: (...args: unknown[]) => resolveNudgeRecipients(...args),
+}));
+
+function nudgeRecipients(emails: string[]) {
+  return {
+    emails,
+    serviceEmail: emails[0] ?? null,
+    missingServiceInbox: emails.length === 0,
+    users: [],
+  };
+}
+
 vi.mock("@/lib/logger", () => ({
   logger: {
     debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(),
@@ -105,7 +123,8 @@ function setup(certs: ReturnType<typeof makeCert>[], opts?: { existingAlertKeys?
   const existingAlerts = opts?.existingAlertKeys ?? new Set<string>();
 
   prismaMock.complianceCertificate.findMany.mockResolvedValue(certs);
-  prismaMock.user.findMany.mockResolvedValue([]); // no coordinators by default
+  prismaMock.user.findMany.mockResolvedValue([]); // visa pass: no expiring visas
+  resolveNudgeRecipients.mockResolvedValue(nudgeRecipients(NUDGE_EMAILS));
   prismaMock.complianceCertificateAlert.findUnique.mockImplementation((args: {
     where: { certificateId_threshold: { certificateId: string; threshold: number } };
   }) => {
@@ -162,10 +181,13 @@ describe("GET /api/cron/compliance-alerts", () => {
     expect(body.alertsRecorded).toBe(1);
     expect(body.skippedDuplicates).toBe(0);
 
-    // email body
+    // email goes to the resolved nudge recipients — NOT the cert owner
+    // directly (2026-07-24 policy; the owner still gets the bell notif).
     expect(resendSend).toHaveBeenCalledTimes(1);
     const emailCall = resendSend.mock.calls[0][0] as { to: string[] };
-    expect(emailCall.to).toContain("staff@test.com");
+    expect(emailCall.to).toEqual(NUDGE_EMAILS);
+    expect(emailCall.to).not.toContain("staff@test.com");
+    expect(resolveNudgeRecipients).toHaveBeenCalledWith("svc-1");
 
     // in-app notif
     const notifCall = prismaMock.userNotification.create.mock.calls[0][0] as {
@@ -281,35 +303,47 @@ describe("GET /api/cron/compliance-alerts", () => {
     expect(body.alertsRecorded).toBe(1);
   });
 
-  it("cc's active coordinators for the cert's service", async () => {
+  it("emails the nudge recipients resolved for the cert's service", async () => {
     const cert = makeCert({
       id: "cc1",
       expiryDate: daysFromNow(5),
       serviceId: "svc-9",
       userEmail: "staff@test.com",
     });
-    prismaMock.complianceCertificate.findMany.mockResolvedValue([cert]);
-    prismaMock.complianceCertificateAlert.findUnique.mockResolvedValue(null);
-    prismaMock.complianceCertificateAlert.create.mockResolvedValue({ id: "a" });
-    prismaMock.userNotification.create.mockResolvedValue({ id: "n" });
-    prismaMock.auditInstance.findMany.mockResolvedValue([]);
-    prismaMock.user.findMany.mockImplementation((args: { where: { role?: string; serviceId?: string } }) => {
-      if (args.where.role === "member" && args.where.serviceId === "svc-9") {
-        return Promise.resolve([
-          { email: "coord1@test.com" },
-          { email: "coord2@test.com" },
-        ]);
-      }
-      return Promise.resolve([]);
-    });
+    setup([cert]);
+    resolveNudgeRecipients.mockImplementation((serviceId: string | null) =>
+      Promise.resolve(
+        nudgeRecipients(
+          serviceId === "svc-9"
+            ? ["svc9-inbox@test.com", "leader@test.com"]
+            : [],
+        ),
+      ),
+    );
 
     await GET(authed());
 
+    expect(resolveNudgeRecipients).toHaveBeenCalledWith("svc-9");
     expect(resendSend).toHaveBeenCalledTimes(1);
     const to = (resendSend.mock.calls[0][0] as { to: string[] }).to;
-    expect(to).toContain("staff@test.com");
-    expect(to).toContain("coord1@test.com");
-    expect(to).toContain("coord2@test.com");
+    expect(to).toEqual(["svc9-inbox@test.com", "leader@test.com"]);
+    // the owner is bell-only under the nudge policy
+    expect(to).not.toContain("staff@test.com");
+  });
+
+  it("no resolvable recipients → in-app notification only, no email, no dedup", async () => {
+    const cert = makeCert({ id: "norecip", expiryDate: daysFromNow(5) });
+    setup([cert]);
+    resolveNudgeRecipients.mockResolvedValue(nudgeRecipients([]));
+
+    const res = await GET(authed());
+    const body = await res.json();
+
+    expect(body.emailsSent).toBe(0);
+    expect(body.notificationsCreated).toBe(1); // bell still surfaces it
+    expect(body.alertsRecorded).toBe(0); // no dedup row — retried next run
+    expect(resendSend).not.toHaveBeenCalled();
+    expect(prismaMock.complianceCertificateAlert.create).not.toHaveBeenCalled();
   });
 
   it("skips certs without an active user (no one to notify)", async () => {

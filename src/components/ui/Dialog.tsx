@@ -53,6 +53,11 @@ function DialogContent({
         // Desktop: centered modal
         "fixed z-50 w-full bg-card shadow-2xl",
         "md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:p-6",
+        // Desktop had NO height cap: a tall form grew past the viewport
+        // with its top and bottom clipped off and no way to scroll to
+        // them. The mobile sheet has always had this; desktop was simply
+        // missing it, so every long dialog in the app was affected.
+        "md:max-h-[85vh] md:overflow-y-auto md:overscroll-contain",
         "md:data-[state=open]:animate-in md:data-[state=open]:fade-in md:data-[state=open]:zoom-in-95",
         "md:data-[state=closed]:animate-out md:data-[state=closed]:fade-out md:data-[state=closed]:zoom-out-95",
         // Mobile: bottom sheet

@@ -18,6 +18,17 @@ interface CheckInput {
    * someone who was told the room is called Amana Afternoons.
    */
   sessionTimes?: SessionTimes | null;
+  /**
+   * The centre (or this room) isn't running that day — a pupil-free day,
+   * a closure. Checked BEFORE spots, because "we're closed" is the true
+   * answer and "full" would be a lie.
+   */
+  blockedOutReason?: string | null;
+  /**
+   * Whether this child already holds a permanent booking for this room.
+   * Only consulted when the room is set to "enrolled" availability.
+   */
+  childEnrolledInSession?: boolean;
 }
 
 export type CheckResult =
@@ -46,7 +57,11 @@ const DAY_KEY = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
  * 3. session-type must be enabled
  * 4. booking date's day-of-week must be in settings.days[]
  * 5. now + cutOffHours must not exceed bookingDate
- * 6. currentCasualBookings must be < spots
+ * 6. an "enrolled" room only takes children already booked into it
+ * 7. currentCasualBookings must be < spots
+ *
+ * A block-out (closure / pupil-free day) short-circuits ahead of all of
+ * them, because "we're closed" is the honest answer.
  */
 export function checkCasualBookingAllowed(input: CheckInput): CheckResult {
   const { settings, sessionType, bookingDate, now, currentCasualBookings } = input;
@@ -79,6 +94,17 @@ export function checkCasualBookingAllowed(input: CheckInput): CheckResult {
     };
   }
 
+  // Closed beats every other reason. Telling a family the room is full
+  // on a day the centre isn't open would be both wrong and infuriating.
+  if (input.blockedOutReason !== undefined && input.blockedOutReason !== null) {
+    return {
+      ok: false,
+      reason: input.blockedOutReason
+        ? `${room} isn't running that day — ${input.blockedOutReason}.`
+        : `${room} isn't running that day.`,
+    };
+  }
+
   const dayKey = DAY_KEY[bookingDate.getUTCDay()];
   if (!s.days.includes(dayKey)) {
     return {
@@ -92,6 +118,17 @@ export function checkCasualBookingAllowed(input: CheckInput): CheckResult {
     return {
       ok: false,
       reason: `Bookings must be made at least ${s.cutOffHours} hour${s.cutOffHours === 1 ? "" : "s"} before the session`,
+    };
+  }
+
+  // Enrolled-only rooms: term-time before/after school care where the
+  // spare seats exist for families already in the room, not as a public
+  // booking channel. Unset means "all", the behaviour every centre has
+  // had until now.
+  if (s.availability === "enrolled" && input.childEnrolledInSession === false) {
+    return {
+      ok: false,
+      reason: `${room} casual spots are for children already booked into it. ${ASK_OFFICE}`,
     };
   }
 

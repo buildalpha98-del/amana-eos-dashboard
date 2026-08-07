@@ -6,6 +6,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useMarkAbsent, type BookingRecord } from "@/hooks/useParentPortal";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { programmeName } from "@/lib/programme-names";
 
 const NOTES_LIMIT = 500;
 const UPLOAD_ENDPOINT = "/api/parent/upload/absence-cert";
@@ -99,7 +100,7 @@ export function MarkAbsentSheet({ booking, onClose }: Props) {
       <div className="px-3 pb-2 space-y-5">
         {booking && (
           <p className="text-sm text-muted">
-            {booking.child.firstName}&apos;s {booking.sessionType.toUpperCase()} session
+            {booking.child.firstName}&apos;s {programmeName(booking.sessionType)} session
           </p>
         )}
 

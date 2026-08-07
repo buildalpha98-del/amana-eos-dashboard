@@ -29,6 +29,15 @@ export const viewport: Viewport = {
   // It was there to stop iOS zoom-on-focus; the real fix for that is
   // 16px inputs, which the form now uses.
   themeColor: "#004E64",
+  /**
+   * Lets the page paint into the notch and home-indicator areas, and —
+   * critically — is what makes env(safe-area-inset-*) return anything
+   * other than 0. The parent app's bottom tab bar has been padding
+   * itself with safe-area-inset-bottom since it was written; without
+   * this the value was always 0 and the bar sat under the home
+   * indicator on every notched iPhone.
+   */
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
