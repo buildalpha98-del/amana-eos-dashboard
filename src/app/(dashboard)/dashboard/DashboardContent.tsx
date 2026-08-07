@@ -51,6 +51,7 @@ import { L10PrepWidget } from "@/components/dashboard/L10PrepWidget";
 import { ComplianceOverviewWidget } from "@/components/dashboard/ComplianceOverviewWidget";
 import { StaffOnboardingWidget } from "@/components/dashboard/StaffOnboardingWidget";
 import { MarketingDashboard } from "@/components/dashboard/MarketingDashboard";
+import { CentreDashboard } from "@/components/dashboard/CentreDashboard";
 
 // ─── Section Divider ──────────────────────────────────────────
 
@@ -215,19 +216,30 @@ export function DashboardContent() {
 
   const role = getDashboardRole((session?.user?.role as string) || "");
 
-  // Staff (educator) and Marketing get their own dedicated dashboards
-  if (role === "staff") {
-    return <StaffDashboard />;
-  }
-
   if (role === "marketing") {
     return <MarketingDashboard />;
   }
 
-  // member (Director of Service) gets the StaffDashboard which already
-  // includes DirectorAnalyticsWidget — keep existing behavior
-  if (role === "member") {
-    return <StaffDashboard />;
+  // Educators (staff) and Directors of Service (member) run a centre, not
+  // a network. They land on the centre view — today at THIS service —
+  // with their personal hub kept underneath it rather than replaced.
+  // State Managers and above continue to the command centre below.
+  if (role === "staff" || role === "member") {
+    const serviceId = (
+      session?.user as { serviceId?: string | null } | undefined
+    )?.serviceId;
+    return (
+      <div className="space-y-8">
+        <CentreDashboard
+          serviceId={serviceId}
+          userName={session?.user?.name}
+        />
+        <div>
+          <SectionDivider label="Your work" />
+          <StaffDashboard />
+        </div>
+      </div>
+    );
   }
 
   // EOS roles (viewer / implementer) are EOS-only and org-wide. They land

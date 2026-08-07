@@ -10,6 +10,12 @@
 import { baseLayout, buttonHtml, escapeHtml, BRAND_COLOR } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
+// User-entered strings (entity titles, people's names, free-text messages)
+// MUST pass through escapeHtml() before landing in email HTML — titles come
+// straight from open POST endpoints (/api/todos, /api/issues, …), so anyone
+// authenticated can put markup in them. Subjects stay raw (plain text, not
+// HTML). Pre-rendered fragments like buttonHtml() output stay raw too.
+
 // ─── To-Do Reminder ──────────────────────────────────────────
 
 export function todoReminderEmail(
@@ -24,7 +30,7 @@ export function todoReminderEmail(
       (t) => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:14px;">
-        ${t.title}
+        ${escapeHtml(t.title)}
       </td>
       <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#ef4444;font-size:13px;white-space:nowrap;">
         ${t.dueDate}
@@ -38,7 +44,7 @@ export function todoReminderEmail(
       To-Do Reminder
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${name}, the following to-dos are due soon or overdue:
+      Hi ${escapeHtml(name)}, the following to-dos are due soon or overdue:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr style="background-color:#f9fafb;">
@@ -74,17 +80,17 @@ export function ticketNotificationEmail(
       New Ticket Assigned
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${name}, a new support ticket has been assigned to you:
+      Hi ${escapeHtml(name)}, a new support ticket has been assigned to you:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr>
         <td style="padding:12px 16px;background-color:#f9fafb;">
           <p style="margin:0 0 4px;color:#111827;font-size:15px;font-weight:600;">
-            ${ticket.title}
+            ${escapeHtml(ticket.title)}
           </p>
           <p style="margin:0;color:#6b7280;font-size:13px;">
-            Priority: <span style="color:${priorityColor};font-weight:600;text-transform:capitalize;">${ticket.priority}</span>
-            ${ticket.raisedBy ? ` &bull; Raised by: ${ticket.raisedBy}` : ""}
+            Priority: <span style="color:${priorityColor};font-weight:600;text-transform:capitalize;">${escapeHtml(ticket.priority)}</span>
+            ${ticket.raisedBy ? ` &bull; Raised by: ${escapeHtml(ticket.raisedBy)}` : ""}
           </p>
         </td>
       </tr>
@@ -131,9 +137,9 @@ export async function todoAssignedEmail(
     defaultSubject: TODO_ASSIGNED_DEFAULT_SUBJECT,
     defaultBody: TODO_ASSIGNED_DEFAULT_BODY,
     vars: {
-      assigneeName,
-      todoTitle,
-      assignerName,
+      assigneeName: escapeHtml(assigneeName),
+      todoTitle: escapeHtml(todoTitle),
+      assignerName: escapeHtml(assignerName),
       viewButton: buttonHtml("View To-Dos", dashboardUrl),
     },
     wrap: baseLayout,
@@ -173,9 +179,9 @@ export async function rockAssignedEmail(
     {{viewButton}}
   `,
     vars: {
-      assigneeName,
-      rockTitle,
-      assignerName,
+      assigneeName: escapeHtml(assigneeName),
+      rockTitle: escapeHtml(rockTitle),
+      assignerName: escapeHtml(assignerName),
       viewButton: buttonHtml("View Rocks", dashboardUrl),
     },
     wrap: baseLayout,
@@ -215,9 +221,9 @@ export async function issueAssignedEmail(
     {{viewButton}}
   `,
     vars: {
-      assigneeName,
-      issueTitle,
-      assignerName,
+      assigneeName: escapeHtml(assigneeName),
+      issueTitle: escapeHtml(issueTitle),
+      assignerName: escapeHtml(assignerName),
       viewButton: buttonHtml("View Issues", dashboardUrl),
     },
     wrap: baseLayout,
@@ -293,10 +299,10 @@ export function complianceAlertEmail(
       (c) => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:13px;">
-        ${c.label || c.type}
+        ${escapeHtml(c.label || c.type)}
       </td>
       <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;">
-        ${c.service}
+        ${escapeHtml(c.service)}
       </td>
       <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;">
         <span style="color:${urgencyColor[c.urgency] || "#6b7280"};font-weight:600;">
@@ -315,7 +321,7 @@ export function complianceAlertEmail(
       Compliance Certificates Expiring
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${name}, the following certificates need attention:
+      Hi ${escapeHtml(name)}, the following certificates need attention:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr style="background-color:#f9fafb;">
@@ -420,7 +426,7 @@ export function dailyDigestEmail(
 
   const html = baseLayout(`
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      Good Morning, ${name}
+      Good Morning, ${escapeHtml(name)}
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
       Here is what needs your attention today:
@@ -476,13 +482,13 @@ export function smartDigestEmail(
   const insightsHtml = aiInsights
     .map(
       (insight) =>
-        `<tr><td style="padding:8px 12px;font-size:13px;color:#4c1d95;border-bottom:1px solid #ede9fe;">${insight}</td></tr>`
+        `<tr><td style="padding:8px 12px;font-size:13px;color:#4c1d95;border-bottom:1px solid #ede9fe;">${escapeHtml(insight)}</td></tr>`
     )
     .join("");
 
   const html = baseLayout(`
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
-      Good Morning, ${name}
+      Good Morning, ${escapeHtml(name)}
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
       Here is your AI-powered morning briefing:
@@ -610,7 +616,7 @@ export function notificationDigestEmail(
               ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#f59e0b;margin-right:8px;vertical-align:middle;"></span>`
               : `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#3b82f6;margin-right:8px;vertical-align:middle;"></span>`;
 
-          return `<tr><td style="padding:8px 12px;font-size:13px;color:#374151;border-bottom:1px solid #f3f4f6;line-height:1.5;">${sevDot}${item.message}</td></tr>`;
+          return `<tr><td style="padding:8px 12px;font-size:13px;color:#374151;border-bottom:1px solid #f3f4f6;line-height:1.5;">${sevDot}${escapeHtml(item.message)}</td></tr>`;
         })
         .join("");
 
@@ -642,7 +648,7 @@ export function notificationDigestEmail(
 
   const html = baseLayout(`
     <h2 style="margin:0 0 4px;color:#111827;font-size:18px;font-weight:600;">
-      Good morning, ${firstName}!
+      Good morning, ${escapeHtml(firstName)}!
     </h2>
     <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.6;">
       Here's your daily summary. These items need your attention:
@@ -711,7 +717,7 @@ export function openShiftPostedEmail(
   const rowsHtml = shifts
     .map((s) => {
       const session = SESSION_LABEL[s.sessionType] ?? s.sessionType.toUpperCase();
-      const roleSuffix = s.role ? ` · ${s.role}` : "";
+      const roleSuffix = s.role ? ` · ${escapeHtml(s.role)}` : "";
       return `
         <tr>
           <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#111827;font-size:14px;font-weight:600;white-space:nowrap;">
@@ -727,22 +733,22 @@ export function openShiftPostedEmail(
 
   const introCopy =
     count === 1
-      ? `An open shift was just posted at ${serviceName}. First to claim wins it.`
-      : `${count} open shifts were just posted at ${serviceName}. First to claim wins them.`;
+      ? `An open shift was just posted at ${escapeHtml(serviceName)}. First to claim wins it.`
+      : `${count} open shifts were just posted at ${escapeHtml(serviceName)}. First to claim wins them.`;
 
   const html = baseLayout(`
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Open shift${count === 1 ? "" : "s"} available
     </h2>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Hi ${name}, ${introCopy}
+      Hi ${escapeHtml(name)}, ${introCopy}
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       ${rowsHtml}
     </table>
     ${buttonHtml("Open My Portal", openShiftsUrl)}
     <p style="margin:16px 0 0;color:#9ca3af;font-size:11px;text-align:center;">
-      You're getting this because you're rostered at ${serviceName}.
+      You're getting this because you're rostered at ${escapeHtml(serviceName)}.
     </p>
   `);
 

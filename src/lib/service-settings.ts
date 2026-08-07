@@ -20,6 +20,17 @@ export const feeTierSchema = z.object({
   start: z.string().regex(HHMM).optional(),
   end: z.string().regex(HHMM).optional(),
   amountCents: z.number().int().min(0).max(1_000_00),
+  /**
+   * What a CASUAL booking at this fee costs, when it differs from the
+   * regular rate. Most centres charge more for a casual day because the
+   * place wasn't committed to.
+   */
+  casualAmountCents: z.number().int().min(0).max(1_000_00).optional(),
+  /**
+   * The staff-discounted rate. Kept beside the others rather than as a
+   * separate fee so a rate rise moves one row, not three.
+   */
+  staffAmountCents: z.number().int().min(0).max(1_000_00).optional(),
 });
 export type FeeTier = z.infer<typeof feeTierSchema>;
 
@@ -34,6 +45,22 @@ const roomSchema = z.object({
   start: z.string().regex(HHMM),
   end: z.string().regex(HHMM),
   fees: z.array(feeTierSchema).max(12).optional(),
+  /**
+   * How many children this room can hold at once. Optional because most
+   * centres run one number for the whole service — but a room that
+   * carries its own capacity can be checked against approved places and
+   * against the educators its ratio demands (see room-configuration.ts).
+   */
+  capacity: z.number().int().min(0).max(500).optional(),
+  /**
+   * Minimum educator:child ratio for this room, "1:15" style. Omitted
+   * means the service (or federal) default applies — a room should not
+   * silently carry a looser ratio than the service it sits in.
+   */
+  ratio: z
+    .string()
+    .regex(/^\d+:\d+$/, "Ratio looks like 1:15")
+    .optional(),
 });
 
 // ── sessionTimes ────────────────────────────────────────────
@@ -173,6 +200,21 @@ const sessionSettingSchema = z.object({
   spots: z.number().int().nonnegative(),
   cutOffHours: z.number().int().nonnegative(),
   days: z.array(dayEnum),
+  /**
+   * Who may book a casual spot in this room.
+   *
+   * "all" — any family at the centre. This is what vacation care needs:
+   *   a child who never comes after school still comes in the holidays.
+   * "enrolled" — only children who already hold a permanent booking for
+   *   this room. Term-time before/after school care is usually this:
+   *   the spare seats exist for the families already in the room, not
+   *   as a public booking channel.
+   *
+   * Defaults to "all" when unset, which is the behaviour every centre
+   * has had until now — changing the default would silently close
+   * bookings that are open today.
+   */
+  availability: z.enum(["all", "enrolled"]).optional(),
 });
 
 /** Service-wide booking policy, as opposed to per-session config. */

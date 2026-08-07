@@ -96,13 +96,34 @@ export const POST = withParentAuth(async (req, { parent }) => {
           },
         });
 
+        const blockOut = await tx.serviceBlockOutDate.findFirst({
+          where: {
+            serviceId,
+            date: bookingDate,
+            OR: [{ sessionType: null }, { sessionType: b.sessionType }],
+          },
+          select: { reason: true },
+        });
+
+        const enrolledCount = await tx.booking.count({
+          where: {
+            childId,
+            serviceId,
+            sessionType: b.sessionType,
+            type: "permanent",
+            status: { in: ["requested", "confirmed"] },
+          },
+        });
+
         const check = checkCasualBookingAllowed({
           settings,
           sessionType: b.sessionType,
           bookingDate,
           now,
           currentCasualBookings: currentCount,
-        sessionTimes: service.sessionTimes as SessionTimes | null,
+          sessionTimes: service.sessionTimes as SessionTimes | null,
+          blockedOutReason: blockOut ? (blockOut.reason ?? "") : null,
+          childEnrolledInSession: enrolledCount > 0,
         });
         if (!check.ok) {
           throw ApiError.badRequest(`Booking ${i + 1}: ${check.reason}`);

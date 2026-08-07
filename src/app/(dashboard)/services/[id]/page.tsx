@@ -71,9 +71,14 @@ import { ServiceReflectionsTab } from "@/components/services/ServiceReflectionsT
 import { ServiceIncidentsTab } from "@/components/services/ServiceIncidentsTab";
 import { ServiceObservationsTab } from "@/components/services/ServiceObservationsTab";
 import { ServiceMedicationTab } from "@/components/services/ServiceMedicationTab";
+import { ServiceRegistersTab } from "@/components/services/ServiceRegistersTab";
+import { ServiceHeadcountsTab } from "@/components/services/ServiceHeadcountsTab";
 import { ServiceRiskTab } from "@/components/services/ServiceRiskTab";
 import { ServiceCertExpiryCard } from "@/components/services/ServiceCertExpiryCard";
 import { ServiceRatiosTab } from "@/components/services/RatioWidget";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
+import ActivityLibraryPage from "@/app/(dashboard)/activity-library/page";
+import { ServiceNavTree } from "@/components/services/ServiceNavTree";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { isAdminRole } from "@/lib/role-permissions";
 
@@ -176,6 +181,10 @@ const tabGroups: TabGroup[] = [
     icon: BookOpen,
     subTabs: [
       { key: "activities", label: "Activities", icon: LayoutList },
+      // 2026-08-06: the library lives WHERE programming happens. It used
+      // to be a top-level nav item, which meant leaving the centre you
+      // were planning for to fetch a template for it.
+      { key: "library", label: "Activity Library", icon: BookOpen },
       { key: "menu", label: "Menu", icon: UtensilsCrossed },
       { key: "observations", label: "Observations", icon: Eye },
     ],
@@ -209,6 +218,8 @@ const tabGroups: TabGroup[] = [
       // this is where Director of Service + Educators log their own.
       { key: "incidents", label: "Incidents", icon: AlertTriangle },
       { key: "risk", label: "Risk", icon: ShieldCheck },
+      { key: "headcounts", label: "Headcounts", icon: Users },
+      { key: "registers", label: "Registers", icon: ClipboardList },
       { key: "comms", label: "Comms", icon: Radio },
     ],
   },
@@ -264,6 +275,7 @@ export default function ServiceDetailPage() {
   const urlSub = searchParams.get("sub");
 
   const [activeGroup, setActiveGroup] = useState(urlTab || "today");
+  const [navSheetOpen, setNavSheetOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {
       daily: "attendance",
@@ -413,17 +425,65 @@ export default function ServiceDetailPage() {
         </span>
       </div>
 
-      <ServiceTabBarV2
-        groups={visibleGroups}
-        activeGroup={activeGroup}
-        onGroupChange={handleGroupChange}
-        activeSub={currentSubKey}
-        onSubChange={handleSubTabChange}
-        badgeFor={getBadge}
-      />
+      {/* Touch devices keep the tab bar for fast switching — a 240px
+          rail on a phone is most of the screen — plus a button that
+          opens the SAME tree in a sheet, so "see everything at once"
+          isn't a desktop-only privilege. iPad portrait is 820px wide,
+          which lands here, and it's the device this is used on most. */}
+      <div className="lg:hidden">
+        <ServiceTabBarV2
+          groups={visibleGroups}
+          activeGroup={activeGroup}
+          onGroupChange={handleGroupChange}
+          activeSub={currentSubKey}
+          onSubChange={handleSubTabChange}
+          badgeFor={getBadge}
+        />
+        <button
+          type="button"
+          onClick={() => setNavSheetOpen(true)}
+          className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground active:bg-surface"
+        >
+          <LayoutList className="h-4 w-4 text-brand" />
+          All sections
+        </button>
+      </div>
+
+      <Dialog open={navSheetOpen} onOpenChange={setNavSheetOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>All sections</DialogTitle>
+          <div className="mt-3 max-h-[70vh] overflow-y-auto">
+            <ServiceNavTree
+              groups={visibleGroups}
+              activeGroup={activeGroup}
+              activeSub={currentSubKey}
+              onGroupChange={handleGroupChange}
+              onSubChange={(k) => {
+                handleSubTabChange(k);
+                // Choosing a page is the whole reason the sheet is open.
+                setNavSheetOpen(false);
+              }}
+              badgeFor={getBadge}
+              className="w-full border-0 pr-0"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="lg:flex lg:gap-6">
+        <div className="hidden lg:block">
+          <ServiceNavTree
+            groups={visibleGroups}
+            activeGroup={activeGroup}
+            activeSub={currentSubKey}
+            onGroupChange={handleGroupChange}
+            onSubChange={handleSubTabChange}
+            badgeFor={getBadge}
+          />
+        </div>
 
       {/* ── Tab Content ──────────────────────────────────────── */}
-      <div className="min-h-[40vh]">
+      <div className="min-h-[40vh] lg:min-w-0 lg:flex-1">
         {/* Today group (no subtabs) — live ops snapshot */}
         {activeGroup === "today" && (
           <ServiceTodayTab serviceId={service.id} serviceName={service.name} />
@@ -487,6 +547,9 @@ export default function ServiceDetailPage() {
         {activeGroup === "program" && currentSubKey === "activities" && (
           <ServiceProgramTab serviceId={service.id} />
         )}
+        {activeGroup === "program" && currentSubKey === "library" && (
+          <ActivityLibraryPage />
+        )}
         {activeGroup === "program" && currentSubKey === "menu" && (
           <ServiceMenuTab serviceId={service.id} />
         )}
@@ -542,6 +605,16 @@ export default function ServiceDetailPage() {
         {activeGroup === "compliance" && currentSubKey === "risk" && (
           <ServiceRiskTab serviceId={service.id} />
         )}
+        {activeGroup === "compliance" && currentSubKey === "headcounts" && (
+          <ServiceHeadcountsTab serviceId={service.id} />
+        )}
+        {activeGroup === "compliance" && currentSubKey === "registers" && (
+          <ServiceRegistersTab
+            serviceId={service.id}
+            /* A staff injury register isn't for the whole floor to read. */
+            canSeeStaffIncidents={role === "member" || hasMinRole(role, "admin")}
+          />
+        )}
         {activeGroup === "compliance" && currentSubKey === "comms" && (
           <ServiceCommTab serviceId={service.id} />
         )}
@@ -562,6 +635,7 @@ export default function ServiceDetailPage() {
             serviceName={service.name}
           />
         )}
+      </div>
       </div>
     </div>
   );

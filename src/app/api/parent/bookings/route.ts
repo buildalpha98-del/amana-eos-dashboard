@@ -162,6 +162,29 @@ export const POST = withParentAuth(async (req, { parent }) => {
         },
       });
 
+      // Closures and pupil-free days. Matches either a whole-centre
+      // block-out (sessionType null) or one for this room.
+      const blockOut = await tx.serviceBlockOutDate.findFirst({
+        where: {
+          serviceId,
+          date: bookingDate,
+          OR: [{ sessionType: null }, { sessionType }],
+        },
+        select: { reason: true },
+      });
+
+      // "Enrolled only" rooms need to know whether this child already
+      // holds a permanent booking here.
+      const enrolledCount = await tx.booking.count({
+        where: {
+          childId,
+          serviceId,
+          sessionType,
+          type: "permanent",
+          status: { in: ["requested", "confirmed"] },
+        },
+      });
+
       const check = checkCasualBookingAllowed({
         settings,
         sessionType,
@@ -169,6 +192,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
         now: new Date(),
         currentCasualBookings: currentCount,
         sessionTimes: service.sessionTimes as SessionTimes | null,
+        blockedOutReason: blockOut ? (blockOut.reason ?? "") : null,
+        childEnrolledInSession: enrolledCount > 0,
       });
       if (!check.ok) {
         throw ApiError.badRequest(check.reason);

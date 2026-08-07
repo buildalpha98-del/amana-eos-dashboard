@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { AlertTriangle, Save, CalendarClock } from "lucide-react";
+import { Save, CalendarClock, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { ENROLMENTS_EMAIL } from "@/lib/enrol-draft";
 import { Button } from "@/components/ui/Button";
 import { mutateApi } from "@/lib/fetch-api";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -14,7 +15,6 @@ import {
   activeSessionKeys,
   roomFees,
   roomLabel,
-  RECURRING_CANCEL_DAYS,
   type BookingPolicy,
   type CasualBookingSettings,
   type SessionTimes,
@@ -205,18 +205,27 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
 
   return (
     <div className="space-y-6">
-      {/* ── Info banner ─────────────────────────────────────── */}
+      {/* ── What's actually enforced ────────────────────────
+          This banner used to say "settings stored — not yet enforced".
+          That stopped being true when checkCasualBookingAllowed landed
+          and was wired into the parent create + bulk routes and the
+          cancellation route, but nobody deleted the warning. A stale
+          warning is worse than none: it tells a coordinator their
+          policy is decorative, so they stop trusting the settings. */}
       <div
         role="status"
-        className="flex items-start gap-3 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40 text-yellow-900 dark:text-yellow-200"
+        className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card"
       >
-        <AlertTriangle className="w-5 h-5 text-yellow-700 shrink-0 mt-0.5" />
+        <ShieldCheck className="w-5 h-5 text-brand shrink-0 mt-0.5" />
         <div className="text-sm leading-snug">
-          <p className="font-medium">Settings stored — not yet enforced</p>
-          <p className="text-yellow-800/90">
-            These settings are saved against the service but are{" "}
-            <strong>not yet enforced</strong> against parent-portal bookings.
-            Enforcement ships in a follow-up sub-project.
+          <p className="font-medium text-foreground">
+            These settings are enforced
+          </p>
+          <p className="text-muted">
+            Every one of them is checked on the server when a family books
+            through the app: the session has to be switched on, the day has
+            to be one you run, the cut-off has to be met, and there has to
+            be a spot left. Cancellation follows the policy below.
           </p>
         </div>
       </div>
@@ -378,6 +387,30 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                     aria-label={`${shortLabel(type)} cut-off hours`}
                   />
                 </label>
+                <label className="block text-xs text-muted col-span-2">
+                  Who can book a spot
+                  <select
+                    value={s.availability ?? "all"}
+                    disabled={!canEdit}
+                    onChange={(e) =>
+                      updateSession(type, {
+                        availability: e.target.value as "all" | "enrolled",
+                      })
+                    }
+                    className="mt-1 w-full px-2 py-1.5 text-sm border border-border rounded-md bg-bg focus:outline-none focus:ring-2 focus:ring-brand"
+                    aria-label={`${shortLabel(type)} who can book`}
+                  >
+                    <option value="all">Any family at the centre</option>
+                    <option value="enrolled">
+                      Only children already booked into this room
+                    </option>
+                  </select>
+                  <span className="mt-1 block text-2xs">
+                    Vacation care usually takes anyone; term-time before and
+                    after school care often only has room for the families
+                    already in it.
+                  </span>
+                </label>
               </div>
 
               <div>
@@ -456,13 +489,13 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
         <div className="pt-3 border-t border-border">
           <p className="text-sm text-foreground">Recurring bookings</p>
           <p className="text-xs text-muted mt-0.5">
-            Families can cancel a regular weekly booking{" "}
-            <strong>{RECURRING_CANCEL_DAYS} or more days ahead</strong>. Inside
-            that week they can&apos;t — the roster and catering are already set
-            against the number — so they mark the single day as{" "}
-            <strong>not attending</strong> instead, or message head office to
-            change the pattern. This applies at every centre and isn&apos;t
-            configurable here.
+            Families <strong>can&apos;t cancel</strong> a regular weekly
+            booking in the app. To skip a single day they mark the child as{" "}
+            <strong>not attending</strong>, which keeps the place; to change
+            the pattern itself they email{" "}
+            <strong>{ENROLMENTS_EMAIL}</strong>, because that&apos;s an
+            enrolment change with fee and CCS consequences. This applies at
+            every centre and isn&apos;t configurable here.
           </p>
         </div>
       </div>

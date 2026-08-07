@@ -606,6 +606,19 @@ model User {
   uploadedAttachments           Attachment[]                   @relation("AttachmentUploader")
   assignedTickets               SupportTicket[]                @relation("TicketAssignee")
   createdParentForms            ParentForm[]                   @relation("ParentFormCreator")
+  createdExcursions             ServiceExcursion[]             @relation("ExcursionCreator")
+  conductedHeadcounts           ServiceHeadcount[]             @relation("HeadcountConductor")
+  recordedVisitors              ServiceVisitor[]               @relation("VisitorRecordedBy")
+  staffIncidentsAbout           StaffIncidentReport[]          @relation("StaffIncidentSubject")
+  staffIncidentsReported        StaffIncidentReport[]          @relation("StaffIncidentReporter")
+  staffIncidentsSignedOff       StaffIncidentReport[]          @relation("StaffIncidentSignOff")
+  illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
+  illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
+  createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
+  createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
+  debtChases                    FamilyDebtContact[]            @relation("DebtChaser")
+  signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
+  reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
   dismissedNotifications        NotificationDismissal[]
   marketingPosts                MarketingPost[]                @relation("MarketingPostAssignee")
@@ -2516,8 +2529,15 @@ model Service {
   nurtureSteps   ParentNurtureStep[] @relation("ServiceNurtureSteps")
 
   // ── Holiday Quest Relations ──────────────────────────────
-  holidayQuests HolidayQuestDay[] @relation("ServiceHolidayQuest")
-  parentForms   ParentForm[]      @relation("ServiceParentForms")
+  holidayQuests  HolidayQuestDay[]     @relation("ServiceHolidayQuest")
+  parentForms    ParentForm[]          @relation("ServiceParentForms")
+  excursions     ServiceExcursion[]    @relation("ServiceExcursions")
+  headcounts     ServiceHeadcount[]    @relation("ServiceHeadcounts")
+  visitors       ServiceVisitor[]      @relation("ServiceVisitors")
+  staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
+  illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
+  blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
+  feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -4859,6 +4879,7 @@ model CentreContact {
   exitSurveys           ExitSurvey[]           @relation("ContactExitSurveys")
   sequenceEnrolments    SequenceEnrolment[]    @relation("ContactSequenceEnrolments")
   statements            Statement[]            @relation("ContactStatements")
+  debtContacts          FamilyDebtContact[]    @relation("ContactDebtChases")
   payments              Payment[]              @relation("ContactPayments")
   documents             ParentDocument[]       @relation("ContactDocuments")
   supportTickets        SupportTicket[]        @relation("ParentTickets")
@@ -6575,6 +6596,7 @@ model Child {
   authorisedPickups  AuthorisedPickup[]    @relation("ChildPickups")
   postTags           ParentPostChildTag[]  @relation("ChildPostTags")
   formSignatures     ParentFormSignature[] @relation("ChildFormSignatures")
+  illnessRecords     IllnessRecord[]       @relation("ChildIllnessRecords")
   attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
   statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
 
@@ -7096,11 +7118,26 @@ model ParentPost {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // ── The planning cycle (2026-08-06) ──────────────────────────────────
+  // A post can EXTEND an earlier one: you observed something, you did
+  // something about it, and this is that. NQS Element 1.3 is the
+  // assessment-and-planning cycle, and it's the element services most
+  // often sit on "Working Towards" — not because nobody observes, but
+  // because nothing shows what happened next.
+  //
+  // Self-relation rather than a join table: a follow-up extends exactly
+  // one post, and the chain is read in both directions (what did this
+  // come from / what came of it).
+  extendsPostId String?
+  extendsPost   ParentPost?  @relation("PostExtensions", fields: [extendsPostId], references: [id], onDelete: SetNull)
+  extensions    ParentPost[] @relation("PostExtensions")
+
   tags     ParentPostChildTag[]
   likes    ParentPostLike[]
   comments ParentPostComment[]
 
   @@index([serviceId])
+  @@index([extendsPostId])
   @@index([createdAt])
   @@index([status, publishAt])
 }
@@ -7174,8 +7211,337 @@ model ParentForm {
   updatedAt   DateTime  @updatedAt
 
   signatures ParentFormSignature[]
+  excursion  ServiceExcursion?     @relation("ExcursionForm")
 
   @@index([serviceId, status])
+}
+
+/// An excursion or incursion as a thing, not a form.
+///
+/// A permission slip is only half of it. Regulation 100-102 wants a risk
+/// assessment written BEFORE the outing and reviewed, and the service
+/// needs to know how many of the attending children have actually been
+/// signed for. Holding those together is the whole point: an excursion
+/// with 31 children and 8 signatures is a fact you want on one line,
+/// not something you reconstruct from a form list the night before.
+///
+/// Permissions reuse ParentForm with `perChild: true` rather than a
+/// second signature system — a signature is a signature, and the CWA
+/// shape is already exactly right for "signed for Abdul, not Amira".
+model ServiceExcursion {
+  id          String       @id @default(cuid())
+  serviceId   String
+  service     Service      @relation("ServiceExcursions", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// excursion (they leave) | incursion (someone comes in). Different
+  /// risk profiles, same paperwork shape.
+  kind        String       @default("excursion")
+  title       String
+  /// Where they're going. Null for an incursion.
+  destination String?
+  date        DateTime     @db.Date
+  /// The programme the outing belongs to, so attendance can be derived
+  /// from that day's bookings rather than kept as a second list that
+  /// drifts. SessionType, not free text.
+  sessionType SessionType?
+  departTime  String? // "HH:mm"
+  returnTime  String? // "HH:mm"
+  transport   String? // "Walking", "Chartered bus"…
+  notes       String?      @db.Text
+
+  /// Reg 101: the written risk assessment, and evidence someone senior
+  /// actually read it. Reviewed is a separate act from uploading.
+  riskAssessmentUrl          String?
+  riskAssessmentFileName     String?
+  riskAssessmentReviewedAt   DateTime?
+  riskAssessmentReviewedById String?
+  riskAssessmentReviewedBy   User?     @relation("ExcursionRiskReviewer", fields: [riskAssessmentReviewedById], references: [id], onDelete: SetNull)
+
+  /// The permission slip families sign. Optional only because an
+  /// incursion sometimes needs none.
+  formId String?     @unique
+  form   ParentForm? @relation("ExcursionForm", fields: [formId], references: [id], onDelete: SetNull)
+
+  headcounts ServiceHeadcount[] @relation("ExcursionHeadcounts")
+
+  status      String   @default("planned") // planned | completed | cancelled
+  createdById String?
+  createdBy   User?    @relation("ExcursionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceId, date])
+  @@index([serviceId, status])
+}
+
+/// A headcount or an evacuation drill.
+///
+/// Reg 168(2)(e) wants emergency evacuation rehearsed and recorded, and
+/// on an OSHC service a headcount is the routine act that catches a
+/// child who walked to the wrong gate. Both are the same shape: a moment
+/// in time, who was counted, and who says the count was right.
+///
+/// Counting STAFF and VISITORS as well as children is the part people
+/// skip and regulators ask about — an evacuation record that only counts
+/// children can't prove the building was cleared.
+model ServiceHeadcount {
+  id          String            @id @default(cuid())
+  serviceId   String
+  service     Service           @relation("ServiceHeadcounts", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// head_count | evacuation_drill | excursion_head_count | bus_run
+  kind        String            @default("head_count")
+  conductedAt DateTime          @default(now())
+  /// The programme running at the time, when there is one.
+  sessionType SessionType?
+  /// Set when this count belongs to an outing, so an excursion can show
+  /// its own counts rather than them floating loose in the register.
+  excursionId String?
+  excursion   ServiceExcursion? @relation("ExcursionHeadcounts", fields: [excursionId], references: [id], onDelete: SetNull)
+
+  childrenCount Int
+  staffCount    Int      @default(0)
+  visitorsCount Int      @default(0)
+  /// Who was counted, when the counter went child-by-child. Optional: a
+  /// quick gate count is a number, and pretending otherwise would push
+  /// people to skip recording it at all.
+  childIds      String[] @default([])
+
+  /// Drills only: how long the building took to clear, and what went
+  /// wrong. "Nothing" is a valid answer; null means nobody said.
+  evacuationSeconds Int?
+  issuesIdentified  String? @db.Text
+  notes             String? @db.Text
+
+  conductedById String?
+  conductedBy   User?     @relation("HeadcountConductor", fields: [conductedById], references: [id], onDelete: SetNull)
+  /// Countersigned by someone senior. A drill nobody reviewed is a drill
+  /// that taught nobody anything.
+  signedOffAt   DateTime?
+  signedOffById String?
+  signedOffBy   User?     @relation("HeadcountSignOff", fields: [signedOffById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([serviceId, conductedAt])
+  @@index([serviceId, kind])
+  @@index([excursionId])
+}
+
+/// Who came into the service, and when they left.
+///
+/// Reg 165-166: the service must know who is on the premises. It is also
+/// the register that makes a headcount honest — "23 children, 3 staff,
+/// 1 visitor" is only checkable if the visitor signed in somewhere.
+///
+/// Signed out is nullable on purpose: someone still in the building is
+/// the normal state, and it's what the "still on site" list is built
+/// from at close.
+model ServiceVisitor {
+  id           String    @id @default(cuid())
+  serviceId    String
+  service      Service   @relation("ServiceVisitors", fields: [serviceId], references: [id], onDelete: Cascade)
+  name         String
+  organisation String?
+  /// Why they're here: contractor, parent tour, regulator, maintenance…
+  purpose      String?
+  /// Who they're here to see.
+  visitingWhom String?
+  phone        String?
+  signedInAt   DateTime  @default(now())
+  signedOutAt  DateTime?
+  /// Recorded when a visitor's WWCC was sighted at the door. Null means
+  /// nobody checked — which is different from "they don't have one".
+  wwccSighted  Boolean   @default(false)
+  wwccNumber   String?
+  notes        String?   @db.Text
+  recordedById String?
+  recordedBy   User?     @relation("VisitorRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+
+  @@index([serviceId, signedInAt])
+  @@index([serviceId, signedOutAt])
+}
+
+/// A staff injury or near-miss. Deliberately separate from
+/// IncidentRecord, which is about children: the fields differ (workers
+/// compensation, body part, treatment) and mixing them makes both
+/// registers harder to read and to report from.
+model StaffIncidentReport {
+  id                    String    @id @default(cuid())
+  serviceId             String
+  service               Service   @relation("ServiceStaffIncidents", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// The person hurt. Nullable so a casual or contractor can be recorded
+  /// by name without an account.
+  userId                String?
+  user                  User?     @relation("StaffIncidentSubject", fields: [userId], references: [id], onDelete: SetNull)
+  staffName             String
+  occurredAt            DateTime
+  /// injury | near_miss | illness | property | other
+  incidentType          String    @default("injury")
+  severity              String    @default("minor") // minor | moderate | serious | notifiable
+  location              String?
+  description           String    @db.Text
+  bodyPart              String?
+  treatment             String?   @db.Text
+  witnessNames          String?
+  /// SafeWork and the like. A notifiable incident that was never
+  /// notified is the thing this flag exists to make visible.
+  reportableToAuthority Boolean   @default(false)
+  reportedToAuthorityAt DateTime?
+  workersCompClaim      Boolean   @default(false)
+  followUpRequired      Boolean   @default(false)
+  followUpCompleted     Boolean   @default(false)
+  followUpNotes         String?   @db.Text
+
+  reportedById  String?
+  reportedBy    User?     @relation("StaffIncidentReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  signedOffAt   DateTime?
+  signedOffById String?
+  signedOffBy   User?     @relation("StaffIncidentSignOff", fields: [signedOffById], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([serviceId, occurredAt])
+  @@index([serviceId, severity])
+}
+
+/// Illness and infectious disease.
+///
+/// Reg 88: when a child has an infectious disease the service must
+/// notify families. Recording the case and the notification together is
+/// the point — an outbreak where nobody can show when parents were told
+/// is the situation this prevents.
+model IllnessRecord {
+  id                  String    @id @default(cuid())
+  serviceId           String
+  service             Service   @relation("ServiceIllnessRecords", fields: [serviceId], references: [id], onDelete: Cascade)
+  childId             String?
+  child               Child?    @relation("ChildIllnessRecords", fields: [childId], references: [id], onDelete: SetNull)
+  /// Kept alongside childId so a record survives a child leaving.
+  personName          String
+  /// child | staff — staff illness matters for exclusion periods too.
+  personType          String    @default("child")
+  illness             String
+  /// True for the notifiable list (gastro, hand foot and mouth, measles…).
+  infectious          Boolean   @default(false)
+  onsetDate           DateTime  @db.Date
+  excludedFrom        DateTime? @db.Date
+  /// When they may return. The date staff are actually asked for.
+  returnDate          DateTime? @db.Date
+  symptoms            String?   @db.Text
+  actionTaken         String?   @db.Text
+  /// Families told, and when. Reg 88's whole point.
+  familiesNotifiedAt  DateTime?
+  notifiedById        String?
+  notifiedBy          User?     @relation("IllnessNotifier", fields: [notifiedById], references: [id], onDelete: SetNull)
+  /// Public health unit, where the disease requires it.
+  authorityNotifiedAt DateTime?
+  notes               String?   @db.Text
+  recordedById        String?
+  recordedBy          User?     @relation("IllnessRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([serviceId, onsetDate])
+  @@index([serviceId, infectious])
+}
+
+/// A date a room (or the whole centre) isn't running.
+///
+/// Pupil-free days, centre closures, a vacation-care day that's already
+/// full by design. Without this, a coordinator's only options are to
+/// switch casual bookings off entirely — which closes every other day
+/// too — or to let families book a day nobody will be there.
+///
+/// sessionType null = the whole centre is closed that day.
+model ServiceBlockOutDate {
+  id          String       @id @default(cuid())
+  serviceId   String
+  service     Service      @relation("ServiceBlockOutDates", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime     @db.Date
+  sessionType SessionType?
+  /// Shown to families when a booking is refused, so the answer is
+  /// "we're closed for the pupil-free day", not "unavailable".
+  reason      String?
+  createdById String?
+  createdBy   User?        @relation("BlockOutDateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+
+  @@index([serviceId, date])
+}
+
+/// A change to a room's fee — scheduled for a date, or already applied.
+///
+/// Two jobs in one table, deliberately. A centre raising fees decides in
+/// July that the rate changes in August; without this they write it in a
+/// calendar and do it by hand on the day, which is how a fee rise gets
+/// missed or applied a fortnight early. And every applied change leaves
+/// a row, so "who put the rate up, and when" has an answer — the
+/// question that arrives when a family disputes an invoice.
+///
+/// Fees themselves stay in Service.sessionTimes JSON. This table is the
+/// intent and the history, not the current price.
+model ServiceFeeChange {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceFeeChanges", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Which room the fee belongs to.
+  sessionType SessionType
+  /// The fee tier's id within that room's `fees` array.
+  feeTierId   String
+  /// Denormalised so history stays readable after a fee is renamed or
+  /// deleted. A history row that says "fee-3" answers nothing.
+  feeName     String
+
+  /// What it was, and what it becomes. Nullable "from" because a
+  /// scheduled change recorded before the first rate exists is possible.
+  fromAmountCents Int?
+  toAmountCents   Int
+  fromCasualCents Int?
+  toCasualCents   Int?
+  fromStaffCents  Int?
+  toStaffCents    Int?
+
+  /// The day the new rate starts. For an immediate edit this is today
+  /// and the row is written already applied.
+  effectiveDate DateTime @db.Date
+  /// scheduled | applied | cancelled
+  status        String   @default("scheduled")
+  appliedAt     DateTime?
+
+  createdById String?
+  createdBy   User?     @relation("FeeChangeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  note        String?
+
+  @@index([serviceId, status, effectiveDate])
+  @@index([serviceId, sessionType])
+}
+
+/// A record that someone chased a family about money.
+///
+/// Aged debtors could show who owed what, but not whether anyone had
+/// actually rung them — so the same family got chased twice in a week
+/// while another sat at 90 days untouched. "Nobody has contacted this
+/// family" is the most useful filter on a debtors list, and it needs a
+/// place for the contact to be written down.
+///
+/// Separate from Statement.notes because this is about the CHASE, not
+/// the invoice: one debt takes several calls, and each is its own event.
+model FamilyDebtContact {
+  id          String        @id @default(cuid())
+  contactId   String
+  contact     CentreContact @relation("ContactDebtChases", fields: [contactId], references: [id], onDelete: Cascade)
+  contactedAt DateTime      @default(now())
+  /// call | email | sms | in_person | letter
+  method      String
+  /// What came of it — a payment plan, a promise, no answer.
+  outcome     String?
+  note        String?       @db.Text
+  byId        String?
+  by          User?         @relation("DebtChaser", fields: [byId], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+
+  @@index([contactId, contactedAt])
 }
 
 model ParentFormSignature {

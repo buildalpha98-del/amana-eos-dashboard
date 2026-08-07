@@ -6,7 +6,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { programmeName } from "@/lib/programme-names";
-import { RECURRING_CANCEL_DAYS } from "@/lib/service-settings";
 import {
   Calendar,
   CalendarDays,
@@ -302,20 +301,22 @@ function BookingCard({
     isMoreThanHoursAway(booking.date, 24);
 
   /**
-   * Cancel is offered on both kinds now, with the window each one gets:
-   * casual up to 24 hours out, recurring a week. The server owns both
-   * rules — this only decides whether to show a button that would work.
+   * Cancel is a CASUAL-only action (2026-08-06).
+   *
+   * A regular weekly booking isn't cancellable online at all: "not this
+   * Tuesday" is marking the child not attending, which keeps the place,
+   * and "change our days" is an enrolment change with fee and CCS
+   * consequences. Offering Cancel invited the first and silently did
+   * the second.
    *
    * The centre can also switch casual cancellation off entirely, which
-   * this can't see; that path is refused server-side with a message
-   * pointing at head office.
+   * this can't see; that path is refused server-side.
    */
   const canCancel =
     isUpcoming &&
     (booking.status === "requested" || booking.status === "confirmed") &&
-    (booking.type === "casual"
-      ? isMoreThanHoursAway(booking.date, 24)
-      : isMoreThanHoursAway(booking.date, RECURRING_CANCEL_DAYS * 24));
+    booking.type === "casual" &&
+    isMoreThanHoursAway(booking.date, 24);
 
   return (
     <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
