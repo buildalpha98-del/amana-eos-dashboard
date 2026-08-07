@@ -213,6 +213,17 @@ export function EmailComposer() {
     }
   }, [audienceId, audiences]);
 
+  // Recipients need a concrete selection before counting/sending makes sense:
+  // audience mode needs an audience picked, and pick mode needs ≥1 centre —
+  // empty serviceIds would read as ABSENT server-side and silently target ALL
+  // subscribed contacts while the summary claims "0 centre(s)".
+  const recipientsReady =
+    recipientMode === "audience"
+      ? !!audienceId
+      : recipientMode === "pick"
+        ? selectedServiceIds.length > 0
+        : true;
+
   // ── Recipient count ────────────────────────────────────────
   const { data: recipientCount } = useQuery<number>({
     queryKey: [
@@ -235,7 +246,7 @@ export function EmailComposer() {
       const data = await res.json();
       return data.count;
     },
-    enabled: recipientMode !== "audience" || !!audienceId,
+    enabled: recipientsReady,
   });
 
   // ── Send ───────────────────────────────────────────────────
@@ -298,9 +309,6 @@ export function EmailComposer() {
     recipientMode === "all" ? services?.length ?? 0 : selectedServiceIds.length;
 
   const selectedAudience = audiences?.find((a) => a.id === audienceId);
-
-  // Audience mode needs a concrete selection before send makes sense.
-  const recipientsReady = recipientMode !== "audience" || !!audienceId;
 
   const recipientSummary =
     recipientMode === "audience"
@@ -601,7 +609,11 @@ export function EmailComposer() {
 
             <p className="mt-3 text-xs text-muted">
               <Eye className="mr-1 inline-block h-3 w-3" />
-              {recipientsReady ? recipientSummary : "Select an audience to see the recipient count"}
+              {recipientsReady
+                ? recipientSummary
+                : recipientMode === "audience"
+                  ? "Select an audience to see the recipient count"
+                  : "Pick at least one centre to see the recipient count"}
             </p>
           </div>
 

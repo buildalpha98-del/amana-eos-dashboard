@@ -388,8 +388,6 @@ function AudienceForm({
 // ── Modal ───────────────────────────────────────────────────
 
 export default function AudienceManagerModal({ open, onClose }: Props) {
-  useEscapeClose(onClose, open);
-
   const { data: audiences, isLoading } = useAudiences();
   const archiveMutation = useArchiveAudience();
 
@@ -398,6 +396,12 @@ export default function AudienceManagerModal({ open, onClose }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingArchive, setPendingArchive] =
     useState<EmailAudienceData | null>(null);
+
+  // Disabled while the archive confirm is up — Radix's AlertDialog handles
+  // Escape itself, and without this gate the same keydown would ALSO hit the
+  // window listener and close the whole manager. Routes through handleClose
+  // so Escape gets the same view/expanded reset as the X button.
+  useEscapeClose(handleClose, open && !pendingArchive);
 
   if (!open) return null;
 
