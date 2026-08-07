@@ -51,10 +51,14 @@ import { GET as recipientCount } from "@/app/api/email/recipient-count/route";
 
 function setupActiveUserMock() {
   prismaMock.user.findUnique.mockReset();
-  prismaMock.user.findUnique.mockImplementation(async (args: any) => {
-    if (args?.where?.id === "user-1") return { active: true, id: "user-1", role: "owner" };
-    return null;
-  });
+  prismaMock.user.findUnique.mockImplementation(
+    async (args: { where?: { id?: string } } | undefined) => {
+      if (args?.where?.id === "user-1") {
+        return { active: true, id: "user-1", role: "owner" } as never;
+      }
+      return null;
+    },
+  );
 }
 
 function contact(email: string, firstName = "First", lastName = "Last") {
@@ -72,10 +76,13 @@ describe("POST /api/email/campaign/send — suppression", () => {
     mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
     mockedSendCampaign.mockResolvedValue({ campaignId: 456 });
     prismaMock.orgSettings.findUnique.mockResolvedValue(null);
-    prismaMock.deliveryLog.create.mockImplementation(async (args: any) => ({
-      id: "log-1",
-      ...args.data,
-    }));
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({
+          id: "log-1",
+          ...args.data,
+        }) as never,
+    );
     prismaMock.activityLog.create.mockResolvedValue({});
   });
 
@@ -100,7 +107,10 @@ describe("POST /api/email/campaign/send — suppression", () => {
     expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
     const sentTo = mockedSendTransactional.mock.calls[0][0].to;
     expect(sentTo).toHaveLength(2);
-    expect(sentTo.map((r: any) => r.email).sort()).toEqual(["a@example.com", "b@example.com"]);
+    expect(sentTo.map((r: { email: string }) => r.email).sort()).toEqual([
+      "a@example.com",
+      "b@example.com",
+    ]);
 
     expect(json.recipientCount).toBe(2);
     expect(json.suppressedCount).toBe(1);
@@ -108,6 +118,33 @@ describe("POST /api/email/campaign/send — suppression", () => {
     expect(prismaMock.deliveryLog.create).toHaveBeenCalledTimes(1);
     const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
     expect(createArgs.data.recipientCount).toBe(2);
+  });
+
+  it("excludes a suppressed recipient regardless of email casing (lowercase compare regression pin)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("C@Example.com"),
+    ]);
+    // getSuppressedEmails always returns lowercased entries — a case-sensitive
+    // `.has()` in the route would silently fail to match "C@Example.com".
+    mockedGetSuppressedEmails.mockResolvedValue(new Set(["c@example.com"]));
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
+    const sentTo = mockedSendTransactional.mock.calls[0][0].to;
+    expect(sentTo).toHaveLength(1);
+    expect(sentTo[0].email).toBe("a@example.com");
+
+    expect(json.recipientCount).toBe(1);
+    expect(json.suppressedCount).toBe(1);
+
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(
+      (createArgs.data.payload as { _suppressedCount: number })._suppressedCount,
+    ).toBe(1);
   });
 
   it("returns 400 with no send when all recipients are suppressed", async () => {

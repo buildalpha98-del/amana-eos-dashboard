@@ -138,6 +138,14 @@ export const POST = withApiHandler(async (req) => {
 
     // 7. Send via Brevo (transactional < 50, campaign >= 50)
     let messageId: string;
+    // externalId/externalIdType feed DeliveryLog for webhook correlation —
+    // kept separate from `messageId` (the API response / activity-log field,
+    // which keeps its existing "campaign-<id>" shape for backwards compat).
+    // The webhook matches campaign events against the RAW campaign id (see
+    // brevo-events.ts `campId` / webhooks/brevo route), so externalId must
+    // NOT carry the "campaign-" prefix.
+    let externalId: string;
+    let externalIdType: string;
     const status = scheduledAt ? "scheduled" : "sent";
 
     if (recipients.length < 50) {
@@ -150,6 +158,8 @@ export const POST = withApiHandler(async (req) => {
         scheduledAt: scheduledAt || undefined,
       });
       messageId = result.messageId;
+      externalId = result.messageId;
+      externalIdType = "brevo_message";
     } else {
       const result = await sendCampaignEmail({
         recipients,
@@ -159,6 +169,8 @@ export const POST = withApiHandler(async (req) => {
         scheduledAt: scheduledAt || undefined,
       });
       messageId = `campaign-${result.campaignId}`;
+      externalId = String(result.campaignId);
+      externalIdType = "brevo_campaign";
     }
 
     // 8. Create DeliveryLog
@@ -167,8 +179,8 @@ export const POST = withApiHandler(async (req) => {
         channel: "email",
         serviceCode: serviceCode.toUpperCase() === "ALL" ? null : serviceCode,
         messageType: tags?.[0] || "newsletter",
-        externalId: messageId,
-        externalIdType: "brevo_message",
+        externalId,
+        externalIdType,
         recipientCount: recipients.length,
         status,
         payload: {
