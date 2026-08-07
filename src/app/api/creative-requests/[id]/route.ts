@@ -147,9 +147,11 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
   if (patch.assigneeId !== undefined && patch.assigneeId !== existing.assigneeId) {
     await notifyRequestAssigned(prisma, updated, session.user.id);
-    // Only fires on an actual (re-)assignment, never on unassign
-    // (assigneeId: null) — there's no one to email in that case.
-    if (patch.assigneeId) {
+    // Only fires on an actual (re-)assignment to someone else — never on
+    // unassign (assigneeId: null, no one to email) and never on a
+    // self-assign (matches notifyRequestAssigned's own self-skip and
+    // every other assignment-email call site: todos/rocks/issues).
+    if (patch.assigneeId && patch.assigneeId !== session.user.id) {
       sendAssignmentEmail({
         type: "creative_request",
         assigneeId: patch.assigneeId,

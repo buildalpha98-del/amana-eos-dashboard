@@ -381,6 +381,25 @@ describe("PATCH /api/creative-requests/[id]", () => {
     });
   });
 
+  it("self-assign does not send an assignment email", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      assigneeId: "mkt-1",
+      assignee: { id: "mkt-1", name: "Tracie" },
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { assigneeId: "mkt-1" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    expect(sendAssignmentEmailMock).not.toHaveBeenCalled();
+  });
+
   it("unassigning (assigneeId: null) does not send an assignment email", async () => {
     mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
     prismaMock.creativeRequest.findUnique.mockResolvedValue({
