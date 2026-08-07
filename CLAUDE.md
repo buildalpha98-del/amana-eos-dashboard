@@ -76,6 +76,13 @@
 - `src/app/api/cron/owna-sync/route.ts` — syncs children, attendance, enquiries, incidents from OWNA
 - `vercel.json` — cron schedules and build config
 
+## Parent Help Centre (public /support)
+- **Public portal** at `/support` (route group `(public)`, NO auth, deliberately absent from the middleware matcher): Freshdesk-style — search, category cards, article pages, submit-a-ticket. Server components read Prisma directly with `force-dynamic`; the client SearchBox uses `GET /api/public/help-centre/articles?search=`.
+- **Models**: `HelpCategory` + `HelpArticle` — separate from `KnowledgeBaseArticle` (staff `/help`) so parent and staff content never mix. Only `published` rows in `published` categories are publicly visible.
+- **Tickets**: `POST /api/public/help-centre/tickets` creates a `SupportTicket` (`source: "portal"`, tag `help-centre`) via a stub `WhatsAppContact` (`waId: "help-<email>"`) — lands in the contact-centre queue. IP rate limit 5/15min + honeypot (same pattern as `/api/public/enquiries`).
+- **Admin** at `/help-centre` (owner/head_office/admin, Growth nav): category/article CRUD via `/api/help-centre/*`, markdown write/preview. Hooks in `src/hooks/useHelpCentre.ts`; slug helpers in `src/lib/help-centre.ts`.
+- **Seed**: `prisma/seed-help-centre.ts` (idempotent, runs on every deploy) — articles only seed when a category has NONE, so admin edits survive redeploys. Content edits belong in the dashboard, not the seed.
+
 ## Services Section Architecture
 - **Detail page**: `src/app/(dashboard)/services/[id]/page.tsx` — 6 grouped tabs with sub-pill navigation, URL-synced via `?tab=&sub=`
 - **Tab components**: 19 files in `src/components/services/Service*.tsx`
