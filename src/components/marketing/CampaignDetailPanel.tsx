@@ -7,6 +7,7 @@ import { STATUS_LABELS } from "@/lib/creative-request/constants";
 import { AiButton } from "@/components/ui/AiButton";
 import {
   useCampaign,
+  useCampaignPerformance,
   useUpdateCampaign,
   useDeleteCampaign,
   useAddCampaignComment,
@@ -677,6 +678,12 @@ export function CampaignDetailPanel({
               </div>
             )}
 
+            {/* Performance — attribution funnel (Phase 5) */}
+            <CampaignPerformanceSection
+              campaignId={campaignId}
+              services={campaign?.services ?? []}
+            />
+
             {/* Assets — linked creative requests + email sends */}
             {((campaign?.creativeRequests?.length ?? 0) > 0 ||
               (campaign?.emailSends?.length ?? 0) > 0) && (
@@ -793,6 +800,128 @@ export function CampaignDetailPanel({
         defaultCampaignId={campaignId}
       />
     </>
+  );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function CampaignPerformanceSection({
+  campaignId,
+  services,
+}: {
+  campaignId: string;
+  services: { service: { id: string; name: string; code: string } }[];
+}) {
+  const { data: perf, isLoading } = useCampaignPerformance(campaignId);
+
+  if (isLoading) {
+    return (
+      <div>
+        <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+          Performance
+        </h3>
+        <div className="h-20 animate-pulse rounded-lg border border-border/50 bg-surface/50" />
+      </div>
+    );
+  }
+  if (!perf) return null;
+
+  const nameOf = (serviceId: string) =>
+    services.find((s) => s.service.id === serviceId)?.service.name ?? serviceId;
+  const fmtPct = (p: number | null) => (p == null ? "—" : `${p}%`);
+  const windowDays =
+    (new Date(perf.window.end).getTime() -
+      new Date(perf.window.start).getTime()) /
+    DAY_MS;
+
+  const stats: {
+    label: string;
+    value: number;
+    sub?: string;
+    contextual?: number;
+  }[] = [
+    {
+      label: "Reached",
+      value: perf.reach.recipients,
+      sub: `${perf.reach.sends} email send${perf.reach.sends === 1 ? "" : "s"}`,
+    },
+    {
+      label: "Clicks + scans",
+      value: perf.engagement.uniqueClicks + perf.qr.scans,
+      sub: `${perf.engagement.uniqueOpens} opens · ${perf.qr.scans} QR scans`,
+    },
+    {
+      label: "Enquiries",
+      value: perf.enquiries.attributed,
+      contextual: perf.enquiries.contextual,
+    },
+    {
+      label: "Enrolments",
+      value: perf.enrolments.attributed,
+      contextual: perf.enrolments.contextual,
+    },
+  ];
+
+  return (
+    <div>
+      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+        Performance
+      </h3>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
+          >
+            <p className="text-2xs font-medium uppercase tracking-wider text-muted">
+              {s.label}
+            </p>
+            <p className="text-lg font-semibold text-foreground">{s.value}</p>
+            {s.sub && <p className="text-2xs text-muted">{s.sub}</p>}
+            {s.contextual != null && (
+              <p className="text-2xs text-muted">
+                (+{s.contextual} at linked centres in window)
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {perf.occupancy.services.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {perf.occupancy.services.map((o) => (
+            <span
+              key={o.serviceId}
+              className="rounded-full bg-surface px-2 py-0.5 text-2xs font-medium text-muted"
+            >
+              {nameOf(o.serviceId)} {fmtPct(o.startPct)} → {fmtPct(o.endPct)}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {!perf.hasData && (
+        <p className="mt-2 text-2xs text-muted">
+          No tracked activity in this window yet.
+        </p>
+      )}
+
+      <div className="mt-2 space-y-0.5">
+        {windowDays < 14 && (
+          <p className="text-2xs text-muted">
+            Short window &mdash; occupancy averages overlap
+          </p>
+        )}
+        <p className="text-2xs text-muted">
+          Attributed = traced via QR/activation links and tracked email &mdash;
+          phone and walk-in enquiries aren&apos;t captured
+        </p>
+        <p className="text-2xs text-muted">
+          Enrolment tracking via the parent portal begins with this deploy
+        </p>
+      </div>
+    </div>
   );
 }
 

@@ -152,6 +152,39 @@ export function useCampaign(id: string) {
   });
 }
 
+export interface CampaignPerformance {
+  window: { start: string; end: string };
+  reach: { sends: number; recipients: number };
+  engagement: { uniqueOpens: number; uniqueClicks: number };
+  qr: { scans: number; uniqueScanners: number };
+  enquiries: { attributed: number; contextual: number };
+  enrolments: { attributed: number; contextual: number };
+  occupancy: {
+    services: {
+      serviceId: string;
+      startPct: number | null;
+      endPct: number | null;
+    }[];
+    overallStartPct: number | null;
+    overallEndPct: number | null;
+  };
+  hasData: boolean;
+}
+
+export function useCampaignPerformance(id: string) {
+  return useQuery<CampaignPerformance>({
+    staleTime: 30_000,
+    queryKey: ["campaign-performance", id],
+    queryFn: async () => {
+      return fetchApi<CampaignPerformance>(
+        `/api/marketing/campaigns/${id}/performance`
+      );
+    },
+    enabled: !!id,
+    retry: 2,
+  });
+}
+
 export function useCreateCampaign() {
   const qc = useQueryClient();
   return useMutation({
