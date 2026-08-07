@@ -23,7 +23,7 @@
    - `MarketingPost` already carries `campaignId`; post sends keep `entityType="MarketingPost"` and are attributed to campaigns TRANSITIVELY (post → campaignId). `entityType="MarketingCampaign"` is ONLY for direct campaign sends — never set both; the post double-send guard depends on the MarketingPost branch staying intact.
    - The templateId→blocks→htmlContent resolution block has a documented twin in test-send — Phase 4 does not touch content resolution.
 3. **Denominator convention (document in code + UI):** rate = unique events / `DeliveryLog.recipientCount`, where recipientCount is the post-suppression attempted count. Reports for sends created before the Phase 3 deploy show "No tracking data" (no correlated events), keyed on zero events + a caption.
-4. Survey-audience precedent: `prisma/schema.prisma` ~8971 (`SurveyAudience`) + `src/lib/survey-audience.ts` — copy its evaluate-at-read-time doc rationale.
+4. Survey-audience precedent: the machinery is `src/lib/survey-audience.ts` (a read-time matcher over audience fields — `SurveyAudience` in the schema is just an enum, not a rules model). Copy its evaluate-at-read-time doc rationale, not its shape.
 
 ## File structure
 
@@ -92,7 +92,7 @@ model EmailAudience {
 
 plus `@@index([campaignId])`; on `MarketingCampaign` add `creativeRequests CreativeRequest[]`; on `User` add `emailAudiencesCreated EmailAudience[] @relation("EmailAudiencesCreated")`.
 
-- [ ] **Step 3:** `CentreContact`: add `@@index([createdAt])` (needed for joinedAfter/Before conditions).
+- [ ] **Step 3:** `CentreContact`: add `@@index([createdAt])` (needed for joinedAfter/Before conditions). ALSO update `DeliveryLog.status`'s doc comment to include the two new Task 5 states: `// sent, scheduled, failed, sending, partial` (comment-only, no SQL impact).
 - [ ] **Step 4:** format/validate → offline migration `20260807100000_audiences_campaign_links` (verify additive-only: 1 CREATE TABLE, ADD COLUMN campaignId, 3–4 CREATE INDEX, FKs) → generate → commit `feat(email): EmailAudience model + campaign links`.
 
 ### Task 2: Audience rules lib (TDD)
@@ -110,12 +110,12 @@ plus `@@index([campaignId])`; on `MarketingCampaign` add `creativeRequests Creat
 
 ### Task 3: Audience CRUD + count/send integration (TDD)
 
-**Files:** Create `src/app/api/email/audiences/route.ts` (GET list active + POST create), `src/app/api/email/audiences/[id]/route.ts` (GET w/ live count, PATCH, DELETE=archive); Modify `recipient-count` + `campaign/send`; Tests: new `email-audiences.test.ts`, extend `email-campaign-send.test.ts`
+**Files:** Create `src/app/api/email/audiences/route.ts` (GET list active + POST create), `src/app/api/email/audiences/[id]/route.ts` (GET w/ live count, PATCH, DELETE=archive), `src/app/api/email/audiences/preview-count/route.ts` (POST draft rules → post-suppression count — Task 4's live preview consumes this; same roles as CRUD); Modify `recipient-count` + `campaign/send`; Tests: new `email-audiences.test.ts` (incl. preview-count: valid rules → {count}, invalid rules → 400, member → 403), extend `email-campaign-send.test.ts`
 
 - [ ] **Step 1: Failing tests:**
 - CRUD: roles `["owner","head_office","admin","marketing"]` (member → 403); create validates rules via `audienceRulesSchema` (bad rules → 400); PATCH updates name/rules; DELETE sets `archived: true` (never hard-deletes); GET `[id]` returns the audience + `count` (resolved live via `resolveAudienceWhere` + suppression subtraction like recipient-count).
 - recipient-count: `?audienceId=` resolves rules → count post-suppression; unknown audienceId → 404; archived audience → 409.
-- campaign/send: body `audienceId` (mutually exclusive with serviceIds/allCentres — zod refine) resolves recipients via the SAME `resolveAudienceWhere`; archived → 409; also body `marketingCampaignId?: string` sets `entityType: "MarketingCampaign"`, `entityId` (validated: campaign must exist → else 404; mutually exclusive with postId/enquiryId — the existing MarketingPost/ParentEnquiry branches take precedence per the transitive-attribution rule, so refine that at most one of enquiryId/postId/marketingCampaignId is set).
+- campaign/send: body `audienceId` (mutually exclusive with serviceIds/allCentres — zod refine, where `allCentres: false` and `serviceIds: []` count as ABSENT so the composer's legacy always-sent fields don't false-trip the refine) resolves recipients via the SAME `resolveAudienceWhere`; archived → 409; also body `marketingCampaignId?: string` sets `entityType: "MarketingCampaign"`, `entityId` (validated: campaign must exist → else 404; mutually exclusive with postId/enquiryId — the existing MarketingPost/ParentEnquiry branches take precedence per the transitive-attribution rule, so refine that at most one of enquiryId/postId/marketingCampaignId is set).
 - [ ] **Step 2: Implement.** The recipient resolution in send + count collapses to: `const where = await resolveAudienceWhere(prisma, rules)` where rules come from audienceId lookup OR the legacy serviceIds mapping (`{ serviceIds }` compiled through the SAME lib — delete the hand-written where in both routes). Keep response shapes; count keeps `{count}`.
 - [ ] **Step 3:** Green + api sweep; commit `feat(email): audience CRUD + unified recipient resolution`.
 
@@ -140,7 +140,7 @@ plus `@@index([campaignId])`; on `MarketingCampaign` add `creativeRequests Creat
 - brevo-events: `parseBrevoWebhookBody` returns `deliveryLogTag` (string|null) extracted from `body.tag` (string) or `body.tags[0]` (array form) when it matches `/^dl:(.+)$/` — returns the captured id; non-matching tags → null; existing fields unchanged.
 - webhook: event with `tag: "dl:dl123"` → NO deliveryLog.findFirst, event created with `deliveryLogId: "dl123"`; event without tag falls through to the existing externalId branches (regression: existing correlation tests untouched).
 - send route (<50): pre-creates DeliveryLog with `status: "sending"`, `externalIdType: "brevo_message_per_recipient"`, `externalId: null`; calls sendTransactionalEmail ONCE PER RECIPIENT each with `to: [single]` and `tags: ["dl:<thatLogId>"]`; on all-success updates the SAME row to `status: body.scheduledAt ? "scheduled" : "sent"`; on partial failure (mock one rejection) → `status: "partial"`, payload gains `_failedRecipients: [emails]`, response 200 with `failedCount`; on total failure → `status: "failed"` + 502. ≥50 campaign path unchanged (regression).
-- [ ] **Step 2: Implement.** Bounded concurrency (chunks of 5, `Promise.allSettled` per chunk). Extend the `externalIdType` doc comment in schema? — NO schema edit needed (String column); update the comment in a later docs pass if desired. Keep the enquiry single-recipient branch on the same per-recipient machinery (it's 1 recipient — trivially compatible).
+- [ ] **Step 2: Implement.** Bounded concurrency (chunks of 5, `Promise.allSettled` per chunk), each call wrapped in a ~10s `AbortSignal.timeout` race so one hung Brevo call can't strand the whole dispatch inside withApiAuth's 55s budget (a rejected/timed-out call counts as that recipient's failure). **Row-lifecycle ownership:** the <50/enquiry per-recipient path OWNS its DeliveryLog end-to-end — pre-create, then UPDATE to the terminal status; the route's existing success-path `deliveryLog.create` and catch-block failure `create` become ≥50-ONLY (restructure so the per-recipient branch never reaches them). The total-failure test must assert `deliveryLog.create` was called exactly ONCE (the pre-create) and the row was updated to `failed` — no second row. Fold the enquiry single-recipient branch onto the same machinery (1 recipient — trivially compatible).
 - [ ] **Step 3:** Green + full webhook/send/brevo-events files + api sweep; commit `feat(email): per-recipient sends with tag correlation — recipients no longer see each other`.
 
 ### Task 6: Per-send report API + panel (TDD route)
