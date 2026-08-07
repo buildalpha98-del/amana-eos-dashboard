@@ -63,7 +63,8 @@ describe("eh-payroll: HTTP Basic header", () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
     const [url, init] = spy.mock.calls[0];
-    expect(url).toBe("https://api.test/api/v2/business/999999/employee");
+    // listEmployees paginates (2026-08-07), so the path carries $top/$skip.
+    expect(String(url)).toContain("https://api.test/api/v2/business/999999/employee");
     const headers = (init as RequestInit).headers as Record<string, string>;
     // "test-key-abc:x" base64 = "dGVzdC1rZXktYWJjOng="
     expect(headers.Authorization).toBe("Basic dGVzdC1rZXktYWJjOng=");
@@ -169,5 +170,66 @@ describe("eh-payroll: listEmployees response shaping", () => {
     expect(keys).not.toContain("bankAccount1_BSB");
     expect(keys).not.toContain("contractorABN");
     expect(keys).not.toContain("dateOfBirth");
+  });
+});
+
+describe("eh-payroll: listEmployees pagination", () => {
+  function makeEmployee(id: number) {
+    return { id, firstName: `F${id}`, surname: `L${id}`, email: `e${id}@t.com`, status: "Active", startDate: null, externalId: null };
+  }
+
+  it("pages with $top/$skip until a short page and concatenates all rows", async () => {
+    // 100 + 100 + 37 = 237 employees across three pages.
+    const pages = [
+      Array.from({ length: 100 }, (_, i) => makeEmployee(i)),
+      Array.from({ length: 100 }, (_, i) => makeEmployee(100 + i)),
+      Array.from({ length: 37 }, (_, i) => makeEmployee(200 + i)),
+    ];
+    let call = 0;
+    const spy = vi.spyOn(global, "fetch").mockImplementation(async () => {
+      const page = pages[call] ?? [];
+      call++;
+      return new Response(JSON.stringify(page), { status: 200 });
+    });
+
+    const { listEmployees } = await import("@/lib/eh-payroll");
+    const out = await listEmployees();
+    expect(out).toHaveLength(237);
+    expect(out[0].id).toBe(0);
+    expect(out[236].id).toBe(236);
+
+    expect(spy).toHaveBeenCalledTimes(3);
+    const urls = spy.mock.calls.map((c) => String(c[0]));
+    expect(urls[0]).toContain("$top=100");
+    expect(urls[0]).toContain("$skip=0");
+    expect(urls[1]).toContain("$skip=100");
+    expect(urls[2]).toContain("$skip=200");
+  });
+
+  it("stops after a single short page (small business)", async () => {
+    const spy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify([makeEmployee(1), makeEmployee(2)]), { status: 200 }),
+    );
+    const { listEmployees } = await import("@/lib/eh-payroll");
+    const out = await listEmployees();
+    expect(out).toHaveLength(2);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws (rather than truncating) when the API ignores $skip and repeats page 1", async () => {
+    // Full page of the SAME ids every time — a $skip-ignoring API would
+    // otherwise loop forever / return a silently truncated list, which is
+    // what the mapping sync must never receive.
+    const page = Array.from({ length: 100 }, (_, i) => makeEmployee(i));
+    vi.spyOn(global, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify(page), { status: 200 }),
+    );
+    const { listEmployees, EhPayrollError } = await import("@/lib/eh-payroll");
+    const err = await listEmployees().then(
+      () => null,
+      (e) => e,
+    );
+    expect(err).toBeInstanceOf(EhPayrollError);
+    expect(String(err.message)).toMatch(/pagination did not advance/);
   });
 });
