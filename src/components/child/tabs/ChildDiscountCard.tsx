@@ -61,11 +61,19 @@ export function ChildDiscountCard({
   serviceId,
   childName,
   canEdit,
+  isStaffChild = false,
 }: {
   childId: string;
   serviceId: string | null;
   childName: string;
   canEdit: boolean;
+  /**
+   * Their parent works for us. OWNA's equivalent flag says it "turns on
+   * the Staff Discounting feature"; here it prompts, because a flag
+   * can't know the RATE — 95% and 50% are both staff rates, and only a
+   * person knows which was agreed.
+   */
+  isStaffChild?: boolean;
 }) {
   const qc = useQueryClient();
   const key = ["child", childId, "discounts"];
@@ -237,9 +245,34 @@ export function ChildDiscountCard({
       {isLoading ? (
         <Skeleton className="h-16 w-full rounded-lg" />
       ) : active.length === 0 ? (
-        <p className="text-sm text-muted">
-          No discount. {childName} is charged the room&apos;s fee.
-        </p>
+        isStaffChild ? (
+          // The flag says the arrangement exists; nothing records what
+          // it is. That gap is how a staff member quietly gets charged
+          // full price for a term.
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">
+            <p className="text-sm text-amber-900 dark:text-amber-100">
+              {childName} is marked as a staff member&apos;s child, but no
+              staff rate is recorded.
+            </p>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAdding(true);
+                  setPercent("95");
+                  setReason("Staff discount");
+                }}
+                className="mt-1 text-sm font-medium text-amber-900 underline underline-offset-2 dark:text-amber-100"
+              >
+                Add the staff rate
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            No discount. {childName} is charged the room&apos;s fee.
+          </p>
+        )
       ) : (
         <ul className="divide-y divide-border">
           {active.map((d) => (

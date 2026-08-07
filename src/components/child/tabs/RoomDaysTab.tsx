@@ -234,6 +234,7 @@ export function RoomDaysTab({ child, canEdit }: RoomDaysTabProps) {
         serviceId={child.serviceId}
         childName={child.firstName}
         canEdit={canEdit}
+        isStaffChild={child.isStaffChild ?? false}
       />
     </div>
   );
