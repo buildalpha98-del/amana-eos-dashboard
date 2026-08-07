@@ -8,6 +8,11 @@
  * survives a fee rise, and ends on a date. Hanging it off the room means
  * re-applying it every time the fee matrix changes.
  *
+ * Deliberately NOT automatic. The arrangement is recorded here; whoever
+ * bills decides when it comes off. A price that quietly reduces itself
+ * is one nobody chose, on a booking that might be cancelled, with no one
+ * having checked the arrangement still holds.
+ *
  * Ending a discount doesn't delete it — one that's been applied to real
  * invoices is part of the record of what a family was charged.
  */
@@ -136,8 +141,8 @@ export function FamilyDiscountsCard({
             Family discounts
           </h3>
           <p className="text-xs text-muted mt-0.5">
-            Sibling rates, staff rates, hardship. Applied to what the family
-            is charged, and it follows them if the fee changes.
+            Sibling rates, staff rates, hardship. Recorded here and applied
+            when you bill — nothing comes off a price automatically.
           </p>
         </div>
         {!adding && (
