@@ -7,7 +7,7 @@
  * edit a row-by-row layout via inline HTML.
  */
 
-import { baseLayout, buttonHtml, BRAND_COLOR } from "./base";
+import { baseLayout, buttonHtml, escapeHtml, BRAND_COLOR } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 // ─── To-Do Reminder ──────────────────────────────────────────
@@ -261,10 +261,12 @@ export async function creativeRequestAssignedEmail(
     {{viewButton}}
   `,
     vars: {
-      assigneeName,
-      requestTitle,
-      requestNumber,
-      assignerName,
+      // Title and names are user-typed (request intake is open to all
+      // roles) — escape them; viewButton is trusted pre-rendered HTML.
+      assigneeName: escapeHtml(assigneeName),
+      requestTitle: escapeHtml(requestTitle),
+      requestNumber: escapeHtml(requestNumber),
+      assignerName: escapeHtml(assignerName),
       viewButton: buttonHtml("View request", dashboardUrl),
     },
     wrap: baseLayout,
