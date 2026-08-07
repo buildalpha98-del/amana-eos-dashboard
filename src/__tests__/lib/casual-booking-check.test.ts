@@ -278,3 +278,74 @@ describe("bookableSessionKeys", () => {
     expect(bookableSessionKeys(times)).toEqual(["bsc"]);
   });
 });
+
+/**
+ * 2026-08-06 — per-day capacity, from CasualDayConfig.
+ *
+ * A vacation-care day often has a different number of seats from the
+ * room's usual, and a day can be open for staff to fill while closed to
+ * families. Both decide what a family is allowed to do, so both are
+ * checked server-side.
+ */
+describe("per-day capacity", () => {
+  const base = {
+    settings,
+    sessionType: "bsc" as const,
+    bookingDate: new Date("2026-04-24T00:00:00Z"),
+    now: nowUtc,
+  };
+
+  it("uses the day's override instead of the room's usual number", () => {
+    // Room allows 2; this day allows 5, and 3 are taken.
+    const r = checkCasualBookingAllowed({
+      ...base,
+      currentCasualBookings: 3,
+      spotsOverride: 5,
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it("an override can make a day SMALLER than the room's usual", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      currentCasualBookings: 1,
+      spotsOverride: 1,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/full that day/i);
+  });
+
+  it("null override falls back to the room's number", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      currentCasualBookings: 2,
+      spotsOverride: null,
+    });
+    // Room's spots is 2, so 2 taken means full.
+    expect(r.ok).toBe(false);
+  });
+
+  it("a closed day refuses families even with seats left", () => {
+    // Held for siblings, or not announced yet. Staff can still place a
+    // child; the app can't.
+    const r = checkCasualBookingAllowed({
+      ...base,
+      currentCasualBookings: 0,
+      spotsOverride: 20,
+      closedForBooking: true,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/isn't open for online booking/i);
+  });
+
+  it("closed is checked before full, so the message is the true one", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      currentCasualBookings: 99,
+      spotsOverride: 1,
+      closedForBooking: true,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/isn't open for online booking/i);
+  });
+});
