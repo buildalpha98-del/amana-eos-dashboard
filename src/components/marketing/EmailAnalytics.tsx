@@ -116,8 +116,8 @@ export function EmailAnalytics() {
         <StatCard icon={Users} label="Recipients" value={stats.totalRecipients} />
         <StatCard icon={AlertCircle} label="Failed" value={stats.failed} color={stats.failed > 0 ? "text-red-500" : undefined} />
         <StatCard icon={Clock} label="Scheduled" value={stats.scheduled} />
-        <StatCard icon={MailOpen} label="Unique opens (30d)" value={stats.uniqueOpens} />
-        <StatCard icon={MousePointerClick} label="Unique clicks (30d)" value={stats.uniqueClicks} />
+        <StatCard icon={MailOpen} label={`Unique opens (${days}d)`} value={stats.uniqueOpens} />
+        <StatCard icon={MousePointerClick} label={`Unique clicks (${days}d)`} value={stats.uniqueClicks} />
       </div>
       <p className="text-2xs text-muted">
         Tracking starts from the Phase 3 deploy — earlier sends have no events.
