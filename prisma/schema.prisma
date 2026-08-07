@@ -2473,6 +2473,12 @@ model Service {
   /// Null means the federal-default `{ bsc: "1:15", asc: "1:15", vc: "1:15" }` applies
   /// (resolved by the ratio API route — `@default` isn't supported for Json).
   ratioSettings Json?
+  /// Per-centre behaviour toggles — what families can do in the app and
+  /// how posts are published. Validated by `appSettingsSchema`; see
+  /// src/lib/app-settings.ts. Json rather than columns because these are
+  /// settings, not data: they're read as a set and change shape as
+  /// features land.
+  appSettings   Json?
 
   /// Per-service editable content (admin or Director of Service for this
   /// service). Shape validated by Zod in src/lib/service-content-shared.ts.

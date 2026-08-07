@@ -17,6 +17,7 @@ import { ParentFormsCard } from "./ParentFormsCard";
 import { ExcursionsCard } from "./ExcursionsCard";
 import { BlockOutDatesCard } from "@/components/services/BlockOutDatesCard";
 import { FeeChangesCard } from "./FeeChangesCard";
+import { AppSettingsCard } from "./AppSettingsCard";
 
 export function ServiceInfoCard({
   service,
@@ -289,6 +290,9 @@ export function ServiceInfoCard({
           where the rest of "when are we open" lives. */}
       {/* Fee changes sit right under Rooms & fees — it's the same
           subject, one step into the future. */}
+      {/* How this centre behaves — the toggles that change what the app
+          does for families and for posting. */}
+      <AppSettingsCard serviceId={service.id} canEdit={canEdit} />
       <FeeChangesCard
         serviceId={service.id}
         sessionTimes={service.sessionTimes}
