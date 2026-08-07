@@ -123,6 +123,17 @@ describe("GET /api/creative-requests", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  it("filters by campaignId", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findMany.mockResolvedValue([] as never);
+    const res = await GET_LIST(
+      createRequest("GET", "/api/creative-requests?campaignId=camp-1"),
+    );
+    expect(res.status).toBe(200);
+    const findArgs = prismaMock.creativeRequest.findMany.mock.calls[0][0];
+    expect(findArgs.where.campaignId).toBe("camp-1");
+  });
 });
 
 describe("POST /api/creative-requests", () => {
@@ -224,6 +235,69 @@ describe("POST /api/creative-requests", () => {
     expect(createArgs.data.checklist).toEqual(
       DEFAULT_CHECKLISTS.poster.map((label) => ({ label, done: false })),
     );
+  });
+
+  it("rejects a campaignId that doesn't resolve to a campaign", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue(null);
+    const res = await POST_CREATE(
+      createRequest("POST", "/api/creative-requests", {
+        body: {
+          title: "Poster",
+          type: "poster",
+          purpose: "Open day",
+          campaignId: "nope",
+        },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(prismaMock.creativeRequest.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a deleted campaign at create", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue({
+      id: "camp-gone",
+      deleted: true,
+    } as never);
+    const res = await POST_CREATE(
+      createRequest("POST", "/api/creative-requests", {
+        body: {
+          title: "Poster",
+          type: "poster",
+          purpose: "Open day",
+          campaignId: "camp-gone",
+        },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(prismaMock.creativeRequest.create).not.toHaveBeenCalled();
+  });
+
+  it("any role (centre member) may link a campaign at create", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue({
+      id: "camp-1",
+      deleted: false,
+    } as never);
+    prismaMock.creativeRequest.count.mockResolvedValue(0);
+    prismaMock.creativeRequest.create.mockResolvedValue(baseRequest as never);
+    prismaMock.user.findMany.mockResolvedValue([{ id: "mkt-1" }] as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+
+    const res = await POST_CREATE(
+      createRequest("POST", "/api/creative-requests", {
+        body: {
+          title: "Poster",
+          type: "poster",
+          purpose: "Open day",
+          campaignId: "camp-1",
+        },
+      }),
+    );
+    expect(res.status).toBe(201);
+    const createArgs = prismaMock.creativeRequest.create.mock.calls[0][0];
+    expect(createArgs.data.campaignId).toBe("camp-1");
   });
 
   it("rejects an off-host attachment URL", async () => {
@@ -557,6 +631,91 @@ describe("PATCH /api/creative-requests/[id]", () => {
       ctx("cr1"),
     );
     expect(res2.status).toBe(403);
+  });
+
+  it("fulfiller can link a campaign via PATCH", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue({
+      id: "camp-1",
+      deleted: false,
+    } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      campaignId: "camp-1",
+    } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { campaignId: "camp-1" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.campaignId).toBe("camp-1");
+  });
+
+  it("fulfiller can unlink with campaignId: null", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      campaignId: "camp-1",
+    } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      campaignId: null,
+    } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { campaignId: null },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    const updateArgs = prismaMock.creativeRequest.update.mock.calls[0][0];
+    expect(updateArgs.data.campaignId).toBeNull();
+    // Unlink needs no campaign lookup
+    expect(prismaMock.marketingCampaign.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("fulfiller linking a nonexistent campaign is a 400", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue(null);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { campaignId: "nope" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(400);
+    expect(prismaMock.creativeRequest.update).not.toHaveBeenCalled();
+  });
+
+  it("requester cannot set campaignId (403)", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { campaignId: "camp-1" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(403);
+    expect(prismaMock.creativeRequest.update).not.toHaveBeenCalled();
+  });
+
+  it("requester cannot smuggle campaignId alongside a cancel (403)", async () => {
+    mockSession({ id: "member-1", name: "Mirna", role: "member" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { status: "cancelled", campaignId: null },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(403);
+    expect(prismaMock.creativeRequest.update).not.toHaveBeenCalled();
   });
 
   it("rejects a checklist item missing a label", async () => {

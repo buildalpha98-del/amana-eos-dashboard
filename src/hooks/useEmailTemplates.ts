@@ -3,6 +3,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+// Type-only import — audience-rules.ts only pulls zod + Prisma TYPES, so it
+// is client-safe; the runtime prisma client never enters the bundle.
+import type { AudienceRules } from "@/lib/audience-rules";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -114,6 +117,123 @@ export function useDuplicateEmailTemplate() {
   });
 }
 
+// ── Audiences ──────────────────────────────────────────────
+
+export interface EmailAudienceData {
+  id: string;
+  name: string;
+  description: string | null;
+  rules: AudienceRules;
+  archived: boolean;
+  createdBy?: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Detail response adds the live post-suppression recipient count. */
+export interface EmailAudienceDetail extends EmailAudienceData {
+  count: number;
+}
+
+export function useAudiences() {
+  return useQuery<EmailAudienceData[]>({
+    queryKey: ["email-audiences"],
+    queryFn: () => fetchApi<EmailAudienceData[]>("/api/email/audiences"),
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
+export function useAudience(id: string | null) {
+  return useQuery<EmailAudienceDetail>({
+    queryKey: ["email-audiences", "detail", id],
+    queryFn: () => fetchApi<EmailAudienceDetail>(`/api/email/audiences/${id}`),
+    enabled: !!id,
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateAudience() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      description?: string | null;
+      rules: AudienceRules;
+    }) =>
+      mutateApi<EmailAudienceData>("/api/email/audiences", {
+        method: "POST",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email-audiences"] });
+      toast({ description: "Audience created" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useUpdateAudience() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string;
+      name?: string;
+      description?: string | null;
+      rules?: AudienceRules;
+    }) =>
+      mutateApi<EmailAudienceData>(`/api/email/audiences/${id}`, {
+        method: "PATCH",
+        body: data,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email-audiences"] });
+      toast({ description: "Audience updated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useArchiveAudience() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      mutateApi<{ success: boolean }>(`/api/email/audiences/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email-audiences"] });
+      toast({ description: "Audience archived" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+/** Live post-suppression count for DRAFT (unsaved) rules — powers the
+ * AudienceManagerModal's debounced preview. */
+export function usePreviewAudienceCount() {
+  return useMutation({
+    mutationFn: (rules: AudienceRules) =>
+      mutateApi<{ count: number }>("/api/email/audiences/preview-count", {
+        method: "POST",
+        body: { rules },
+      }),
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
 // ── Send / Preview ─────────────────────────────────────────
 
 export function useSendEmail() {
@@ -126,12 +246,20 @@ export function useSendEmail() {
       blocks?: unknown[] | null;
       serviceIds?: string[];
       allCentres?: boolean;
+      audienceId?: string | null;
       scheduledAt?: string | null;
       enquiryId?: string | null;
       postId?: string | null;
+      marketingCampaignId?: string | null;
       variables?: Record<string, string>;
     }) =>
-      mutateApi<{ status: string; recipientCount: number }>(
+      mutateApi<{
+        success: boolean;
+        deliveryLogId: string;
+        status: string;
+        recipientCount: number;
+        suppressedCount: number;
+      }>(
         "/api/email/campaign/send",
         { method: "POST", body: data },
       ),
@@ -140,6 +268,8 @@ export function useSendEmail() {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["enquiry"] });
       qc.invalidateQueries({ queryKey: ["email-history"] });
+      // Campaign detail panel lists linked email sends
+      qc.invalidateQueries({ queryKey: ["campaign"] });
       toast({
         description: `Email ${result.status} to ${result.recipientCount} recipient(s)`,
       });
@@ -189,6 +319,44 @@ export function useEmailPreview() {
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
+  });
+}
+
+// ── Per-send report ────────────────────────────────────────
+
+export interface SendReportData {
+  log: {
+    id: string;
+    subject: string | null;
+    status: string;
+    recipientCount: number;
+    createdAt: string;
+    messageType: string | null;
+  };
+  /** False when the send has zero events — predates tracking or unopened. */
+  hasEvents: boolean;
+  stats: {
+    delivered: number;
+    uniqueOpens: number;
+    uniqueClicks: number;
+    bounced: number;
+    /** Percentage (0–100) against post-suppression attempted recipients. */
+    openRate: number;
+    clickRate: number;
+  };
+  hourly: { hour: number; opens: number; clicks: number }[];
+  /** Recipients whose FIRST click was this link (one clicked event per recipient). */
+  topLinks: { link: string; clickers: number }[];
+}
+
+export function useSendReport(deliveryLogId: string | null) {
+  return useQuery<SendReportData>({
+    queryKey: ["send-report", deliveryLogId],
+    queryFn: () =>
+      fetchApi<SendReportData>(`/api/email/reports/${deliveryLogId}`),
+    enabled: !!deliveryLogId,
+    retry: 2,
+    staleTime: 30_000,
   });
 }
 

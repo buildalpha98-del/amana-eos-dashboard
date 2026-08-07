@@ -9,11 +9,13 @@ import EmailBlockEditor from "./EmailBlockEditor";
 import EmailHtmlEditor from "./EmailHtmlEditor";
 import EmailPreview from "./EmailPreview";
 import TemplatePickerModal from "./TemplatePickerModal";
+import AudienceManagerModal from "./AudienceManagerModal";
 import {
   useSendEmail,
   useTestSend,
   useEmailPreview,
   useEmailTemplate,
+  useAudiences,
   type EmailTemplateData,
 } from "@/hooks/useEmailTemplates";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +28,7 @@ export function EmailComposer() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const postId = searchParams.get("postId");
+  const campaignIdParam = searchParams.get("campaignId");
   const templateIdParam = searchParams.get("templateId");
 
   // ── Draft autosave ────────────────────────────────────────
@@ -54,8 +57,12 @@ export function EmailComposer() {
   const [htmlContent, setHtmlContent] = useState(draft.htmlContent);
   const [mode, setMode] = useState<"blocks" | "html">(draft.mode);
 
+  const [recipientMode, setRecipientMode] = useState<
+    "all" | "pick" | "audience"
+  >("all");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [allCentres, setAllCentres] = useState(true);
+  const [audienceId, setAudienceId] = useState<string | null>(null);
+  const [showAudienceManager, setShowAudienceManager] = useState(false);
   const [scheduledAt, setScheduledAt] = useState("");
   const [showSchedule, setShowSchedule] = useState(false);
 
@@ -195,12 +202,42 @@ export function EmailComposer() {
     },
   });
 
+  // ── Saved audiences ────────────────────────────────────────
+  const { data: audiences } = useAudiences();
+
+  // Clear a selected audience that no longer exists (e.g. archived from the
+  // manager modal) so a stale id can't ride along into the send payload.
+  useEffect(() => {
+    if (!audienceId || !Array.isArray(audiences)) return;
+    if (!audiences.some((a) => a.id === audienceId)) {
+      setAudienceId(null);
+    }
+  }, [audienceId, audiences]);
+
+  // Recipients need a concrete selection before counting/sending makes sense:
+  // audience mode needs an audience picked, and pick mode needs ≥1 centre —
+  // empty serviceIds would read as ABSENT server-side and silently target ALL
+  // subscribed contacts while the summary claims "0 centre(s)".
+  const recipientsReady =
+    recipientMode === "audience"
+      ? !!audienceId
+      : recipientMode === "pick"
+        ? selectedServiceIds.length > 0
+        : true;
+
   // ── Recipient count ────────────────────────────────────────
   const { data: recipientCount } = useQuery<number>({
-    queryKey: ["recipient-count", allCentres, selectedServiceIds],
+    queryKey: [
+      "recipient-count",
+      recipientMode,
+      selectedServiceIds.join(","),
+      audienceId ?? "",
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (!allCentres && selectedServiceIds.length > 0) {
+      if (recipientMode === "audience" && audienceId) {
+        params.set("audienceId", audienceId);
+      } else if (recipientMode === "pick" && selectedServiceIds.length > 0) {
         selectedServiceIds.forEach((id) => params.append("serviceId", id));
       }
       const res = await fetch(
@@ -210,6 +247,7 @@ export function EmailComposer() {
       const data = await res.json();
       return data.count;
     },
+    enabled: recipientsReady,
   });
 
   // ── Send ───────────────────────────────────────────────────
@@ -229,17 +267,27 @@ export function EmailComposer() {
   }
 
   function handleConfirmSend() {
+    // Exactly ONE recipient shape goes out: audienceId | allCentres | serviceIds.
+    // The API's refine tolerates allCentres:false/[] alongside audienceId, but
+    // keep the legacy fields out entirely when an audience is selected.
     sendMutation.mutate(
       {
         subject,
         ...composedContent,
-        ...(allCentres
-          ? { allCentres: true }
-          : { serviceIds: selectedServiceIds }),
+        ...(recipientMode === "audience" && audienceId
+          ? { audienceId }
+          : recipientMode === "all"
+            ? { allCentres: true }
+            : { serviceIds: selectedServiceIds }),
         ...(showSchedule && scheduledAt
           ? { scheduledAt: new Date(scheduledAt).toISOString() }
           : {}),
         ...(postId ? { postId } : {}),
+        // Campaign umbrella link — the send route allows at most one of
+        // postId / marketingCampaignId, so postId wins when both are present.
+        ...(!postId && campaignIdParam
+          ? { marketingCampaignId: campaignIdParam }
+          : {}),
       },
       {
         onSuccess: () => {
@@ -263,9 +311,16 @@ export function EmailComposer() {
     );
   }
 
-  const centreCount = allCentres
-    ? services?.length ?? 0
-    : selectedServiceIds.length;
+  const centreCount =
+    recipientMode === "all" ? services?.length ?? 0 : selectedServiceIds.length;
+
+  const audienceList = Array.isArray(audiences) ? audiences : [];
+  const selectedAudience = audienceList.find((a) => a.id === audienceId);
+
+  const recipientSummary =
+    recipientMode === "audience"
+      ? `${recipientCount ?? "..."} recipient(s) in "${selectedAudience?.name ?? "—"}"`
+      : `${recipientCount ?? "..."} recipient(s) across ${centreCount} centre(s)`;
 
   // ── Render ─────────────────────────────────────────────────
   return (
@@ -302,7 +357,7 @@ export function EmailComposer() {
           </Button>
           <button
             onClick={() => setConfirmSend(true)}
-            disabled={!subject.trim() || sendMutation.isPending}
+            disabled={!subject.trim() || !recipientsReady || sendMutation.isPending}
             className="flex items-center gap-2 rounded-lg bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
           >
             {showSchedule && scheduledAt ? (
@@ -483,20 +538,38 @@ export function EmailComposer() {
             <h3 className="mb-3 text-sm font-semibold text-foreground">
               Recipients
             </h3>
-            <label className="mb-2 flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                checked={allCentres}
-                onChange={(e) => {
-                  setAllCentres(e.target.checked);
-                  if (e.target.checked) setSelectedServiceIds([]);
-                }}
-                className="rounded border-border text-brand focus:ring-brand"
-              />
-              All Centres
-            </label>
 
-            {!allCentres && services && (
+            {/* Mode toggle */}
+            <div
+              role="radiogroup"
+              aria-label="Recipient selection mode"
+              className="mb-3 flex gap-1 rounded-lg bg-hover p-1"
+            >
+              {(
+                [
+                  { value: "all", label: "All centres" },
+                  { value: "pick", label: "Pick centres" },
+                  { value: "audience", label: "Saved audience" },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={recipientMode === opt.value}
+                  onClick={() => setRecipientMode(opt.value)}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    recipientMode === opt.value
+                      ? "bg-surface text-foreground shadow-sm"
+                      : "text-muted hover:text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {recipientMode === "pick" && services && (
               <div className="mt-2 max-h-40 space-y-1 overflow-y-auto pl-1">
                 {services.map((svc) => (
                   <label
@@ -516,10 +589,38 @@ export function EmailComposer() {
               </div>
             )}
 
+            {recipientMode === "audience" && (
+              <div className="mt-2 flex items-center gap-2">
+                <select
+                  value={audienceId ?? ""}
+                  onChange={(e) => setAudienceId(e.target.value || null)}
+                  aria-label="Saved audience"
+                  className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                >
+                  <option value="">Select an audience...</option>
+                  {audienceList.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAudienceManager(true)}
+                >
+                  Manage audiences
+                </Button>
+              </div>
+            )}
+
             <p className="mt-3 text-xs text-muted">
               <Eye className="mr-1 inline-block h-3 w-3" />
-              {recipientCount ?? "..."} recipient(s) across {centreCount}{" "}
-              centre(s)
+              {recipientsReady
+                ? recipientSummary
+                : recipientMode === "audience"
+                  ? "Select an audience to see the recipient count"
+                  : "Pick at least one centre to see the recipient count"}
             </p>
           </div>
 
@@ -565,6 +666,12 @@ export function EmailComposer() {
         }}
       />
 
+      {/* Audience manager modal */}
+      <AudienceManagerModal
+        open={showAudienceManager}
+        onClose={() => setShowAudienceManager(false)}
+      />
+
       {/* Confirm send dialog */}
       {confirmSend && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -573,8 +680,7 @@ export function EmailComposer() {
               Confirm Send
             </h2>
             <p className="mb-6 text-sm text-muted">
-              Send to {recipientCount ?? "..."} recipients across {centreCount}{" "}
-              centres? This cannot be undone.
+              Send to {recipientSummary}? This cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button

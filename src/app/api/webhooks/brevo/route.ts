@@ -47,13 +47,28 @@ export const POST = withApiHandler(async (req) => {
   const parsed = parseBrevoWebhookBody(raw);
   if (!parsed) return NextResponse.json({ received: true });
 
-  // Correlate back to the send that produced this event.
-  const deliveryLog = await prisma.deliveryLog.findFirst({
-    where: parsed.campId
-      ? { externalId: parsed.campId, externalIdType: "brevo_campaign" }
-      : { externalId: parsed.messageId, externalIdType: "brevo_message" },
-    select: { id: true },
-  });
+  // Correlate back to the send that produced this event. Per-recipient sends
+  // carry the DeliveryLog id directly in a `dl:<id>` tag — but the tag is
+  // attacker-influenced input (anyone who knows the webhook URL+secret shape
+  // could replay a forged tag), and events now surface in user-visible
+  // reports, so verify the id actually exists before stamping it. One PK
+  // lookup — same query count as the legacy findFirst path.
+  let deliveryLogId: string | null;
+  if (parsed.deliveryLogTag) {
+    const exists = await prisma.deliveryLog.findUnique({
+      where: { id: parsed.deliveryLogTag },
+      select: { id: true },
+    });
+    deliveryLogId = exists?.id ?? null;
+  } else {
+    const deliveryLog = await prisma.deliveryLog.findFirst({
+      where: parsed.campId
+        ? { externalId: parsed.campId, externalIdType: "brevo_campaign" }
+        : { externalId: parsed.messageId, externalIdType: "brevo_message" },
+      select: { id: true },
+    });
+    deliveryLogId = deliveryLog?.id ?? null;
+  }
 
   // Best-effort idempotency (Brevo retries on non-2xx).
   const existing = await prisma.emailEvent.findFirst({
@@ -66,7 +81,7 @@ export const POST = withApiHandler(async (req) => {
         messageId: parsed.messageId,
         type: parsed.type,
         email: parsed.email,
-        deliveryLogId: deliveryLog?.id ?? null,
+        deliveryLogId,
         payload: raw as object,
       },
     });

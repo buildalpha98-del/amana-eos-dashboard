@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X, Trash2, Send, Pencil, Plus, CheckSquare, Sparkles } from "lucide-react";
+import { STATUS_LABELS } from "@/lib/creative-request/constants";
 import { AiButton } from "@/components/ui/AiButton";
 import {
   useCampaign,
@@ -54,6 +56,7 @@ export function CampaignDetailPanel({
   campaignId: string;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const { data: campaign, isLoading } = useCampaign(campaignId);
   const updateCampaign = useUpdateCampaign();
   const deleteCampaign = useDeleteCampaign();
@@ -668,6 +671,59 @@ export function CampaignDetailPanel({
                         <PlatformBadge platform={post.platform} />
                         <StatusBadge type="post" status={post.status} />
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Assets — linked creative requests + email sends */}
+            {((campaign?.creativeRequests?.length ?? 0) > 0 ||
+              (campaign?.emailSends?.length ?? 0) > 0) && (
+              <div>
+                <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+                  Assets (
+                  {(campaign?.creativeRequests?.length ?? 0) +
+                    (campaign?.emailSends?.length ?? 0)}
+                  )
+                </h3>
+                <div className="space-y-2">
+                  {campaign?.creativeRequests?.map((req) => (
+                    <button
+                      key={req.id}
+                      type="button"
+                      onClick={() => router.push(`/requests?open=${req.id}`)}
+                      className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-surface/50 px-3 py-2 text-left transition-colors hover:border-brand/50"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                        <span className="mr-2 font-mono text-2xs text-muted">
+                          {req.requestNumber}
+                        </span>
+                        {req.title}
+                      </span>
+                      <span className="ml-2 shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-2xs font-medium text-brand">
+                        {STATUS_LABELS[req.status]}
+                      </span>
+                    </button>
+                  ))}
+                  {campaign?.emailSends?.map((send) => (
+                    <div
+                      key={send.id}
+                      className="flex items-center justify-between rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                        {send.subject || "(no subject)"}
+                        <span className="ml-2 text-2xs text-muted">
+                          {send.recipientCount} recipient(s) ·{" "}
+                          {new Date(send.createdAt).toLocaleDateString("en-AU", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </span>
+                      </span>
+                      <span className="ml-2 shrink-0 rounded-full bg-surface px-2 py-0.5 text-2xs font-medium text-muted">
+                        {send.status}
+                      </span>
                     </div>
                   ))}
                 </div>

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import type {
+  CreativeRequestStatus,
   MarketingPlatform,
   MarketingPostStatus,
   MarketingCampaignType,
@@ -35,9 +36,28 @@ export interface CampaignData {
   services?: { service: { id: string; name: string; code: string } }[];
 }
 
+export interface CampaignLinkedRequest {
+  id: string;
+  requestNumber: string;
+  title: string;
+  status: CreativeRequestStatus;
+  dueDate: string;
+  assignee: { name: string | null } | null;
+}
+
+export interface CampaignEmailSend {
+  id: string;
+  subject: string | null;
+  status: string;
+  recipientCount: number;
+  createdAt: string;
+}
+
 export interface CampaignDetail extends CampaignData {
   posts: PostData[];
   comments: CommentData[];
+  creativeRequests: CampaignLinkedRequest[];
+  emailSends: CampaignEmailSend[];
 }
 
 export interface PostData {

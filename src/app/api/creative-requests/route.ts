@@ -31,6 +31,7 @@ const listQuerySchema = z.object({
   status: z.nativeEnum(CreativeRequestStatus).optional(),
   serviceId: z.string().optional(),
   assigneeId: z.string().optional(),
+  campaignId: z.string().optional(),
   search: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(200).default(100),
 });
@@ -47,6 +48,7 @@ export const GET = withApiAuth(async (req, session) => {
   if (q.status) where.status = q.status;
   if (q.serviceId) where.serviceId = q.serviceId;
   if (q.assigneeId) where.assigneeId = q.assigneeId;
+  if (q.campaignId) where.campaignId = q.campaignId;
   if (q.search) {
     where.OR = [
       { requestNumber: { contains: q.search, mode: "insensitive" } },
@@ -79,6 +81,9 @@ const createBodySchema = z.object({
   sizeSpec: z.string().max(500).optional(),
   outputFormat: z.string().max(500).optional(),
   serviceId: z.string().optional().nullable(),
+  // Informational link to a marketing campaign — any role may set it at
+  // create (validated to an existing, non-deleted campaign below).
+  campaignId: z.string().optional().nullable(),
   priority: z.nativeEnum(TicketPriority).optional(),
   dueDate: z.coerce.date().optional(),
   attachments: z.array(attachmentInputSchema).max(10).default([]),
@@ -98,6 +103,16 @@ export const POST = withApiAuth(async (req, session) => {
   }
   const dueDate = data.dueDate ?? defaultDueDate(data.type, now);
 
+  if (data.campaignId) {
+    const campaign = await prisma.marketingCampaign.findUnique({
+      where: { id: data.campaignId },
+      select: { id: true, deleted: true },
+    });
+    if (!campaign || campaign.deleted) {
+      throw ApiError.badRequest("Campaign not found");
+    }
+  }
+
   const created = await createWithNumberRetry(
     (requestNumber) =>
       prisma.creativeRequest.create({
@@ -110,6 +125,7 @@ export const POST = withApiAuth(async (req, session) => {
           sizeSpec: data.sizeSpec ?? null,
           outputFormat: data.outputFormat ?? null,
           serviceId: data.serviceId ?? null,
+          campaignId: data.campaignId ?? null,
           priority: data.priority ?? "normal",
           dueDate,
           requestedById: session.user.id,
