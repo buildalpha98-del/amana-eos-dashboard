@@ -202,7 +202,7 @@ if (!isBrevoConfigured()) {
           "This audience has been archived — pick another or restore it",
         );
       }
-      rules = parseStoredAudienceRules(audience.rules);
+      rules = parseStoredAudienceRules(audience.rules, audience.id);
     } else if (body.serviceIds && body.serviceIds.length > 0 && !body.allCentres) {
       rules = { serviceIds: body.serviceIds };
     } else {

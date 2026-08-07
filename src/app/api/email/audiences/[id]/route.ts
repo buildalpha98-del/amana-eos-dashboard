@@ -33,7 +33,7 @@ export const GET = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: "Audience not found" }, { status: 404 });
   }
 
-  const rules = parseStoredAudienceRules(audience.rules);
+  const rules = parseStoredAudienceRules(audience.rules, audience.id);
   const count = await countAudienceRecipients(rules);
 
   return NextResponse.json({ ...audience, count });

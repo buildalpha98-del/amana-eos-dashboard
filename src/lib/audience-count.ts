@@ -18,6 +18,7 @@ import {
   type AudienceRules,
 } from "@/lib/audience-rules";
 import { ApiError } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
 
 /**
  * Parse rules JSON loaded from an `EmailAudience` row. Rules are validated
@@ -26,9 +27,18 @@ import { ApiError } from "@/lib/api-error";
  * rather than silently falling back to `{}` — an empty-rules fallback would
  * quietly widen the audience to every subscribed contact.
  */
-export function parseStoredAudienceRules(rules: unknown): AudienceRules {
+export function parseStoredAudienceRules(
+  rules: unknown,
+  audienceId?: string,
+): AudienceRules {
   const parsed = audienceRulesSchema.safeParse(rules);
   if (!parsed.success) {
+    // 4xx responses aren't logged by handleApiError — log here so stored-data
+    // drift is visible in monitoring, not just blamed on the client.
+    logger.error("Stored audience rules failed validation", {
+      audienceId,
+      issues: parsed.error.flatten(),
+    });
     throw ApiError.badRequest(
       "Audience rules are invalid — edit and re-save the audience",
       parsed.error.flatten(),

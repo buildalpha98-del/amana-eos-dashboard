@@ -28,7 +28,7 @@ export const GET = withApiAuth(async (req) => {
     if (audience.archived) {
       throw ApiError.conflict("Audience is archived");
     }
-    rules = parseStoredAudienceRules(audience.rules);
+    rules = parseStoredAudienceRules(audience.rules, audience.id);
   } else {
     const serviceIds = req.nextUrl.searchParams.getAll("serviceId");
     rules = serviceIds.length > 0 ? { serviceIds } : {};
