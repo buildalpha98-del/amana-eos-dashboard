@@ -8,7 +8,6 @@ import { sendBookingRequestNotification } from "@/lib/notifications/bookings";
 import { logger } from "@/lib/logger";
 import { casualBookingSettingsSchema, resolveCasualFee, type CasualBookingSettings, type SessionTimes } from "@/lib/service-settings";
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
-import { applyFamilyDiscount } from "@/lib/family-discount";
 import { parseJsonField } from "@/lib/schemas/json-fields";
 
 // ---------------------------------------------------------------------------
@@ -241,45 +240,22 @@ export const POST = withParentAuth(async (req, { parent }) => {
         asc: service.ascCasualRate,
         vc: service.vcDailyRate ?? null,
       };
-      const listFee = linked > 0 ? linked : (legacyMap[sessionType] ?? null);
+      const fee = linked > 0 ? linked : (legacyMap[sessionType] ?? null);
 
       const contact = await tx.centreContact.findFirst({
         where: { email: parent.email, serviceId },
         select: { id: true },
       });
 
-      // A family's standing discount — sibling, staff, hardship —
-      // applied to the price stored on the booking, so what they're
-      // charged matches what they were told.
-      let fee = listFee;
-      if (contact && listFee !== null && listFee > 0) {
-        const discounts = await tx.familyDiscount.findMany({
-          where: {
-            contactId: contact.id,
-            serviceId,
-            startDate: { lte: bookingDate },
-            OR: [{ endDate: null }, { endDate: { gte: bookingDate } }],
-          },
-          select: {
-            id: true,
-            sessionType: true,
-            kind: true,
-            value: true,
-            reason: true,
-            startDate: true,
-            endDate: true,
-          },
-        });
-        if (discounts.length > 0) {
-          const outcome = applyFamilyDiscount(
-            Math.round(listFee * 100),
-            discounts,
-            sessionType,
-            bookingDate,
-          );
-          fee = outcome.amountCents / 100;
-        }
-      }
+      // A family's standing discount is NOT applied here on purpose.
+      // The booking stores the room's fee — the list price — and
+      // whoever bills decides when a discount comes off. An automatic
+      // reduction at booking time means a price nobody chose, applied
+      // to a booking that might be cancelled, with no one having
+      // checked the arrangement still holds.
+      //
+      // The discount is recorded against the family and surfaced at
+      // billing (see FamilyDiscountsCard / applyFamilyDiscount).
 
       // Auto-confirm: checkCasualBookingAllowed (above) has already verified
       // every policy constraint (session enabled, day allowed, cut-off met,

@@ -1,5 +1,9 @@
 /**
- * Applying a family's discount to a fee.
+ * Working out a family's discount on a fee.
+ *
+ * Nothing here runs automatically. It's called when someone is BILLING
+ * a family and wants to know what the arrangement takes off — the
+ * booking itself always stores the room's list price.
  *
  * Sibling arrangements, staff rates, hardship. The rules here decide
  * what somebody is actually charged, so they're deliberately boring and
