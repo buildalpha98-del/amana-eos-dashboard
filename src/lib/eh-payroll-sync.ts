@@ -44,6 +44,18 @@ export async function runEmployeeSync(): Promise<SyncSummary> {
   const startMs = Date.now();
   const employees = await listEmployees();
 
+  // Safety net (2026-08-07): an empty employee list means the EH fetch
+  // went wrong, not that every employee was terminated. Running the
+  // clear pass against it would wipe every mapping in one run — the
+  // exact "payroll IDs revert" incident this guard exists to prevent
+  // (listEmployees used to truncate at 100 rows and the sync cleared
+  // whatever fell outside the page). Abort instead of clearing.
+  if (employees.length === 0) {
+    throw new Error(
+      "EH Payroll returned 0 employees — refusing to run the mapping sync (a clear pass against an empty list would wipe every mapping)",
+    );
+  }
+
   // O(1) lookups for both directions.
   const byEmail = new Map<string, EhEmployee>();
   const ehById = new Map<number, EhEmployee>();

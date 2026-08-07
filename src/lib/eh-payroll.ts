@@ -253,18 +253,54 @@ const EMPLOYEE_FIELDS = [
   "externalId",
 ] as const;
 
-/** List every employee in the business. Used by the daily mapping cron
- *  to refresh `User.employmentHeroEmployeeId`. */
+/** EH/KeyPay's default (and maximum) page size for `/employee`. */
+const EMPLOYEE_PAGE_SIZE = 100;
+
+/** Hard ceiling on pagination (50 pages = 5,000 employees) — a runaway
+ *  guard, far above any realistic headcount for the business. */
+const EMPLOYEE_MAX_PAGES = 50;
+
+/**
+ * List every employee in the business. Used by the daily mapping cron
+ * to refresh `User.employmentHeroEmployeeId`.
+ *
+ * 2026-08-07: PAGINATED. This used to be a single `GET /employee`,
+ * which EH silently caps at 100 rows (OData default page size). The
+ * business has >100 EH employees, so mapped employees past the first
+ * page looked "missing" to the sync — which then treated them as
+ * terminated and CLEARED their `employmentHeroEmployeeId` (9 mappings
+ * wiped in the 2026-08-04 run alone). We now page with `$top`/`$skip`
+ * until a short page, and throw if pagination doesn't advance (an API
+ * that ignores `$skip` would loop forever returning page 1 — better to
+ * fail the sync loudly than to feed it a truncated list).
+ */
 export async function listEmployees(): Promise<EhEmployee[]> {
-  const raw = await request<Array<Record<string, unknown>>>("/employee");
-  return raw.map((e) => {
-    const out: Partial<EhEmployee> = {};
-    for (const f of EMPLOYEE_FIELDS) {
-      // Loose copy — EH's response is permissive about field presence.
-      (out as Record<string, unknown>)[f] = (e as Record<string, unknown>)[f] ?? null;
+  const all: EhEmployee[] = [];
+  const seenIds = new Set<number>();
+  for (let page = 0; page < EMPLOYEE_MAX_PAGES; page++) {
+    const raw = await request<Array<Record<string, unknown>>>(
+      `/employee?$top=${EMPLOYEE_PAGE_SIZE}&$skip=${page * EMPLOYEE_PAGE_SIZE}`,
+    );
+    for (const e of raw) {
+      const out: Partial<EhEmployee> = {};
+      for (const f of EMPLOYEE_FIELDS) {
+        // Loose copy — EH's response is permissive about field presence.
+        (out as Record<string, unknown>)[f] = (e as Record<string, unknown>)[f] ?? null;
+      }
+      const emp = out as EhEmployee;
+      if (seenIds.has(emp.id)) {
+        throw new EhPayrollError(
+          502,
+          null,
+          `EH /employee pagination did not advance (employee ${emp.id} repeated on page ${page + 1}) — aborting rather than returning a truncated list`,
+        );
+      }
+      seenIds.add(emp.id);
+      all.push(emp);
     }
-    return out as EhEmployee;
-  });
+    if (raw.length < EMPLOYEE_PAGE_SIZE) break;
+  }
+  return all;
 }
 
 /** Single-employee fetch by EH id. Used when we know the mapping and

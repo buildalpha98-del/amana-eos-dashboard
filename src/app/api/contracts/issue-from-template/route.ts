@@ -143,13 +143,61 @@ export const POST = withApiAuth(
       : "";
     const html = supersedeNoticeHtml + bodyHtml;
 
-    // Steps 6-7: render PDF + upload.
-    // Failure here means no DB row (clean abort — no orphan storage).
-    const pdf = await renderContractPdf(html);
-    const { url } = await uploadFile(pdf, `contract-${data.userId}-${Date.now()}.pdf`, {
-      contentType: "application/pdf",
-      folder: "contracts/issued",
+    // Step 6 (2026-08-07 hardening): create the contract row FIRST, as a
+    // draft, BEFORE the slow PDF render + blob upload. Previously the row
+    // was only created after those steps succeeded, so a timeout or crash
+    // mid-request left no trace at all — the admin believed the contract
+    // was issued when nothing existed (this happened with a real staff
+    // contract, reported 2026-08-07: "sent" but never in the DB). A
+    // failed issue now leaves a visible contract_draft row in /contracts
+    // instead of silently vanishing; the admin can see it, and re-issue.
+    const draft = await prisma.employmentContract.create({
+      data: {
+        userId: data.userId,
+        contractType: data.contractMeta.contractType,
+        awardLevel: data.contractMeta.awardLevel ?? null,
+        awardLevelCustom: data.contractMeta.awardLevelCustom ?? null,
+        payRate: data.contractMeta.payRate,
+        hoursPerWeek: data.contractMeta.hoursPerWeek ?? null,
+        startDate,
+        endDate,
+        status: "contract_draft",
+        documentUrl: null,
+        documentId: null,
+        templateId: template.id,
+        templateValues: { auto: resolved, manual: data.manualValues },
+        previousContractId: existingActive?.id ?? null,
+        // Persist admin signature alongside the contract so re-renders
+        // (after staff signs) can replay it without the admin needing
+        // to re-draw. signedById/At are an audit trail of WHO signed
+        // and WHEN — useful for Fair Work disputes about whether the
+        // contract was properly issued.
+        adminSignatureDataUrl: data.adminSignatureDataUrl ?? null,
+        adminSignedById: data.adminSignatureDataUrl ? session!.user.id : null,
+        adminSignedAt: data.adminSignatureDataUrl ? new Date() : null,
+      },
     });
+
+    // Steps 7-8: render PDF + upload. On failure the draft row remains
+    // as evidence — the error message points the admin straight at it.
+    let url: string;
+    try {
+      const pdf = await renderContractPdf(html);
+      ({ url } = await uploadFile(pdf, `contract-${data.userId}-${Date.now()}.pdf`, {
+        contentType: "application/pdf",
+        folder: "contracts/issued",
+      }));
+    } catch (err) {
+      logger.error("issue-from-template: PDF render/upload failed after draft create", {
+        contractId: draft.id,
+        err,
+      });
+      throw new ApiError(
+        502,
+        "Contract document generation failed — the contract was saved as a draft (visible in Contracts) but has NOT been issued or emailed. Re-issue when the problem is resolved.",
+        { contractId: draft.id },
+      );
+    }
 
     // NOTE on documentId: we do NOT create a `Document` row for issued
     // contracts. The Document model is for the dashboard's general
@@ -169,30 +217,11 @@ export const POST = withApiAuth(
         });
       }
 
-      const created = await tx.employmentContract.create({
+      const finalized = await tx.employmentContract.update({
+        where: { id: draft.id },
         data: {
-          userId: data.userId,
-          contractType: data.contractMeta.contractType,
-          awardLevel: data.contractMeta.awardLevel ?? null,
-          awardLevelCustom: data.contractMeta.awardLevelCustom ?? null,
-          payRate: data.contractMeta.payRate,
-          hoursPerWeek: data.contractMeta.hoursPerWeek ?? null,
-          startDate,
-          endDate,
           status: "active",
           documentUrl: url,
-          documentId: null,
-          templateId: template.id,
-          templateValues: { auto: resolved, manual: data.manualValues },
-          previousContractId: existingActive?.id ?? null,
-          // Persist admin signature alongside the contract so re-renders
-          // (after staff signs) can replay it without the admin needing
-          // to re-draw. signedById/At are an audit trail of WHO signed
-          // and WHEN — useful for Fair Work disputes about whether the
-          // contract was properly issued.
-          adminSignatureDataUrl: data.adminSignatureDataUrl ?? null,
-          adminSignedById: data.adminSignatureDataUrl ? session!.user.id : null,
-          adminSignedAt: data.adminSignatureDataUrl ? new Date() : null,
         },
       });
       await tx.activityLog.create({
@@ -200,7 +229,7 @@ export const POST = withApiAuth(
           userId: session!.user.id,
           action: existingActive ? "issue_from_template_supersede" : "issue_from_template",
           entityType: "EmploymentContract",
-          entityId: created.id,
+          entityId: finalized.id,
           details: {
             templateId: template.id,
             templateName: template.name,
@@ -208,7 +237,7 @@ export const POST = withApiAuth(
           },
         },
       });
-      return created;
+      return finalized;
     });
 
     // Step 9: send email — OUTSIDE the transaction.

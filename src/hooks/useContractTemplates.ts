@@ -238,10 +238,13 @@ export function useIssueFromTemplate() {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["contracts"] });
       if (data.emailFailed === true) {
+        // Destructive on purpose (2026-08-07): this half-success is easy
+        // to miss with a neutral toast, and a missed email reads later as
+        // "the contract was never sent".
         toast({
-          variant: "default",
+          variant: "destructive",
           description:
-            "Contract created but email to staff failed. Use the resend button.",
+            "Contract created but the email to staff FAILED — it has not been sent. Use the resend button on the contract.",
         });
       } else {
         toast({ description: "Contract issued and emailed." });

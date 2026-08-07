@@ -47,18 +47,27 @@ async function main() {
   console.log(`Owner ready: ${admin.email}`);
 
   // ── Core Staff Users ──────────────────────────────────────────
+  //
+  // 2026-08-07: CREATE-ONLY, like the admin upsert above. This block
+  // previously did `update: { role, state }` on every run — and because
+  // the seed runs on EVERY Vercel deploy (including branch previews,
+  // which share the prod DB), each deploy silently reverted role changes
+  // made in the dashboard. Tracie and Mirna were demoted from
+  // head_office back to member on every push for weeks. Exact same bug
+  // pattern as the V/TO wipe (see the comment below) and the Scorecard
+  // wipe (PR #91): the seed must never overwrite user-managed data.
   const staffUsers = [
     { name: "Jayden Kowaider", email: "jayden@amanaoshc.com.au", role: "owner" as const, state: null },
     { name: "Daniel", email: "daniel@amanaoshc.com.au", role: "admin" as const, state: null },
     { name: "Akram", email: "akram@amanaoshc.com.au", role: "marketing" as const, state: null },
-    { name: "Mirna", email: "mirna@amanaoshc.com.au", role: "member" as const, state: "NSW" },
-    { name: "Tracie", email: "tracie@amanaoshc.com.au", role: "member" as const, state: "VIC" },
+    { name: "Mirna", email: "mirna@amanaoshc.com.au", role: "head_office" as const, state: "NSW" },
+    { name: "Tracie", email: "tracie@amanaoshc.com.au", role: "head_office" as const, state: "VIC" },
   ];
 
   for (const staff of staffUsers) {
     const user = await prisma.user.upsert({
       where: { email: staff.email },
-      update: { role: staff.role, state: staff.state },
+      update: {},
       create: {
         name: staff.name,
         email: staff.email,
