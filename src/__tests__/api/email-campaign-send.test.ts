@@ -222,6 +222,181 @@ describe("POST /api/email/campaign/send — suppression", () => {
   });
 });
 
+describe("POST /api/email/campaign/send — audienceId resolution", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456 });
+    prismaMock.orgSettings.findUnique.mockResolvedValue(null);
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  function postBody(body: Record<string, unknown>) {
+    return createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", htmlContent: "<p>hi</p>", ...body },
+    });
+  }
+
+  function mockAudience(overrides: Record<string, unknown> = {}) {
+    prismaMock.emailAudience.findUnique.mockResolvedValue({
+      id: "aud-1",
+      name: "Active families",
+      rules: { serviceIds: ["svc-1"], statuses: ["active"] },
+      archived: false,
+      ...overrides,
+    });
+  }
+
+  it("resolves recipients from the audience rules via the shared compiler", async () => {
+    mockAudience();
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({ audienceId: "aud-1" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.recipientCount).toBe(2);
+
+    // The where clause must be the compiled rules — subscribed base + ANDed conditions
+    const where = prismaMock.centreContact.findMany.mock.calls[0][0].where;
+    expect(where).toEqual({
+      subscribed: true,
+      serviceId: { in: ["svc-1"] },
+      status: { in: ["active"] },
+    });
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 404 for an unknown audienceId without sending", async () => {
+    prismaMock.emailAudience.findUnique.mockResolvedValue(null);
+
+    const res = await sendCampaign(postBody({ audienceId: "nope" }));
+    expect(res.status).toBe(404);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+    expect(mockedSendCampaign).not.toHaveBeenCalled();
+    expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 for an archived audience without sending", async () => {
+    mockAudience({ archived: true });
+
+    const res = await sendCampaign(postBody({ audienceId: "aud-1" }));
+    expect(res.status).toBe(409);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+    expect(mockedSendCampaign).not.toHaveBeenCalled();
+    expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects audienceId combined with a non-empty serviceIds with 400", async () => {
+    const res = await sendCampaign(
+      postBody({ audienceId: "aud-1", serviceIds: ["svc-2"] }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+
+  it("rejects audienceId combined with allCentres: true with 400", async () => {
+    const res = await sendCampaign(
+      postBody({ audienceId: "aud-1", allCentres: true }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+
+  it("tolerates the composer's legacy allCentres:false + serviceIds:[] alongside audienceId", async () => {
+    // The composer always sends these two fields — falsy/empty values must
+    // count as ABSENT for the mutual-exclusion refine.
+    mockAudience();
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(
+      postBody({ audienceId: "aud-1", allCentres: false, serviceIds: [] }),
+    );
+    expect(res.status).toBe(200);
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("POST /api/email/campaign/send — marketingCampaignId attribution", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456 });
+    prismaMock.orgSettings.findUnique.mockResolvedValue(null);
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  function postBody(body: Record<string, unknown>) {
+    return createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", htmlContent: "<p>hi</p>", ...body },
+    });
+  }
+
+  it("stamps entityType MarketingCampaign + entityId when the campaign exists", async () => {
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue({ id: "camp-1" });
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({ marketingCampaignId: "camp-1" }));
+    expect(res.status).toBe(200);
+
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(createArgs.data.entityType).toBe("MarketingCampaign");
+    expect(createArgs.data.entityId).toBe("camp-1");
+  });
+
+  it("returns 404 for an unknown marketingCampaignId without sending", async () => {
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue(null);
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({ marketingCampaignId: "nope" }));
+    expect(res.status).toBe(404);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+    expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects marketingCampaignId combined with enquiryId with 400", async () => {
+    const res = await sendCampaign(
+      postBody({ marketingCampaignId: "camp-1", enquiryId: "enq-1" }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+
+  it("rejects marketingCampaignId combined with postId with 400", async () => {
+    const res = await sendCampaign(
+      postBody({ marketingCampaignId: "camp-1", postId: "post-1" }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/email/recipient-count — post-suppression count", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -248,5 +423,80 @@ describe("GET /api/email/recipient-count — post-suppression count", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual({ count: 3 });
+  });
+
+  it("keeps the legacy serviceId filter working through the shared compiler", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const req = createRequest(
+      "GET",
+      "/api/email/recipient-count?serviceId=svc-1&serviceId=svc-2",
+    );
+    const res = await recipientCount(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toEqual({ count: 1 });
+
+    const where = prismaMock.centreContact.findMany.mock.calls[0][0].where;
+    expect(where).toEqual({
+      subscribed: true,
+      serviceId: { in: ["svc-1", "svc-2"] },
+    });
+  });
+
+  it("resolves ?audienceId= through the audience rules, post-suppression", async () => {
+    prismaMock.emailAudience.findUnique.mockResolvedValue({
+      id: "aud-1",
+      rules: { statuses: ["active"] },
+      archived: false,
+    });
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+      contact("c@example.com"),
+    ]);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set(["b@example.com"]));
+
+    const req = createRequest(
+      "GET",
+      "/api/email/recipient-count?audienceId=aud-1",
+    );
+    const res = await recipientCount(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toEqual({ count: 2 });
+
+    const where = prismaMock.centreContact.findMany.mock.calls[0][0].where;
+    expect(where).toEqual({ subscribed: true, status: { in: ["active"] } });
+  });
+
+  it("returns 404 for an unknown audienceId", async () => {
+    prismaMock.emailAudience.findUnique.mockResolvedValue(null);
+
+    const req = createRequest(
+      "GET",
+      "/api/email/recipient-count?audienceId=nope",
+    );
+    const res = await recipientCount(req);
+    expect(res.status).toBe(404);
+    expect(prismaMock.centreContact.findMany).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 for an archived audience", async () => {
+    prismaMock.emailAudience.findUnique.mockResolvedValue({
+      id: "aud-1",
+      rules: {},
+      archived: true,
+    });
+
+    const req = createRequest(
+      "GET",
+      "/api/email/recipient-count?audienceId=aud-1",
+    );
+    const res = await recipientCount(req);
+    expect(res.status).toBe(409);
+    expect(prismaMock.centreContact.findMany).not.toHaveBeenCalled();
   });
 });

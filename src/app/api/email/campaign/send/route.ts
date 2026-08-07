@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -17,18 +17,50 @@ import { getEmailBranding } from "@/lib/email-branding";
 import { getSuppressedEmails } from "@/lib/email-suppression";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-const bodySchema = z.object({
-  templateId: z.string().optional().nullable(),
-  subject: z.string().min(1).max(500),
-  htmlContent: z.string().optional().nullable(),
-  blocks: z.array(z.any()).optional().nullable(),
-  serviceIds: z.array(z.string()).optional(),
-  allCentres: z.boolean().optional(),
-  scheduledAt: z.string().datetime().optional().nullable(),
-  enquiryId: z.string().optional().nullable(),
-  postId: z.string().optional().nullable(),
-  variables: z.record(z.string(), z.string()).optional(),
-});
+import type { AudienceRules } from "@/lib/audience-rules";
+import { resolveAudienceWhere } from "@/lib/audience-rules";
+import { parseStoredAudienceRules } from "@/lib/audience-count";
+
+const bodySchema = z
+  .object({
+    templateId: z.string().optional().nullable(),
+    subject: z.string().min(1).max(500),
+    htmlContent: z.string().optional().nullable(),
+    blocks: z.array(z.any()).optional().nullable(),
+    serviceIds: z.array(z.string()).optional(),
+    allCentres: z.boolean().optional(),
+    audienceId: z.string().optional().nullable(),
+    scheduledAt: z.string().datetime().optional().nullable(),
+    enquiryId: z.string().optional().nullable(),
+    postId: z.string().optional().nullable(),
+    marketingCampaignId: z.string().optional().nullable(),
+    variables: z.record(z.string(), z.string()).optional(),
+  })
+  // audienceId is mutually exclusive with the legacy centre picker. The
+  // composer historically ALWAYS sends `allCentres` and `serviceIds` —
+  // `allCentres: false` and `serviceIds: []` must count as ABSENT here or
+  // every audience send would false-trip this refine.
+  .refine(
+    (b) =>
+      !b.audienceId ||
+      (b.allCentres !== true && !(b.serviceIds && b.serviceIds.length > 0)),
+    {
+      message: "audienceId cannot be combined with serviceIds or allCentres",
+    },
+  )
+  // Attribution targets are exclusive: the MarketingPost / ParentEnquiry
+  // branches take precedence over direct campaign attribution (posts are
+  // attributed to campaigns TRANSITIVELY via post.campaignId — never stamp
+  // both), so at most one of these may be set.
+  .refine(
+    (b) =>
+      [b.enquiryId, b.postId, b.marketingCampaignId].filter(Boolean).length <=
+      1,
+    {
+      message:
+        "At most one of enquiryId, postId, marketingCampaignId may be set",
+    },
+  );
 
 export const POST = withApiAuth(async (req, session) => {
 if (!isBrevoConfigured()) {
@@ -151,11 +183,33 @@ if (!isBrevoConfigured()) {
     entityType = "ParentEnquiry";
     entityId = enquiry.id;
   } else {
-    // Query subscribed contacts, optionally filtered by serviceIds
-    const where: Record<string, unknown> = { subscribed: true };
-    if (body.serviceIds && body.serviceIds.length > 0 && !body.allCentres) {
-      where.serviceId = { in: body.serviceIds };
+    // Resolve recipients through the SHARED audience-rules compiler —
+    // audience rules and the legacy serviceIds picker compile through the
+    // same path so send, recipient-count, and audience CRUD can never drift.
+    let rules: AudienceRules;
+    if (body.audienceId) {
+      const audience = await prisma.emailAudience.findUnique({
+        where: { id: body.audienceId },
+      });
+      if (!audience) {
+        return NextResponse.json(
+          { error: "Audience not found" },
+          { status: 404 },
+        );
+      }
+      if (audience.archived) {
+        throw ApiError.conflict(
+          "This audience has been archived — pick another or restore it",
+        );
+      }
+      rules = parseStoredAudienceRules(audience.rules);
+    } else if (body.serviceIds && body.serviceIds.length > 0 && !body.allCentres) {
+      rules = { serviceIds: body.serviceIds };
+    } else {
+      rules = {};
     }
+
+    const where = await resolveAudienceWhere(prisma, rules);
 
     const contacts = await prisma.centreContact.findMany({
       where,
@@ -184,6 +238,21 @@ if (!isBrevoConfigured()) {
     if (body.postId) {
       entityType = "MarketingPost";
       entityId = body.postId;
+    } else if (body.marketingCampaignId) {
+      // Direct campaign send — the zod refine guarantees postId/enquiryId are
+      // absent here (posts attribute to campaigns transitively, never both).
+      const campaign = await prisma.marketingCampaign.findUnique({
+        where: { id: body.marketingCampaignId },
+        select: { id: true },
+      });
+      if (!campaign) {
+        return NextResponse.json(
+          { error: "Campaign not found" },
+          { status: 404 },
+        );
+      }
+      entityType = "MarketingCampaign";
+      entityId = campaign.id;
     }
   }
 

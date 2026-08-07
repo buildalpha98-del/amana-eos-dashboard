@@ -1,29 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { getSuppressedEmails } from "@/lib/email-suppression";
+import { ApiError } from "@/lib/api-error";
+import type { AudienceRules } from "@/lib/audience-rules";
+import {
+  countAudienceRecipients,
+  parseStoredAudienceRules,
+} from "@/lib/audience-count";
 
-export const GET = withApiAuth(async (req, session) => {
-  const serviceIds = req.nextUrl.searchParams.getAll("serviceId");
+// GET /api/email/recipient-count?serviceId=…&serviceId=…  (legacy picker)
+// GET /api/email/recipient-count?audienceId=…             (saved audience)
+//
+// Both paths resolve through the SAME audience-rules compiler as
+// campaign/send — the count preview must match what will actually go out
+// (post-suppression), so never hand-roll a where clause here.
+export const GET = withApiAuth(async (req) => {
+  const audienceId = req.nextUrl.searchParams.get("audienceId");
 
-  const contacts = await prisma.centreContact.findMany({
-    where: {
-      subscribed: true,
-      ...(serviceIds.length > 0 && { serviceId: { in: serviceIds } }),
-    },
-    select: { email: true },
-  });
+  let rules: AudienceRules;
+  if (audienceId) {
+    const audience = await prisma.emailAudience.findUnique({
+      where: { id: audienceId },
+    });
+    if (!audience) {
+      throw ApiError.notFound("Audience not found");
+    }
+    if (audience.archived) {
+      throw ApiError.conflict("Audience is archived");
+    }
+    rules = parseStoredAudienceRules(audience.rules);
+  } else {
+    const serviceIds = req.nextUrl.searchParams.getAll("serviceId");
+    rules = serviceIds.length > 0 ? { serviceIds } : {};
+  }
 
-  const uniqueEmails = new Set(
-    contacts.map((c) => c.email.toLowerCase()),
-  );
-
-  // Mirror campaign/send's suppression filter — the count preview should
-  // match what will actually go out, not the raw subscribed count.
-  const suppressed = await getSuppressedEmails([...uniqueEmails]);
-  const count = [...uniqueEmails].filter(
-    (email) => !suppressed.has(email.toLowerCase()),
-  ).length;
+  const count = await countAudienceRecipients(rules);
 
   return NextResponse.json({ count });
 });
