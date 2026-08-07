@@ -208,7 +208,7 @@ export function EmailComposer() {
   // Clear a selected audience that no longer exists (e.g. archived from the
   // manager modal) so a stale id can't ride along into the send payload.
   useEffect(() => {
-    if (!audienceId || !audiences) return;
+    if (!audienceId || !Array.isArray(audiences)) return;
     if (!audiences.some((a) => a.id === audienceId)) {
       setAudienceId(null);
     }
@@ -314,7 +314,8 @@ export function EmailComposer() {
   const centreCount =
     recipientMode === "all" ? services?.length ?? 0 : selectedServiceIds.length;
 
-  const selectedAudience = audiences?.find((a) => a.id === audienceId);
+  const audienceList = Array.isArray(audiences) ? audiences : [];
+  const selectedAudience = audienceList.find((a) => a.id === audienceId);
 
   const recipientSummary =
     recipientMode === "audience"
@@ -597,7 +598,7 @@ export function EmailComposer() {
                   className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">Select an audience...</option>
-                  {(audiences ?? []).map((a) => (
+                  {audienceList.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
                     </option>

@@ -71,6 +71,16 @@ function installTemplateFetchMock() {
         json: async () => [],
       };
     }
+    if (u.includes("/api/email/audiences")) {
+      // Phase 4 audience picker: list endpoint returns an array; anything
+      // non-array would crash the picker's .find during render.
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => [],
+      };
+    }
     if (u.includes("/api/email/recipient-count")) {
       return {
         ok: true,
