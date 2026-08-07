@@ -5,6 +5,7 @@ import { CENTRE_AVATAR_STARTER_DATA } from "../src/lib/seed/centre-avatar-starte
 import { SEED_SEQUENCES } from "../src/lib/sequence-seed-data";
 import { seedInduction } from "./seed-induction";
 import { seedAmbassadors } from "./seed-ambassadors";
+import { seedAmbassadorsPilot } from "./seed-ambassadors-pilot";
 
 const prisma = new PrismaClient();
 
@@ -2911,6 +2912,11 @@ Don't list every child by name. Don't invent events or meals — use only what's
   // Idempotent: course found by (title + track); modules only seeded when the
   // course has none, so dashboard edits survive redeploys.
   await seedAmbassadors(prisma);
+
+  // ── Amana Ambassadors PILOT (incentive tracker) ───────────────
+  // Idempotent: pilot matched by name (status/dates never touched after
+  // creation); centres create-if-missing so admin-edited targets survive.
+  await seedAmbassadorsPilot(prisma);
 
   console.log("\nSeed complete!");
 }

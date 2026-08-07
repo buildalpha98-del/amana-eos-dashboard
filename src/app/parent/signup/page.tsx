@@ -9,11 +9,16 @@
  * owned by that account.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
+
+// Ambassadors: educator QR codes land here as /parent/signup?ref=CODE.
+// window.location (not useSearchParams) so the page needs no Suspense
+// boundary; sessionStorage keeps the code if they wander off and return.
+const REF_STORAGE_KEY = "amana_ref";
 
 export default function ParentSignupPage() {
   const [fullName, setFullName] = useState("");
@@ -22,7 +27,27 @@ export default function ParentSignupPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [refCode, setRefCode] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("ref");
+    if (fromUrl) {
+      setRefCode(fromUrl);
+      try {
+        sessionStorage.setItem(REF_STORAGE_KEY, fromUrl);
+      } catch {
+        // storage unavailable (private mode) — the URL value still applies
+      }
+      return;
+    }
+    try {
+      const stored = sessionStorage.getItem(REF_STORAGE_KEY);
+      if (stored) setRefCode(stored);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const passwordsMatch = password === confirm;
   const longEnough = password.length >= 10;
@@ -40,7 +65,12 @@ export default function ParentSignupPage() {
         "/api/parent/auth/signup",
         {
           method: "POST",
-          body: { email, password, fullName: fullName.trim() },
+          body: {
+            email,
+            password,
+            fullName: fullName.trim(),
+            ...(refCode ? { refCode } : {}),
+          },
         },
       );
       // Signed in already — go straight to the form. router.push would
