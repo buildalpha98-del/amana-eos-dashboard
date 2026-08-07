@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, Send, AlertCircle, Clock, Users } from "lucide-react";
+import { Mail, Send, AlertCircle, Clock, Users, MailOpen, MousePointerClick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -12,6 +12,8 @@ interface EmailStats {
   sent: number;
   failed: number;
   scheduled: number;
+  uniqueOpens: number;
+  uniqueClicks: number;
 }
 
 interface RecentSend {
@@ -114,7 +116,12 @@ export function EmailAnalytics() {
         <StatCard icon={Users} label="Recipients" value={stats.totalRecipients} />
         <StatCard icon={AlertCircle} label="Failed" value={stats.failed} color={stats.failed > 0 ? "text-red-500" : undefined} />
         <StatCard icon={Clock} label="Scheduled" value={stats.scheduled} />
+        <StatCard icon={MailOpen} label="Unique opens (30d)" value={stats.uniqueOpens} />
+        <StatCard icon={MousePointerClick} label="Unique clicks (30d)" value={stats.uniqueClicks} />
       </div>
+      <p className="text-2xs text-muted">
+        Tracking starts from the Phase 3 deploy — earlier sends have no events.
+      </p>
 
       {/* Daily Volume Chart */}
       {dailyVolume.length > 0 && (

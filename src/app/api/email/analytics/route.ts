@@ -7,7 +7,7 @@ export const GET = withApiAuth(async (req, session) => {
   const days = parseInt(searchParams.get("days") ?? "30", 10);
   const since = new Date(Date.now() - days * 86400000);
 
-  const [logs, totals] = await Promise.all([
+  const [logs, totals, eventCounts, volumeRows] = await Promise.all([
     // Recent sends (last N days, most recent first)
     prisma.deliveryLog.findMany({
       where: { createdAt: { gte: since } },
@@ -32,6 +32,19 @@ export const GET = withApiAuth(async (req, session) => {
       _count: true,
       _sum: { recipientCount: true },
     }),
+    // Unique opens/clicks — the webhook dedupes on (messageId, type, email),
+    // so these counts ARE unique-recipient counts, not raw event totals.
+    prisma.emailEvent.groupBy({
+      by: ["type"],
+      where: { createdAt: { gte: since }, type: { in: ["opened", "clicked"] } },
+      _count: true,
+    }),
+    // Full-window rows for the daily volume chart (recentSends above is
+    // capped at 50, which silently truncated the chart on busy periods).
+    prisma.deliveryLog.findMany({
+      where: { createdAt: { gte: since } },
+      select: { createdAt: true },
+    }),
   ]);
 
   const stats = {
@@ -40,12 +53,14 @@ export const GET = withApiAuth(async (req, session) => {
     sent: totals.find((t) => t.status === "sent")?._count ?? 0,
     failed: totals.find((t) => t.status === "failed")?._count ?? 0,
     scheduled: totals.find((t) => t.status === "scheduled")?._count ?? 0,
+    uniqueOpens: eventCounts.find((t) => t.type === "opened")?._count ?? 0,
+    uniqueClicks: eventCounts.find((t) => t.type === "clicked")?._count ?? 0,
   };
 
-  // Daily send volume for chart
+  // Daily send volume for chart (full window, not just the 50-row slice)
   const dailyVolume: Record<string, number> = {};
-  for (const log of logs) {
-    const day = log.createdAt.toISOString().split("T")[0];
+  for (const row of volumeRows) {
+    const day = row.createdAt.toISOString().split("T")[0];
     dailyVolume[day] = (dailyVolume[day] ?? 0) + 1;
   }
 
