@@ -911,6 +911,14 @@ model User {
   // 2026-07-23: family balance follow-up contacts this user logged.
   familyBalanceContactsCreated FamilyBalanceContact[] @relation("FamilyBalanceContactCreator")
 
+  // 2026-08-03 (Amana Ambassadors pilot): educator enrolment-incentive tracker.
+  educatorRefCode           EducatorRefCode?       @relation("EducatorRefCode")
+  ambassadorCredits         AmbassadorEnrolment[]  @relation("AmbassadorCredited")
+  ambassadorTransitions     AmbassadorTransition[] @relation("AmbassadorTransitionActor")
+  ambassadorAdjustments     AmbassadorAdjustment[] @relation("AmbassadorAdjustments")
+  ambassadorSessionsCreated AmbassadorSession[]    @relation("AmbassadorSessionCreatedBy")
+  ambassadorPilotsClosed    AmbassadorPilot[]      @relation("AmbassadorPilotClosedBy")
+
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
   @@index([name])
@@ -2142,6 +2150,9 @@ model QrCode {
 
   scans QrScan[]
 
+  /// 2026-08-03: set when this QR is an educator's Ambassadors referral QR.
+  educatorRefCode EducatorRefCode? @relation("EducatorRefQr")
+
   @@index([active])
   @@index([activationId])
   @@index([serviceId])
@@ -2423,6 +2434,10 @@ model Service {
   // 2026-07-23: family balance follow-up log — parent contact attempts
   // for outstanding balances at this centre.
   familyBalanceContacts FamilyBalanceContact[] @relation("ServiceFamilyBalanceContacts")
+
+  // 2026-08-03 (Amana Ambassadors pilot)
+  ambassadorPilotCentres AmbassadorPilotCentre[] @relation("AmbassadorPilotCentres")
+  ambassadorEnrolments   AmbassadorEnrolment[]   @relation("AmbassadorEnrolments")
 
   @@index([status])
   @@index([managerId])
@@ -6246,6 +6261,9 @@ model EnrolmentSubmission {
 
   // Phase 8: Submission
   referralSource  String?
+  /// 2026-08-03 (Ambassadors): free-text answer to "Which educator spoke
+  /// with you?" — shown when referralSource is the educator option.
+  referralEducatorName String?
   signature       String? @db.Text
   termsAccepted   Boolean @default(false)
   privacyAccepted Boolean @default(false)
@@ -6272,6 +6290,8 @@ model EnrolmentSubmission {
   updatedAt DateTime @updatedAt
 
   childRecords Child[]
+
+  ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorFromSubmission")
 
   @@index([status])
   @@index([enquiryId])
@@ -6379,6 +6399,8 @@ model Child {
   @@index([serviceId, ccsStatus])
   @@index([serviceId, room])
   @@index([serviceId, nextImmunisationDue])
+
+  ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorChild")
 }
 
 // ── All About Me (Amana Way stage 5 — Reassurance) ───────────
@@ -6582,6 +6604,11 @@ model ParentAccount {
 
   verifications ParentEmailVerification[]
   enrolmentDraft EnrolmentDraft?
+
+  /// 2026-08-03 (Ambassadors): educator ref code captured from
+  /// /parent/signup?ref= — validated against EducatorRefCode at signup,
+  /// resolved into attribution when an enrolment is submitted.
+  ambassadorRefCode String?
 
   @@index([email])
 }
@@ -7063,6 +7090,8 @@ model EnrolmentApplication {
   service    Service       @relation("ServiceEnrolmentApplications", fields: [serviceId], references: [id])
   family     CentreContact @relation("ContactEnrolmentApplications", fields: [familyId], references: [id])
   reviewedBy User?         @relation("EnrolmentReviewedBy", fields: [reviewedById], references: [id])
+
+  ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorFromApplication")
 
   @@index([serviceId, status])
   @@index([familyId, status])
@@ -8526,4 +8555,212 @@ model EnrolFormTranslation {
 
   @@unique([key, locale])
   @@index([locale])
+}
+
+// ============================================================
+// Amana Ambassadors — staff enrolment-incentive pilot (2026-08-03)
+//
+// Educators are credited when they bring in a new enrolment during a
+// pilot window. Distinct from Referral (parent $50 referral) and
+// StaffReferral (recruitment $200 bonus). All derived values on
+// AmbassadorEnrolment are written ONLY by recomputeAmbassadorRecord
+// (src/lib/ambassadors/recompute.ts).
+// ============================================================
+
+enum AmbassadorPilotStatus {
+  draft
+  active
+  closed
+}
+
+enum AmbassadorAttributionSource {
+  form_field
+  qr_ref
+  both
+  unknown
+}
+
+enum AmbassadorRecordStatus {
+  logged
+  director_verified
+  sm_approved
+  sent_to_payroll
+  paid
+  rejected
+}
+
+enum AmbassadorNewChildStatus {
+  new_child
+  existing_child
+  uncertain
+}
+
+enum AmbassadorSessionSource {
+  manual
+  csv_import
+  owna
+}
+
+model AmbassadorPilot {
+  id        String                @id @default(cuid())
+  name      String
+  startDate DateTime              @db.Date
+  endDate   DateTime              @db.Date
+  status    AmbassadorPilotStatus @default(draft)
+
+  closedAt   DateTime?
+  closedById String?
+  closedBy   User?     @relation("AmbassadorPilotClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  centres     AmbassadorPilotCentre[]
+  records     AmbassadorEnrolment[]
+  adjustments AmbassadorAdjustment[]
+
+  @@index([status])
+}
+
+model AmbassadorPilotCentre {
+  id                        String          @id @default(cuid())
+  pilotId                   String
+  pilot                     AmbassadorPilot @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  serviceId                 String
+  service                   Service         @relation("AmbassadorPilotCentres", fields: [serviceId], references: [id], onDelete: Cascade)
+  targetQualifiedEnrolments Int
+  teamBonusAmount           Float           @default(200)
+
+  @@unique([pilotId, serviceId])
+}
+
+model EducatorRefCode {
+  id     String  @id @default(cuid())
+  userId String  @unique
+  user   User    @relation("EducatorRefCode", fields: [userId], references: [id], onDelete: Cascade)
+  /// 6-char unambiguous code (charset excludes 0/O/1/I/L) — appears in
+  /// /parent/signup?ref=CODE.
+  code   String  @unique
+  active Boolean @default(true)
+
+  /// Linked marketing QrCode so printed QRs go through the /a/{shortCode}
+  /// redirect and get QrScan analytics for free. Nullable: a code still
+  /// works typed by hand without a QR.
+  qrCodeId String? @unique
+  qrCode   QrCode? @relation("EducatorRefQr", fields: [qrCodeId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AmbassadorEnrolment {
+  id      String          @id @default(cuid())
+  pilotId String
+  pilot   AmbassadorPilot @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation("AmbassadorEnrolments", fields: [serviceId], references: [id])
+
+  childId                String?
+  child                  Child?                @relation("AmbassadorChild", fields: [childId], references: [id], onDelete: SetNull)
+  enrolmentSubmissionId  String?
+  enrolmentSubmission    EnrolmentSubmission?  @relation("AmbassadorFromSubmission", fields: [enrolmentSubmissionId], references: [id], onDelete: SetNull)
+  enrolmentApplicationId String?
+  enrolmentApplication   EnrolmentApplication? @relation("AmbassadorFromApplication", fields: [enrolmentApplicationId], references: [id], onDelete: SetNull)
+  /// Privacy: every Ambassadors surface shows initials only (e.g. "A.K.");
+  /// full names stay behind the existing enrolment permissions.
+  childInitials String
+
+  creditedEducatorId  String?
+  creditedEducator    User?                       @relation("AmbassadorCredited", fields: [creditedEducatorId], references: [id], onDelete: SetNull)
+  /// Parent's free-text answer to "Which educator spoke with you?".
+  namedEducatorText   String?
+  /// EducatorRefCode.code captured at signup, if any.
+  refCode             String?
+  attributionSource   AmbassadorAttributionSource @default(unknown)
+  /// True when the ref code and the named educator resolve to DIFFERENT
+  /// people — the Director must resolve; we never silently pick one.
+  attributionConflict Boolean                     @default(false)
+
+  newChildStatus    AmbassadorNewChildStatus @default(uncertain)
+  newChildCheckedAt DateTime?
+  newChildDetail    String?                  @db.Text
+
+  regularSessionsPerWeek Int?
+  firstAttendanceDate    DateTime? @db.Date
+  /// Derived: fee>0 sessions inside the 28-day window from first attendance.
+  paidSessionsAttended   Int       @default(0)
+  tierAmount             Float?
+  incentiveAmount        Float?
+  qualified              Boolean   @default(false)
+  qualifiedAt            DateTime?
+
+  status          AmbassadorRecordStatus @default(logged)
+  rejectionReason String?
+  sentToPayrollAt DateTime?
+  paidAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions    AmbassadorSession[]
+  transitions AmbassadorTransition[]
+
+  @@index([pilotId, serviceId])
+  @@index([creditedEducatorId])
+  @@index([status])
+  @@index([childId])
+}
+
+model AmbassadorSession {
+  id       String              @id @default(cuid())
+  recordId String
+  record   AmbassadorEnrolment @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  date        DateTime                @db.Date
+  /// "bsc" | "asc" | "vc" | "unknown" — a String (not the SessionType enum)
+  /// because CSV rows may not identify the session and the enum has no
+  /// unknown value.
+  sessionType String                  @default("unknown")
+  /// Fee charged for the session. $0 = the free first session — attends
+  /// but never counts toward the 4 qualifying paid sessions.
+  fee         Float
+  source      AmbassadorSessionSource
+  createdById String?
+  createdBy   User?                   @relation("AmbassadorSessionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime                @default(now())
+
+  @@unique([recordId, date, sessionType])
+}
+
+model AmbassadorTransition {
+  id         String                 @id @default(cuid())
+  recordId   String
+  record     AmbassadorEnrolment    @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  fromStatus AmbassadorRecordStatus
+  toStatus   AmbassadorRecordStatus
+  actorId    String?
+  actor      User?                  @relation("AmbassadorTransitionActor", fields: [actorId], references: [id], onDelete: SetNull)
+  reason     String?
+  createdAt  DateTime               @default(now())
+
+  @@index([recordId])
+}
+
+model AmbassadorAdjustment {
+  id         String          @id @default(cuid())
+  pilotId    String
+  pilot      AmbassadorPilot @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  educatorId String
+  educator   User            @relation("AmbassadorAdjustments", fields: [educatorId], references: [id], onDelete: Cascade)
+
+  /// "milestone_kicker" is the only type today; the $200 team bonus is
+  /// display-only (paid manually by State Managers, no per-educator split).
+  type            String
+  amount          Float
+  sentToPayrollAt DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@unique([pilotId, educatorId, type])
 }
