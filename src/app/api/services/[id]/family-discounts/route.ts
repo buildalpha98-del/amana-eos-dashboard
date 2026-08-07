@@ -32,7 +32,14 @@ const dateOnly = (ymd: string) => new Date(`${ymd}T00:00:00.000Z`);
 
 const createSchema = z
   .object({
-    contactId: z.string().min(1),
+    /**
+     * The family the discount belongs to. Optional when `childId` is
+     * given — the child's page doesn't know the billing contact, so we
+     * resolve it from the child's enrolment.
+     */
+    contactId: z.string().min(1).optional(),
+    /** One child rather than the whole family. */
+    childId: z.string().min(1).optional(),
     sessionType: z.enum(SESSION_TYPES).optional(),
     kind: z.enum(["percent", "amount"]),
     /** Percent 1–100, or DOLLARS off — converted to cents below. */
@@ -44,6 +51,10 @@ const createSchema = z
   .refine((v) => v.kind !== "percent" || v.value <= 100, {
     message: "A percentage discount can't be more than 100%",
     path: ["value"],
+  })
+  .refine((v) => Boolean(v.contactId || v.childId), {
+    message: "Tell me which family or child this is for",
+    path: ["contactId"],
   });
 
 export const GET = withApiAuth(
@@ -51,15 +62,24 @@ export const GET = withApiAuth(
     const { id } = await context!.params!;
     assertServiceAccess(session as never, id);
 
-    const contactId = new URL(req.url).searchParams.get("contactId");
+    const params = new URL(req.url).searchParams;
+    const contactId = params.get("contactId");
+    const childId = params.get("childId");
 
     const rows = await prisma.familyDiscount.findMany({
-      where: { serviceId: id, ...(contactId ? { contactId } : {}) },
+      where: {
+        serviceId: id,
+        ...(contactId ? { contactId } : {}),
+        // A child's page wants the arrangements that reach THIS child:
+        // their own, plus the family-wide ones they inherit.
+        ...(childId ? { OR: [{ childId }, { childId: null }] } : {}),
+      },
       orderBy: [{ startDate: "desc" }],
       take: 200,
       include: {
         createdBy: { select: { name: true } },
         contact: { select: { id: true, firstName: true, lastName: true } },
+        child: { select: { id: true, firstName: true } },
       },
     });
 
@@ -73,6 +93,8 @@ export const GET = withApiAuth(
         familyName:
           [r.contact?.firstName, r.contact?.lastName].filter(Boolean).join(" ") ||
           "Family",
+        childId: r.childId,
+        childName: r.child?.firstName ?? null,
         sessionType: r.sessionType,
         roomName: r.sessionType ? programmeName(r.sessionType) : "Every room",
         kind: r.kind,
@@ -102,10 +124,53 @@ export const POST = withApiAuth(
     }
     const d = parsed.data;
 
-    // A discount granted against another centre's family would apply to
-    // fees this service never charges.
+    // A discount granted against another centre's family or child would
+    // apply to fees this service never charges.
+    let contactId = d.contactId ?? null;
+
+    if (d.childId) {
+      const child = await prisma.child.findUnique({
+        where: { id: d.childId },
+        select: {
+          serviceId: true,
+          enrolment: { select: { primaryParent: true } },
+        },
+      });
+      if (!child || child.serviceId !== id) {
+        throw ApiError.badRequest("That child isn't at this service");
+      }
+
+      // The child's page knows the child, not the billing contact —
+      // resolve it from the enrolment so a coordinator doesn't have to.
+      if (!contactId) {
+        const parent = child.enrolment?.primaryParent as
+          | { email?: string }
+          | null;
+        const email = parent?.email?.toLowerCase().trim();
+        if (!email) {
+          throw ApiError.badRequest(
+            "This child has no billing contact on their enrolment, so there's nobody to discount.",
+          );
+        }
+        const found = await prisma.centreContact.findFirst({
+          where: { serviceId: id, email: { equals: email, mode: "insensitive" } },
+          select: { id: true },
+        });
+        if (!found) {
+          throw ApiError.badRequest(
+            "This child's family isn't set up for billing at this centre yet.",
+          );
+        }
+        contactId = found.id;
+      }
+    }
+
+    if (!contactId) {
+      throw ApiError.badRequest("Tell me which family this is for");
+    }
+
     const contact = await prisma.centreContact.findUnique({
-      where: { id: d.contactId },
+      where: { id: contactId },
       select: { serviceId: true },
     });
     if (!contact || contact.serviceId !== id) {
@@ -120,9 +185,10 @@ export const POST = withApiAuth(
 
     const created = await prisma.familyDiscount.create({
       data: {
-        contactId: d.contactId,
+        contactId,
         serviceId: id,
         sessionType: (d.sessionType as SessionType) ?? null,
+        childId: d.childId ?? null,
         kind: d.kind,
         // Percent stays a percent; dollars become cents, because money
         // and floats don't mix.
