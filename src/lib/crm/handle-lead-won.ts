@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 
 /**
@@ -152,9 +152,7 @@ export async function handleLeadWon(
     const baseUrl =
       process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
 
-    resend.emails
-      .send({
-        from: FROM_EMAIL,
+    sendEmail({
         to: lead.assignedTo.email,
         subject: `🎉 Deal Won — ${lead.schoolName}`,
         html: `

@@ -75,9 +75,8 @@ export const POST = withApiAuth(async (req) => {
   // Send exit survey email if email available
   if (data.contactEmail) {
     try {
-      const { Resend } = await import("resend");
+      const { sendEmail } = await import("@/lib/email");
       const { nurtureExitSurveyEmail } = await import("@/lib/email-templates");
-      const resend = new Resend(process.env.RESEND_API_KEY);
 
       // Find contact first name
       let firstName = "Parent";
@@ -90,7 +89,7 @@ export const POST = withApiAuth(async (req) => {
       }
 
       const emailContent = nurtureExitSurveyEmail(firstName, service.name, surveyUrl);
-      await resend.emails.send({
+      await sendEmail({
         from: "Amana OSHC <noreply@amanaoshc.com.au>",
         to: data.contactEmail,
         subject: emailContent.subject,

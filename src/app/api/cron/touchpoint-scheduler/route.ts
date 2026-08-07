@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock } from "@/lib/cron-guard";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
 import type { PipelineStage } from "@prisma/client";
 import { withApiHandler } from "@/lib/api-handler";
@@ -119,8 +119,7 @@ export const GET = withApiHandler(async (req) => {
 
           if (resend) {
             try {
-              await resend.emails.send({
-                from: FROM_EMAIL,
+              await sendEmail({
                 to: lead.contactEmail,
                 subject,
                 html: `<div style="font-family: sans-serif; line-height: 1.6;">${body.replace(/\n/g, "<br>")}</div>`,
