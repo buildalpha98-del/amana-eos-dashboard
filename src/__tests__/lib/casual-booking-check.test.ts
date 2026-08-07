@@ -193,3 +193,88 @@ describe("enrolled-only rooms", () => {
     expect(r.ok).toBe(true);
   });
 });
+
+/**
+ * 2026-08-06 — room configuration beats casual settings.
+ *
+ * The casual-settings blob and the room config are separate objects on
+ * the Service and can disagree. When they do, the room wins: a retired
+ * or staff-only room is not bookable no matter what the settings say.
+ */
+describe("room configuration", () => {
+  const base = {
+    settings,
+    sessionType: "bsc" as const,
+    bookingDate: new Date("2026-04-24T00:00:00Z"),
+    now: nowUtc,
+    currentCasualBookings: 0,
+  };
+
+  it("refuses a retired room even when casual settings still allow it", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      sessionTimes: { bsc: { start: "06:30", end: "09:00", disabled: true } },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/any more/i);
+  });
+
+  it("refuses a staff-only room", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      sessionTimes: { bsc: { start: "06:30", end: "09:00", staffOnly: true } },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/children are booked into/i);
+  });
+
+  it("refuses a child below the room's age range, and says the range", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      sessionTimes: {
+        bsc: { start: "06:30", end: "09:00", minAgeYears: 5 },
+      },
+      childAgeYears: 3,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/5 and up/i);
+  });
+
+  it("lets an in-range child through", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      sessionTimes: {
+        bsc: { start: "06:30", end: "09:00", minAgeYears: 5, maxAgeYears: 12 },
+      },
+      childAgeYears: 8,
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it("passes an unknown age — our missing DOB isn't the family's fault", () => {
+    const r = checkCasualBookingAllowed({
+      ...base,
+      sessionTimes: {
+        bsc: { start: "06:30", end: "09:00", minAgeYears: 5 },
+      },
+      childAgeYears: null,
+    });
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("bookableSessionKeys", () => {
+  it("hides retired and staff-only rooms from families", async () => {
+    const { bookableSessionKeys, activeSessionKeys } = await import(
+      "@/lib/service-settings"
+    );
+    const times = {
+      bsc: { start: "06:30", end: "09:00" },
+      asc: { start: "15:00", end: "18:30", staffOnly: true },
+      vc: { start: "07:00", end: "18:00", disabled: true },
+    };
+    // Staff still see the staff room; nobody sees the retired one.
+    expect(activeSessionKeys(times)).toEqual(["bsc", "asc"]);
+    expect(bookableSessionKeys(times)).toEqual(["bsc"]);
+  });
+});
