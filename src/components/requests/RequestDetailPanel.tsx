@@ -16,6 +16,7 @@ import {
   usePostRequestMessage,
   useRequestMessages,
 } from "@/hooks/useCreativeRequests";
+import { useCampaigns } from "@/hooks/useMarketing";
 import { ProofsSection } from "@/components/requests/ProofsSection";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -167,6 +168,25 @@ export function RequestDetailPanel({
                     {[request.sizeSpec, request.outputFormat].filter(Boolean).join(" · ")}
                   </p>
                 </section>
+              )}
+              {fulfiller ? (
+                <CampaignLinkSection
+                  requestId={requestId}
+                  campaignId={request.campaignId}
+                  disabled={
+                    patch.isPending ||
+                    ["delivered", "cancelled"].includes(request.status)
+                  }
+                />
+              ) : (
+                request.campaign && (
+                  <section className="text-sm text-foreground">
+                    <h3 className="text-2xs font-semibold uppercase tracking-wide text-muted">
+                      Campaign
+                    </h3>
+                    <p className="mt-1">{request.campaign.name}</p>
+                  </section>
+                )
               )}
               {request.attachments.filter((a) => !a.messageId).length > 0 && (
                 <section>
@@ -326,5 +346,46 @@ export function RequestDetailPanel({
         }
       />
     </div>
+  );
+}
+
+/**
+ * Fulfiller-only campaign link — its own component so the campaigns query
+ * (role-gated to fulfiller roles server-side) never fires for requesters.
+ */
+function CampaignLinkSection({
+  requestId,
+  campaignId,
+  disabled,
+}: {
+  requestId: string;
+  campaignId: string | null;
+  disabled: boolean;
+}) {
+  const { data: campaigns } = useCampaigns();
+  const patch = usePatchRequest();
+
+  return (
+    <section>
+      <h3 className="text-2xs font-semibold uppercase tracking-wide text-muted">
+        Campaign
+      </h3>
+      <select
+        value={campaignId ?? ""}
+        onChange={(e) =>
+          patch.mutate({ id: requestId, campaignId: e.target.value || null })
+        }
+        disabled={disabled || patch.isPending}
+        aria-label="Linked campaign"
+        className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground disabled:opacity-50"
+      >
+        <option value="">No campaign</option>
+        {campaigns?.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    </section>
   );
 }

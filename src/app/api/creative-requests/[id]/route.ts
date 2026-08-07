@@ -53,6 +53,8 @@ const patchBodySchema = z
     assigneeId: z.string().nullable().optional(),
     priority: z.nativeEnum(TicketPriority).optional(),
     dueDate: z.coerce.date().optional(),
+    /** Marketing-campaign link — fulfiller-only; null unlinks. */
+    campaignId: z.string().nullable().optional(),
     cancellationReason: z.string().max(2000).optional(),
     checklist: z
       .array(z.object({ label: z.string().min(1).max(300), done: z.boolean() }))
@@ -99,6 +101,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       patch.assigneeId === undefined &&
       patch.priority === undefined &&
       patch.dueDate === undefined &&
+      patch.campaignId === undefined &&
       patch.checklist === undefined;
     if (!isCancelOnly) {
       throw ApiError.forbidden("Only the marketing team can update requests");
@@ -110,6 +113,16 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   if (!patch.status && (existing.status === "delivered" || existing.status === "cancelled")) {
     throw ApiError.conflict("This request is closed");
+  }
+
+  if (patch.campaignId) {
+    const campaign = await prisma.marketingCampaign.findUnique({
+      where: { id: patch.campaignId },
+      select: { id: true, deleted: true },
+    });
+    if (!campaign || campaign.deleted) {
+      throw ApiError.badRequest("Campaign not found");
+    }
   }
 
   const data: Record<string, unknown> = {};
@@ -132,6 +145,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     }
   }
   if (patch.assigneeId !== undefined) data.assigneeId = patch.assigneeId;
+  if (patch.campaignId !== undefined) data.campaignId = patch.campaignId;
   if (patch.priority) data.priority = patch.priority;
   if (patch.dueDate) data.dueDate = patch.dueDate;
   if (patch.checklist !== undefined) data.checklist = patch.checklist;

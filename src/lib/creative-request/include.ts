@@ -1,5 +1,7 @@
 export const requestInclude = {
   service: { select: { id: true, name: true } },
+  /// Participant-visible: the campaign name renders read-only for requesters.
+  campaign: { select: { id: true, name: true } },
   requestedBy: { select: { id: true, name: true } },
   assignee: { select: { id: true, name: true } },
   /// Brief-level attachments only (messageId null). Message attachments —

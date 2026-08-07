@@ -250,6 +250,7 @@ export function useSendEmail() {
       scheduledAt?: string | null;
       enquiryId?: string | null;
       postId?: string | null;
+      marketingCampaignId?: string | null;
       variables?: Record<string, string>;
     }) =>
       mutateApi<{
@@ -267,6 +268,8 @@ export function useSendEmail() {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["enquiry"] });
       qc.invalidateQueries({ queryKey: ["email-history"] });
+      // Campaign detail panel lists linked email sends
+      qc.invalidateQueries({ queryKey: ["campaign"] });
       toast({
         description: `Email ${result.status} to ${result.recipientCount} recipient(s)`,
       });

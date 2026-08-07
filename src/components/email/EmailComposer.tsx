@@ -28,6 +28,7 @@ export function EmailComposer() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const postId = searchParams.get("postId");
+  const campaignIdParam = searchParams.get("campaignId");
   const templateIdParam = searchParams.get("templateId");
 
   // ── Draft autosave ────────────────────────────────────────
@@ -282,6 +283,11 @@ export function EmailComposer() {
           ? { scheduledAt: new Date(scheduledAt).toISOString() }
           : {}),
         ...(postId ? { postId } : {}),
+        // Campaign umbrella link — the send route allows at most one of
+        // postId / marketingCampaignId, so postId wins when both are present.
+        ...(!postId && campaignIdParam
+          ? { marketingCampaignId: campaignIdParam }
+          : {}),
       },
       {
         onSuccess: () => {

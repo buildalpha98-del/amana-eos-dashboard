@@ -53,6 +53,8 @@ export interface CreativeRequestItem {
   priority: TicketPriority;
   serviceId: string | null;
   service: { id: string; name: string } | null;
+  campaignId: string | null;
+  campaign: { id: string; name: string } | null;
   requestedById: string;
   requestedBy: { id: string; name: string | null } | null;
   assigneeId: string | null;
@@ -113,6 +115,7 @@ export interface PatchRequestInput {
   assigneeId?: string | null;
   priority?: TicketPriority;
   dueDate?: string;
+  campaignId?: string | null;
   cancellationReason?: string;
   checklist?: ChecklistItem[];
 }
