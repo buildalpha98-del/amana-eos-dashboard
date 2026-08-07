@@ -24,6 +24,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { encryptField } from "@/lib/field-encryption";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { logAmbassadorEnrolments } from "@/lib/ambassadors/log-enrolment";
 import { normaliseEmail } from "@/lib/parent-account";
 import {
   enrolmentReceivedEmail,
@@ -311,6 +312,7 @@ export const POST = withParentAuth(async (req, ctx) => {
             ? { ...(maskedPayment ?? {}), ...(encryptedRaw ? { raw: encryptedRaw } : {}) }
             : undefined,
         referralSource: agreement.referralSource ?? null,
+        referralEducatorName: agreement.referralEducatorName?.trim() || null,
         signature: agreement.signature ?? null,
         termsAccepted: agreement.termsAccepted === true,
         privacyAccepted: agreement.privacyAccepted === true,
@@ -466,6 +468,20 @@ export const POST = withParentAuth(async (req, ctx) => {
     accountId,
     submissionId: submission.id,
     children: enrichedChildren.length,
+  });
+
+  // ── Ambassadors pilot ─────────────────────────────────────────────────
+  // Creates incentive-tracking records for pilot-centre children. Reads
+  // the account's captured ref code directly (no email join needed here).
+  // logAmbassadorEnrolments never throws — an ambassador failure must not
+  // break an enrolment that has already committed.
+  const account = await prisma.parentAccount.findUnique({
+    where: { id: accountId },
+    select: { ambassadorRefCode: true },
+  });
+  await logAmbassadorEnrolments({
+    submissionId: submission.id,
+    refCode: account?.ambassadorRefCode ?? null,
   });
 
   // ── Invite the second carer to the Family Portal ──────────────────────

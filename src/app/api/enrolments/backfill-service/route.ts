@@ -21,6 +21,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { matchSchoolToService } from "@/lib/school-service-match";
+import { logAmbassadorEnrolmentForChild } from "@/lib/ambassadors/log-enrolment";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { generateBookings } from "@/lib/booking-generator";
 
@@ -192,6 +193,10 @@ export const POST = withApiAuth(
       });
 
       assigned += 1;
+
+      // Ambassadors: same late-assignment hook as assign-service. Never
+      // throws; window check uses the original submission date.
+      await logAmbassadorEnrolmentForChild(p.childId);
     }
 
     logger.info("Enrolment service backfill applied", {
