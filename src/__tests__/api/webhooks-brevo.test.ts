@@ -149,7 +149,8 @@ describe("POST /api/webhooks/brevo", () => {
       });
     });
 
-    it("correlates via a dl: tag WITHOUT querying deliveryLog (string tag form)", async () => {
+    it("correlates via a dl: tag using a PK existence check, never findFirst (string tag form)", async () => {
+      prismaMock.deliveryLog.findUnique.mockResolvedValue({ id: "dl123" });
       prismaMock.emailEvent.findFirst.mockResolvedValue(null);
 
       const req = postBody({
@@ -162,6 +163,10 @@ describe("POST /api/webhooks/brevo", () => {
       expect(res.status).toBe(200);
 
       expect(prismaMock.deliveryLog.findFirst).not.toHaveBeenCalled();
+      expect(prismaMock.deliveryLog.findUnique).toHaveBeenCalledWith({
+        where: { id: "dl123" },
+        select: { id: true },
+      });
       expect(prismaMock.emailEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           messageId: "<msg-tagged>",
@@ -173,6 +178,7 @@ describe("POST /api/webhooks/brevo", () => {
     });
 
     it("correlates via a dl: tag in the tags array form", async () => {
+      prismaMock.deliveryLog.findUnique.mockResolvedValue({ id: "dl456" });
       prismaMock.emailEvent.findFirst.mockResolvedValue(null);
 
       const req = postBody({
@@ -188,6 +194,28 @@ describe("POST /api/webhooks/brevo", () => {
       expect(prismaMock.deliveryLog.findFirst).not.toHaveBeenCalled();
       expect(prismaMock.emailEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ deliveryLogId: "dl456" }),
+      });
+    });
+
+    it("stores deliveryLogId null when a dl: tag names an id that doesn't exist (fabricated tags can't pollute reports)", async () => {
+      prismaMock.deliveryLog.findUnique.mockResolvedValue(null);
+      prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+      const req = postBody({
+        event: "opened",
+        email: "parent@example.com",
+        "message-id": "<msg-forged>",
+        tag: "dl:not-a-real-log",
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+
+      expect(prismaMock.deliveryLog.findFirst).not.toHaveBeenCalled();
+      expect(prismaMock.emailEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          messageId: "<msg-forged>",
+          deliveryLogId: null,
+        }),
       });
     });
 

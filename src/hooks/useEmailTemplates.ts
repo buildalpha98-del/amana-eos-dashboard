@@ -319,6 +319,44 @@ export function useEmailPreview() {
   });
 }
 
+// ── Per-send report ────────────────────────────────────────
+
+export interface SendReportData {
+  log: {
+    id: string;
+    subject: string | null;
+    status: string;
+    recipientCount: number;
+    createdAt: string;
+    messageType: string | null;
+  };
+  /** False when the send has zero events — predates tracking or unopened. */
+  hasEvents: boolean;
+  stats: {
+    delivered: number;
+    uniqueOpens: number;
+    uniqueClicks: number;
+    bounced: number;
+    /** Percentage (0–100) against post-suppression attempted recipients. */
+    openRate: number;
+    clickRate: number;
+  };
+  hourly: { hour: number; opens: number; clicks: number }[];
+  /** Recipients whose FIRST click was this link (one clicked event per recipient). */
+  topLinks: { link: string; clickers: number }[];
+}
+
+export function useSendReport(deliveryLogId: string | null) {
+  return useQuery<SendReportData>({
+    queryKey: ["send-report", deliveryLogId],
+    queryFn: () =>
+      fetchApi<SendReportData>(`/api/email/reports/${deliveryLogId}`),
+    enabled: !!deliveryLogId,
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
 // ── History ────────────────────────────────────────────────
 
 export interface EmailHistoryEntry {

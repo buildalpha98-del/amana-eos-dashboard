@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Mail, Send, AlertCircle, Clock, Users, MailOpen, MousePointerClick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SendReportPanel } from "./SendReportPanel";
 
 interface EmailStats {
   totalSends: number;
@@ -63,6 +64,7 @@ const channelLabels: Record<string, string> = {
 
 export function EmailAnalytics() {
   const [days, setDays] = useState(30);
+  const [reportLogId, setReportLogId] = useState<string | null>(null);
   const { data, isLoading } = useEmailAnalytics(days);
 
   if (isLoading) {
@@ -159,11 +161,18 @@ export function EmailAnalytics() {
           ) : (
             recentSends.slice(0, 20).map((send) => {
               const sc = statusColors[send.status] ?? { bg: "bg-surface", text: "text-muted" };
+              const title = send.subject ?? send.messageType?.replace(/_/g, " ") ?? "Untitled";
               return (
-                <div key={send.id} className="px-4 py-2.5 flex items-center gap-3 text-xs">
+                <button
+                  key={send.id}
+                  type="button"
+                  onClick={() => setReportLogId(send.id)}
+                  aria-label={`Open send report for ${title}`}
+                  className="w-full text-left px-4 py-2.5 flex items-center gap-3 text-xs hover:bg-card focus-visible:bg-card transition-colors cursor-pointer"
+                >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">
-                      {send.subject ?? send.messageType?.replace(/_/g, " ") ?? "Untitled"}
+                      {title}
                     </p>
                     <p className="text-foreground/40 mt-0.5">
                       {channelLabels[send.channel] ?? send.channel}
@@ -177,12 +186,19 @@ export function EmailAnalytics() {
                   <span className="text-foreground/30 whitespace-nowrap">
                     {new Date(send.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                   </span>
-                </div>
+                </button>
               );
             })
           )}
         </div>
       </div>
+
+      {reportLogId && (
+        <SendReportPanel
+          deliveryLogId={reportLogId}
+          onClose={() => setReportLogId(null)}
+        />
+      )}
     </div>
   );
 }

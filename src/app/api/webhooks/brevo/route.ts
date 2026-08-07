@@ -48,11 +48,18 @@ export const POST = withApiHandler(async (req) => {
   if (!parsed) return NextResponse.json({ received: true });
 
   // Correlate back to the send that produced this event. Per-recipient sends
-  // carry the DeliveryLog id directly in a `dl:<id>` tag — no lookup needed;
-  // legacy rows fall through to externalId correlation.
+  // carry the DeliveryLog id directly in a `dl:<id>` tag — but the tag is
+  // attacker-influenced input (anyone who knows the webhook URL+secret shape
+  // could replay a forged tag), and events now surface in user-visible
+  // reports, so verify the id actually exists before stamping it. One PK
+  // lookup — same query count as the legacy findFirst path.
   let deliveryLogId: string | null;
   if (parsed.deliveryLogTag) {
-    deliveryLogId = parsed.deliveryLogTag;
+    const exists = await prisma.deliveryLog.findUnique({
+      where: { id: parsed.deliveryLogTag },
+      select: { id: true },
+    });
+    deliveryLogId = exists?.id ?? null;
   } else {
     const deliveryLog = await prisma.deliveryLog.findFirst({
       where: parsed.campId
