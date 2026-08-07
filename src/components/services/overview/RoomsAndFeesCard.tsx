@@ -43,6 +43,11 @@ interface EditableRoom {
   end: string;
   capacity: string;
   ratio: string;
+  description: string;
+  minAgeYears: string;
+  maxAgeYears: string;
+  staffOnly: boolean;
+  disabled: boolean;
   fees: Array<{ id: string; name: string; start: string; end: string; amount: string }>;
 }
 
@@ -61,6 +66,11 @@ function toEditable(value: SessionTimes | null | undefined): EditableRooms {
       end: room?.end ?? "",
       capacity: room?.capacity != null ? String(room.capacity) : "",
       ratio: room?.ratio ?? "",
+      description: room?.description ?? "",
+      minAgeYears: room?.minAgeYears != null ? String(room.minAgeYears) : "",
+      maxAgeYears: room?.maxAgeYears != null ? String(room.maxAgeYears) : "",
+      staffOnly: room?.staffOnly ?? false,
+      disabled: room?.disabled ?? false,
       fees: (room?.fees ?? []).map((f) => ({
         id: f.id,
         name: f.name,
@@ -194,6 +204,15 @@ export function RoomsAndFeesCard({
           ? { capacity: Number(capacity) }
           : {}),
         ...(ratio ? { ratio } : {}),
+        ...(r.description.trim() ? { description: r.description.trim() } : {}),
+        ...(r.minAgeYears.trim() !== "" && Number.isFinite(Number(r.minAgeYears))
+          ? { minAgeYears: Number(r.minAgeYears) }
+          : {}),
+        ...(r.maxAgeYears.trim() !== "" && Number.isFinite(Number(r.maxAgeYears))
+          ? { maxAgeYears: Number(r.maxAgeYears) }
+          : {}),
+        ...(r.staffOnly ? { staffOnly: true } : {}),
+        ...(r.disabled ? { disabled: true } : {}),
         ...(fees.length > 0 ? { fees } : {}),
       };
     }
@@ -434,6 +453,102 @@ export function RoomsAndFeesCard({
                         placeholder={defaultRatio}
                         onChange={(e) => update(key, { ratio: e.target.value })}
                       />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <label
+                        htmlFor={`rm-${key}-desc`}
+                        className="block text-sm font-medium text-foreground mb-1"
+                      >
+                        What it&apos;s for{" "}
+                        <span className="font-normal text-muted">(optional)</span>
+                      </label>
+                      <input
+                        id={`rm-${key}-desc`}
+                        className={field}
+                        value={r.description}
+                        placeholder="e.g. After school care"
+                        onChange={(e) =>
+                          update(key, { description: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor={`rm-${key}-minage`}
+                        className="block text-sm font-medium text-foreground mb-1"
+                      >
+                        Ages from
+                      </label>
+                      <input
+                        id={`rm-${key}-minage`}
+                        type="number"
+                        min={0}
+                        max={18}
+                        inputMode="numeric"
+                        className={field}
+                        value={r.minAgeYears}
+                        placeholder="Any"
+                        onChange={(e) =>
+                          update(key, { minAgeYears: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor={`rm-${key}-maxage`}
+                        className="block text-sm font-medium text-foreground mb-1"
+                      >
+                        Ages to
+                      </label>
+                      <input
+                        id={`rm-${key}-maxage`}
+                        type="number"
+                        min={0}
+                        max={18}
+                        inputMode="numeric"
+                        className={field}
+                        value={r.maxAgeYears}
+                        placeholder="Any"
+                        onChange={(e) =>
+                          update(key, { maxAgeYears: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="sm:col-span-3 flex flex-wrap gap-4">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={r.staffOnly}
+                          onChange={(e) =>
+                            update(key, { staffOnly: e.target.checked })
+                          }
+                          className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                        />
+                        <span className="text-sm text-foreground">
+                          Staff only
+                          <span className="block text-xs text-muted">
+                            Children can&apos;t be booked in. It still exists for
+                            rostering.
+                          </span>
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={r.disabled}
+                          onChange={(e) =>
+                            update(key, { disabled: e.target.checked })
+                          }
+                          className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                        />
+                        <span className="text-sm text-foreground">
+                          Retired
+                          <span className="block text-xs text-muted">
+                            Hidden everywhere going forward. Past bookings keep
+                            working.
+                          </span>
+                        </span>
+                      </label>
                     </div>
                   </div>
 

@@ -1,5 +1,5 @@
 import type { CasualBookingSettings, SessionTimes } from "@/lib/service-settings";
-import { roomLabel } from "@/lib/service-settings";
+import { childFitsRoom, roomLabel } from "@/lib/service-settings";
 
 export type SessionType = "bsc" | "asc" | "vc";
 
@@ -29,6 +29,12 @@ interface CheckInput {
    * Only consulted when the room is set to "enrolled" availability.
    */
   childEnrolledInSession?: boolean;
+  /**
+   * The child's age in whole years, for rooms that carry an age range.
+   * Null/undefined when we don't hold a date of birth — which passes,
+   * because our missing data isn't the family's fault.
+   */
+  childAgeYears?: number | null;
 }
 
 export type CheckResult =
@@ -102,6 +108,37 @@ export function checkCasualBookingAllowed(input: CheckInput): CheckResult {
       reason: input.blockedOutReason
         ? `${room} isn't running that day — ${input.blockedOutReason}.`
         : `${room} isn't running that day.`,
+    };
+  }
+
+  // Retired or staff-only rooms are never bookable, whatever the casual
+  // settings still say — the settings blob and the room config are
+  // separate objects and can disagree.
+  const roomConfig = input.sessionTimes?.[sessionType];
+  if (roomConfig?.disabled) {
+    return {
+      ok: false,
+      reason: `${room} isn't running at this centre any more. ${ASK_OFFICE}`,
+    };
+  }
+  if (roomConfig?.staffOnly) {
+    return {
+      ok: false,
+      reason: `${room} isn't a room children are booked into.`,
+    };
+  }
+  if (!childFitsRoom(roomConfig, input.childAgeYears)) {
+    const min = roomConfig?.minAgeYears;
+    const max = roomConfig?.maxAgeYears;
+    const range =
+      min !== undefined && max !== undefined
+        ? `${min}–${max}`
+        : min !== undefined
+          ? `${min} and up`
+          : `up to ${max}`;
+    return {
+      ok: false,
+      reason: `${room} is for children aged ${range}. ${ASK_OFFICE}`,
     };
   }
 
