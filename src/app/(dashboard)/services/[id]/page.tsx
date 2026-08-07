@@ -34,6 +34,9 @@ import {
   ClipboardCheck,
   Activity,
   BookOpen,
+  SlidersHorizontal,
+  DoorOpen,
+  FileSignature,
   Target,
   Users,
   Sunrise,
@@ -78,6 +81,7 @@ import { ServiceCertExpiryCard } from "@/components/services/ServiceCertExpiryCa
 import { ServiceRatiosTab } from "@/components/services/RatioWidget";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import ActivityLibraryPage from "@/app/(dashboard)/activity-library/page";
+import { ServiceInfoCard } from "@/components/services/overview/ServiceInfoCard";
 import { ServiceNavTree } from "@/components/services/ServiceNavTree";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -139,14 +143,22 @@ const tabGroups: TabGroup[] = [
   },
   {
     key: "overview",
-    // 2026-08-04: one tab, no sub-tabs. "Service Overview" and "About"
-    // were an editing seam, not a distinction anyone reasons about —
-    // and splitting them meant the address lived on one and the welcome
-    // text on another, so nobody could see the whole record at once.
-    // Everything a family is shown about this centre is edited here.
+    // 2026-08-06: sub-tabs, mirroring OWNA's Configure list. This was
+    // one long scroll of eight cards — contact details through to
+    // excursion forms — and finding anything meant knowing how far down
+    // it lived. The 2026-08-04 note below still holds for the FIELDS:
+    // the address and the welcome text belong to the same record. What
+    // changed is that rooms, settings and forms are separate subjects
+    // that were only sharing a page because they shared a tab.
     label: "Service Information",
     icon: Building2,
-    subTabs: [],
+    subTabs: [
+      { key: "info", label: "Service Info", icon: Building2 },
+      { key: "settings", label: "Settings", icon: SlidersHorizontal },
+      { key: "rooms", label: "Rooms & fees", icon: DoorOpen },
+      { key: "forms", label: "Forms & excursions", icon: FileSignature },
+      { key: "about", label: "What families see", icon: BookOpen },
+    ],
   },
   // 2026-05-14: Staff tab — primary users (User.serviceId === this service)
   // + additional UserServiceMembership rows in one unified list. Admin-tier
@@ -309,9 +321,12 @@ export default function ServiceDetailPage() {
   const sessionServiceId =
     (session?.user as { serviceId?: string | null } | undefined)?.serviceId ??
     null;
-  const canSeeCasualBookings =
-    isAdminRole(role) ||
-    (role === "member" && sessionServiceId === id);
+  // Admin tier anywhere, or the Director of this centre. Used for both
+  // seeing casual bookings and editing this service's configuration —
+  // same rule, two readings, so it's named for the rule.
+  const canManageThisService =
+    isAdminRole(role) || (role === "member" && sessionServiceId === id);
+  const canSeeCasualBookings = canManageThisService;
 
   const isAdminPlus = hasMinRole(role, "admin");
 
@@ -489,12 +504,26 @@ export default function ServiceDetailPage() {
           <ServiceTodayTab serviceId={service.id} serviceName={service.name} />
         )}
 
-        {/* Overview group — Summary (default) | Content */}
-        {activeGroup === "overview" && (
+        {/* Service Information — one subject per sub-tab. */}
+        {activeGroup === "overview" && currentSubKey === "info" && (
           <div className="space-y-6">
             <ServiceOverviewTab service={service} users={users || []} />
-            <ServiceContentTab serviceId={service.id} />
           </div>
+        )}
+        {activeGroup === "overview" &&
+          (currentSubKey === "settings" ||
+            currentSubKey === "rooms" ||
+            currentSubKey === "forms") && (
+            <div className="space-y-6">
+              <ServiceInfoCard
+                service={service}
+                canEdit={canManageThisService}
+                section={currentSubKey}
+              />
+            </div>
+          )}
+        {activeGroup === "overview" && currentSubKey === "about" && (
+          <ServiceContentTab serviceId={service.id} />
         )}
 
         {/* Staff group (no subtabs) — assignments management */}

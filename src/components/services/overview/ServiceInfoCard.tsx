@@ -19,13 +19,26 @@ import { BlockOutDatesCard } from "@/components/services/BlockOutDatesCard";
 import { FeeChangesCard } from "./FeeChangesCard";
 import { AppSettingsCard } from "./AppSettingsCard";
 
+/**
+ * Which slice of Service Information to render.
+ *
+ * 2026-08-06: this was one long scroll of eight cards — contact details
+ * through to excursion forms — and finding anything meant knowing how
+ * far down it lived. The Service Information tab now has its own
+ * sub-navigation (mirroring OWNA's Configure list), and each sub-tab
+ * asks this component for one section.
+ */
+export type ServiceInfoSection = "info" | "settings" | "rooms" | "forms";
+
 export function ServiceInfoCard({
   service,
   canEdit,
+  section = "info",
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   service: any;
   canEdit: boolean;
+  section?: ServiceInfoSection;
 }) {
   const updateService = useUpdateService();
   const [editingDetails, setEditingDetails] = useState(false);
@@ -45,7 +58,7 @@ export function ServiceInfoCard({
   return (
     <>
       {/* Contact Details */}
-      <div className="space-y-2">
+      <div className={section === "info" ? "space-y-2" : "hidden"}>
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-muted uppercase tracking-wider">
             Contact Details
@@ -277,38 +290,45 @@ export function ServiceInfoCard({
         )}
       </div>
 
-      {/* Service Approvals & Session Times */}
-      <ApprovalsSessionTimesCard service={service} canEdit={canEdit} />
+      {section === "info" && (
+        <ApprovalsSessionTimesCard service={service} canEdit={canEdit} />
+      )}
 
-      {/* Room names, hours and the fees under each. Below approvals
-          because it's the thing staff actually change. */}
-      <RoomsAndFeesCard service={service} canEdit={canEdit} />
-      {/* Excursions sit above the general forms card: an outing creates
-          a form of its own, so seeing them in that order matches how
-          they're made. */}
-      {/* Days you're not running. Next to Rooms & fees because that's
-          where the rest of "when are we open" lives. */}
-      {/* Fee changes sit right under Rooms & fees — it's the same
-          subject, one step into the future. */}
-      {/* How this centre behaves — the toggles that change what the app
-          does for families and for posting. */}
-      <AppSettingsCard serviceId={service.id} canEdit={canEdit} />
-      <FeeChangesCard
-        serviceId={service.id}
-        sessionTimes={service.sessionTimes}
-        canEdit={canEdit}
-      />
-      <BlockOutDatesCard
-        serviceId={service.id}
-        sessionTimes={service.sessionTimes}
-        canEdit={canEdit}
-      />
-      <ExcursionsCard
-        serviceId={service.id}
-        sessionTimes={service.sessionTimes}
-        canEdit={canEdit}
-      />
-      <ParentFormsCard serviceId={service.id} canEdit={canEdit} />
+      {section === "settings" && (
+        <AppSettingsCard serviceId={service.id} canEdit={canEdit} />
+      )}
+
+      {/* Rooms and everything priced or scheduled against them: the fee
+          changes and the days you're closed are the same subject one
+          step into the future. */}
+      {section === "rooms" && (
+        <>
+          <RoomsAndFeesCard service={service} canEdit={canEdit} />
+          <FeeChangesCard
+            serviceId={service.id}
+            sessionTimes={service.sessionTimes}
+            canEdit={canEdit}
+          />
+          <BlockOutDatesCard
+            serviceId={service.id}
+            sessionTimes={service.sessionTimes}
+            canEdit={canEdit}
+          />
+        </>
+      )}
+
+      {/* Excursions above the general forms card: an outing creates a
+          form of its own, so the order matches how they're made. */}
+      {section === "forms" && (
+        <>
+          <ExcursionsCard
+            serviceId={service.id}
+            sessionTimes={service.sessionTimes}
+            canEdit={canEdit}
+          />
+          <ParentFormsCard serviceId={service.id} canEdit={canEdit} />
+        </>
+      )}
     </>
   );
 }
