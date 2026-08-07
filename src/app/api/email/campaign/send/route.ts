@@ -90,6 +90,8 @@ if (!isBrevoConfigured()) {
     footerUrlLabel: branding.websiteUrlLabel,
   };
 
+  // NOTE: this templateId → blocks → htmlContent resolution block has a twin
+  // in /api/email/test-send — keep the two in sync when changing it.
   if (body.templateId) {
     const template = await prisma.emailTemplate.findUnique({
       where: { id: body.templateId },

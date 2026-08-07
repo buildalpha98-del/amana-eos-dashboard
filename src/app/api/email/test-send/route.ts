@@ -162,4 +162,4 @@ export const POST = withApiAuth(async (req, session) => {
         }
       : {}),
   });
-});
+}, { rateLimit: { max: 5, windowMs: 60_000 } });
