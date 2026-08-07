@@ -156,6 +156,10 @@ export const allPages = [
   // Owner/head_office/admin only (inherited via allPages — deliberately
   // NOT added to the marketing/member/staff/EOS allowlists).
   "/workforce-reports",
+  // Parent help centre admin (public /support content + article CRUD).
+  // Owner/head_office/admin only — inherited via allPages, deliberately
+  // NOT added to the marketing/member/staff/EOS allowlists.
+  "/help-centre",
   // Tools
   "/tools/ccs-calculator",
   // 2026-07-05 (nav consolidation phase 1): /handbook is the consolidated

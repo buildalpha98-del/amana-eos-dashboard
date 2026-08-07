@@ -18,6 +18,7 @@ import {
   Calendar,
   MessageCircle,
   DollarSign,
+  LifeBuoy,
   Settings,
   MapPin,
   FileSignature,
@@ -94,6 +95,14 @@ const ACTION_ITEMS = [
     label: "Billing",
     hint: "Statements and payment details",
     icon: DollarSign,
+  },
+  // 2026-08-08: public help centre — FAQ + submit-a-ticket. Lives outside
+  // the portal (no auth) so it's a plain link, not a portal route.
+  {
+    href: "/support",
+    label: "Help Centre",
+    hint: "FAQs, and how to reach our team",
+    icon: LifeBuoy,
   },
 ] as const;
 

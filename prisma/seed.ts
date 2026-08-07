@@ -6,6 +6,7 @@ import { SEED_SEQUENCES } from "../src/lib/sequence-seed-data";
 import { seedInduction } from "./seed-induction";
 import { seedAmbassadors } from "./seed-ambassadors";
 import { seedAmbassadorsPilot } from "./seed-ambassadors-pilot";
+import { seedHelpCentre } from "./seed-help-centre";
 
 const prisma = new PrismaClient();
 
@@ -2926,6 +2927,11 @@ Don't list every child by name. Don't invent events or meals — use only what's
   // Idempotent: pilot matched by name (status/dates never touched after
   // creation); centres create-if-missing so admin-edited targets survive.
   await seedAmbassadorsPilot(prisma);
+
+  // ── Parent Help Centre (/support) ─────────────────────────────
+  // Idempotent: categories found by slug; articles only seeded when the
+  // category has none, so admin edits survive redeploys.
+  await seedHelpCentre(prisma);
 
   console.log("\nSeed complete!");
 }
