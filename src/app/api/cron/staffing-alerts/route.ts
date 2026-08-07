@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { staffingAlertEmail } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
 
@@ -91,8 +91,7 @@ export const GET = withApiHandler(async (req) => {
           qualificationRisks,
         );
 
-        await resend.emails.send({
-          from: FROM_EMAIL,
+        await sendEmail({
           to: admin.email,
           subject,
           html,

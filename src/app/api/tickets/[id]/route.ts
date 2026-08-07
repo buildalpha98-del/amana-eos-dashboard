@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { ticketNotificationEmail } from "@/lib/email-templates";
 import { notifyTicketAssigned, notifyTicketStatusChange } from "@/lib/teams-notify";
 import { withApiAuth } from "@/lib/server-auth";
@@ -125,8 +125,7 @@ const { id } = await context!.params!;
 
     const resend = getResend();
     if (resend) {
-      resend.emails
-        .send({ from: FROM_EMAIL, to: ticket.assignedTo.email, subject: emailSubject, html })
+      sendEmail({ to: ticket.assignedTo.email, subject: emailSubject, html })
         .catch((err) => logger.error("Failed to send ticket notification", { err }));
     } else {
       if (process.env.NODE_ENV !== "production") console.log(`[DEV] Ticket notification for ${ticket.assignedTo.email}: ${ticket.subject}`);

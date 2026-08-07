@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { baseLayout } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
 
@@ -128,8 +128,7 @@ export const GET = withApiHandler(async (req) => {
 
       for (const coord of coordinators) {
         try {
-          await resend.emails.send({
-            from: FROM_EMAIL,
+          await sendEmail({
             to: coord.email!,
             subject: `Documents expiring soon \u2014 ${expiringDocs.length} document${expiringDocs.length !== 1 ? "s" : ""} need attention`,
             html,
@@ -173,8 +172,7 @@ export const GET = withApiHandler(async (req) => {
 
       for (const coord of coordinators) {
         try {
-          await resend.emails.send({
-            from: FROM_EMAIL,
+          await sendEmail({
             to: coord.email!,
             subject: `Expired documents \u2014 action required`,
             html,

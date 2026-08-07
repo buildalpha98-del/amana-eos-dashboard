@@ -1,18 +1,25 @@
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import {
   todoAssignedEmail,
   rockAssignedEmail,
   issueAssignedEmail,
   creativeRequestAssignedEmail,
 } from "@/lib/email-templates";
+import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
+import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
 import { logger } from "@/lib/logger";
 import { shouldReceiveNudge } from "@/lib/notification-recipients";
 
 /**
  * Fire-and-forget assignment notification email.
  * Looks up the assignee + assigner names from the database,
- * selects the right template, and sends via Resend.
+ * selects the right template, and sends via the suppression-aware
+ * sendEmail() wrapper.
+ *
+ * Skipped when the assignee is muted, has the newAssignments /
+ * emailNotifications preference off, or is on the suppression list
+ * (sendEmail handles that last one).
  *
  * Graceful no-op when RESEND_API_KEY is not configured.
  * Errors are caught internally — safe to call without await.
@@ -25,9 +32,8 @@ export function sendAssignmentEmail(params: {
   /** Required for "creative_request" — used for the deep link + request number. */
   entityId?: string;
   entityNumber?: string;
-}) {
-  const resend = getResend();
-  if (!resend) return; // No API key configured — skip silently
+}): Promise<void> {
+  if (!getResend()) return Promise.resolve(); // No API key configured — skip silently
 
   const baseUrl =
     process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
@@ -43,6 +49,7 @@ export function sendAssignmentEmail(params: {
           receivesNudges: true,
           notificationsMuted: true,
           active: true,
+          notificationPrefs: true,
         },
       }),
       prisma.user.findUnique({
@@ -52,6 +59,13 @@ export function sendAssignmentEmail(params: {
     ]);
 
     if (!assignee?.email) return; // Can't send without an email address
+    if (assignee.notificationsMuted) return;
+
+    const prefs = {
+      ...getDefaultNotificationPrefs(assignee.role),
+      ...parseJsonField(assignee.notificationPrefs, notificationPrefsSchema, {}),
+    };
+    if (!prefs.emailNotifications || !prefs.newAssignments) return;
 
     if (params.type === "creative_request") {
       // 2026-08-07 gate decision: creative-request assignment is a
@@ -122,8 +136,7 @@ export function sendAssignmentEmail(params: {
       }
     }
 
-    await resend.emails.send({
-      from: FROM_EMAIL,
+    await sendEmail({
       to: assignee.email,
       subject: template.subject,
       html: template.html,
@@ -131,5 +144,5 @@ export function sendAssignmentEmail(params: {
   };
 
   // Fire-and-forget: kick off the async work, catch any errors
-  run().catch((err) => logger.error("Failed to send assignment email", { err, type: params.type, assigneeId: params.assigneeId }));
+  return run().catch((err) => logger.error("Failed to send assignment email", { err, type: params.type, assigneeId: params.assigneeId }));
 }

@@ -4,14 +4,15 @@ import { createRequest } from "../helpers/request";
 
 // ── mocks ────────────────────────────────────────────────────
 
-// Fake Resend — records each send so we can assert call shape.
-type ResendSendArgs = { to: string[]; subject: string; html: string; from: string };
-const resendSend = vi.fn(async (args: ResendSendArgs) => {
+// Fake sendEmail — records each send so we can assert call shape.
+type SendEmailArgs = { to: string[]; subject: string; html: string };
+const resendSend = vi.fn(async (args: SendEmailArgs) => {
   void args; // referenced so the type survives into mock.calls[0][0]
-  return { data: { id: "mail-1" }, error: null };
+  return { messageId: "mail-1", suppressed: [], sent: args.to };
 });
 vi.mock("@/lib/email", () => ({
-  getResend: vi.fn(() => ({ emails: { send: resendSend } })),
+  getResend: vi.fn(() => ({})),
+  sendEmail: (args: SendEmailArgs) => resendSend(args),
   FROM_EMAIL: "Amana OSHC <noreply@test.com>",
 }));
 
@@ -152,7 +153,7 @@ describe("GET /api/cron/compliance-alerts", () => {
     vi.setSystemTime(NOW);
     process.env.CRON_SECRET = "test-secret";
     resendSend.mockClear();
-    resendSend.mockResolvedValue({ data: { id: "mail-1" }, error: null });
+    resendSend.mockResolvedValue({ messageId: "mail-1", suppressed: [], sent: [] });
   });
 
   afterAll(() => {

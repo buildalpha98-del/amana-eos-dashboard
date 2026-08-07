@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { notifyLowOccupancy } from "@/lib/teams-notify";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
@@ -119,8 +119,7 @@ export const GET = withApiHandler(async (req) => {
 
               if (manager) {
                 try {
-                  await resend.emails.send({
-                    from: FROM_EMAIL,
+                  await sendEmail({
                     to: manager.email,
                     subject: `Low Occupancy Alert: ${service.name} ${rec.sessionType.toUpperCase()} at ${Math.round(occupancy)}%`,
                     html: buildLowOccupancyEmailHtml({
