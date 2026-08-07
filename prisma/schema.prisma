@@ -616,6 +616,7 @@ model User {
   illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
   createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
   createdCasualDays             CasualDayConfig[]              @relation("CasualDayCreator")
+  createdDiscounts              FamilyDiscount[]               @relation("DiscountCreator")
   createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
   debtChases                    FamilyDebtContact[]            @relation("DebtChaser")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
@@ -2586,6 +2587,7 @@ model Service {
   illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
   blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
   casualDays     CasualDayConfig[]     @relation("ServiceCasualDays")
+  discounts      FamilyDiscount[]      @relation("ServiceDiscounts")
   feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
 
   // ── OWNA Integration Relations ──────────────────────────
@@ -4933,6 +4935,7 @@ model CentreContact {
   sequenceEnrolments    SequenceEnrolment[]    @relation("ContactSequenceEnrolments")
   statements            Statement[]            @relation("ContactStatements")
   debtContacts          FamilyDebtContact[]    @relation("ContactDebtChases")
+  discounts             FamilyDiscount[]       @relation("ContactDiscounts")
   payments              Payment[]              @relation("ContactPayments")
   documents             ParentDocument[]       @relation("ContactDocuments")
   supportTickets        SupportTicket[]        @relation("ParentTickets")
@@ -7644,6 +7647,42 @@ model CasualDayConfig {
 
   @@unique([serviceId, date, sessionType])
   @@index([serviceId, date])
+}
+
+/// A standing discount on what a family pays.
+///
+/// Sibling arrangements, staff rates, hardship. OWNA calls the nearest
+/// thing "Room Discount" and hangs it off the room; that models the
+/// wrong noun. A discount belongs to a FAMILY — it follows them across
+/// rooms, it survives a fee rise, and it ends on a date. Hanging it off
+/// the room means re-applying it every time the fee matrix changes.
+///
+/// Scoped to one room when it needs to be (a staff rate that only
+/// applies to after-school care), otherwise every room.
+model FamilyDiscount {
+  id          String        @id @default(cuid())
+  contactId   String
+  contact     CentreContact @relation("ContactDiscounts", fields: [contactId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service       @relation("ServiceDiscounts", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Null = every room at this service.
+  sessionType SessionType?
+  /// percent | amount
+  kind        String
+  /// Percent (1–100) or cents off, depending on `kind`.
+  value       Int
+  /// Why, in a word or two — it ends up on the family's billing.
+  reason      String
+  startDate   DateTime      @db.Date
+  /// Open-ended when null. A sibling discount runs until it doesn't.
+  endDate     DateTime?     @db.Date
+  createdById String?
+  createdBy   User?         @relation("DiscountCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([contactId, startDate])
+  @@index([serviceId])
 }
 
 model ParentFormSignature {

@@ -22,6 +22,7 @@ import { Search, ChevronRight, Pause, Ban } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { FamilyDiscountsCard } from "./FamilyDiscountsCard";
 import { BulkBillingPanel } from "@/components/families/BulkBillingPanel";
 import { anchorDayLabel, formatCents } from "@/lib/family-billing";
 
@@ -122,6 +123,17 @@ export function FamilyBillingSection({
         serviceId={serviceId}
         serviceName={serviceName}
       />
+
+      {/* Discounts belong to families, so they live with the families —
+          not on the room, the way OWNA files them. Only shown for a
+          single centre: a discount is granted against one service's
+          fees. */}
+      {serviceId && (
+        <FamilyDiscountsCard
+          serviceId={serviceId}
+          families={options.map((o) => ({ id: o.id, name: o.label }))}
+        />
+      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1 max-w-sm">
