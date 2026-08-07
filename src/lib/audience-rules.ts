@@ -49,14 +49,25 @@ const AUDIENCE_STATUSES = ["active", "withdrawn", "paused"] as const;
 /** Engagement condition kinds. `not_opened` inverts the "opened" event set. */
 const ENGAGEMENT_KINDS = ["opened", "clicked", "not_opened"] as const;
 
+/**
+ * Accepts date-only strings from `<input type="date">` ("2026-08-07") AND
+ * full ISO datetimes — `z.string().datetime()` alone rejects the date-only
+ * form the Task 4 UI feeds it. Garbage strings are rejected here, at the
+ * zod boundary, so they 400 on the request instead of reaching
+ * `new Date(...)` → Invalid Date → a raw 500 from Prisma at compile time.
+ */
+const parseableDate = z.string().min(1).refine((s) => !Number.isNaN(Date.parse(s)), {
+  message: "Invalid date",
+});
+
 export const audienceRulesSchema = z
   .object({
     serviceIds: z.array(z.string().min(1)).optional(),
     statuses: z.array(z.enum(AUDIENCE_STATUSES)).optional(),
-    /** ISO date string. Combines with joinedBefore into one createdAt range. */
-    joinedAfter: z.string().min(1).optional(),
-    /** ISO date string. Combines with joinedAfter into one createdAt range. */
-    joinedBefore: z.string().min(1).optional(),
+    /** Date-only or full ISO string. Combines with joinedBefore into one createdAt range. */
+    joinedAfter: parseableDate.optional(),
+    /** Date-only or full ISO string. Combines with joinedAfter into one createdAt range. */
+    joinedBefore: parseableDate.optional(),
     engagement: z
       .object({
         kind: z.enum(ENGAGEMENT_KINDS),

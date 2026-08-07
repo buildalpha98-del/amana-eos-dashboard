@@ -139,6 +139,20 @@ describe("audienceRulesSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("rejects an unparseable joinedAfter string", () => {
+    const result = audienceRulesSchema.safeParse({
+      joinedAfter: "garbage-not-a-date",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a date-only joinedAfter string (from <input type=\"date\">)", () => {
+    const result = audienceRulesSchema.safeParse({
+      joinedAfter: "2026-08-07",
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 // ── compileAudienceWhere (pure) ──────────────────────────────
@@ -170,6 +184,16 @@ describe("compileAudienceWhere", () => {
       subscribed: true,
       createdAt: { gte: new Date("2026-01-01T00:00:00.000Z") },
     });
+  });
+
+  it("compiles a date-only joinedAfter (<input type=\"date\">) into a valid Date", () => {
+    const where = compileAudienceWhere({ joinedAfter: "2026-08-07" });
+    const data = where as { createdAt?: { gte?: unknown } };
+    expect(data.createdAt?.gte).toBeInstanceOf(Date);
+    expect(
+      data.createdAt?.gte instanceof Date &&
+        !Number.isNaN(data.createdAt.gte.getTime()),
+    ).toBe(true);
   });
 
   it("compiles joinedBefore to createdAt: { lte }", () => {
