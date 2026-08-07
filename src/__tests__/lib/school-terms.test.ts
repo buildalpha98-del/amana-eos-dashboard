@@ -1,5 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { getCurrentTerm, getNextTerm, getTermsForYear } from "@/lib/school-terms";
+import {
+  getCurrentTerm,
+  getNextTerm,
+  getTermsForYear,
+  hasExactTermDates,
+} from "@/lib/school-terms";
+
+describe("hasExactTermDates", () => {
+  it("is true for years in the table (2026, 2027)", () => {
+    expect(hasExactTermDates(2026)).toBe(true);
+    expect(hasExactTermDates(2027)).toBe(true);
+  });
+
+  it("is false for years outside the table", () => {
+    expect(hasExactTermDates(2025)).toBe(false);
+    expect(hasExactTermDates(2028)).toBe(false);
+  });
+});
 
 describe("getTermsForYear", () => {
   it("returns 4 terms for a known year (2026)", () => {

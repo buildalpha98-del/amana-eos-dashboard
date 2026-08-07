@@ -54,6 +54,11 @@ export const NOTIFICATION_TYPES = {
   // 2026-08-05: creative-request proofing loop (Marketing Hub Phase 2).
   CREATIVE_REQUEST_PROOF_READY: "creative_request_proof_ready",
   CREATIVE_REQUEST_PROOF_DECISION: "creative_request_proof_decision",
+  // 2026-08-08: term autopilot (Marketing Hub Phase 5) — the weekly cron
+  // creates a pre-briefed creative-request pack per active service ahead of
+  // each school term. ONE digest per active marketing user per run (never
+  // per-request notifyRequestSubmitted — 20 services x 4 requests = spam).
+  TERM_PACK_CREATED: "term_pack_created",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
