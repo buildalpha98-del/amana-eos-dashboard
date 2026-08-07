@@ -35,6 +35,16 @@ interface CheckInput {
    * because our missing data isn't the family's fault.
    */
   childAgeYears?: number | null;
+  /**
+   * This day's capacity, when it differs from the room's usual number
+   * (CasualDayConfig). Undefined means "use the room's".
+   */
+  spotsOverride?: number | null;
+  /**
+   * The day is open for staff to fill but not for families to book —
+   * a vacation-care day held for siblings, or one not yet announced.
+   */
+  closedForBooking?: boolean;
 }
 
 export type CheckResult =
@@ -169,7 +179,21 @@ export function checkCasualBookingAllowed(input: CheckInput): CheckResult {
     };
   }
 
-  if (currentCasualBookings >= s.spots) {
+  // Held back deliberately — staff can still place a child, families
+  // can't. Distinct from "full": there may be seats, they're just not
+  // on sale.
+  if (input.closedForBooking) {
+    return {
+      ok: false,
+      reason: `${room} isn't open for online booking that day. ${ASK_OFFICE}`,
+    };
+  }
+
+  const spots =
+    input.spotsOverride === undefined || input.spotsOverride === null
+      ? s.spots
+      : input.spotsOverride;
+  if (currentCasualBookings >= spots) {
     return {
       ok: false,
       reason: `${room} is full that day. Message head office and we'll add you to the list.`,

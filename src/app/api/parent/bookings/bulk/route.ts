@@ -96,6 +96,18 @@ export const POST = withParentAuth(async (req, { parent }) => {
           },
         });
 
+        // This day's own capacity, when the centre has set one.
+        const dayConfig = await tx.casualDayConfig.findUnique({
+          where: {
+            serviceId_date_sessionType: {
+              serviceId,
+              date: bookingDate,
+              sessionType: b.sessionType,
+            },
+          },
+          select: { spots: true, closed: true },
+        });
+
         // A room may carry an age range. Unknown DOB passes the check —
         // our missing data isn't the family's problem.
         const childRow = await tx.child.findUnique({
@@ -138,6 +150,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
           blockedOutReason: blockOut ? (blockOut.reason ?? "") : null,
           childEnrolledInSession: enrolledCount > 0,
           childAgeYears,
+          spotsOverride: dayConfig?.spots ?? null,
+          closedForBooking: dayConfig?.closed ?? false,
         });
         if (!check.ok) {
           throw ApiError.badRequest(`Booking ${i + 1}: ${check.reason}`);

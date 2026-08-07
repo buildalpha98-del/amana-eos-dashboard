@@ -615,6 +615,7 @@ model User {
   illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
   illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
   createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
+  createdCasualDays             CasualDayConfig[]              @relation("CasualDayCreator")
   createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
   debtChases                    FamilyDebtContact[]            @relation("DebtChaser")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
@@ -2584,6 +2585,7 @@ model Service {
   staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
   illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
   blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
+  casualDays     CasualDayConfig[]     @relation("ServiceCasualDays")
   feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
 
   // ── OWNA Integration Relations ──────────────────────────
@@ -7606,6 +7608,42 @@ model FamilyDebtContact {
   createdAt   DateTime      @default(now())
 
   @@index([contactId, contactedAt])
+}
+
+/// A single day's casual capacity for one room, where it differs from
+/// the room's standing configuration.
+///
+/// OWNA materialises every casual SPOT as a row — twenty rows for twenty
+/// seats, generated a fortnight ahead by a job. That makes the grid easy
+/// and everything else hard: thousands of rows a term, a generator that
+/// can fall behind, and a booking that has to claim a specific seat.
+///
+/// A day only needs a COUNT and a switch. Which seats are taken comes
+/// from the bookings that already exist, so the two can never disagree
+/// and there's nothing to generate.
+///
+/// A row here exists only when a day differs from the default — most
+/// days have none.
+model CasualDayConfig {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceCasualDays", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime    @db.Date
+  sessionType SessionType
+  /// Spots for this day. Null means "use the room's usual number".
+  spots       Int?
+  /// Open the day for staff to fill without letting families book it —
+  /// the vacation-care day you're holding for siblings, or a day you
+  /// haven't announced yet.
+  closed      Boolean     @default(false)
+  note        String?
+  createdById String?
+  createdBy   User?       @relation("CasualDayCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([serviceId, date, sessionType])
+  @@index([serviceId, date])
 }
 
 model ParentFormSignature {
