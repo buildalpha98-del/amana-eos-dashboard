@@ -29,17 +29,57 @@ export function isBrevoConfigured(): boolean {
 
 async function brevoFetch(
   path: string,
-  body: Record<string, unknown>,
+  body?: Record<string, unknown>,
+  method: "GET" | "POST" | "PUT" | "DELETE" = "POST",
 ): Promise<Response> {
   return fetch(`${BREVO_API}${path}`, {
-    method: "POST",
+    method,
     headers: {
       "api-key": BREVO_API_KEY,
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify(body),
+    // GET must never carry a body (undici rejects it); other methods only
+    // send one when the caller provided it.
+    ...(body !== undefined && method !== "GET"
+      ? { body: JSON.stringify(body) }
+      : {}),
   });
+}
+
+// ── Contact-list helpers (email-janitor cron) ────────────────
+
+/**
+ * Page through Brevo contact lists. Used by the email-janitor cron to find
+ * orphaned `delivery-<epoch>` temp lists left behind by sendCampaignEmail.
+ */
+export async function listBrevoLists(
+  offset: number,
+  limit: number,
+): Promise<{ lists: Array<{ id: number; name: string }>; count: number }> {
+  const res = await brevoFetch(
+    `/contacts/lists?limit=${limit}&offset=${offset}`,
+    undefined,
+    "GET",
+  );
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo list lists failed (${res.status}): ${err}`);
+  }
+  const data = (await res.json()) as {
+    lists?: Array<{ id: number; name: string }>;
+    count?: number;
+  };
+  return { lists: data.lists ?? [], count: data.count ?? 0 };
+}
+
+/** Delete a Brevo contact list. 404 = already gone → treated as success. */
+export async function deleteBrevoList(id: number): Promise<void> {
+  const res = await brevoFetch(`/contacts/lists/${id}`, undefined, "DELETE");
+  if (!res.ok && res.status !== 404) {
+    const err = await res.text();
+    throw new Error(`Brevo delete list failed (${res.status}): ${err}`);
+  }
 }
 
 // ── Transactional Email (< 50 recipients) ────────────────────
@@ -103,7 +143,7 @@ interface CampaignParams {
  */
 export async function sendCampaignEmail(
   params: CampaignParams,
-): Promise<{ campaignId: number }> {
+): Promise<{ campaignId: number; listId: number }> {
   // 1. Create a temporary contact list
   const listName = `delivery-${Date.now()}`;
   const listRes = await brevoFetch("/contacts/lists", {
@@ -162,16 +202,10 @@ export async function sendCampaignEmail(
   // 4. Send or schedule the campaign
   if (params.scheduledAt) {
     // Schedule the campaign
-    const schedRes = await fetch(
-      `${BREVO_API}/emailCampaigns/${campaignId}/status`,
-      {
-        method: "PUT",
-        headers: {
-          "api-key": BREVO_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ scheduledAt: params.scheduledAt }),
-      },
+    const schedRes = await brevoFetch(
+      `/emailCampaigns/${campaignId}/status`,
+      { scheduledAt: params.scheduledAt },
+      "PUT",
     );
 
     if (!schedRes.ok) {
@@ -182,15 +216,8 @@ export async function sendCampaignEmail(
     }
   } else {
     // Send immediately
-    const sendRes = await fetch(
-      `${BREVO_API}/emailCampaigns/${campaignId}/sendNow`,
-      {
-        method: "POST",
-        headers: {
-          "api-key": BREVO_API_KEY,
-          "Content-Type": "application/json",
-        },
-      },
+    const sendRes = await brevoFetch(
+      `/emailCampaigns/${campaignId}/sendNow`,
     );
 
     if (!sendRes.ok) {
@@ -201,5 +228,8 @@ export async function sendCampaignEmail(
     }
   }
 
-  return { campaignId };
+  // listId is returned so the send route can persist it (payload._brevoListId)
+  // for the email-janitor cron to clean up — Brevo temp lists otherwise leak
+  // forever (one per >=50-recipient send).
+  return { campaignId, listId };
 }

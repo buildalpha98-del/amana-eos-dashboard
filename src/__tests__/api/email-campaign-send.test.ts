@@ -74,7 +74,7 @@ describe("POST /api/email/campaign/send — suppression", () => {
     mockedIsBrevoConfigured.mockReturnValue(true);
     mockedGetSuppressedEmails.mockResolvedValue(new Set());
     mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
-    mockedSendCampaign.mockResolvedValue({ campaignId: 456 });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
     prismaMock.orgSettings.findUnique.mockResolvedValue(null);
     prismaMock.deliveryLog.create.mockImplementation(
       async (args: { data: Record<string, unknown> }) =>
@@ -221,6 +221,23 @@ describe("POST /api/email/campaign/send — suppression", () => {
     const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
     expect(createArgs.data.externalIdType).toBe("brevo_campaign");
   });
+
+  it("persists the Brevo temp list id as payload._brevoListId on the >=50 path (janitor cleanup input)", async () => {
+    const contacts = Array.from({ length: 60 }, (_, i) => contact(`p${i}@example.com`));
+    prismaMock.centreContact.findMany.mockResolvedValue(contacts);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    const payload = createArgs.data.payload as {
+      _brevoListId: number;
+      _suppressedCount: number;
+    };
+    expect(payload._brevoListId).toBe(789);
+    expect(payload._suppressedCount).toBe(0);
+  });
 });
 
 describe("POST /api/email/campaign/send — audienceId resolution", () => {
@@ -232,7 +249,7 @@ describe("POST /api/email/campaign/send — audienceId resolution", () => {
     mockedIsBrevoConfigured.mockReturnValue(true);
     mockedGetSuppressedEmails.mockResolvedValue(new Set());
     mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
-    mockedSendCampaign.mockResolvedValue({ campaignId: 456 });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
     prismaMock.orgSettings.findUnique.mockResolvedValue(null);
     prismaMock.deliveryLog.create.mockImplementation(
       async (args: { data: Record<string, unknown> }) =>
@@ -341,7 +358,7 @@ describe("POST /api/email/campaign/send — marketingCampaignId attribution", ()
     mockedIsBrevoConfigured.mockReturnValue(true);
     mockedGetSuppressedEmails.mockResolvedValue(new Set());
     mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
-    mockedSendCampaign.mockResolvedValue({ campaignId: 456 });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
     prismaMock.orgSettings.findUnique.mockResolvedValue(null);
     prismaMock.deliveryLog.create.mockImplementation(
       async (args: { data: Record<string, unknown> }) =>
@@ -408,7 +425,7 @@ describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () =>
     mockedIsBrevoConfigured.mockReturnValue(true);
     mockedGetSuppressedEmails.mockResolvedValue(new Set());
     mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
-    mockedSendCampaign.mockResolvedValue({ campaignId: 456 });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
     prismaMock.orgSettings.findUnique.mockResolvedValue(null);
     prismaMock.deliveryLog.create.mockImplementation(
       async (args: { data: Record<string, unknown> }) =>

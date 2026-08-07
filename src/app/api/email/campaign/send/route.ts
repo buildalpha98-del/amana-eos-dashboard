@@ -459,6 +459,7 @@ if (!isBrevoConfigured()) {
 
   // ── ≥50: Brevo campaign path (single campaign, single DeliveryLog) ──
   let externalId: string | undefined;
+  let brevoListId: number | undefined;
   let status = "sent";
 
   try {
@@ -469,6 +470,7 @@ if (!isBrevoConfigured()) {
       scheduledAt: body.scheduledAt ?? undefined,
     });
     externalId = String(result.campaignId);
+    brevoListId = result.listId;
 
     if (body.scheduledAt) {
       status = "scheduled";
@@ -527,7 +529,14 @@ if (!isBrevoConfigured()) {
       entityType,
       entityId,
       renderedHtml: html,
-      payload: { ...(raw as object), _suppressedCount: suppressedCount },
+      payload: {
+        ...(raw as object),
+        _suppressedCount: suppressedCount,
+        // Brevo temp contact list backing this campaign — the email-janitor
+        // cron deletes it (and marks _brevoListCleaned) once the send is old
+        // and no longer scheduled.
+        _brevoListId: brevoListId,
+      },
     },
   });
 
