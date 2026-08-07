@@ -9,6 +9,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
 // ---------------------------------------------------------------------------
 // Zod schemas — mirrors src/components/enrol/types.ts
@@ -298,15 +299,17 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   // Find linked enquiry
   let enquiryId: string | null = null;
+  let priorStage: string | null = null;
   let serviceId: string | null = null;
   if (prefillToken) {
     const enquiry = await prisma.parentEnquiry.findFirst({
       where: { id: prefillToken },
-      select: { id: true, serviceId: true },
+      select: { id: true, serviceId: true, stage: true },
     });
     if (enquiry) {
       enquiryId = enquiry.id;
       serviceId = enquiry.serviceId;
+      priorStage = enquiry.stage;
     }
   }
   if (!serviceId && bookingPrefs[0]?.serviceId) {
@@ -391,6 +394,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
     return sub;
   });
+
+  // Log the stage event AFTER the transaction commits — the helper does
+  // its own prisma call, so it can't run inside the tx. Skip when the
+  // enquiry was already "enrolled" (no-op move, e.g. a resubmission).
+  if (enquiryId && priorStage !== "enrolled") {
+    await logEnquiryStageEvent(enquiryId, priorStage, "enrolled");
+  }
 
   // Teams notification (fire and forget)
   const childNames = children
