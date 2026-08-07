@@ -410,6 +410,12 @@ if (!isBrevoConfigured()) {
       where: { id: log.id },
       data: {
         status,
+        // Dispatch actually completed (at least one recipient reached) for
+        // sent/partial — "scheduled" hasn't dispatched yet, and "failed"
+        // means nothing was delivered, so neither gets a sentAt stamp.
+        ...((status === "sent" || status === "partial")
+          ? { sentAt: new Date() }
+          : {}),
         ...(failedCount > 0
           ? {
               errorMessage:
@@ -513,6 +519,9 @@ if (!isBrevoConfigured()) {
       externalIdType: "brevo_campaign",
       recipientCount: recipients.length,
       status,
+      // "scheduled" hasn't dispatched yet; "sent" means Brevo accepted the
+      // campaign for immediate delivery — stamp completion only then.
+      sentAt: status === "sent" ? new Date() : undefined,
       subject: body.subject,
       templateId: body.templateId ?? undefined,
       entityType,

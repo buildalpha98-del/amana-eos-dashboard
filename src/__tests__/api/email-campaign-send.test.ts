@@ -478,6 +478,19 @@ describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () =>
     );
   });
 
+  it("stamps sentAt on the terminal update when the row lands 'sent'", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    const updateArgs = prismaMock.deliveryLog.update.mock.calls[0][0];
+    expect(updateArgs.data.status).toBe("sent");
+    expect(updateArgs.data.sentAt).toBeInstanceOf(Date);
+  });
+
   it("marks the row 'scheduled' when scheduledAt is set and forwards it per call", async () => {
     prismaMock.centreContact.findMany.mockResolvedValue([
       contact("a@example.com"),
@@ -500,6 +513,21 @@ describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () =>
         data: expect.objectContaining({ status: "scheduled" }),
       }),
     );
+  });
+
+  it("does NOT stamp sentAt when scheduledAt is set — dispatch hasn't happened yet", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(
+      postBody({ scheduledAt: "2026-08-10T09:00:00.000Z" }),
+    );
+    expect(res.status).toBe(200);
+
+    const updateArgs = prismaMock.deliveryLog.update.mock.calls[0][0];
+    expect(updateArgs.data.status).toBe("scheduled");
+    expect(updateArgs.data.sentAt).toBeFalsy();
   });
 
   it("partial failure → status 'partial', _failedRecipients recorded, 200 with failedCount", async () => {
@@ -537,6 +565,8 @@ describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () =>
     expect(
       (updateArgs.data.payload as { _failedRecipients: string[] })._failedRecipients,
     ).toEqual(["b@example.com"]);
+    // Dispatch completed (some recipients were reached) — stamp sentAt.
+    expect(updateArgs.data.sentAt).toBeInstanceOf(Date);
 
     // Activity log still records the (partial) send.
     expect(prismaMock.activityLog.create).toHaveBeenCalledTimes(1);
@@ -572,6 +602,9 @@ describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () =>
         data: expect.objectContaining({ status: "failed" }),
       }),
     );
+    // Nothing was actually delivered — sentAt stays unset.
+    const failedUpdateArgs = prismaMock.deliveryLog.update.mock.calls[0][0];
+    expect(failedUpdateArgs.data.sentAt).toBeFalsy();
     // A failed send is not an activity-worthy send.
     expect(prismaMock.activityLog.create).not.toHaveBeenCalled();
   });
@@ -662,7 +695,24 @@ describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () =>
     const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
     expect(createArgs.data.externalIdType).toBe("brevo_campaign");
     expect(createArgs.data.status).toBe("sent");
+    expect(createArgs.data.sentAt).toBeInstanceOf(Date);
     expect(prismaMock.deliveryLog.update).not.toHaveBeenCalled();
+  });
+
+  it("does NOT stamp sentAt on the >=50 create when scheduledAt is set", async () => {
+    const contacts = Array.from({ length: 55 }, (_, i) => contact(`p${i}@example.com`));
+    prismaMock.centreContact.findMany.mockResolvedValue(contacts);
+
+    const res = await sendCampaign(
+      postBody({ scheduledAt: "2026-08-10T09:00:00.000Z" }),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.status).toBe("scheduled");
+
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(createArgs.data.status).toBe("scheduled");
+    expect(createArgs.data.sentAt).toBeFalsy();
   });
 });
 
@@ -766,6 +816,24 @@ describe("GET /api/email/recipient-count — post-suppression count", () => {
     );
     const res = await recipientCount(req);
     expect(res.status).toBe(409);
+    expect(prismaMock.centreContact.findMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects member role with 403", async () => {
+    prismaMock.user.findUnique.mockReset();
+    prismaMock.user.findUnique.mockImplementation(
+      async (args: { where?: { id?: string } } | undefined) => {
+        if (args?.where?.id === "user-1") {
+          return { active: true, id: "user-1", role: "member" } as never;
+        }
+        return null;
+      },
+    );
+    mockSession({ id: "user-1", name: "Member", role: "member" });
+
+    const req = createRequest("GET", "/api/email/recipient-count");
+    const res = await recipientCount(req);
+    expect(res.status).toBe(403);
     expect(prismaMock.centreContact.findMany).not.toHaveBeenCalled();
   });
 });
