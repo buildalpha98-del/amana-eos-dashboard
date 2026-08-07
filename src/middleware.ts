@@ -189,5 +189,9 @@ export const config = {
     "/surveys/:path*",
     "/learn/:path*",
     "/api/induction/:path*",
+    // Parent help-centre ADMIN surface (the public portal at /support and
+    // /api/public/help-centre stays deliberately unmatched = public).
+    "/help-centre/:path*",
+    "/api/help-centre/:path*",
   ],
 };
