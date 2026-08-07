@@ -15,6 +15,7 @@ import {
 } from "@/lib/creative-request/notify";
 import { requestInclude } from "@/lib/creative-request/include";
 import { applyStatusChange } from "@/lib/creative-request/status-change";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -146,6 +147,18 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
   if (patch.assigneeId !== undefined && patch.assigneeId !== existing.assigneeId) {
     await notifyRequestAssigned(prisma, updated, session.user.id);
+    // Only fires on an actual (re-)assignment, never on unassign
+    // (assigneeId: null) — there's no one to email in that case.
+    if (patch.assigneeId) {
+      sendAssignmentEmail({
+        type: "creative_request",
+        assigneeId: patch.assigneeId,
+        assignerId: session.user.id,
+        entityTitle: updated.title,
+        entityId: updated.id,
+        entityNumber: updated.requestNumber,
+      });
+    }
   }
 
   return NextResponse.json({ request: updated });

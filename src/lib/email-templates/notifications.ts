@@ -224,6 +224,53 @@ export async function issueAssignedEmail(
   });
 }
 
+// ─── Creative Request Assignment ─────────────────────────────
+
+export async function creativeRequestAssignedEmail(
+  assigneeName: string,
+  requestTitle: string,
+  requestNumber: string,
+  assignerName: string,
+  dashboardUrl: string,
+) {
+  return applyEmailTemplateOverride({
+    key: "notifications.creativeRequestAssigned",
+    defaultSubject: "You've been assigned a creative request — Amana OSHC",
+    defaultBody: `
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      New Creative Request Assigned
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi {{assigneeName}},
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      <strong>{{assignerName}}</strong> has assigned you a creative request:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;background-color:#f9fafb;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-weight:600;text-transform:uppercase;">
+            {{requestNumber}}
+          </p>
+          <p style="margin:0;color:#111827;font-size:15px;font-weight:600;">
+            {{requestTitle}}
+          </p>
+        </td>
+      </tr>
+    </table>
+    {{viewButton}}
+  `,
+    vars: {
+      assigneeName,
+      requestTitle,
+      requestNumber,
+      assignerName,
+      viewButton: buttonHtml("View request", dashboardUrl),
+    },
+    wrap: baseLayout,
+  });
+}
+
 // ─── Compliance Expiry Alert ─────────────────────────────────
 
 export function complianceAlertEmail(

@@ -23,6 +23,9 @@ vi.mock("@/lib/rate-limit", () => ({
     Promise.resolve({ limited: false, remaining: 59, resetIn: 60000 }),
   ),
 }));
+vi.mock("@/lib/send-assignment-email", () => ({
+  sendAssignmentEmail: vi.fn(),
+}));
 
 import { GET as GET_LIST, POST as POST_CREATE } from "@/app/api/creative-requests/route";
 import { GET as GET_DETAIL, PATCH as PATCH_REQUEST } from "@/app/api/creative-requests/[id]/route";
@@ -31,6 +34,9 @@ import { GET as GET_PROOFS, POST as POST_PROOF } from "@/app/api/creative-reques
 import { POST as POST_DECISION } from "@/app/api/creative-requests/[id]/proofs/[proofId]/decision/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 import { DEFAULT_CHECKLISTS } from "@/lib/creative-request/constants";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
+
+const sendAssignmentEmailMock = vi.mocked(sendAssignmentEmail);
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
 const decisionCtx = (id: string, proofId: string) =>
@@ -365,6 +371,53 @@ describe("PATCH /api/creative-requests/[id]", () => {
     );
     expect(res.status).toBe(200);
     expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
+    expect(sendAssignmentEmailMock).toHaveBeenCalledWith({
+      type: "creative_request",
+      assigneeId: "mkt-2",
+      assignerId: "mkt-1",
+      entityTitle: baseRequest.title,
+      entityId: baseRequest.id,
+      entityNumber: baseRequest.requestNumber,
+    });
+  });
+
+  it("unassigning (assigneeId: null) does not send an assignment email", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      assigneeId: "mkt-2",
+    } as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      assigneeId: null,
+      assignee: null,
+    } as never);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { assigneeId: null },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    expect(sendAssignmentEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("a non-assignee patch (priority only) does not send an assignment email", async () => {
+    mockSession({ id: "mkt-1", name: "Tracie", role: "marketing" });
+    prismaMock.creativeRequest.findUnique.mockResolvedValue(baseRequest as never);
+    prismaMock.creativeRequest.update.mockResolvedValue({
+      ...baseRequest,
+      priority: "high",
+    } as never);
+    const res = await PATCH_REQUEST(
+      createRequest("PATCH", "/api/creative-requests/cr1", {
+        body: { priority: "high" },
+      }),
+      ctx("cr1"),
+    );
+    expect(res.status).toBe(200);
+    expect(sendAssignmentEmailMock).not.toHaveBeenCalled();
   });
 
   it("owner cancelling an in_progress request is rejected", async () => {
