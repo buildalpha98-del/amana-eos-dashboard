@@ -78,6 +78,10 @@
       "schedule": "30 20 * * 0"
     },
     {
+      "path": "/api/cron/marketing-measurables",
+      "schedule": "45 20 * * 0"
+    },
+    {
       "path": "/api/cron/weekly-report",
       "schedule": "15 21 * * 0"
     },
