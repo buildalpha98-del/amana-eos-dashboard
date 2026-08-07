@@ -4,7 +4,7 @@
 - **Product**: EOS (Entrepreneurial Operating System) management dashboard for Amana OSHC (Out of School Hours Care)
 - **Stack**: Next.js 16, TypeScript, Prisma ORM 5.22, PostgreSQL, Tailwind CSS, Vercel
 - **Auth**: NextAuth.js with credential-based login
-- **Email**: Resend API with branded HTML templates
+- **Email**: TWO providers by design — Brevo for marketing/campaign sends (`src/lib/brevo.ts`), Resend for transactional/assignment (`src/lib/email.ts`, branded HTML templates). Events: `/api/webhooks/resend` AND `/api/webhooks/brevo` (Phase 3, `?secret=` auth via `BREVO_WEBHOOK_SECRET`) both write `EmailEvent`; Brevo events correlate to sends via `DeliveryLog.externalIdType` (`brevo_message` <50-recipient sends matched on message-id; `brevo_campaign` ≥50 matched on camp_id) → `EmailEvent.deliveryLogId`. Suppression (`EmailSuppression`) is enforced at EVERY send path via `getSuppressedEmails()` (batch) — campaign send, recipient-count, and the Resend wrapper; the webhook auto-suppresses on bounce/spam/unsubscribe/block. Test-send: `POST /api/email/test-send` (self-only, "[Test] " prefix, rate-limited 5/min). Creative-request assignment emails BYPASS the `shouldReceiveNudge` leadership gate on purpose (work-queue notification; the gate excludes marketing-role users) — see `send-assignment-email.ts`.
 - **State**: React Query (TanStack Query) for server state
 - **Markdown**: react-markdown + remark-gfm + rehype-sanitize (for report viewer)
 - **PDF**: jsPDF (for branded report exports)

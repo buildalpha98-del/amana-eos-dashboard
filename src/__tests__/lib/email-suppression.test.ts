@@ -6,6 +6,7 @@ import {
   suppressEmail,
   getSuppressionList,
   removeFromSuppressionList,
+  getSuppressedEmails,
 } from "@/lib/email-suppression";
 
 beforeEach(() => {
@@ -144,5 +145,25 @@ describe("removeFromSuppressionList", () => {
     expect(prismaMock.emailSuppression.deleteMany).toHaveBeenCalledWith({
       where: { email: "nonexistent@example.com" },
     });
+  });
+});
+
+// ── getSuppressedEmails ────────────────────────────────────
+
+describe("getSuppressedEmails", () => {
+  it("returns the lowercased subset that is suppressed, in one query", async () => {
+    prismaMock.emailSuppression.findMany.mockResolvedValue([
+      { email: "bad@example.com" },
+    ] as never);
+    const result = await getSuppressedEmails(["Bad@Example.com", "ok@example.com"]);
+    expect(result).toEqual(new Set(["bad@example.com"]));
+    expect(prismaMock.emailSuppression.findMany).toHaveBeenCalledTimes(1);
+    const args = prismaMock.emailSuppression.findMany.mock.calls[0][0];
+    expect(args.where.email.in).toEqual(["bad@example.com", "ok@example.com"]);
+  });
+  it("returns an empty set for an empty input without querying", async () => {
+    const result = await getSuppressedEmails([]);
+    expect(result).toEqual(new Set());
+    expect(prismaMock.emailSuppression.findMany).not.toHaveBeenCalled();
   });
 });

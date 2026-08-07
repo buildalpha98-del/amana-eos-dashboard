@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { getSuppressedEmails } from "@/lib/email-suppression";
 
 export const GET = withApiAuth(async (req, session) => {
   const serviceIds = req.nextUrl.searchParams.getAll("serviceId");
@@ -17,5 +18,12 @@ export const GET = withApiAuth(async (req, session) => {
     contacts.map((c) => c.email.toLowerCase()),
   );
 
-  return NextResponse.json({ count: uniqueEmails.size });
+  // Mirror campaign/send's suppression filter — the count preview should
+  // match what will actually go out, not the raw subscribed count.
+  const suppressed = await getSuppressedEmails([...uniqueEmails]);
+  const count = [...uniqueEmails].filter(
+    (email) => !suppressed.has(email.toLowerCase()),
+  ).length;
+
+  return NextResponse.json({ count });
 });

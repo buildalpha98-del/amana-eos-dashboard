@@ -15,6 +15,7 @@ import {
 } from "@/lib/creative-request/notify";
 import { requestInclude } from "@/lib/creative-request/include";
 import { applyStatusChange } from "@/lib/creative-request/status-change";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -146,6 +147,20 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
   if (patch.assigneeId !== undefined && patch.assigneeId !== existing.assigneeId) {
     await notifyRequestAssigned(prisma, updated, session.user.id);
+    // Only fires on an actual (re-)assignment to someone else — never on
+    // unassign (assigneeId: null, no one to email) and never on a
+    // self-assign (matches notifyRequestAssigned's own self-skip and
+    // every other assignment-email call site: todos/rocks/issues).
+    if (patch.assigneeId && patch.assigneeId !== session.user.id) {
+      sendAssignmentEmail({
+        type: "creative_request",
+        assigneeId: patch.assigneeId,
+        assignerId: session.user.id,
+        entityTitle: updated.title,
+        entityId: updated.id,
+        entityNumber: updated.requestNumber,
+      });
+    }
   }
 
   return NextResponse.json({ request: updated });

@@ -4,6 +4,7 @@ import {
   todoAssignedEmail,
   rockAssignedEmail,
   issueAssignedEmail,
+  creativeRequestAssignedEmail,
 } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
 import { shouldReceiveNudge } from "@/lib/notification-recipients";
@@ -17,10 +18,13 @@ import { shouldReceiveNudge } from "@/lib/notification-recipients";
  * Errors are caught internally — safe to call without await.
  */
 export function sendAssignmentEmail(params: {
-  type: "todo" | "rock" | "issue";
+  type: "todo" | "rock" | "issue" | "creative_request";
   assigneeId: string;
   assignerId: string;
   entityTitle: string;
+  /** Required for "creative_request" — used for the deep link + request number. */
+  entityId?: string;
+  entityNumber?: string;
 }) {
   const resend = getResend();
   if (!resend) return; // No API key configured — skip silently
@@ -49,11 +53,24 @@ export function sendAssignmentEmail(params: {
 
     if (!assignee?.email) return; // Can't send without an email address
 
-    // 2026-07-24: nudge policy — assignment emails only go to leadership
-    // + opted-in users. Staff/coordinator/marketing see the assignment
-    // in-app (via UserNotification), which stays on the bell icon and
-    // My Todos surface.
-    if (!shouldReceiveNudge(assignee)) return;
+    if (params.type === "creative_request") {
+      // 2026-08-07 gate decision: creative-request assignment is a
+      // work-queue notification, not a leadership nudge — the assignee
+      // is routinely a marketing-role staffer being handed a ticket in
+      // their own queue. shouldReceiveNudge() deliberately excludes
+      // marketing (and other non-leadership roles) by design for the
+      // *nudge* surface, so we bypass that role gate here. We still
+      // enforce the baseline account gates shouldReceiveNudge also
+      // applies: the assignee must be active and not have muted
+      // notifications.
+      if (assignee.active === false || assignee.notificationsMuted) return;
+    } else {
+      // 2026-07-24: nudge policy — assignment emails only go to leadership
+      // + opted-in users. Staff/coordinator/marketing see the assignment
+      // in-app (via UserNotification), which stays on the bell icon and
+      // My Todos surface.
+      if (!shouldReceiveNudge(assignee)) return;
+    }
 
     const assigneeName = assignee.name || "Team Member";
     const assignerName = assigner?.name || "A team member";
@@ -86,6 +103,18 @@ export function sendAssignmentEmail(params: {
         template = await issueAssignedEmail(
           assigneeName,
           params.entityTitle,
+          assignerName,
+          dashboardUrl
+        );
+        break;
+      }
+      case "creative_request": {
+        if (!params.entityId) return; // Can't build a deep link without it
+        const dashboardUrl = `${baseUrl}/requests?open=${params.entityId}`;
+        template = await creativeRequestAssignedEmail(
+          assigneeName,
+          params.entityTitle,
+          params.entityNumber || "",
           assignerName,
           dashboardUrl
         );

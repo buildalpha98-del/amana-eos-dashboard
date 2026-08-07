@@ -1335,16 +1335,21 @@ model BoardReport {
 // ============================================================
 
 model EmailEvent {
-  id        String   @id @default(cuid())
-  messageId String // Resend message ID
-  type      String // delivered, bounced, complained, opened, clicked
-  email     String // recipient email
-  payload   Json? // full webhook payload
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  messageId     String // Provider message ID (Resend or Brevo message-id; `camp:<id>` for Brevo campaign-level events with no per-recipient id)
+  /// Resolved at webhook-ingest time by matching the provider identifier
+  /// against DeliveryLog.externalId (see externalIdType there). Null when
+  /// no send row matched (e.g. events for mail sent outside the dashboard).
+  deliveryLogId String?
+  type          String // delivered, bounced, complained, opened, clicked
+  email         String // recipient email
+  payload       Json? // full webhook payload
+  createdAt     DateTime @default(now())
 
   @@index([messageId])
   @@index([email, type])
   @@index([createdAt])
+  @@index([deliveryLogId])
 }
 
 model EmailSuppression {
@@ -4969,6 +4974,10 @@ model DeliveryLog {
   serviceCode    String?
   messageType    String? // week_ahead, newsletter, etc.
   externalId     String? // provider message/post ID
+  /// Disambiguates what externalId holds: "resend_message" | "brevo_message"
+  /// (<50-recipient transactional sends) | "brevo_campaign" (>=50 sends,
+  /// Brevo numeric campaign id as string). Null on legacy rows.
+  externalIdType String?
   recipientCount Int      @default(0)
   status         String // sent, scheduled, failed
   errorMessage   String?  @db.Text
@@ -4987,6 +4996,7 @@ model DeliveryLog {
   @@index([serviceCode, createdAt])
   @@index([status])
   @@index([channel, status])
+  @@index([externalId])
 }
 
 // ============================================================
