@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import QRCode from "qrcode";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -23,6 +24,7 @@ export const GET = withApiAuth(
   async (req, session) => {
     const role = session.user.role as string;
     const userId = session.user.id as string;
+    const withImages = new URL(req.url).searchParams.get("images") === "1";
 
     let userFilter: Record<string, unknown>;
     if (role === "staff") {
@@ -65,19 +67,41 @@ export const GET = withApiAuth(
       },
     });
 
-    return NextResponse.json({
-      codes: codes.map((c) => ({
-        id: c.id,
-        code: c.code,
-        active: c.active,
-        user: c.user,
-        signupUrl: signupUrlForCode(c.code),
+    const payload = await Promise.all(
+      codes.map(async (c) => {
         // The URL the printed QR encodes — goes through /a/{shortCode} so
         // scans are counted, then redirects to the signup URL.
-        qrUrl: c.qrCode ? buildScanUrl(c.qrCode.shortCode) : signupUrlForCode(c.code),
-        scanCount: c.qrCode?._count.scans ?? 0,
-      })),
-    });
+        const qrUrl = c.qrCode
+          ? buildScanUrl(c.qrCode.shortCode)
+          : signupUrlForCode(c.code);
+        return {
+          id: c.id,
+          code: c.code,
+          active: c.active,
+          user: c.user,
+          signupUrl: signupUrlForCode(c.code),
+          qrUrl,
+          scanCount: c.qrCode?._count.scans ?? 0,
+          ...(withImages
+            ? {
+                svg: await QRCode.toString(qrUrl, {
+                  type: "svg",
+                  margin: 1,
+                  width: 256,
+                  errorCorrectionLevel: "M",
+                }),
+                png: await QRCode.toDataURL(qrUrl, {
+                  margin: 1,
+                  width: 512,
+                  errorCorrectionLevel: "M",
+                }),
+              }
+            : {}),
+        };
+      }),
+    );
+
+    return NextResponse.json({ codes: payload });
   },
   { roles: ["owner", "head_office", "admin", "member", "staff"] },
 );

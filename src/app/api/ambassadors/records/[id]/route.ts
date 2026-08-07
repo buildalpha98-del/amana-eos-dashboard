@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
@@ -164,7 +165,7 @@ export const PATCH = withApiAuth(
         action: "ambassador_record_updated",
         entityType: "AmbassadorEnrolment",
         entityId: id,
-        details: audit,
+        details: audit as Prisma.InputJsonValue,
       },
     });
     await recomputeAmbassadorRecord(id);

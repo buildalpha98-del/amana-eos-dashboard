@@ -138,6 +138,7 @@ export const allPages = [
   "/contact-centre",
   "/messaging",
   "/enrolments",
+  "/ambassadors",
   "/families",
   "/children",
   "/children/[id]",
@@ -300,6 +301,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/accountability-chart",
     // ── Their centre — primary surface ─────────────────────────
     "/services",
+    // 2026-08-03: Ambassadors pilot — Directors verify records, resolve
+    // attribution conflicts and enter session counts for their centre.
+    "/ambassadors",
     // /services/[id] inherits from /services via prefix match in
     // pathMatches(); same for the Roll Call / Bookings / Children /
     // Billing tabs nested inside service detail.
@@ -351,6 +355,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/my-training",
     "/surveys",
     "/learn/[enrollmentId]",
+    // 2026-08-03: Ambassadors pilot — educators see their own credited
+    // enrolments, tier, LMS status and projected payout.
+    "/ambassadors",
     "/activity-library",
     "/documents",
     "/communication",

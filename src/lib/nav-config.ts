@@ -200,6 +200,11 @@ export const navItems: NavItem[] = [
   // behind "+N more" was costing that lookup.
   { href: "/children", label: "Children", icon: Baby, section: "Growth", tooltip: "Find any child across all services", roles: ALL_NON_MARKETING, core: true },
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING , core: true },
+  // 2026-08-03: Ambassadors pilot — staff enrolment incentives. Narrower
+  // than ALL_NON_MARKETING on purpose: marketing/eos aren't in
+  // rolePageAccess for /ambassadors, and a nav item they can't open is a
+  // dead link.
+  { href: "/ambassadors", label: "Ambassadors", icon: Trophy, section: "Growth", tooltip: "Educator enrolment incentive pilot — referrals, verification & payouts", roles: ["head_office", "admin", "member", "staff"], core: ["owner", "head_office", "admin", "member", "staff"] },
   { href: "/crm/templates", label: "CRM Templates", icon: Mail, section: "Growth", tooltip: "Email templates behind automated CRM touchpoints", roles: ["owner", "head_office", "admin", "marketing"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" , core: ["marketing"] },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
