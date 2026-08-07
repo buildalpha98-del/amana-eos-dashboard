@@ -843,12 +843,14 @@ function CampaignPerformanceSection({
     {
       label: "Reached",
       value: perf.reach.recipients,
-      sub: `${perf.reach.sends} email send${perf.reach.sends === 1 ? "" : "s"}`,
+      sub: `${perf.reach.sends} email send${perf.reach.sends === 1 ? "" : "s"} · ${perf.engagement.uniqueOpens} unique opens`,
     },
     {
+      // Unique units only: deduped email clickers + deduped QR scanners
+      // (raw scan counts would mix units with the email numbers).
       label: "Clicks + scans",
-      value: perf.engagement.uniqueClicks + perf.qr.scans,
-      sub: `${perf.engagement.uniqueOpens} opens · ${perf.qr.scans} QR scans`,
+      value: perf.engagement.uniqueClicks + perf.qr.uniqueScanners,
+      sub: `${perf.engagement.uniqueClicks} email clicks · ${perf.qr.uniqueScanners} unique scanners`,
     },
     {
       label: "Enquiries",
@@ -903,7 +905,7 @@ function CampaignPerformanceSection({
 
       {!perf.hasData && (
         <p className="mt-2 text-2xs text-muted">
-          No tracked activity in this window yet.
+          No tracked email, QR or enquiry activity in this window yet.
         </p>
       )}
 
