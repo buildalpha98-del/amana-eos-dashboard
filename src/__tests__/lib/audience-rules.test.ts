@@ -274,7 +274,7 @@ describe("resolveAudienceWhere", () => {
     expect(emailEvent.findMany).not.toHaveBeenCalled();
   });
 
-  it("engagement.kind 'opened' queries emailEvent for opened events and ANDs email: { in } (lowercased)", async () => {
+  it("engagement.kind 'opened' queries emailEvent for opened events and ANDs email: { in } (lowercased, case-insensitive)", async () => {
     emailEvent.findMany.mockResolvedValue([
       { email: "Alice@Example.com" },
       { email: "bob@example.com" },
@@ -294,7 +294,7 @@ describe("resolveAudienceWhere", () => {
 
     expect(where).toEqual({
       subscribed: true,
-      email: { in: ["alice@example.com", "bob@example.com"] },
+      email: { in: ["alice@example.com", "bob@example.com"], mode: "insensitive" },
     });
   });
 
@@ -315,7 +315,7 @@ describe("resolveAudienceWhere", () => {
     });
     expect(where).toEqual({
       subscribed: true,
-      email: { in: ["clicker@example.com"] },
+      email: { in: ["clicker@example.com"], mode: "insensitive" },
     });
   });
 
@@ -338,7 +338,7 @@ describe("resolveAudienceWhere", () => {
     });
     expect(where).toEqual({
       subscribed: true,
-      email: { notIn: ["opener@example.com"] },
+      email: { notIn: ["opener@example.com"], mode: "insensitive" },
     });
   });
 
@@ -355,7 +355,7 @@ describe("resolveAudienceWhere", () => {
       subscribed: true,
       serviceId: { in: ["svc_1"] },
       status: { in: ["active"] },
-      email: { in: ["match@example.com"] },
+      email: { in: ["match@example.com"], mode: "insensitive" },
     });
   });
 
@@ -369,7 +369,7 @@ describe("resolveAudienceWhere", () => {
     expect(emailEvent.findMany).toHaveBeenCalledTimes(1);
     expect(where).toEqual({
       subscribed: true,
-      email: { in: [] },
+      email: { in: [], mode: "insensitive" },
     });
   });
 });

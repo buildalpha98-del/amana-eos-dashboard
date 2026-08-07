@@ -86,7 +86,7 @@ beforeEach(() => {
 });
 
 describe("GET /api/email/reports/[deliveryLogId] — auth", () => {
-  it.each(["owner", "head_office", "admin", "marketing"])(
+  it.each(["owner", "head_office", "admin", "marketing"] as const)(
     "allows role %s",
     async (role) => {
       setupActiveUserMock(role);

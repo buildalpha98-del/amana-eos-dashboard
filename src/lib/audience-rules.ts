@@ -154,7 +154,15 @@ export async function resolveAudienceWhere(
 
   const emails = events.map((event) => event.email.toLowerCase());
 
-  where.email = kind === "not_opened" ? { notIn: emails } : { in: emails };
+  // `mode: "insensitive"` is load-bearing: EmailEvent emails are lowercased
+  // by the webhooks, but not every CentreContact write path normalises case
+  // (nurture enrol + cowork nurture store the email as submitted). A
+  // case-sensitive in/notIn would silently drop mixed-case contacts from
+  // "opened"/"clicked" audiences and fail to exclude them from "not_opened".
+  where.email =
+    kind === "not_opened"
+      ? { notIn: emails, mode: "insensitive" }
+      : { in: emails, mode: "insensitive" };
 
   return where;
 }
