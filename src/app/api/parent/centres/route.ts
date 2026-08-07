@@ -17,6 +17,10 @@ import { NextResponse } from "next/server";
 import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
 import { mergeServiceContent } from "@/lib/service-content-shared";
+import {
+  bookableSessionKeys,
+  type SessionTimes,
+} from "@/lib/service-settings";
 
 /**
  * Session keys this centre is currently accepting casual bookings for.
@@ -24,11 +28,19 @@ import { mergeServiceContent } from "@/lib/service-content-shared";
  * Read permissively — an unparseable blob means "nothing enabled",
  * which shows the family no options rather than every option.
  */
-function enabledCasualSessions(raw: unknown): string[] {
+function enabledCasualSessions(
+  raw: unknown,
+  sessionTimes: SessionTimes | null,
+): string[] {
   if (!raw || typeof raw !== "object") return [];
+  // A room can be retired or staff-only in the room config while its
+  // casual settings still say "enabled" — the two objects are separate
+  // and drift. The room config is the one that decides.
+  const bookable = new Set<string>(bookableSessionKeys(sessionTimes));
   return Object.entries(raw as Record<string, unknown>)
     .filter(([key, v]) => {
       if (key === "policy" || !v || typeof v !== "object") return false;
+      if (!bookable.has(key)) return false;
       return (v as { enabled?: unknown }).enabled === true;
     })
     .map(([key]) => key);
@@ -149,7 +161,10 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     phone: s.phone,
     email: s.email,
     content: contentByService.get(s.id)!,
-    casualSessions: enabledCasualSessions(s.casualBookingSettings),
+    casualSessions: enabledCasualSessions(
+      s.casualBookingSettings,
+      (s.sessionTimes ?? null) as SessionTimes | null,
+    ),
     casualSessionDays: enabledCasualSessionDays(s.casualBookingSettings),
     // Order follows the admin's selection, not the database's.
     policies: (contentByService.get(s.id)?.policyDocumentIds ?? [])

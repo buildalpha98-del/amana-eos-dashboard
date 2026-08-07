@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { Save, CalendarClock, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { ENROLMENTS_EMAIL } from "@/lib/enrol-draft";
+import { CasualSpotsGrid } from "@/components/services/CasualSpotsGrid";
 import { Button } from "@/components/ui/Button";
 import { mutateApi } from "@/lib/fetch-api";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -132,6 +133,8 @@ interface Service {
   id: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   casualBookingSettings?: any;
+  /** Room config — the grid needs room names and which rooms exist. */
+  sessionTimes?: SessionTimes | null;
 }
 
 export function ServiceCasualBookingsTab({ service }: { service: Service }) {
@@ -205,6 +208,19 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
 
   return (
     <div className="space-y-6">
+      {/* The week's spots, above the settings: a coordinator opens this
+          tab to see Thursday, not to change the cut-off. */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">
+          Casual spots
+        </h3>
+        <CasualSpotsGrid
+          serviceId={service.id}
+          sessionTimes={service.sessionTimes}
+          canEdit={canEdit}
+        />
+      </div>
+
       {/* ── What's actually enforced ────────────────────────
           This banner used to say "settings stored — not yet enforced".
           That stopped being true when checkCasualBookingAllowed landed

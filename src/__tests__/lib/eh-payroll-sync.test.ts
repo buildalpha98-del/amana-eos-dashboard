@@ -12,9 +12,21 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 
-const listEmployees = vi.fn();
+const { listEmployees, getEmployee, MockEhError } = vi.hoisted(() => {
+  class MockEhError extends Error {
+    status: number;
+    body: unknown = null;
+    constructor(status: number) {
+      super(`EH Payroll API error: HTTP ${status}`);
+      this.status = status;
+    }
+  }
+  return { listEmployees: vi.fn(), getEmployee: vi.fn(), MockEhError };
+});
 vi.mock("@/lib/eh-payroll", () => ({
   listEmployees: (...args: unknown[]) => listEmployees(...args),
+  getEmployee: (...args: unknown[]) => getEmployee(...args),
+  EhPayrollError: MockEhError,
 }));
 
 import { runEmployeeSync } from "@/lib/eh-payroll-sync";
@@ -43,24 +55,63 @@ describe("runEmployeeSync", () => {
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
-  it("clears a mapping when the EH employee is Terminated", async () => {
+  it("clears a mapping when the EH employee is Terminated (list is trusted; no re-verify)", async () => {
     listEmployees.mockResolvedValue([eh(100, "a@test.com", "Terminated")]);
     prismaMock.user.findMany.mockResolvedValue([dbUser("u1", "a@test.com", 100)]);
 
     const summary = await runEmployeeSync();
     expect(summary.cleared).toBe(1);
+    expect(summary.clearedDetails).toEqual([
+      { userId: "u1", email: "a@test.com", ehId: 100, reason: "terminated" },
+    ]);
+    expect(getEmployee).not.toHaveBeenCalled();
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: "u1" },
       data: { employmentHeroEmployeeId: null },
     });
   });
 
-  it("clears a mapping when the employee is missing from a non-empty complete list", async () => {
+  it("missing from list + 404 on direct fetch → cleared with reason not_in_eh", async () => {
     listEmployees.mockResolvedValue([eh(999, "other@test.com")]);
     prismaMock.user.findMany.mockResolvedValue([dbUser("u1", "a@test.com", 100)]);
+    getEmployee.mockRejectedValue(new MockEhError(404));
+
+    const summary = await runEmployeeSync();
+    expect(getEmployee).toHaveBeenCalledWith(100);
+    expect(summary.cleared).toBe(1);
+    expect(summary.clearedDetails[0].reason).toBe("not_in_eh");
+  });
+
+  it("missing from list but direct fetch says Active → KEPT (list/record inconsistency)", async () => {
+    listEmployees.mockResolvedValue([eh(999, "other@test.com")]);
+    prismaMock.user.findMany.mockResolvedValue([dbUser("u1", "a@test.com", 100)]);
+    getEmployee.mockResolvedValue(eh(100, "a@test.com", "Active"));
+
+    const summary = await runEmployeeSync();
+    expect(summary.cleared).toBe(0);
+    expect(summary.keptAfterVerify).toBe(1);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("missing from list + direct fetch errors (non-404) → KEPT, never clear on doubt", async () => {
+    listEmployees.mockResolvedValue([eh(999, "other@test.com")]);
+    prismaMock.user.findMany.mockResolvedValue([dbUser("u1", "a@test.com", 100)]);
+    getEmployee.mockRejectedValue(new MockEhError(503));
+
+    const summary = await runEmployeeSync();
+    expect(summary.cleared).toBe(0);
+    expect(summary.keptAfterVerify).toBe(1);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("missing from list + direct fetch returns Terminated → cleared", async () => {
+    listEmployees.mockResolvedValue([eh(999, "other@test.com")]);
+    prismaMock.user.findMany.mockResolvedValue([dbUser("u1", "a@test.com", 100)]);
+    getEmployee.mockResolvedValue(eh(100, "a@test.com", "Terminated"));
 
     const summary = await runEmployeeSync();
     expect(summary.cleared).toBe(1);
+    expect(summary.clearedDetails[0].reason).toBe("not_in_eh");
   });
 
   it("REFUSES to run against an empty employee list — no mappings touched", async () => {

@@ -143,6 +143,20 @@ describe("analyseRoomConfiguration", () => {
     expect(svc[0].message).toContain("Approved places aren't recorded");
   });
 
+  it("says nothing about a staff-only room", () => {
+    // It holds no children, so "no capacity set" would be a warning
+    // nobody can action — and capacity advice on it is meaningless.
+    const out = analyseRoomConfiguration({
+      ...base,
+      sessionTimes: {
+        ...times,
+        vc: { start: "07:00", end: "18:00", staffOnly: true },
+      },
+      capacities: { bsc: 45, asc: 60 },
+    });
+    expect(out.some((a) => a.key === "vc")).toBe(false);
+  });
+
   it("ignores unnamed spare rooms entirely", () => {
     const out = analyseRoomConfiguration({
       ...base,

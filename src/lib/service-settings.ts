@@ -61,6 +61,27 @@ const roomSchema = z.object({
     .string()
     .regex(/^\d+:\d+$/, "Ratio looks like 1:15")
     .optional(),
+  /** What this room is for, in a line. Shown to staff, not families. */
+  description: z.string().trim().max(200).optional(),
+  /**
+   * Age range this room takes, in YEARS. School-age care talks in school
+   * years, not months — "5 and up", not "72M+". Both optional: most OSHC
+   * rooms take the whole school.
+   */
+  minAgeYears: z.number().int().min(0).max(18).optional(),
+  maxAgeYears: z.number().int().min(0).max(18).optional(),
+  /**
+   * A room children can't be booked into — a staff room, an office. It
+   * stays in the system for staff to check into and for ratio purposes,
+   * but never appears on a booking form.
+   */
+  staffOnly: z.boolean().optional(),
+  /**
+   * Retired without being deleted. Every historical booking and
+   * attendance record still references this key, so removing the room
+   * would orphan them; this hides it from everything forward-looking.
+   */
+  disabled: z.boolean().optional(),
 });
 
 // ── sessionTimes ────────────────────────────────────────────
@@ -137,7 +158,43 @@ export function activeSessionKeys(
   return [
     ...CORE_SESSION_KEYS,
     ...EXTRA_SESSION_KEYS.filter((k) => sessionTimes?.[k]?.label?.trim()),
-  ];
+    // A disabled room is retired, not deleted — its historical bookings
+    // still reference the key, but nothing forward-looking should offer
+    // it.
+  ].filter((k) => !sessionTimes?.[k]?.disabled);
+}
+
+/**
+ * The rooms a FAMILY should ever see. Everything `activeSessionKeys`
+ * gives, minus rooms children can't be booked into.
+ *
+ * Separate from the staff-facing list on purpose: a staff room still
+ * needs to exist for rostering and ratios, it just isn't a thing anyone
+ * books their child into.
+ */
+export function bookableSessionKeys(
+  sessionTimes: SessionTimes | null | undefined,
+): SessionKey[] {
+  return activeSessionKeys(sessionTimes).filter(
+    (k) => !sessionTimes?.[k]?.staffOnly,
+  );
+}
+
+/**
+ * Whether a child of this age fits the room, in whole years.
+ *
+ * Unknown age passes: refusing a booking because a date of birth is
+ * missing from OUR record punishes the family for our data gap.
+ */
+export function childFitsRoom(
+  room: { minAgeYears?: number; maxAgeYears?: number } | undefined,
+  ageYears: number | null | undefined,
+): boolean {
+  if (!room) return true;
+  if (ageYears === null || ageYears === undefined) return true;
+  if (room.minAgeYears !== undefined && ageYears < room.minAgeYears) return false;
+  if (room.maxAgeYears !== undefined && ageYears > room.maxAgeYears) return false;
+  return true;
 }
 
 /** "06:30" → "6:30am". Blank input gives blank output, not "NaN". */
