@@ -189,6 +189,36 @@ export function RoomDetailPanel({
                 label="Ratio"
                 value={room?.ratio ?? "Service default"}
               />
+              <Row
+                label="Ages"
+                value={
+                  room?.minAgeYears !== undefined || room?.maxAgeYears !== undefined
+                    ? room?.minAgeYears !== undefined &&
+                      room?.maxAgeYears !== undefined
+                      ? `${room.minAgeYears}–${room.maxAgeYears}`
+                      : room?.minAgeYears !== undefined
+                        ? `${room.minAgeYears} and up`
+                        : `Up to ${room?.maxAgeYears}`
+                    : "Any age"
+                }
+              />
+              {room?.description && (
+                <Row label="What it's for" value={room.description} />
+              )}
+              {room?.staffOnly && (
+                <Row
+                  label="Staff only"
+                  value="Children can't be booked in"
+                  warn
+                />
+              )}
+              {room?.disabled && (
+                <Row
+                  label="Retired"
+                  value="Hidden from new bookings; past records intact"
+                  warn
+                />
+              )}
               <Row label="Fees set up" value={String(fees.length)} />
               <p className="pt-2 text-xs text-muted">
                 Everything here is edited in <strong>Rooms &amp; fees</strong>,

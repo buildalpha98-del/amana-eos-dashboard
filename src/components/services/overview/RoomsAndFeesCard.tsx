@@ -769,6 +769,100 @@ export function RoomsAndFeesCard({
                             onChange={(e) => update(key, { end: e.target.value })}
                           />
                         </div>
+                        {/* A named extra is a real room and gets the same
+                            controls as the core three — otherwise a
+                            Pupil Free Day room can't carry an age range
+                            or be retired. */}
+                        <div>
+                          <label
+                            htmlFor={`rm-${key}-capacity`}
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
+                            Places
+                          </label>
+                          <input
+                            id={`rm-${key}-capacity`}
+                            type="number"
+                            min={0}
+                            inputMode="numeric"
+                            className={field}
+                            value={r.capacity}
+                            placeholder="e.g. 45"
+                            onChange={(e) =>
+                              update(key, { capacity: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor={`rm-${key}-minage`}
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
+                            Ages from
+                          </label>
+                          <input
+                            id={`rm-${key}-minage`}
+                            type="number"
+                            min={0}
+                            max={18}
+                            inputMode="numeric"
+                            className={field}
+                            value={r.minAgeYears}
+                            placeholder="Any"
+                            onChange={(e) =>
+                              update(key, { minAgeYears: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor={`rm-${key}-maxage`}
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
+                            Ages to
+                          </label>
+                          <input
+                            id={`rm-${key}-maxage`}
+                            type="number"
+                            min={0}
+                            max={18}
+                            inputMode="numeric"
+                            className={field}
+                            value={r.maxAgeYears}
+                            placeholder="Any"
+                            onChange={(e) =>
+                              update(key, { maxAgeYears: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="sm:col-span-3 flex flex-wrap gap-4">
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={r.staffOnly}
+                              onChange={(e) =>
+                                update(key, { staffOnly: e.target.checked })
+                              }
+                              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                            />
+                            <span className="text-sm text-foreground">
+                              Staff only
+                            </span>
+                          </label>
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={r.disabled}
+                              onChange={(e) =>
+                                update(key, { disabled: e.target.checked })
+                              }
+                              className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                            />
+                            <span className="text-sm text-foreground">
+                              Retired
+                            </span>
+                          </label>
+                        </div>
                       </>
                     )}
                   </div>
