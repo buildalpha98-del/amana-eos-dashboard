@@ -91,7 +91,12 @@ export function analyseRoomConfiguration(
   const { sessionTimes, approvedPlaces, capacities, ratios, defaultRatio } =
     input;
   const out: RoomAdvisory[] = [];
-  const keys = activeSessionKeys(sessionTimes);
+  // Staff-only rooms hold no children, so capacity and ratio advice
+  // about them is noise — and "no capacity set" on the staff room is a
+  // warning nobody can action.
+  const keys = activeSessionKeys(sessionTimes).filter(
+    (k) => !sessionTimes?.[k]?.staffOnly,
+  );
 
   // ── Whole-service: do the rooms promise more than we're approved for?
   // Rooms that run at different times of day (before school and after
