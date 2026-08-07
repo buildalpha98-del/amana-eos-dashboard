@@ -7,6 +7,7 @@ import { createParentPostSchema } from "@/lib/schemas/parent-post";
 import { safeLimit } from "@/lib/pagination";
 import { notifyParentNewPost } from "@/lib/parent-notifications";
 import { logger } from "@/lib/logger";
+import { canPublishPosts, resolveAppSettings } from "@/lib/app-settings";
 
 /** Org-wide roles that can access any service. */
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
@@ -96,7 +97,21 @@ export const POST = withApiAuth(
      * eyes. Their posts land as drafts for the Director to release.
      */
     const educatorOnly = session.user.role === "staff";
-    const status = educatorOnly ? "draft" : rest.status;
+
+    // Per-centre publishing rules. A centre can require everything to
+    // start as a draft, and/or restrict publishing to admins — the
+    // Post Approver shape. Both only ever make a post LESS visible, so
+    // they can't accidentally publish something.
+    const settingsRow = await prisma.service.findUnique({
+      where: { id },
+      select: { appSettings: true },
+    });
+    const appSettings = resolveAppSettings(settingsRow?.appSettings);
+    const mustDraft =
+      educatorOnly ||
+      appSettings.posts.draftByDefault ||
+      !canPublishPosts(session.user.role ?? "", appSettings.posts.onlyApproversPublish);
+    const status = mustDraft ? "draft" : rest.status;
 
     // A post scheduled for a time already past is just a published post —
     // treat it as one rather than leaving it in a state that looks

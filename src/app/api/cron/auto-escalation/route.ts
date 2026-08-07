@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentQuarter, quarterDateRange } from "@/lib/utils";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { todoReminderEmail } from "@/lib/email-templates";
 import {
   notifyOverdueTodos,
@@ -89,7 +89,7 @@ export const GET = withApiHandler(async (req) => {
             user.todos,
             `${baseUrl}/todos`
           );
-          await resend.emails.send({ from: FROM_EMAIL, to: user.email, subject, html });
+          await sendEmail({ to: user.email, subject, html });
           emailsSent++;
         } catch (err) {
           errors.push(`Todo email ${user.email}: ${err instanceof Error ? err.message : "Unknown"}`);

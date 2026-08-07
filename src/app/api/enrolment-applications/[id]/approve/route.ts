@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { sendEnrolmentApprovedNotification } from "@/lib/notifications/enrolment";
 import { logger } from "@/lib/logger";
+import { logAmbassadorEnrolmentFromApplication } from "@/lib/ambassadors/log-enrolment";
 
 const approveSchema = z.object({
   notes: z.string().optional(),
@@ -158,6 +159,14 @@ export const POST = withApiAuth(
     // Fire and forget notification
     sendEnrolmentApprovedNotification(id).catch((err) => {
       logger.error("Failed to send approval notification", { applicationId: id, err });
+    });
+
+    // Ambassadors: sibling enrolments count (two siblings = two records).
+    // Attribution resolves from the family's ParentAccount ref code by
+    // email inside the helper; never throws.
+    await logAmbassadorEnrolmentFromApplication({
+      applicationId: id,
+      childId: result.child.id,
     });
 
     return NextResponse.json({

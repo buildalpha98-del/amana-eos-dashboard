@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { weeklyReportEmail } from "@/lib/email-templates";
 import { notifyWeeklySummary } from "@/lib/teams-notify";
 import { acquireCronLock } from "@/lib/cron-guard";
@@ -153,7 +153,7 @@ export const GET = withApiHandler(async (req) => {
           centres: centreData,
           dashboardUrl: baseUrl,
         });
-        await resend.emails.send({ from: FROM_EMAIL, to: admin.email, subject, html });
+        await sendEmail({ to: admin.email, subject, html });
         emailsSent++;
       } catch (err) {
         logger.error("Weekly report email failed", { recipient: admin.email, err });

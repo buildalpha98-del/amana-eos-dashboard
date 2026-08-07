@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
 import { passwordSchema } from "@/lib/schemas/auth";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
@@ -222,7 +222,7 @@ export const POST = withApiAuth(async (req, session) => {
   const resend = getResend();
   if (resend) {
     try {
-      await resend.emails.send({ from: FROM_EMAIL, to: email, subject, html });
+      await sendEmail({ to: email, subject, html });
     } catch (emailErr) {
       logger.error("Failed to send welcome email", { err: emailErr });
       // Don't fail user creation if email fails

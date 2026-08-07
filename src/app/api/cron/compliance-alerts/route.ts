@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { complianceAlertEmail } from "@/lib/email-templates";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
@@ -165,8 +165,7 @@ export const GET = withApiHandler(async (req) => {
               urgency,
             },
           ]);
-          await resend.emails.send({
-            from: FROM_EMAIL,
+          await sendEmail({
             to: toList,
             subject,
             html,
@@ -302,8 +301,7 @@ export const GET = withApiHandler(async (req) => {
         if (resend && coordinatorEmails.length > 0) {
           try {
             const toList = coordinatorEmails;
-            await resend.emails.send({
-              from: FROM_EMAIL,
+            await sendEmail({
               to: toList,
               subject: title,
               html: `<p>${body}</p><p>Update or renew the visa record in the staff profile under the Personal tab. If the visa has expired, the staff member <strong>must not be rostered</strong> until renewed.</p>`,

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { pulseSurveyEmail } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
@@ -81,8 +81,7 @@ export const GET = withApiHandler(async (req) => {
             `${dashboardUrl}/my-portal`,
           );
 
-          await resend.emails.send({
-            from: FROM_EMAIL,
+          await sendEmail({
             to: staff.email,
             subject,
             html,

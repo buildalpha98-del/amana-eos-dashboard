@@ -6,7 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { seedOnboardingPackage } from "@/lib/onboarding-seed";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
 
@@ -113,8 +113,7 @@ async function handleResetPassword(
   );
   const resend = getResend();
   if (resend) {
-    await resend.emails.send({
-      from: FROM_EMAIL,
+    await sendEmail({
       to: target.email,
       subject,
       html,

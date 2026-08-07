@@ -199,6 +199,9 @@ export interface DraftAgreement {
   debitAgreement?: boolean;
   signature?: string;
   referralSource?: string;
+  /// 2026-08-03 (Ambassadors): shown when referralSource is the educator
+  /// option — the parent names who spoke with them.
+  referralEducatorName?: string;
 }
 
 export interface EnrolDraft {
@@ -606,11 +609,18 @@ export function agreementComplete(a: DraftAgreement | undefined): boolean {
   // Every consent must be an explicit yes OR no. An unanswered consent is
   // not the same as a "no" — staff need to know which one they're looking at.
   const allAnswered = consents.every((k) => typeof a[k] === "boolean");
+  // 2026-08-03 (Ambassadors): "How did you hear about us?" became
+  // mandatory, and choosing the educator option requires naming them.
+  const referralAnswered =
+    filled(a.referralSource) &&
+    (a.referralSource !== "One of our educators" ||
+      filled(a.referralEducatorName));
   return (
     allAnswered &&
     a.termsAccepted === true &&
     a.privacyAccepted === true &&
-    filled(a.signature)
+    filled(a.signature) &&
+    referralAnswered
   );
 }
 

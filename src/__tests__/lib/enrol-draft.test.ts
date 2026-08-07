@@ -102,6 +102,7 @@ const goodAgreement = {
   termsAccepted: true,
   privacyAccepted: true,
   signature: "Aisha Rahman",
+  referralSource: "School newsletter",
 };
 
 const fullDraft: EnrolDraft = {
@@ -567,6 +568,29 @@ describe("agreementComplete", () => {
 
   it("requires a typed signature", () => {
     expect(agreementComplete({ ...goodAgreement, signature: "  " })).toBe(false);
+  });
+
+  // 2026-08-03 (Ambassadors): the referral question became mandatory.
+  it("requires 'How did you hear about us?' to be answered", () => {
+    expect(agreementComplete({ ...goodAgreement, referralSource: "" })).toBe(false);
+    const { referralSource: _ref, ...rest } = goodAgreement;
+    expect(agreementComplete(rest)).toBe(false);
+  });
+
+  it("the educator option also requires naming the educator", () => {
+    expect(
+      agreementComplete({
+        ...goodAgreement,
+        referralSource: "One of our educators",
+      }),
+    ).toBe(false);
+    expect(
+      agreementComplete({
+        ...goodAgreement,
+        referralSource: "One of our educators",
+        referralEducatorName: "Aisha",
+      }),
+    ).toBe(true);
   });
 });
 

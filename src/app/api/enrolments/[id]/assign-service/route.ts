@@ -23,6 +23,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
+import { logAmbassadorEnrolmentForChild } from "@/lib/ambassadors/log-enrolment";
 import { generateBookings } from "@/lib/booking-generator";
 import { isPlacementReason } from "@/lib/placement-reason";
 
@@ -151,6 +152,13 @@ export const POST = withApiAuth(
       bookingsCreated: result.bookingsCreated,
       userId: session?.user?.id,
     });
+
+    // Ambassadors: a pilot-window child whose school didn't auto-match at
+    // submit time gains its serviceId here — log it now (the window check
+    // inside uses the ORIGINAL submission date). Never throws.
+    for (const c of targetChildren) {
+      await logAmbassadorEnrolmentForChild(c.id);
+    }
 
     return NextResponse.json({
       ok: true,
