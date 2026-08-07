@@ -16,12 +16,22 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { applyFamilyDiscount } from "@/lib/family-discount";
 import { logger } from "@/lib/logger";
 import { sumDollars, fromCents } from "@/lib/money";
 
 const bodySchema = z.object({
   contactId: z.string().min(1),
   serviceId: z.string().min(1),
+  /**
+   * Apply the family's recorded discounts to this invoice.
+   *
+   * OFF by default, deliberately. A discount that applies itself is one
+   * nobody chose; the biller decides, per invoice, having seen what it
+   * comes to. When false we still REPORT what's available, so the
+   * choice is offered rather than buried.
+   */
+  applyDiscounts: z.boolean().optional(),
   periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -42,7 +52,8 @@ export const POST = withApiAuth(
     if (!parsed.success) {
       throw ApiError.badRequest(parsed.error.issues[0].message);
     }
-    const { contactId, serviceId, periodStart, periodEnd, dueDate } = parsed.data;
+    const { contactId, serviceId, periodStart, periodEnd, dueDate, applyDiscounts } =
+      parsed.data;
 
     const start = day(periodStart);
     const end = day(periodEnd);
@@ -165,11 +176,80 @@ export const POST = withApiAuth(
       };
     });
 
+    // ── Discounts ────────────────────────────────────────────────────
+    // Sibling, staff, hardship. Read for every line because a discount
+    // can be scoped to one child or one room, and a fortnight's invoice
+    // covers several of both.
+    const discountRules = await prisma.familyDiscount.findMany({
+      where: {
+        contactId,
+        serviceId,
+        startDate: { lte: end },
+        OR: [{ endDate: null }, { endDate: { gte: start } }],
+      },
+      select: {
+        id: true,
+        childId: true,
+        sessionType: true,
+        kind: true,
+        value: true,
+        reason: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    /** What each line would be discounted by, and under what name. */
+    const discountFor = (l: (typeof lineItems)[number]) => {
+      const forThisChild = discountRules.filter(
+        (r) => r.childId === null || r.childId === l.childId,
+      );
+      if (forThisChild.length === 0) return null;
+      const outcome = applyFamilyDiscount(
+        Math.round(l.gapAmount * 100),
+        forThisChild,
+        l.sessionType,
+        l.date,
+      );
+      return outcome.applied
+        ? { cents: outcome.discountCents, reason: outcome.applied.reason }
+        : null;
+    };
+
+    const discountable = lineItems
+      .map((l) => ({ line: l, discount: discountFor(l) }))
+      .filter((x) => x.discount !== null);
+    const availableDiscountCents = discountable.reduce(
+      (sum, x) => sum + (x.discount?.cents ?? 0),
+      0,
+    );
+
+    // A discount is its own LINE, not a quietly smaller fee: a family
+    // reading the invoice should see the full price and what came off.
+    const discountLines =
+      applyDiscounts && discountable.length > 0
+        ? discountable.map(({ line, discount }) => ({
+            childId: line.childId,
+            date: line.date,
+            sessionType: line.sessionType,
+            description: `${nameById.get(line.childId) ?? "Child"} — ${
+              discount!.reason
+            }`,
+            grossFee: 0,
+            ccsHours: 0,
+            ccsRate: 0,
+            ccsAmount: 0,
+            gapAmount: -fromCents(discount!.cents),
+          }))
+        : [];
+
+    const allLines = [...lineItems, ...discountLines];
+
     // Totals in cents, then back — summing floats across a fortnight of
     // sessions drifts, and this figure is what a family is asked to pay.
-    const totalFeesCents = sumDollars(lineItems.map((l) => l.grossFee));
-    const totalCcsCents = sumDollars(lineItems.map((l) => l.ccsAmount));
-    const gapCents = sumDollars(lineItems.map((l) => l.gapAmount));
+    const totalFeesCents = sumDollars(allLines.map((l) => l.grossFee));
+    const totalCcsCents = sumDollars(allLines.map((l) => l.ccsAmount));
+    const gapCents = sumDollars(allLines.map((l) => l.gapAmount));
 
     const statement = await prisma.statement.create({
       data: {
@@ -185,7 +265,7 @@ export const POST = withApiAuth(
         // Draft, always. Staff review before a family sees anything.
         status: "draft",
         ...(dueDate ? { dueDate: day(dueDate) } : {}),
-        lineItems: { create: lineItems },
+        lineItems: { create: allLines },
       },
       include: { lineItems: true },
     });
@@ -204,6 +284,14 @@ export const POST = withApiAuth(
       statement,
       sessionsBilled: fresh.length,
       skippedAlreadyBilled: skipped,
+      // Whether or not it was applied, say what's on file. An unapplied
+      // discount that nobody was told about is the same as not having
+      // recorded one.
+      discountsApplied: applyDiscounts === true && discountLines.length > 0,
+      availableDiscount: fromCents(availableDiscountCents),
+      discountReasons: [
+        ...new Set(discountable.map((x) => x.discount!.reason)),
+      ],
     });
   },
   { roles: ["owner", "head_office", "admin"] },
