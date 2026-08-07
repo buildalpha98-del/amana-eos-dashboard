@@ -6659,6 +6659,7 @@ model Child {
   postTags           ParentPostChildTag[]  @relation("ChildPostTags")
   formSignatures     ParentFormSignature[] @relation("ChildFormSignatures")
   illnessRecords     IllnessRecord[]       @relation("ChildIllnessRecords")
+  discounts          FamilyDiscount[]      @relation("ChildDiscounts")
   attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
   statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
 
@@ -7667,6 +7668,11 @@ model FamilyDiscount {
   service     Service       @relation("ServiceDiscounts", fields: [serviceId], references: [id], onDelete: Cascade)
   /// Null = every room at this service.
   sessionType SessionType?
+  /// Set when the arrangement is for ONE child rather than the whole
+  /// family. A staff member's own child gets the staff rate; their
+  /// siblings might not. Null = every child in the family.
+  childId     String?
+  child       Child?        @relation("ChildDiscounts", fields: [childId], references: [id], onDelete: Cascade)
   /// percent | amount
   kind        String
   /// Percent (1–100) or cents off, depending on `kind`.

@@ -10,6 +10,7 @@ import {
   type FortnightPattern,
 } from "@/lib/service-settings";
 import type { ChildProfileRecord } from "../types";
+import { ChildDiscountCard } from "./ChildDiscountCard";
 
 interface RoomDaysTabProps {
   child: ChildProfileRecord;
@@ -224,6 +225,16 @@ export function RoomDaysTab({ child, canEdit }: RoomDaysTabProps) {
           </p>
         )}
       </div>
+
+      {/* The discount belongs beside the pattern: setting a staff
+          member's child onto three days a week and agreeing their rate
+          is one conversation, not two screens. */}
+      <ChildDiscountCard
+        childId={child.id}
+        serviceId={child.serviceId}
+        childName={child.firstName}
+        canEdit={canEdit}
+      />
     </div>
   );
 }
