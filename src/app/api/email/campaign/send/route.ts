@@ -62,6 +62,32 @@ const bodySchema = z
     },
   );
 
+/** Per-recipient dispatch: how many transactional sends run in parallel. */
+const SEND_CHUNK_SIZE = 5;
+/** Per-call ceiling — keeps a hung Brevo call inside withApiAuth's 55s budget. */
+const SEND_TIMEOUT_MS = 10_000;
+
+/**
+ * Race a Brevo call against AbortSignal.timeout. sendTransactionalEmail
+ * doesn't accept an abort signal, so a timed-out call is ABANDONED rather
+ * than aborted — the underlying fetch may still complete on Brevo's side,
+ * but the handler moves on and counts that recipient as failed. Acceptable:
+ * the alternative is one hung call stranding the whole dispatch.
+ */
+function raceSendTimeout<T>(promise: Promise<T>, ms = SEND_TIMEOUT_MS): Promise<T> {
+  const signal = AbortSignal.timeout(ms);
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      signal.addEventListener(
+        "abort",
+        () => reject(new Error(`Brevo send timed out after ${ms}ms`)),
+        { once: true },
+      );
+    }),
+  ]);
+}
+
 export const POST = withApiAuth(async (req, session) => {
 if (!isBrevoConfigured()) {
     return NextResponse.json(
@@ -274,41 +300,179 @@ if (!isBrevoConfigured()) {
     throw ApiError.badRequest("All recipients are suppressed or unsubscribed");
   }
 
+  // ── Update linked entities + activity log (shared by both paths) ──
+  async function linkEntitiesAndLog(deliveryLogId: string, status: string) {
+    const updates: Promise<unknown>[] = [];
+
+    if (body.enquiryId) {
+      updates.push(
+        prisma.parentEnquiry.update({
+          where: { id: body.enquiryId },
+          data: { lastEmailSentAt: new Date() },
+        }),
+      );
+    }
+
+    if (body.postId) {
+      updates.push(
+        prisma.marketingPost.update({
+          where: { id: body.postId },
+          data: { deliveryLogId },
+        }),
+      );
+    }
+
+    updates.push(
+      prisma.activityLog.create({
+        data: {
+          userId: session.user.id,
+          action: "email_sent",
+          entityType: entityType ?? "DeliveryLog",
+          entityId: entityId ?? deliveryLogId,
+          details: {
+            deliveryLogId,
+            subject: body.subject,
+            recipientCount: recipients.length,
+            status,
+          },
+        },
+      }),
+    );
+
+    await Promise.all(updates);
+  }
+
   // ── Send via Brevo ────────────────────────────────────────────
+  if (recipients.length < 50) {
+    // ── Per-recipient dispatch (also carries the 1-recipient enquiry branch) ──
+    // Each recipient gets their OWN transactional send (recipients never see
+    // each other in To:) tagged `dl:<logId>` so webhook events correlate back
+    // without an externalId lookup. This path OWNS its DeliveryLog end-to-end:
+    // pre-create as "sending", then update the SAME row to the terminal status.
+    const log = await prisma.deliveryLog.create({
+      data: {
+        channel: "email",
+        messageType,
+        externalId: null,
+        externalIdType: "brevo_message_per_recipient",
+        recipientCount: recipients.length,
+        status: "sending",
+        subject: body.subject,
+        templateId: body.templateId ?? undefined,
+        entityType,
+        entityId,
+        renderedHtml: html,
+        payload: { ...(raw as object), _suppressedCount: suppressedCount },
+      },
+    });
+
+    const failedRecipients: string[] = [];
+    let firstError: string | null = null;
+
+    // Bounded concurrency: chunks of 5 keep us well inside Brevo's rate
+    // limits while a hung call can't strand the dispatch — each send races
+    // a ~10s timeout inside withApiAuth's 55s budget.
+    for (let i = 0; i < recipients.length; i += SEND_CHUNK_SIZE) {
+      const chunk = recipients.slice(i, i + SEND_CHUNK_SIZE);
+      const results = await Promise.allSettled(
+        chunk.map((recipient) =>
+          raceSendTimeout(
+            sendTransactionalEmail({
+              to: [recipient],
+              subject: body.subject,
+              htmlContent: html,
+              tags: [`dl:${log.id}`],
+              scheduledAt: body.scheduledAt ?? undefined,
+            }),
+          ),
+        ),
+      );
+      results.forEach((result, j) => {
+        if (result.status === "rejected") {
+          failedRecipients.push(chunk[j].email);
+          if (!firstError) {
+            firstError =
+              result.reason instanceof Error
+                ? result.reason.message
+                : "Unknown send error";
+          }
+        }
+      });
+    }
+
+    const failedCount = failedRecipients.length;
+    let status: string;
+    if (failedCount === recipients.length) status = "failed";
+    else if (failedCount > 0) status = "partial";
+    else status = body.scheduledAt ? "scheduled" : "sent";
+
+    await prisma.deliveryLog.update({
+      where: { id: log.id },
+      data: {
+        status,
+        ...(failedCount > 0
+          ? {
+              errorMessage:
+                `${failedCount} of ${recipients.length} recipient sends failed` +
+                (firstError ? ` — first error: ${firstError}` : ""),
+              payload: {
+                ...(raw as object),
+                _suppressedCount: suppressedCount,
+                _failedRecipients: failedRecipients,
+              },
+            }
+          : {}),
+      },
+    });
+
+    if (status === "failed") {
+      return NextResponse.json(
+        {
+          success: false,
+          deliveryLogId: log.id,
+          recipientCount: recipients.length,
+          status: "failed",
+          failedCount,
+          error: firstError ?? "All recipient sends failed",
+        },
+        { status: 502 },
+      );
+    }
+
+    await linkEntitiesAndLog(log.id, status);
+
+    return NextResponse.json({
+      success: true,
+      deliveryLogId: log.id,
+      recipientCount: recipients.length,
+      suppressedCount,
+      status,
+      failedCount,
+    });
+  }
+
+  // ── ≥50: Brevo campaign path (single campaign, single DeliveryLog) ──
   let externalId: string | undefined;
-  let externalIdType: string | undefined;
   let status = "sent";
 
   try {
-    if (recipients.length < 50) {
-      const result = await sendTransactionalEmail({
-        to: recipients,
-        subject: body.subject,
-        htmlContent: html,
-        scheduledAt: body.scheduledAt ?? undefined,
-      });
-      externalId = result.messageId;
-      externalIdType = "brevo_message";
-    } else {
-      const result = await sendCampaignEmail({
-        recipients,
-        subject: body.subject,
-        htmlContent: html,
-        scheduledAt: body.scheduledAt ?? undefined,
-      });
-      externalId = String(result.campaignId);
-      externalIdType = "brevo_campaign";
-    }
+    const result = await sendCampaignEmail({
+      recipients,
+      subject: body.subject,
+      htmlContent: html,
+      scheduledAt: body.scheduledAt ?? undefined,
+    });
+    externalId = String(result.campaignId);
 
     if (body.scheduledAt) {
       status = "scheduled";
     }
   } catch (err) {
-    status = "failed";
     const errorMessage =
       err instanceof Error ? err.message : "Unknown send error";
 
-    // Log the failed delivery
+    // Log the failed delivery (≥50-only — the per-recipient path above owns
+    // its own row lifecycle and never reaches this create).
     const log = await prisma.deliveryLog.create({
       data: {
         channel: "email",
@@ -346,7 +510,7 @@ if (!isBrevoConfigured()) {
       channel: "email",
       messageType,
       externalId,
-      externalIdType,
+      externalIdType: "brevo_campaign",
       recipientCount: recipients.length,
       status,
       subject: body.subject,
@@ -358,46 +522,7 @@ if (!isBrevoConfigured()) {
     },
   });
 
-  // ── Update linked entities ────────────────────────────────────
-  const updates: Promise<unknown>[] = [];
-
-  if (body.enquiryId) {
-    updates.push(
-      prisma.parentEnquiry.update({
-        where: { id: body.enquiryId },
-        data: { lastEmailSentAt: new Date() },
-      }),
-    );
-  }
-
-  if (body.postId) {
-    updates.push(
-      prisma.marketingPost.update({
-        where: { id: body.postId },
-        data: { deliveryLogId: deliveryLog.id },
-      }),
-    );
-  }
-
-  // Activity log
-  updates.push(
-    prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: "email_sent",
-        entityType: entityType ?? "DeliveryLog",
-        entityId: entityId ?? deliveryLog.id,
-        details: {
-          deliveryLogId: deliveryLog.id,
-          subject: body.subject,
-          recipientCount: recipients.length,
-          status,
-        },
-      },
-    }),
-  );
-
-  await Promise.all(updates);
+  await linkEntitiesAndLog(deliveryLog.id, status);
 
   return NextResponse.json({
     success: true,

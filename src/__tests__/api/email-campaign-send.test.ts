@@ -104,13 +104,13 @@ describe("POST /api/email/campaign/send — suppression", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
 
-    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
-    const sentTo = mockedSendTransactional.mock.calls[0][0].to;
-    expect(sentTo).toHaveLength(2);
-    expect(sentTo.map((r: { email: string }) => r.email).sort()).toEqual([
-      "a@example.com",
-      "b@example.com",
-    ]);
+    // Per-recipient dispatch: one call per (non-suppressed) recipient.
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(2);
+    const sentEmails = mockedSendTransactional.mock.calls.map((c) => {
+      expect(c[0].to).toHaveLength(1);
+      return c[0].to[0].email;
+    });
+    expect(sentEmails.sort()).toEqual(["a@example.com", "b@example.com"]);
 
     expect(json.recipientCount).toBe(2);
     expect(json.suppressedCount).toBe(1);
@@ -186,7 +186,7 @@ describe("POST /api/email/campaign/send — suppression", () => {
     expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
   });
 
-  it("stores externalIdType 'brevo_message' on the transactional (<50 recipient) path", async () => {
+  it("stores externalIdType 'brevo_message_per_recipient' on the transactional (<50 recipient) path", async () => {
     prismaMock.centreContact.findMany.mockResolvedValue([
       contact("a@example.com"),
       contact("b@example.com"),
@@ -197,11 +197,12 @@ describe("POST /api/email/campaign/send — suppression", () => {
     const res = await sendCampaign(postBody({}));
     expect(res.status).toBe(200);
 
-    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(3);
     expect(mockedSendCampaign).not.toHaveBeenCalled();
 
     const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
-    expect(createArgs.data.externalIdType).toBe("brevo_message");
+    expect(createArgs.data.externalIdType).toBe("brevo_message_per_recipient");
+    expect(createArgs.data.externalId).toBeNull();
   });
 
   it("stores externalIdType 'brevo_campaign' on the campaign (>=50 recipient) path", async () => {
@@ -275,7 +276,8 @@ describe("POST /api/email/campaign/send — audienceId resolution", () => {
       serviceId: { in: ["svc-1"] },
       status: { in: ["active"] },
     });
-    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
+    // Per-recipient dispatch: one call per recipient.
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(2);
   });
 
   it("returns 404 for an unknown audienceId without sending", async () => {
@@ -394,6 +396,273 @@ describe("POST /api/email/campaign/send — marketingCampaignId attribution", ()
     );
     expect(res.status).toBe(400);
     expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456 });
+    prismaMock.orgSettings.findUnique.mockResolvedValue(null);
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.deliveryLog.update.mockResolvedValue({} as never);
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  function postBody(body: Record<string, unknown>) {
+    return createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", htmlContent: "<p>hi</p>", ...body },
+    });
+  }
+
+  it("pre-creates the DeliveryLog as 'sending' and tags every per-recipient call with dl:<logId>", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+      contact("c@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+
+    // Pre-create: sending, per-recipient marker, no externalId (correlation is via tag).
+    expect(prismaMock.deliveryLog.create).toHaveBeenCalledTimes(1);
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(createArgs.data).toEqual(
+      expect.objectContaining({
+        status: "sending",
+        externalIdType: "brevo_message_per_recipient",
+        externalId: null,
+        recipientCount: 3,
+      }),
+    );
+
+    // One send per recipient, each single-to, each tagged with the pre-created row's id.
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(3);
+    for (const call of mockedSendTransactional.mock.calls) {
+      expect(call[0].to).toHaveLength(1);
+      expect(call[0].tags).toEqual(["dl:log-1"]);
+    }
+    const sentEmails = mockedSendTransactional.mock.calls
+      .map((c) => c[0].to[0].email)
+      .sort();
+    expect(sentEmails).toEqual(["a@example.com", "b@example.com", "c@example.com"]);
+
+    // Same row updated to the terminal status — no second create.
+    expect(prismaMock.deliveryLog.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "log-1" },
+        data: expect.objectContaining({ status: "sent" }),
+      }),
+    );
+
+    expect(json).toEqual(
+      expect.objectContaining({
+        success: true,
+        deliveryLogId: "log-1",
+        recipientCount: 3,
+        suppressedCount: 0,
+        status: "sent",
+        failedCount: 0,
+      }),
+    );
+  });
+
+  it("marks the row 'scheduled' when scheduledAt is set and forwards it per call", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+    ]);
+    const scheduledAt = "2026-08-10T09:00:00.000Z";
+
+    const res = await sendCampaign(postBody({ scheduledAt }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.status).toBe("scheduled");
+
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(2);
+    for (const call of mockedSendTransactional.mock.calls) {
+      expect(call[0].scheduledAt).toBe(scheduledAt);
+    }
+    expect(prismaMock.deliveryLog.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "log-1" },
+        data: expect.objectContaining({ status: "scheduled" }),
+      }),
+    );
+  });
+
+  it("partial failure → status 'partial', _failedRecipients recorded, 200 with failedCount", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+      contact("c@example.com"),
+    ]);
+    mockedSendTransactional.mockImplementation(
+      async (params: { to: Array<{ email: string }> }) => {
+        if (params.to[0].email === "b@example.com") {
+          throw new Error("Brevo transactional send failed (500): boom");
+        }
+        return { messageId: "msg-ok" };
+      },
+    );
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+
+    expect(json).toEqual(
+      expect.objectContaining({
+        success: true,
+        status: "partial",
+        failedCount: 1,
+        recipientCount: 3,
+      }),
+    );
+
+    expect(prismaMock.deliveryLog.create).toHaveBeenCalledTimes(1);
+    const updateArgs = prismaMock.deliveryLog.update.mock.calls[0][0];
+    expect(updateArgs.where).toEqual({ id: "log-1" });
+    expect(updateArgs.data.status).toBe("partial");
+    expect(
+      (updateArgs.data.payload as { _failedRecipients: string[] })._failedRecipients,
+    ).toEqual(["b@example.com"]);
+
+    // Activity log still records the (partial) send.
+    expect(prismaMock.activityLog.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("total failure → same row updated to 'failed', 502, create called exactly ONCE (no second row)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+    ]);
+    mockedSendTransactional.mockRejectedValue(
+      new Error("Brevo transactional send failed (500): down"),
+    );
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(502);
+    const json = await res.json();
+
+    expect(json).toEqual(
+      expect.objectContaining({
+        success: false,
+        deliveryLogId: "log-1",
+        status: "failed",
+        failedCount: 2,
+      }),
+    );
+
+    // Row-lifecycle ownership: the pre-create is the ONLY create.
+    expect(prismaMock.deliveryLog.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.deliveryLog.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "log-1" },
+        data: expect.objectContaining({ status: "failed" }),
+      }),
+    );
+    // A failed send is not an activity-worthy send.
+    expect(prismaMock.activityLog.create).not.toHaveBeenCalled();
+  });
+
+  it("folds the enquiry single-recipient branch onto the same machinery", async () => {
+    prismaMock.parentEnquiry.findUnique.mockResolvedValue({
+      id: "enq-1",
+      parentEmail: "parent@example.com",
+      parentName: "Parent Name",
+      service: { name: "Test Service" },
+    });
+    prismaMock.parentEnquiry.update.mockResolvedValue({});
+
+    const res = await sendCampaign(postBody({ enquiryId: "enq-1" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.status).toBe("sent");
+
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(createArgs.data).toEqual(
+      expect.objectContaining({
+        messageType: "enquiry",
+        status: "sending",
+        externalIdType: "brevo_message_per_recipient",
+        externalId: null,
+        recipientCount: 1,
+      }),
+    );
+
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
+    const call = mockedSendTransactional.mock.calls[0][0];
+    expect(call.to).toEqual([{ email: "parent@example.com", name: "Parent Name" }]);
+    expect(call.tags).toEqual(["dl:log-1"]);
+
+    expect(prismaMock.parentEnquiry.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "enq-1" } }),
+    );
+  });
+
+  it("links MarketingPost.deliveryLogId from the pre-created row's id", async () => {
+    prismaMock.marketingPost.findUnique.mockResolvedValue({ deliveryLogId: null });
+    prismaMock.marketingPost.update.mockResolvedValue({});
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({ postId: "post-1" }));
+    expect(res.status).toBe(200);
+
+    expect(prismaMock.marketingPost.update).toHaveBeenCalledWith({
+      where: { id: "post-1" },
+      data: { deliveryLogId: "log-1" },
+    });
+  });
+
+  it("keeps suppressedCount in the pre-created payload", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+    ]);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set(["b@example.com"]));
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.suppressedCount).toBe(1);
+
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(
+      (createArgs.data.payload as { _suppressedCount: number })._suppressedCount,
+    ).toBe(1);
+  });
+
+  it("leaves the >=50 campaign path untouched — single create, no update, no per-recipient calls", async () => {
+    const contacts = Array.from({ length: 55 }, (_, i) => contact(`p${i}@example.com`));
+    prismaMock.centreContact.findMany.mockResolvedValue(contacts);
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.recipientCount).toBe(55);
+    expect(json.status).toBe("sent");
+
+    expect(mockedSendCampaign).toHaveBeenCalledTimes(1);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+
+    expect(prismaMock.deliveryLog.create).toHaveBeenCalledTimes(1);
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(createArgs.data.externalIdType).toBe("brevo_campaign");
+    expect(createArgs.data.status).toBe("sent");
+    expect(prismaMock.deliveryLog.update).not.toHaveBeenCalled();
   });
 });
 

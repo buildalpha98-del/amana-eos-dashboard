@@ -47,13 +47,21 @@ export const POST = withApiHandler(async (req) => {
   const parsed = parseBrevoWebhookBody(raw);
   if (!parsed) return NextResponse.json({ received: true });
 
-  // Correlate back to the send that produced this event.
-  const deliveryLog = await prisma.deliveryLog.findFirst({
-    where: parsed.campId
-      ? { externalId: parsed.campId, externalIdType: "brevo_campaign" }
-      : { externalId: parsed.messageId, externalIdType: "brevo_message" },
-    select: { id: true },
-  });
+  // Correlate back to the send that produced this event. Per-recipient sends
+  // carry the DeliveryLog id directly in a `dl:<id>` tag — no lookup needed;
+  // legacy rows fall through to externalId correlation.
+  let deliveryLogId: string | null;
+  if (parsed.deliveryLogTag) {
+    deliveryLogId = parsed.deliveryLogTag;
+  } else {
+    const deliveryLog = await prisma.deliveryLog.findFirst({
+      where: parsed.campId
+        ? { externalId: parsed.campId, externalIdType: "brevo_campaign" }
+        : { externalId: parsed.messageId, externalIdType: "brevo_message" },
+      select: { id: true },
+    });
+    deliveryLogId = deliveryLog?.id ?? null;
+  }
 
   // Best-effort idempotency (Brevo retries on non-2xx).
   const existing = await prisma.emailEvent.findFirst({
@@ -66,7 +74,7 @@ export const POST = withApiHandler(async (req) => {
         messageId: parsed.messageId,
         type: parsed.type,
         email: parsed.email,
-        deliveryLogId: deliveryLog?.id ?? null,
+        deliveryLogId,
         payload: raw as object,
       },
     });

@@ -149,6 +149,70 @@ describe("POST /api/webhooks/brevo", () => {
       });
     });
 
+    it("correlates via a dl: tag WITHOUT querying deliveryLog (string tag form)", async () => {
+      prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+      const req = postBody({
+        event: "opened",
+        email: "parent@example.com",
+        "message-id": "<msg-tagged>",
+        tag: "dl:dl123",
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+
+      expect(prismaMock.deliveryLog.findFirst).not.toHaveBeenCalled();
+      expect(prismaMock.emailEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          messageId: "<msg-tagged>",
+          type: "opened",
+          email: "parent@example.com",
+          deliveryLogId: "dl123",
+        }),
+      });
+    });
+
+    it("correlates via a dl: tag in the tags array form", async () => {
+      prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+      const req = postBody({
+        event: "click",
+        email: "parent@example.com",
+        "message-id": "<msg-tagged-2>",
+        tags: ["dl:dl456"],
+        link: "https://amanaoshc.company/book",
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+
+      expect(prismaMock.deliveryLog.findFirst).not.toHaveBeenCalled();
+      expect(prismaMock.emailEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ deliveryLogId: "dl456" }),
+      });
+    });
+
+    it("falls through to externalId correlation when the tag is not a dl: tag", async () => {
+      prismaMock.deliveryLog.findFirst.mockResolvedValue({ id: "dl-legacy" });
+      prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+      const req = postBody({
+        event: "delivered",
+        email: "parent@example.com",
+        "message-id": "<msg-untagged>",
+        tag: "newsletter",
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+
+      expect(prismaMock.deliveryLog.findFirst).toHaveBeenCalledWith({
+        where: { externalId: "<msg-untagged>", externalIdType: "brevo_message" },
+        select: { id: true },
+      });
+      expect(prismaMock.emailEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ deliveryLogId: "dl-legacy" }),
+      });
+    });
+
     it("dedupes an identical event already recorded — no create", async () => {
       prismaMock.deliveryLog.findFirst.mockResolvedValue({ id: "dl1" });
       prismaMock.emailEvent.findFirst.mockResolvedValue({ id: "existing-event" });

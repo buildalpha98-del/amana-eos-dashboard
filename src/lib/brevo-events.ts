@@ -45,6 +45,26 @@ export interface ParsedBrevoEvent {
   messageId: string;
   /** Present only on campaign events — matches DeliveryLog.externalId for brevo_campaign rows. */
   campId: string | null;
+  /**
+   * DeliveryLog id carried in a `dl:<id>` tag — set by the per-recipient
+   * (<50) send path so webhook events correlate WITHOUT a lookup query.
+   * Null for legacy sends (externalId correlation) and non-dl tags.
+   */
+  deliveryLogTag: string | null;
+}
+
+const DL_TAG_RE = /^dl:(.+)$/;
+
+/** Brevo reports the send tag as `tag` (string) or `tags` (array) depending on event type. */
+function extractDeliveryLogTag(body: Record<string, unknown>): string | null {
+  const candidates: unknown[] = [body.tag];
+  if (Array.isArray(body.tags)) candidates.push(body.tags[0]);
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") continue;
+    const match = DL_TAG_RE.exec(candidate);
+    if (match) return match[1];
+  }
+  return null;
 }
 
 export function parseBrevoWebhookBody(raw: unknown): ParsedBrevoEvent | null {
@@ -57,5 +77,5 @@ export function parseBrevoWebhookBody(raw: unknown): ParsedBrevoEvent | null {
   const rawMessageId = typeof body["message-id"] === "string" ? body["message-id"] : null;
   const messageId = rawMessageId ?? (campId ? `camp:${campId}` : null);
   if (!messageId) return null;
-  return { type, email, messageId, campId };
+  return { type, email, messageId, campId, deliveryLogTag: extractDeliveryLogTag(body) };
 }
