@@ -62,6 +62,7 @@ const mockedRecordMarketingSends = vi.mocked(recordMarketingSends);
 
 import { POST as sendCampaign } from "@/app/api/email/campaign/send/route";
 import { GET as recipientCount } from "@/app/api/email/recipient-count/route";
+import { _clearEmailBrandingCache } from "@/lib/email-branding";
 
 function setupActiveUserMock() {
   prismaMock.user.findUnique.mockReset();
@@ -1150,6 +1151,94 @@ describe("POST /api/email/campaign/send — _sentMessageIds capture (<50)", () =
     expect(payload._sentMessageIds).toEqual([
       { email: "a@example.com", messageId: "<id-sched>" },
     ]);
+  });
+});
+
+describe("POST /api/email/campaign/send — block-mode sends carry org branding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearEmailBrandingCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedGetFrequencyCapped.mockResolvedValue(new Set());
+    mockedRecordMarketingSends.mockResolvedValue(undefined);
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
+    // Org branding differs from the layout defaults so the assertion can
+    // distinguish "branding-derived layoutOpts" from DEFAULT_LAYOUT.
+    prismaMock.orgSettings.findUnique.mockResolvedValue({
+      name: "Bright Futures OSHC",
+      primaryColor: "#112233",
+    });
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.deliveryLog.update.mockResolvedValue({} as never);
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  it("blocks-mode send renders the branding header, not DEFAULT_LAYOUT (parity pin)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const req = createRequest("POST", "/api/email/campaign/send", {
+      body: {
+        subject: "Hello",
+        blocks: [{ type: "text", content: "Block body" }],
+      },
+    });
+    const res = await sendCampaign(req);
+    expect(res.status).toBe(200);
+
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    expect(html).toContain("Block body");
+    expect(html).toContain("Bright Futures OSHC");
+    expect(html).toContain("#112233");
+  });
+
+  it("htmlContent-mode send renders the branding header too (regression)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const req = createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", htmlContent: "<p>raw body</p>" },
+    });
+    const res = await sendCampaign(req);
+    expect(res.status).toBe(200);
+
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    expect(html).toContain("raw body");
+    expect(html).toContain("Bright Futures OSHC");
+    expect(html).toContain("#112233");
+  });
+
+  it("template blocks-mode send renders the branding header (templateId branch)", async () => {
+    prismaMock.emailTemplate.findUnique.mockResolvedValue({
+      id: "tpl-1",
+      blocks: [{ type: "text", content: "Template block body" }],
+      htmlContent: null,
+    });
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const req = createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", templateId: "tpl-1" },
+    });
+    const res = await sendCampaign(req);
+    expect(res.status).toBe(200);
+
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    expect(html).toContain("Template block body");
+    expect(html).toContain("Bright Futures OSHC");
+    expect(html).toContain("#112233");
   });
 });
 

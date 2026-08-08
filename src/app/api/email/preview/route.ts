@@ -77,7 +77,7 @@ export const POST = withApiAuth(async (req, session) => {
       );
     }
     if (template.blocks) {
-      html = renderBlocksToHtml(template.blocks as unknown as EmailBlock[], vars);
+      html = renderBlocksToHtml(template.blocks as unknown as EmailBlock[], vars, layoutOpts);
     } else if (template.htmlContent) {
       html = interpolateVariables(marketingLayout(template.htmlContent, layoutOpts), vars);
     } else {
@@ -87,7 +87,7 @@ export const POST = withApiAuth(async (req, session) => {
       );
     }
   } else if (body.blocks && body.blocks.length > 0) {
-    html = renderBlocksToHtml(body.blocks as unknown as EmailBlock[], vars);
+    html = renderBlocksToHtml(body.blocks as unknown as EmailBlock[], vars, layoutOpts);
   } else if (body.htmlContent) {
     html = interpolateVariables(marketingLayout(body.htmlContent, layoutOpts), vars);
   } else {
