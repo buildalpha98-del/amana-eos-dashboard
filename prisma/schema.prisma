@@ -964,6 +964,9 @@ model User {
   creativeRequestProofsUploaded CreativeRequestProof[]      @relation("CreativeRequestProofsUploaded")
   creativeRequestProofsDecided  CreativeRequestProof[]      @relation("CreativeRequestProofsDecided")
 
+  // 2026-08-08 (marketing hub phase 6): one-tap requester CSAT on delivered requests.
+  creativeRequestSatisfactions CreativeRequestSatisfaction[] @relation("CreativeRequestSatisfactions")
+
   // 2026-08-07 (marketing hub phase 4): saved email audiences this user created.
   emailAudiencesCreated EmailAudience[] @relation("EmailAudiencesCreated")
 
@@ -1932,9 +1935,10 @@ model CreativeRequest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  messages    CreativeRequestMessage[]
-  attachments CreativeRequestAttachment[]
-  proofs      CreativeRequestProof[]
+  messages     CreativeRequestMessage[]
+  attachments  CreativeRequestAttachment[]
+  proofs       CreativeRequestProof[]
+  satisfaction CreativeRequestSatisfaction?
 
   @@index([status])
   @@index([assigneeId])
@@ -2016,6 +2020,25 @@ model CreativeRequestProof {
 
   @@unique([requestId, version])
   @@index([requestId])
+}
+
+/// One-tap requester CSAT (👍/👎 + optional comment) captured after a
+/// creative request is delivered. One per request (@@unique on requestId);
+/// written ONLY via its own endpoint (POST /api/creative-requests/[id]/satisfaction) —
+/// never inline on the PATCH status route.
+model CreativeRequestSatisfaction {
+  id        String          @id @default(cuid())
+  requestId String          @unique
+  request   CreativeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  positive  Boolean
+  comment   String?         @db.Text
+
+  ratedById String
+  ratedBy   User   @relation("CreativeRequestSatisfactions", fields: [ratedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model WhatsAppCoordinatorPost {
@@ -5026,7 +5049,7 @@ model SocialAccount {
 }
 
 model DeliveryLog {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   channel        String // email, whatsapp, social
   serviceCode    String?
   messageType    String? // week_ahead, newsletter, etc.
@@ -5035,16 +5058,16 @@ model DeliveryLog {
   /// (<50-recipient transactional sends) | "brevo_campaign" (>=50 sends,
   /// Brevo numeric campaign id as string). Null on legacy rows.
   externalIdType String?
-  recipientCount Int      @default(0)
+  recipientCount Int       @default(0)
   status         String // sent, scheduled, failed, sending, partial
-  errorMessage   String?  @db.Text
+  errorMessage   String?   @db.Text
   payload        Json? // original request body for debugging
   entityType     String?
   entityId       String?
   subject        String?
   templateId     String?
-  renderedHtml   String?  @db.Text
-  createdAt      DateTime @default(now())
+  renderedHtml   String?   @db.Text
+  createdAt      DateTime  @default(now())
   /// When dispatch actually completed (createdAt is row creation; differs for scheduled + pre-created "sending" rows).
   sentAt         DateTime?
 
@@ -5056,6 +5079,27 @@ model DeliveryLog {
   @@index([status])
   @@index([channel, status])
   @@index([externalId])
+}
+
+/// Per-recipient marketing send ledger — the frequency-cap data source.
+/// Written by recordMarketingSends() at EVERY marketing send path (campaign
+/// both branches, cowork, nurture, resend); retention-swept by email-janitor
+/// (rows older than 30 days are deleted).
+model MarketingSendRecipient {
+  id String @id @default(cuid())
+
+  /// ALWAYS lowercased — see recordMarketingSends. Compare lowercase to
+  /// lowercase or the frequency-cap filter silently matches nothing.
+  email         String
+  deliveryLogId String?
+  contactId     String?
+  /// "campaign" | "cowork" | "nurture" | "resend"
+  source        String
+  sentAt        DateTime @default(now())
+
+  @@index([email, sentAt])
+  @@index([deliveryLogId])
+  @@index([sentAt])
 }
 
 // ============================================================
@@ -6577,14 +6621,14 @@ model EnrolmentSubmission {
   paymentDetails Json? // { lastFour, cardType } or { bsbLastThree, accountLastFour } — MASKED
 
   // Phase 8: Submission
-  referralSource  String?
+  referralSource       String?
   /// 2026-08-03 (Ambassadors): free-text answer to "Which educator spoke
   /// with you?" — shown when referralSource is the educator option.
   referralEducatorName String?
-  signature       String? @db.Text
-  termsAccepted   Boolean @default(false)
-  privacyAccepted Boolean @default(false)
-  debitAgreement  Boolean @default(false)
+  signature            String? @db.Text
+  termsAccepted        Boolean @default(false)
+  privacyAccepted      Boolean @default(false)
+  debitAgreement       Boolean @default(false)
 
   // Court orders
   courtOrders     Boolean @default(false)
@@ -6712,6 +6756,8 @@ model Child {
   allAboutMe    AllAboutMe?                @relation("ChildAllAboutMe")
   feedbackItems ParentFeedback[]           @relation("ChildFeedback")
 
+  ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorChild")
+
   @@index([enrolmentId])
   @@index([serviceId])
   @@index([status])
@@ -6719,8 +6765,6 @@ model Child {
   @@index([serviceId, ccsStatus])
   @@index([serviceId, room])
   @@index([serviceId, nextImmunisationDue])
-
-  ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorChild")
 }
 
 // ── All About Me (Amana Way stage 5 — Reassurance) ───────────
@@ -9464,7 +9508,7 @@ model AmbassadorEnrolment {
   enrolmentApplication   EnrolmentApplication? @relation("AmbassadorFromApplication", fields: [enrolmentApplicationId], references: [id], onDelete: SetNull)
   /// Privacy: every Ambassadors surface shows initials only (e.g. "A.K.");
   /// full names stay behind the existing enrolment permissions.
-  childInitials String
+  childInitials          String
 
   creditedEducatorId  String?
   creditedEducator    User?                       @relation("AmbassadorCredited", fields: [creditedEducatorId], references: [id], onDelete: SetNull)
