@@ -13,8 +13,13 @@ vi.mock("@/lib/nurture-scheduler", () => ({
   scheduleNurtureFromStageChange: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/enquiry-stage-events", () => ({
+  logEnquiryStageEvent: vi.fn(),
+}));
+
 import { syncOwnaService } from "@/lib/owna-sync";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 import type { OwnaClient, OwnaEnquiry } from "@/lib/owna";
 
 const NOW = new Date("2026-07-07T10:00:00Z");
@@ -95,7 +100,9 @@ describe("OWNA enquiry sync — nurture automation + email matching", () => {
   });
 
   it("creates new OWNA enquiries with channel 'owna' and enrols recent ones in nurture", async () => {
-    routeFindMany({ created: [{ id: "enq-db-1", stage: "new_enquiry" }] });
+    routeFindMany({
+      created: [{ id: "enq-db-1", stage: "new_enquiry", ownaEnquiryId: "owna-e1" }],
+    });
 
     await runSync([ownaEnquiry()]);
 
@@ -105,13 +112,20 @@ describe("OWNA enquiry sync — nurture automation + email matching", () => {
       }),
     );
     expect(scheduleNurtureFromStageChange).toHaveBeenCalledWith("enq-db-1", "new_enquiry");
+    expect(logEnquiryStageEvent).toHaveBeenCalledWith("enq-db-1", null, "new_enquiry");
   });
 
   it("does not auto-nurture historical backfill (dateAdded older than 7 days)", async () => {
+    routeFindMany({
+      created: [{ id: "enq-db-1", stage: "new_enquiry", ownaEnquiryId: "owna-e1" }],
+    });
+
     await runSync([ownaEnquiry({ dateAdded: STALE })]);
 
     expect(prismaMock.parentEnquiry.createMany).toHaveBeenCalledTimes(1);
     expect(scheduleNurtureFromStageChange).not.toHaveBeenCalled();
+    // Backfilled creates still enter the pipeline ledger.
+    expect(logEnquiryStageEvent).toHaveBeenCalledWith("enq-db-1", null, "new_enquiry");
   });
 
   it("does not auto-nurture enquiries flagged unsubscribe in OWNA", async () => {
@@ -139,6 +153,7 @@ describe("OWNA enquiry sync — nurture automation + email matching", () => {
       }),
     );
     expect(scheduleNurtureFromStageChange).toHaveBeenCalledWith("web-enq-1", "enrolled");
+    expect(logEnquiryStageEvent).toHaveBeenCalledWith("web-enq-1", "new_enquiry", "enrolled");
   });
 
   it("links by email without regressing a card that is further along", async () => {
@@ -154,6 +169,7 @@ describe("OWNA enquiry sync — nurture automation + email matching", () => {
     expect(updateData.data.ownaEnquiryId).toBe("owna-e1");
     expect(updateData.data.stage).toBeUndefined();
     expect(scheduleNurtureFromStageChange).not.toHaveBeenCalled();
+    expect(logEnquiryStageEvent).not.toHaveBeenCalled();
   });
 
   it("schedules nurture side effects when OWNA advances an untouched card's stage", async () => {
@@ -170,6 +186,7 @@ describe("OWNA enquiry sync — nurture automation + email matching", () => {
     await runSync([ownaEnquiry({ status: "tour booked" })]); // → nurturing
 
     expect(scheduleNurtureFromStageChange).toHaveBeenCalledWith("enq-db-1", "nurturing");
+    expect(logEnquiryStageEvent).toHaveBeenCalledWith("enq-db-1", "new_enquiry", "nurturing");
   });
 
   it("applies OWNA 'enrolled' even over manual pipeline moves (ground truth)", async () => {
@@ -193,6 +210,7 @@ describe("OWNA enquiry sync — nurture automation + email matching", () => {
       }),
     );
     expect(scheduleNurtureFromStageChange).toHaveBeenCalledWith("enq-db-1", "enrolled");
+    expect(logEnquiryStageEvent).toHaveBeenCalledWith("enq-db-1", "nurturing", "enrolled");
   });
 
   it("still respects manual moves for non-enrolled OWNA statuses", async () => {
@@ -210,6 +228,7 @@ describe("OWNA enquiry sync — nurture automation + email matching", () => {
 
     expect(prismaMock.parentEnquiry.update).not.toHaveBeenCalled();
     expect(scheduleNurtureFromStageChange).not.toHaveBeenCalled();
+    expect(logEnquiryStageEvent).not.toHaveBeenCalled();
   });
 
   it("never regresses a first_session card even when OWNA says enrolled", async () => {

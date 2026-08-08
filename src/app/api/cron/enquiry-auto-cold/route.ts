@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -53,6 +54,9 @@ export const GET = withApiHandler(async (req) => {
           stageChangedAt: now,
         },
       });
+      for (const eq of toCold) {
+        await logEnquiryStageEvent(eq.id, "nurturing", "cold");
+      }
     }
 
     if (process.env.NODE_ENV !== "production") console.log(`[enquiry-auto-cold] Moved ${toCold.length} enquiries to cold`);
