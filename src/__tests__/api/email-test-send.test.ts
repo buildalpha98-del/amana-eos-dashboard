@@ -280,4 +280,47 @@ describe("POST /api/email/test-send — block-mode renders org branding", () => 
     expect(call.htmlContent).toContain("Bright Futures OSHC");
     expect(call.htmlContent).toContain("#112233");
   });
+
+  it("a user layoutOptions override wins over branding while untouched fields keep it", async () => {
+    const res = await testSend(
+      postBody({
+        subject: "Hello",
+        blocks: [{ type: "text", content: "Block body" }],
+        layoutOptions: { headerText: "Winter Fair 2026" },
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const call = mockedSendTransactional.mock.calls[0][0];
+    // Override wins in the header; headerColor + footerText still track
+    // branding — the test send must look exactly like the real send would.
+    expect(call.htmlContent).toContain("Winter Fair 2026");
+    expect(call.htmlContent).toContain("#112233");
+    expect(call.htmlContent).toContain("Bright Futures OSHC");
+  });
+
+  it("rejects invalid layoutOptions with 400 and never sends", async () => {
+    const res = await testSend(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { headerColor: "red" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+    expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown layoutOptions keys with 400 (strict schema)", async () => {
+    const res = await testSend(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { sneaky: "nope" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
 });

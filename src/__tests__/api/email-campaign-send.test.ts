@@ -1242,6 +1242,119 @@ describe("POST /api/email/campaign/send — block-mode sends carry org branding"
   });
 });
 
+describe("POST /api/email/campaign/send — user layoutOptions override branding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearEmailBrandingCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedGetFrequencyCapped.mockResolvedValue(new Set());
+    mockedRecordMarketingSends.mockResolvedValue(undefined);
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
+    // Branding differs from BOTH the layout defaults and the overrides below
+    // so the assertions can tell all three apart.
+    prismaMock.orgSettings.findUnique.mockResolvedValue({
+      name: "Bright Futures OSHC",
+      primaryColor: "#112233",
+    });
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.deliveryLog.update.mockResolvedValue({} as never);
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  function postBody(body: Record<string, unknown>) {
+    return createRequest("POST", "/api/email/campaign/send", { body });
+  }
+
+  it("a user headerText override wins while untouched fields keep the branding base (blocks mode)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        blocks: [{ type: "text", content: "Block body" }],
+        layoutOptions: { headerText: "Winter Fair 2026" },
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    // Override wins in the header…
+    expect(html).toContain("Winter Fair 2026");
+    // …while headerColor (untouched) still tracks branding, and footerText
+    // (untouched) still renders the branding name.
+    expect(html).toContain("#112233");
+    expect(html).toContain("Bright Futures OSHC");
+  });
+
+  it("a user headerColor override replaces the branding colour entirely (htmlContent mode)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>raw body</p>",
+        layoutOptions: { headerColor: "#ABCDEF" },
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    expect(html).toContain("#ABCDEF");
+    expect(html).not.toContain("#112233");
+    // Branding text base untouched by the colour override.
+    expect(html).toContain("Bright Futures OSHC");
+  });
+
+  it("rejects an invalid headerColor with 400 and never sends", async () => {
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { headerColor: "red" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+    expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects an off-host headerLogoUrl with 400 and never sends", async () => {
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { headerLogoUrl: "https://evil.example.com/logo.png" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown layoutOptions keys with 400 (strict schema)", async () => {
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { sneaky: "nope" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/email/recipient-count — post-suppression count", () => {
   beforeEach(() => {
     vi.clearAllMocks();

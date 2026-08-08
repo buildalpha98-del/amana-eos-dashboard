@@ -10,6 +10,7 @@ import {
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
 import { getEmailBranding } from "@/lib/email-branding";
+import { layoutOptionsSchema } from "@/lib/email-layout-schema";
 import { isEmailSuppressed } from "@/lib/email-suppression";
 import { parseJsonBody } from "@/lib/api-error";
 
@@ -24,6 +25,9 @@ const bodySchema = z.object({
   blocks: z.array(z.any()).optional().nullable(),
   htmlContent: z.string().optional().nullable(),
   templateId: z.string().optional().nullable(),
+  // Dirty-gated composer overrides — omitted entirely when the user never
+  // touched the Header & Footer panel (org branding stays authoritative).
+  layoutOptions: layoutOptionsSchema.optional(),
 });
 
 export const POST = withApiAuth(async (req, session) => {
@@ -54,15 +58,18 @@ export const POST = withApiAuth(async (req, session) => {
 
   // ── Resolve HTML content ──────────────────────────────────────
   // Duplicated from /api/email/campaign/send (same resolution order:
-  // templateId → blocks → htmlContent) — keep the two in sync.
+  // templateId → blocks → htmlContent, same branding-base + layoutOptions
+  // merge) — /api/email/preview is the third twin; keep all three in sync.
   let html: string;
   const branding = await getEmailBranding();
+  // Branding is the BASE; validated user overrides win field-by-field.
   const layoutOpts = {
     headerText: branding.name,
     footerText: branding.name,
     headerColor: branding.primaryColor,
     footerUrl: branding.websiteUrl,
     footerUrlLabel: branding.websiteUrlLabel,
+    ...body.layoutOptions,
   };
 
   if (body.templateId) {

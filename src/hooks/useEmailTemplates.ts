@@ -6,6 +6,8 @@ import { toast } from "@/hooks/useToast";
 // Type-only import — audience-rules.ts only pulls zod + Prisma TYPES, so it
 // is client-safe; the runtime prisma client never enters the bundle.
 import type { AudienceRules } from "@/lib/audience-rules";
+// Client-safe type-only import (email-marketing-layout.ts is a pure lib).
+import type { EmailLayoutOptions } from "@/lib/email-marketing-layout";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -252,6 +254,9 @@ export function useSendEmail() {
       postId?: string | null;
       marketingCampaignId?: string | null;
       variables?: Record<string, string>;
+      // Only present when the composer's Header & Footer panel is DIRTY —
+      // omitted otherwise so the server's live org branding stays in charge.
+      layoutOptions?: EmailLayoutOptions;
     }) =>
       mutateApi<{
         success: boolean;
@@ -287,6 +292,7 @@ export function useTestSend() {
       blocks?: unknown[] | null;
       htmlContent?: string | null;
       templateId?: string | null;
+      layoutOptions?: EmailLayoutOptions;
     }) =>
       mutateApi<{ success: boolean; email: string; warning?: string }>(
         "/api/email/test-send",
@@ -311,6 +317,7 @@ export function useEmailPreview() {
       templateId?: string | null;
       htmlContent?: string | null;
       variables?: Record<string, string>;
+      layoutOptions?: EmailLayoutOptions;
     }) =>
       mutateApi<{ html: string }>("/api/email/preview", {
         method: "POST",

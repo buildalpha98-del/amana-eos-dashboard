@@ -10,6 +10,7 @@ import {
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
 import { getEmailBranding } from "@/lib/email-branding";
+import { layoutOptionsSchema } from "@/lib/email-layout-schema";
 import { getSuppressedEmails } from "@/lib/email-suppression";
 import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
 import { dispatchPerRecipient } from "@/lib/email-dispatch";
@@ -33,6 +34,10 @@ const bodySchema = z
     postId: z.string().optional().nullable(),
     marketingCampaignId: z.string().optional().nullable(),
     variables: z.record(z.string(), z.string()).optional(),
+    // Dirty-gated composer overrides — the composer OMITS this entirely when
+    // the user never touched the Header & Footer panel, so the org-branding
+    // base below stays authoritative for untouched sends.
+    layoutOptions: layoutOptionsSchema.optional(),
   })
   // audienceId is mutually exclusive with the legacy centre picker. The
   // composer historically ALWAYS sends `allCentres` and `serviceIds` —
@@ -112,16 +117,21 @@ if (!isBrevoConfigured()) {
   let html: string;
   const vars = body.variables ?? {};
   const branding = await getEmailBranding();
+  // Branding is the BASE; validated user overrides win field-by-field. A
+  // field the user never set keeps tracking live org branding.
   const layoutOpts = {
     headerText: branding.name,
     footerText: branding.name,
     headerColor: branding.primaryColor,
     footerUrl: branding.websiteUrl,
     footerUrlLabel: branding.websiteUrlLabel,
+    ...body.layoutOptions,
   };
 
-  // NOTE: this templateId → blocks → htmlContent resolution block has a twin
-  // in /api/email/test-send — keep the two in sync when changing it.
+  // NOTE: this templateId → blocks → htmlContent resolution block (and the
+  // branding-base + layoutOptions merge above) has twins in
+  // /api/email/test-send and /api/email/preview — keep all three in sync
+  // when changing it.
   if (body.templateId) {
     const template = await prisma.emailTemplate.findUnique({
       where: { id: body.templateId },
