@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
@@ -11,6 +11,8 @@ import {
 } from "@/lib/brevo";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { getSuppressedEmails } from "@/lib/email-suppression";
+import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
 
 import { parseJsonBody } from "@/lib/api-error";
 const emailSendSchema = z.object({
@@ -131,10 +133,45 @@ export const POST = withApiHandler(async (req) => {
     }
 
     // 6. Build recipient list
-    const recipients = contacts.map((c) => ({
+    let recipients = contacts.map((c) => ({
       email: c.email,
       name: [c.firstName, c.lastName].filter(Boolean).join(" ") || undefined,
     }));
+
+    // 6b. Suppression + frequency-cap filtering.
+    // DELIBERATE behavior change (Phase 6): the cowork path historically
+    // applied NO suppression at all — bounced/complained/unsubscribed
+    // addresses kept receiving automation sends. It now honours the same
+    // suppression list and weekly frequency cap as dashboard campaign
+    // sends. Both helper sets are LOWERCASED — compare lowercase to
+    // lowercase or the filters silently match nothing.
+    const suppressed = await getSuppressedEmails(recipients.map((r) => r.email));
+    const suppressedCount = recipients.filter((r) =>
+      suppressed.has(r.email.toLowerCase()),
+    ).length;
+    recipients = recipients.filter(
+      (r) => !suppressed.has(r.email.toLowerCase()),
+    );
+
+    const capped = await getFrequencyCapped(
+      prisma,
+      recipients.map((r) => r.email),
+    );
+    const cappedCount = recipients.filter((r) =>
+      capped.has(r.email.toLowerCase()),
+    ).length;
+    recipients = recipients.filter((r) => !capped.has(r.email.toLowerCase()));
+
+    if (recipients.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "All recipients are suppressed, unsubscribed or at their weekly email limit",
+        },
+        { status: 400 },
+      );
+    }
 
     // 7. Send via Brevo (transactional < 50, campaign >= 50)
     let messageId: string;
@@ -179,7 +216,7 @@ export const POST = withApiHandler(async (req) => {
     }
 
     // 8. Create DeliveryLog
-    await prisma.deliveryLog.create({
+    const log = await prisma.deliveryLog.create({
       data: {
         channel: "email",
         serviceCode: serviceCode.toUpperCase() === "ALL" ? null : serviceCode,
@@ -199,6 +236,15 @@ export const POST = withApiHandler(async (req) => {
       },
     });
 
+    // 8b. Ledger: every dispatched recipient counts toward the weekly
+    // frequency cap (source "cowork"). Recorded via the shared helper ONLY —
+    // see frequency-cap.ts.
+    await recordMarketingSends(
+      prisma,
+      recipients.map((r) => ({ email: r.email })),
+      { deliveryLogId: log.id, source: "cowork" },
+    );
+
     // 9. Activity log
     logCoworkActivity({
       action: "api_import",
@@ -211,6 +257,8 @@ export const POST = withApiHandler(async (req) => {
       success: true,
       messageId,
       recipientCount: recipients.length,
+      suppressedCount,
+      cappedCount,
       serviceCode,
       status,
     });

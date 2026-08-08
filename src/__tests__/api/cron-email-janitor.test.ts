@@ -69,6 +69,7 @@ beforeEach(() => {
 
   prismaMock.deliveryLog.updateMany.mockResolvedValue({ count: 0 });
   prismaMock.deliveryLog.update.mockResolvedValue({});
+  prismaMock.marketingSendRecipient.deleteMany.mockResolvedValue({ count: 0 });
   mockDeliveryRows();
   mockedListBrevoLists.mockResolvedValue({ lists: [], count: 0 });
   mockedDeleteBrevoList.mockResolvedValue(undefined);
@@ -252,6 +253,36 @@ describe("GET /api/cron/email-janitor", () => {
     const data = await res.json();
     expect(data.legacyDeleted).toBe(20);
     expect(mockedDeleteBrevoList).toHaveBeenCalledTimes(20);
+  });
+
+  it("prunes ledger rows older than 30 days and reports the count in guard.complete", async () => {
+    prismaMock.marketingSendRecipient.deleteMany.mockResolvedValue({ count: 7 });
+
+    const res = await GET(authed());
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.ledgerPruned).toBe(7);
+
+    expect(prismaMock.marketingSendRecipient.deleteMany).toHaveBeenCalledTimes(1);
+    const arg = prismaMock.marketingSendRecipient.deleteMany.mock.calls[0][0];
+    expect(arg).toEqual({
+      where: { sentAt: { lt: new Date(NOW.getTime() - 30 * DAY_MS) } },
+    });
+
+    expect(guardComplete).toHaveBeenCalledWith(
+      expect.objectContaining({ ledgerPruned: 7 }),
+    );
+  });
+
+  it("does not touch the ledger when the guard is not acquired", async () => {
+    vi.mocked(acquireCronLock).mockResolvedValueOnce({
+      acquired: false,
+      reason: "already complete",
+      complete: async () => {},
+      fail: async () => {},
+    });
+    await GET(authed());
+    expect(prismaMock.marketingSendRecipient.deleteMany).not.toHaveBeenCalled();
   });
 
   it("guard.fail on unexpected error", async () => {
