@@ -56,7 +56,7 @@ describe("recordMarketingSends", () => {
     );
 
     expect(db.marketingSendRecipient.createMany).toHaveBeenCalledTimes(1);
-    const args = db.marketingSendRecipient.createMany.mock.calls[0][0] as unknown as {
+    const args = (db.marketingSendRecipient.createMany.mock.calls as unknown[][])[0][0] as unknown as {
       data: Array<Record<string, unknown>>;
     };
     expect(args.data).toEqual([
@@ -82,7 +82,7 @@ describe("recordMarketingSends", () => {
       { source: "nurture" },
     );
 
-    const args = db.marketingSendRecipient.createMany.mock.calls[0][0] as unknown as {
+    const args = (db.marketingSendRecipient.createMany.mock.calls as unknown[][])[0][0] as unknown as {
       data: Array<Record<string, unknown>>;
     };
     expect(args.data).toEqual([
@@ -103,7 +103,7 @@ describe("getFrequencyCapped", () => {
     await getFrequencyCapped(db as never, ["A@Example.com", "b@example.com"], NOW);
 
     expect(db.marketingSendRecipient.groupBy).toHaveBeenCalledTimes(1);
-    const args = db.marketingSendRecipient.groupBy.mock.calls[0][0] as unknown as {
+    const args = (db.marketingSendRecipient.groupBy.mock.calls as unknown[][])[0][0] as unknown as {
       by: string[];
       where: { email: { in: string[] }; sentAt: { gte: Date } };
       _count: boolean;

@@ -49,10 +49,20 @@ function routeCounts({ packedServiceIds = [] as string[] } = {}) {
   );
 }
 
-function createdData() {
-  return prismaMock.creativeRequest.create.mock.calls.map(
-    (c: Array<{ data: Record<string, unknown> }>) => c[0].data,
-  );
+interface CreatedRequestRow {
+  requestNumber: string;
+  serviceId: string;
+  purpose: string;
+  dueDate: Date;
+  [key: string]: unknown;
+}
+
+function createdData(): CreatedRequestRow[] {
+  return (
+    prismaMock.creativeRequest.create.mock.calls as Array<
+      [{ data: CreatedRequestRow }]
+    >
+  ).map((c) => c[0].data);
 }
 
 beforeEach(() => {

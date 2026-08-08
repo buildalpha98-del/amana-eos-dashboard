@@ -120,6 +120,10 @@ beforeEach(() => {
   prismaMock.deliveryLog.update.mockResolvedValue({} as never);
 });
 
+type UpdateCall = [{ where: { id: string }; data: Record<string, unknown> }];
+const updateCalls = () =>
+  prismaMock.deliveryLog.update.mock.calls as unknown as UpdateCall[];
+
 describe("POST /api/email/reports/[deliveryLogId]/resend — auth", () => {
   it("rejects an unauthenticated request with 401", async () => {
     mockNoSession();
@@ -360,7 +364,7 @@ describe("POST /api/email/reports/[deliveryLogId]/resend — new-row lifecycle",
 
     // Terminal update targets the pre-created row — no second create.
     expect(prismaMock.deliveryLog.create).toHaveBeenCalledTimes(1);
-    const terminal = prismaMock.deliveryLog.update.mock.calls.find(
+    const terminal = updateCalls().find(
       (c) => c[0].where.id === "dl-new",
     )![0];
     expect(terminal.data.status).toBe("sent");
@@ -395,7 +399,7 @@ describe("POST /api/email/reports/[deliveryLogId]/resend — new-row lifecycle",
       suppressedCount: 0,
     });
 
-    const terminal = prismaMock.deliveryLog.update.mock.calls.find(
+    const terminal = updateCalls().find(
       (c) => c[0].where.id === "dl-new",
     )![0];
     expect(terminal.data.status).toBe("partial");
@@ -426,7 +430,7 @@ describe("POST /api/email/reports/[deliveryLogId]/resend — new-row lifecycle",
     );
 
     expect(prismaMock.deliveryLog.create).toHaveBeenCalledTimes(1);
-    const terminal = prismaMock.deliveryLog.update.mock.calls.find(
+    const terminal = updateCalls().find(
       (c) => c[0].where.id === "dl-new",
     )![0];
     expect(terminal.data.status).toBe("failed");
@@ -434,7 +438,7 @@ describe("POST /api/email/reports/[deliveryLogId]/resend — new-row lifecycle",
 
     // Nothing was delivered — the original stays unstamped so the user can
     // retry again once Brevo recovers.
-    const origUpdates = prismaMock.deliveryLog.update.mock.calls.filter(
+    const origUpdates = updateCalls().filter(
       (c) => c[0].where.id === "dl-orig",
     );
     expect(origUpdates).toHaveLength(0);
@@ -446,7 +450,7 @@ describe("POST /api/email/reports/[deliveryLogId]/resend — original stamp + le
     const res = await resend();
     expect(res.status).toBe(200);
 
-    const origUpdate = prismaMock.deliveryLog.update.mock.calls.find(
+    const origUpdate = updateCalls().find(
       (c) => c[0].where.id === "dl-orig",
     )![0];
     expect(origUpdate.data.payload).toEqual({

@@ -166,7 +166,9 @@ describe("GET /api/email/analytics", () => {
     // Exactly two deliveryLog.findMany calls: recentSends (take: 50) and the
     // dedicated window query (no take limit).
     expect(prismaMock.deliveryLog.findMany).toHaveBeenCalledTimes(2);
-    const calls = prismaMock.deliveryLog.findMany.mock.calls.map((c: unknown[]) => c[0] as Record<string, unknown>);
+    const calls = (
+      prismaMock.deliveryLog.findMany.mock.calls as unknown[][]
+    ).map((c) => c[0] as Record<string, unknown>);
 
     const recentSendsCall = calls.find((c) => c.take === 50);
     expect(recentSendsCall).toBeDefined();
