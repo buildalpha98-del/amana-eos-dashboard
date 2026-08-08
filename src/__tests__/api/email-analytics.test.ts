@@ -89,6 +89,42 @@ describe("GET /api/email/analytics", () => {
     expect(body.stats.uniqueClicks).toBe(0);
   });
 
+  it("counts cancelled sends in stats.cancelled from the status groupBy", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+
+    prismaMock.deliveryLog.groupBy.mockResolvedValue([
+      { status: "sent", _count: 5, _sum: { recipientCount: 40 } },
+      { status: "cancelled", _count: 2, _sum: { recipientCount: 12 } },
+      { status: "scheduled", _count: 1, _sum: { recipientCount: 6 } },
+    ]);
+
+    const req = createRequest("GET", "/api/email/analytics?days=30");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.stats.cancelled).toBe(2);
+    expect(body.stats.sent).toBe(5);
+    expect(body.stats.scheduled).toBe(1);
+    // Cancelled rows still count toward totals (they were real send attempts).
+    expect(body.stats.totalSends).toBe(8);
+  });
+
+  it("defaults stats.cancelled to 0 when no cancelled sends exist", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+
+    prismaMock.deliveryLog.groupBy.mockResolvedValue([
+      { status: "sent", _count: 3, _sum: { recipientCount: 9 } },
+    ]);
+
+    const req = createRequest("GET", "/api/email/analytics?days=30");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.stats.cancelled).toBe(0);
+  });
+
   it("derives dailyVolume from a dedicated full-window query, not the 50-row recentSends slice", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
 
@@ -130,7 +166,9 @@ describe("GET /api/email/analytics", () => {
     // Exactly two deliveryLog.findMany calls: recentSends (take: 50) and the
     // dedicated window query (no take limit).
     expect(prismaMock.deliveryLog.findMany).toHaveBeenCalledTimes(2);
-    const calls = prismaMock.deliveryLog.findMany.mock.calls.map((c: unknown[]) => c[0] as Record<string, unknown>);
+    const calls = (
+      prismaMock.deliveryLog.findMany.mock.calls as unknown[][]
+    ).map((c) => c[0] as Record<string, unknown>);
 
     const recentSendsCall = calls.find((c) => c.take === 50);
     expect(recentSendsCall).toBeDefined();

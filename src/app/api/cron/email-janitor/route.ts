@@ -6,7 +6,7 @@ import { logger } from "@/lib/logger";
 import { listBrevoLists, deleteBrevoList } from "@/lib/brevo";
 
 /**
- * Daily email janitor — three sweeps:
+ * Daily email janitor — four sweeps:
  *
  * (a) Stranded sends: `sending` DeliveryLog rows are pre-created by the
  *     campaign send route and terminated in the same request — a crash
@@ -18,6 +18,9 @@ import { listBrevoLists, deleteBrevoList } from "@/lib/brevo";
  * (c) Legacy orphans: pre-Phase-5 sends dropped the list id entirely — page
  *     through Brevo's lists and delete `delivery-<epoch>` lists older than
  *     7 days by their epoch-ms name (never one a scheduled send still targets).
+ * (d) Frequency-cap ledger retention: MarketingSendRecipient rows only feed
+ *     the rolling 7-day cap window — anything older than 30 days is dead
+ *     weight (email addresses = PII; keep the table lean).
  *
  * Idempotent: `acquireCronLock("email-janitor", "daily")` guards double-runs,
  * and every sweep is safe to repeat (deleteBrevoList treats 404 as success).
@@ -150,8 +153,22 @@ export const GET = withApiHandler(async (req) => {
       }
     }
 
-    await guard.complete({ stranded, trackedCleaned, legacyDeleted });
-    return NextResponse.json({ ok: true, stranded, trackedCleaned, legacyDeleted });
+    // ── (d) Frequency-cap ledger retention ────────────────────────
+    // The cap only ever looks back CAP_WINDOW_DAYS (7); 30 days keeps a
+    // comfortable audit margin while bounding table growth.
+    const { count: ledgerPruned } =
+      await prisma.marketingSendRecipient.deleteMany({
+        where: { sentAt: { lt: new Date(now - 30 * DAY_MS) } },
+      });
+
+    await guard.complete({ stranded, trackedCleaned, legacyDeleted, ledgerPruned });
+    return NextResponse.json({
+      ok: true,
+      stranded,
+      trackedCleaned,
+      legacyDeleted,
+      ledgerPruned,
+    });
   } catch (err) {
     await guard.fail(err);
     logger.error("email-janitor cron failed", { err });

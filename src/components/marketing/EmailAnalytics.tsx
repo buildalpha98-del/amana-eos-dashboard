@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, Send, AlertCircle, Clock, Users, MailOpen, MousePointerClick } from "lucide-react";
+import { Mail, Send, AlertCircle, Clock, Users, MailOpen, MousePointerClick, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SendReportPanel } from "./SendReportPanel";
@@ -13,6 +13,7 @@ interface EmailStats {
   sent: number;
   failed: number;
   scheduled: number;
+  cancelled: number;
   uniqueOpens: number;
   uniqueClicks: number;
 }
@@ -54,6 +55,8 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   sent: { bg: "bg-green-100 dark:bg-green-950/50", text: "text-green-700" },
   failed: { bg: "bg-red-100 dark:bg-red-950/50", text: "text-red-700" },
   scheduled: { bg: "bg-blue-100 dark:bg-blue-950/50", text: "text-blue-700" },
+  // Deliberately neutral — a cancelled send is a non-event, not an error.
+  cancelled: { bg: "bg-foreground/10", text: "text-muted" },
 };
 
 const channelLabels: Record<string, string> = {
@@ -118,6 +121,7 @@ export function EmailAnalytics() {
         <StatCard icon={Users} label="Recipients" value={stats.totalRecipients} />
         <StatCard icon={AlertCircle} label="Failed" value={stats.failed} color={stats.failed > 0 ? "text-red-500" : undefined} />
         <StatCard icon={Clock} label="Scheduled" value={stats.scheduled} />
+        <StatCard icon={Ban} label="Cancelled" value={stats.cancelled} />
         <StatCard icon={MailOpen} label={`Unique opens (${days}d)`} value={stats.uniqueOpens} />
         <StatCard icon={MousePointerClick} label={`Unique clicks (${days}d)`} value={stats.uniqueClicks} />
       </div>

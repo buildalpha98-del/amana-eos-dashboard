@@ -49,10 +49,20 @@ function routeCounts({ packedServiceIds = [] as string[] } = {}) {
   );
 }
 
-function createdData() {
-  return prismaMock.creativeRequest.create.mock.calls.map(
-    (c: Array<{ data: Record<string, unknown> }>) => c[0].data,
-  );
+interface CreatedRequestRow {
+  requestNumber: string;
+  serviceId: string;
+  purpose: string;
+  dueDate: Date;
+  [key: string]: unknown;
+}
+
+function createdData(): CreatedRequestRow[] {
+  return (
+    prismaMock.creativeRequest.create.mock.calls as Array<
+      [{ data: CreatedRequestRow }]
+    >
+  ).map((c) => c[0].data);
 }
 
 beforeEach(() => {
@@ -198,18 +208,19 @@ describe("GET /api/cron/term-autopilot", () => {
   });
 
   it("warns when scheduling from approximate term dates (year outside TERM_TABLE)", async () => {
-    // 2028 has no exact table entries — fallback Term 3 starts 21 Jul 2028.
-    vi.setSystemTime(new Date("2028-07-01T00:00:00.000Z"));
+    // 2030 has no exact table entries (table now runs through 2029) —
+    // fallback Term 3 starts 21 Jul 2030.
+    vi.setSystemTime(new Date("2030-07-01T00:00:00.000Z"));
 
     const res = await GET(authed());
     expect(res.status).toBe(200);
     expect(vi.mocked(logger.warn)).toHaveBeenCalledWith(
       "term-autopilot using approximate term dates",
-      { year: 2028 },
+      { year: 2030 },
     );
     const rows = createdData();
     expect(rows.length).toBe(8);
-    expect(rows[0].purpose).toMatch(/\n\[auto:term-pack:2028-T3\]$/);
+    expect(rows[0].purpose).toMatch(/\n\[auto:term-pack:2030-T3\]$/);
   });
 
   it("fails the guard and 500s when a query throws", async () => {

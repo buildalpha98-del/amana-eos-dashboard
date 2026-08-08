@@ -1,17 +1,25 @@
 "use client";
 
-import { X, MailOpen, MousePointerClick } from "lucide-react";
+import { useState } from "react";
+import { X, MailOpen, MousePointerClick, Ban, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
-import { useSendReport } from "@/hooks/useEmailTemplates";
+import {
+  useSendReport,
+  useCancelScheduledSend,
+  useResendFailedRecipients,
+} from "@/hooks/useEmailTemplates";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   sent: { bg: "bg-green-100 dark:bg-green-950/50", text: "text-green-700" },
   partial: { bg: "bg-amber-100 dark:bg-amber-950/50", text: "text-amber-700" },
   failed: { bg: "bg-red-100 dark:bg-red-950/50", text: "text-red-700" },
   scheduled: { bg: "bg-blue-100 dark:bg-blue-950/50", text: "text-blue-700" },
+  // Deliberately neutral — a cancelled send is a non-event, not an error.
+  cancelled: { bg: "bg-foreground/10", text: "text-muted" },
 };
 
 /**
@@ -30,6 +38,10 @@ export function SendReportPanel({
 }) {
   useEscapeClose(onClose);
   const { data, isLoading, isError } = useSendReport(deliveryLogId);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmResend, setConfirmResend] = useState(false);
+  const cancelSend = useCancelScheduledSend();
+  const resendFailed = useResendFailedRecipients();
 
   const maxHourly = data
     ? Math.max(...data.hourly.map((h) => h.opens + h.clicks), 1)
@@ -100,6 +112,70 @@ export function SendReportPanel({
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {/* Actions — kept ABOVE the !hasEvents branch: a scheduled send
+                has no events yet, and hiding Cancel there would defeat it. */}
+            {data.canCancel && (
+              <div className="mt-4">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  iconLeft={<Ban className="h-3.5 w-3.5" />}
+                  onClick={() => setConfirmCancel(true)}
+                >
+                  Cancel scheduled send
+                </Button>
+                <ConfirmDialog
+                  open={confirmCancel}
+                  onOpenChange={setConfirmCancel}
+                  title="Cancel this scheduled send?"
+                  description={`"${data.log.subject ?? "This send"}" to ${data.log.recipientCount} recipient(s) will not go out. This cannot be undone.`}
+                  confirmLabel="Cancel send"
+                  variant="danger"
+                  loading={cancelSend.isPending}
+                  onConfirm={() =>
+                    cancelSend.mutate(deliveryLogId, {
+                      onSuccess: () => setConfirmCancel(false),
+                    })
+                  }
+                />
+              </div>
+            )}
+
+            {/* Re-send — also ABOVE the !hasEvents branch: a partial send
+                with zero opens would otherwise hide the retry affordance. */}
+            {data.canResend && !data.resendDeliveryLogId && (
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  iconLeft={<RotateCw className="h-3.5 w-3.5" />}
+                  onClick={() => setConfirmResend(true)}
+                >
+                  Re-send to {data.failedCount} failed recipient
+                  {data.failedCount === 1 ? "" : "s"}
+                </Button>
+                <ConfirmDialog
+                  open={confirmResend}
+                  onOpenChange={setConfirmResend}
+                  title={`Re-send to ${data.failedCount} failed recipient${data.failedCount === 1 ? "" : "s"}?`}
+                  description="The original email will be re-sent as-is to the recipients that failed. Addresses that have since unsubscribed or bounced are skipped."
+                  confirmLabel="Re-send"
+                  variant="default"
+                  loading={resendFailed.isPending}
+                  onConfirm={() =>
+                    resendFailed.mutate(deliveryLogId, {
+                      onSuccess: () => setConfirmResend(false),
+                    })
+                  }
+                />
+              </div>
+            )}
+            {data.resendDeliveryLogId && (
+              <p className="mt-4 text-xs text-muted">
+                Retried in a follow-up send
+              </p>
+            )}
 
             {!data.hasEvents ? (
               <div className="mt-8 rounded-xl border border-border bg-surface px-4 py-8 text-center">

@@ -53,6 +53,7 @@ export const GET = withApiAuth(async (req, session) => {
     sent: totals.find((t) => t.status === "sent")?._count ?? 0,
     failed: totals.find((t) => t.status === "failed")?._count ?? 0,
     scheduled: totals.find((t) => t.status === "scheduled")?._count ?? 0,
+    cancelled: totals.find((t) => t.status === "cancelled")?._count ?? 0,
     uniqueOpens: eventCounts.find((t) => t.type === "opened")?._count ?? 0,
     uniqueClicks: eventCounts.find((t) => t.type === "clicked")?._count ?? 0,
   };

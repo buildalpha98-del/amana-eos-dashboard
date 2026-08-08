@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import {
-  isBrevoConfigured,
-  sendTransactionalEmail,
-  sendCampaignEmail,
-} from "@/lib/brevo";
+import { isBrevoConfigured, sendCampaignEmail } from "@/lib/brevo";
 import {
   renderBlocksToHtml,
   interpolateVariables,
@@ -15,6 +11,8 @@ import {
 import { withApiAuth } from "@/lib/server-auth";
 import { getEmailBranding } from "@/lib/email-branding";
 import { getSuppressedEmails } from "@/lib/email-suppression";
+import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
+import { dispatchPerRecipient } from "@/lib/email-dispatch";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import type { AudienceRules } from "@/lib/audience-rules";
@@ -61,32 +59,6 @@ const bodySchema = z
         "At most one of enquiryId, postId, marketingCampaignId may be set",
     },
   );
-
-/** Per-recipient dispatch: how many transactional sends run in parallel. */
-const SEND_CHUNK_SIZE = 5;
-/** Per-call ceiling — keeps a hung Brevo call inside withApiAuth's 55s budget. */
-const SEND_TIMEOUT_MS = 10_000;
-
-/**
- * Race a Brevo call against AbortSignal.timeout. sendTransactionalEmail
- * doesn't accept an abort signal, so a timed-out call is ABANDONED rather
- * than aborted — the underlying fetch may still complete on Brevo's side,
- * but the handler moves on and counts that recipient as failed. Acceptable:
- * the alternative is one hung call stranding the whole dispatch.
- */
-function raceSendTimeout<T>(promise: Promise<T>, ms = SEND_TIMEOUT_MS): Promise<T> {
-  const signal = AbortSignal.timeout(ms);
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      signal.addEventListener(
-        "abort",
-        () => reject(new Error(`Brevo send timed out after ${ms}ms`)),
-        { once: true },
-      );
-    }),
-  ]);
-}
 
 export const POST = withApiAuth(async (req, session) => {
 if (!isBrevoConfigured()) {
@@ -300,6 +272,32 @@ if (!isBrevoConfigured()) {
     throw ApiError.badRequest("All recipients are suppressed or unsubscribed");
   }
 
+  // ── Frequency-cap filtering (bulk sends only) ───────────────────
+  // The ENQUIRY branch is EXEMPT: it's a 1:1 human-initiated email to a
+  // specific parent (staff replying to an enquiry), not bulk marketing —
+  // cap-blocking it would silently eat a direct reply. Its recipient IS
+  // still recorded post-send below, so the email counts toward the parent's
+  // weekly volume for future bulk sends. Like getSuppressedEmails,
+  // getFrequencyCapped returns a LOWERCASED set — compare lowercase to
+  // lowercase, or the filter silently matches nothing.
+  let cappedCount = 0;
+  if (messageType !== "enquiry") {
+    const capped = await getFrequencyCapped(
+      prisma,
+      recipients.map((r) => r.email),
+    );
+    cappedCount = recipients.filter((r) =>
+      capped.has(r.email.toLowerCase()),
+    ).length;
+    recipients = recipients.filter((r) => !capped.has(r.email.toLowerCase()));
+
+    if (recipients.length === 0) {
+      throw ApiError.badRequest(
+        "All recipients are suppressed, unsubscribed or at their weekly email limit",
+      );
+    }
+  }
+
   // ── Update linked entities + activity log (shared by both paths) ──
   async function linkEntitiesAndLog(deliveryLogId: string, status: string) {
     const updates: Promise<unknown>[] = [];
@@ -362,43 +360,32 @@ if (!isBrevoConfigured()) {
         entityType,
         entityId,
         renderedHtml: html,
-        payload: { ...(raw as object), _suppressedCount: suppressedCount },
+        payload: {
+          ...(raw as object),
+          _suppressedCount: suppressedCount,
+          _cappedCount: cappedCount,
+        },
       },
     });
 
-    const failedRecipients: string[] = [];
-    let firstError: string | null = null;
+    const {
+      sent,
+      failed: failedRecipients,
+      firstError,
+    } = await dispatchPerRecipient({
+      recipients,
+      subject: body.subject,
+      html,
+      scheduledAt: body.scheduledAt ?? undefined,
+      tags: [`dl:${log.id}`],
+    });
 
-    // Bounded concurrency: chunks of 5 keep us well inside Brevo's rate
-    // limits while a hung call can't strand the dispatch — each send races
-    // a ~10s timeout inside withApiAuth's 55s budget.
-    for (let i = 0; i < recipients.length; i += SEND_CHUNK_SIZE) {
-      const chunk = recipients.slice(i, i + SEND_CHUNK_SIZE);
-      const results = await Promise.allSettled(
-        chunk.map((recipient) =>
-          raceSendTimeout(
-            sendTransactionalEmail({
-              to: [recipient],
-              subject: body.subject,
-              htmlContent: html,
-              tags: [`dl:${log.id}`],
-              scheduledAt: body.scheduledAt ?? undefined,
-            }),
-          ),
-        ),
-      );
-      results.forEach((result, j) => {
-        if (result.status === "rejected") {
-          failedRecipients.push(chunk[j].email);
-          if (!firstError) {
-            firstError =
-              result.reason instanceof Error
-                ? result.reason.message
-                : "Unknown send error";
-          }
-        }
-      });
-    }
+    // Per-recipient Brevo messageIds from FULFILLED sends — persisted as
+    // payload._sentMessageIds so the cancel route can DELETE each scheduled
+    // message on Brevo's side. The wrapper's "unknown" fallback (Brevo
+    // omitted the id) is useless for cancellation and is filtered out HERE
+    // (the dispatch lib deliberately returns it raw).
+    const sentMessageIds = sent.filter((s) => s.messageId !== "unknown");
 
     const failedCount = failedRecipients.length;
     let status: string;
@@ -421,15 +408,34 @@ if (!isBrevoConfigured()) {
               errorMessage:
                 `${failedCount} of ${recipients.length} recipient sends failed` +
                 (firstError ? ` — first error: ${firstError}` : ""),
-              payload: {
-                ...(raw as object),
-                _suppressedCount: suppressedCount,
-                _failedRecipients: failedRecipients,
-              },
             }
           : {}),
+        // Always rewrite the payload (this used to be failure-only):
+        // _sentMessageIds must land for SUCCESSFUL sends too, or the cancel
+        // route has nothing to DELETE for a scheduled per-recipient send.
+        payload: {
+          ...(raw as object),
+          _suppressedCount: suppressedCount,
+          _cappedCount: cappedCount,
+          _sentMessageIds: sentMessageIds,
+          ...(failedCount > 0 ? { _failedRecipients: failedRecipients } : {}),
+        },
       },
     });
+
+    // Ledger: every recipient actually dispatched (the non-failed subset)
+    // counts toward the weekly frequency cap — including SCHEDULED sends
+    // (conservative: rows persist even if the scheduled send is later
+    // cancelled; see frequency-cap.ts). The lib no-ops on an empty list, so
+    // a fully-failed dispatch records nothing.
+    const failedSet = new Set(failedRecipients);
+    await recordMarketingSends(
+      prisma,
+      recipients
+        .filter((r) => !failedSet.has(r.email))
+        .map((r) => ({ email: r.email })),
+      { deliveryLogId: log.id, source: "campaign" },
+    );
 
     if (status === "failed") {
       return NextResponse.json(
@@ -452,6 +458,7 @@ if (!isBrevoConfigured()) {
       deliveryLogId: log.id,
       recipientCount: recipients.length,
       suppressedCount,
+      cappedCount,
       status,
       failedCount,
     });
@@ -496,7 +503,11 @@ if (!isBrevoConfigured()) {
         entityType,
         entityId,
         renderedHtml: html,
-        payload: { ...(raw as object), _suppressedCount: suppressedCount },
+        payload: {
+          ...(raw as object),
+          _suppressedCount: suppressedCount,
+          _cappedCount: cappedCount,
+        },
       },
     });
 
@@ -532,6 +543,7 @@ if (!isBrevoConfigured()) {
       payload: {
         ...(raw as object),
         _suppressedCount: suppressedCount,
+        _cappedCount: cappedCount,
         // Brevo temp contact list backing this campaign — the email-janitor
         // cron deletes it (and marks _brevoListCleaned) once the send is old
         // and no longer scheduled.
@@ -540,6 +552,16 @@ if (!isBrevoConfigured()) {
     },
   });
 
+  // Ledger: record ALL recipients. The >=50 path hands the list to a Brevo
+  // temp contact list (which the janitor later deletes) and never stores
+  // per-recipient outcomes — this is the ONLY place these emails are ever
+  // known locally, so the write must happen here or the cap can't see them.
+  await recordMarketingSends(
+    prisma,
+    recipients.map((r) => ({ email: r.email })),
+    { deliveryLogId: deliveryLog.id, source: "campaign" },
+  );
+
   await linkEntitiesAndLog(deliveryLog.id, status);
 
   return NextResponse.json({
@@ -547,6 +569,7 @@ if (!isBrevoConfigured()) {
     deliveryLogId: deliveryLog.id,
     recipientCount: recipients.length,
     suppressedCount,
+    cappedCount,
     status,
   });
 });

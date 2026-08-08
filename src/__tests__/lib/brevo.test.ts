@@ -10,6 +10,8 @@ import {
   sendCampaignEmail,
   listBrevoLists,
   deleteBrevoList,
+  cancelScheduledCampaign,
+  cancelScheduledMessage,
 } from "@/lib/brevo";
 
 const fetchMock = vi.fn();
@@ -137,5 +139,75 @@ describe("deleteBrevoList", () => {
   it("throws on other error statuses", async () => {
     routeBrevo({ "/contacts/lists/789": { body: {}, status: 500 } });
     await expect(deleteBrevoList(789)).rejects.toThrow(/Brevo delete list failed/);
+  });
+});
+
+describe("cancelScheduledCampaign", () => {
+  it("issues PUT /emailCampaigns/:id/status with body {status: 'suspended'}", async () => {
+    await cancelScheduledCampaign("456");
+    const call = callFor("/emailCampaigns/456/status");
+    expect(call).toBeDefined();
+    expect(call![1].method).toBe("PUT");
+    expect(JSON.parse(call![1].body as string)).toEqual({
+      status: "suspended",
+    });
+  });
+
+  it("accepts a numeric campaign id", async () => {
+    await cancelScheduledCampaign(456);
+    expect(callFor("/emailCampaigns/456/status")).toBeDefined();
+  });
+
+  it("treats 404 as already-gone (no throw — precedent: deleteBrevoList) and reports alreadyGone: true", async () => {
+    routeBrevo({ "/emailCampaigns/456/status": { body: {}, status: 404 } });
+    await expect(cancelScheduledCampaign("456")).resolves.toEqual({
+      alreadyGone: true,
+    });
+  });
+
+  it("resolves alreadyGone: false on a normal 2xx cancel", async () => {
+    await expect(cancelScheduledCampaign("456")).resolves.toEqual({
+      alreadyGone: false,
+    });
+  });
+
+  it("throws on other error statuses", async () => {
+    routeBrevo({ "/emailCampaigns/456/status": { body: {}, status: 500 } });
+    await expect(cancelScheduledCampaign("456")).rejects.toThrow(
+      /Brevo cancel campaign failed/,
+    );
+  });
+});
+
+describe("cancelScheduledMessage", () => {
+  it("issues DELETE /smtp/email/:messageId with the id URL-encoded and no body", async () => {
+    await cancelScheduledMessage("<msg-1@smtp.brevo.com>");
+    const call = callFor("/smtp/email/");
+    expect(call).toBeDefined();
+    expect(call![0]).toContain(
+      `/smtp/email/${encodeURIComponent("<msg-1@smtp.brevo.com>")}`,
+    );
+    expect(call![1].method).toBe("DELETE");
+    expect(call![1].body).toBeUndefined();
+  });
+
+  it("treats 404 as already-sent/gone (no throw — precedent: deleteBrevoList) and reports alreadyGone: true", async () => {
+    routeBrevo({ "/smtp/email/": { body: {}, status: 404 } });
+    await expect(cancelScheduledMessage("msg-1")).resolves.toEqual({
+      alreadyGone: true,
+    });
+  });
+
+  it("resolves alreadyGone: false on a normal 2xx cancel", async () => {
+    await expect(cancelScheduledMessage("msg-1")).resolves.toEqual({
+      alreadyGone: false,
+    });
+  });
+
+  it("throws on other error statuses", async () => {
+    routeBrevo({ "/smtp/email/": { body: {}, status: 500 } });
+    await expect(cancelScheduledMessage("msg-1")).rejects.toThrow(
+      /Brevo cancel message failed/,
+    );
   });
 });
