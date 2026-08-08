@@ -4,6 +4,7 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { z } from "zod";
 import { resolveServiceByCode } from "../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
@@ -255,7 +256,7 @@ export const POST = withApiHandler(async (req) => {
             childName: record.childName ?? null,
             deleted: false,
           },
-          select: { id: true },
+          select: { id: true, stage: true },
         });
 
         if (existing) {
@@ -267,6 +268,7 @@ export const POST = withApiHandler(async (req) => {
               ...(record.notes !== undefined ? { notes: record.notes } : {}),
             },
           });
+          await logEnquiryStageEvent(existing.id, existing.stage, record.stage);
           updated += 1;
           continue;
         }
@@ -287,7 +289,7 @@ export const POST = withApiHandler(async (req) => {
         assignedToId = user?.id;
       }
 
-      await prisma.parentEnquiry.create({
+      const enquiry = await prisma.parentEnquiry.create({
         data: {
           serviceId: service.id,
           stage: record.stage,
@@ -302,6 +304,7 @@ export const POST = withApiHandler(async (req) => {
           stageChangedAt: now,
         },
       });
+      await logEnquiryStageEvent(enquiry.id, null, record.stage);
       created += 1;
     }
 
@@ -360,7 +363,7 @@ export const PUT = withApiHandler(async (req) => {
   try {
     const enquiry = await prisma.parentEnquiry.findFirst({
       where: { id, deleted: false },
-      select: { id: true },
+      select: { id: true, stage: true },
     });
 
     if (!enquiry) {
@@ -380,6 +383,7 @@ export const PUT = withApiHandler(async (req) => {
       },
       select: { id: true, stage: true, stageChangedAt: true },
     });
+    await logEnquiryStageEvent(id, enquiry.stage, stage);
 
     return NextResponse.json({ success: true, record: updated });
   } catch (err) {
