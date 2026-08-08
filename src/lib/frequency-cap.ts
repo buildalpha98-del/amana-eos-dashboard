@@ -4,13 +4,14 @@ import { logger } from "@/lib/logger";
 /**
  * Weekly marketing-email frequency cap, backed by the MarketingSendRecipient
  * ledger. Mirrors how suppression works: a local table written at EVERY
- * marketing send path (campaign both branches, cowork, nurture, resend) and
- * consulted at bulk-send time. A missed write site is a test failure, not a
- * silent leak — never write ledger rows inline; go through
+ * marketing send path (campaign both branches, cowork, nurture, resend,
+ * lifecycle) and consulted at bulk-send time. A missed write site is a test
+ * failure, not a silent leak — never write ledger rows inline; go through
  * `recordMarketingSends`.
  *
- * Enforcement applies only to BULK paths (campaign / cowork). Nurture and
- * enquiry sends are 1:1 lifecycle mail — recorded (they count toward a
+ * Enforcement applies only to BULK paths (campaign / cowork). Nurture,
+ * enquiry and lifecycle sends (waitlist confirmation, enrol link, enrolment
+ * reminder, CRM drip) are 1:1 lifecycle mail — recorded (they count toward a
  * parent's weekly volume) but never blocked.
  *
  * NOTE (deliberately conservative): ledger rows written for a <50 SCHEDULED
@@ -30,7 +31,14 @@ export const MARKETING_EMAIL_WEEKLY_CAP = 3;
 /** Rolling window (days) the cap is measured over. */
 export const CAP_WINDOW_DAYS = 7;
 
-export type MarketingSendSource = "campaign" | "cowork" | "nurture" | "resend";
+export type MarketingSendSource =
+  | "campaign"
+  | "cowork"
+  | "nurture"
+  | "resend"
+  /** Parent-facing lifecycle mail (waitlist confirmation, enrol link,
+   *  enrolment reminder, CRM drip) — recorded for visibility, never blocked. */
+  | "lifecycle";
 
 /** Structural slice of PrismaClient the ledger needs — keeps the lib testable. */
 type LedgerDb = Pick<PrismaClient, "marketingSendRecipient">;
