@@ -10,6 +10,7 @@ import { Prisma } from "@prisma/client";
 import type { SessionType } from "@prisma/client";
 import type { OwnaChild, OwnaIncident, OwnaClient } from "@/lib/owna";
 import { logger } from "@/lib/logger";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -415,6 +416,13 @@ export async function syncOwnaService(
       // Stage changes made by this sync — nurture side effects (cancelling
       // stale nudges, starting onboarding) run after the writes land.
       const stageChanges: { enquiryId: string; stage: string }[] = [];
+      // Pipeline-ledger events (fromStage null = creation) — also logged
+      // after the writes land, so history never precedes the row it describes.
+      const stageEvents: {
+        enquiryId: string;
+        fromStage: string | null;
+        toStage: string;
+      }[] = [];
       const nurtureCreateOwnaIds: string[] = [];
 
       for (const enq of activeEnquiries) {
@@ -445,6 +453,11 @@ export async function syncOwnaService(
             );
             if (stage !== existing.stage) {
               stageChanges.push({ enquiryId: existing.id, stage });
+              stageEvents.push({
+                enquiryId: existing.id,
+                fromStage: existing.stage,
+                toStage: stage,
+              });
             }
           } else if (stage === "enrolled" && stageRank(existing.stage) < stageRank("enrolled")) {
             // OWNA marking a family enrolled is ground truth — apply it even
@@ -457,6 +470,11 @@ export async function syncOwnaService(
               })
             );
             stageChanges.push({ enquiryId: existing.id, stage: "enrolled" });
+            stageEvents.push({
+              enquiryId: existing.id,
+              fromStage: existing.stage,
+              toStage: "enrolled",
+            });
           }
         } else if (emailMatch) {
           // Same parent already has an open card from another channel — link
@@ -480,6 +498,11 @@ export async function syncOwnaService(
           unlinkedByEmail.delete(enq.email.toLowerCase());
           if (advance) {
             stageChanges.push({ enquiryId: emailMatch.id, stage });
+            stageEvents.push({
+              enquiryId: emailMatch.id,
+              fromStage: emailMatch.stage,
+              toStage: stage,
+            });
           }
         } else {
           const childrenDetails: Prisma.InputJsonValue | undefined =
@@ -528,17 +551,27 @@ export async function syncOwnaService(
         }
       }
 
-      // Nurture side effects, now that the rows exist: new enquiries start
-      // the New Enquiry Journey; stage advances cancel stale nudges and (for
+      // Side effects, now that the rows exist. Every create gets a pipeline-
+      // ledger event (fromStage null); only recent, opted-in creates start
+      // the New Enquiry Journey. Stage advances cancel stale nudges and (for
       // first_session) start onboarding.
-      if (nurtureCreateOwnaIds.length > 0) {
+      if (creates.length > 0) {
         const created = await prisma.parentEnquiry.findMany({
-          where: { ownaEnquiryId: { in: nurtureCreateOwnaIds } },
-          select: { id: true, stage: true },
+          where: {
+            ownaEnquiryId: { in: creates.map((c) => c.ownaEnquiryId as string) },
+          },
+          select: { id: true, stage: true, ownaEnquiryId: true },
         });
+        const nurtureEligible = new Set(nurtureCreateOwnaIds);
         for (const c of created) {
-          stageChanges.push({ enquiryId: c.id, stage: c.stage });
+          stageEvents.push({ enquiryId: c.id, fromStage: null, toStage: c.stage });
+          if (c.ownaEnquiryId && nurtureEligible.has(c.ownaEnquiryId)) {
+            stageChanges.push({ enquiryId: c.id, stage: c.stage });
+          }
         }
+      }
+      for (const ev of stageEvents) {
+        await logEnquiryStageEvent(ev.enquiryId, ev.fromStage, ev.toStage);
       }
       for (const change of stageChanges) {
         try {
