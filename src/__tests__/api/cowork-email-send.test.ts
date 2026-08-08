@@ -222,6 +222,34 @@ describe("POST /api/cowork/email/send", () => {
     expect(mockedRecordMarketingSends).not.toHaveBeenCalled();
   });
 
+  it("stamps sentAt on immediate sends (dispatch completion)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await POST(postBody({}));
+    expect(res.status).toBe(200);
+
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(createArgs.data.status).toBe("sent");
+    expect(createArgs.data.sentAt).toBeInstanceOf(Date);
+  });
+
+  it("leaves sentAt unset on scheduled sends (the Brevo webhook flips it on first delivery)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await POST(
+      postBody({ scheduledAt: "2026-08-10T09:00:00.000Z" }),
+    );
+    expect(res.status).toBe(200);
+
+    const createArgs = prismaMock.deliveryLog.create.mock.calls[0][0];
+    expect(createArgs.data.status).toBe("scheduled");
+    expect(createArgs.data.sentAt).toBeUndefined();
+  });
+
   it("records every dispatched recipient in the ledger (source cowork, deliveryLogId linked)", async () => {
     prismaMock.centreContact.findMany.mockResolvedValue([
       contact("a@example.com"),

@@ -225,6 +225,10 @@ export const POST = withApiHandler(async (req) => {
         externalIdType,
         recipientCount: recipients.length,
         status,
+        // sentAt = dispatch completion (schema doc contract). Scheduled sends
+        // leave it null — the Brevo webhook stamps it when the first delivery
+        // event flips the row to "sent".
+        sentAt: scheduledAt ? undefined : new Date(),
         payload: {
           subject,
           serviceCode,

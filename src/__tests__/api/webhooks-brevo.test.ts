@@ -258,6 +258,133 @@ describe("POST /api/webhooks/brevo", () => {
       expect(prismaMock.emailEvent.create).not.toHaveBeenCalled();
     });
 
+    describe("scheduled→sent sync", () => {
+      it("flips a scheduled row to sent with sentAt stamped on a delivered event", async () => {
+        prismaMock.deliveryLog.findUnique.mockResolvedValue({ id: "dl-sched" });
+        prismaMock.deliveryLog.updateMany.mockResolvedValue({ count: 1 });
+        prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+        const req = postBody({
+          event: "delivered",
+          email: "parent@example.com",
+          "message-id": "<msg-sched-1>",
+          tag: "dl:dl-sched",
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(200);
+
+        expect(prismaMock.deliveryLog.updateMany).toHaveBeenCalledTimes(1);
+        expect(prismaMock.deliveryLog.updateMany).toHaveBeenCalledWith({
+          where: { id: "dl-sched", status: "scheduled" },
+          data: { status: "sent", sentAt: expect.any(Date) },
+        });
+      });
+
+      it("never resurrects a cancelled row — the status guard no-ops and the webhook still 200s", async () => {
+        prismaMock.deliveryLog.findUnique.mockResolvedValue({ id: "dl-cancelled" });
+        // Row is status "cancelled" → the WHERE { status: "scheduled" } matches 0.
+        prismaMock.deliveryLog.updateMany.mockResolvedValue({ count: 0 });
+        prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+        const req = postBody({
+          event: "delivered",
+          email: "parent@example.com",
+          "message-id": "<msg-cancelled>",
+          tag: "dl:dl-cancelled",
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json).toEqual({ received: true });
+
+        // The flip is a single conditional update — count 0 means untouched;
+        // no unconditional write path may exist.
+        expect(prismaMock.deliveryLog.updateMany).toHaveBeenCalledWith({
+          where: { id: "dl-cancelled", status: "scheduled" },
+          data: { status: "sent", sentAt: expect.any(Date) },
+        });
+        expect(prismaMock.deliveryLog.update).not.toHaveBeenCalled();
+      });
+
+      it("leaves partial rows untouched — the WHERE is status-guarded", async () => {
+        prismaMock.deliveryLog.findUnique.mockResolvedValue({ id: "dl-partial" });
+        prismaMock.deliveryLog.updateMany.mockResolvedValue({ count: 0 });
+        prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+        const req = postBody({
+          event: "delivered",
+          email: "parent@example.com",
+          "message-id": "<msg-partial>",
+          tag: "dl:dl-partial",
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(200);
+
+        // The updateMany fires, but its WHERE pins status "scheduled" so a
+        // partial row can never be overwritten to plain "sent".
+        const args = prismaMock.deliveryLog.updateMany.mock.calls[0][0];
+        expect(args.where).toEqual({ id: "dl-partial", status: "scheduled" });
+        expect(prismaMock.deliveryLog.update).not.toHaveBeenCalled();
+      });
+
+      it("duplicate delivered event: the event is deduped but the sync still fires as a no-op", async () => {
+        prismaMock.deliveryLog.findUnique.mockResolvedValue({ id: "dl-sched" });
+        // Second fire: row already flipped to "sent" → count 0.
+        prismaMock.deliveryLog.updateMany.mockResolvedValue({ count: 0 });
+        prismaMock.emailEvent.findFirst.mockResolvedValue({ id: "existing-event" });
+
+        const req = postBody({
+          event: "delivered",
+          email: "parent@example.com",
+          "message-id": "<msg-sched-dupe>",
+          tag: "dl:dl-sched",
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(200);
+
+        expect(prismaMock.emailEvent.create).not.toHaveBeenCalled();
+        // The sync runs OUTSIDE the dedupe branch — a crash between the event
+        // create and the flip must not strand the row at "scheduled".
+        expect(prismaMock.deliveryLog.updateMany).toHaveBeenCalledTimes(1);
+        expect(prismaMock.deliveryLog.updateMany).toHaveBeenCalledWith({
+          where: { id: "dl-sched", status: "scheduled" },
+          data: { status: "sent", sentAt: expect.any(Date) },
+        });
+      });
+
+      it("does not attempt the sync on non-delivered event types", async () => {
+        prismaMock.deliveryLog.findUnique.mockResolvedValue({ id: "dl-sent" });
+        prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+        const req = postBody({
+          event: "opened",
+          email: "parent@example.com",
+          "message-id": "<msg-open-nosync>",
+          tag: "dl:dl-sent",
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(200);
+
+        expect(prismaMock.deliveryLog.updateMany).not.toHaveBeenCalled();
+        expect(prismaMock.emailEvent.create).toHaveBeenCalledTimes(1);
+      });
+
+      it("does not attempt the sync when no DeliveryLog correlates", async () => {
+        prismaMock.deliveryLog.findFirst.mockResolvedValue(null);
+        prismaMock.emailEvent.findFirst.mockResolvedValue(null);
+
+        const req = postBody({
+          event: "delivered",
+          email: "parent@example.com",
+          "message-id": "<msg-uncorrelated>",
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(200);
+
+        expect(prismaMock.deliveryLog.updateMany).not.toHaveBeenCalled();
+      });
+    });
+
     it("suppresses the address on hard_bounce AND still writes the event", async () => {
       prismaMock.deliveryLog.findFirst.mockResolvedValue(null);
       prismaMock.emailEvent.findFirst.mockResolvedValue(null);
