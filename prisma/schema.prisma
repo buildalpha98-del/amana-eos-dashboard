@@ -6059,6 +6059,47 @@ model KnowledgeBaseArticle {
 }
 
 // ============================================================
+// Parent Help Centre (public Freshdesk-style support portal)
+// ============================================================
+// Parent-facing knowledge base served at /support (no auth).
+// Deliberately separate from KnowledgeBaseArticle (staff-facing /help)
+// so parent and staff content never mix. Ticket submissions from the
+// portal create SupportTicket rows (source "portal") via a stub
+// WhatsAppContact, landing in the contact-centre queue.
+
+model HelpCategory {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String        @default("")
+  icon        String        @default("book-open") // lucide icon key rendered on the category card
+  sortOrder   Int           @default(0)
+  published   Boolean       @default(false)
+  articles    HelpArticle[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([published, sortOrder])
+}
+
+model HelpArticle {
+  id         String       @id @default(cuid())
+  categoryId String
+  category   HelpCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title      String
+  slug       String       @unique
+  body       String       @db.Text // markdown, rendered with the standard sanitised pipeline
+  sortOrder  Int          @default(0)
+  published  Boolean      @default(false)
+  viewCount  Int          @default(0) // incremented on public article reads; drives "popular articles"
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([categoryId, published, sortOrder])
+  @@index([published, viewCount])
+}
+
+// ============================================================
 // Cowork Reports (AI-generated seat reports)
 // ============================================================
 

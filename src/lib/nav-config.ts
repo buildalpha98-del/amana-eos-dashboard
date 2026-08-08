@@ -40,6 +40,7 @@ import {
   Contact,
   Crown,
   Inbox,
+  LifeBuoy,
   Shield,
   Activity,
   CalendarCheck,
@@ -228,6 +229,8 @@ export const navItems: NavItem[] = [
   // dead link.
   { href: "/ambassadors", label: "Ambassadors", icon: Trophy, section: "Growth", tooltip: "Educator enrolment incentive pilot — referrals, verification & payouts", roles: ["head_office", "admin", "member", "staff"], core: ["owner", "head_office", "admin", "member", "staff"] },
   { href: "/crm/templates", label: "CRM Templates", icon: Mail, section: "Growth", tooltip: "Email templates behind automated CRM touchpoints", roles: ["owner", "head_office", "admin", "marketing"] },
+  // 2026-08-08: admin surface for the public parent help centre at /support.
+  { href: "/help-centre", label: "Help Centre", icon: LifeBuoy, section: "Growth", tooltip: "Manage the public parent help centre — FAQ categories, articles and the contact form", roles: ["owner", "head_office", "admin"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" , core: ["marketing"] },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
