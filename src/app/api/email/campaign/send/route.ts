@@ -398,6 +398,11 @@ if (!isBrevoConfigured()) {
     });
 
     const failedRecipients: string[] = [];
+    // Per-recipient Brevo messageIds from FULFILLED sends — persisted as
+    // payload._sentMessageIds so the cancel route can DELETE each scheduled
+    // message on Brevo's side. The wrapper's "unknown" fallback (Brevo
+    // omitted the id) is useless for cancellation and is filtered out.
+    const sentMessageIds: Array<{ email: string; messageId: string }> = [];
     let firstError: string | null = null;
 
     // Bounded concurrency: chunks of 5 keep us well inside Brevo's rate
@@ -427,6 +432,11 @@ if (!isBrevoConfigured()) {
                 ? result.reason.message
                 : "Unknown send error";
           }
+        } else if (result.value.messageId !== "unknown") {
+          sentMessageIds.push({
+            email: chunk[j].email,
+            messageId: result.value.messageId,
+          });
         }
       });
     }
@@ -452,14 +462,18 @@ if (!isBrevoConfigured()) {
               errorMessage:
                 `${failedCount} of ${recipients.length} recipient sends failed` +
                 (firstError ? ` — first error: ${firstError}` : ""),
-              payload: {
-                ...(raw as object),
-                _suppressedCount: suppressedCount,
-                _cappedCount: cappedCount,
-                _failedRecipients: failedRecipients,
-              },
             }
           : {}),
+        // Always rewrite the payload (this used to be failure-only):
+        // _sentMessageIds must land for SUCCESSFUL sends too, or the cancel
+        // route has nothing to DELETE for a scheduled per-recipient send.
+        payload: {
+          ...(raw as object),
+          _suppressedCount: suppressedCount,
+          _cappedCount: cappedCount,
+          _sentMessageIds: sentMessageIds,
+          ...(failedCount > 0 ? { _failedRecipients: failedRecipients } : {}),
+        },
       },
     });
 

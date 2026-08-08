@@ -1010,6 +1010,149 @@ describe("POST /api/email/campaign/send — frequency cap + send ledger", () => 
   });
 });
 
+describe("POST /api/email/campaign/send — _sentMessageIds capture (<50)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedGetFrequencyCapped.mockResolvedValue(new Set());
+    mockedRecordMarketingSends.mockResolvedValue(undefined);
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
+    prismaMock.orgSettings.findUnique.mockResolvedValue(null);
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.deliveryLog.update.mockResolvedValue({} as never);
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  function postBody(body: Record<string, unknown>) {
+    return createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", htmlContent: "<p>hi</p>", ...body },
+    });
+  }
+
+  it("captures per-recipient messageIds into payload._sentMessageIds on a fully-successful send (always-write, not failure-only)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+    ]);
+    mockedSendTransactional.mockImplementation(
+      async (params: { to: Array<{ email: string }> }) => ({
+        messageId: `<id-${params.to[0].email}>`,
+      }),
+    );
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    const updateArgs = prismaMock.deliveryLog.update.mock.calls[0][0];
+    const payload = updateArgs.data.payload as {
+      _sentMessageIds: Array<{ email: string; messageId: string }>;
+      _suppressedCount: number;
+      _cappedCount: number;
+    };
+    // The payload rewrite now ALWAYS happens (it used to be failure-only) so
+    // the cancel route can find messageIds for scheduled sends.
+    expect(payload).toBeDefined();
+    expect(payload._suppressedCount).toBe(0);
+    expect(payload._cappedCount).toBe(0);
+    expect(
+      [...payload._sentMessageIds].sort((x, y) => x.email.localeCompare(y.email)),
+    ).toEqual([
+      { email: "a@example.com", messageId: "<id-a@example.com>" },
+      { email: "b@example.com", messageId: "<id-b@example.com>" },
+    ]);
+  });
+
+  it("filters the 'unknown' messageId fallback out of _sentMessageIds", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+      contact("c@example.com"),
+    ]);
+    mockedSendTransactional.mockImplementation(
+      async (params: { to: Array<{ email: string }> }) => {
+        // Brevo occasionally omits messageId — the wrapper falls back to
+        // "unknown", which is useless for cancellation and must be dropped.
+        if (params.to[0].email === "b@example.com") {
+          return { messageId: "unknown" };
+        }
+        return { messageId: `<id-${params.to[0].email}>` };
+      },
+    );
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    const updateArgs = prismaMock.deliveryLog.update.mock.calls[0][0];
+    const payload = updateArgs.data.payload as {
+      _sentMessageIds: Array<{ email: string; messageId: string }>;
+    };
+    expect(
+      [...payload._sentMessageIds].sort((x, y) => x.email.localeCompare(y.email)),
+    ).toEqual([
+      { email: "a@example.com", messageId: "<id-a@example.com>" },
+      { email: "c@example.com", messageId: "<id-c@example.com>" },
+    ]);
+  });
+
+  it("records only the FULFILLED sends' ids alongside _failedRecipients on a partial failure", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+      contact("b@example.com"),
+    ]);
+    mockedSendTransactional.mockImplementation(
+      async (params: { to: Array<{ email: string }> }) => {
+        if (params.to[0].email === "b@example.com") {
+          throw new Error("Brevo transactional send failed (500): boom");
+        }
+        return { messageId: "<id-a>" };
+      },
+    );
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    const updateArgs = prismaMock.deliveryLog.update.mock.calls[0][0];
+    const payload = updateArgs.data.payload as {
+      _sentMessageIds: Array<{ email: string; messageId: string }>;
+      _failedRecipients: string[];
+    };
+    expect(payload._sentMessageIds).toEqual([
+      { email: "a@example.com", messageId: "<id-a>" },
+    ]);
+    expect(payload._failedRecipients).toEqual(["b@example.com"]);
+  });
+
+  it("captures _sentMessageIds for a SCHEDULED send — the input to a later Brevo-side cancel", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+    mockedSendTransactional.mockResolvedValue({ messageId: "<id-sched>" });
+
+    const res = await sendCampaign(
+      postBody({ scheduledAt: "2026-08-10T09:00:00.000Z" }),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.status).toBe("scheduled");
+
+    const updateArgs = prismaMock.deliveryLog.update.mock.calls[0][0];
+    const payload = updateArgs.data.payload as {
+      _sentMessageIds: Array<{ email: string; messageId: string }>;
+    };
+    expect(payload._sentMessageIds).toEqual([
+      { email: "a@example.com", messageId: "<id-sched>" },
+    ]);
+  });
+});
+
 describe("GET /api/email/recipient-count — post-suppression count", () => {
   beforeEach(() => {
     vi.clearAllMocks();

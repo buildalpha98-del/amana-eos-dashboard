@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
-const REPORT_ROLES = ["owner", "head_office", "admin", "marketing"] as const;
+// Shared with the scheduled-cancel route (imported from here — single source
+// of truth for who may see/act on send reports).
+export const REPORT_ROLES = ["owner", "head_office", "admin", "marketing"] as const;
 
 /**
  * GET /api/email/reports/:deliveryLogId — per-send engagement report.
@@ -26,7 +28,7 @@ export const GET = withApiAuth(
   async (req, session, context) => {
     const { deliveryLogId } = await context!.params!;
 
-    const log = await prisma.deliveryLog.findUnique({
+    const row = await prisma.deliveryLog.findUnique({
       where: { id: deliveryLogId },
       select: {
         id: true,
@@ -35,11 +37,28 @@ export const GET = withApiAuth(
         recipientCount: true,
         createdAt: true,
         messageType: true,
+        // Inputs for the DERIVED affordance flags below — NEVER returned raw:
+        // payload carries the full original request body and renderedHtml the
+        // full email HTML.
+        payload: true,
+        renderedHtml: true,
       },
     });
-    if (!log) {
+    if (!row) {
       return NextResponse.json({ error: "Send not found" }, { status: 404 });
     }
+    const { payload: rawPayload, renderedHtml, ...log } = row;
+
+    // Affordance flags — derived SERVER-side so the client never needs (or
+    // sees) the raw payload. canResend requires stored HTML because the
+    // resend re-dispatches the original rendering verbatim.
+    const logPayload = rawPayload as Record<string, unknown> | null;
+    const failedCount = Array.isArray(logPayload?._failedRecipients)
+      ? logPayload._failedRecipients.length
+      : 0;
+    const canCancel = log.status === "scheduled";
+    const canResend =
+      log.status === "partial" && failedCount > 0 && renderedHtml != null;
 
     const events = await prisma.emailEvent.findMany({
       where: { deliveryLogId },
@@ -101,6 +120,9 @@ export const GET = withApiAuth(
 
     return NextResponse.json({
       log,
+      canCancel,
+      canResend,
+      failedCount,
       hasEvents: events.length > 0,
       stats: {
         delivered,

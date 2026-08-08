@@ -333,6 +333,12 @@ export interface SendReportData {
     createdAt: string;
     messageType: string | null;
   };
+  /** True while the send is still "scheduled" — shows the Cancel affordance. */
+  canCancel: boolean;
+  /** True for a partial send with failed recipients + stored HTML (resend input). */
+  canResend: boolean;
+  /** Count of failed recipients — derived server-side; raw emails never sent. */
+  failedCount: number;
   /** False when the send has zero events — predates tracking or unopened. */
   hasEvents: boolean;
   stats: {
@@ -357,6 +363,36 @@ export function useSendReport(deliveryLogId: string | null) {
     enabled: !!deliveryLogId,
     retry: 2,
     staleTime: 30_000,
+  });
+}
+
+/**
+ * Cancel a scheduled send: claims the local row, then best-effort-cancels on
+ * Brevo. `brevoCancelled: false` means the row is cancelled locally but the
+ * Brevo-side cancel didn't happen (legacy row or Brevo error) — surface the
+ * server's `detail` so the user knows to check Brevo.
+ */
+export function useCancelScheduledSend() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (deliveryLogId: string) =>
+      mutateApi<{
+        cancelled: boolean;
+        brevoCancelled: boolean;
+        detail?: string;
+      }>(`/api/email/scheduled/${deliveryLogId}/cancel`, { method: "POST" }),
+    onSuccess: (result, deliveryLogId) => {
+      qc.invalidateQueries({ queryKey: ["send-report", deliveryLogId] });
+      qc.invalidateQueries({ queryKey: ["email-analytics"] });
+      toast({
+        description: result.brevoCancelled
+          ? "Scheduled send cancelled"
+          : `Send cancelled locally${result.detail ? ` — ${result.detail}` : ""}`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 

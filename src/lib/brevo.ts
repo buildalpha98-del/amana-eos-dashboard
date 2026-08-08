@@ -82,6 +82,45 @@ export async function deleteBrevoList(id: number): Promise<void> {
   }
 }
 
+// ── Scheduled-send cancellation ──────────────────────────────
+
+/**
+ * Cancel a SCHEDULED Brevo campaign by suspending it (PUT status "suspended"
+ * — reversible and auditable in the Brevo UI, unlike a hard delete).
+ * 404 = campaign already gone → treated as success (precedent: deleteBrevoList).
+ */
+export async function cancelScheduledCampaign(
+  campaignId: string | number,
+): Promise<void> {
+  const res = await brevoFetch(
+    `/emailCampaigns/${campaignId}/status`,
+    { status: "suspended" },
+    "PUT",
+  );
+  if (!res.ok && res.status !== 404) {
+    const err = await res.text();
+    throw new Error(`Brevo cancel campaign failed (${res.status}): ${err}`);
+  }
+}
+
+/**
+ * Cancel a SCHEDULED transactional message by messageId
+ * (DELETE /smtp/email/{messageId}). Message ids contain `<`/`@`/`>` so the
+ * id is URL-encoded. 404 = already sent or never scheduled → treated as
+ * success (precedent: deleteBrevoList).
+ */
+export async function cancelScheduledMessage(messageId: string): Promise<void> {
+  const res = await brevoFetch(
+    `/smtp/email/${encodeURIComponent(messageId)}`,
+    undefined,
+    "DELETE",
+  );
+  if (!res.ok && res.status !== 404) {
+    const err = await res.text();
+    throw new Error(`Brevo cancel message failed (${res.status}): ${err}`);
+  }
+}
+
 // ── Transactional Email (< 50 recipients) ────────────────────
 
 interface TransactionalParams {

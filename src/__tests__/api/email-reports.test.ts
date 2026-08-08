@@ -53,6 +53,8 @@ function logRow(overrides: Record<string, unknown> = {}) {
     recipientCount: 4,
     createdAt: SEND_AT,
     messageType: "campaign",
+    payload: null,
+    renderedHtml: null,
     ...overrides,
   };
 }
@@ -265,6 +267,100 @@ describe("GET /api/email/reports/[deliveryLogId] — hourly buckets", () => {
     expect(totalOpens).toBe(1);
     expect(totalClicks).toBe(0);
     expect(body.hourly[23]).toEqual({ hour: 23, opens: 0, clicks: 0 });
+  });
+});
+
+describe("GET /api/email/reports/[deliveryLogId] — affordance flags", () => {
+  it("flags canCancel for a scheduled send (and not canResend)", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({ status: "scheduled" }),
+    );
+
+    const res = await getReport();
+    const body = await res.json();
+
+    expect(body.canCancel).toBe(true);
+    expect(body.canResend).toBe(false);
+    expect(body.failedCount).toBe(0);
+  });
+
+  it("flags canResend for a partial send with failed recipients AND stored HTML", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({
+        status: "partial",
+        payload: { _failedRecipients: ["a@x.com", "b@x.com"] },
+        renderedHtml: "<p>stored</p>",
+      }),
+    );
+
+    const res = await getReport();
+    const body = await res.json();
+
+    expect(body.canResend).toBe(true);
+    expect(body.canCancel).toBe(false);
+    expect(body.failedCount).toBe(2);
+  });
+
+  it("does NOT flag canResend when the partial row has no stored renderedHtml", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({
+        status: "partial",
+        payload: { _failedRecipients: ["a@x.com"] },
+        renderedHtml: null,
+      }),
+    );
+
+    const res = await getReport();
+    const body = await res.json();
+
+    expect(body.canResend).toBe(false);
+    expect(body.failedCount).toBe(1);
+  });
+
+  it("does NOT flag canResend when _failedRecipients is missing or empty", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({ status: "partial", payload: {}, renderedHtml: "<p>x</p>" }),
+    );
+
+    const res = await getReport();
+    const body = await res.json();
+
+    expect(body.canResend).toBe(false);
+    expect(body.failedCount).toBe(0);
+  });
+
+  it("both flags false on a plain sent row", async () => {
+    const res = await getReport();
+    const body = await res.json();
+
+    expect(body.canCancel).toBe(false);
+    expect(body.canResend).toBe(false);
+    expect(body.failedCount).toBe(0);
+  });
+
+  it("NEVER exposes the raw payload or renderedHtml — derived flags and counts only", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({
+        status: "partial",
+        // The payload holds the full original request body (audience rules,
+        // html, variables) — leaking it would hand centre staff PII + content.
+        payload: {
+          _failedRecipients: ["a@x.com"],
+          htmlContent: "<p>secret original body</p>",
+        },
+        renderedHtml: "<p>rendered secret</p>",
+      }),
+    );
+
+    const res = await getReport();
+    const body = await res.json();
+
+    expect(body.payload).toBeUndefined();
+    expect(body.renderedHtml).toBeUndefined();
+    expect(body.log.payload).toBeUndefined();
+    expect(body.log.renderedHtml).toBeUndefined();
+    expect(body.failedRecipients).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain("secret");
   });
 });
 
