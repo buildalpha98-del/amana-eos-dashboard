@@ -99,6 +99,9 @@ export const POST = withApiAuth(async (req, session) => {
   // Suppression is NOT enforced here (you're only emailing yourself), but if
   // the caller's own address is suppressed the mail will likely not arrive —
   // warn so a "test never showed up" isn't misdiagnosed as a send failure.
+  // The frequency-cap LEDGER is also deliberately NOT written for test sends:
+  // draft previews would burn the marketer's own address's weekly budget and
+  // could cap them out of real sends. Not a missing recordMarketingSends call.
   const suppressed = await isEmailSuppressed(email);
 
   const subject = `[Test] ${body.subject}`;

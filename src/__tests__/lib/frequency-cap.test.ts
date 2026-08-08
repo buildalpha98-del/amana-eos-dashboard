@@ -1,4 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("@/lib/logger", () => ({
+  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+import { logger } from "@/lib/logger";
 import {
   MARKETING_EMAIL_WEEKLY_CAP,
   CAP_WINDOW_DAYS,
@@ -27,6 +33,18 @@ beforeEach(() => {
 });
 
 describe("recordMarketingSends", () => {
+  it("swallows a createMany failure (logged, never thrown) — a ledger hiccup must not fail a dispatched send", async () => {
+    db.marketingSendRecipient.createMany.mockRejectedValueOnce(
+      new Error("db down"),
+    );
+    await expect(
+      recordMarketingSends(db as never, [{ email: "a@b.c" }], {
+        source: "campaign",
+      }),
+    ).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
   it("lowercases emails and writes a SINGLE createMany with source + deliveryLogId", async () => {
     await recordMarketingSends(
       db as never,

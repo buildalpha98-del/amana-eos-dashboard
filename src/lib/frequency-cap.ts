@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { logger } from "@/lib/logger";
 
 /**
  * Weekly marketing-email frequency cap, backed by the MarketingSendRecipient
@@ -36,6 +37,11 @@ type LedgerDb = Pick<PrismaClient, "marketingSendRecipient">;
  * lowercased on write (compare lowercase to lowercase or the cap filter
  * silently matches nothing — same convention as getSuppressedEmails).
  * Single createMany; empty input is a no-op.
+ *
+ * SWALLOWS errors (logged, never thrown): the ledger is advisory guardrail
+ * data written AFTER a successful dispatch — a DB hiccup here must never 500
+ * a send that already went out, nor flip a nurture execution back to pending
+ * and re-send the email. Same design as the notify helpers.
  */
 export async function recordMarketingSends(
   db: LedgerDb,
@@ -43,14 +49,23 @@ export async function recordMarketingSends(
   meta: { deliveryLogId?: string; source: MarketingSendSource },
 ): Promise<void> {
   if (entries.length === 0) return;
-  await db.marketingSendRecipient.createMany({
-    data: entries.map((e) => ({
-      email: e.email.toLowerCase(),
-      contactId: e.contactId ?? null,
-      deliveryLogId: meta.deliveryLogId ?? null,
+  try {
+    await db.marketingSendRecipient.createMany({
+      data: entries.map((e) => ({
+        email: e.email.toLowerCase(),
+        contactId: e.contactId ?? null,
+        deliveryLogId: meta.deliveryLogId ?? null,
+        source: meta.source,
+      })),
+    });
+  } catch (err) {
+    logger.error("Marketing send ledger write failed — cap will under-count", {
+      err,
+      count: entries.length,
       source: meta.source,
-    })),
-  });
+      deliveryLogId: meta.deliveryLogId,
+    });
+  }
 }
 
 /**
