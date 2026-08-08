@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useMarketingAnalytics } from "@/hooks/useMarketing";
 import { ContentHeatmap } from "./ContentHeatmap";
 import { EmailAnalytics } from "./EmailAnalytics";
+import { RequestQualityCard } from "./RequestQualityCard";
 
 // ── Platform bar colors (matching PlatformBadge) ───────────
 const platformBarColors: Record<string, string> = {
@@ -448,6 +449,9 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
 
       {/* Email & Messaging Activity */}
       <EmailAnalytics />
+
+      {/* Creative-request quality loop (CSAT + first-proof approval) */}
+      <RequestQualityCard />
     </div>
   );
 }

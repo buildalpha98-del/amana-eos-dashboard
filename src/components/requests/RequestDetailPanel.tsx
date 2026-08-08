@@ -14,7 +14,9 @@ import {
   useCreativeRequest,
   usePatchRequest,
   usePostRequestMessage,
+  useRateRequest,
   useRequestMessages,
+  type CreativeRequestItem,
 } from "@/hooks/useCreativeRequests";
 import { useCampaigns } from "@/hooks/useMarketing";
 import { ProofsSection } from "@/components/requests/ProofsSection";
@@ -145,6 +147,12 @@ export function RequestDetailPanel({
                 </Button>
               </div>
             )}
+
+            <SatisfactionSection
+              requestId={requestId}
+              request={request}
+              isOwner={isOwner}
+            />
 
             <div className="mt-5 space-y-3">
               <section>
@@ -346,6 +354,99 @@ export function RequestDetailPanel({
         }
       />
     </div>
+  );
+}
+
+/**
+ * Post-delivery CSAT. The requester of a delivered request gets a one-tap
+ * 👍/👎 prompt (tapping reveals an optional comment before submit); once
+ * rated, everyone — requester and fulfillers — sees the rating read-only.
+ * The endpoint is requester-only server-side, so fulfillers never get
+ * the prompt.
+ */
+function SatisfactionSection({
+  requestId,
+  request,
+  isOwner,
+}: {
+  requestId: string;
+  request: CreativeRequestItem;
+  isOwner: boolean;
+}) {
+  const rate = useRateRequest();
+  const [pendingPositive, setPendingPositive] = useState<boolean | null>(null);
+  const [comment, setComment] = useState("");
+
+  if (request.status !== "delivered") return null;
+  const rating = request.satisfaction;
+
+  if (rating) {
+    return (
+      <section className="mt-4 rounded-lg bg-surface border border-border p-3 text-sm text-foreground">
+        <p>
+          {isOwner
+            ? `You rated this delivery ${rating.positive ? "👍" : "👎"}`
+            : `Requester rated ${rating.positive ? "👍" : "👎"}`}
+          {!isOwner && rating.comment ? ` — “${rating.comment}”` : ""}
+        </p>
+        {isOwner && rating.comment && (
+          <p className="text-muted mt-1 whitespace-pre-wrap">“{rating.comment}”</p>
+        )}
+      </section>
+    );
+  }
+
+  if (!isOwner) return null;
+
+  return (
+    <section className="mt-4 rounded-lg bg-surface border border-border p-3">
+      <h3 className="text-sm font-semibold text-foreground">How was this delivery?</h3>
+      <div className="flex gap-2 mt-2">
+        <Button
+          variant={pendingPositive === true ? "primary" : "outline"}
+          aria-label="Rate this delivery thumbs up"
+          onClick={() => setPendingPositive(true)}
+          disabled={rate.isPending}
+        >
+          👍
+        </Button>
+        <Button
+          variant={pendingPositive === false ? "primary" : "outline"}
+          aria-label="Rate this delivery thumbs down"
+          onClick={() => setPendingPositive(false)}
+          disabled={rate.isPending}
+        >
+          👎
+        </Button>
+      </div>
+      {pendingPositive !== null && (
+        <div className="mt-3">
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={2}
+            maxLength={2000}
+            placeholder="Anything to add? (optional)"
+            aria-label="Rating comment"
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+          />
+          <div className="flex justify-end mt-2">
+            <Button
+              onClick={() =>
+                rate.mutate({
+                  id: requestId,
+                  positive: pendingPositive,
+                  comment: comment.trim() || undefined,
+                })
+              }
+              disabled={rate.isPending}
+            >
+              Submit
+            </Button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

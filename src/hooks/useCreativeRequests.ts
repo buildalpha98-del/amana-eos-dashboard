@@ -78,6 +78,13 @@ export interface CreativeRequestItem {
   createdAt: string;
   updatedAt: string;
   attachments: RequestAttachment[];
+  satisfaction: RequestSatisfaction | null;
+}
+
+export interface RequestSatisfaction {
+  positive: boolean;
+  comment: string | null;
+  createdAt: string;
 }
 
 export interface RequestMessage {
@@ -265,6 +272,30 @@ export function useUploadProof() {
       qc.invalidateQueries({ queryKey: ["creative-request", vars.id] });
       qc.invalidateQueries({ queryKey: ["creative-requests"] });
       toast({ description: "Proof sent for review — the requester has been notified" });
+    },
+    onError,
+  });
+}
+
+export function useRateRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...input
+    }: {
+      id: string;
+      positive: boolean;
+      comment?: string;
+    }) =>
+      mutateApi<{ satisfaction: RequestSatisfaction }>(
+        `/api/creative-requests/${id}/satisfaction`,
+        { method: "POST", body: input },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["creative-request", vars.id] });
+      qc.invalidateQueries({ queryKey: ["creative-requests"] });
+      toast({ description: "Thanks — your rating helps the marketing team improve" });
     },
     onError,
   });
