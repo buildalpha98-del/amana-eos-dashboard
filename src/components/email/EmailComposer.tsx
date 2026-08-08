@@ -13,11 +13,14 @@ import AudienceManagerModal from "./AudienceManagerModal";
 import {
   useSendEmail,
   useTestSend,
-  useEmailPreview,
   useEmailTemplate,
   useAudiences,
   type EmailTemplateData,
 } from "@/hooks/useEmailTemplates";
+import {
+  pickTouchedLayoutOptions,
+  resolveTouchedLayoutKeys,
+} from "@/lib/email-layout-schema";
 import { Button } from "@/components/ui/Button";
 import type { EmailBlock, EmailLayoutOptions } from "@/lib/email-marketing-layout";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
@@ -54,13 +57,12 @@ export function EmailComposer() {
     // Layout settings persist as a PLAIN object (unlike blocks, which the
     // draft stores JSON-stringified) — be consistent on restore.
     layoutOptions: FALLBACK_LAYOUT,
-    layoutDirty: false,
+    touchedLayoutKeys: [] as string[],
   };
   const {
     data: draft,
     updateField: updateDraft,
     clearDraft,
-    hasDraft,
   } = useFormDraft("email-compose", initialDraft);
 
   // ── State (seeded from draft) ─────────────────────────────
@@ -88,33 +90,48 @@ export function EmailComposer() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
-  // Branding-seeded + dirty-gated: the panel starts from org branding (or a
-  // restored draft), and `layoutDirty` flips true on ANY user edit in the
-  // Header & Footer panel. Untouched sends OMIT layoutOptions entirely so
-  // the server's live org-branding base stays authoritative — org branding
-  // changes keep propagating to future sends without stale composer seeds
-  // shadowing them.
+  // Branding-seeded + PER-FIELD touch tracking: the panel starts from org
+  // branding (or a restored draft), and every user edit records its field in
+  // `touchedKeys`. Sends carry ONLY the touched fields — untouched fields
+  // are omitted so the server's `{ ...branding, ...layoutOptions }` merge
+  // keeps them tracking live org branding (shipping the whole seeded panel
+  // would freeze branding at the seed: edit just the footer text and the
+  // header colour would revert to the seed's value forever).
   const [layoutOptions, setLayoutOptions] = useState<EmailLayoutOptions>(
     () => draft.layoutOptions ?? FALLBACK_LAYOUT,
   );
-  const [layoutDirty, setLayoutDirty] = useState<boolean>(
-    draft.layoutDirty ?? false,
+  const [touchedKeys, setTouchedKeys] = useState<string[]>(() =>
+    // Handles legacy drafts (boolean layoutDirty, no touchedLayoutKeys) —
+    // see resolveTouchedLayoutKeys for the conservative fallback.
+    resolveTouchedLayoutKeys(draft),
   );
+  const layoutDirty = touchedKeys.length > 0;
 
   const updateLayoutOption = useCallback(
     (patch: Partial<EmailLayoutOptions>) => {
-      setLayoutDirty(true);
+      setTouchedKeys((prev) => {
+        const next = new Set(prev);
+        for (const key of Object.keys(patch)) next.add(key);
+        return [...next];
+      });
       setLayoutOptions((prev) => ({ ...prev, ...patch }));
     },
     [],
   );
 
-  // Seed the panel from live org config while PRISTINE. The config's GET is
-  // open to any authed user (unlike /api/org-settings, which is role-gated),
-  // but it only carries the sender name — colours/URLs keep the fallback
-  // literals. Once the user edits anything, the seed never overwrites them.
+  // Seed the panel from live org branding while PRISTINE. This GET is open
+  // to any authed user (unlike /api/org-settings, which is role-gated away
+  // from marketing users) and its `branding` slice comes from the SAME
+  // getEmailBranding() source the send routes use — so an untouched panel
+  // previews exactly what an untouched send will render. Once the user
+  // touches any field, the seed never overwrites their edits.
   const { data: orgConfig } = useQuery<{
-    config?: { email?: { senderName?: string } };
+    branding?: {
+      name?: string;
+      primaryColor?: string;
+      websiteUrl?: string;
+      websiteUrlLabel?: string;
+    };
   }>({
     queryKey: ["org-settings-config"],
     queryFn: () => fetchApi("/api/org-settings/config"),
@@ -123,15 +140,23 @@ export function EmailComposer() {
   });
 
   useEffect(() => {
-    if (layoutDirty) return;
-    const senderName = orgConfig?.config?.email?.senderName;
-    if (!senderName) return;
+    if (touchedKeys.length > 0) return;
+    const branding = orgConfig?.branding;
+    if (!branding) return;
     setLayoutOptions((prev) => ({
       ...prev,
-      headerText: senderName,
-      footerText: senderName,
+      ...(branding.name
+        ? { headerText: branding.name, footerText: branding.name }
+        : {}),
+      ...(branding.primaryColor
+        ? { headerColor: branding.primaryColor }
+        : {}),
+      ...(branding.websiteUrl ? { footerUrl: branding.websiteUrl } : {}),
+      ...(branding.websiteUrlLabel
+        ? { footerUrlLabel: branding.websiteUrlLabel }
+        : {}),
     }));
-  }, [orgConfig, layoutDirty]);
+  }, [orgConfig, touchedKeys]);
 
   // ── Sync state → draft for autosave ────────────────────────
   useEffect(() => {
@@ -155,10 +180,10 @@ export function EmailComposer() {
   // literals, and syncing it would create a spurious "Draft restored" on
   // the next mount for a user who typed nothing.
   useEffect(() => {
-    if (!layoutDirty) return;
+    if (touchedKeys.length === 0) return;
     updateDraft("layoutOptions", layoutOptions);
-    updateDraft("layoutDirty", true);
-  }, [layoutDirty, layoutOptions, updateDraft]);
+    updateDraft("touchedLayoutKeys", touchedKeys);
+  }, [touchedKeys, layoutOptions, updateDraft]);
 
   // ── Unsaved changes warning ──────────────────────────────
   const emailIsDirty = subject.trim().length > 0 || blocks.some((b) => "content" in b && (b.content as string)?.trim().length > 0) || htmlContent.trim().length > 0;
@@ -223,7 +248,6 @@ export function EmailComposer() {
   }, []);
 
   // ── Live preview (debounced) ───────────────────────────────
-  const previewMutation = useEmailPreview();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -322,12 +346,14 @@ export function EmailComposer() {
   // have been edited since), so we send the composed content — never the
   // templateId, which the campaign route would resolve FIRST, silently
   // discarding the user's edits.
-  // layoutOptions ride along ONLY when the user touched the Header & Footer
-  // panel — an untouched send carries none, so the server renders with its
-  // live org-branding base (and future branding changes keep applying).
+  // ONLY the touched layout fields ride along — untouched fields (and a
+  // fully untouched panel) are omitted, so the server renders them from its
+  // live org-branding base and future branding changes keep applying.
   const composedContent = {
     ...(mode === "blocks" ? { blocks } : { htmlContent }),
-    ...(layoutDirty ? { layoutOptions } : {}),
+    ...(layoutDirty
+      ? { layoutOptions: pickTouchedLayoutOptions(layoutOptions, touchedKeys) }
+      : {}),
   };
 
   function handleTestSend() {

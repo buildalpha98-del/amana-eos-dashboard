@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { layoutOptionsSchema } from "@/lib/email-layout-schema";
+import {
+  layoutOptionsSchema,
+  LAYOUT_OPTION_KEYS,
+  pickTouchedLayoutOptions,
+  resolveTouchedLayoutKeys,
+} from "@/lib/email-layout-schema";
 
 const BLOB_URL =
   "https://abc123.public.blob.vercel-storage.com/logos/amana-logo.png";
@@ -163,5 +168,78 @@ describe("layoutOptionsSchema", () => {
         layoutOptionsSchema.safeParse({ showUnsubscribe: "yes" }).success,
       ).toBe(false);
     });
+  });
+});
+
+describe("pickTouchedLayoutOptions", () => {
+  const options = {
+    headerColor: "#004E64",
+    headerText: "Seeded Name",
+    headerLogoUrl: "",
+    footerText: "Seeded Name",
+    footerUrl: "https://amanaoshc.com.au",
+    footerUrlLabel: "amanaoshc.com.au",
+    showUnsubscribe: true,
+  };
+
+  it("emits ONLY the touched keys — untouched fields never ship (branding-shadowing pin)", () => {
+    expect(pickTouchedLayoutOptions(options, ["footerText"])).toEqual({
+      footerText: "Seeded Name",
+    });
+  });
+
+  it("returns an empty object when nothing is touched", () => {
+    expect(pickTouchedLayoutOptions(options, [])).toEqual({});
+  });
+
+  it("drops unknown touched keys (stale/junk draft entries can't 400 the strict schema)", () => {
+    expect(
+      pickTouchedLayoutOptions(options, ["sneaky", "headerColor"]),
+    ).toEqual({ headerColor: "#004E64" });
+  });
+
+  it("skips touched keys whose value is undefined", () => {
+    expect(
+      pickTouchedLayoutOptions({ headerText: undefined }, ["headerText"]),
+    ).toEqual({});
+  });
+
+  it("a fully-touched panel emits every field", () => {
+    expect(
+      pickTouchedLayoutOptions(options, [...LAYOUT_OPTION_KEYS]),
+    ).toEqual(options);
+  });
+
+  it("its output always passes the strict schema", () => {
+    const picked = pickTouchedLayoutOptions(options, [
+      "headerColor",
+      "showUnsubscribe",
+      "junk",
+    ]);
+    expect(layoutOptionsSchema.safeParse(picked).success).toBe(true);
+  });
+});
+
+describe("resolveTouchedLayoutKeys (draft restore)", () => {
+  it("returns the stored keys, filtered to known layout fields", () => {
+    expect(
+      resolveTouchedLayoutKeys({
+        touchedLayoutKeys: ["headerText", "junk", 42],
+      }),
+    ).toEqual(["headerText"]);
+  });
+
+  it("legacy dirty draft (pre-touched-keys) conservatively restores ALL keys", () => {
+    expect(resolveTouchedLayoutKeys({ layoutDirty: true })).toEqual([
+      ...LAYOUT_OPTION_KEYS,
+    ]);
+  });
+
+  it("legacy clean draft restores no touched keys", () => {
+    expect(resolveTouchedLayoutKeys({ layoutDirty: false })).toEqual([]);
+  });
+
+  it("an empty/absent draft restores no touched keys", () => {
+    expect(resolveTouchedLayoutKeys({})).toEqual([]);
   });
 });
