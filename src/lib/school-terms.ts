@@ -33,6 +33,15 @@ const TERM_TABLE: Record<number, Array<{ term: 1 | 2 | 3 | 4; start: string; end
   ],
 };
 
+/**
+ * True when `year` has exact dates in TERM_TABLE. `getTermsForYear` falls back
+ * SILENTLY to approximate dates for other years — callers that schedule real
+ * work (e.g. the term-autopilot cron) should check this and warn.
+ */
+export function hasExactTermDates(year: number): boolean {
+  return Boolean(TERM_TABLE[year]);
+}
+
 function atStartOfDay(iso: string): Date {
   return new Date(`${iso}T00:00:00`);
 }

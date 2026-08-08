@@ -410,6 +410,12 @@ if (!isBrevoConfigured()) {
       where: { id: log.id },
       data: {
         status,
+        // Dispatch actually completed (at least one recipient reached) for
+        // sent/partial — "scheduled" hasn't dispatched yet, and "failed"
+        // means nothing was delivered, so neither gets a sentAt stamp.
+        ...((status === "sent" || status === "partial")
+          ? { sentAt: new Date() }
+          : {}),
         ...(failedCount > 0
           ? {
               errorMessage:
@@ -453,6 +459,7 @@ if (!isBrevoConfigured()) {
 
   // ── ≥50: Brevo campaign path (single campaign, single DeliveryLog) ──
   let externalId: string | undefined;
+  let brevoListId: number | undefined;
   let status = "sent";
 
   try {
@@ -463,6 +470,7 @@ if (!isBrevoConfigured()) {
       scheduledAt: body.scheduledAt ?? undefined,
     });
     externalId = String(result.campaignId);
+    brevoListId = result.listId;
 
     if (body.scheduledAt) {
       status = "scheduled";
@@ -513,12 +521,22 @@ if (!isBrevoConfigured()) {
       externalIdType: "brevo_campaign",
       recipientCount: recipients.length,
       status,
+      // "scheduled" hasn't dispatched yet; "sent" means Brevo accepted the
+      // campaign for immediate delivery — stamp completion only then.
+      sentAt: status === "sent" ? new Date() : undefined,
       subject: body.subject,
       templateId: body.templateId ?? undefined,
       entityType,
       entityId,
       renderedHtml: html,
-      payload: { ...(raw as object), _suppressedCount: suppressedCount },
+      payload: {
+        ...(raw as object),
+        _suppressedCount: suppressedCount,
+        // Brevo temp contact list backing this campaign — the email-janitor
+        // cron deletes it (and marks _brevoListCleaned) once the send is old
+        // and no longer scheduled.
+        _brevoListId: brevoListId,
+      },
     },
   });
 

@@ -146,6 +146,7 @@ export const POST = withApiHandler(async (req) => {
     // NOT carry the "campaign-" prefix.
     let externalId: string;
     let externalIdType: string;
+    let brevoListId: number | undefined;
     const status = scheduledAt ? "scheduled" : "sent";
 
     if (recipients.length < 50) {
@@ -171,6 +172,10 @@ export const POST = withApiHandler(async (req) => {
       messageId = `campaign-${result.campaignId}`;
       externalId = String(result.campaignId);
       externalIdType = "brevo_campaign";
+      // Persist the temp Brevo list id so the email-janitor cron can clean
+      // it up — and, crucially, so its scheduled-list protection can SEE
+      // this send (unprotected scheduled lists older than 7 days get swept).
+      brevoListId = result.listId;
     }
 
     // 8. Create DeliveryLog
@@ -189,6 +194,7 @@ export const POST = withApiHandler(async (req) => {
           recipientCount: recipients.length,
           templateId: templateId || null,
           tags: tags || [],
+          ...(brevoListId !== undefined ? { _brevoListId: brevoListId } : {}),
         },
       },
     });

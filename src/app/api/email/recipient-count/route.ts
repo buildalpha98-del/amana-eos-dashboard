@@ -8,12 +8,18 @@ import {
   parseStoredAudienceRules,
 } from "@/lib/audience-count";
 
+const RECIPIENT_COUNT_ROLES = ["owner", "head_office", "admin", "marketing"] as const;
+
 // GET /api/email/recipient-count?serviceId=…&serviceId=…  (legacy picker)
 // GET /api/email/recipient-count?audienceId=…             (saved audience)
 //
 // Both paths resolve through the SAME audience-rules compiler as
 // campaign/send — the count preview must match what will actually go out
 // (post-suppression), so never hand-roll a where clause here.
+//
+// Role-gated same as audiences/preview-count: members can only send enquiry
+// emails (which never call this endpoint), so losing the count preview for
+// them is correct, not a regression.
 export const GET = withApiAuth(async (req) => {
   const audienceId = req.nextUrl.searchParams.get("audienceId");
 
@@ -37,4 +43,4 @@ export const GET = withApiAuth(async (req) => {
   const count = await countAudienceRecipients(rules);
 
   return NextResponse.json({ count });
-});
+}, { roles: [...RECIPIENT_COUNT_ROLES] });

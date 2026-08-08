@@ -5045,6 +5045,8 @@ model DeliveryLog {
   templateId     String?
   renderedHtml   String?  @db.Text
   createdAt      DateTime @default(now())
+  /// When dispatch actually completed (createdAt is row creation; differs for scheduled + pre-created "sending" rows).
+  sentAt         DateTime?
 
   @@index([channel])
   @@index([serviceCode])

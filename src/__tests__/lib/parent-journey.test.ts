@@ -22,6 +22,11 @@ vi.mock("@/lib/nurture-scheduler", () => ({
   scheduleNurtureFromStageChange: (...a: unknown[]) => schedule(...(a as [])),
 }));
 
+const logStageEvent = vi.fn(async () => {});
+vi.mock("@/lib/enquiry-stage-events", () => ({
+  logEnquiryStageEvent: (...a: unknown[]) => logStageEvent(...(a as [])),
+}));
+
 import { prisma } from "@/lib/prisma";
 import { syncParentJourney } from "@/lib/parent-journey";
 
@@ -85,6 +90,11 @@ describe("syncParentJourney", () => {
       }),
     );
     expect(schedule).toHaveBeenCalledWith("enq-new", "form_started");
+    // A portal enquiry created directly at a stage still needs a
+    // fromStage:null event, or Task 5's "toStage: enrolled" attribution
+    // count silently misses every family who enrolled without ever
+    // passing through an intermediate stage write.
+    expect(logStageEvent).toHaveBeenCalledWith("enq-new", null, "form_started");
   });
 
   it("is idempotent — a repeat autosave does not re-schedule", async () => {
@@ -101,6 +111,8 @@ describe("syncParentJourney", () => {
     // Autosave fires on every keystroke batch. Re-scheduling here would
     // send the family the same nudge repeatedly.
     expect(schedule).not.toHaveBeenCalled();
+    // Nothing moved, so there's no transition to log.
+    expect(logStageEvent).not.toHaveBeenCalled();
   });
 
   it("never walks a family backwards into the nudges", async () => {
@@ -115,6 +127,7 @@ describe("syncParentJourney", () => {
       stage: "form_started",
     });
     expect(schedule).not.toHaveBeenCalled();
+    expect(logStageEvent).not.toHaveBeenCalled();
   });
 
   it("advances an existing enquiry and schedules onboarding", async () => {
@@ -143,6 +156,31 @@ describe("syncParentJourney", () => {
       }),
     );
     expect(schedule).toHaveBeenCalledWith("enq-1", "first_session");
+    expect(logStageEvent).toHaveBeenCalledWith(
+      "enq-1",
+      "form_started",
+      "first_session",
+    );
+  });
+
+  it("logs a stage event only when the stage actually advances, not on a firstSessionDate-only update", async () => {
+    // The update path also runs when only firstSessionDate changed (rank
+    // unchanged) — that's a real DB write but not a stage transition, so
+    // it must not produce a stage event.
+    mockPrisma.parentEnquiry.findFirst.mockResolvedValue({
+      id: "enq-1",
+      stage: "first_session",
+      firstSessionDate: new Date("2026-09-01"),
+    });
+    const newDate = new Date("2026-09-02T00:00:00.000Z");
+    await syncParentJourney({
+      email: "jane@example.com",
+      serviceId: "svc-1",
+      stage: "first_session",
+      firstSessionDate: newDate,
+    });
+    expect(mockPrisma.parentEnquiry.update).toHaveBeenCalled();
+    expect(logStageEvent).not.toHaveBeenCalled();
   });
 
   it("never lets a marketing failure escape to the caller", async () => {

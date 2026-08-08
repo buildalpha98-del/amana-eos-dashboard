@@ -29,6 +29,7 @@
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
 /** Stages the portal drives. Others stay the office's to set by hand. */
 export type PortalStage = "form_started" | "enrolled" | "first_session";
@@ -104,6 +105,14 @@ export async function syncParentJourney(input: JourneyInput): Promise<void> {
           })
         ).id;
 
+    if (!existing) {
+      // Route callers all log their own creation event as
+      // (id, null, stage) — a portal enquiry created directly at a stage
+      // (e.g. `enrolled`) needs the same, or it never produces the
+      // `toStage: "enrolled"` event the attribution query counts.
+      await logEnquiryStageEvent(enquiryId, null, input.stage);
+    }
+
     if (existing) {
       const current = RANK[existing.stage] ?? -1;
       const next = RANK[input.stage] ?? -1;
@@ -125,6 +134,9 @@ export async function syncParentJourney(input: JourneyInput): Promise<void> {
           ...(input.childName ? { childName: input.childName } : {}),
         },
       });
+      if (next > current) {
+        await logEnquiryStageEvent(enquiryId, existing.stage, input.stage);
+      }
       if (next <= current) return;
     }
 

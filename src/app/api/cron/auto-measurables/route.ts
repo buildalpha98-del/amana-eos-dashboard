@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
+import { evaluateOnTrack } from "@/lib/measurable-eval";
 
 /**
  * GET /api/cron/auto-measurables
@@ -217,17 +218,4 @@ function aggregateAll(
     result.totalAttended += d.totalAttended;
   }
   return result;
-}
-
-function evaluateOnTrack(value: number, goalValue: number, goalDirection: string): boolean {
-  switch (goalDirection) {
-    case "above":
-      return value >= goalValue;
-    case "below":
-      return value <= goalValue;
-    case "exact":
-      return Math.abs(value - goalValue) <= goalValue * 0.05; // 5% tolerance
-    default:
-      return value >= goalValue;
-  }
 }
