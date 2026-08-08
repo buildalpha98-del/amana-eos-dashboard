@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
-import { acquireCronLock } from "@/lib/cron-guard";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
 import { evaluateOnTrack } from "@/lib/measurable-eval";
 
@@ -20,12 +20,8 @@ import { evaluateOnTrack } from "@/lib/measurable-eval";
  * Auth: Bearer CRON_SECRET
  */
 export const GET = withApiHandler(async (req) => {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyCronSecret(req);
+  if (authError) return authError.error;
 
   // Idempotency guard — prevent double population on retry
   const guard = await acquireCronLock("auto-measurables", "weekly");
