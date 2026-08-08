@@ -50,7 +50,8 @@ vi.mock("@/lib/frequency-cap", async () => {
 });
 
 const renderBlocksToHtmlMock = vi.fn(
-  (_b: unknown, vars?: Record<string, string>) => `<blocks>${vars?.centreName ?? ""}</blocks>`,
+  (_b: unknown, vars?: Record<string, string>, _layoutOpts?: Record<string, unknown>) =>
+    `<blocks>${vars?.centreName ?? ""}</blocks>`,
 );
 vi.mock("@/lib/email-marketing-layout", () => ({
   renderBlocksToHtml: (
