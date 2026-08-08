@@ -71,6 +71,7 @@ export const GET = withApiHandler(async (req) => {
     });
 
     if (measurables.length === 0) {
+      await guard.complete({ measurablesFound: 0, populated: 0 });
       return NextResponse.json({
         message: "No attendance-related measurables found",
         populated: 0,
@@ -188,6 +189,11 @@ export const GET = withApiHandler(async (req) => {
       }
     }
 
+    await guard.complete({
+      measurablesFound: measurables.length,
+      populated,
+      errors: errors.length,
+    });
     return NextResponse.json({
       message: "Auto-measurables complete",
       measurablesFound: measurables.length,
@@ -196,6 +202,7 @@ export const GET = withApiHandler(async (req) => {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
+    await guard.fail(err);
     logger.error("Auto-measurables cron failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },

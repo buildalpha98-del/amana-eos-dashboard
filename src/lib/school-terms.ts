@@ -31,6 +31,22 @@ const TERM_TABLE: Record<number, Array<{ term: 1 | 2 | 3 | 4; start: string; end
     { term: 3, start: "2027-07-12", end: "2027-09-17" },
     { term: 4, start: "2027-10-05", end: "2027-12-17" },
   ],
+  // 2028/2029 — NSW DoE future-dates page (education.nsw.gov.au/schooling/calendars),
+  // eastern-division starts (Amana = Sydney). Term-1 starts are the official
+  // commencement date; the SDD (staff development day) breakdown is not yet
+  // published for these years.
+  2028: [
+    { term: 1, start: "2028-01-31", end: "2028-04-07" },
+    { term: 2, start: "2028-04-24", end: "2028-07-07" },
+    { term: 3, start: "2028-07-24", end: "2028-09-29" },
+    { term: 4, start: "2028-10-16", end: "2028-12-21" },
+  ],
+  2029: [
+    { term: 1, start: "2029-01-29", end: "2029-04-13" },
+    { term: 2, start: "2029-04-30", end: "2029-07-06" },
+    { term: 3, start: "2029-07-23", end: "2029-09-28" },
+    { term: 4, start: "2029-10-15", end: "2029-12-20" },
+  ],
 };
 
 /**

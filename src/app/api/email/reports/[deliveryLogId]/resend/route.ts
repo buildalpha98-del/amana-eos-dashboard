@@ -52,6 +52,15 @@ export const POST = withApiAuth(
 
     const originalPayload =
       (original.payload as Record<string, unknown> | null) ?? {};
+
+    // A resend already exists for this original — refuse a second one rather
+    // than silently dispatching duplicate follow-up sends.
+    if (typeof originalPayload._resendDeliveryLogId === "string") {
+      throw ApiError.conflict(
+        "Already retried — see the follow-up send",
+      );
+    }
+
     const failedRecipients = Array.isArray(originalPayload._failedRecipients)
       ? (originalPayload._failedRecipients as unknown[]).filter(
           (e): e is string => typeof e === "string" && e.length > 0,

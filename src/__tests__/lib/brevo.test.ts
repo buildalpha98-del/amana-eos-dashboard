@@ -158,9 +158,17 @@ describe("cancelScheduledCampaign", () => {
     expect(callFor("/emailCampaigns/456/status")).toBeDefined();
   });
 
-  it("treats 404 as already-gone (no throw — precedent: deleteBrevoList)", async () => {
+  it("treats 404 as already-gone (no throw — precedent: deleteBrevoList) and reports alreadyGone: true", async () => {
     routeBrevo({ "/emailCampaigns/456/status": { body: {}, status: 404 } });
-    await expect(cancelScheduledCampaign("456")).resolves.toBeUndefined();
+    await expect(cancelScheduledCampaign("456")).resolves.toEqual({
+      alreadyGone: true,
+    });
+  });
+
+  it("resolves alreadyGone: false on a normal 2xx cancel", async () => {
+    await expect(cancelScheduledCampaign("456")).resolves.toEqual({
+      alreadyGone: false,
+    });
   });
 
   it("throws on other error statuses", async () => {
@@ -183,9 +191,17 @@ describe("cancelScheduledMessage", () => {
     expect(call![1].body).toBeUndefined();
   });
 
-  it("treats 404 as already-sent/gone (no throw — precedent: deleteBrevoList)", async () => {
+  it("treats 404 as already-sent/gone (no throw — precedent: deleteBrevoList) and reports alreadyGone: true", async () => {
     routeBrevo({ "/smtp/email/": { body: {}, status: 404 } });
-    await expect(cancelScheduledMessage("msg-1")).resolves.toBeUndefined();
+    await expect(cancelScheduledMessage("msg-1")).resolves.toEqual({
+      alreadyGone: true,
+    });
+  });
+
+  it("resolves alreadyGone: false on a normal 2xx cancel", async () => {
+    await expect(cancelScheduledMessage("msg-1")).resolves.toEqual({
+      alreadyGone: false,
+    });
   });
 
   it("throws on other error statuses", async () => {

@@ -62,15 +62,22 @@ export const POST = withApiAuth(
     // still goes out and the webhook events tell the story; the alternative
     // (un-cancelling on a Brevo hiccup) would leave a send the user believes
     // is cancelled quietly re-armed.
+    // Brevo already-gone (404) is honest-but-different from "we cancelled it":
+    // the send may have already dispatched before the cancel request landed.
+    const ALREADY_DISPATCHED_DETAIL =
+      "Brevo no longer has this scheduled send — it may have already dispatched";
+
     let brevoCancelled = false;
     let detail: string | undefined;
     try {
       if (log.externalIdType === "brevo_campaign" && log.externalId) {
-        await cancelScheduledCampaign(log.externalId);
+        const { alreadyGone } = await cancelScheduledCampaign(log.externalId);
         brevoCancelled = true;
+        if (alreadyGone) detail = ALREADY_DISPATCHED_DETAIL;
       } else if (log.externalIdType === "brevo_message" && log.externalId) {
-        await cancelScheduledMessage(log.externalId);
+        const { alreadyGone } = await cancelScheduledMessage(log.externalId);
         brevoCancelled = true;
+        if (alreadyGone) detail = ALREADY_DISPATCHED_DETAIL;
       } else if (log.externalIdType === "brevo_message_per_recipient") {
         const payload = log.payload as Record<string, unknown> | null;
         const rawIds = Array.isArray(payload?._sentMessageIds)
@@ -89,10 +96,13 @@ export const POST = withApiAuth(
           detail =
             "scheduled before cancel support — cancel it in Brevo manually if needed";
         } else {
+          let anyAlreadyGone = false;
           for (const messageId of messageIds) {
-            await cancelScheduledMessage(messageId);
+            const { alreadyGone } = await cancelScheduledMessage(messageId);
+            if (alreadyGone) anyAlreadyGone = true;
           }
           brevoCancelled = true;
+          if (anyAlreadyGone) detail = ALREADY_DISPATCHED_DETAIL;
         }
       } else {
         // Known type but no externalId to act on — local cancel only.

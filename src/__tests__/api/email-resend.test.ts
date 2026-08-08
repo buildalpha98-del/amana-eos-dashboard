@@ -175,6 +175,24 @@ describe("POST /api/email/reports/[deliveryLogId]/resend — guards", () => {
     },
   );
 
+  it("returns 409 (no new row) when the original already has a stamped _resendDeliveryLogId", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      originalRow({
+        payload: {
+          _failedRecipients: ["a@x.com", "b@x.com"],
+          _resendDeliveryLogId: "dl-already-retried",
+        },
+      }),
+    );
+
+    const res = await resend();
+    expect(res.status).toBe(409);
+    const json = await res.json();
+    expect(json.error).toMatch(/already retried/i);
+    expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+
   it("returns 409 when _failedRecipients is missing", async () => {
     prismaMock.deliveryLog.findUnique.mockResolvedValue(
       originalRow({ payload: { subject: "x" } }),

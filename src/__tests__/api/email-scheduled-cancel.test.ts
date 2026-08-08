@@ -81,8 +81,8 @@ beforeEach(() => {
   _clearUserActiveCache();
   setupActiveUserMock();
   mockSession({ id: "user-1", name: "Owner", role: "owner" });
-  mockedCancelCampaign.mockResolvedValue(undefined);
-  mockedCancelMessage.mockResolvedValue(undefined);
+  mockedCancelCampaign.mockResolvedValue({ alreadyGone: false });
+  mockedCancelMessage.mockResolvedValue({ alreadyGone: false });
   prismaMock.deliveryLog.findUnique.mockResolvedValue(logRow());
   prismaMock.deliveryLog.updateMany.mockResolvedValue({ count: 1 });
 });
@@ -226,6 +226,57 @@ describe("POST /api/email/scheduled/[deliveryLogId]/cancel — Brevo per type", 
     expect(body.brevoCancelled).toBe(false);
     expect(body.detail).toMatch(/cancel it in Brevo manually/i);
     expect(mockedCancelMessage).not.toHaveBeenCalled();
+  });
+
+  it("brevo_campaign: Brevo 404 (already dispatched) still counts as brevoCancelled true, with an honest detail", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({ externalIdType: "brevo_campaign", externalId: "456", payload: {} }),
+    );
+    mockedCancelCampaign.mockResolvedValue({ alreadyGone: true });
+
+    const res = await cancel();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.cancelled).toBe(true);
+    expect(body.brevoCancelled).toBe(true);
+    expect(body.detail).toBe(
+      "Brevo no longer has this scheduled send — it may have already dispatched",
+    );
+  });
+
+  it("brevo_message: Brevo 404 (already dispatched) still counts as brevoCancelled true, with an honest detail", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({
+        externalIdType: "brevo_message",
+        externalId: "<msg-1@smtp>",
+        payload: {},
+      }),
+    );
+    mockedCancelMessage.mockResolvedValue({ alreadyGone: true });
+
+    const res = await cancel();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.cancelled).toBe(true);
+    expect(body.brevoCancelled).toBe(true);
+    expect(body.detail).toBe(
+      "Brevo no longer has this scheduled send — it may have already dispatched",
+    );
+  });
+
+  it("brevo_message_per_recipient: any captured messageId already-gone (404) surfaces the honest detail", async () => {
+    mockedCancelMessage.mockImplementation(async (messageId: string) => ({
+      alreadyGone: messageId === "<id-b@smtp>",
+    }));
+
+    const res = await cancel();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.brevoCancelled).toBe(true);
+    expect(body.detail).toBe(
+      "Brevo no longer has this scheduled send — it may have already dispatched",
+    );
+    expect(mockedCancelMessage).toHaveBeenCalledTimes(2);
   });
 
   it("a Brevo error AFTER the claim still returns 200 { cancelled: true, brevoCancelled: false }", async () => {

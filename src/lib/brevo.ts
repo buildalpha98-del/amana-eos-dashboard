@@ -87,38 +87,48 @@ export async function deleteBrevoList(id: number): Promise<void> {
 /**
  * Cancel a SCHEDULED Brevo campaign by suspending it (PUT status "suspended"
  * — reversible and auditable in the Brevo UI, unlike a hard delete).
- * 404 = campaign already gone → treated as success (precedent: deleteBrevoList).
+ * 404 = campaign already gone → treated as success (precedent: deleteBrevoList),
+ * but surfaced via `alreadyGone` so the caller can be honest about WHY
+ * (Brevo doesn't have it — it may have already dispatched) rather than
+ * implying it definitely cancelled something.
  */
 export async function cancelScheduledCampaign(
   campaignId: string | number,
-): Promise<void> {
+): Promise<{ alreadyGone: boolean }> {
   const res = await brevoFetch(
     `/emailCampaigns/${campaignId}/status`,
     { status: "suspended" },
     "PUT",
   );
-  if (!res.ok && res.status !== 404) {
+  if (res.status === 404) return { alreadyGone: true };
+  if (!res.ok) {
     const err = await res.text();
     throw new Error(`Brevo cancel campaign failed (${res.status}): ${err}`);
   }
+  return { alreadyGone: false };
 }
 
 /**
  * Cancel a SCHEDULED transactional message by messageId
  * (DELETE /smtp/email/{messageId}). Message ids contain `<`/`@`/`>` so the
  * id is URL-encoded. 404 = already sent or never scheduled → treated as
- * success (precedent: deleteBrevoList).
+ * success (precedent: deleteBrevoList), surfaced via `alreadyGone` for the
+ * same reason as `cancelScheduledCampaign`.
  */
-export async function cancelScheduledMessage(messageId: string): Promise<void> {
+export async function cancelScheduledMessage(
+  messageId: string,
+): Promise<{ alreadyGone: boolean }> {
   const res = await brevoFetch(
     `/smtp/email/${encodeURIComponent(messageId)}`,
     undefined,
     "DELETE",
   );
-  if (!res.ok && res.status !== 404) {
+  if (res.status === 404) return { alreadyGone: true };
+  if (!res.ok) {
     const err = await res.text();
     throw new Error(`Brevo cancel message failed (${res.status}): ${err}`);
   }
+  return { alreadyGone: false };
 }
 
 // ── Transactional Email (< 50 recipients) ────────────────────
