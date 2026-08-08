@@ -56,6 +56,7 @@ import {
 } from "@/lib/brevo";
 import { getSuppressedEmails } from "@/lib/email-suppression";
 import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
+import { _clearOrgSettingsCache } from "@/lib/org-settings";
 import { POST } from "@/app/api/cowork/email/send/route";
 
 const mockedAuthenticateCowork = vi.mocked(authenticateCowork);
@@ -83,6 +84,7 @@ function postBody(body: Record<string, unknown>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  _clearOrgSettingsCache();
   mockedAuthenticateCowork.mockResolvedValue(null);
   mockedIsBrevoConfigured.mockReturnValue(true);
   mockedGetSuppressedEmails.mockResolvedValue(new Set());
@@ -300,5 +302,37 @@ describe("POST /api/cowork/email/send", () => {
     const res = await POST(postBody({}));
     expect(res.status).toBe(500);
     expect(mockedRecordMarketingSends).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/cowork/email/send — org-configurable cap resolution", () => {
+  it("resolves the cap from org settings and passes it to getFrequencyCapped", async () => {
+    prismaMock.orgSettings.findUnique.mockImplementation(
+      async (args: { select?: Record<string, unknown> } | undefined) =>
+        args?.select?.config
+          ? ({ config: { email: { marketingWeeklyCap: 5 } } } as never)
+          : null,
+    );
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await POST(postBody({}));
+    expect(res.status).toBe(200);
+
+    expect(mockedGetFrequencyCapped).toHaveBeenCalledTimes(1);
+    expect(mockedGetFrequencyCapped.mock.calls[0][2]).toEqual({ cap: 5 });
+  });
+
+  it("falls back to the default cap (3) when no org settings row exists", async () => {
+    prismaMock.orgSettings.findUnique.mockResolvedValue(null);
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await POST(postBody({}));
+    expect(res.status).toBe(200);
+
+    expect(mockedGetFrequencyCapped.mock.calls[0][2]).toEqual({ cap: 3 });
   });
 });

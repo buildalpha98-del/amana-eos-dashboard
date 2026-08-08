@@ -10,6 +10,7 @@ import {
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
 import { getEmailBranding } from "@/lib/email-branding";
+import { getOrgSettings } from "@/lib/org-settings";
 import { layoutOptionsSchema } from "@/lib/email-layout-schema";
 import { getSuppressedEmails } from "@/lib/email-suppression";
 import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
@@ -292,9 +293,15 @@ if (!isBrevoConfigured()) {
   // lowercase, or the filter silently matches nothing.
   let cappedCount = 0;
   if (messageType !== "enquiry") {
+    // The cap is org-configurable (Settings → Organisation → Outbound email
+    // sender). getOrgSettings() is cached in-process for ~60s, so a saved cap
+    // change can take up to a minute to reach this path — acceptable
+    // staleness for an advisory guardrail.
+    const { marketingWeeklyCap } = (await getOrgSettings()).email;
     const capped = await getFrequencyCapped(
       prisma,
       recipients.map((r) => r.email),
+      { cap: marketingWeeklyCap },
     );
     cappedCount = recipients.filter((r) =>
       capped.has(r.email.toLowerCase()),

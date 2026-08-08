@@ -13,6 +13,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { getSuppressedEmails } from "@/lib/email-suppression";
 import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
+import { getOrgSettings } from "@/lib/org-settings";
 
 import { parseJsonBody } from "@/lib/api-error";
 const emailSendSchema = z.object({
@@ -153,9 +154,15 @@ export const POST = withApiHandler(async (req) => {
       (r) => !suppressed.has(r.email.toLowerCase()),
     );
 
+    // The cap is org-configurable (Settings → Organisation → Outbound email
+    // sender). getOrgSettings() is cached in-process for ~60s, so a saved cap
+    // change can take up to a minute to reach this path — acceptable
+    // staleness for an advisory guardrail.
+    const { marketingWeeklyCap } = (await getOrgSettings()).email;
     const capped = await getFrequencyCapped(
       prisma,
       recipients.map((r) => r.email),
+      { cap: marketingWeeklyCap },
     );
     const cappedCount = recipients.filter((r) =>
       capped.has(r.email.toLowerCase()),

@@ -63,6 +63,7 @@ const mockedRecordMarketingSends = vi.mocked(recordMarketingSends);
 import { POST as sendCampaign } from "@/app/api/email/campaign/send/route";
 import { GET as recipientCount } from "@/app/api/email/recipient-count/route";
 import { _clearEmailBrandingCache } from "@/lib/email-branding";
+import { _clearOrgSettingsCache } from "@/lib/org-settings";
 
 function setupActiveUserMock() {
   prismaMock.user.findUnique.mockReset();
@@ -84,6 +85,7 @@ describe("POST /api/email/campaign/send — suppression", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -261,6 +263,7 @@ describe("POST /api/email/campaign/send — audienceId resolution", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -372,6 +375,7 @@ describe("POST /api/email/campaign/send — marketingCampaignId attribution", ()
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -441,6 +445,7 @@ describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () =>
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -760,6 +765,7 @@ describe("POST /api/email/campaign/send — frequency cap + send ledger", () => 
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -1015,6 +1021,7 @@ describe("POST /api/email/campaign/send — _sentMessageIds capture (<50)", () =
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -1158,6 +1165,7 @@ describe("POST /api/email/campaign/send — block-mode sends carry org branding"
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     _clearEmailBrandingCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
@@ -1246,6 +1254,7 @@ describe("POST /api/email/campaign/send — user layoutOptions override branding
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     _clearEmailBrandingCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
@@ -1359,6 +1368,7 @@ describe("GET /api/email/recipient-count — post-suppression count", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedGetSuppressedEmails.mockResolvedValue(new Set());
@@ -1474,5 +1484,65 @@ describe("GET /api/email/recipient-count — post-suppression count", () => {
     const res = await recipientCount(req);
     expect(res.status).toBe(403);
     expect(prismaMock.centreContact.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/email/campaign/send — org-configurable cap resolution", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearOrgSettingsCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedGetFrequencyCapped.mockResolvedValue(new Set());
+    mockedRecordMarketingSends.mockResolvedValue(undefined);
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.deliveryLog.update.mockResolvedValue({} as never);
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  function postBody(body: Record<string, unknown>) {
+    return createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", htmlContent: "<p>hi</p>", ...body },
+    });
+  }
+
+  it("resolves the cap from org settings and passes it to getFrequencyCapped", async () => {
+    // getOrgSettings selects { config }; getEmailBranding selects
+    // { name, primaryColor } — route on the select shape.
+    prismaMock.orgSettings.findUnique.mockImplementation(
+      async (args: { select?: Record<string, unknown> } | undefined) =>
+        args?.select?.config
+          ? ({ config: { email: { marketingWeeklyCap: 7 } } } as never)
+          : null,
+    );
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    expect(mockedGetFrequencyCapped).toHaveBeenCalledTimes(1);
+    expect(mockedGetFrequencyCapped.mock.calls[0][2]).toEqual({ cap: 7 });
+  });
+
+  it("falls back to the default cap (3) when no org settings row exists", async () => {
+    prismaMock.orgSettings.findUnique.mockResolvedValue(null);
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    expect(mockedGetFrequencyCapped.mock.calls[0][2]).toEqual({ cap: 3 });
   });
 });
