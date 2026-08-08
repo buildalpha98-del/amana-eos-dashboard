@@ -180,6 +180,13 @@ export const orgSettingsConfigSchema = z.object({
   email: z.object({
     senderEmail: z.string().email(),
     senderName: z.string().min(1).max(100),
+    // 2026-08-08 (Marketing Hub Phase 7): weekly marketing-email frequency
+    // cap per recipient, enforced on BULK sends only (campaign + cowork) via
+    // getFrequencyCapped — nurture/enquiry/lifecycle mail is recorded but
+    // never blocked. `.default(3)` is REQUIRED: PATCH is a strict
+    // full-replace, so a legacy document saved before this field existed
+    // must still parse (same precedent as the eos_viewer role labels).
+    marketingWeeklyCap: z.number().int().min(1).max(20).default(3),
   }),
   ratios: z.object({
     federalDefaultMinRatio: ratioStringSchema,
@@ -266,6 +273,9 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
   email: {
     senderEmail: process.env.BREVO_SENDER_EMAIL || "admin@amanaoshc.com.au",
     senderName: process.env.BREVO_SENDER_NAME || "Amana OSHC",
+    // Mirrors MARKETING_EMAIL_WEEKLY_CAP in src/lib/frequency-cap.ts (the
+    // lib-level fallback when a caller doesn't resolve the org setting).
+    marketingWeeklyCap: 3,
   },
   ratios: {
     federalDefaultMinRatio: "1:15",
@@ -421,6 +431,15 @@ export function mergeOrgSettings(
         typeof email.senderName === "string" && email.senderName.length > 0
           ? (email.senderName as string)
           : defaults.email.senderName,
+      // Every NEW field needs its own branch here — this merger is
+      // hand-rolled per field, and a missed field silently never merges.
+      marketingWeeklyCap:
+        typeof email.marketingWeeklyCap === "number" &&
+        Number.isInteger(email.marketingWeeklyCap) &&
+        email.marketingWeeklyCap >= 1 &&
+        email.marketingWeeklyCap <= 20
+          ? (email.marketingWeeklyCap as number)
+          : defaults.email.marketingWeeklyCap,
     },
     ratios: {
       federalDefaultMinRatio:

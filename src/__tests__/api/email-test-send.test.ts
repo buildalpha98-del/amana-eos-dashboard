@@ -42,6 +42,7 @@ const mockedSendTransactional = vi.mocked(sendTransactionalEmail);
 const mockedIsEmailSuppressed = vi.mocked(isEmailSuppressed);
 
 import { POST as testSend } from "@/app/api/email/test-send/route";
+import { _clearEmailBrandingCache } from "@/lib/email-branding";
 
 const SESSION_EMAIL = "owner@amanaoshc.com.au";
 
@@ -207,5 +208,119 @@ describe("POST /api/email/test-send", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.warning).toBeUndefined();
+  });
+});
+
+describe("POST /api/email/test-send — block-mode renders org branding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearEmailBrandingCache();
+    setupActiveUserMock();
+    mockSession({
+      id: "user-1",
+      name: "Owner",
+      email: SESSION_EMAIL,
+      role: "owner",
+    });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedIsEmailSuppressed.mockResolvedValue(false);
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-test-1" });
+    // Branding differs from DEFAULT_LAYOUT so the assertion can tell the
+    // branding-derived layoutOpts apart from the layout defaults.
+    prismaMock.orgSettings.findUnique.mockResolvedValue({
+      name: "Bright Futures OSHC",
+      primaryColor: "#112233",
+    });
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+  });
+
+  it("blocks-mode test send renders the branding header, not DEFAULT_LAYOUT (parity pin)", async () => {
+    const res = await testSend(
+      postBody({
+        subject: "Hello",
+        blocks: [{ type: "text", content: "Block body" }],
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const call = mockedSendTransactional.mock.calls[0][0];
+    expect(call.htmlContent).toContain("Block body");
+    expect(call.htmlContent).toContain("Bright Futures OSHC");
+    expect(call.htmlContent).toContain("#112233");
+  });
+
+  it("template blocks-mode test send renders the branding header (templateId branch)", async () => {
+    prismaMock.emailTemplate.findUnique.mockResolvedValue({
+      id: "tpl-1",
+      blocks: [{ type: "text", content: "Template block body" }],
+      htmlContent: null,
+    });
+
+    const res = await testSend(postBody({ subject: "Hello", templateId: "tpl-1" }));
+    expect(res.status).toBe(200);
+
+    const call = mockedSendTransactional.mock.calls[0][0];
+    expect(call.htmlContent).toContain("Template block body");
+    expect(call.htmlContent).toContain("Bright Futures OSHC");
+    expect(call.htmlContent).toContain("#112233");
+  });
+
+  it("htmlContent-mode test send renders the branding header (regression)", async () => {
+    const res = await testSend(
+      postBody({ subject: "Hello", htmlContent: "<p>raw body</p>" }),
+    );
+    expect(res.status).toBe(200);
+
+    const call = mockedSendTransactional.mock.calls[0][0];
+    expect(call.htmlContent).toContain("raw body");
+    expect(call.htmlContent).toContain("Bright Futures OSHC");
+    expect(call.htmlContent).toContain("#112233");
+  });
+
+  it("a user layoutOptions override wins over branding while untouched fields keep it", async () => {
+    const res = await testSend(
+      postBody({
+        subject: "Hello",
+        blocks: [{ type: "text", content: "Block body" }],
+        layoutOptions: { headerText: "Winter Fair 2026" },
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const call = mockedSendTransactional.mock.calls[0][0];
+    // Override wins in the header; headerColor + footerText still track
+    // branding — the test send must look exactly like the real send would.
+    expect(call.htmlContent).toContain("Winter Fair 2026");
+    expect(call.htmlContent).toContain("#112233");
+    expect(call.htmlContent).toContain("Bright Futures OSHC");
+  });
+
+  it("rejects invalid layoutOptions with 400 and never sends", async () => {
+    const res = await testSend(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { headerColor: "red" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+    expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown layoutOptions keys with 400 (strict schema)", async () => {
+    const res = await testSend(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { sneaky: "nope" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
   });
 });

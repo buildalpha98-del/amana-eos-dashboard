@@ -61,6 +61,9 @@ export const POST = withApiHandler(async (req) => {
     });
     deliveryLogId = exists?.id ?? null;
   } else {
+    // ACCEPTED gap: cowork <50 multi-recipient sends store only the FIRST
+    // recipient's message-id as externalId, so delivery events for the other
+    // recipients don't correlate here (deliveryLogId stays null for them).
     const deliveryLog = await prisma.deliveryLog.findFirst({
       where: parsed.campId
         ? { externalId: parsed.campId, externalIdType: "brevo_campaign" }
@@ -68,6 +71,27 @@ export const POST = withApiHandler(async (req) => {
       select: { id: true },
     });
     deliveryLogId = deliveryLog?.id ?? null;
+  }
+
+  // Scheduled→sent sync: a delivery event proves Brevo dispatched the send,
+  // so a row still sitting at "scheduled" flips to "sent". The status guard
+  // in the WHERE is the cancel-race protection — this and cancel's claim are
+  // both single-statement conditional updates on status "scheduled", so
+  // Postgres serialises them: exactly one wins, and both outcomes are correct
+  // (a cancelled/partial/failed/sent row is never resurrected; count 0 is
+  // fine, ignore it). `sentAt` here is FIRST-DELIVERY time — an approximation
+  // of the schema doc's "dispatch completion".
+  //
+  // Deliberately OUTSIDE the event-dedupe branch below: the guard already
+  // makes it idempotent, and nesting it inside would strand a row at
+  // "scheduled" forever if the process crashed between the event create and
+  // the flip (dedupe would then skip every retry; the janitor only sweeps
+  // "sending"). Cost: one no-op query per duplicate delivery event.
+  if (parsed.type === "delivered" && deliveryLogId) {
+    await prisma.deliveryLog.updateMany({
+      where: { id: deliveryLogId, status: "scheduled" },
+      data: { status: "sent", sentAt: new Date() },
+    });
   }
 
   // Best-effort idempotency (Brevo retries on non-2xx).

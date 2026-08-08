@@ -7,6 +7,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
+import { recordMarketingSends } from "@/lib/frequency-cap";
 import { waitlistConfirmationEmail } from "@/lib/email-templates";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
@@ -121,6 +122,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
           // Send waitlist confirmation email (fire-and-forget)
           if (existing.parentEmail) {
+            const parentEmail = existing.parentEmail;
             const service = await prisma.service.findUnique({
               where: { id: serviceId },
               select: { name: true },
@@ -131,9 +133,23 @@ export const PATCH = withApiAuth(async (req, session, context) => {
               serviceName,
               newPosition,
             );
-            sendEmail({ from: FROM_EMAIL, to: existing.parentEmail, subject, html }).catch((err) =>
-              logger.error("Waitlist: confirmation email failed", { err, enquiryId: id }),
-            );
+            sendEmail({ from: FROM_EMAIL, to: parentEmail, subject, html })
+              // Frequency-cap ledger: lifecycle mail is 1:1 — RECORDED (it
+              // counts toward the parent's weekly marketing-email volume so
+              // bulk sends see it) but NEVER cap-blocked. Only actually-sent
+              // recipients count (suppressed → sent: []), and
+              // recordMarketingSends swallows its own errors, so a ledger
+              // hiccup can't surface here.
+              .then((r) => {
+                if (r.sent.length > 0) {
+                  return recordMarketingSends(prisma, [{ email: parentEmail }], {
+                    source: "lifecycle",
+                  });
+                }
+              })
+              .catch((err) =>
+                logger.error("Waitlist: confirmation email failed", { err, enquiryId: id }),
+              );
           }
         }
 

@@ -100,7 +100,9 @@ describe("getFrequencyCapped", () => {
   const NOW = new Date("2026-08-08T10:00:00.000Z");
 
   it("issues exactly ONE groupBy over the lowercased emails within the rolling window", async () => {
-    await getFrequencyCapped(db as never, ["A@Example.com", "b@example.com"], NOW);
+    await getFrequencyCapped(db as never, ["A@Example.com", "b@example.com"], {
+      now: NOW,
+    });
 
     expect(db.marketingSendRecipient.groupBy).toHaveBeenCalledTimes(1);
     const args = (db.marketingSendRecipient.groupBy.mock.calls as unknown[][])[0][0] as unknown as {
@@ -126,7 +128,7 @@ describe("getFrequencyCapped", () => {
     const capped = await getFrequencyCapped(
       db as never,
       ["At-Cap@Example.com", "over@example.com", "under@example.com"],
-      NOW,
+      { now: NOW },
     );
 
     expect(capped).toEqual(new Set(["at-cap@example.com", "over@example.com"]));
@@ -137,12 +139,14 @@ describe("getFrequencyCapped", () => {
       { email: "a@example.com", _count: MARKETING_EMAIL_WEEKLY_CAP - 1 },
     ]);
 
-    const capped = await getFrequencyCapped(db as never, ["a@example.com"], NOW);
+    const capped = await getFrequencyCapped(db as never, ["a@example.com"], {
+      now: NOW,
+    });
     expect(capped.size).toBe(0);
   });
 
   it("returns an empty set with NO query for empty input", async () => {
-    const capped = await getFrequencyCapped(db as never, [], NOW);
+    const capped = await getFrequencyCapped(db as never, [], { now: NOW });
     expect(capped.size).toBe(0);
     expect(db.marketingSendRecipient.groupBy).not.toHaveBeenCalled();
   });
@@ -150,5 +154,63 @@ describe("getFrequencyCapped", () => {
   it("exports the documented constants", () => {
     expect(MARKETING_EMAIL_WEEKLY_CAP).toBe(3);
     expect(CAP_WINDOW_DAYS).toBe(7);
+  });
+});
+
+describe("getFrequencyCapped — opts.cap override (org-configurable cap)", () => {
+  const NOW = new Date("2026-08-08T10:00:00.000Z");
+
+  it("caps against a custom cap (boundary: count == custom cap)", async () => {
+    db.marketingSendRecipient.groupBy.mockResolvedValue([
+      { email: "at-custom@example.com", _count: 5 },
+      { email: "under-custom@example.com", _count: 4 },
+    ]);
+
+    const capped = await getFrequencyCapped(
+      db as never,
+      ["at-custom@example.com", "under-custom@example.com"],
+      { cap: 5, now: NOW },
+    );
+
+    expect(capped).toEqual(new Set(["at-custom@example.com"]));
+  });
+
+  it("a custom cap ABOVE the default un-caps an email the default would block", async () => {
+    db.marketingSendRecipient.groupBy.mockResolvedValue([
+      { email: "a@example.com", _count: MARKETING_EMAIL_WEEKLY_CAP },
+    ]);
+
+    const capped = await getFrequencyCapped(db as never, ["a@example.com"], {
+      cap: MARKETING_EMAIL_WEEKLY_CAP + 1,
+      now: NOW,
+    });
+    expect(capped.size).toBe(0);
+  });
+
+  it("defaults to MARKETING_EMAIL_WEEKLY_CAP when opts is omitted entirely", async () => {
+    db.marketingSendRecipient.groupBy.mockResolvedValue([
+      { email: "a@example.com", _count: MARKETING_EMAIL_WEEKLY_CAP },
+    ]);
+
+    const capped = await getFrequencyCapped(db as never, ["a@example.com"]);
+    expect(capped).toEqual(new Set(["a@example.com"]));
+  });
+
+  it("defaults the cap when opts carries only `now` (window still honoured)", async () => {
+    db.marketingSendRecipient.groupBy.mockResolvedValue([
+      { email: "a@example.com", _count: MARKETING_EMAIL_WEEKLY_CAP },
+    ]);
+
+    const capped = await getFrequencyCapped(db as never, ["a@example.com"], {
+      now: NOW,
+    });
+    expect(capped).toEqual(new Set(["a@example.com"]));
+
+    const args = (db.marketingSendRecipient.groupBy.mock.calls as unknown[][])[0][0] as unknown as {
+      where: { sentAt: { gte: Date } };
+    };
+    expect(args.where.sentAt.gte).toEqual(
+      new Date(NOW.getTime() - CAP_WINDOW_DAYS * 24 * 60 * 60 * 1000),
+    );
   });
 });

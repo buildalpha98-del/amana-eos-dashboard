@@ -234,7 +234,7 @@ async function processSequenceExecutions(now: Date) {
         contactName: name,
         schoolName: lead?.schoolName || "",
         centreName,
-      });
+      }, layoutOpts);
       subject = exec.step.emailTemplate.subject || exec.step.name;
     } else if (exec.step.emailTemplate?.htmlContent) {
       html = marketingLayout(exec.step.emailTemplate.htmlContent, layoutOpts);

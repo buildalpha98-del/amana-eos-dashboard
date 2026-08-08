@@ -49,8 +49,14 @@ vi.mock("@/lib/frequency-cap", async () => {
   };
 });
 
+const renderBlocksToHtmlMock = vi.fn(
+  (_b: unknown, vars?: Record<string, string>, _layoutOpts?: Record<string, unknown>) =>
+    `<blocks>${vars?.centreName ?? ""}</blocks>`,
+);
 vi.mock("@/lib/email-marketing-layout", () => ({
-  renderBlocksToHtml: (_b: unknown, vars: Record<string, string>) => `<blocks>${vars?.centreName ?? ""}</blocks>`,
+  renderBlocksToHtml: (
+    ...args: [unknown, Record<string, string>?, Record<string, unknown>?]
+  ) => renderBlocksToHtmlMock(...args),
   marketingLayout: (html: string) => `<ml>${html}</ml>`,
 }));
 vi.mock("@/lib/email-branding", () => ({
@@ -346,6 +352,31 @@ describe("POST /api/cron/nurture-send — sequence sender (post-cutover)", () =>
     expect(mockedRecordMarketingSends).toHaveBeenCalledTimes(1);
     const [, entries] = mockedRecordMarketingSends.mock.calls[0];
     expect(entries).toEqual([{ email: "aysha@example.com", contactId: "c-1" }]);
+  });
+
+  // ── Layout parity (Phase 7) ──
+  it("passes the branding-derived layoutOpts to renderBlocksToHtml on the blocks branch", async () => {
+    const exec = makeExec({ templateKey: "welcome" });
+    (exec.step as { emailTemplate: unknown }).emailTemplate = {
+      subject: "Blocks subject",
+      blocks: [{ type: "text", content: "Block body" }],
+      htmlContent: null,
+    };
+    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([exec]);
+
+    await run();
+
+    expect(renderBlocksToHtmlMock).toHaveBeenCalledTimes(1);
+    // 3rd arg must be the layoutOpts the route already builds from
+    // getEmailBranding() — previously dropped on this branch only.
+    const layoutOpts = renderBlocksToHtmlMock.mock.calls[0][2];
+    expect(layoutOpts).toEqual({
+      headerText: "Amana OSHC",
+      footerText: "Amana OSHC",
+      headerColor: "#004E64",
+      footerUrl: "https://x.test",
+      footerUrlLabel: "x",
+    });
   });
 
   it("records CRM outreach sends too (lead email, no contactId)", async () => {
