@@ -337,6 +337,8 @@ export interface SendReportData {
   canCancel: boolean;
   /** True for a partial send with failed recipients + stored HTML (resend input). */
   canResend: boolean;
+  /** Set once a retry delivered — combine with canResend to hide the button. */
+  resendDeliveryLogId: string | null;
   /** Count of failed recipients — derived server-side; raw emails never sent. */
   failedCount: number;
   /** False when the send has zero events — predates tracking or unopened. */
@@ -388,6 +390,44 @@ export function useCancelScheduledSend() {
         description: result.brevoCancelled
           ? "Scheduled send cancelled"
           : `Send cancelled locally${result.detail ? ` — ${result.detail}` : ""}`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+/**
+ * Retry a PARTIAL send's failed recipients. The server re-dispatches the
+ * stored rendering under a NEW DeliveryLog row; suppression is re-checked
+ * but the frequency cap is not (it's a retry of an already-attempted send).
+ */
+export function useResendFailedRecipients() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (deliveryLogId: string) =>
+      mutateApi<{
+        deliveryLogId: string;
+        sentCount: number;
+        failedCount: number;
+        suppressedCount: number;
+      }>(`/api/email/reports/${deliveryLogId}/resend`, { method: "POST" }),
+    onSuccess: (result, deliveryLogId) => {
+      qc.invalidateQueries({ queryKey: ["send-report", deliveryLogId] });
+      qc.invalidateQueries({ queryKey: ["email-analytics"] });
+      const extras = [
+        result.failedCount > 0 ? `${result.failedCount} failed again` : null,
+        result.suppressedCount > 0
+          ? `${result.suppressedCount} skipped (suppressed)`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      toast({
+        description:
+          `Re-sent to ${result.sentCount} recipient(s)` +
+          (extras ? ` — ${extras}` : ""),
       });
     },
     onError: (err: Error) => {

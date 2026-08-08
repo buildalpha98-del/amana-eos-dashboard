@@ -59,6 +59,13 @@ export const GET = withApiAuth(
     const canCancel = log.status === "scheduled";
     const canResend =
       log.status === "partial" && failedCount > 0 && renderedHtml != null;
+    // Stamped by the resend route once a retry actually delivered something.
+    // canResend stays a pure input-capability flag — the client combines the
+    // two to show "Retried in a follow-up send" instead of the button.
+    const resendDeliveryLogId =
+      typeof logPayload?._resendDeliveryLogId === "string"
+        ? logPayload._resendDeliveryLogId
+        : null;
 
     const events = await prisma.emailEvent.findMany({
       where: { deliveryLogId },
@@ -122,6 +129,7 @@ export const GET = withApiAuth(
       log,
       canCancel,
       canResend,
+      resendDeliveryLogId,
       failedCount,
       hasEvents: events.length > 0,
       stats: {

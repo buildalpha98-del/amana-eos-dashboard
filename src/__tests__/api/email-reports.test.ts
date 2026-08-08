@@ -338,6 +338,46 @@ describe("GET /api/email/reports/[deliveryLogId] — affordance flags", () => {
     expect(body.failedCount).toBe(0);
   });
 
+  it("exposes resendDeliveryLogId when the send was retried in a follow-up send", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({
+        status: "partial",
+        payload: {
+          _failedRecipients: ["a@x.com"],
+          _resendDeliveryLogId: "dl-retry",
+        },
+        renderedHtml: "<p>stored</p>",
+      }),
+    );
+
+    const res = await getReport();
+    const body = await res.json();
+
+    expect(body.resendDeliveryLogId).toBe("dl-retry");
+    // canResend stays a pure input-capability flag — the CLIENT combines it
+    // with resendDeliveryLogId to hide the button after a retry.
+    expect(body.canResend).toBe(true);
+  });
+
+  it("resendDeliveryLogId is null when absent or not a string", async () => {
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(
+      logRow({
+        status: "partial",
+        payload: { _failedRecipients: ["a@x.com"], _resendDeliveryLogId: 42 },
+        renderedHtml: "<p>stored</p>",
+      }),
+    );
+
+    const res = await getReport();
+    const body = await res.json();
+    expect(body.resendDeliveryLogId).toBeNull();
+
+    prismaMock.deliveryLog.findUnique.mockResolvedValue(logRow());
+    const res2 = await getReport();
+    const body2 = await res2.json();
+    expect(body2.resendDeliveryLogId).toBeNull();
+  });
+
   it("NEVER exposes the raw payload or renderedHtml — derived flags and counts only", async () => {
     prismaMock.deliveryLog.findUnique.mockResolvedValue(
       logRow({

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { X, MailOpen, MousePointerClick, Ban } from "lucide-react";
+import { X, MailOpen, MousePointerClick, Ban, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useSendReport,
   useCancelScheduledSend,
+  useResendFailedRecipients,
 } from "@/hooks/useEmailTemplates";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
@@ -38,7 +39,9 @@ export function SendReportPanel({
   useEscapeClose(onClose);
   const { data, isLoading, isError } = useSendReport(deliveryLogId);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmResend, setConfirmResend] = useState(false);
   const cancelSend = useCancelScheduledSend();
+  const resendFailed = useResendFailedRecipients();
 
   const maxHourly = data
     ? Math.max(...data.hourly.map((h) => h.opens + h.clicks), 1)
@@ -137,6 +140,41 @@ export function SendReportPanel({
                   }
                 />
               </div>
+            )}
+
+            {/* Re-send — also ABOVE the !hasEvents branch: a partial send
+                with zero opens would otherwise hide the retry affordance. */}
+            {data.canResend && !data.resendDeliveryLogId && (
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  iconLeft={<RotateCw className="h-3.5 w-3.5" />}
+                  onClick={() => setConfirmResend(true)}
+                >
+                  Re-send to {data.failedCount} failed recipient
+                  {data.failedCount === 1 ? "" : "s"}
+                </Button>
+                <ConfirmDialog
+                  open={confirmResend}
+                  onOpenChange={setConfirmResend}
+                  title={`Re-send to ${data.failedCount} failed recipient${data.failedCount === 1 ? "" : "s"}?`}
+                  description="The original email will be re-sent as-is to the recipients that failed. Addresses that have since unsubscribed or bounced are skipped."
+                  confirmLabel="Re-send"
+                  variant="default"
+                  loading={resendFailed.isPending}
+                  onConfirm={() =>
+                    resendFailed.mutate(deliveryLogId, {
+                      onSuccess: () => setConfirmResend(false),
+                    })
+                  }
+                />
+              </div>
+            )}
+            {data.resendDeliveryLogId && (
+              <p className="mt-4 text-xs text-muted">
+                Retried in a follow-up send
+              </p>
             )}
 
             {!data.hasEvents ? (

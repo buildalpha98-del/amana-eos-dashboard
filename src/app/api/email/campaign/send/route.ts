@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import {
-  isBrevoConfigured,
-  sendTransactionalEmail,
-  sendCampaignEmail,
-} from "@/lib/brevo";
+import { isBrevoConfigured, sendCampaignEmail } from "@/lib/brevo";
 import {
   renderBlocksToHtml,
   interpolateVariables,
@@ -16,6 +12,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { getEmailBranding } from "@/lib/email-branding";
 import { getSuppressedEmails } from "@/lib/email-suppression";
 import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
+import { dispatchPerRecipient } from "@/lib/email-dispatch";
 
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import type { AudienceRules } from "@/lib/audience-rules";
@@ -62,32 +59,6 @@ const bodySchema = z
         "At most one of enquiryId, postId, marketingCampaignId may be set",
     },
   );
-
-/** Per-recipient dispatch: how many transactional sends run in parallel. */
-const SEND_CHUNK_SIZE = 5;
-/** Per-call ceiling — keeps a hung Brevo call inside withApiAuth's 55s budget. */
-const SEND_TIMEOUT_MS = 10_000;
-
-/**
- * Race a Brevo call against AbortSignal.timeout. sendTransactionalEmail
- * doesn't accept an abort signal, so a timed-out call is ABANDONED rather
- * than aborted — the underlying fetch may still complete on Brevo's side,
- * but the handler moves on and counts that recipient as failed. Acceptable:
- * the alternative is one hung call stranding the whole dispatch.
- */
-function raceSendTimeout<T>(promise: Promise<T>, ms = SEND_TIMEOUT_MS): Promise<T> {
-  const signal = AbortSignal.timeout(ms);
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      signal.addEventListener(
-        "abort",
-        () => reject(new Error(`Brevo send timed out after ${ms}ms`)),
-        { once: true },
-      );
-    }),
-  ]);
-}
 
 export const POST = withApiAuth(async (req, session) => {
 if (!isBrevoConfigured()) {
@@ -397,49 +368,24 @@ if (!isBrevoConfigured()) {
       },
     });
 
-    const failedRecipients: string[] = [];
+    const {
+      sent,
+      failed: failedRecipients,
+      firstError,
+    } = await dispatchPerRecipient({
+      recipients,
+      subject: body.subject,
+      html,
+      scheduledAt: body.scheduledAt ?? undefined,
+      tags: [`dl:${log.id}`],
+    });
+
     // Per-recipient Brevo messageIds from FULFILLED sends — persisted as
     // payload._sentMessageIds so the cancel route can DELETE each scheduled
     // message on Brevo's side. The wrapper's "unknown" fallback (Brevo
-    // omitted the id) is useless for cancellation and is filtered out.
-    const sentMessageIds: Array<{ email: string; messageId: string }> = [];
-    let firstError: string | null = null;
-
-    // Bounded concurrency: chunks of 5 keep us well inside Brevo's rate
-    // limits while a hung call can't strand the dispatch — each send races
-    // a ~10s timeout inside withApiAuth's 55s budget.
-    for (let i = 0; i < recipients.length; i += SEND_CHUNK_SIZE) {
-      const chunk = recipients.slice(i, i + SEND_CHUNK_SIZE);
-      const results = await Promise.allSettled(
-        chunk.map((recipient) =>
-          raceSendTimeout(
-            sendTransactionalEmail({
-              to: [recipient],
-              subject: body.subject,
-              htmlContent: html,
-              tags: [`dl:${log.id}`],
-              scheduledAt: body.scheduledAt ?? undefined,
-            }),
-          ),
-        ),
-      );
-      results.forEach((result, j) => {
-        if (result.status === "rejected") {
-          failedRecipients.push(chunk[j].email);
-          if (!firstError) {
-            firstError =
-              result.reason instanceof Error
-                ? result.reason.message
-                : "Unknown send error";
-          }
-        } else if (result.value.messageId !== "unknown") {
-          sentMessageIds.push({
-            email: chunk[j].email,
-            messageId: result.value.messageId,
-          });
-        }
-      });
-    }
+    // omitted the id) is useless for cancellation and is filtered out HERE
+    // (the dispatch lib deliberately returns it raw).
+    const sentMessageIds = sent.filter((s) => s.messageId !== "unknown");
 
     const failedCount = failedRecipients.length;
     let status: string;
