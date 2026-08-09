@@ -2546,6 +2546,19 @@ model Service {
   /// features land.
   appSettings   Json?
 
+  /// The centre's fee POLICY — late collection, absence charging,
+  /// cancellation, enrolment fee and bond, payment terms. Validated by
+  /// `feePolicySchema`; see src/lib/fee-policy.ts.
+  ///
+  /// Distinct from `sessionTimes`, which holds what a session COSTS.
+  /// This holds what happens around that price, and it is separate
+  /// because the two are edited by different people at different times:
+  /// a coordinator adjusts room hours, a director sets the late fee.
+  ///
+  /// Every key is optional and every default is "charge nothing", so a
+  /// null here behaves exactly as the system did before it existed.
+  feePolicy Json?
+
   /// Per-service editable content (admin or Director of Service for this
   /// service). Shape validated by Zod in src/lib/service-content-shared.ts.
   /// Holds About / Welcome narrative, hero image URL, key contacts (Director
