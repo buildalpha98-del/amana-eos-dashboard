@@ -16,7 +16,9 @@
  */
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Clock, Edit3, Plus, Trash2, DollarSign } from "lucide-react";
+import { fetchApi } from "@/lib/fetch-api";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { toast } from "@/hooks/useToast";
@@ -35,6 +37,10 @@ import {
 } from "@/lib/service-settings";
 import { formatCents, parseDollarsToCents } from "@/lib/family-billing";
 import { analyseRoomConfiguration } from "@/lib/room-configuration";
+import {
+  formatSessionOfCare,
+  sessionTimeOptionLabel,
+} from "@/lib/session-times";
 import { RoomDetailPanel } from "./RoomDetailPanel";
 
 interface EditableRoom {
@@ -131,6 +137,33 @@ export function RoomsAndFeesCard({
 
   const saved = (service.sessionTimes ?? null) as SessionTimes | null;
   const saving = updateService.isPending;
+
+  /**
+   * The centre's session-of-care catalogue, for the per-fee dropdown.
+   *
+   * Only ACTIVE windows are offered — a retired one stays valid on the
+   * fees already using it (they keep their own start/end and get a
+   * "not in session times" option), but shouldn't be offered to new
+   * ones. Failing to load leaves the dropdown with just "Whole room
+   * hours", which degrades to the behaviour before the catalogue
+   * existed rather than blocking the editor.
+   */
+  const { data: sessionTimeData } = useQuery<{
+    sessionTimes: Array<{
+      id: string;
+      start: string;
+      end: string;
+      label: string | null;
+      active: boolean;
+    }>;
+  }>({
+    queryKey: ["service", service.id, "session-times"],
+    queryFn: () => fetchApi(`/api/services/${service.id}/session-times`),
+    retry: 1,
+  });
+  const sessionTimes = (sessionTimeData?.sessionTimes ?? []).filter(
+    (s) => s.active,
+  );
 
   function update(key: SessionKey, patch: Partial<EditableRoom>) {
     setRooms((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
@@ -610,43 +643,57 @@ export function RoomsAndFeesCard({
                                 }}
                               />
                             </div>
-                            <div className="sm:col-span-3">
+                            <div className="col-span-2 sm:col-span-5">
                               <label
-                                htmlFor={`fee-${key}-${f.id}-start`}
+                                htmlFor={`fee-${key}-${f.id}-session`}
                                 className="block text-xs text-muted mb-1"
                               >
-                                From
+                                Session of care
                               </label>
-                              <input
-                                id={`fee-${key}-${f.id}-start`}
-                                type="time"
+                              <select
+                                id={`fee-${key}-${f.id}-session`}
                                 className={field}
-                                value={f.start}
+                                value={
+                                  f.start && f.end ? `${f.start}-${f.end}` : ""
+                                }
                                 onChange={(e) => {
+                                  const [s = "", en = ""] =
+                                    e.target.value.split("-");
                                   const fees = [...r.fees];
-                                  fees[i] = { ...f, start: e.target.value };
+                                  fees[i] = { ...f, start: s, end: en };
                                   update(key, { fees });
                                 }}
-                              />
-                            </div>
-                            <div className="sm:col-span-2">
-                              <label
-                                htmlFor={`fee-${key}-${f.id}-end`}
-                                className="block text-xs text-muted mb-1"
                               >
-                                To
-                              </label>
-                              <input
-                                id={`fee-${key}-${f.id}-end`}
-                                type="time"
-                                className={field}
-                                value={f.end}
-                                onChange={(e) => {
-                                  const fees = [...r.fees];
-                                  fees[i] = { ...f, end: e.target.value };
-                                  update(key, { fees });
-                                }}
-                              />
+                                <option value="">
+                                  {sessionTimes.length
+                                    ? "Whole room hours"
+                                    : "Whole room hours — none set up"}
+                                </option>
+                                {sessionTimes.map((s) => (
+                                  <option
+                                    key={s.id}
+                                    value={`${s.start}-${s.end}`}
+                                  >
+                                    {sessionTimeOptionLabel(s)}
+                                  </option>
+                                ))}
+                                {/* A fee configured before the catalogue
+                                    existed, or against a since-retired
+                                    window, keeps its own option so
+                                    opening this editor can't silently
+                                    reset the session of care to blank. */}
+                                {f.start &&
+                                  f.end &&
+                                  !sessionTimes.some(
+                                    (s) =>
+                                      s.start === f.start && s.end === f.end,
+                                  ) && (
+                                    <option value={`${f.start}-${f.end}`}>
+                                      {formatSessionOfCare(f.start, f.end)} (not
+                                      in session times)
+                                    </option>
+                                  )}
+                              </select>
                             </div>
                             <div className="sm:col-span-2">
                               <label

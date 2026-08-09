@@ -615,6 +615,7 @@ model User {
   illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
   illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
   createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
+  createdSessionTimes           ServiceSessionTime[]           @relation("SessionTimeCreator")
   createdCasualDays             CasualDayConfig[]              @relation("CasualDayCreator")
   createdDiscounts              FamilyDiscount[]               @relation("DiscountCreator")
   createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
@@ -2621,6 +2622,7 @@ model Service {
   visitors       ServiceVisitor[]      @relation("ServiceVisitors")
   staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
   illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
+  sessionTimeList ServiceSessionTime[] @relation("ServiceSessionTimes")
   blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
   casualDays     CasualDayConfig[]     @relation("ServiceCasualDays")
   discounts      FamilyDiscount[]      @relation("ServiceDiscounts")
@@ -7637,6 +7639,56 @@ model ServiceBlockOutDate {
   createdAt   DateTime     @default(now())
 
   @@index([serviceId, date])
+}
+
+/// A window of care this centre sells — the "session of care" catalogue.
+///
+/// Modelled on OWNA's Service Info → Session Times, and it exists for the
+/// reason theirs does: every fee in every room has to name a window, and
+/// before this the window was typed freehand onto each fee. Six rooms
+/// meant six chances to type 15:00–18:30 as 15:00–18:00, and the number
+/// that drifts is the one reported to CCS as the session of care.
+///
+/// The catalogue is centre-level and the rooms point AT it, not the
+/// other way round. A centre runs one 3.5-hour afternoon session; which
+/// rooms sell it is a separate question from what the session is.
+///
+/// Deliberately NOT the same thing as `Service.sessionTimes`, which holds
+/// the fixed bsc/asc/vc room definitions. That field is the room list;
+/// this table is the hours. They will converge when rooms become
+/// first-class records rather than seven fixed enum slots.
+model ServiceSessionTime {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation("ServiceSessionTimes", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// Wall-clock "HH:mm" in the centre's local time. Opening hours, not
+  /// instants — 15:00 is three in the afternoon through daylight saving
+  /// in both directions, and storing these as timestamps would be wrong
+  /// twice a year.
+  start String
+  end   String
+
+  /// Optional name. Most centres think in times and leave this blank;
+  /// the ones that don't have a reason ("Ramadan Care") and that reason
+  /// is what they'll search the dropdown for.
+  label String?
+
+  /// Retired without being deleted. Fees already reference this window,
+  /// and a historical fee has to keep reading correctly — so retiring
+  /// hides it from new fees rather than orphaning old ones.
+  active Boolean @default(true)
+
+  createdById String?
+  createdBy   User?    @relation("SessionTimeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// The same window twice is always a mistake, and two identical rows
+  /// in the dropdown is the kind of thing nobody reports and everybody
+  /// works around.
+  @@unique([serviceId, start, end])
+  @@index([serviceId, active])
 }
 
 /// A change to a room's fee — scheduled for a date, or already applied.
