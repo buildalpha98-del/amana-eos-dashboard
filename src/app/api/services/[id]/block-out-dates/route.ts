@@ -17,6 +17,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { programmeName } from "@/lib/programme-names";
+import { dateOnly, expandBlockOutDates } from "@/lib/block-out-dates";
 import type { SessionType } from "@prisma/client";
 
 const SESSION_TYPES = [
@@ -29,31 +30,67 @@ const SESSION_TYPES = [
   "extra4",
 ] as const;
 
-const createSchema = z.object({
-  /** YYYY-MM-DD, or a range — a closure is often a week of them. */
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  /** Omit for a whole-centre closure. */
-  sessionType: z.enum(SESSION_TYPES).optional(),
-  reason: z.string().trim().max(200).optional(),
-});
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
-const dateOnly = (ymd: string) => new Date(`${ymd}T00:00:00.000Z`);
-/** A closure longer than a term is a mistake, not a closure. */
-const MAX_RANGE_DAYS = 90;
+const createSchema = z
+  .object({
+    /** YYYY-MM-DD, or a range — a closure is often a week of them. */
+    date: z.string().regex(YMD).optional(),
+    endDate: z.string().regex(YMD).optional(),
+    /**
+     * Discrete dates instead of a range — the every-Wednesday-this-term
+     * shape, which a range can't express without blocking the days in
+     * between.
+     */
+    dates: z.array(z.string().regex(YMD)).max(90).optional(),
+    /**
+     * Skip Saturdays and Sundays when expanding a RANGE. Defaults true,
+     * matching what a term-holiday closure means: a centre that doesn't
+     * open at the weekend gains nothing from rows saying it's shut.
+     * Never applied to explicitly-listed `dates` — naming a Saturday is
+     * unambiguous, and silently dropping it would be wrong.
+     */
+    excludeWeekends: z.boolean().optional(),
+    /** Omit for a whole-centre closure. */
+    sessionType: z.enum(SESSION_TYPES).optional(),
+    reason: z.string().trim().max(200).optional(),
+  })
+  .refine((v) => v.date || (v.dates && v.dates.length > 0), {
+    message: "Give a date, a range, or a list of dates",
+  });
+
+
 
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
   assertServiceAccess(session as never, id);
 
-  const includePast = new URL(req.url).searchParams.get("includePast") === "1";
+  const params = new URL(req.url).searchParams;
+  const includePast = params.get("includePast") === "1";
+  const from = params.get("from");
+  const to = params.get("to");
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
+  /**
+   * Report mode: an explicit window, past dates included.
+   *
+   * The default list is deliberately forward-looking — a block-out is a
+   * thing you set up ahead of time, and a register full of last year's
+   * closures buries the one you're looking for. But "what did we close
+   * last term" is a real question, and it needs the past.
+   */
+  const reporting = Boolean(from && to && YMD.test(from) && YMD.test(to));
+  const dateFilter = reporting
+    ? { date: { gte: dateOnly(from!), lte: dateOnly(to!) } }
+    : includePast
+      ? {}
+      : { date: { gte: today } };
+
   const rows = await prisma.serviceBlockOutDate.findMany({
-    where: { serviceId: id, ...(includePast ? {} : { date: { gte: today } }) },
+    where: { serviceId: id, ...dateFilter },
     orderBy: { date: "asc" },
-    take: 200,
+    take: reporting ? 1000 : 200,
     include: { createdBy: { select: { name: true } } },
   });
 
@@ -67,6 +104,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       programmeName: r.sessionType ? programmeName(r.sessionType) : null,
       reason: r.reason,
       createdBy: r.createdBy?.name ?? null,
+      createdAt: r.createdAt,
     })),
   });
 });
@@ -82,22 +120,12 @@ export const POST = withApiAuth(
     }
     const d = parsed.data;
 
-    const start = dateOnly(d.date);
-    const end = d.endDate ? dateOnly(d.endDate) : start;
-    if (end < start) {
-      throw ApiError.badRequest("The last day can't be before the first");
-    }
-    const days = Math.round((end.getTime() - start.getTime()) / 86400_000) + 1;
-    if (days > MAX_RANGE_DAYS) {
-      throw ApiError.badRequest(
-        `That's ${days} days. Block out a term at most — anything longer is a closure, not a block-out.`,
-      );
-    }
-
-    const dates: Date[] = [];
-    for (let i = 0; i < days; i++) {
-      dates.push(new Date(start.getTime() + i * 86400_000));
-    }
+    // Expansion lives in a pure helper so the edge cases — an
+    // all-weekend range, a duplicated date, a range longer than a term —
+    // are tested directly rather than through a mocked Prisma client.
+    const expanded = expandBlockOutDates(d);
+    if (!expanded.ok) throw ApiError.badRequest(expanded.error);
+    const dates = expanded.dates;
 
     // skipDuplicates so re-submitting a range that overlaps an existing
     // one tops it up rather than failing the whole request.

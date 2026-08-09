@@ -7,6 +7,7 @@ import {
   roomLabel,
   roomLabelWithTimes,
   roomFees,
+  archivedRoomFees,
   formatTime,
   resolveCasualFee,
 } from "@/lib/service-settings";
@@ -445,5 +446,87 @@ describe("resolveCasualFee — casual price follows Rooms & fees", () => {
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.policy).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Archived fee tiers (2026-08-09)
+// ---------------------------------------------------------------------------
+
+describe("roomFees / archivedRoomFees", () => {
+  const sessionTimes = {
+    asc: {
+      start: "15:00",
+      end: "18:30",
+      fees: [
+        { id: "f1", name: "Recurring", amountCents: 3860 },
+        { id: "f2", name: "Casual", amountCents: 4410 },
+        { id: "f3", name: "Old rate", amountCents: 3000, archived: true },
+      ],
+    },
+  };
+
+  it("hides archived tiers from the pickable list", () => {
+    const fees = roomFees(sessionTimes, "asc");
+    expect(fees.map((f) => f.id)).toEqual(["f1", "f2"]);
+  });
+
+  it("still sorts the live tiers cheapest first", () => {
+    expect(roomFees(sessionTimes, "asc").map((f) => f.amountCents)).toEqual([
+      3860, 4410,
+    ]);
+  });
+
+  it("returns only archived tiers from archivedRoomFees", () => {
+    expect(archivedRoomFees(sessionTimes, "asc").map((f) => f.id)).toEqual([
+      "f3",
+    ]);
+  });
+
+  it("treats a tier with no archived flag as live", () => {
+    // Every fee that predates the field must keep working.
+    const legacy = { asc: { start: "15:00", end: "18:30", fees: [{ id: "a", name: "X", amountCents: 100 }] } };
+    expect(roomFees(legacy, "asc")).toHaveLength(1);
+    expect(archivedRoomFees(legacy, "asc")).toHaveLength(0);
+  });
+
+  it("returns empty lists for a room with no fees", () => {
+    expect(roomFees({}, "asc")).toEqual([]);
+    expect(archivedRoomFees({}, "asc")).toEqual([]);
+  });
+});
+
+describe("feeTierSchema archive/audit fields", () => {
+  it("accepts a tier carrying the new metadata", () => {
+    const parsed = sessionTimesSchema.parse({
+      asc: {
+        start: "15:00",
+        end: "18:30",
+        fees: [
+          {
+            id: "f1",
+            name: "Recurring",
+            amountCents: 3860,
+            archived: true,
+            addedAt: "2026-08-09T00:00:00.000Z",
+            updatedAt: "2026-08-09T01:00:00.000Z",
+            updatedByName: "Jayden Kowaider",
+          },
+        ],
+      },
+    });
+    expect(parsed.asc?.fees?.[0].archived).toBe(true);
+    expect(parsed.asc?.fees?.[0].updatedByName).toBe("Jayden Kowaider");
+  });
+
+  it("still accepts a tier without any of them", () => {
+    const parsed = sessionTimesSchema.parse({
+      asc: {
+        start: "15:00",
+        end: "18:30",
+        fees: [{ id: "f1", name: "Recurring", amountCents: 3860 }],
+      },
+    });
+    expect(parsed.asc?.fees?.[0].archived).toBeUndefined();
   });
 });

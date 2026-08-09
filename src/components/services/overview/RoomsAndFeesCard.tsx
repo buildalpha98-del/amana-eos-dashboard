@@ -17,7 +17,16 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Edit3, Plus, Trash2, DollarSign } from "lucide-react";
+import { useSession } from "next-auth/react";
+import {
+  Clock,
+  Edit3,
+  Plus,
+  Trash2,
+  DollarSign,
+  Archive,
+  RotateCcw,
+} from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
@@ -54,7 +63,17 @@ interface EditableRoom {
   maxAgeYears: string;
   staffOnly: boolean;
   disabled: boolean;
-  fees: Array<{ id: string; name: string; start: string; end: string; amount: string }>;
+  fees: Array<{
+    id: string;
+    name: string;
+    start: string;
+    end: string;
+    amount: string;
+    archived: boolean;
+    addedAt?: string;
+    updatedAt?: string;
+    updatedByName?: string;
+  }>;
 }
 
 type EditableRooms = Record<SessionKey, EditableRoom>;
@@ -83,6 +102,10 @@ function toEditable(value: SessionTimes | null | undefined): EditableRooms {
         start: f.start ?? "",
         end: f.end ?? "",
         amount: (f.amountCents / 100).toFixed(2),
+        archived: f.archived ?? false,
+        addedAt: f.addedAt,
+        updatedAt: f.updatedAt,
+        updatedByName: f.updatedByName,
       })),
     };
   }
@@ -129,6 +152,11 @@ export function RoomsAndFeesCard({
   canEdit: boolean;
 }) {
   const updateService = useUpdateService();
+  // Stamped onto a fee when its rate actually changes, so "who put this
+  // rate up" has an answer for rates typed straight into the matrix —
+  // ServiceFeeChange already answers it for scheduled ones.
+  const { data: authSession } = useSession();
+  const currentUserName = authSession?.user?.name ?? null;
   const [open, setOpen] = useState(false);
   const [rooms, setRooms] = useState<EditableRooms>(() =>
     toEditable(service.sessionTimes as SessionTimes | null),
@@ -212,12 +240,39 @@ export function RoomsAndFeesCard({
             `"${name}" needs a dollar amount, e.g. 28 or 28.50.`,
           );
         }
+        // The rate that was saved last time, so the audit stamp only
+        // moves when something actually changed — re-saving the room
+        // to edit its capacity must not rewrite every fee's history.
+        const previous = (saved?.[key]?.fees ?? []).find((x) => x.id === f.id);
+        const changed =
+          !previous ||
+          previous.name !== name ||
+          previous.amountCents !== (cents ?? 0) ||
+          (previous.start ?? "") !== f.start.trim() ||
+          (previous.end ?? "") !== f.end.trim() ||
+          Boolean(previous.archived) !== f.archived;
+
         fees.push({
           id: f.id,
           name,
           amountCents: cents ?? 0,
           ...(f.start.trim() ? { start: f.start.trim() } : {}),
           ...(f.end.trim() ? { end: f.end.trim() } : {}),
+          ...(f.archived ? { archived: true } : {}),
+          // A fee that existed before this field did keeps no addedAt
+          // rather than claiming it started today.
+          ...(f.addedAt ? { addedAt: f.addedAt } : {}),
+          ...(changed
+            ? {
+                updatedAt: new Date().toISOString(),
+                ...(currentUserName ? { updatedByName: currentUserName } : {}),
+              }
+            : {
+                ...(f.updatedAt ? { updatedAt: f.updatedAt } : {}),
+                ...(f.updatedByName
+                  ? { updatedByName: f.updatedByName }
+                  : {}),
+              }),
         });
       }
 
@@ -602,6 +657,12 @@ export function RoomsAndFeesCard({
                                 start: "",
                                 end: "",
                                 amount: "",
+                                archived: false,
+                                // Stamped now so the matrix can show
+                                // when this rate started. Fees that
+                                // predate the field stay blank rather
+                                // than claiming today.
+                                addedAt: new Date().toISOString(),
                               },
                             ],
                           })
@@ -716,19 +777,72 @@ export function RoomsAndFeesCard({
                               />
                             </div>
                             <div className="sm:col-span-1 flex justify-end">
-                              <button
-                                type="button"
-                                aria-label={`Remove ${f.name || "fee"}`}
-                                onClick={() =>
-                                  update(key, {
-                                    fees: r.fees.filter((x) => x.id !== f.id),
-                                  })
-                                }
-                                className="p-2.5 rounded-lg text-muted hover:text-red-600 hover:bg-surface transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {/* Archive rather than delete once a fee
+                                  has been saved: a scheduled rate change
+                                  references it by id, the casual settings
+                                  may point at it, and a disputed invoice
+                                  needs the rate that was in force to stay
+                                  readable. A fee that was never saved has
+                                  none of that, so it can just go. */}
+                              {(saved?.[key]?.fees ?? []).some(
+                                (x) => x.id === f.id,
+                              ) ? (
+                                <button
+                                  type="button"
+                                  aria-label={
+                                    f.archived
+                                      ? `Restore ${f.name || "fee"}`
+                                      : `Archive ${f.name || "fee"}`
+                                  }
+                                  title={
+                                    f.archived
+                                      ? "Restore this fee"
+                                      : "Archive — keeps the history, takes it off the list"
+                                  }
+                                  onClick={() => {
+                                    const fees = [...r.fees];
+                                    fees[i] = { ...f, archived: !f.archived };
+                                    update(key, { fees });
+                                  }}
+                                  className="p-2.5 rounded-lg text-muted hover:text-foreground hover:bg-surface transition-colors"
+                                >
+                                  {f.archived ? (
+                                    <RotateCcw className="w-4 h-4" />
+                                  ) : (
+                                    <Archive className="w-4 h-4" />
+                                  )}
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  aria-label={`Remove ${f.name || "fee"}`}
+                                  onClick={() =>
+                                    update(key, {
+                                      fees: r.fees.filter((x) => x.id !== f.id),
+                                    })
+                                  }
+                                  className="p-2.5 rounded-lg text-muted hover:text-red-600 hover:bg-surface transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
+                            {/* Audit line: who last moved this rate, and
+                                when it started. Blank for fees that
+                                predate the fields. */}
+                            {(f.addedAt || f.updatedByName) && (
+                              <p className="col-span-2 sm:col-span-12 -mt-1 text-2xs text-muted">
+                                {f.archived && (
+                                  <span className="font-medium">Archived · </span>
+                                )}
+                                {f.addedAt &&
+                                  `Added ${new Date(f.addedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`}
+                                {f.updatedByName &&
+                                  ` · Last changed by ${f.updatedByName}`}
+                                {f.updatedAt &&
+                                  ` on ${new Date(f.updatedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>

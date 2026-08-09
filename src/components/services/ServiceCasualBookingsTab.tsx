@@ -15,6 +15,7 @@ import {
   casualBookingSettingsSchema,
   activeSessionKeys,
   roomFees,
+  archivedRoomFees,
   roomLabel,
   type BookingPolicy,
   type CasualBookingSettings,
@@ -336,6 +337,23 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                       {f.name} — {formatCurrency(f.amountCents / 100)}
                     </option>
                   ))}
+                  {/* `roomFees` hides archived tiers, which is right for
+                      picking a NEW fee — but if this session is already
+                      linked to one that's since been archived, dropping
+                      it from the list would blank the select and the
+                      next save would silently unlink a live price. Keep
+                      it visible, and say why it's odd. */}
+                  {s.feeTierId &&
+                    !roomFees(sessionTimes, type).some(
+                      (f) => f.id === s.feeTierId,
+                    ) && (
+                      <option value={s.feeTierId}>
+                        {archivedRoomFees(sessionTimes, type).find(
+                          (f) => f.id === s.feeTierId,
+                        )?.name ?? "Linked fee"}{" "}
+                        — archived
+                      </option>
+                    )}
                 </select>
                 {roomFees(sessionTimes, type).length === 0 && (
                   <span className="block mt-1 text-2xs text-muted">

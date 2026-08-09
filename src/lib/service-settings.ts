@@ -31,6 +31,30 @@ export const feeTierSchema = z.object({
    * separate fee so a rate rise moves one row, not three.
    */
   staffAmountCents: z.number().int().min(0).max(1_000_00).optional(),
+  /**
+   * Retired without being deleted.
+   *
+   * Deleting a fee tier is destructive in a way that isn't obvious: a
+   * scheduled rate change references it by id, the casual booking
+   * settings may point at it, and a family disputing an invoice needs
+   * the rate that was in force to still be readable. Archiving keeps all
+   * of that intact and takes the fee off the list you work from.
+   */
+  archived: z.boolean().optional(),
+  /**
+   * When the fee was first added, ISO date. Optional because every fee
+   * created before this field existed has no honest answer — showing a
+   * back-filled "today" would be a lie about when the rate started.
+   */
+  addedAt: z.string().optional(),
+  /**
+   * Who last touched it, and when. The question that arrives when a
+   * family disputes an invoice is "who put this rate up" — `ServiceFeeChange`
+   * answers it for SCHEDULED changes, and this answers it for the ones
+   * typed straight into the matrix.
+   */
+  updatedAt: z.string().optional(),
+  updatedByName: z.string().max(120).optional(),
 });
 export type FeeTier = z.infer<typeof feeTierSchema>;
 
@@ -230,13 +254,34 @@ export function roomLabelWithTimes(
   return start && end ? `${name} (${start} – ${end})` : name;
 }
 
-/** Fee tiers configured for a room, cheapest first. */
+/**
+ * Fee tiers configured for a room, cheapest first.
+ *
+ * Archived tiers are EXCLUDED. Every caller of this is asking "what can
+ * this room be charged at" — the booking form, the casual fee resolver,
+ * the fee-change picker — and an archived rate is precisely one that
+ * shouldn't be offered. `archivedRoomFees` exists for the one screen
+ * that wants to look backwards.
+ */
 export function roomFees(
   sessionTimes: SessionTimes | null | undefined,
   key: SessionKey,
 ): FeeTier[] {
   const fees = sessionTimes?.[key]?.fees ?? [];
-  return [...fees].sort((a, b) => a.amountCents - b.amountCents);
+  return [...fees]
+    .filter((f) => !f.archived)
+    .sort((a, b) => a.amountCents - b.amountCents);
+}
+
+/** The retired tiers for a room — history, not options. */
+export function archivedRoomFees(
+  sessionTimes: SessionTimes | null | undefined,
+  key: SessionKey,
+): FeeTier[] {
+  const fees = sessionTimes?.[key]?.fees ?? [];
+  return [...fees]
+    .filter((f) => f.archived)
+    .sort((a, b) => a.amountCents - b.amountCents);
 }
 
 // ── casualBookingSettings ───────────────────────────────────
