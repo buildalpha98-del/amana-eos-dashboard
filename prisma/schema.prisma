@@ -619,6 +619,7 @@ model User {
   createdCasualDays             CasualDayConfig[]              @relation("CasualDayCreator")
   createdDiscounts              FamilyDiscount[]               @relation("DiscountCreator")
   createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
+  createdFeeAssignments         ChildFeeAssignment[]           @relation("FeeAssignmentCreator")
   debtChases                    FamilyDebtContact[]            @relation("DebtChaser")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
   reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
@@ -2627,6 +2628,7 @@ model Service {
   casualDays     CasualDayConfig[]     @relation("ServiceCasualDays")
   discounts      FamilyDiscount[]      @relation("ServiceDiscounts")
   feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
+  feeAssignments ChildFeeAssignment[]  @relation("ServiceFeeAssignments")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -6764,6 +6766,7 @@ model Child {
   discounts          FamilyDiscount[]      @relation("ChildDiscounts")
   attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
   statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
+  feeAssignments     ChildFeeAssignment[]  @relation("ChildFeeAssignments")
 
   // ── NQS relations ─────────────────────────────────
   observations  LearningObservation[]      @relation("ChildObservations")
@@ -7689,6 +7692,57 @@ model ServiceSessionTime {
   /// works around.
   @@unique([serviceId, start, end])
   @@index([serviceId, active])
+}
+
+/// Which fee a child is charged at, in one room.
+///
+/// This is the link the fees matrix was missing. A `Booking` records the
+/// child, the date and the ROOM — it has never recorded which of that
+/// room's fees applies. So in a room running four fees (recurring,
+/// casual, Wednesday care, Ramadan care) there was no way to answer
+/// "how many children are on this rate", and no way to charge two
+/// children in the same room differently.
+///
+/// One row per child per room, enforced by the unique below. A child
+/// attending both before- and after-school care has two rows, because
+/// those are two rooms with two fee lists — but they cannot be on two
+/// fees for the SAME room at once, which is the mistake this prevents.
+///
+/// `feeTierId` points into the room's `fees` array in
+/// `Service.sessionTimes` rather than at a table, because that is where
+/// fee tiers live. `feeName` is denormalised beside it so the assignment
+/// still reads correctly after a tier is renamed or archived — a row
+/// saying "fee-3" answers nothing when a parent rings about their
+/// invoice.
+model ChildFeeAssignment {
+  id        String  @id @default(cuid())
+  childId   String
+  child     Child   @relation("ChildFeeAssignments", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation("ServiceFeeAssignments", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// The room. Same enum every Booking and AttendanceRecord uses.
+  sessionType SessionType
+  /// The tier's id within that room's `fees` array.
+  feeTierId   String
+  /// Denormalised at write time; see the note above.
+  feeName     String
+
+  /// When this rate starts applying to this child. Null means "now, and
+  /// we didn't record a date" — which is the honest answer for an
+  /// assignment made mid-term rather than a back-dated one.
+  effectiveFrom DateTime? @db.Date
+
+  createdById String?
+  createdBy   User?    @relation("FeeAssignmentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// One fee per child per room.
+  @@unique([childId, sessionType])
+  /// The "Applied To" count: group by tier within a service and room.
+  @@index([serviceId, sessionType, feeTierId])
+  @@index([feeTierId])
 }
 
 /// A change to a room's fee — scheduled for a date, or already applied.

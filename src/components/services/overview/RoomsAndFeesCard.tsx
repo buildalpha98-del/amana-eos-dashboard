@@ -51,6 +51,7 @@ import {
   sessionTimeOptionLabel,
 } from "@/lib/session-times";
 import { RoomDetailPanel } from "./RoomDetailPanel";
+import { FeeAppliedToPanel } from "./FeeAppliedToPanel";
 
 interface EditableRoom {
   label: string;
@@ -192,6 +193,35 @@ export function RoomsAndFeesCard({
   const sessionTimes = (sessionTimeData?.sessionTimes ?? []).filter(
     (s) => s.active,
   );
+
+  /**
+   * How many children are on each fee — one groupBy for every badge on
+   * the page rather than a count per row.
+   *
+   * A failure leaves every badge absent rather than showing zero:
+   * "Applied to 0" and "we couldn't load the numbers" mean very
+   * different things to someone about to archive a fee.
+   */
+  const { data: appliedData } = useQuery<{
+    counts: Array<{ sessionType: string; feeTierId: string; count: number }>;
+  }>({
+    queryKey: ["service", service.id, "fee-assignments"],
+    queryFn: () => fetchApi(`/api/services/${service.id}/fee-assignments`),
+    retry: 1,
+  });
+  const appliedCount = (key: SessionKey, feeTierId: string): number | null => {
+    if (!appliedData) return null;
+    return (
+      appliedData.counts.find(
+        (c) => c.sessionType === key && c.feeTierId === feeTierId,
+      )?.count ?? 0
+    );
+  };
+  const [appliedPanel, setAppliedPanel] = useState<{
+    key: SessionKey;
+    feeTierId: string;
+    feeName: string;
+  } | null>(null);
 
   function update(key: SessionKey, patch: Partial<EditableRoom>) {
     setRooms((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
@@ -827,6 +857,33 @@ export function RoomsAndFeesCard({
                                 </button>
                               )}
                             </div>
+                            {/* Applied-to badge. Only for fees that have
+                                been saved — an unsaved row has no id
+                                anything could be assigned against. */}
+                            {(saved?.[key]?.fees ?? []).some(
+                              (x) => x.id === f.id,
+                            ) &&
+                              appliedCount(key, f.id) !== null && (
+                                <div className="col-span-2 sm:col-span-12 -mt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setAppliedPanel({
+                                        key,
+                                        feeTierId: f.id,
+                                        feeName:
+                                          f.name.trim() || "this fee",
+                                      })
+                                    }
+                                    className="text-2xs text-brand hover:underline"
+                                  >
+                                    Applied to {appliedCount(key, f.id)}{" "}
+                                    {appliedCount(key, f.id) === 1
+                                      ? "child"
+                                      : "children"}
+                                  </button>
+                                </div>
+                              )}
                             {/* Audit line: who last moved this rate, and
                                 when it started. Blank for fees that
                                 predate the fields. */}
@@ -1042,6 +1099,19 @@ export function RoomsAndFeesCard({
           </div>
         </DialogContent>
       </Dialog>
+
+      {appliedPanel && (
+        <FeeAppliedToPanel
+          open
+          onClose={() => setAppliedPanel(null)}
+          serviceId={service.id}
+          sessionType={appliedPanel.key}
+          feeTierId={appliedPanel.feeTierId}
+          feeName={appliedPanel.feeName}
+          roomName={roomLabel(saved, appliedPanel.key)}
+          canEdit={canEdit}
+        />
+      )}
     </div>
   );
 }
