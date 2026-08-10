@@ -23,6 +23,38 @@ const patchSchema = z.object({
   followUpRequired: z.boolean().optional(),
   followUpCompleted: z.boolean().optional(),
   incidentDate: z.string().optional(),
+
+  // ── Reg 87(2): the entries the record is actually required to hold ──
+  childId: z.string().nullable().optional(),
+  childAge: z.number().int().min(0).max(25).nullable().optional(),
+  circumstances: z.string().nullable().optional(),
+  firstAidGiven: z.boolean().optional(),
+  firstAidBy: z.string().nullable().optional(),
+  firstAidDetails: z.string().nullable().optional(),
+  medicalPersonnelContacted: z.string().nullable().optional(),
+  ambulanceCalled: z.boolean().optional(),
+  witnesses: z.string().nullable().optional(),
+  recordedSignature: z.string().max(120).nullable().optional(),
+
+  // ── Reg 86: telling the family ──
+  parentNotifiedAt: z.string().nullable().optional(),
+  parentNotifiedName: z.string().nullable().optional(),
+  /** phone | in_person | email | sms | portal | attempted_no_answer. */
+  parentNotifiedMethod: z.string().nullable().optional(),
+
+  // ── Reg 176: telling the Regulatory Authority ──
+  seriousIncidentCategory: z.string().nullable().optional(),
+  becameAwareAt: z.string().nullable().optional(),
+  reportedToAuthorityAt: z.string().nullable().optional(),
+  authorityReference: z.string().max(120).nullable().optional(),
+
+  /**
+   * Publish the written record to the family's portal, or withdraw it.
+   * Sent as a boolean rather than a timestamp so the server stamps WHEN
+   * and WHO — a client-supplied share time could be back-dated to look
+   * like Reg 86 was met.
+   */
+  shareWithParent: z.boolean().optional(),
 });
 
 type RouteCtx = { params: Promise<{ id: string }> };
@@ -87,6 +119,86 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         ? { followUpCompleted: patch.followUpCompleted }
         : {}),
       ...(patch.incidentDate ? { incidentDate: new Date(patch.incidentDate) } : {}),
+
+      // ── Reg 87(2) entries ──
+      ...(patch.childId !== undefined ? { childId: patch.childId } : {}),
+      ...(patch.childAge !== undefined ? { childAge: patch.childAge } : {}),
+      ...(patch.circumstances !== undefined
+        ? { circumstances: patch.circumstances }
+        : {}),
+      ...(patch.firstAidGiven !== undefined
+        ? { firstAidGiven: patch.firstAidGiven }
+        : {}),
+      ...(patch.firstAidBy !== undefined ? { firstAidBy: patch.firstAidBy } : {}),
+      ...(patch.firstAidDetails !== undefined
+        ? { firstAidDetails: patch.firstAidDetails }
+        : {}),
+      ...(patch.medicalPersonnelContacted !== undefined
+        ? { medicalPersonnelContacted: patch.medicalPersonnelContacted }
+        : {}),
+      ...(patch.ambulanceCalled !== undefined
+        ? { ambulanceCalled: patch.ambulanceCalled }
+        : {}),
+      ...(patch.witnesses !== undefined ? { witnesses: patch.witnesses } : {}),
+      ...(patch.recordedSignature !== undefined
+        ? { recordedSignature: patch.recordedSignature }
+        : {}),
+
+      // ── Reg 86 ──
+      ...(patch.parentNotifiedAt !== undefined
+        ? {
+            parentNotifiedAt: patch.parentNotifiedAt
+              ? new Date(patch.parentNotifiedAt)
+              : null,
+            // Keep the legacy boolean in step so nothing reading it
+            // disagrees with the timestamp beside it.
+            parentNotified: Boolean(patch.parentNotifiedAt),
+            parentNotifiedById: patch.parentNotifiedAt
+              ? session.user.id
+              : null,
+          }
+        : {}),
+      ...(patch.parentNotifiedName !== undefined
+        ? { parentNotifiedName: patch.parentNotifiedName }
+        : {}),
+      ...(patch.parentNotifiedMethod !== undefined
+        ? { parentNotifiedMethod: patch.parentNotifiedMethod }
+        : {}),
+
+      // ── Reg 176 ──
+      ...(patch.seriousIncidentCategory !== undefined
+        ? { seriousIncidentCategory: patch.seriousIncidentCategory }
+        : {}),
+      ...(patch.becameAwareAt !== undefined
+        ? {
+            becameAwareAt: patch.becameAwareAt
+              ? new Date(patch.becameAwareAt)
+              : null,
+          }
+        : {}),
+      ...(patch.reportedToAuthorityAt !== undefined
+        ? {
+            reportedToAuthorityAt: patch.reportedToAuthorityAt
+              ? new Date(patch.reportedToAuthorityAt)
+              : null,
+          }
+        : {}),
+      ...(patch.authorityReference !== undefined
+        ? { authorityReference: patch.authorityReference }
+        : {}),
+
+      /**
+       * Sharing stamps the server's clock and the sharer, so a
+       * back-dated share can't be used to claim Reg 86 was met.
+       * Withdrawing clears the stamp but deliberately KEEPS any
+       * acknowledgement already given — that a family saw it is a fact
+       * about the past, not a setting.
+       */
+      ...(patch.shareWithParent !== undefined
+        ? patch.shareWithParent
+          ? { sharedWithParentAt: new Date(), sharedById: session.user.id }
+          : { sharedWithParentAt: null, sharedById: null }
+        : {}),
     },
     include: {
       service: { select: { id: true, name: true, code: true } },
