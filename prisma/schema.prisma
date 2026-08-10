@@ -511,6 +511,7 @@ enum LeadSource {
   build_alpha_kids
   referral
   community_connection
+  website
 }
 
 enum PipelineStage {
