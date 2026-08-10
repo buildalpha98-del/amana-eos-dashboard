@@ -284,3 +284,113 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
 
   return NextResponse.json(assignment, { status: 201 });
 });
+
+/**
+ * PATCH /api/onboarding/assign — change an assignment's due date.
+ *
+ * Mirrors the training equivalent in /api/lms/assignments. Only the due
+ * date is editable: `status` is derived from task progress, and writing
+ * it by hand would put an assignment out of step with the tick-boxes it
+ * is computed from.
+ */
+export const PATCH = withApiAuth(
+  async (req) => {
+    const parsed = z
+      .object({
+        onboardingId: z.string().min(1),
+        /** ISO date, or null to clear it. */
+        dueDate: z.string().nullable(),
+      })
+      .safeParse(await parseJsonBody(req));
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
+        { status: 400 },
+      );
+    }
+    const { onboardingId, dueDate } = parsed.data;
+
+    const existing = await prisma.staffOnboarding.findUnique({
+      where: { id: onboardingId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+    }
+
+    let due: Date | null = null;
+    if (dueDate) {
+      due = new Date(dueDate);
+      if (Number.isNaN(due.getTime())) {
+        return NextResponse.json(
+          { error: "That due date isn't a real date" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const updated = await prisma.staffOnboarding.update({
+      where: { id: onboardingId },
+      data: { dueDate: due },
+      select: { id: true, dueDate: true },
+    });
+
+    return NextResponse.json({ assignment: updated });
+  },
+  { roles: ["owner", "head_office", "admin"] },
+);
+
+/**
+ * DELETE /api/onboarding/assign?onboardingId=… — unassign a pack.
+ *
+ * There was no way to do this at all: a pack assigned to someone who
+ * turned out not to need it (an admin who doesn't work on the floor, a
+ * relief educator) stayed on their list permanently.
+ *
+ * A real delete, cascading the per-task progress rows. Unlike the bulk
+ * route this will remove a COMPLETED assignment too — deleting one
+ * deliberately, by id, is unambiguous intent in a way that ticking a box
+ * in a list of thirty is not.
+ */
+export const DELETE = withApiAuth(
+  async (req, session) => {
+    const onboardingId = new URL(req.url).searchParams.get("onboardingId");
+    if (!onboardingId) {
+      return NextResponse.json(
+        { error: "onboardingId is required" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await prisma.staffOnboarding.findUnique({
+      where: { id: onboardingId },
+      include: {
+        user: { select: { name: true } },
+        pack: { select: { name: true } },
+      },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+    }
+
+    // Cascade handles StaffOnboardingProgress.
+    await prisma.staffOnboarding.delete({ where: { id: onboardingId } });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: session!.user.id,
+        action: "unassign_onboarding",
+        entityType: "StaffOnboarding",
+        entityId: onboardingId,
+        details: {
+          userName: existing.user.name,
+          packName: existing.pack.name,
+          wasCompleted: existing.status === "completed",
+        },
+      },
+    });
+
+    return NextResponse.json({ ok: true });
+  },
+  { roles: ["owner", "head_office", "admin"] },
+);
