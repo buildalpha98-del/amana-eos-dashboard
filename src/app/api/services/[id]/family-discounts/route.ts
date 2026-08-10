@@ -16,6 +16,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { programmeName } from "@/lib/programme-names";
 import type { SessionType } from "@prisma/client";
+import { resolveRoomId } from "@/lib/room-resolver";
 
 const SESSION_TYPES = [
   "bsc",
@@ -187,6 +188,9 @@ export const POST = withApiAuth(
       data: {
         contactId,
         serviceId: id,
+        // Stage 1 dual key. A discount with no slot applies across the
+        // centre, so a null room is meaningful here, not a failure.
+        roomId: await resolveRoomId(id, d.sessionType),
         sessionType: (d.sessionType as SessionType) ?? null,
         childId: d.childId ?? null,
         kind: d.kind,

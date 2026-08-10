@@ -16,6 +16,7 @@ import { logger } from "@/lib/logger";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { programmeName } from "@/lib/programme-names";
 import type { SessionType } from "@prisma/client";
+import { resolveRoomId } from "@/lib/room-resolver";
 
 export const HEADCOUNT_KINDS = [
   "head_count",
@@ -146,6 +147,9 @@ export const POST = withApiAuth(
         serviceId: id,
         kind: d.kind,
         conductedAt: d.conductedAt ? new Date(d.conductedAt) : new Date(),
+        // Stage 1 dual key. Null slot means a service-wide headcount, so
+        // a null room is the right answer rather than a missing one.
+        roomId: await resolveRoomId(id, d.sessionType),
         sessionType: (d.sessionType as SessionType) ?? null,
         excursionId: d.excursionId ?? null,
         childrenCount: d.childrenCount,

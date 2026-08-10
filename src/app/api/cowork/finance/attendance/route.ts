@@ -6,6 +6,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { resolveRoomId } from "@/lib/room-resolver";
 const attendanceRecordSchema = z.object({
   date: z.string().min(1),
   sessionType: z.enum(["bsc", "asc", "vc"]),
@@ -76,6 +77,8 @@ export const POST = withApiHandler(async (req) => {
         create: {
           serviceId: service.id,
           date: dateObj,
+          // Stage 1 dual key — see room-resolver.ts.
+          roomId: await resolveRoomId(service.id, rec.sessionType),
           sessionType: rec.sessionType,
           enrolled: rec.enrolled || 0,
           attended: rec.attended || 0,

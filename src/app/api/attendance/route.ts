@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { SessionType } from "@prisma/client";
 import { propagateEnrolledCounts } from "./propagate/route";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { resolveRoomId, resolveRoomIds } from "@/lib/room-resolver";
 import { logger } from "@/lib/logger";
 
 // ── GET: List attendance records ────────────────────────────
@@ -103,6 +104,9 @@ export const POST = withApiAuth(async (req, session) => {
     create: {
       serviceId: data.serviceId,
       date: new Date(data.date),
+      // Stage 1 dual key — see room-resolver.ts. Both keys are written;
+      // reads still use sessionType until Stage 2.
+      roomId: await resolveRoomId(data.serviceId, data.sessionType),
       sessionType: data.sessionType,
       enrolled: data.enrolled,
       attended: data.attended,
@@ -136,6 +140,24 @@ export const PUT = withApiAuth(async (req, session) => {
     if (forbidden) throw ApiError.forbidden();
   }
 
+  /**
+   * Resolve every distinct (service, slot) pair up front rather than one
+   * per cell. Keyed by BOTH: a weekly save is normally one service, but
+   * nothing in the payload guarantees it, and resolving 50 rows against
+   * the first row's service would file another centre's attendance under
+   * this one's rooms.
+   */
+  const roomIds = new Map<string, string | null>();
+  for (const serviceId of new Set(items.map((i) => i.serviceId))) {
+    const forService = await resolveRoomIds(
+      serviceId,
+      items.filter((i) => i.serviceId === serviceId).map((i) => i.sessionType),
+    );
+    for (const [slot, id] of forService) {
+      roomIds.set(`${serviceId}:${slot}`, id);
+    }
+  }
+
   const results = await prisma.$transaction(
     items.map((item) =>
       prisma.dailyAttendance.upsert({
@@ -158,6 +180,7 @@ export const PUT = withApiAuth(async (req, session) => {
         create: {
           serviceId: item.serviceId,
           date: new Date(item.date),
+          roomId: roomIds.get(`${item.serviceId}:${item.sessionType}`) ?? null,
           sessionType: item.sessionType,
           enrolled: item.enrolled,
           attended: item.attended,

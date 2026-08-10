@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveRoomId } from "@/lib/room-resolver";
 import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
@@ -139,6 +140,11 @@ export const PATCH = withParentAuth(async (req, ctx) => {
 
   const { isIllness, medicalCertificateUrl, notes } = parsed.data;
 
+  const absenceRoomId = await resolveRoomId(
+    booking.serviceId,
+    booking.sessionType,
+  );
+
   // Atomic: update booking status + create absence record
   const [updatedBooking, absence] = await prisma.$transaction([
     prisma.booking.update({
@@ -154,6 +160,9 @@ export const PATCH = withParentAuth(async (req, ctx) => {
         childId: booking.childId,
         serviceId: booking.serviceId,
         date: booking.date,
+        // Stage 1 dual key. Resolved before the transaction is built —
+        // the array form takes prepared arguments, not promises.
+        roomId: absenceRoomId,
         sessionType: booking.sessionType,
         isIllness,
         medicalCertificateUrl,

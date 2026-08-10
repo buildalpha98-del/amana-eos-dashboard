@@ -24,6 +24,7 @@ import {
   type SessionTimes,
 } from "@/lib/service-settings";
 import type { SessionType } from "@prisma/client";
+import { resolveRoomId } from "@/lib/room-resolver";
 
 const SESSION_TYPES = [
   "bsc",
@@ -203,6 +204,10 @@ export const POST = withApiAuth(
       ? all.filter((x) => d.weekdays!.includes(x.getUTCDay()))
       : all;
 
+    // Stage 1 dual key, resolved once — every day in the range shares
+    // one (service, slot) pair.
+    const roomId = await resolveRoomId(id, d.sessionType);
+
     // Upsert rather than createMany: setting a range twice should end at
     // the second value, not fail or duplicate.
     for (const date of days) {
@@ -217,6 +222,7 @@ export const POST = withApiAuth(
         create: {
           serviceId: id,
           date,
+          roomId,
           sessionType: d.sessionType as SessionType,
           spots: d.spots ?? null,
           closed: d.closed ?? false,

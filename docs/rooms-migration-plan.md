@@ -1,7 +1,7 @@
 # Making rooms first-class records
 
-**Status:** Stage 0 built. Stages 1–4 are still proposal.
-**Written:** 2026-08-09 · **Stage 0 landed:** 2026-08-10
+**Status:** Stages 0 and 1 built. Stages 2–4 are still proposal.
+**Written:** 2026-08-09 · **Stage 0 landed:** 2026-08-10 · **Stage 1 landed:** 2026-08-10
 
 ## The problem
 
@@ -114,15 +114,43 @@ One row per configured key per service, read out of `Service.sessionTimes`.
 
 **Revert:** drop the table. Nothing references it.
 
-### Stage 1 — dual-key writes
+### Stage 1 — dual-key writes ✅ BUILT
 
 Add a nullable `roomId` beside `sessionType` on each of the 23 models,
 backfill it from `(serviceId, sessionType) → Room`, and make every write
 path set **both**.
 
-The 84 API routes do *not* each get edited. One resolver —
-`resolveRoomId(serviceId, sessionType)` — is called from the shared
-write helpers, so the change is concentrated rather than sprayed.
+**Correction to this plan, made while building it.** There are no
+shared write helpers to hook — that claim was wrong. Measured, it is
+**34 write sites across 18 models** that put a `sessionType` into a
+payload, and each was edited by hand to call `resolveRoomId`. Bookings
+were the one genuine exception: all three creation paths go through
+`generateBookings`, so `stampRoomIds` covers them in one place.
+
+What makes 34 hand-edits survivable is that `roomId` is a pure function
+of `(serviceId, sessionType)` — `Room` holds exactly one row per slot per
+service. A site that misses the dual write leaves a null the backfill
+re-derives, rather than a loss that has to be reconstructed from intent.
+
+| Piece | Where |
+| --- | --- |
+| Resolver, batch resolver, `stampRoomIds` | `src/lib/room-resolver.ts` |
+| Columns, FKs, backfill, parallel uniques | `prisma/migrations/20260810230000_rooms_stage_1` |
+| Null counting + re-runnable backfill | `src/lib/rooms.ts` — `countUnresolvedRooms`, `backfillRoomIds` |
+| Gate | `GET/POST /api/services/rooms/backfill` |
+
+Two decisions worth carrying into Stage 2:
+
+- **The resolver never throws.** A lookup failure returns null and logs.
+  `sessionType` is still the key every read uses, so a null `roomId` is a
+  degraded shadow rather than a broken record — and throwing would turn
+  a rooms outage into a family unable to book. **This inverts at Stage
+  2**, when a null stops being survivable.
+- **A null `roomId` is legitimate on the four models where
+  `sessionType` is optional** (`FamilyDiscount`, `ServiceBlockOutDate`,
+  `ServiceExcursion`, `ServiceHeadcount`). No slot means service-wide.
+  `countUnresolvedRooms` excludes those rows rather than reporting a gap
+  that isn't one.
 
 Add the parallel uniques alongside the existing ones:
 

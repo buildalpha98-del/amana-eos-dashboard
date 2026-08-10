@@ -21,13 +21,30 @@
  */
 import { NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
-import { backfillRooms, reconcileRooms } from "@/lib/rooms";
+import {
+  backfillRooms,
+  backfillRoomIds,
+  countUnresolvedRooms,
+  reconcileRooms,
+} from "@/lib/rooms";
+import { _clearRoomCache } from "@/lib/room-resolver";
 
 export const GET = withApiAuth(
   async () => {
     const { rows, clean } = await reconcileRooms();
+    /**
+     * Stage 1's half of the gate. Stage 2 cannot move a read until every
+     * one of these is zero — a null roomId becomes an invisible record
+     * the moment a read switches over.
+     */
+    const unresolved = (await countUnresolvedRooms()).filter(
+      (t) => t.unresolved > 0,
+    );
+
     return NextResponse.json({
-      clean,
+      clean: clean && unresolved.length === 0,
+      roomsClean: clean,
+      unresolved,
       services: rows.length,
       /**
        * Only the services with something to say. A clean run over
@@ -45,12 +62,28 @@ export const GET = withApiAuth(
 
 export const POST = withApiAuth(
   async () => {
+    // Rooms first, then the foreign keys that point at them — a row
+    // cannot resolve to a room that does not exist yet.
     const result = await backfillRooms();
+    /**
+     * The Stage 0 sync may have created rooms this process has already
+     * cached a miss for. Without dropping the cache, the very backfill
+     * meant to repair those rows would resolve them to null again.
+     */
+    _clearRoomCache();
+    const filled = await backfillRoomIds();
+
     const { rows, clean } = await reconcileRooms();
+    const unresolved = (await countUnresolvedRooms()).filter(
+      (t) => t.unresolved > 0,
+    );
 
     return NextResponse.json({
       ...result,
-      clean,
+      filled: filled.filter((t) => t.filled > 0),
+      unresolved,
+      clean: clean && unresolved.length === 0,
+      roomsClean: clean,
       issues: rows.filter(
         (r) =>
           r.missing.length > 0 || r.drifted.length > 0 || r.orphaned.length > 0,

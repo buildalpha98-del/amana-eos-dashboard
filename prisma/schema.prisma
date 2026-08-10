@@ -2623,22 +2623,22 @@ model Service {
   nurtureSteps   ParentNurtureStep[] @relation("ServiceNurtureSteps")
 
   // ── Holiday Quest Relations ──────────────────────────────
-  holidayQuests  HolidayQuestDay[]     @relation("ServiceHolidayQuest")
-  parentForms    ParentForm[]          @relation("ServiceParentForms")
-  excursions     ServiceExcursion[]    @relation("ServiceExcursions")
-  headcounts     ServiceHeadcount[]    @relation("ServiceHeadcounts")
-  visitors       ServiceVisitor[]      @relation("ServiceVisitors")
-  staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
-  illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
-  sessionTimeList ServiceSessionTime[] @relation("ServiceSessionTimes")
-  medicalPlans   ChildMedicalPlan[]    @relation("ServiceMedicalPlans")
-  complaints     ComplaintRecord[]     @relation("ServiceComplaints")
-  blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
-  casualDays     CasualDayConfig[]     @relation("ServiceCasualDays")
-  discounts      FamilyDiscount[]      @relation("ServiceDiscounts")
-  feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
-  feeAssignments ChildFeeAssignment[]  @relation("ServiceFeeAssignments")
-  rooms          Room[]                @relation("ServiceRooms")
+  holidayQuests   HolidayQuestDay[]     @relation("ServiceHolidayQuest")
+  parentForms     ParentForm[]          @relation("ServiceParentForms")
+  excursions      ServiceExcursion[]    @relation("ServiceExcursions")
+  headcounts      ServiceHeadcount[]    @relation("ServiceHeadcounts")
+  visitors        ServiceVisitor[]      @relation("ServiceVisitors")
+  staffIncidents  StaffIncidentReport[] @relation("ServiceStaffIncidents")
+  illnessRecords  IllnessRecord[]       @relation("ServiceIllnessRecords")
+  sessionTimeList ServiceSessionTime[]  @relation("ServiceSessionTimes")
+  medicalPlans    ChildMedicalPlan[]    @relation("ServiceMedicalPlans")
+  complaints      ComplaintRecord[]     @relation("ServiceComplaints")
+  blockOutDates   ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
+  casualDays      CasualDayConfig[]     @relation("ServiceCasualDays")
+  discounts       FamilyDiscount[]      @relation("ServiceDiscounts")
+  feeChanges      ServiceFeeChange[]    @relation("ServiceFeeChanges")
+  feeAssignments  ChildFeeAssignment[]  @relation("ServiceFeeAssignments")
+  rooms           Room[]                @relation("ServiceRooms")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -4036,6 +4036,11 @@ model DailyAttendance {
   service      Service     @relation("ServiceAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
   date         DateTime    @db.Date
   sessionType  SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId       String?
+  room         Room?       @relation("RoomDailyAttendance", fields: [roomId], references: [id], onDelete: SetNull)
   enrolled     Int         @default(0)
   attended     Int         @default(0)
   capacity     Int         @default(0)
@@ -4048,6 +4053,14 @@ model DailyAttendance {
   updatedAt    DateTime    @updatedAt
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "DailyAttendance_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
@@ -4061,6 +4074,11 @@ model AttendanceRecord {
   service       Service     @relation("ServiceIndividualAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
   date          DateTime    @db.Date
   sessionType   SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId        String?
+  room          Room?       @relation("RoomAttendanceRecord", fields: [roomId], references: [id], onDelete: SetNull)
   status        String      @default("booked") // booked, present, absent
   signInTime    DateTime?
   signOutTime   DateTime?
@@ -4097,6 +4115,14 @@ model AttendanceRecord {
   updatedAt           DateTime  @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([childId, roomId, date], map: "AttendanceRecord_roomId_unique_idx")
   @@index([serviceId, date, sessionType])
   @@index([childId])
 }
@@ -5193,6 +5219,11 @@ model BookingForecast {
   service     Service     @relation("ServiceBookings", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomBookingForecast", fields: [roomId], references: [id], onDelete: SetNull)
   regular     Int         @default(0)
   casual      Int         @default(0)
   total       Int         @default(0)
@@ -5200,6 +5231,14 @@ model BookingForecast {
   syncedAt    DateTime    @default(now())
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "BookingForecast_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
 }
@@ -5210,6 +5249,11 @@ model RosterShift {
   service     Service     @relation("ServiceRosterShifts", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomRosterShift", fields: [roomId], references: [id], onDelete: SetNull)
   staffName   String
   shiftStart  String // "HH:mm"
   shiftEnd    String // "HH:mm"
@@ -5264,6 +5308,11 @@ model ResponsiblePersonEntry {
   service     Service     @relation("ServiceResponsiblePersons", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomResponsiblePersonEntry", fields: [roomId], references: [id], onDelete: SetNull)
   personName  String
   personRole  String?
   userId      String?
@@ -5277,6 +5326,14 @@ model ResponsiblePersonEntry {
   updatedAt   DateTime    @updatedAt
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "ResponsiblePersonEntry_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
@@ -5356,6 +5413,11 @@ model ShiftTemplate {
   /// Short admin-facing label, e.g. "ASC educator 3-6pm".
   label       String
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomShiftTemplate", fields: [roomId], references: [id], onDelete: SetNull)
   /// "HH:mm" — same shape as RosterShift.
   shiftStart  String
   shiftEnd    String
@@ -5378,6 +5440,11 @@ model ConversionOpportunity {
   service     Service     @relation("ServiceConversions", fields: [serviceId], references: [id], onDelete: Cascade)
   familyRef   String // identifier from OWNA (family ID or child name)
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomConversionOpportunity", fields: [roomId], references: [id], onDelete: SetNull)
   casualCount Int         @default(0) // casual bookings in analysis period
   periodStart DateTime
   periodEnd   DateTime
@@ -5930,91 +5997,91 @@ model QIPQualityArea {
 /// must never auto-publish, so nothing reaches a parent until a human
 /// sets this.
 model IncidentRecord {
-  id                    String    @id @default(cuid())
-  serviceId             String
-  service               Service   @relation("ServiceIncidents", fields: [serviceId], references: [id])
-  incidentDate          DateTime
-  childName             String?
+  id            String   @id @default(cuid())
+  serviceId     String
+  service       Service  @relation("ServiceIncidents", fields: [serviceId], references: [id])
+  incidentDate  DateTime
+  childName     String?
   /// Linked child, where the record is about one. Kept ALONGSIDE
   /// childName (not replacing it) so the record still reads correctly
   /// after the child leaves and the row is set null.
-  childId               String?
-  child                 Child?    @relation("ChildIncidents", fields: [childId], references: [id], onDelete: SetNull)
+  childId       String?
+  child         Child?   @relation("ChildIncidents", fields: [childId], references: [id], onDelete: SetNull)
   /// Reg 87(2)(a) wants the age, and "age today" is the wrong answer on a
   /// record read two years later — so it is stamped, not derived.
-  childAge              Int?
-  incidentType          String // injury | illness | behaviour | missing_child | near_miss | medication_error | property_damage | complaint
-  severity              String // minor | moderate | reportable | serious
-  location              String? // indoor | outdoor | playground | transition | bathroom | kitchen
-  timeOfDay             String? // arrival | programme | meal_time | packdown | departure
-  description           String    @db.Text
+  childAge      Int?
+  incidentType  String // injury | illness | behaviour | missing_child | near_miss | medication_error | property_damage | complaint
+  severity      String // minor | moderate | reportable | serious
+  location      String? // indoor | outdoor | playground | transition | bathroom | kitchen
+  timeOfDay     String? // arrival | programme | meal_time | packdown | departure
+  description   String   @db.Text
   /// Reg 87(2)(b): the circumstances LEADING UP TO it, which is a
   /// different question from what happened and is the one most often
   /// left blank.
-  circumstances         String?   @db.Text
-  actionTaken           String?   @db.Text
+  circumstances String?  @db.Text
+  actionTaken   String?  @db.Text
 
   // ── Reg 87(2)(d)-(e): first aid and medical response ──────────────
-  firstAidGiven         Boolean   @default(false)
+  firstAidGiven             Boolean @default(false)
   /// Free text rather than a user FK: first aid is often given by a
   /// casual or a visiting parent who has no dashboard account.
-  firstAidBy            String?
-  firstAidDetails       String?   @db.Text
+  firstAidBy                String?
+  firstAidDetails           String? @db.Text
   /// Reg 87(2)(e): "details of any medical personnel contacted" —
   /// ambulance, GP, hospital, poisons line.
   medicalPersonnelContacted String? @db.Text
-  ambulanceCalled       Boolean   @default(false)
+  ambulanceCalled           Boolean @default(false)
 
   /// Reg 87(2)(f): who saw it happen. Names, free text — a witness is
   /// frequently a child or a passer-by.
-  witnesses             String?   @db.Text
+  witnesses String? @db.Text
 
   // ── Reg 86: notification of the family ────────────────────────────
-  parentNotified        Boolean   @default(false)
+  parentNotified       Boolean   @default(false)
   /// The timestamp Reg 86's 24-hour obligation is measured against.
-  parentNotifiedAt      DateTime?
+  parentNotifiedAt     DateTime?
   /// Reg 87(2)(g) asks for the name of the person notified — which is
   /// not always the enrolled parent (grandparent, emergency contact).
-  parentNotifiedName    String?
+  parentNotifiedName   String?
   /// phone | in_person | email | sms | portal | attempted_no_answer.
   /// The last value matters: Reg 87(2)(g) counts an ATTEMPT as an entry.
-  parentNotifiedMethod  String?
-  parentNotifiedById    String?
-  parentNotifiedBy      User?     @relation("IncidentParentNotifier", fields: [parentNotifiedById], references: [id], onDelete: SetNull)
+  parentNotifiedMethod String?
+  parentNotifiedById   String?
+  parentNotifiedBy     User?     @relation("IncidentParentNotifier", fields: [parentNotifiedById], references: [id], onDelete: SetNull)
 
   // ── The family's copy in the parent portal ────────────────────────
-  sharedWithParentAt    DateTime?
-  sharedById            String?
-  sharedBy              User?     @relation("IncidentSharer", fields: [sharedById], references: [id], onDelete: SetNull)
+  sharedWithParentAt      DateTime?
+  sharedById              String?
+  sharedBy                User?     @relation("IncidentSharer", fields: [sharedById], references: [id], onDelete: SetNull)
   /// Typed-name signature, same convention as ParentFormSignature.
-  parentAcknowledgedAt  DateTime?
-  parentAcknowledgedName String?
+  parentAcknowledgedAt    DateTime?
+  parentAcknowledgedName  String?
   parentAcknowledgedEmail String?
 
   // ── Reg 176(2)(a): telling the Regulatory Authority ───────────────
-  reportableToAuthority Boolean   @default(false)
+  reportableToAuthority   Boolean   @default(false)
   /// Reg 12's closed list, so the 24-hour vs 7-day question can be
   /// answered from the record: death | serious_injury | serious_illness |
   /// missing_child | unauthorised_removal | locked_in_or_out.
   seriousIncidentCategory String?
   /// The clock starts when the service BECAME AWARE, which can be days
   /// after the incident date. Reg 176 is explicit about this.
-  becameAwareAt         DateTime?
-  reportedToAuthorityAt DateTime?
+  becameAwareAt           DateTime?
+  reportedToAuthorityAt   DateTime?
   /// NQA ITS notification reference, so the register proves the lodgement.
-  authorityReference    String?
+  authorityReference      String?
 
-  followUpRequired      Boolean   @default(false)
-  followUpCompleted     Boolean   @default(false)
-  ownaIncidentId        String?
-  createdById           String?
-  createdBy             User?     @relation("IncidentCreator", fields: [createdById], references: [id])
+  followUpRequired  Boolean  @default(false)
+  followUpCompleted Boolean  @default(false)
+  ownaIncidentId    String?
+  createdById       String?
+  createdBy         User?    @relation("IncidentCreator", fields: [createdById], references: [id])
   /// Reg 87(2)(h): the name and signature of the person making the entry.
   /// createdBy gives the account; this gives the signature they typed.
-  recordedSignature     String?
-  deleted               Boolean   @default(false)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  recordedSignature String?
+  deleted           Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Workers compensation claim that may stem from this incident.
   // SetNull on the FK in the back-relation so an incident can be
@@ -6300,6 +6367,11 @@ model DailyChecklist {
   service       Service              @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   date          DateTime             @db.Date
   sessionType   SessionType          @default(asc)
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId        String?
+  room          Room?                @relation("RoomDailyChecklist", fields: [roomId], references: [id], onDelete: SetNull)
   status        String               @default("pending") // pending | in_progress | completed
   completedAt   DateTime?
   completedById String?
@@ -6310,6 +6382,14 @@ model DailyChecklist {
   updatedAt     DateTime             @updatedAt
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "DailyChecklist_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
   @@index([status])
@@ -7166,6 +7246,11 @@ model Booking {
   service       Service        @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
   date          DateTime       @db.Date
   sessionType   SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId        String?
+  room          Room?          @relation("RoomBooking", fields: [roomId], references: [id], onDelete: SetNull)
   status        BookingStatus  @default(requested)
   type          BookingType    @default(casual)
   fee           Float?
@@ -7182,6 +7267,14 @@ model Booking {
   updatedAt     DateTime       @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([childId, roomId, date], map: "Booking_roomId_unique_idx")
   @@index([childId])
   @@index([serviceId])
   @@index([date])
@@ -7200,6 +7293,11 @@ model Absence {
   service               Service     @relation("ServiceAbsences", fields: [serviceId], references: [id], onDelete: Cascade)
   date                  DateTime    @db.Date
   sessionType           SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId                String?
+  room                  Room?       @relation("RoomAbsence", fields: [roomId], references: [id], onDelete: SetNull)
   isIllness             Boolean     @default(false)
   medicalCertificateUrl String?
   reason                String? // "sick" | "holiday" | "other"
@@ -7209,6 +7307,14 @@ model Absence {
   createdAt             DateTime    @default(now())
 
   @@unique([childId, serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([childId, roomId, date], map: "Absence_roomId_unique_idx")
   @@index([childId, date])
   @@index([serviceId, date])
   @@index([childId])
@@ -7250,6 +7356,11 @@ model StatementLineItem {
   childId     String
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomStatementLineItem", fields: [roomId], references: [id], onDelete: SetNull)
   description String
   grossFee    Float
   ccsHours    Float       @default(0)
@@ -7379,9 +7490,9 @@ model ChildDocument {
 /// different emergency responses. Collapsing them into one row is how a
 /// service ends up giving Ventolin to an anaphylaxis.
 model ChildMedicalPlan {
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid())
   childId   String
-  child     Child  @relation("ChildMedicalPlans", fields: [childId], references: [id], onDelete: Cascade)
+  child     Child    @relation("ChildMedicalPlans", fields: [childId], references: [id], onDelete: Cascade)
   /// Denormalised from the child so the register can be listed and
   /// filtered per service without a join through Child on every read.
   /// Nullable because a child may sit between services mid-transfer.
@@ -7409,7 +7520,7 @@ model ChildMedicalPlan {
   planExpiryDate         DateTime? @db.Date
 
   // ── Reg 90(1)(c)(ii): risk minimisation ───────────────────────────
-  riskMinimisationPlan String  @db.Text
+  riskMinimisationPlan  String    @db.Text
   /// Reg 90(1)(c)(ii) requires this be developed in consultation with
   /// the family. Null means it has not been — which is a finding, so it
   /// is stored as an absent timestamp rather than a defaulted one.
@@ -7431,17 +7542,17 @@ model ChildMedicalPlan {
 
   /// Families sign to confirm the plan is current and correct. Same
   /// typed-name convention as ParentFormSignature.
-  parentAcknowledgedAt   DateTime?
-  parentAcknowledgedName String?
+  parentAcknowledgedAt    DateTime?
+  parentAcknowledgedName  String?
   parentAcknowledgedEmail String?
 
   /// Reviewed at least annually, and after any incident. Nullable so an
   /// unreviewed plan is visibly unreviewed rather than silently due
   /// "now".
-  reviewDueAt    DateTime? @db.Date
-  lastReviewedAt DateTime?
+  reviewDueAt      DateTime? @db.Date
+  lastReviewedAt   DateTime?
   lastReviewedById String?
-  lastReviewedBy   User?   @relation("MedicalPlanReviewer", fields: [lastReviewedById], references: [id], onDelete: SetNull)
+  lastReviewedBy   User?     @relation("MedicalPlanReviewer", fields: [lastReviewedById], references: [id], onDelete: SetNull)
 
   /// active | archived. Archive rather than delete — a plan that was in
   /// force at the time of an incident has to remain readable afterwards.
@@ -7623,6 +7734,11 @@ model ServiceExcursion {
   /// from that day's bookings rather than kept as a second list that
   /// drifts. SessionType, not free text.
   sessionType SessionType?
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?        @relation("RoomServiceExcursion", fields: [roomId], references: [id], onDelete: SetNull)
   departTime  String? // "HH:mm"
   returnTime  String? // "HH:mm"
   transport   String? // "Walking", "Chartered bus"…
@@ -7672,6 +7788,11 @@ model ServiceHeadcount {
   conductedAt DateTime          @default(now())
   /// The programme running at the time, when there is one.
   sessionType SessionType?
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?             @relation("RoomServiceHeadcount", fields: [roomId], references: [id], onDelete: SetNull)
   /// Set when this count belongs to an outing, so an excursion can show
   /// its own counts rather than them floating loose in the register.
   excursionId String?
@@ -7877,12 +7998,12 @@ model ComplaintRecord {
   // ── s.174(2)(b) / Reg 176(2)(b): the 24-hour clock ────────────────
   /// True when the complaint ALLEGES either that a serious incident has
   /// occurred, or that the Law/Regulations have been contravened.
-  notifiable       Boolean   @default(false)
+  notifiable          Boolean   @default(false)
   /// serious_incident | law_contravention — s.174(2)(b)(i) and (ii).
-  notifiableReason String?
+  notifiableReason    String?
   /// When the service became aware. The clock runs from here, not from
   /// when the complaint was written or logged.
-  becameAwareAt    DateTime?
+  becameAwareAt       DateTime?
   /// Stamped at write time from becameAwareAt + 24h. Stored so an
   /// overdue notification stays overdue in the register even if someone
   /// later edits the awareness date.
@@ -7893,18 +8014,18 @@ model ComplaintRecord {
 
   // ── Handling ──────────────────────────────────────────────────────
   /// new | acknowledged | investigating | resolved | closed | escalated
-  status       String    @default("new")
-  assignedToId String?
-  assignedTo   User?     @relation("ComplaintAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  status         String    @default("new")
+  assignedToId   String?
+  assignedTo     User?     @relation("ComplaintAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   /// Receipt confirmed to the complainant — the first thing a family
   /// asks about and the first thing a service forgets.
   acknowledgedAt DateTime?
 
   /// Internal. Never shown to the complainant, never returned on the
   /// parent-facing endpoint.
-  investigationNotes String? @db.Text
+  investigationNotes String?   @db.Text
   /// What the complainant is told. Safe to surface in the portal.
-  outcome            String? @db.Text
+  outcome            String?   @db.Text
   resolvedAt         DateTime?
   resolvedById       String?
   resolvedBy         User?     @relation("ComplaintResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
@@ -7940,6 +8061,11 @@ model ServiceBlockOutDate {
   service     Service      @relation("ServiceBlockOutDates", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime     @db.Date
   sessionType SessionType?
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?        @relation("RoomServiceBlockOutDate", fields: [roomId], references: [id], onDelete: SetNull)
   /// Shown to families when a booking is refused, so the answer is
   /// "we're closed for the pupil-free day", not "unavailable".
   reason      String?
@@ -8064,7 +8190,7 @@ model Room {
   /// default applies — a room must not silently carry a looser ratio
   /// than the service it sits in.
   ratio       String?
-  description String?  @db.Text
+  description String? @db.Text
   /// Age range in whole YEARS. School-age care talks in school years,
   /// not months.
   minAgeYears Int?
@@ -8090,6 +8216,27 @@ model Room {
   /// with a null `legacyKey` are exempt, since Postgres treats NULLs as
   /// distinct in a unique index, which is exactly what an unlimited
   /// number of new rooms needs.
+  /// Stage 1 back-relations. Nothing reads these yet; they exist so the
+  /// dual-written foreign keys are declared on both sides.
+  absences                Absence[]                @relation("RoomAbsence")
+  attendanceRecords       AttendanceRecord[]       @relation("RoomAttendanceRecord")
+  bookings                Booking[]                @relation("RoomBooking")
+  bookingForecasts        BookingForecast[]        @relation("RoomBookingForecast")
+  casualDayConfigs        CasualDayConfig[]        @relation("RoomCasualDayConfig")
+  childFeeAssignments     ChildFeeAssignment[]     @relation("RoomChildFeeAssignment")
+  conversionOpportunitys  ConversionOpportunity[]  @relation("RoomConversionOpportunity")
+  dailyAttendances        DailyAttendance[]        @relation("RoomDailyAttendance")
+  dailyChecklists         DailyChecklist[]         @relation("RoomDailyChecklist")
+  familyDiscounts         FamilyDiscount[]         @relation("RoomFamilyDiscount")
+  responsiblePersonEntrys ResponsiblePersonEntry[] @relation("RoomResponsiblePersonEntry")
+  rosterShifts            RosterShift[]            @relation("RoomRosterShift")
+  serviceBlockOutDates    ServiceBlockOutDate[]    @relation("RoomServiceBlockOutDate")
+  serviceExcursions       ServiceExcursion[]       @relation("RoomServiceExcursion")
+  serviceFeeChanges       ServiceFeeChange[]       @relation("RoomServiceFeeChange")
+  serviceHeadcounts       ServiceHeadcount[]       @relation("RoomServiceHeadcount")
+  shiftTemplates          ShiftTemplate[]          @relation("RoomShiftTemplate")
+  statementLineItems      StatementLineItem[]      @relation("RoomStatementLineItem")
+
   @@unique([serviceId, legacyKey])
   @@index([serviceId, archivedAt])
 }
@@ -8103,6 +8250,11 @@ model ChildFeeAssignment {
 
   /// The room. Same enum every Booking and AttendanceRecord uses.
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomChildFeeAssignment", fields: [roomId], references: [id], onDelete: SetNull)
   /// The tier's id within that room's `fees` array.
   feeTierId   String
   /// Denormalised at write time; see the note above.
@@ -8120,6 +8272,10 @@ model ChildFeeAssignment {
 
   /// One fee per child per room.
   @@unique([childId, sessionType])
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+  /// sessionType one above — a resolver bug then fails the write
+  /// instead of diverging quietly.
+  @@unique([childId, roomId], map: "ChildFeeAssignment_roomId_unique_idx")
   /// The "Applied To" count: group by tier within a service and room.
   @@index([serviceId, sessionType, feeTierId])
   @@index([feeTierId])
@@ -8142,6 +8298,11 @@ model ServiceFeeChange {
   service     Service     @relation("ServiceFeeChanges", fields: [serviceId], references: [id], onDelete: Cascade)
   /// Which room the fee belongs to.
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomServiceFeeChange", fields: [roomId], references: [id], onDelete: SetNull)
   /// The fee tier's id within that room's `fees` array.
   feeTierId   String
   /// Denormalised so history stays readable after a fee is renamed or
@@ -8220,6 +8381,11 @@ model CasualDayConfig {
   service     Service     @relation("ServiceCasualDays", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?       @relation("RoomCasualDayConfig", fields: [roomId], references: [id], onDelete: SetNull)
   /// Spots for this day. Null means "use the room's usual number".
   spots       Int?
   /// Open the day for staff to fill without letting families book it —
@@ -8233,6 +8399,14 @@ model CasualDayConfig {
   updatedAt   DateTime    @updatedAt
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "CasualDayConfig_roomId_unique_idx")
   @@index([serviceId, date])
 }
 
@@ -8254,6 +8428,11 @@ model FamilyDiscount {
   service     Service       @relation("ServiceDiscounts", fields: [serviceId], references: [id], onDelete: Cascade)
   /// Null = every room at this service.
   sessionType SessionType?
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?         @relation("RoomFamilyDiscount", fields: [roomId], references: [id], onDelete: SetNull)
   /// Set when the arrangement is for ONE child rather than the whole
   /// family. A staff member's own child gets the staff rate; their
   /// siblings might not. Null = every child in the family.

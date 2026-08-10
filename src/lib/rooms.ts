@@ -280,3 +280,93 @@ export async function backfillRooms(): Promise<{
 
   return { services: services.length, created, updated, orphaned };
 }
+
+/**
+ * Tables carrying the Stage 1 dual key.
+ *
+ * A fixed allow-list, not a schema reflection: these names are
+ * interpolated into SQL below, and the only safe way to do that is for
+ * the set to be closed and written here by hand.
+ */
+export const DUAL_KEY_TABLES = [
+  "Absence",
+  "AttendanceRecord",
+  "Booking",
+  "BookingForecast",
+  "CasualDayConfig",
+  "ChildFeeAssignment",
+  "ConversionOpportunity",
+  "DailyAttendance",
+  "DailyChecklist",
+  "FamilyDiscount",
+  "ResponsiblePersonEntry",
+  "RosterShift",
+  "ServiceBlockOutDate",
+  "ServiceExcursion",
+  "ServiceFeeChange",
+  "ServiceHeadcount",
+  "ShiftTemplate",
+  "StatementLineItem",
+] as const;
+
+/** Tables whose rows reach a service through their parent, not directly. */
+const VIA_STATEMENT = new Set<string>(["StatementLineItem"]);
+
+/**
+ * Rows that carry a session slot but no room.
+ *
+ * The Stage 1 gate. `roomId` cannot be made NOT NULL — and Stage 2
+ * cannot move a single read — until every one of these is zero, because
+ * a null here becomes an invisible record the moment a read switches
+ * over.
+ *
+ * Rows with a NULL `sessionType` are excluded: on the four models where
+ * the slot is optional, no slot means the row is service-wide and a null
+ * room is the correct answer rather than a gap.
+ */
+export async function countUnresolvedRooms(): Promise<
+  Array<{ table: string; unresolved: number }>
+> {
+  const out: Array<{ table: string; unresolved: number }> = [];
+  for (const table of DUAL_KEY_TABLES) {
+    const rows = await prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
+      `SELECT count(*)::bigint AS n FROM "${table}"
+        WHERE "roomId" IS NULL AND "sessionType" IS NOT NULL`,
+    );
+    out.push({ table, unresolved: Number(rows[0]?.n ?? 0) });
+  }
+  return out;
+}
+
+/**
+ * Fill in any `roomId` the dual write missed.
+ *
+ * Re-runnable and self-healing, which is what makes 54 hand-edited write
+ * sites survivable: `roomId` is a pure function of (serviceId,
+ * sessionType), so a row that missed its dual write is repaired by
+ * deriving it again rather than by reconstructing what someone meant.
+ *
+ * Same statements as the Stage 1 migration. They live here as well so a
+ * gap can be closed without a deploy.
+ */
+export async function backfillRoomIds(): Promise<
+  Array<{ table: string; filled: number }>
+> {
+  const out: Array<{ table: string; filled: number }> = [];
+  for (const table of DUAL_KEY_TABLES) {
+    const sql = VIA_STATEMENT.has(table)
+      ? `UPDATE "${table}" li SET "roomId" = r."id"
+           FROM "Room" r, "Statement" s
+          WHERE li."statementId" = s."id"
+            AND r."serviceId" = s."serviceId"
+            AND r."legacyKey" = li."sessionType"
+            AND li."roomId" IS NULL`
+      : `UPDATE "${table}" t SET "roomId" = r."id"
+           FROM "Room" r
+          WHERE r."serviceId" = t."serviceId"
+            AND r."legacyKey" = t."sessionType"
+            AND t."roomId" IS NULL`;
+    out.push({ table, filled: await prisma.$executeRawUnsafe(sql) });
+  }
+  return out;
+}
