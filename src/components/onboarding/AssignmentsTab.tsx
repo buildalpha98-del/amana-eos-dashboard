@@ -1,44 +1,49 @@
 "use client";
 
 /**
- * Who has what training assigned — the person-first view.
+ * Everything assigned to a staff member — training AND onboarding packs.
  *
- * Three admin views existed and none answered "what is assigned to this
- * person": Compliance answers "who is BEHIND", LMS Courses is
- * course-first, Induction is a pipeline board. So an educator could open
- * My Training and see eight essential courses while an owner saw nothing
- * assigned to them.
+ * Two systems that have never known about each other: `LMSEnrollment`
+ * holds courses, `StaffOnboarding` holds pack assignments, and no screen
+ * showed both. Answering "what does this person still have to do?" meant
+ * two places and a mental join.
  *
- * The specific trap this surfaces: the seeded induction courses ship as
- * DRAFTS, and the compliance report only counts published ones. A draft
+ * They stay separate on the server (different tables, different
+ * completion semantics, different routes) and are merged here for
+ * display — see `staff-assignments.ts`, where the mapping lives so it
+ * can be tested away from the rendering.
+ *
+ * The trap this surfaces: the seeded induction courses ship as DRAFTS,
+ * and the compliance report only counts published ones. A draft
  * assignment is real — the learner sees it and can work through it — but
- * it is invisible to every compliance number. Rows say so explicitly
- * rather than leaving the discrepancy to be discovered.
+ * invisible to every compliance number. Rows say so rather than leaving
+ * the discrepancy to be discovered.
  */
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Trash2, Users } from "lucide-react";
+import { AlertTriangle, BookOpen, ClipboardList, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import {
+  groupAssignments,
+  type AssignmentKind,
+  type OnboardingAssignment,
+  type TrainingAssignment,
+  type UnifiedAssignment,
+} from "@/lib/staff-assignments";
 
-interface Assignment {
-  enrollmentId: string;
-  status: string;
-  dueDate: string | null;
-  enrolledAt: string;
-  completedAt: string | null;
-  user: { id: string; name: string; email: string; role: string };
-  course: { id: string; title: string; track: string; status: string };
-  progressPct: number;
-  countedInCompliance: boolean;
-}
+const KINDS: Array<{ value: AssignmentKind | "all"; label: string }> = [
+  { value: "all", label: "Training & onboarding" },
+  { value: "training", label: "Training only" },
+  { value: "onboarding", label: "Onboarding packs only" },
+];
 
 const TRACKS = [
-  { value: "", label: "All types" },
+  { value: "", label: "All training types" },
   { value: "essential", label: "Essential — induction" },
   { value: "monthly", label: "Monthly — refreshers" },
   { value: "library", label: "Library — optional" },
@@ -66,16 +71,21 @@ const fmtDate = (iso: string | null) =>
       })
     : "—";
 
+/** Selection has to carry the kind — the two id spaces are unrelated. */
+type SelectionKey = `${AssignmentKind}:${string}`;
+const keyOf = (a: UnifiedAssignment): SelectionKey =>
+  `${a.kind}:${a.assignmentId}`;
+
 export function AssignmentsTab() {
   const qc = useQueryClient();
+  const [kind, setKind] = useState<AssignmentKind | "all">("all");
   const [track, setTrack] = useState("");
   const [role, setRole] = useState("");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<SelectionKey>>(new Set());
 
-  const key = ["lms", "assignments", track, role];
-  const { data, isLoading } = useQuery<{ assignments: Assignment[] }>({
-    queryKey: key,
+  const trainingQuery = useQuery<{ assignments: TrainingAssignment[] }>({
+    queryKey: ["lms", "assignments", track, role],
     queryFn: () => {
       const p = new URLSearchParams();
       if (track) p.set("track", track);
@@ -83,22 +93,36 @@ export function AssignmentsTab() {
       const qs = p.toString();
       return fetchApi(`/api/lms/assignments${qs ? `?${qs}` : ""}`);
     },
+    enabled: kind !== "onboarding",
+    retry: 2,
+  });
+
+  const onboardingQuery = useQuery<OnboardingAssignment[]>({
+    queryKey: ["onboarding", "assignments"],
+    queryFn: () => fetchApi("/api/onboarding/assign"),
+    enabled: kind !== "training",
     retry: 2,
   });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["lms", "assignments"] });
-    // The compliance numbers move when an assignment goes.
+    qc.invalidateQueries({ queryKey: ["onboarding", "assignments"] });
+    // Removing an assignment moves the compliance numbers.
     qc.invalidateQueries({ queryKey: ["lms", "compliance"] });
     setSelected(new Set());
   };
 
   const removeOne = useMutation({
-    mutationFn: (enrollmentId: string) =>
-      mutateApi("/api/lms/enrollments", {
-        method: "DELETE",
-        body: { enrollmentId },
-      }),
+    mutationFn: (a: UnifiedAssignment) =>
+      a.kind === "training"
+        ? mutateApi("/api/lms/enrollments", {
+            method: "DELETE",
+            body: { enrollmentId: a.assignmentId },
+          })
+        : mutateApi(
+            `/api/onboarding/assign?onboardingId=${a.assignmentId}`,
+            { method: "DELETE" },
+          ),
     onSuccess: () => {
       invalidate();
       toast({ description: "Assignment removed." });
@@ -108,17 +132,46 @@ export function AssignmentsTab() {
   });
 
   const removeMany = useMutation({
-    mutationFn: (enrollmentIds: string[]) =>
-      mutateApi<{ removed: number; skippedCompleted: number }>(
-        "/api/lms/assignments/bulk",
-        { method: "POST", body: { enrollmentIds } },
-      ),
+    /**
+     * Two calls, one per kind, because they're different tables with
+     * different completion rules. Only fired for kinds actually
+     * selected.
+     */
+    mutationFn: async (rows: UnifiedAssignment[]) => {
+      const trainingIds = rows
+        .filter((r) => r.kind === "training")
+        .map((r) => r.assignmentId);
+      const onboardingIds = rows
+        .filter((r) => r.kind === "onboarding")
+        .map((r) => r.assignmentId);
+
+      const results = await Promise.all([
+        trainingIds.length
+          ? mutateApi<{ removed: number; skippedCompleted: number }>(
+              "/api/lms/assignments/bulk",
+              { method: "POST", body: { enrollmentIds: trainingIds } },
+            )
+          : Promise.resolve({ removed: 0, skippedCompleted: 0 }),
+        onboardingIds.length
+          ? mutateApi<{ removed: number; skippedCompleted: number }>(
+              "/api/onboarding/assign/bulk",
+              { method: "POST", body: { onboardingIds } },
+            )
+          : Promise.resolve({ removed: 0, skippedCompleted: 0 }),
+      ]);
+
+      return {
+        removed: results[0].removed + results[1].removed,
+        skippedCompleted:
+          results[0].skippedCompleted + results[1].skippedCompleted,
+      };
+    },
     onSuccess: (res) => {
       invalidate();
       toast({
         description:
           res.skippedCompleted > 0
-            ? `Removed ${res.removed}. Kept ${res.skippedCompleted} already completed — those are training records.`
+            ? `Removed ${res.removed}. Kept ${res.skippedCompleted} already completed — those are records.`
             : `Removed ${res.removed}.`,
       });
     },
@@ -127,58 +180,57 @@ export function AssignmentsTab() {
   });
 
   const setDue = useMutation({
-    mutationFn: (v: { enrollmentId: string; dueDate: string | null }) =>
-      mutateApi("/api/lms/assignments", { method: "PATCH", body: v }),
+    mutationFn: (v: { row: UnifiedAssignment; dueDate: string | null }) =>
+      v.row.kind === "training"
+        ? mutateApi("/api/lms/assignments", {
+            method: "PATCH",
+            body: { enrollmentId: v.row.assignmentId, dueDate: v.dueDate },
+          })
+        : mutateApi("/api/onboarding/assign", {
+            method: "PATCH",
+            body: { onboardingId: v.row.assignmentId, dueDate: v.dueDate },
+          }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lms", "assignments"] });
+      invalidate();
       toast({ description: "Due date updated." });
     },
     onError: (e: Error) =>
       toast({ variant: "destructive", description: e.message }),
   });
 
-  /**
-   * Stable identity across renders. `data?.assignments ?? []` builds a
-   * fresh array every time, which would make the memo below recompute on
-   * every keystroke anywhere in the component.
-   */
-  const all = useMemo(() => data?.assignments ?? [], [data]);
+  const training = useMemo(
+    () => trainingQuery.data?.assignments ?? [],
+    [trainingQuery.data],
+  );
+  const onboarding = useMemo(
+    () => onboardingQuery.data ?? [],
+    [onboardingQuery.data],
+  );
 
-  /** Grouped per person — the whole point of this view. */
-  const groups = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const filtered = q
-      ? all.filter(
-          (a) =>
-            a.user.name.toLowerCase().includes(q) ||
-            a.user.email.toLowerCase().includes(q) ||
-            a.course.title.toLowerCase().includes(q),
-        )
-      : all;
+  const groups = useMemo(
+    () => groupAssignments(training, onboarding, { search, kind }),
+    [training, onboarding, search, kind],
+  );
 
-    const byUser = new Map<string, { user: Assignment["user"]; items: Assignment[] }>();
-    for (const a of filtered) {
-      let g = byUser.get(a.user.id);
-      if (!g) {
-        g = { user: a.user, items: [] };
-        byUser.set(a.user.id, g);
-      }
-      g.items.push(a);
-    }
-    return [...byUser.values()].sort((x, y) =>
-      x.user.name.localeCompare(y.user.name),
-    );
-  }, [all, search]);
+  const allRows = useMemo(() => groups.flatMap((g) => g.items), [groups]);
+  const draftCount = allRows.filter(
+    (r) => r.countedInCompliance === false,
+  ).length;
 
-  const draftCount = all.filter((a) => !a.countedInCompliance).length;
+  const isLoading =
+    (kind !== "onboarding" && trainingQuery.isLoading) ||
+    (kind !== "training" && onboardingQuery.isLoading);
 
-  const toggle = (id: string) =>
+  const toggle = (a: UnifiedAssignment) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      const k = keyOf(a);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
       return next;
     });
+
+  const selectedRows = allRows.filter((r) => selected.has(keyOf(r)));
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
 
@@ -187,23 +239,40 @@ export function AssignmentsTab() {
       <div className="flex flex-wrap gap-3">
         <input
           className={`${field} flex-1 min-w-[12rem]`}
-          placeholder="Search staff or course…"
+          placeholder="Search staff, course or pack…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search assignments"
         />
         <select
           className={field}
-          value={track}
-          onChange={(e) => setTrack(e.target.value)}
-          aria-label="Filter by assignment type"
+          value={kind}
+          onChange={(e) => {
+            setKind(e.target.value as AssignmentKind | "all");
+            setSelected(new Set());
+          }}
+          aria-label="Filter by what kind of assignment"
         >
-          {TRACKS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
+          {KINDS.map((k) => (
+            <option key={k.value} value={k.value}>
+              {k.label}
             </option>
           ))}
         </select>
+        {kind !== "onboarding" && (
+          <select
+            className={field}
+            value={track}
+            onChange={(e) => setTrack(e.target.value)}
+            aria-label="Filter by training type"
+          >
+            {TRACKS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           className={field}
           value={role}
@@ -218,26 +287,34 @@ export function AssignmentsTab() {
         </select>
       </div>
 
+      {/* Role filtering is a training-side query param; the onboarding
+          endpoint has no equivalent, so say so rather than appearing to
+          filter both. */}
+      {role && kind !== "training" && (
+        <p className="text-2xs text-muted">
+          The role filter applies to training only — onboarding packs are
+          always shown.
+        </p>
+      )}
+
       {draftCount > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <p className="text-sm text-amber-900 dark:text-amber-200">
-            <strong>{draftCount}</strong>{" "}
-            {draftCount === 1 ? "assignment is" : "assignments are"} on a
-            course that hasn&apos;t been published. Staff can see and work
-            through {draftCount === 1 ? "it" : "them"} in My Training, but{" "}
-            {draftCount === 1 ? "it doesn't" : "they don't"} appear in
-            Compliance or the weekly reminder emails. Publish the course to
-            make {draftCount === 1 ? "it" : "them"} count.
+            <strong>{draftCount}</strong> training{" "}
+            {draftCount === 1 ? "assignment is" : "assignments are"} on a course
+            that hasn&apos;t been published. Staff can see and work through{" "}
+            {draftCount === 1 ? "it" : "them"} in My Training, but{" "}
+            {draftCount === 1 ? "it doesn't" : "they don't"} appear in Compliance
+            or the weekly reminder emails. Publish the course from the Induction
+            tab to make {draftCount === 1 ? "it" : "them"} count.
           </p>
         </div>
       )}
 
       {selected.size > 0 && (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
-          <p className="text-sm text-foreground">
-            {selected.size} selected
-          </p>
+          <p className="text-sm text-foreground">{selected.size} selected</p>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setSelected(new Set())}>
               Clear
@@ -245,7 +322,7 @@ export function AssignmentsTab() {
             <Button
               variant="destructive"
               disabled={removeMany.isPending}
-              onClick={() => removeMany.mutate([...selected])}
+              onClick={() => removeMany.mutate(selectedRows)}
             >
               <Trash2 className="h-4 w-4" />
               Remove {selected.size}
@@ -259,25 +336,26 @@ export function AssignmentsTab() {
           icon={Users}
           title="Nothing assigned"
           description={
-            all.length === 0
-              ? "No training is assigned to anyone matching these filters."
-              : "No staff or course matches that search."
+            allRows.length === 0
+              ? "Nothing matches these filters."
+              : "No staff, course or pack matches that search."
           }
         />
       ) : (
         <div className="space-y-3">
           {groups.map((g) => (
             <div
-              key={g.user.id}
+              key={g.userId}
               className="rounded-xl border border-border bg-card p-4"
             >
               <div className="mb-3 flex items-baseline justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-foreground">
-                    {g.user.name}
+                    {g.userName}
                   </p>
                   <p className="truncate text-xs text-muted">
-                    {g.user.email} · {g.user.role}
+                    {g.userEmail}
+                    {g.userRole ? ` · ${g.userRole}` : ""}
                   </p>
                 </div>
                 <span className="shrink-0 text-2xs text-muted">
@@ -289,30 +367,36 @@ export function AssignmentsTab() {
               <ul className="divide-y divide-border">
                 {g.items.map((a) => (
                   <li
-                    key={a.enrollmentId}
+                    key={keyOf(a)}
                     className="flex flex-wrap items-center gap-3 py-2.5"
                   >
                     <input
                       type="checkbox"
-                      checked={selected.has(a.enrollmentId)}
-                      onChange={() => toggle(a.enrollmentId)}
-                      aria-label={`Select ${a.course.title} for ${g.user.name}`}
+                      checked={selected.has(keyOf(a))}
+                      onChange={() => toggle(a)}
+                      aria-label={`Select ${a.title} for ${g.userName}`}
                       className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-foreground">
-                        {a.course.title}
-                        {!a.countedInCompliance && (
-                          <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-2xs text-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
-                            {a.course.status === "published"
+                      <p className="flex items-center gap-1.5 truncate text-sm text-foreground">
+                        {a.kind === "training" ? (
+                          <BookOpen className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        ) : (
+                          <ClipboardList className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        )}
+                        {a.title}
+                        {a.countedInCompliance === false && (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-2xs text-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
+                            {a.courseStatus === "published"
                               ? "not required"
                               : "draft — not in compliance"}
                           </span>
                         )}
                       </p>
                       <p className="text-2xs text-muted">
-                        {a.course.track} · {a.status} · {a.progressPct}% done ·
-                        assigned {fmtDate(a.enrolledAt)}
+                        {a.kind === "training" ? "Training" : "Onboarding"} ·{" "}
+                        {a.subtitle} · {a.status} · {a.progressPct}% done ·
+                        assigned {fmtDate(a.assignedAt)}
                       </p>
                     </div>
 
@@ -321,28 +405,23 @@ export function AssignmentsTab() {
                       <input
                         type="date"
                         className="rounded-lg border border-border bg-card px-2 py-1 text-xs"
-                        defaultValue={
-                          a.dueDate ? a.dueDate.slice(0, 10) : ""
-                        }
-                        aria-label={`Due date for ${a.course.title}`}
+                        defaultValue={a.dueDate ? a.dueDate.slice(0, 10) : ""}
+                        aria-label={`Due date for ${a.title}`}
                         onBlur={(e) => {
                           const next = e.target.value || null;
                           const current = a.dueDate
                             ? a.dueDate.slice(0, 10)
                             : null;
                           if (next === current) return;
-                          setDue.mutate({
-                            enrollmentId: a.enrollmentId,
-                            dueDate: next,
-                          });
+                          setDue.mutate({ row: a, dueDate: next });
                         }}
                       />
                     </label>
 
                     <button
                       type="button"
-                      aria-label={`Remove ${a.course.title} from ${g.user.name}`}
-                      onClick={() => removeOne.mutate(a.enrollmentId)}
+                      aria-label={`Remove ${a.title} from ${g.userName}`}
+                      onClick={() => removeOne.mutate(a)}
                       className="shrink-0 rounded-lg p-2 text-muted hover:bg-surface hover:text-red-600"
                     >
                       <Trash2 className="h-4 w-4" />
