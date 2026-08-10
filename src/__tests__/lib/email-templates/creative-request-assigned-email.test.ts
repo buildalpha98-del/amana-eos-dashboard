@@ -7,7 +7,7 @@ import { creativeRequestAssignedEmail } from "@/lib/email-templates/notification
 // emails: user-controlled vars escaped, trusted CTA HTML left raw.
 const XSS_TITLE = '<img src=x onerror=alert(1)>';
 const XSS_ESCAPED = "&lt;img src=x onerror=alert(1)&gt;";
-const DASHBOARD_URL = "https://dashboard.amanaoshc.com.au/requests?open=abc123";
+const DASHBOARD_URL = "https://amanaoshc.company/requests?open=abc123";
 
 describe("creativeRequestAssignedEmail escaping", () => {
   it("escapes an HTML-injection request title", async () => {

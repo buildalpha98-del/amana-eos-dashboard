@@ -11,6 +11,7 @@ import {
 import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * GET /api/cron/auto-escalation
@@ -39,7 +40,7 @@ export const GET = withApiHandler(async (req) => {
 
   try {
     const now = new Date();
-    const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const baseUrl = siteUrl();
     const resend = getResend();
     let emailsSent = 0;
     const errors: string[] = [];

@@ -11,6 +11,7 @@ import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
 import { logger } from "@/lib/logger";
 import { shouldReceiveNudge } from "@/lib/notification-recipients";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Fire-and-forget assignment notification email.
@@ -36,8 +37,7 @@ export function sendAssignmentEmail(params: {
 }): Promise<void> {
   if (!getResend()) return Promise.resolve(); // No API key configured — skip silently
 
-  const baseUrl =
-    process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+  const baseUrl = siteUrl();
 
   const run = async () => {
     const [assignee, assigner] = await Promise.all([
@@ -171,8 +171,7 @@ export function sendCreativeRequestSubmittedEmails(params: {
 }): Promise<void> {
   if (!getResend()) return Promise.resolve(); // No API key configured — skip silently
 
-  const baseUrl =
-    process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+  const baseUrl = siteUrl();
 
   const run = async () => {
     const [marketers, requester] = await Promise.all([

@@ -6,6 +6,7 @@ import { getResend, sendEmail } from "@/lib/email";
 import { pulseSurveyEmail } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 export const GET = withApiHandler(async (req) => {
   // 1. Auth
@@ -42,8 +43,7 @@ export const GET = withApiHandler(async (req) => {
     const errors: string[] = [];
 
     const resend = getResend();
-    const dashboardUrl =
-      process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const dashboardUrl = siteUrl();
 
     for (const staff of activeStaff) {
       // Check if survey already exists for this period

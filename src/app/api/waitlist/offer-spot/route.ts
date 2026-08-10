@@ -6,6 +6,7 @@ import { parseJsonBody } from "@/lib/api-error";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { spotAvailableEmail } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 const offerSpotSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
@@ -65,7 +66,7 @@ export const POST = withApiAuth(async (req: NextRequest) => {
 
   // Send email (fire and forget)
   if (next.parentEmail) {
-    const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const baseUrl = siteUrl();
     const enrolUrl = `${baseUrl}/enrol?prefill=${next.id}`;
     const serviceName = next.service?.name ?? "our service";
 

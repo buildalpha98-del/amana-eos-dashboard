@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { siteUrl } from "@/lib/site-url";
 const bodySchema = z.object({
   recipients: z.array(z.string().email()).optional(),
 });
@@ -53,7 +54,7 @@ const { id } = await context!.params!;
   const monthName = new Date(report.year, report.month - 1).toLocaleDateString("en-AU", {
     month: "long",
   });
-  const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+  const baseUrl = siteUrl();
 
   let emailsSent = 0;
   for (const recipient of recipients) {
