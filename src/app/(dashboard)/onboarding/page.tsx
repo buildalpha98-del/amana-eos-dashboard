@@ -504,6 +504,9 @@ function OnboardingPageInner() {
         <OnboardingPacksTab
           isStaff={isStaff}
           isAdmin={isAdmin}
+          onViewAllAssignments={
+            isAdmin ? () => changeTab("assignments") : undefined
+          }
           assignments={assignments}
           packs={packs}
           expandedAssignment={expandedAssignment}
