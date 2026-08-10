@@ -27,6 +27,7 @@ import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
 import { TrainingComplianceTab } from "@/components/onboarding/TrainingComplianceTab";
 import { AssignmentsTab } from "@/components/onboarding/AssignmentsTab";
+import { TrainingRecordsTab } from "@/components/onboarding/TrainingRecordsTab";
 import { SurveysTab } from "@/components/surveys/SurveysTab";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -65,9 +66,9 @@ interface ServiceOption {
 // Single source of truth for the tab ids — used for the state union, the
 // deep-link allow-list, and the URL round-trip. Admin-only tabs are gated so
 // a non-admin deep link can't land on a blank body.
-const TAB_IDS = ["onboarding", "lms", "induction", "assignments", "compliance", "surveys", "exit-surveys"] as const;
+const TAB_IDS = ["onboarding", "lms", "induction", "assignments", "records", "compliance", "surveys", "exit-surveys"] as const;
 type TabId = (typeof TAB_IDS)[number];
-const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "assignments", "compliance", "surveys"];
+const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "assignments", "records", "compliance", "surveys"];
 
 function isTabId(value: string): value is TabId {
   return (TAB_IDS as readonly string[]).includes(value);
@@ -445,6 +446,18 @@ function OnboardingPageInner() {
         )}
         {isAdmin && (
           <button
+            onClick={() => changeTab("records")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "records" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <GraduationCap className="w-4 h-4" />
+            Completed
+          </button>
+        )}
+        {isAdmin && (
+          <button
             onClick={() => changeTab("compliance")}
             className={cn(
               "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
@@ -481,11 +494,15 @@ function OnboardingPageInner() {
 
       {/* Induction Tab */}
       {activeTab === "induction" && (
-        <InductionAdminTab canBackfill={role === "owner" || role === "head_office"} />
+        <InductionAdminTab
+          canBackfill={role === "owner" || role === "head_office"}
+          canPublish={isAdmin}
+        />
       )}
 
       {/* Compliance Tab */}
       {activeTab === "assignments" && isAdmin && <AssignmentsTab />}
+      {activeTab === "records" && isAdmin && <TrainingRecordsTab />}
       {activeTab === "compliance" && isAdmin && <TrainingComplianceTab />}
 
       {/* Seed Message */}

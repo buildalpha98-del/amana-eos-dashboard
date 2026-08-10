@@ -26,6 +26,8 @@ import {
   AlertTriangle,
   BookOpen,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   ClipboardList,
   Trash2,
   Users,
@@ -105,6 +107,16 @@ export function AssignmentsTab() {
   const [completion, setCompletion] = useState<CompletionFilter>("outstanding");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<SelectionKey>>(new Set());
+  /**
+   * Which people have been collapsed shut.
+   *
+   * Stored as the exception rather than the rule so that a person who
+   * appears after a filter change starts open — the default is to show
+   * outstanding work, and hiding it behind a click would bury the thing
+   * the list exists to surface. People with nothing left to do are
+   * already one line; there's nothing to collapse.
+   */
+  const [closed, setClosed] = useState<Set<string>>(new Set());
 
   const trainingQuery = useQuery<{ assignments: TrainingAssignment[] }>({
     queryKey: ["lms", "assignments", track, role],
@@ -294,6 +306,14 @@ export function AssignmentsTab() {
   const removableKeys = removable.map(keyOf);
   const allRemovableSelected =
     removableKeys.length > 0 && removableKeys.every((k) => selected.has(k));
+
+  const toggleGroup = (userId: string) =>
+    setClosed((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
 
   const setSelection = (keys: SelectionKey[], on: boolean) =>
     setSelected((prev) => {
@@ -489,16 +509,39 @@ export function AssignmentsTab() {
                       />
                     );
                   })()}
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {g.userName}
-                    </p>
-                    <p className="truncate text-xs text-muted">
-                      {g.userEmail}
-                      {g.userRole ? ` · ${g.userRole}` : ""}
-                      {g.userServiceName ? ` · ${g.userServiceName}` : ""}
-                    </p>
-                  </div>
+                  {g.items.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(g.userId)}
+                      aria-expanded={!closed.has(g.userId)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
+                        {closed.has(g.userId) ? (
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        )}
+                        {g.userName}
+                      </p>
+                      <p className="truncate pl-5 text-xs text-muted">
+                        {g.userEmail}
+                        {g.userRole ? ` · ${g.userRole}` : ""}
+                        {g.userServiceName ? ` · ${g.userServiceName}` : ""}
+                      </p>
+                    </button>
+                  ) : (
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {g.userName}
+                      </p>
+                      <p className="truncate text-xs text-muted">
+                        {g.userEmail}
+                        {g.userRole ? ` · ${g.userRole}` : ""}
+                        {g.userServiceName ? ` · ${g.userServiceName}` : ""}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <span className="shrink-0 text-2xs text-muted">
                   {g.completedCount} of {g.outstandingCount + g.completedCount}{" "}
@@ -516,7 +559,7 @@ export function AssignmentsTab() {
                   {g.completedCount === 1 ? "assignment" : "assignments"}{" "}
                   completed
                 </p>
-              ) : (
+              ) : closed.has(g.userId) ? null : (
                 <ul className="divide-y divide-border">
                   {g.items.map((a) => {
                     const done = isAssignmentComplete(a);

@@ -109,7 +109,22 @@ function SignoffCard({ row }: { row: PipelineRow }) {
   );
 }
 
-export function InductionAdminTab({ canBackfill }: { canBackfill: boolean }) {
+export function InductionAdminTab({
+  canBackfill,
+  /**
+   * Publishing and backfilling are different permissions and were being
+   * conflated. Backfill enrols existing staff and belongs to the rollout
+   * owners; publishing a course is something every admin role can
+   * already do from the LMS tab. Gating this panel on `canBackfill` hid
+   * the CHECKED publish path from admins while leaving the unchecked
+   * button in plain sight, and showed it to head_office whose submit
+   * the API then refused.
+   */
+  canPublish = canBackfill,
+}: {
+  canBackfill: boolean;
+  canPublish?: boolean;
+}) {
   const { data: pipeline, isLoading } = useInductionPipeline();
   const backfill = useLaunchBackfill();
   const [confirmBackfill, setConfirmBackfill] = useState(false);
@@ -122,7 +137,7 @@ export function InductionAdminTab({ canBackfill }: { canBackfill: boolean }) {
     <div className="space-y-10">
       {/* Publishing arms the gate, so it sits above the backfill — the
           documented rollout is publish first, then backfill. */}
-      {canBackfill && <PublishEssentialPanel />}
+      {canPublish && <PublishEssentialPanel />}
 
       {/* Backfill launcher */}
       {canBackfill && (

@@ -23,10 +23,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import {
-  assessCourses,
-  type ReadinessCourse,
-} from "@/lib/course-readiness";
+import { assessTrackDrafts, publishCourses } from "@/lib/course-publish";
 
 const TRACKS = ["essential", "monthly", "library"] as const;
 type Track = (typeof TRACKS)[number];
@@ -40,56 +37,6 @@ const publishSchema = z.object({
   force: z.boolean().optional(),
 });
 
-/** Load courses in the shape the readiness check wants. */
-async function loadForAssessment(
-  track: Track,
-  onlyDrafts: boolean,
-): Promise<ReadinessCourse[]> {
-  const courses = await prisma.lMSCourse.findMany({
-    where: {
-      track,
-      deleted: false,
-      ...(onlyDrafts ? { status: "draft" } : {}),
-    },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      modules: {
-        select: {
-          id: true,
-          title: true,
-          type: true,
-          content: true,
-          resourceUrl: true,
-          documentId: true,
-          // Only ACTIVE questions count — an inactive one can't be
-          // answered, so a quiz of nothing but inactive questions is
-          // just as much a wall as an empty one.
-          _count: { select: { quizQuestions: { where: { active: true } } } },
-        },
-        orderBy: { sortOrder: "asc" },
-      },
-    },
-    orderBy: { sortOrder: "asc" },
-  });
-
-  return courses.map((c) => ({
-    id: c.id,
-    title: c.title,
-    status: c.status,
-    modules: c.modules.map((m) => ({
-      id: m.id,
-      title: m.title,
-      type: m.type,
-      content: m.content,
-      resourceUrl: m.resourceUrl,
-      documentId: m.documentId,
-      activeQuestionCount: m._count.quizQuestions,
-    })),
-  }));
-}
-
 export const GET = withApiAuth(
   async (req) => {
     const params = new URL(req.url).searchParams;
@@ -99,8 +46,7 @@ export const GET = withApiAuth(
     }
     const track = trackParam as Track;
 
-    const courses = await loadForAssessment(track, true);
-    const readiness = assessCourses(courses);
+    const { readiness, courseIds } = await assessTrackDrafts(track);
 
     /**
      * Who the gate would actually bite.
@@ -122,13 +68,13 @@ export const GET = withApiAuth(
      * that appear in Compliance and trigger the weekly reminder emails.
      */
     const wouldBecomeOutstanding =
-      courses.length === 0
+      courseIds.length === 0
         ? 0
         : await prisma.lMSEnrollment.count({
             where: {
               status: { not: "completed" },
               user: { active: true },
-              courseId: { in: courses.map((c) => c.id) },
+              courseId: { in: courseIds },
             },
           });
 
@@ -136,7 +82,7 @@ export const GET = withApiAuth(
       track,
       courses: readiness,
       impact: {
-        draftCourses: courses.length,
+        draftCourses: courseIds.length,
         publishable: readiness.filter((r) => r.publishable).length,
         blocked: readiness.filter((r) => !r.publishable).length,
         /** Staff currently in a state the gate applies to. */
@@ -157,51 +103,23 @@ export const POST = withApiAuth(
     }
     const { courseIds, force } = parsed.data;
 
-    const courses = await prisma.lMSCourse.findMany({
+    const existing = await prisma.lMSCourse.count({
       where: { id: { in: courseIds }, deleted: false },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        modules: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            content: true,
-            resourceUrl: true,
-            documentId: true,
-            _count: { select: { quizQuestions: { where: { active: true } } } },
-          },
-        },
-      },
+    });
+    if (existing === 0) throw ApiError.notFound("No courses found");
+
+    const outcome = await publishCourses({
+      courseIds,
+      force,
+      actorUserId: session!.user.id,
     });
 
-    if (courses.length === 0) throw ApiError.notFound("No courses found");
-
-    const readiness = assessCourses(
-      courses.map((c) => ({
-        id: c.id,
-        title: c.title,
-        status: c.status,
-        modules: c.modules.map((m) => ({
-          id: m.id,
-          title: m.title,
-          type: m.type,
-          content: m.content,
-          resourceUrl: m.resourceUrl,
-          documentId: m.documentId,
-          activeQuestionCount: m._count.quizQuestions,
-        })),
-      })),
-    );
-
-    const blocked = readiness.filter((r) => !r.publishable);
-    if (blocked.length > 0 && !force) {
+    if (!outcome.ok) {
       // 409 rather than 400: the request is well-formed, the state isn't
       // ready. Returned rather than thrown so the blockers travel with
       // it — the UI needs to show exactly what to fix, not a bare
       // refusal the admin has to go hunting to explain.
+      const { blocked } = outcome;
       return NextResponse.json(
         {
           error: `${blocked.length} ${blocked.length === 1 ? "course is" : "courses are"} not ready to publish`,
@@ -211,36 +129,14 @@ export const POST = withApiAuth(
       );
     }
 
-    const toPublish = force
-      ? readiness.map((r) => r.courseId)
-      : readiness.filter((r) => r.publishable).map((r) => r.courseId);
-
-    await prisma.lMSCourse.updateMany({
-      where: { id: { in: toPublish } },
-      data: { status: "published" },
-    });
-
-    // One row per course: arming the gate is exactly the sort of change
-    // someone asks about afterwards.
-    await prisma.activityLog.createMany({
-      data: toPublish.map((id) => ({
-        userId: session!.user.id,
-        action: "publish_lms_course",
-        entityType: "LMSCourse",
-        entityId: id,
-        details: {
-          courseTitle:
-            readiness.find((r) => r.courseId === id)?.courseTitle ?? null,
-          forced: Boolean(force),
-        },
-      })),
-    });
-
-    return NextResponse.json({
-      published: toPublish.length,
-      skipped: readiness.length - toPublish.length,
-      forced: Boolean(force),
-    });
+    return NextResponse.json(outcome.result);
   },
-  { roles: ["owner", "admin"] },
+  /**
+   * Matches GET, and matches the per-course publish button in the LMS
+   * tab. Narrowing the CHECKED path to a subset of who can publish
+   * anyway just pushes people to the unchecked one — head_office could
+   * see this panel and get a 403, while admin could publish freely from
+   * the other screen and never see it.
+   */
+  { roles: ["owner", "head_office", "admin"] },
 );
