@@ -4,6 +4,7 @@ import { sendTeamsNotification } from "@/lib/teams-notify";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * GET /api/cron/attendance-to-financials
@@ -178,7 +179,7 @@ export const GET = withApiHandler(async (req) => {
           { title: "Revenue", value: `$${totalRevenueGenerated.toLocaleString("en-AU", { minimumFractionDigits: 2 })}` },
         ],
         actions: [
-          { type: "Action.OpenUrl" as const, title: "View Financials", url: `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/financials` },
+          { type: "Action.OpenUrl" as const, title: "View Financials", url: `${siteUrl()}/financials` },
         ],
       }).catch((err) => logger.error("Failed to send Teams notification for weekly financials auto-generation", { err, centresProcessed }));
     }

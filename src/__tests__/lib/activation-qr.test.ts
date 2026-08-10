@@ -18,7 +18,7 @@ beforeEach(() => {
 
 describe("publicBaseUrl", () => {
   it("falls back to default when env unset", () => {
-    expect(publicBaseUrl()).toBe("https://dashboard.amanaoshc.com.au");
+    expect(publicBaseUrl()).toBe("https://amanaoshc.company");
   });
   it("uses env without trailing slash", () => {
     process.env.NEXTAUTH_URL = "https://amanaoshc.company/";

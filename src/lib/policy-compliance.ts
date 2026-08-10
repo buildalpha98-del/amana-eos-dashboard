@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { getEmailBranding, type EmailBranding } from "@/lib/email-branding";
+import { siteUrl } from "@/lib/site-url";
 
 // ── Constants ───────────────────────────────────────────────
-const DASHBOARD_URL =
-  process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+const DASHBOARD_URL = siteUrl();
 
 // ── Types ───────────────────────────────────────────────────
 

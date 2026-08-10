@@ -9,6 +9,7 @@
 
 import { baseLayout, buttonHtml, escapeHtml, BRAND_COLOR } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
+import { siteUrl } from "@/lib/site-url";
 
 // User-entered strings (entity titles, people's names, free-text messages)
 // MUST pass through escapeHtml() before landing in email HTML — titles come
@@ -381,7 +382,7 @@ export function complianceAlertEmail(
       </tr>
       ${certRows}
     </table>
-    ${buttonHtml("View Compliance", `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/compliance`)}
+    ${buttonHtml("View Compliance", `${siteUrl()}/compliance`)}
   `);
 
   return { subject, html };
@@ -394,7 +395,7 @@ export async function complianceAdminSummaryEmail(counts: {
   due30d: number;
   total: number;
 }) {
-  const dashboardUrl = `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/compliance`;
+  const dashboardUrl = `${siteUrl()}/compliance`;
   return applyEmailTemplateOverride({
     key: "notifications.complianceAdminSummary",
     defaultSubject: "Compliance Summary: {{total}} certificates need attention — Amana OSHC",

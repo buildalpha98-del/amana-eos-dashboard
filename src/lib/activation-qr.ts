@@ -1,12 +1,13 @@
 import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Public scan URL pattern: `{baseUrl}/a/{shortCode}`. Always built from
  * NEXTAUTH_URL so dev / staging / prod all generate correct QRs.
  */
 export function publicBaseUrl(): string {
-  const base = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+  const base = siteUrl();
   return base.replace(/\/+$/, "");
 }
 
