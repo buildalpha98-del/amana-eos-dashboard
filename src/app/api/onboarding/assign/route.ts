@@ -40,7 +40,16 @@ export const GET = withApiAuth(async (req, session) => {
   const assignments = await prisma.staffOnboarding.findMany({
     where: where as any,
     include: {
-      user: { select: { id: true, name: true, email: true, avatar: true } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          // Mirrors the training endpoint so one filter covers both.
+          service: { select: { id: true, name: true } },
+        },
+      },
       pack: {
         select: {
           id: true,
@@ -107,7 +116,15 @@ export const GET = withApiAuth(async (req, session) => {
       const refetched = await prisma.staffOnboarding.findMany({
         where: { id: { in: stale.map((a) => a.id) } },
         include: {
-          user: { select: { id: true, name: true, email: true, avatar: true } },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+              service: { select: { id: true, name: true } },
+            },
+          },
           pack: {
             select: {
               id: true,

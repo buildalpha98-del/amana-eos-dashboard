@@ -91,7 +91,19 @@ export const GET = withApiAuth(
         dueDate: true,
         enrolledAt: true,
         completedAt: true,
-        user: { select: { id: true, name: true, email: true, role: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            // Which centre the STAFF MEMBER is attached to — the filter
+            // asks "show me Auburn's people", not "show me Auburn's
+            // courses". A course has its own service and they are not
+            // the same question.
+            service: { select: { id: true, name: true } },
+          },
+        },
         course: {
           select: {
             id: true,

@@ -3,6 +3,8 @@ import {
   fromTraining,
   fromOnboarding,
   groupAssignments,
+  isAssignmentComplete,
+  NO_SERVICE,
   type OnboardingAssignment,
   type TrainingAssignment,
 } from "@/lib/staff-assignments";
@@ -175,6 +177,7 @@ describe("groupAssignments", () => {
         trainingRow({ enrollmentId: "todo", status: "enrolled" }),
       ],
       [],
+      { completion: "all" },
     );
     expect(g[0].items.map((i) => i.assignmentId)).toEqual(["todo", "done"]);
   });
@@ -236,5 +239,150 @@ describe("groupAssignments", () => {
     expect(
       groupAssignments([trainingRow()], [packRow()], { search: "zzzz" }),
     ).toEqual([]);
+  });
+});
+
+describe("groupAssignments — filtering by the staff member's centre", () => {
+  const auburn = { id: "s-auburn", name: "Amana Auburn" };
+  const lidcombe = { id: "s-lid", name: "Amana Lidcombe" };
+
+  const atAuburn = trainingRow({
+    enrollmentId: "e-auburn",
+    user: {
+      id: "u-1",
+      name: "Aisha Khan",
+      email: "a@x.com",
+      role: "staff",
+      service: auburn,
+    },
+  });
+  const atLidcombe = trainingRow({
+    enrollmentId: "e-lid",
+    user: {
+      id: "u-2",
+      name: "Bilal Ahmed",
+      email: "b@x.com",
+      role: "staff",
+      service: lidcombe,
+    },
+  });
+  const noCentre = trainingRow({
+    enrollmentId: "e-none",
+    user: { id: "u-3", name: "Cara Owner", email: "c@x.com", role: "owner" },
+  });
+
+  it("keeps only staff attached to that centre", () => {
+    const g = groupAssignments([atAuburn, atLidcombe, noCentre], [], {
+      serviceId: "s-auburn",
+    });
+    expect(g.map((x) => x.userName)).toEqual(["Aisha Khan"]);
+  });
+
+  it("filters on the STAFF member's centre, not the pack's", () => {
+    // The seeded pack belongs to Auburn but this person is attached to
+    // Lidcombe. "Show me Lidcombe's people" must still find them, and
+    // "show me Auburn's people" must not.
+    const pack = packRow({
+      user: {
+        id: "u-2",
+        name: "Bilal Ahmed",
+        email: "b@x.com",
+        service: lidcombe,
+      },
+    });
+    expect(
+      groupAssignments([], [pack], { serviceId: "s-lid" }),
+    ).toHaveLength(1);
+    expect(
+      groupAssignments([], [pack], { serviceId: "s-auburn" }),
+    ).toEqual([]);
+  });
+
+  it("can single out staff with no centre attached", () => {
+    const g = groupAssignments([atAuburn, noCentre], [], {
+      serviceId: NO_SERVICE,
+    });
+    expect(g.map((x) => x.userName)).toEqual(["Cara Owner"]);
+  });
+
+  it("shows everyone when no centre is chosen", () => {
+    expect(groupAssignments([atAuburn, atLidcombe, noCentre], [])).toHaveLength(
+      3,
+    );
+  });
+
+  it("carries the centre name onto the group for display", () => {
+    const g = groupAssignments([atAuburn], []);
+    expect(g[0].userServiceName).toBe("Amana Auburn");
+    expect(groupAssignments([noCentre], [])[0].userServiceName).toBeNull();
+  });
+});
+
+describe("groupAssignments — completion", () => {
+  const done = trainingRow({ enrollmentId: "done", status: "completed" });
+  const todo = trainingRow({ enrollmentId: "todo", status: "enrolled" });
+
+  it("hides completed rows by default", () => {
+    const g = groupAssignments([done, todo], []);
+    expect(g[0].items.map((i) => i.assignmentId)).toEqual(["todo"]);
+  });
+
+  it("still counts what was hidden", () => {
+    // The header says "1 of 2 done" while listing only the outstanding
+    // one — the counts describe the person, not the visible rows.
+    const g = groupAssignments([done, todo], []);
+    expect(g[0].completedCount).toBe(1);
+    expect(g[0].outstandingCount).toBe(1);
+  });
+
+  it("keeps a fully finished person on the list, marked done", () => {
+    // Their absence would read as "nothing was ever assigned", which is
+    // the opposite of what happened.
+    const g = groupAssignments([done], []);
+    expect(g).toHaveLength(1);
+    expect(g[0].items).toEqual([]);
+    expect(g[0].completedCount).toBe(1);
+  });
+
+  it("shows only completed rows when asked for completed", () => {
+    const g = groupAssignments([done, todo], [], { completion: "completed" });
+    expect(g[0].items.map((i) => i.assignmentId)).toEqual(["done"]);
+  });
+
+  it("drops a person with nothing completed from the completed view", () => {
+    // Here an empty person genuinely has nothing to report.
+    expect(groupAssignments([todo], [], { completion: "completed" })).toEqual(
+      [],
+    );
+  });
+
+  it("shows both when asked for everything", () => {
+    const g = groupAssignments([done, todo], [], { completion: "all" });
+    expect(g[0].items).toHaveLength(2);
+  });
+
+  it("treats a 100% row as done even if its status hasn't caught up", () => {
+    // Enrolment status is derived from module progress, so the two can
+    // disagree for a moment after the last module is finished.
+    const racing = trainingRow({ status: "in_progress", progressPct: 100 });
+    expect(isAssignmentComplete(fromTraining(racing))).toBe(true);
+    expect(groupAssignments([racing], [])[0].items).toEqual([]);
+  });
+
+  it("does not call an empty pack complete", () => {
+    // No tasks means 0%, not 100% — an empty pack is outstanding, not
+    // finished.
+    const empty = packRow({
+      progress: [],
+      pack: { id: "p", name: "Empty", _count: { tasks: 0 } },
+    });
+    expect(isAssignmentComplete(fromOnboarding(empty))).toBe(false);
+  });
+
+  it("counts a completed pack by its own status", () => {
+    const pack = packRow({ status: "completed" });
+    const g = groupAssignments([], [pack]);
+    expect(g[0].completedCount).toBe(1);
+    expect(g[0].items).toEqual([]);
   });
 });

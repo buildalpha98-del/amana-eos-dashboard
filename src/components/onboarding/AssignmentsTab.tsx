@@ -22,7 +22,14 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, BookOpen, ClipboardList, Trash2, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpen,
+  CheckCircle2,
+  ClipboardList,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -30,7 +37,10 @@ import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import {
   groupAssignments,
+  isAssignmentComplete,
+  NO_SERVICE,
   type AssignmentKind,
+  type CompletionFilter,
   type OnboardingAssignment,
   type TrainingAssignment,
   type UnifiedAssignment,
@@ -47,6 +57,12 @@ const TRACKS = [
   { value: "essential", label: "Essential — induction" },
   { value: "monthly", label: "Monthly — refreshers" },
   { value: "library", label: "Library — optional" },
+];
+
+const COMPLETION: Array<{ value: CompletionFilter; label: string }> = [
+  { value: "outstanding", label: "Still to do" },
+  { value: "completed", label: "Completed" },
+  { value: "all", label: "Everything" },
 ];
 
 const ROLES = [
@@ -81,6 +97,12 @@ export function AssignmentsTab() {
   const [kind, setKind] = useState<AssignmentKind | "all">("all");
   const [track, setTrack] = useState("");
   const [role, setRole] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  /**
+   * Finished work is a record, not a task. It stays reachable, but the
+   * list opens on what is still outstanding.
+   */
+  const [completion, setCompletion] = useState<CompletionFilter>("outstanding");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<SelectionKey>>(new Set());
 
@@ -207,9 +229,39 @@ export function AssignmentsTab() {
     [onboardingQuery.data],
   );
 
+  /**
+   * Centre options come from the rows on screen rather than from the
+   * services list, so the dropdown only ever offers a filter that has
+   * someone behind it. "No centre" is a real answer here — owners and
+   * head office aren't attached to one.
+   */
+  const serviceOptions = useMemo(() => {
+    const byId = new Map<string, string>();
+    let anyUnattached = false;
+    for (const u of [
+      ...training.map((t) => t.user),
+      ...onboarding.map((o) => o.user),
+    ]) {
+      if (u.service) byId.set(u.service.id, u.service.name);
+      else anyUnattached = true;
+    }
+    const opts = [...byId.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return anyUnattached
+      ? [...opts, { value: NO_SERVICE, label: "No centre attached" }]
+      : opts;
+  }, [training, onboarding]);
+
   const groups = useMemo(
-    () => groupAssignments(training, onboarding, { search, kind }),
-    [training, onboarding, search, kind],
+    () =>
+      groupAssignments(training, onboarding, {
+        search,
+        kind,
+        serviceId,
+        completion,
+      }),
+    [training, onboarding, search, kind, serviceId, completion],
   );
 
   const allRows = useMemo(() => groups.flatMap((g) => g.items), [groups]);
@@ -231,6 +283,27 @@ export function AssignmentsTab() {
     });
 
   const selectedRows = allRows.filter((r) => selected.has(keyOf(r)));
+
+  /**
+   * Select-all only reaches rows that can actually be removed. Both bulk
+   * endpoints refuse completed assignments — they're the record that the
+   * training happened — so sweeping them in would produce a "removed 0,
+   * kept 14" toast and no change.
+   */
+  const removable = allRows.filter((r) => !isAssignmentComplete(r));
+  const removableKeys = removable.map(keyOf);
+  const allRemovableSelected =
+    removableKeys.length > 0 && removableKeys.every((k) => selected.has(k));
+
+  const setSelection = (keys: SelectionKey[], on: boolean) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const k of keys) {
+        if (on) next.add(k);
+        else next.delete(k);
+      }
+      return next;
+    });
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
 
@@ -285,6 +358,39 @@ export function AssignmentsTab() {
             </option>
           ))}
         </select>
+        {serviceOptions.length > 1 && (
+          <select
+            className={field}
+            value={serviceId}
+            onChange={(e) => {
+              setServiceId(e.target.value);
+              setSelected(new Set());
+            }}
+            aria-label="Filter by the centre the staff member is attached to"
+          >
+            <option value="">All centres</option>
+            {serviceOptions.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        )}
+        <select
+          className={field}
+          value={completion}
+          onChange={(e) => {
+            setCompletion(e.target.value as CompletionFilter);
+            setSelected(new Set());
+          }}
+          aria-label="Filter by how much has been completed"
+        >
+          {COMPLETION.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Role filtering is a training-side query param; the onboarding
@@ -312,33 +418,51 @@ export function AssignmentsTab() {
         </div>
       )}
 
-      {selected.size > 0 && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
-          <p className="text-sm text-foreground">{selected.size} selected</p>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setSelected(new Set())}>
-              Clear
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={removeMany.isPending}
-              onClick={() => removeMany.mutate(selectedRows)}
-            >
-              <Trash2 className="h-4 w-4" />
-              Remove {selected.size}
-            </Button>
-          </div>
+      {removable.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={allRemovableSelected}
+              onChange={(e) => setSelection(removableKeys, e.target.checked)}
+              className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+            />
+            {selected.size > 0
+              ? `${selected.size} selected`
+              : `Select all ${removable.length}`}
+          </label>
+          {selected.size > 0 && (
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setSelected(new Set())}>
+                Clear
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={removeMany.isPending}
+                onClick={() => removeMany.mutate(selectedRows)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Remove {selected.size}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
       {groups.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="Nothing assigned"
+          title={
+            completion === "completed"
+              ? "Nothing completed yet"
+              : "Nothing assigned"
+          }
+          /* `allRows` comes from the groups, so it can't tell an empty
+             result from an empty dataset — the raw responses can. */
           description={
-            allRows.length === 0
-              ? "Nothing matches these filters."
-              : "No staff, course or pack matches that search."
+            training.length + onboarding.length === 0
+              ? "No training or onboarding has been assigned to anyone yet."
+              : "Nothing matches these filters."
           }
         />
       ) : (
@@ -349,86 +473,128 @@ export function AssignmentsTab() {
               className="rounded-xl border border-border bg-card p-4"
             >
               <div className="mb-3 flex items-baseline justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {g.userName}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    {g.userEmail}
-                    {g.userRole ? ` · ${g.userRole}` : ""}
-                  </p>
+                <div className="flex min-w-0 items-start gap-2.5">
+                  {(() => {
+                    const keys = g.items
+                      .filter((a) => !isAssignmentComplete(a))
+                      .map(keyOf);
+                    if (keys.length === 0) return null;
+                    return (
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                        aria-label={`Select all assignments for ${g.userName}`}
+                        checked={keys.every((k) => selected.has(k))}
+                        onChange={(e) => setSelection(keys, e.target.checked)}
+                      />
+                    );
+                  })()}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {g.userName}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {g.userEmail}
+                      {g.userRole ? ` · ${g.userRole}` : ""}
+                      {g.userServiceName ? ` · ${g.userServiceName}` : ""}
+                    </p>
+                  </div>
                 </div>
                 <span className="shrink-0 text-2xs text-muted">
-                  {g.items.length}{" "}
-                  {g.items.length === 1 ? "assignment" : "assignments"}
+                  {g.completedCount} of {g.outstandingCount + g.completedCount}{" "}
+                  done
                 </span>
               </div>
 
-              <ul className="divide-y divide-border">
-                {g.items.map((a) => (
-                  <li
-                    key={keyOf(a)}
-                    className="flex flex-wrap items-center gap-3 py-2.5"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.has(keyOf(a))}
-                      onChange={() => toggle(a)}
-                      aria-label={`Select ${a.title} for ${g.userName}`}
-                      className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 truncate text-sm text-foreground">
-                        {a.kind === "training" ? (
-                          <BookOpen className="h-3.5 w-3.5 shrink-0 text-muted" />
-                        ) : (
-                          <ClipboardList className="h-3.5 w-3.5 shrink-0 text-muted" />
-                        )}
-                        {a.title}
-                        {a.countedInCompliance === false && (
-                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-2xs text-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
-                            {a.courseStatus === "published"
-                              ? "not required"
-                              : "draft — not in compliance"}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-2xs text-muted">
-                        {a.kind === "training" ? "Training" : "Onboarding"} ·{" "}
-                        {a.subtitle} · {a.status} · {a.progressPct}% done ·
-                        assigned {fmtDate(a.assignedAt)}
-                      </p>
-                    </div>
+              {/* Someone with nothing outstanding is kept on the list and
+                  marked finished, rather than dropping out — "no rows"
+                  and "all done" are different answers. */}
+              {g.items.length === 0 ? (
+                <p className="flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  All {g.completedCount}{" "}
+                  {g.completedCount === 1 ? "assignment" : "assignments"}{" "}
+                  completed
+                </p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {g.items.map((a) => {
+                    const done = isAssignmentComplete(a);
+                    return (
+                      <li
+                        key={keyOf(a)}
+                        className="flex flex-wrap items-center gap-3 py-2.5"
+                      >
+                        {/* A completed assignment is the record that the
+                            training happened; both remove endpoints refuse
+                            it, so it isn't offered for selection. */}
+                        <input
+                          type="checkbox"
+                          checked={selected.has(keyOf(a))}
+                          onChange={() => toggle(a)}
+                          disabled={done}
+                          aria-label={`Select ${a.title} for ${g.userName}`}
+                          className="h-4 w-4 rounded border-border text-brand focus:ring-brand disabled:opacity-40"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="flex items-center gap-1.5 truncate text-sm text-foreground">
+                            {a.kind === "training" ? (
+                              <BookOpen className="h-3.5 w-3.5 shrink-0 text-muted" />
+                            ) : (
+                              <ClipboardList className="h-3.5 w-3.5 shrink-0 text-muted" />
+                            )}
+                            {a.title}
+                            {done && (
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                            )}
+                            {a.countedInCompliance === false && (
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-2xs text-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
+                                {a.courseStatus === "published"
+                                  ? "not required"
+                                  : "draft — not in compliance"}
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-2xs text-muted">
+                            {a.kind === "training" ? "Training" : "Onboarding"} ·{" "}
+                            {a.subtitle} · {a.status} · {a.progressPct}% done ·
+                            assigned {fmtDate(a.assignedAt)}
+                          </p>
+                        </div>
 
-                    <label className="flex items-center gap-1.5 text-2xs text-muted">
-                      Due
-                      <input
-                        type="date"
-                        className="rounded-lg border border-border bg-card px-2 py-1 text-xs"
-                        defaultValue={a.dueDate ? a.dueDate.slice(0, 10) : ""}
-                        aria-label={`Due date for ${a.title}`}
-                        onBlur={(e) => {
-                          const next = e.target.value || null;
-                          const current = a.dueDate
-                            ? a.dueDate.slice(0, 10)
-                            : null;
-                          if (next === current) return;
-                          setDue.mutate({ row: a, dueDate: next });
-                        }}
-                      />
-                    </label>
+                        <label className="flex items-center gap-1.5 text-2xs text-muted">
+                          Due
+                          <input
+                            type="date"
+                            className="rounded-lg border border-border bg-card px-2 py-1 text-xs"
+                            defaultValue={
+                              a.dueDate ? a.dueDate.slice(0, 10) : ""
+                            }
+                            aria-label={`Due date for ${a.title}`}
+                            onBlur={(e) => {
+                              const next = e.target.value || null;
+                              const current = a.dueDate
+                                ? a.dueDate.slice(0, 10)
+                                : null;
+                              if (next === current) return;
+                              setDue.mutate({ row: a, dueDate: next });
+                            }}
+                          />
+                        </label>
 
-                    <button
-                      type="button"
-                      aria-label={`Remove ${a.title} from ${g.userName}`}
-                      onClick={() => removeOne.mutate(a)}
-                      className="shrink-0 rounded-lg p-2 text-muted hover:bg-surface hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${a.title} from ${g.userName}`}
+                          onClick={() => removeOne.mutate(a)}
+                          className="shrink-0 rounded-lg p-2 text-muted hover:bg-surface hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           ))}
         </div>
