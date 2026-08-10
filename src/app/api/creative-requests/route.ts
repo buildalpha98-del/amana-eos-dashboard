@@ -19,6 +19,7 @@ import {
   isFulfillerRole,
 } from "@/lib/creative-request/constants";
 import { notifyRequestSubmitted } from "@/lib/creative-request/notify";
+import { sendCreativeRequestSubmittedEmails } from "@/lib/send-assignment-email";
 import { requestInclude } from "@/lib/creative-request/include";
 import { attachmentInputSchema } from "@/lib/creative-request/attachment-schema";
 
@@ -146,6 +147,14 @@ export const POST = withApiAuth(async (req, session) => {
   );
 
   await notifyRequestSubmitted(prisma, created);
+  // Email twin of the in-app fan-out — fire-and-forget (catches internally),
+  // so a Resend hiccup can never fail the submission.
+  void sendCreativeRequestSubmittedEmails({
+    requestId: created.id,
+    requestNumber: created.requestNumber,
+    requestTitle: created.title,
+    requesterId: session.user.id,
+  });
 
   return NextResponse.json({ request: created }, { status: 201 });
 });
