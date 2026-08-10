@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
 import { getEmailBranding } from "@/lib/email-branding";
+import { layoutOptionsSchema } from "@/lib/email-layout-schema";
 
 import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
@@ -16,6 +17,9 @@ const bodySchema = z.object({
   htmlContent: z.string().optional().nullable(),
   blocks: z.array(z.any()).optional().nullable(),
   variables: z.record(z.string(), z.string()).optional(),
+  // Dirty-gated composer overrides — omitted entirely when the user never
+  // touched the Header & Footer panel (org branding stays authoritative).
+  layoutOptions: layoutOptionsSchema.optional(),
 });
 
 const SAMPLE_VARIABLES: Record<string, string> = {
@@ -48,16 +52,21 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
+  const body = parsed.data;
+
   const branding = await getEmailBranding();
+  // Branding is the BASE; validated user overrides win field-by-field. This
+  // content-resolution + merge block is the third twin of
+  // /api/email/campaign/send and /api/email/test-send — keep all three in
+  // sync (the preview must show exactly what the send will produce).
   const layoutOpts = {
     headerText: branding.name,
     footerText: branding.name,
     headerColor: branding.primaryColor,
     footerUrl: branding.websiteUrl,
     footerUrlLabel: branding.websiteUrlLabel,
+    ...body.layoutOptions,
   };
-
-  const body = parsed.data;
   const vars: Record<string, string> = {
     ...SAMPLE_VARIABLES,
     ...(body.variables ?? {}),
@@ -77,7 +86,7 @@ export const POST = withApiAuth(async (req, session) => {
       );
     }
     if (template.blocks) {
-      html = renderBlocksToHtml(template.blocks as unknown as EmailBlock[], vars);
+      html = renderBlocksToHtml(template.blocks as unknown as EmailBlock[], vars, layoutOpts);
     } else if (template.htmlContent) {
       html = interpolateVariables(marketingLayout(template.htmlContent, layoutOpts), vars);
     } else {
@@ -87,7 +96,7 @@ export const POST = withApiAuth(async (req, session) => {
       );
     }
   } else if (body.blocks && body.blocks.length > 0) {
-    html = renderBlocksToHtml(body.blocks as unknown as EmailBlock[], vars);
+    html = renderBlocksToHtml(body.blocks as unknown as EmailBlock[], vars, layoutOpts);
   } else if (body.htmlContent) {
     html = interpolateVariables(marketingLayout(body.htmlContent, layoutOpts), vars);
   } else {

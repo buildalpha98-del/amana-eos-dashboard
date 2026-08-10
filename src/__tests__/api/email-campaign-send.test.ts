@@ -62,6 +62,8 @@ const mockedRecordMarketingSends = vi.mocked(recordMarketingSends);
 
 import { POST as sendCampaign } from "@/app/api/email/campaign/send/route";
 import { GET as recipientCount } from "@/app/api/email/recipient-count/route";
+import { _clearEmailBrandingCache } from "@/lib/email-branding";
+import { _clearOrgSettingsCache } from "@/lib/org-settings";
 
 function setupActiveUserMock() {
   prismaMock.user.findUnique.mockReset();
@@ -83,6 +85,7 @@ describe("POST /api/email/campaign/send — suppression", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -260,6 +263,7 @@ describe("POST /api/email/campaign/send — audienceId resolution", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -371,6 +375,7 @@ describe("POST /api/email/campaign/send — marketingCampaignId attribution", ()
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -440,6 +445,7 @@ describe("POST /api/email/campaign/send — per-recipient dispatch (<50)", () =>
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -759,6 +765,7 @@ describe("POST /api/email/campaign/send — frequency cap + send ledger", () => 
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -1014,6 +1021,7 @@ describe("POST /api/email/campaign/send — _sentMessageIds capture (<50)", () =
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedIsBrevoConfigured.mockReturnValue(true);
@@ -1153,10 +1161,214 @@ describe("POST /api/email/campaign/send — _sentMessageIds capture (<50)", () =
   });
 });
 
+describe("POST /api/email/campaign/send — block-mode sends carry org branding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearOrgSettingsCache();
+    _clearEmailBrandingCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedGetFrequencyCapped.mockResolvedValue(new Set());
+    mockedRecordMarketingSends.mockResolvedValue(undefined);
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
+    // Org branding differs from the layout defaults so the assertion can
+    // distinguish "branding-derived layoutOpts" from DEFAULT_LAYOUT.
+    prismaMock.orgSettings.findUnique.mockResolvedValue({
+      name: "Bright Futures OSHC",
+      primaryColor: "#112233",
+    });
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.deliveryLog.update.mockResolvedValue({} as never);
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  it("blocks-mode send renders the branding header, not DEFAULT_LAYOUT (parity pin)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const req = createRequest("POST", "/api/email/campaign/send", {
+      body: {
+        subject: "Hello",
+        blocks: [{ type: "text", content: "Block body" }],
+      },
+    });
+    const res = await sendCampaign(req);
+    expect(res.status).toBe(200);
+
+    expect(mockedSendTransactional).toHaveBeenCalledTimes(1);
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    expect(html).toContain("Block body");
+    expect(html).toContain("Bright Futures OSHC");
+    expect(html).toContain("#112233");
+  });
+
+  it("htmlContent-mode send renders the branding header too (regression)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const req = createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", htmlContent: "<p>raw body</p>" },
+    });
+    const res = await sendCampaign(req);
+    expect(res.status).toBe(200);
+
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    expect(html).toContain("raw body");
+    expect(html).toContain("Bright Futures OSHC");
+    expect(html).toContain("#112233");
+  });
+
+  it("template blocks-mode send renders the branding header (templateId branch)", async () => {
+    prismaMock.emailTemplate.findUnique.mockResolvedValue({
+      id: "tpl-1",
+      blocks: [{ type: "text", content: "Template block body" }],
+      htmlContent: null,
+    });
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const req = createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", templateId: "tpl-1" },
+    });
+    const res = await sendCampaign(req);
+    expect(res.status).toBe(200);
+
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    expect(html).toContain("Template block body");
+    expect(html).toContain("Bright Futures OSHC");
+    expect(html).toContain("#112233");
+  });
+});
+
+describe("POST /api/email/campaign/send — user layoutOptions override branding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearOrgSettingsCache();
+    _clearEmailBrandingCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedGetFrequencyCapped.mockResolvedValue(new Set());
+    mockedRecordMarketingSends.mockResolvedValue(undefined);
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
+    // Branding differs from BOTH the layout defaults and the overrides below
+    // so the assertions can tell all three apart.
+    prismaMock.orgSettings.findUnique.mockResolvedValue({
+      name: "Bright Futures OSHC",
+      primaryColor: "#112233",
+    });
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.deliveryLog.update.mockResolvedValue({} as never);
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  function postBody(body: Record<string, unknown>) {
+    return createRequest("POST", "/api/email/campaign/send", { body });
+  }
+
+  it("a user headerText override wins while untouched fields keep the branding base (blocks mode)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        blocks: [{ type: "text", content: "Block body" }],
+        layoutOptions: { headerText: "Winter Fair 2026" },
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    // Override wins in the header…
+    expect(html).toContain("Winter Fair 2026");
+    // …while headerColor (untouched) still tracks branding, and footerText
+    // (untouched) still renders the branding name.
+    expect(html).toContain("#112233");
+    expect(html).toContain("Bright Futures OSHC");
+  });
+
+  it("a user headerColor override replaces the branding colour entirely (htmlContent mode)", async () => {
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>raw body</p>",
+        layoutOptions: { headerColor: "#ABCDEF" },
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const html = mockedSendTransactional.mock.calls[0][0].htmlContent as string;
+    expect(html).toContain("#ABCDEF");
+    expect(html).not.toContain("#112233");
+    // Branding text base untouched by the colour override.
+    expect(html).toContain("Bright Futures OSHC");
+  });
+
+  it("rejects an invalid headerColor with 400 and never sends", async () => {
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { headerColor: "red" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+    expect(prismaMock.deliveryLog.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects an off-host headerLogoUrl with 400 and never sends", async () => {
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { headerLogoUrl: "https://evil.example.com/logo.png" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown layoutOptions keys with 400 (strict schema)", async () => {
+    const res = await sendCampaign(
+      postBody({
+        subject: "Hello",
+        htmlContent: "<p>hi</p>",
+        layoutOptions: { sneaky: "nope" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(mockedSendTransactional).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/email/recipient-count — post-suppression count", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _clearUserActiveCache();
+    _clearOrgSettingsCache();
     setupActiveUserMock();
     mockSession({ id: "user-1", name: "Owner", role: "owner" });
     mockedGetSuppressedEmails.mockResolvedValue(new Set());
@@ -1272,5 +1484,65 @@ describe("GET /api/email/recipient-count — post-suppression count", () => {
     const res = await recipientCount(req);
     expect(res.status).toBe(403);
     expect(prismaMock.centreContact.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/email/campaign/send — org-configurable cap resolution", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearOrgSettingsCache();
+    setupActiveUserMock();
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    mockedIsBrevoConfigured.mockReturnValue(true);
+    mockedGetSuppressedEmails.mockResolvedValue(new Set());
+    mockedGetFrequencyCapped.mockResolvedValue(new Set());
+    mockedRecordMarketingSends.mockResolvedValue(undefined);
+    mockedSendTransactional.mockResolvedValue({ messageId: "msg-123" });
+    mockedSendCampaign.mockResolvedValue({ campaignId: 456, listId: 789 });
+    prismaMock.deliveryLog.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) =>
+        ({ id: "log-1", ...args.data }) as never,
+    );
+    prismaMock.deliveryLog.update.mockResolvedValue({} as never);
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  function postBody(body: Record<string, unknown>) {
+    return createRequest("POST", "/api/email/campaign/send", {
+      body: { subject: "Hello", htmlContent: "<p>hi</p>", ...body },
+    });
+  }
+
+  it("resolves the cap from org settings and passes it to getFrequencyCapped", async () => {
+    // getOrgSettings selects { config }; getEmailBranding selects
+    // { name, primaryColor } — route on the select shape.
+    prismaMock.orgSettings.findUnique.mockImplementation(
+      async (args: { select?: Record<string, unknown> } | undefined) =>
+        args?.select?.config
+          ? ({ config: { email: { marketingWeeklyCap: 7 } } } as never)
+          : null,
+    );
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    expect(mockedGetFrequencyCapped).toHaveBeenCalledTimes(1);
+    expect(mockedGetFrequencyCapped.mock.calls[0][2]).toEqual({ cap: 7 });
+  });
+
+  it("falls back to the default cap (3) when no org settings row exists", async () => {
+    prismaMock.orgSettings.findUnique.mockResolvedValue(null);
+    prismaMock.centreContact.findMany.mockResolvedValue([
+      contact("a@example.com"),
+    ]);
+
+    const res = await sendCampaign(postBody({}));
+    expect(res.status).toBe(200);
+
+    expect(mockedGetFrequencyCapped.mock.calls[0][2]).toEqual({ cap: 3 });
   });
 });

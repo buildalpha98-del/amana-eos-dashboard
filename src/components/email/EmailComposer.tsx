@@ -13,16 +13,33 @@ import AudienceManagerModal from "./AudienceManagerModal";
 import {
   useSendEmail,
   useTestSend,
-  useEmailPreview,
   useEmailTemplate,
   useAudiences,
   type EmailTemplateData,
 } from "@/hooks/useEmailTemplates";
+import {
+  pickTouchedLayoutOptions,
+  resolveTouchedLayoutKeys,
+} from "@/lib/email-layout-schema";
 import { Button } from "@/components/ui/Button";
 import type { EmailBlock, EmailLayoutOptions } from "@/lib/email-marketing-layout";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
+import { fetchApi } from "@/lib/fetch-api";
+
+// Static fallback for the Header & Footer panel — used until the org config
+// loads (or if the fetch fails). Matches the server's code defaults, so a
+// pristine panel approximates what an untouched send will render.
+const FALLBACK_LAYOUT: EmailLayoutOptions = {
+  headerColor: "#004E64",
+  headerText: "Amana OSHC",
+  headerLogoUrl: "",
+  footerText: "Amana OSHC",
+  footerUrl: "https://amanaoshc.com.au",
+  footerUrlLabel: "amanaoshc.com.au",
+  showUnsubscribe: true,
+};
 
 export function EmailComposer() {
   const router = useRouter();
@@ -37,12 +54,15 @@ export function EmailComposer() {
     blocks: JSON.stringify([{ type: "text", content: "" }]),
     htmlContent: "",
     mode: "blocks" as "blocks" | "html",
+    // Layout settings persist as a PLAIN object (unlike blocks, which the
+    // draft stores JSON-stringified) — be consistent on restore.
+    layoutOptions: FALLBACK_LAYOUT,
+    touchedLayoutKeys: [] as string[],
   };
   const {
     data: draft,
     updateField: updateDraft,
     clearDraft,
-    hasDraft,
   } = useFormDraft("email-compose", initialDraft);
 
   // ── State (seeded from draft) ─────────────────────────────
@@ -70,15 +90,73 @@ export function EmailComposer() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
-  const [layoutOptions, setLayoutOptions] = useState<EmailLayoutOptions>({
-    headerColor: "#004E64",
-    headerText: "Amana OSHC",
-    headerLogoUrl: "",
-    footerText: "Amana OSHC",
-    footerUrl: "https://amanaoshc.com.au",
-    footerUrlLabel: "amanaoshc.com.au",
-    showUnsubscribe: true,
+  // Branding-seeded + PER-FIELD touch tracking: the panel starts from org
+  // branding (or a restored draft), and every user edit records its field in
+  // `touchedKeys`. Sends carry ONLY the touched fields — untouched fields
+  // are omitted so the server's `{ ...branding, ...layoutOptions }` merge
+  // keeps them tracking live org branding (shipping the whole seeded panel
+  // would freeze branding at the seed: edit just the footer text and the
+  // header colour would revert to the seed's value forever).
+  const [layoutOptions, setLayoutOptions] = useState<EmailLayoutOptions>(
+    () => draft.layoutOptions ?? FALLBACK_LAYOUT,
+  );
+  const [touchedKeys, setTouchedKeys] = useState<string[]>(() =>
+    // Handles legacy drafts (boolean layoutDirty, no touchedLayoutKeys) —
+    // see resolveTouchedLayoutKeys for the conservative fallback.
+    resolveTouchedLayoutKeys(draft),
+  );
+  const layoutDirty = touchedKeys.length > 0;
+
+  const updateLayoutOption = useCallback(
+    (patch: Partial<EmailLayoutOptions>) => {
+      setTouchedKeys((prev) => {
+        const next = new Set(prev);
+        for (const key of Object.keys(patch)) next.add(key);
+        return [...next];
+      });
+      setLayoutOptions((prev) => ({ ...prev, ...patch }));
+    },
+    [],
+  );
+
+  // Seed the panel from live org branding while PRISTINE. This GET is open
+  // to any authed user (unlike /api/org-settings, which is role-gated away
+  // from marketing users) and its `branding` slice comes from the SAME
+  // getEmailBranding() source the send routes use — so an untouched panel
+  // previews exactly what an untouched send will render. Once the user
+  // touches any field, the seed never overwrites their edits.
+  const { data: orgConfig } = useQuery<{
+    branding?: {
+      name?: string;
+      primaryColor?: string;
+      websiteUrl?: string;
+      websiteUrlLabel?: string;
+    };
+  }>({
+    queryKey: ["org-settings-config"],
+    queryFn: () => fetchApi("/api/org-settings/config"),
+    retry: 2,
+    staleTime: 300_000,
   });
+
+  useEffect(() => {
+    if (touchedKeys.length > 0) return;
+    const branding = orgConfig?.branding;
+    if (!branding) return;
+    setLayoutOptions((prev) => ({
+      ...prev,
+      ...(branding.name
+        ? { headerText: branding.name, footerText: branding.name }
+        : {}),
+      ...(branding.primaryColor
+        ? { headerColor: branding.primaryColor }
+        : {}),
+      ...(branding.websiteUrl ? { footerUrl: branding.websiteUrl } : {}),
+      ...(branding.websiteUrlLabel
+        ? { footerUrlLabel: branding.websiteUrlLabel }
+        : {}),
+    }));
+  }, [orgConfig, touchedKeys]);
 
   // ── Sync state → draft for autosave ────────────────────────
   useEffect(() => {
@@ -96,6 +174,16 @@ export function EmailComposer() {
   useEffect(() => {
     updateDraft("mode", mode);
   }, [mode, updateDraft]);
+
+  // Only persist layout settings once the user has actually edited them —
+  // while pristine, the branding seed may differ from the draft's initial
+  // literals, and syncing it would create a spurious "Draft restored" on
+  // the next mount for a user who typed nothing.
+  useEffect(() => {
+    if (touchedKeys.length === 0) return;
+    updateDraft("layoutOptions", layoutOptions);
+    updateDraft("touchedLayoutKeys", touchedKeys);
+  }, [touchedKeys, layoutOptions, updateDraft]);
 
   // ── Unsaved changes warning ──────────────────────────────
   const emailIsDirty = subject.trim().length > 0 || blocks.some((b) => "content" in b && (b.content as string)?.trim().length > 0) || htmlContent.trim().length > 0;
@@ -160,7 +248,6 @@ export function EmailComposer() {
   }, []);
 
   // ── Live preview (debounced) ───────────────────────────────
-  const previewMutation = useEmailPreview();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -259,8 +346,15 @@ export function EmailComposer() {
   // have been edited since), so we send the composed content — never the
   // templateId, which the campaign route would resolve FIRST, silently
   // discarding the user's edits.
-  const composedContent =
-    mode === "blocks" ? { blocks } : { htmlContent };
+  // ONLY the touched layout fields ride along — untouched fields (and a
+  // fully untouched panel) are omitted, so the server renders them from its
+  // live org-branding base and future branding changes keep applying.
+  const composedContent = {
+    ...(mode === "blocks" ? { blocks } : { htmlContent }),
+    ...(layoutDirty
+      ? { layoutOptions: pickTouchedLayoutOptions(layoutOptions, touchedKeys) }
+      : {}),
+  };
 
   function handleTestSend() {
     testSendMutation.mutate({ subject, ...composedContent });
@@ -453,7 +547,7 @@ export function EmailComposer() {
                       <input
                         type="text"
                         value={layoutOptions.headerText || ""}
-                        onChange={(e) => setLayoutOptions((prev) => ({ ...prev, headerText: e.target.value }))}
+                        onChange={(e) => updateLayoutOption({ headerText: e.target.value })}
                         className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
@@ -463,13 +557,13 @@ export function EmailComposer() {
                         <input
                           type="color"
                           value={layoutOptions.headerColor || "#004E64"}
-                          onChange={(e) => setLayoutOptions((prev) => ({ ...prev, headerColor: e.target.value }))}
+                          onChange={(e) => updateLayoutOption({ headerColor: e.target.value })}
                           className="h-8 w-10 cursor-pointer rounded border border-border"
                         />
                         <input
                           type="text"
                           value={layoutOptions.headerColor || "#004E64"}
-                          onChange={(e) => setLayoutOptions((prev) => ({ ...prev, headerColor: e.target.value }))}
+                          onChange={(e) => updateLayoutOption({ headerColor: e.target.value })}
                           className="flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-mono focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         />
                       </div>
@@ -480,7 +574,7 @@ export function EmailComposer() {
                     <input
                       type="text"
                       value={layoutOptions.headerLogoUrl || ""}
-                      onChange={(e) => setLayoutOptions((prev) => ({ ...prev, headerLogoUrl: e.target.value }))}
+                      onChange={(e) => updateLayoutOption({ headerLogoUrl: e.target.value })}
                       placeholder="https://example.com/logo.png"
                       className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
@@ -496,7 +590,7 @@ export function EmailComposer() {
                       <input
                         type="text"
                         value={layoutOptions.footerText || ""}
-                        onChange={(e) => setLayoutOptions((prev) => ({ ...prev, footerText: e.target.value }))}
+                        onChange={(e) => updateLayoutOption({ footerText: e.target.value })}
                         className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
@@ -505,7 +599,7 @@ export function EmailComposer() {
                       <input
                         type="text"
                         value={layoutOptions.footerUrlLabel || ""}
-                        onChange={(e) => setLayoutOptions((prev) => ({ ...prev, footerUrlLabel: e.target.value }))}
+                        onChange={(e) => updateLayoutOption({ footerUrlLabel: e.target.value })}
                         className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
@@ -515,7 +609,7 @@ export function EmailComposer() {
                     <input
                       type="text"
                       value={layoutOptions.footerUrl || ""}
-                      onChange={(e) => setLayoutOptions((prev) => ({ ...prev, footerUrl: e.target.value }))}
+                      onChange={(e) => updateLayoutOption({ footerUrl: e.target.value })}
                       className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
@@ -523,7 +617,7 @@ export function EmailComposer() {
                     <input
                       type="checkbox"
                       checked={layoutOptions.showUnsubscribe !== false}
-                      onChange={(e) => setLayoutOptions((prev) => ({ ...prev, showUnsubscribe: e.target.checked }))}
+                      onChange={(e) => updateLayoutOption({ showUnsubscribe: e.target.checked })}
                       className="rounded border-border text-brand focus:ring-brand"
                     />
                     Show unsubscribe link

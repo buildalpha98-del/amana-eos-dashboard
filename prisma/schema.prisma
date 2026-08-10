@@ -5119,7 +5119,7 @@ model MarketingSendRecipient {
   email         String
   deliveryLogId String?
   contactId     String?
-  /// "campaign" | "cowork" | "nurture" | "resend"
+  /// "campaign" | "cowork" | "nurture" | "resend" | "lifecycle"
   source        String
   sentAt        DateTime @default(now())
 
