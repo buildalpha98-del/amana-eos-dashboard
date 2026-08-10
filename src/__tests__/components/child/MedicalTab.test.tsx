@@ -2,6 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const mutateApi = vi.fn();
 const toastMock = vi.fn();
@@ -23,6 +24,17 @@ vi.mock("next/navigation", () => ({
 
 import { MedicalTab } from "@/components/child/tabs/MedicalTab";
 import type { ChildProfileRecord } from "@/components/child/types";
+
+/**
+ * MedicalTab now renders MedicalPlansCard, which fetches the child's
+ * Reg 90 plans through react-query — so the tree needs a client. Retry
+ * is off so a failed fetch surfaces immediately instead of stalling the
+ * test.
+ */
+function renderTab(ui: React.ReactElement) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
+}
 
 function makeChild(
   overrides: Partial<ChildProfileRecord> = {},
@@ -75,7 +87,7 @@ describe("MedicalTab", () => {
     const child = makeChild({
       medicalConditions: ["anaphylaxis", "asthma"],
     });
-    render(<MedicalTab child={child} canEdit={true} />);
+    renderTab(<MedicalTab child={child} canEdit={true} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
 
@@ -96,7 +108,7 @@ describe("MedicalTab", () => {
       medicareExpiry: new Date("2027-06-30T00:00:00.000Z"),
       medicareRef: "1",
     });
-    render(<MedicalTab child={child} canEdit={true} />);
+    renderTab(<MedicalTab child={child} canEdit={true} />);
     fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
 
     const numberInput = screen.getByDisplayValue("1234567890");
@@ -109,7 +121,7 @@ describe("MedicalTab", () => {
 
   it("renders vaccination status dropdown with current value selected", () => {
     const child = makeChild({ vaccinationStatus: "overdue" });
-    render(<MedicalTab child={child} canEdit={true} />);
+    renderTab(<MedicalTab child={child} canEdit={true} />);
     fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
 
     const select = screen.getByLabelText(/Vaccination/i) as HTMLSelectElement;
@@ -117,7 +129,7 @@ describe("MedicalTab", () => {
   });
 
   it("hides Edit button when canEdit is false", () => {
-    const { container } = render(
+    const { container } = renderTab(
       <MedicalTab child={makeChild()} canEdit={false} />,
     );
     expect(container.textContent).not.toContain("Edit");
@@ -131,7 +143,7 @@ describe("MedicalTab", () => {
       medicareRef: "2",
       vaccinationStatus: "unknown",
     });
-    render(<MedicalTab child={child} canEdit={true} />);
+    renderTab(<MedicalTab child={child} canEdit={true} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
 
@@ -170,7 +182,7 @@ describe("MedicalTab", () => {
 
   it("shows destructive toast on 403 error", async () => {
     mutateApi.mockRejectedValueOnce(new Error("Forbidden"));
-    render(<MedicalTab child={makeChild()} canEdit={true} />);
+    renderTab(<MedicalTab child={makeChild()} canEdit={true} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
     const anaphylaxis = screen.getByLabelText(/Anaphylaxis/i) as HTMLInputElement;

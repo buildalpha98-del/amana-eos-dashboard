@@ -38,6 +38,7 @@ import { StatusChip, type StatusChipLevel } from "@/components/ui/StatusChip";
 import { Pagination } from "@/components/ui/Pagination";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
+import { ComplaintsRegister } from "@/components/compliance/ComplaintsRegister";
 import { ComplianceMatrix } from "@/components/compliance/ComplianceMatrix";
 import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
 import { AuditResultsTab } from "@/components/compliance/AuditResultsTab";
@@ -49,6 +50,7 @@ import {
   BarChart3,
   GraduationCap,
   Grid3X3,
+  MessageSquareWarning,
   List,
   LayoutGrid,
   ClipboardList,
@@ -515,6 +517,7 @@ const complianceTabs = [
   { key: "audit-results", label: "Audit Results", icon: BarChart3 },
   { key: "qual-ratios", label: "Qualification Ratios", icon: GraduationCap },
   { key: "matrix", label: "Compliance Matrix", icon: Grid3X3 },
+  { key: "complaints", label: "Complaints", icon: MessageSquareWarning },
 ] as const;
 
 type ComplianceTabKey = (typeof complianceTabs)[number]["key"];
@@ -653,6 +656,7 @@ export default function CompliancePage() {
           {activeTab === "audit-results" && <AuditResultsTab />}
           {activeTab === "qual-ratios" && <QualificationRatiosTab />}
           {activeTab === "matrix" && <MatrixTabWrapper />}
+          {activeTab === "complaints" && <ComplaintsTabWrapper />}
         </>
       )}
     </div>
@@ -670,6 +674,21 @@ function MatrixTabWrapper() {
     },
   });
   return <ComplianceMatrixView services={services} />;
+}
+
+/** Same services source as the matrix tab — the register is per centre. */
+function ComplaintsTabWrapper() {
+  const { data: services = [] } = useQuery<ServiceOption[]>({
+    queryKey: ["services"],
+    queryFn: async () => {
+      const res = await fetch("/api/services?limit=100");
+      if (!res.ok) throw new Error("Failed to load services");
+      const d = await res.json();
+      return d.services || d;
+    },
+  });
+
+  return <ComplaintsRegister services={services} />;
 }
 
 const complianceImportColumns: ColumnConfig[] = [

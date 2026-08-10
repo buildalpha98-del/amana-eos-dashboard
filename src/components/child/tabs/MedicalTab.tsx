@@ -6,6 +6,7 @@ import { Loader2, Pencil, Save, X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 import type { ChildProfileRecord } from "../types";
+import { MedicalPlansCard } from "./MedicalPlansCard";
 import { ChildCustodyCard } from "./ChildCustodyCard";
 
 interface MedicalTabProps {
@@ -346,6 +347,11 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
           Medical details can only be edited by coordinators and admins.
         </p>
       )}
+
+      {/* Reg 90 plans: the three documents a condition actually needs.
+          Above custody because it's what someone opens this tab to find
+          when a child is reacting. */}
+      <MedicalPlansCard childId={child.id} canEdit={canEdit} />
 
       {/* Custody arrangements — same tab, separate card; admin-managed */}
       <ChildCustodyCard child={child} canEdit={canEdit} />
