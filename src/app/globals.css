@@ -157,19 +157,23 @@ body::before {
   to { opacity: 1; }
 }
 
+/* Entry keyframes end at `translate: none` / `transform: none` and their
+   utilities use fill-mode `backwards` — both halves matter for keeping the
+   animated element from becoming a `position: fixed` containing block; see
+   the comment on the animate-* utilities below. */
 @keyframes slide-up {
   from { opacity: 0; translate: 0 6px; }
-  to { opacity: 1; translate: 0 0; }
+  to { opacity: 1; translate: none; }
 }
 
 @keyframes slide-down {
   from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes float {
@@ -192,20 +196,29 @@ body::before {
   50% { background-position: 100% 50%; }
 }
 
+/* Entry utilities use fill-mode `backwards`, NOT `both`/`forwards`. All the
+   entry keyframes end at the element's natural state, so `backwards` is
+   visually identical at rest — but `both` keeps the final translate/transform
+   EFFECT applied forever (browsers normalise even a `none` endpoint to `0px`),
+   which turns the animated element into the containing block for every
+   `position: fixed` descendant. <main> uses animate-slide-up, so a persistent
+   fill re-anchored all non-portaled modals/panels/floating bars to <main>
+   instead of the viewport. `backwards` still covers the pre-start flash when a
+   stagger-* delay is applied. Verified 2026-08-10 via getComputedStyle. */
 @utility animate-fade-in {
-  animation: fade-in 0.5s ease-out both;
+  animation: fade-in 0.5s ease-out backwards;
 }
 
 @utility animate-slide-up {
-  animation: slide-up 0.5s ease-out both;
+  animation: slide-up 0.5s ease-out backwards;
 }
 
 @utility animate-slide-down {
-  animation: slide-down 0.4s ease-out both;
+  animation: slide-down 0.4s ease-out backwards;
 }
 
 @utility animate-scale-in {
-  animation: scale-in 0.3s ease-out both;
+  animation: scale-in 0.3s ease-out backwards;
 }
 
 @utility animate-float {

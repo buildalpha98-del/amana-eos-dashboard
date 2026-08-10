@@ -5,6 +5,7 @@ import {
   rockAssignedEmail,
   issueAssignedEmail,
   creativeRequestAssignedEmail,
+  creativeRequestSubmittedEmail,
 } from "@/lib/email-templates";
 import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
@@ -145,4 +146,85 @@ export function sendAssignmentEmail(params: {
 
   // Fire-and-forget: kick off the async work, catch any errors
   return run().catch((err) => logger.error("Failed to send assignment email", { err, type: params.type, assigneeId: params.assigneeId }));
+}
+
+/**
+ * Fire-and-forget "new design request" email to the marketing queue —
+ * the email twin of notifyRequestSubmitted's in-app fan-out (same
+ * audience: every ACTIVE marketing-role user except the requester).
+ *
+ * Same gate decision as creative-request assignment above: this is a
+ * work-queue notification, not a leadership nudge, so shouldReceiveNudge
+ * (which excludes marketing by design) is deliberately bypassed. We still
+ * honour per-user mute + the emailNotifications preference, and the
+ * suppression-aware sendEmail() wrapper. newAssignments is NOT consulted —
+ * nothing is being assigned yet.
+ *
+ * Graceful no-op when RESEND_API_KEY is not configured; errors are caught
+ * internally — safe to call without await.
+ */
+export function sendCreativeRequestSubmittedEmails(params: {
+  requestId: string;
+  requestNumber: string;
+  requestTitle: string;
+  requesterId: string;
+}): Promise<void> {
+  if (!getResend()) return Promise.resolve(); // No API key configured — skip silently
+
+  const baseUrl =
+    process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+
+  const run = async () => {
+    const [marketers, requester] = await Promise.all([
+      prisma.user.findMany({
+        where: { role: "marketing", active: true, id: { not: params.requesterId } },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          notificationsMuted: true,
+          notificationPrefs: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: { id: params.requesterId },
+        select: { name: true },
+      }),
+    ]);
+
+    const requesterName = requester?.name || "A team member";
+    const dashboardUrl = `${baseUrl}/requests?open=${params.requestId}`;
+
+    await Promise.all(
+      marketers.map(async (marketer) => {
+        if (!marketer.email || marketer.notificationsMuted) return;
+        const prefs = {
+          ...getDefaultNotificationPrefs(marketer.role),
+          ...parseJsonField(marketer.notificationPrefs, notificationPrefsSchema, {}),
+        };
+        if (!prefs.emailNotifications) return;
+
+        const template = await creativeRequestSubmittedEmail(
+          marketer.name || "Team Member",
+          params.requestTitle,
+          params.requestNumber,
+          requesterName,
+          dashboardUrl,
+        );
+        await sendEmail({
+          to: marketer.email,
+          subject: template.subject,
+          html: template.html,
+        });
+      }),
+    );
+  };
+
+  return run().catch((err) =>
+    logger.error("Failed to send creative-request submitted emails", {
+      err,
+      requestId: params.requestId,
+    }),
+  );
 }
