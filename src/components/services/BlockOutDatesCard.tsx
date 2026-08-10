@@ -32,6 +32,7 @@ interface BlockOutRow {
   programmeName: string | null;
   reason: string | null;
   createdBy: string | null;
+  createdAt?: string | null;
 }
 
 const field =
@@ -61,6 +62,14 @@ export function BlockOutDatesCard({
   const [endDate, setEndDate] = useState("");
   const [sessionType, setSessionType] = useState("");
   const [reason, setReason] = useState("");
+  const [dates, setDates] = useState("");
+  const [excludeWeekends, setExcludeWeekends] = useState(true);
+  // Report panel: its own window, and only fetched once asked for —
+  // the default list is forward-looking, this is the "what did we close
+  // last term" question.
+  const [reportFrom, setReportFrom] = useState("");
+  const [reportTo, setReportTo] = useState("");
+  const [reportOn, setReportOn] = useState(false);
 
   const { data } = useQuery<{ blockOutDates: BlockOutRow[] }>({
     queryKey: key,
@@ -68,6 +77,19 @@ export function BlockOutDatesCard({
     retry: 1,
   });
   const rows = data?.blockOutDates ?? [];
+
+  const report = useQuery<{ blockOutDates: BlockOutRow[] }>({
+    queryKey: [...key, "report", reportFrom, reportTo],
+    queryFn: () =>
+      fetchApi(
+        `/api/services/${serviceId}/block-out-dates?from=${reportFrom}&to=${reportTo}`,
+      ),
+    // Only runs once Get report is pressed, so changing a date doesn't
+    // fire a query per keystroke.
+    enabled: reportOn && Boolean(reportFrom && reportTo),
+    retry: 1,
+  });
+  const reportRows = report.data?.blockOutDates ?? [];
 
   const create = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
@@ -82,6 +104,7 @@ export function BlockOutDatesCard({
       setEndDate("");
       setSessionType("");
       setReason("");
+      setDates("");
       toast({
         description: `Blocked out — families can't book ${
           res.created > 1 ? `those ${res.created} days` : "that day"
@@ -176,6 +199,42 @@ export function BlockOutDatesCard({
             </select>
           </div>
 
+          {!dates.trim() && (
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={excludeWeekends}
+                onChange={(e) => setExcludeWeekends(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+              />
+              <span className="text-sm text-foreground">
+                Skip weekends
+                <span className="block text-xs text-muted">
+                  A three-week holiday range otherwise writes nine rows for
+                  days you were never open.
+                </span>
+              </span>
+            </label>
+          )}
+
+          <div>
+            <label htmlFor="bo-dates" className="block text-sm font-medium text-foreground mb-1">
+              Or list dates{" "}
+              <span className="text-muted">(instead of a range)</span>
+            </label>
+            <input
+              id="bo-dates"
+              className={field}
+              value={dates}
+              onChange={(e) => setDates(e.target.value)}
+              placeholder="e.g. 2026-10-31, 2026-11-07"
+            />
+            <p className="text-2xs text-muted mt-1">
+              For the every-Wednesday shape a range can&apos;t express.
+              Weekends listed here are kept — naming a Saturday means it.
+            </p>
+          </div>
+
           <div>
             <label htmlFor="bo-reason" className="block text-sm font-medium text-foreground mb-1">
               Why <span className="text-muted">(families see this)</span>
@@ -191,15 +250,24 @@ export function BlockOutDatesCard({
 
           <div className="flex gap-2">
             <Button
-              onClick={() =>
+              onClick={() => {
+                const list = dates
+                  .split(",")
+                  .map((d) => d.trim())
+                  .filter(Boolean);
                 create.mutate({
-                  date,
-                  ...(endDate ? { endDate } : {}),
+                  ...(list.length
+                    ? { dates: list }
+                    : {
+                        date,
+                        ...(endDate ? { endDate } : {}),
+                        excludeWeekends,
+                      }),
                   ...(sessionType ? { sessionType } : {}),
                   ...(reason.trim() ? { reason: reason.trim() } : {}),
-                })
-              }
-              disabled={create.isPending || !date}
+                });
+              }}
+              disabled={create.isPending || (!date && !dates.trim())}
             >
               {create.isPending ? "Blocking…" : "Block out"}
             </Button>
@@ -241,6 +309,121 @@ export function BlockOutDatesCard({
           ))}
         </ul>
       )}
+
+      {/* ── Report ──────────────────────────────────────────────────
+          Separate from the list above because it answers a different
+          question. The list is "what's coming"; this is "what did we
+          close, and who closed it" — which needs the past and needs
+          the name against each row. */}
+      <div className="border-t border-border pt-4 space-y-3">
+        <h4 className="text-sm font-medium text-foreground">
+          Block-out report
+        </h4>
+        <div className="grid gap-3 sm:grid-cols-12">
+          <div className="sm:col-span-4">
+            <label
+              htmlFor="bo-report-from"
+              className="block text-xs font-medium text-muted mb-1"
+            >
+              From
+            </label>
+            <input
+              id="bo-report-from"
+              type="date"
+              className={field}
+              value={reportFrom}
+              onChange={(e) => {
+                setReportFrom(e.target.value);
+                setReportOn(false);
+              }}
+            />
+          </div>
+          <div className="sm:col-span-4">
+            <label
+              htmlFor="bo-report-to"
+              className="block text-xs font-medium text-muted mb-1"
+            >
+              To
+            </label>
+            <input
+              id="bo-report-to"
+              type="date"
+              className={field}
+              value={reportTo}
+              onChange={(e) => {
+                setReportTo(e.target.value);
+                setReportOn(false);
+              }}
+            />
+          </div>
+          <div className="sm:col-span-4 flex items-end">
+            <Button
+              className="w-full"
+              variant="outline"
+              disabled={!reportFrom || !reportTo}
+              onClick={() => setReportOn(true)}
+            >
+              Get report
+            </Button>
+          </div>
+        </div>
+
+        {reportOn &&
+          (report.isLoading ? (
+            <p className="text-sm text-muted">Loading…</p>
+          ) : reportRows.length === 0 ? (
+            <p className="text-sm text-muted">
+              Nothing was blocked out in that window.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
+                      What&apos;s closed
+                    </th>
+                    <th className="py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
+                      Reason
+                    </th>
+                    <th className="py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
+                      Added by
+                    </th>
+                    <th className="py-2 text-xs font-medium text-muted uppercase tracking-wider">
+                      Date added
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {reportRows.map((r) => (
+                    <tr key={r.id}>
+                      <td className="py-2 pr-3 text-foreground whitespace-nowrap">
+                        {dateAU(r.date)}
+                      </td>
+                      <td className="py-2 pr-3 text-muted">
+                        {r.programmeName ?? "Whole centre"}
+                      </td>
+                      <td className="py-2 pr-3 text-muted">{r.reason ?? "—"}</td>
+                      <td className="py-2 pr-3 text-muted">
+                        {r.createdBy ?? "—"}
+                      </td>
+                      <td className="py-2 text-muted whitespace-nowrap">
+                        {r.createdAt ? dateAU(r.createdAt) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-2xs text-muted mt-2">
+                {reportRows.length}{" "}
+                {reportRows.length === 1 ? "day" : "days"} blocked out.
+              </p>
+            </div>
+          ))}
+      </div>
     </div>
   );
 }

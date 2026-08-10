@@ -13,6 +13,8 @@ import {
 
 import { ApprovalsSessionTimesCard } from "./ApprovalsSessionTimesCard";
 import { RoomsAndFeesCard } from "./RoomsAndFeesCard";
+import { FeePolicyCard } from "./FeePolicyCard";
+import { SessionTimesCard } from "./SessionTimesCard";
 import { ParentFormsCard } from "./ParentFormsCard";
 import { ExcursionsCard } from "./ExcursionsCard";
 import { BlockOutDatesCard } from "@/components/services/BlockOutDatesCard";
@@ -291,7 +293,13 @@ export function ServiceInfoCard({
       </div>
 
       {section === "info" && (
-        <ApprovalsSessionTimesCard service={service} canEdit={canEdit} />
+        <>
+          <ApprovalsSessionTimesCard service={service} canEdit={canEdit} />
+          {/* The session-of-care catalogue lives with the service info,
+              matching where OWNA keeps it — it's a property of the
+              centre, not of any one room. */}
+          <SessionTimesCard serviceId={service.id} canEdit={canEdit} />
+        </>
       )}
 
       {section === "settings" && (
@@ -304,6 +312,10 @@ export function ServiceInfoCard({
       {section === "rooms" && (
         <>
           <RoomsAndFeesCard service={service} canEdit={canEdit} />
+          {/* Directly under the room prices, because it answers the
+              questions those prices don't: late pickup, absence,
+              cancellation. */}
+          <FeePolicyCard serviceId={service.id} canEdit={canEdit} />
           <FeeChangesCard
             serviceId={service.id}
             sessionTimes={service.sessionTimes}

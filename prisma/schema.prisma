@@ -615,9 +615,11 @@ model User {
   illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
   illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
   createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
+  createdSessionTimes           ServiceSessionTime[]           @relation("SessionTimeCreator")
   createdCasualDays             CasualDayConfig[]              @relation("CasualDayCreator")
   createdDiscounts              FamilyDiscount[]               @relation("DiscountCreator")
   createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
+  createdFeeAssignments         ChildFeeAssignment[]           @relation("FeeAssignmentCreator")
   debtChases                    FamilyDebtContact[]            @relation("DebtChaser")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
   reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
@@ -2546,6 +2548,19 @@ model Service {
   /// features land.
   appSettings   Json?
 
+  /// The centre's fee POLICY — late collection, absence charging,
+  /// cancellation, enrolment fee and bond, payment terms. Validated by
+  /// `feePolicySchema`; see src/lib/fee-policy.ts.
+  ///
+  /// Distinct from `sessionTimes`, which holds what a session COSTS.
+  /// This holds what happens around that price, and it is separate
+  /// because the two are edited by different people at different times:
+  /// a coordinator adjusts room hours, a director sets the late fee.
+  ///
+  /// Every key is optional and every default is "charge nothing", so a
+  /// null here behaves exactly as the system did before it existed.
+  feePolicy Json?
+
   /// Per-service editable content (admin or Director of Service for this
   /// service). Shape validated by Zod in src/lib/service-content-shared.ts.
   /// Holds About / Welcome narrative, hero image URL, key contacts (Director
@@ -2608,10 +2623,12 @@ model Service {
   visitors       ServiceVisitor[]      @relation("ServiceVisitors")
   staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
   illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
+  sessionTimeList ServiceSessionTime[] @relation("ServiceSessionTimes")
   blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
   casualDays     CasualDayConfig[]     @relation("ServiceCasualDays")
   discounts      FamilyDiscount[]      @relation("ServiceDiscounts")
   feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
+  feeAssignments ChildFeeAssignment[]  @relation("ServiceFeeAssignments")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -6749,6 +6766,7 @@ model Child {
   discounts          FamilyDiscount[]      @relation("ChildDiscounts")
   attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
   statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
+  feeAssignments     ChildFeeAssignment[]  @relation("ChildFeeAssignments")
 
   // ── NQS relations ─────────────────────────────────
   observations  LearningObservation[]      @relation("ChildObservations")
@@ -7624,6 +7642,107 @@ model ServiceBlockOutDate {
   createdAt   DateTime     @default(now())
 
   @@index([serviceId, date])
+}
+
+/// A window of care this centre sells — the "session of care" catalogue.
+///
+/// Modelled on OWNA's Service Info → Session Times, and it exists for the
+/// reason theirs does: every fee in every room has to name a window, and
+/// before this the window was typed freehand onto each fee. Six rooms
+/// meant six chances to type 15:00–18:30 as 15:00–18:00, and the number
+/// that drifts is the one reported to CCS as the session of care.
+///
+/// The catalogue is centre-level and the rooms point AT it, not the
+/// other way round. A centre runs one 3.5-hour afternoon session; which
+/// rooms sell it is a separate question from what the session is.
+///
+/// Deliberately NOT the same thing as `Service.sessionTimes`, which holds
+/// the fixed bsc/asc/vc room definitions. That field is the room list;
+/// this table is the hours. They will converge when rooms become
+/// first-class records rather than seven fixed enum slots.
+model ServiceSessionTime {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation("ServiceSessionTimes", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// Wall-clock "HH:mm" in the centre's local time. Opening hours, not
+  /// instants — 15:00 is three in the afternoon through daylight saving
+  /// in both directions, and storing these as timestamps would be wrong
+  /// twice a year.
+  start String
+  end   String
+
+  /// Optional name. Most centres think in times and leave this blank;
+  /// the ones that don't have a reason ("Ramadan Care") and that reason
+  /// is what they'll search the dropdown for.
+  label String?
+
+  /// Retired without being deleted. Fees already reference this window,
+  /// and a historical fee has to keep reading correctly — so retiring
+  /// hides it from new fees rather than orphaning old ones.
+  active Boolean @default(true)
+
+  createdById String?
+  createdBy   User?    @relation("SessionTimeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// The same window twice is always a mistake, and two identical rows
+  /// in the dropdown is the kind of thing nobody reports and everybody
+  /// works around.
+  @@unique([serviceId, start, end])
+  @@index([serviceId, active])
+}
+
+/// Which fee a child is charged at, in one room.
+///
+/// This is the link the fees matrix was missing. A `Booking` records the
+/// child, the date and the ROOM — it has never recorded which of that
+/// room's fees applies. So in a room running four fees (recurring,
+/// casual, Wednesday care, Ramadan care) there was no way to answer
+/// "how many children are on this rate", and no way to charge two
+/// children in the same room differently.
+///
+/// One row per child per room, enforced by the unique below. A child
+/// attending both before- and after-school care has two rows, because
+/// those are two rooms with two fee lists — but they cannot be on two
+/// fees for the SAME room at once, which is the mistake this prevents.
+///
+/// `feeTierId` points into the room's `fees` array in
+/// `Service.sessionTimes` rather than at a table, because that is where
+/// fee tiers live. `feeName` is denormalised beside it so the assignment
+/// still reads correctly after a tier is renamed or archived — a row
+/// saying "fee-3" answers nothing when a parent rings about their
+/// invoice.
+model ChildFeeAssignment {
+  id        String  @id @default(cuid())
+  childId   String
+  child     Child   @relation("ChildFeeAssignments", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation("ServiceFeeAssignments", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// The room. Same enum every Booking and AttendanceRecord uses.
+  sessionType SessionType
+  /// The tier's id within that room's `fees` array.
+  feeTierId   String
+  /// Denormalised at write time; see the note above.
+  feeName     String
+
+  /// When this rate starts applying to this child. Null means "now, and
+  /// we didn't record a date" — which is the honest answer for an
+  /// assignment made mid-term rather than a back-dated one.
+  effectiveFrom DateTime? @db.Date
+
+  createdById String?
+  createdBy   User?    @relation("FeeAssignmentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// One fee per child per room.
+  @@unique([childId, sessionType])
+  /// The "Applied To" count: group by tier within a service and room.
+  @@index([serviceId, sessionType, feeTierId])
+  @@index([feeTierId])
 }
 
 /// A change to a room's fee — scheduled for a date, or already applied.
