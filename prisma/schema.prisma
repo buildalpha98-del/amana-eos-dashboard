@@ -2638,6 +2638,7 @@ model Service {
   discounts      FamilyDiscount[]      @relation("ServiceDiscounts")
   feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
   feeAssignments ChildFeeAssignment[]  @relation("ServiceFeeAssignments")
+  rooms          Room[]                @relation("ServiceRooms")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -8019,6 +8020,80 @@ model ServiceSessionTime {
 /// still reads correctly after a tier is renamed or archived — a row
 /// saying "fee-3" answers nothing when a parent rings about their
 /// invoice.
+/// A room at a centre, as a record rather than an enum slot.
+///
+/// Rooms are currently seven fixed slots baked into `SessionType` —
+/// `bsc`, `asc`, `vc` and four generic spares — with their definitions
+/// living as JSON on `Service.sessionTimes`. A centre cannot add an
+/// eighth without a schema change, a room cannot own a roll, and
+/// educators cannot be assigned to one.
+///
+/// STAGE 0 of the migration in docs/rooms-migration-plan.md: this table
+/// is a SHADOW. It is written by `syncRoomsFromSessionTimes` whenever
+/// the JSON changes, and nothing reads it yet. That is deliberate — it
+/// lets the backfill run, be checked against the JSON, and be corrected,
+/// while the app carries on reading the JSON exactly as before. Dropping
+/// this table today would change no behaviour.
+///
+/// `legacyKey` is the join back to the enum, and is kept FOREVER. It is
+/// how every later dual-write reconciles, and once the enum columns are
+/// dropped it is the only record of what a historical row meant.
+model Room {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation("ServiceRooms", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// What this centre calls the room. Not globally unique — two centres
+  /// each having a "Rise and Shine" is normal, not a conflict.
+  name String
+
+  /// The `SessionType` slot this room was created from. Nullable because
+  /// a room added AFTER the enum is retired has no legacy slot; every
+  /// row created by the Stage 0 backfill has one.
+  legacyKey SessionType?
+
+  /// Opening hours, "HH:MM". Strings rather than DateTime: these are
+  /// wall-clock times of day with no date, and storing them as
+  /// timestamps invites a timezone to be applied to something that
+  /// doesn't have one.
+  startTime String?
+  endTime   String?
+
+  capacity    Int?
+  /// Minimum educator:child ratio, "1:15" style. Null means the service
+  /// default applies — a room must not silently carry a looser ratio
+  /// than the service it sits in.
+  ratio       String?
+  description String?  @db.Text
+  /// Age range in whole YEARS. School-age care talks in school years,
+  /// not months.
+  minAgeYears Int?
+  maxAgeYears Int?
+  photoUrl    String?
+
+  /// A room children can't be booked into — a staff room, an office. It
+  /// still exists for rostering and ratios.
+  staffOnly Boolean @default(false)
+
+  /// Retired, not deleted. A room with historical attendance can never
+  /// be removed without orphaning those records, so retiring is the only
+  /// way out. Timestamped rather than a boolean: "when did this room
+  /// close" is a question that gets asked.
+  archivedAt DateTime?
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One room per enum slot per service — this is what makes the
+  /// backfill idempotent and the resolver unambiguous. Rooms added later
+  /// with a null `legacyKey` are exempt, since Postgres treats NULLs as
+  /// distinct in a unique index, which is exactly what an unlimited
+  /// number of new rooms needs.
+  @@unique([serviceId, legacyKey])
+  @@index([serviceId, archivedAt])
+}
+
 model ChildFeeAssignment {
   id        String  @id @default(cuid())
   childId   String
