@@ -481,7 +481,10 @@ function OnboardingPageInner() {
 
       {/* Induction Tab */}
       {activeTab === "induction" && (
-        <InductionAdminTab canBackfill={role === "owner" || role === "head_office"} />
+        <InductionAdminTab
+          canBackfill={role === "owner" || role === "head_office"}
+          canPublish={isAdmin}
+        />
       )}
 
       {/* Compliance Tab */}
