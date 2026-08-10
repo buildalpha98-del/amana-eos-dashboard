@@ -9,6 +9,7 @@
 
 import { baseLayout, buttonHtml, escapeHtml, BRAND_COLOR } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
+import { siteUrl } from "@/lib/site-url";
 
 // User-entered strings (entity titles, people's names, free-text messages)
 // MUST pass through escapeHtml() before landing in email HTML — titles come
@@ -279,6 +280,55 @@ export async function creativeRequestAssignedEmail(
   });
 }
 
+// ─── Creative Request Submitted (marketing queue alert) ──────
+
+export async function creativeRequestSubmittedEmail(
+  recipientName: string,
+  requestTitle: string,
+  requestNumber: string,
+  requesterName: string,
+  dashboardUrl: string,
+) {
+  return applyEmailTemplateOverride({
+    key: "notifications.creativeRequestSubmitted",
+    defaultSubject: "New design request in the creative queue — Amana OSHC",
+    defaultBody: `
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      New Design Request
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi {{recipientName}},
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      <strong>{{requesterName}}</strong> has submitted a new design request to the creative queue:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;background-color:#f9fafb;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-weight:600;text-transform:uppercase;">
+            {{requestNumber}}
+          </p>
+          <p style="margin:0;color:#111827;font-size:15px;font-weight:600;">
+            {{requestTitle}}
+          </p>
+        </td>
+      </tr>
+    </table>
+    {{viewButton}}
+  `,
+    vars: {
+      // Title and names are user-typed (request intake is open to all
+      // roles) — escape them; viewButton is trusted pre-rendered HTML.
+      recipientName: escapeHtml(recipientName),
+      requestTitle: escapeHtml(requestTitle),
+      requestNumber: escapeHtml(requestNumber),
+      requesterName: escapeHtml(requesterName),
+      viewButton: buttonHtml("View request", dashboardUrl),
+    },
+    wrap: baseLayout,
+  });
+}
+
 // ─── Compliance Expiry Alert ─────────────────────────────────
 
 export function complianceAlertEmail(
@@ -332,7 +382,7 @@ export function complianceAlertEmail(
       </tr>
       ${certRows}
     </table>
-    ${buttonHtml("View Compliance", `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/compliance`)}
+    ${buttonHtml("View Compliance", `${siteUrl()}/compliance`)}
   `);
 
   return { subject, html };
@@ -345,7 +395,7 @@ export async function complianceAdminSummaryEmail(counts: {
   due30d: number;
   total: number;
 }) {
-  const dashboardUrl = `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/compliance`;
+  const dashboardUrl = `${siteUrl()}/compliance`;
   return applyEmailTemplateOverride({
     key: "notifications.complianceAdminSummary",
     defaultSubject: "Compliance Summary: {{total}} certificates need attention — Amana OSHC",

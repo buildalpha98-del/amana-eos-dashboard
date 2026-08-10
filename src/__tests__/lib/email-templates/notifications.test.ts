@@ -15,7 +15,7 @@ import {
 // lands in the assignee's inbox. These tests pin the escaping contract.
 const XSS_TITLE = '<img src=x onerror=alert(1)>';
 const XSS_ESCAPED = "&lt;img src=x onerror=alert(1)&gt;";
-const DASHBOARD_URL = "https://dashboard.amanaoshc.com.au/todos";
+const DASHBOARD_URL = "https://amanaoshc.company/todos";
 
 describe("assignment email escaping", () => {
   it("todoAssignedEmail escapes an HTML-injection todo title", async () => {

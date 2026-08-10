@@ -11,10 +11,15 @@ vi.mock("@/lib/email-templates", () => ({
   rockAssignedEmail: vi.fn(async () => ({ subject: "Rock assigned", html: "<p>rock</p>" })),
   issueAssignedEmail: vi.fn(async () => ({ subject: "Issue assigned", html: "<p>issue</p>" })),
   creativeRequestAssignedEmail: vi.fn(async () => ({ subject: "Request assigned", html: "<p>request</p>" })),
+  creativeRequestSubmittedEmail: vi.fn(async () => ({ subject: "New design request", html: "<p>submitted</p>" })),
 }));
 
-import { sendAssignmentEmail } from "@/lib/send-assignment-email";
+import {
+  sendAssignmentEmail,
+  sendCreativeRequestSubmittedEmails,
+} from "@/lib/send-assignment-email";
 import { sendEmail, getResend } from "@/lib/email";
+import { creativeRequestSubmittedEmail } from "@/lib/email-templates";
 
 const ASSIGNEE_ID = "assignee-1";
 const ASSIGNER_ID = "assigner-1";
@@ -133,5 +138,100 @@ describe("sendAssignmentEmail", () => {
   it("never rejects — sendEmail failures are swallowed and logged", async () => {
     vi.mocked(sendEmail).mockRejectedValueOnce(new Error("resend down"));
     await expect(sendAssignmentEmail(params)).resolves.toBeUndefined();
+  });
+});
+
+describe("sendCreativeRequestSubmittedEmails", () => {
+  const REQUESTER_ID = "requester-1";
+
+  const submittedParams = {
+    requestId: "req-1",
+    requestNumber: "REQ-2026-0042",
+    requestTitle: "Holiday program poster",
+    requesterId: REQUESTER_ID,
+  };
+
+  function marketer(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "mkt-1",
+      name: "Shahbaz",
+      email: "shahbaz@amana.test",
+      role: "marketing",
+      notificationsMuted: false,
+      notificationPrefs: null,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getResend).mockReturnValue({} as ReturnType<typeof getResend>);
+    prismaMock.user.findMany.mockResolvedValue([marketer()]);
+    prismaMock.user.findUnique.mockResolvedValue({ name: "Jayden" });
+  });
+
+  it("queries only ACTIVE marketing users, excluding the requester", async () => {
+    await sendCreativeRequestSubmittedEmails(submittedParams);
+
+    expect(prismaMock.user.findMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.user.findMany.mock.calls[0][0].where).toEqual({
+      role: "marketing",
+      active: true,
+      id: { not: REQUESTER_ID },
+    });
+  });
+
+  it("emails each marketing user with a deep link to the request", async () => {
+    prismaMock.user.findMany.mockResolvedValue([
+      marketer(),
+      marketer({ id: "mkt-2", name: "Akram", email: "akram@amana.test" }),
+    ]);
+
+    await sendCreativeRequestSubmittedEmails(submittedParams);
+
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+    const recipients = vi.mocked(sendEmail).mock.calls.map((c) => c[0].to);
+    expect(recipients).toEqual(
+      expect.arrayContaining(["shahbaz@amana.test", "akram@amana.test"]),
+    );
+    // Deep link + requester name reach the template
+    expect(vi.mocked(creativeRequestSubmittedEmail)).toHaveBeenCalledWith(
+      "Shahbaz",
+      "Holiday program poster",
+      "REQ-2026-0042",
+      "Jayden",
+      expect.stringContaining("/requests?open=req-1"),
+    );
+  });
+
+  it("skips muted marketers and those with emailNotifications off", async () => {
+    prismaMock.user.findMany.mockResolvedValue([
+      marketer({ notificationsMuted: true }),
+      marketer({
+        id: "mkt-2",
+        email: "prefs-off@amana.test",
+        notificationPrefs: { emailNotifications: false },
+      }),
+      marketer({ id: "mkt-3", email: "gets-it@amana.test" }),
+    ]);
+
+    await sendCreativeRequestSubmittedEmails(submittedParams);
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(sendEmail).mock.calls[0][0].to).toBe("gets-it@amana.test");
+  });
+
+  it("no-ops when Resend is not configured", async () => {
+    vi.mocked(getResend).mockReturnValue(null);
+    await sendCreativeRequestSubmittedEmails(submittedParams);
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(prismaMock.user.findMany).not.toHaveBeenCalled();
+  });
+
+  it("never rejects — failures are swallowed and logged", async () => {
+    vi.mocked(sendEmail).mockRejectedValue(new Error("resend down"));
+    await expect(
+      sendCreativeRequestSubmittedEmails(submittedParams),
+    ).resolves.toBeUndefined();
   });
 });

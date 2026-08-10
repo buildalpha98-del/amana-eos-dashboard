@@ -62,3 +62,50 @@ describe("globals.css v2 scope", () => {
     expect(inlineBlocks).not.toMatch(/--radius-/);
   });
 });
+
+describe("globals.css entry animations", () => {
+  // A persistent translate/transform makes the animated element the
+  // containing block for every `position: fixed` descendant — <main> uses
+  // animate-slide-up, so this re-anchored every non-portaled modal/panel/
+  // floating bar to <main> instead of the viewport (2026-08-10: clipped
+  // New-request modal on /requests). Two halves to the fix, both pinned here:
+  //   1. fill-mode must be `backwards` (NOT both/forwards) — a filling
+  //      animation keeps its final EFFECT applied forever, and browsers
+  //      normalise even a `none` keyframe endpoint to `0px`, which still
+  //      creates a containing block.
+  //   2. keyframes end at `none` (not `0 0`) as defence in depth.
+  const keyframes = (name: string) =>
+    globalsCss.match(new RegExp(`@keyframes ${name}\\s*\\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
+
+  it("entry utilities use fill-mode backwards, never both/forwards", () => {
+    for (const name of ["fade-in", "slide-up", "slide-down", "scale-in"]) {
+      const utility =
+        globalsCss.match(
+          new RegExp(`@utility animate-${name}\\s*\\{[^}]*\\}`),
+        )?.[0] ?? "";
+      expect(utility, name).toMatch(/animation:[^;]*backwards/);
+      expect(utility, name).not.toMatch(/animation:[^;]*(both|forwards)/);
+    }
+  });
+
+  it("slide-up ends at translate: none (not 0 0)", () => {
+    const to = keyframes("slide-up").match(/to\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(to).toMatch(/translate:\s*none/);
+  });
+
+  it("slide-down and scale-in end at transform: none", () => {
+    for (const name of ["slide-down", "scale-in"]) {
+      const to = keyframes(name).match(/to\s*\{[^}]*\}/)?.[0] ?? "";
+      expect(to, name).toMatch(/transform:\s*none/);
+    }
+  });
+
+  it("no entry keyframes ends with a persistent identity translate/transform", () => {
+    for (const name of ["fade-in", "slide-up", "slide-down", "scale-in"]) {
+      const to = keyframes(name).match(/to\s*\{[^}]*\}/)?.[0] ?? "";
+      expect(to, name).not.toMatch(/translate:\s*0/);
+      expect(to, name).not.toMatch(/transform:\s*translate[XY]?\(0/);
+      expect(to, name).not.toMatch(/transform:\s*scale\(1\)/);
+    }
+  });
+});

@@ -5,6 +5,7 @@ import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { sendTeamsNotification } from "@/lib/teams-notify";
 import { withApiHandler } from "@/lib/api-handler";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * GET /api/cron/regulatory-monitor
@@ -127,7 +128,7 @@ export const GET = withApiHandler(async (req) => {
         {
           type: "Action.OpenUrl",
           title: "View in Queue",
-          url: `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/queue`,
+          url: `${siteUrl()}/queue`,
         },
       ],
     });

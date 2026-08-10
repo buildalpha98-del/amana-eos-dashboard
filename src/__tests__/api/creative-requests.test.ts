@@ -25,6 +25,7 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 vi.mock("@/lib/send-assignment-email", () => ({
   sendAssignmentEmail: vi.fn(),
+  sendCreativeRequestSubmittedEmails: vi.fn(() => Promise.resolve()),
 }));
 
 import { GET as GET_LIST, POST as POST_CREATE } from "@/app/api/creative-requests/route";
@@ -34,9 +35,13 @@ import { GET as GET_PROOFS, POST as POST_PROOF } from "@/app/api/creative-reques
 import { POST as POST_DECISION } from "@/app/api/creative-requests/[id]/proofs/[proofId]/decision/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 import { DEFAULT_CHECKLISTS } from "@/lib/creative-request/constants";
-import { sendAssignmentEmail } from "@/lib/send-assignment-email";
+import {
+  sendAssignmentEmail,
+  sendCreativeRequestSubmittedEmails,
+} from "@/lib/send-assignment-email";
 
 const sendAssignmentEmailMock = vi.mocked(sendAssignmentEmail);
+const sendCreativeRequestSubmittedEmailsMock = vi.mocked(sendCreativeRequestSubmittedEmails);
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
 const decisionCtx = (id: string, proofId: string) =>
@@ -180,6 +185,14 @@ describe("POST /api/creative-requests", () => {
     expect(createArgs.data.dueDate).toBeInstanceOf(Date);
     expect(createArgs.data.attachments.create).toHaveLength(1);
     expect(prismaMock.userNotification.createMany).toHaveBeenCalled();
+    // Email twin of the in-app fan-out — fires with the created request's
+    // identifiers so marketing gets a deep-linked email.
+    expect(sendCreativeRequestSubmittedEmailsMock).toHaveBeenCalledWith({
+      requestId: baseRequest.id,
+      requestNumber: baseRequest.requestNumber,
+      requestTitle: baseRequest.title,
+      requesterId: "member-1",
+    });
   });
 
   it("rejects a dueDate in the past", async () => {

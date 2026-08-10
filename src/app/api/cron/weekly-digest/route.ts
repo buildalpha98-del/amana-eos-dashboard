@@ -4,11 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
 import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
 import { withApiHandler } from "@/lib/api-handler";
+import { siteUrl } from "@/lib/site-url";
 
 // ── Brand constants ─────────────────────────────────────────
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
-const DASHBOARD_URL = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+const DASHBOARD_URL = siteUrl();
 
 // ── Types ───────────────────────────────────────────────────
 interface DigestData {

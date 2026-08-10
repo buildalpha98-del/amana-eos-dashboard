@@ -5,6 +5,7 @@ import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
 import { getResend, sendEmail } from "@/lib/email";
 import { staffingAlertEmail } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
+import { siteUrl } from "@/lib/site-url";
 
 export const GET = withApiHandler(async (req) => {
   // 1. Auth
@@ -78,8 +79,7 @@ export const GET = withApiHandler(async (req) => {
       select: { name: true, email: true },
     });
 
-    const dashboardUrl =
-      process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const dashboardUrl = siteUrl();
 
     for (const admin of admins) {
       try {

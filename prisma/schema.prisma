@@ -614,10 +614,19 @@ model User {
   staffIncidentsSignedOff       StaffIncidentReport[]          @relation("StaffIncidentSignOff")
   illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
   illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
+  incidentsParentNotified       IncidentRecord[]               @relation("IncidentParentNotifier")
+  incidentsSharedWithParents    IncidentRecord[]               @relation("IncidentSharer")
+  createdMedicalPlans           ChildMedicalPlan[]             @relation("MedicalPlanCreator")
+  reviewedMedicalPlans          ChildMedicalPlan[]             @relation("MedicalPlanReviewer")
+  createdComplaints             ComplaintRecord[]              @relation("ComplaintCreator")
+  assignedComplaints            ComplaintRecord[]              @relation("ComplaintAssignee")
+  resolvedComplaints            ComplaintRecord[]              @relation("ComplaintResolver")
   createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
+  createdSessionTimes           ServiceSessionTime[]           @relation("SessionTimeCreator")
   createdCasualDays             CasualDayConfig[]              @relation("CasualDayCreator")
   createdDiscounts              FamilyDiscount[]               @relation("DiscountCreator")
   createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
+  createdFeeAssignments         ChildFeeAssignment[]           @relation("FeeAssignmentCreator")
   debtChases                    FamilyDebtContact[]            @relation("DebtChaser")
   signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
   reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
@@ -2546,6 +2555,19 @@ model Service {
   /// features land.
   appSettings   Json?
 
+  /// The centre's fee POLICY — late collection, absence charging,
+  /// cancellation, enrolment fee and bond, payment terms. Validated by
+  /// `feePolicySchema`; see src/lib/fee-policy.ts.
+  ///
+  /// Distinct from `sessionTimes`, which holds what a session COSTS.
+  /// This holds what happens around that price, and it is separate
+  /// because the two are edited by different people at different times:
+  /// a coordinator adjusts room hours, a director sets the late fee.
+  ///
+  /// Every key is optional and every default is "charge nothing", so a
+  /// null here behaves exactly as the system did before it existed.
+  feePolicy Json?
+
   /// Per-service editable content (admin or Director of Service for this
   /// service). Shape validated by Zod in src/lib/service-content-shared.ts.
   /// Holds About / Welcome narrative, hero image URL, key contacts (Director
@@ -2608,10 +2630,14 @@ model Service {
   visitors       ServiceVisitor[]      @relation("ServiceVisitors")
   staffIncidents StaffIncidentReport[] @relation("ServiceStaffIncidents")
   illnessRecords IllnessRecord[]       @relation("ServiceIllnessRecords")
+  sessionTimeList ServiceSessionTime[] @relation("ServiceSessionTimes")
+  medicalPlans   ChildMedicalPlan[]    @relation("ServiceMedicalPlans")
+  complaints     ComplaintRecord[]     @relation("ServiceComplaints")
   blockOutDates  ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
   casualDays     CasualDayConfig[]     @relation("ServiceCasualDays")
   discounts      FamilyDiscount[]      @relation("ServiceDiscounts")
   feeChanges     ServiceFeeChange[]    @relation("ServiceFeeChanges")
+  feeAssignments ChildFeeAssignment[]  @relation("ServiceFeeAssignments")
 
   // ── OWNA Integration Relations ──────────────────────────
   bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
@@ -5885,26 +5911,106 @@ model QIPQualityArea {
 // INCIDENT TRACKING & TREND ANALYSIS
 // ═══════════════════════════════════════════════════════════
 
+/// The incident, injury, trauma and illness record — Regulation 87.
+///
+/// The original model was a trend-analysis table: enough to count injuries
+/// by location, nowhere near enough to be the record Reg 87 actually
+/// prescribes. Reg 87(2) lists the entries by name, and an authorised
+/// officer reads that list literally. The 2026-08-09 columns below close
+/// it: witnesses, first aid and who gave it, medical personnel contacted,
+/// and — the one that gets services in trouble — WHO was notified and at
+/// WHAT TIME, because Reg 86 gives you 24 hours from becoming aware and a
+/// bare `parentNotified` boolean can't prove you met it.
+///
+/// `sharedWithParentAt` is the gate for the family's copy in the parent
+/// portal. It is deliberately separate from `parentNotifiedAt`: notifying
+/// a parent is a phone call at the time, publishing the written record is
+/// a later, considered act. A behaviour incident naming another child
+/// must never auto-publish, so nothing reaches a parent until a human
+/// sets this.
 model IncidentRecord {
   id                    String    @id @default(cuid())
   serviceId             String
   service               Service   @relation("ServiceIncidents", fields: [serviceId], references: [id])
   incidentDate          DateTime
   childName             String?
+  /// Linked child, where the record is about one. Kept ALONGSIDE
+  /// childName (not replacing it) so the record still reads correctly
+  /// after the child leaves and the row is set null.
+  childId               String?
+  child                 Child?    @relation("ChildIncidents", fields: [childId], references: [id], onDelete: SetNull)
+  /// Reg 87(2)(a) wants the age, and "age today" is the wrong answer on a
+  /// record read two years later — so it is stamped, not derived.
+  childAge              Int?
   incidentType          String // injury | illness | behaviour | missing_child | near_miss | medication_error | property_damage | complaint
   severity              String // minor | moderate | reportable | serious
   location              String? // indoor | outdoor | playground | transition | bathroom | kitchen
   timeOfDay             String? // arrival | programme | meal_time | packdown | departure
   description           String    @db.Text
+  /// Reg 87(2)(b): the circumstances LEADING UP TO it, which is a
+  /// different question from what happened and is the one most often
+  /// left blank.
+  circumstances         String?   @db.Text
   actionTaken           String?   @db.Text
+
+  // ── Reg 87(2)(d)-(e): first aid and medical response ──────────────
+  firstAidGiven         Boolean   @default(false)
+  /// Free text rather than a user FK: first aid is often given by a
+  /// casual or a visiting parent who has no dashboard account.
+  firstAidBy            String?
+  firstAidDetails       String?   @db.Text
+  /// Reg 87(2)(e): "details of any medical personnel contacted" —
+  /// ambulance, GP, hospital, poisons line.
+  medicalPersonnelContacted String? @db.Text
+  ambulanceCalled       Boolean   @default(false)
+
+  /// Reg 87(2)(f): who saw it happen. Names, free text — a witness is
+  /// frequently a child or a passer-by.
+  witnesses             String?   @db.Text
+
+  // ── Reg 86: notification of the family ────────────────────────────
   parentNotified        Boolean   @default(false)
+  /// The timestamp Reg 86's 24-hour obligation is measured against.
+  parentNotifiedAt      DateTime?
+  /// Reg 87(2)(g) asks for the name of the person notified — which is
+  /// not always the enrolled parent (grandparent, emergency contact).
+  parentNotifiedName    String?
+  /// phone | in_person | email | sms | portal | attempted_no_answer.
+  /// The last value matters: Reg 87(2)(g) counts an ATTEMPT as an entry.
+  parentNotifiedMethod  String?
+  parentNotifiedById    String?
+  parentNotifiedBy      User?     @relation("IncidentParentNotifier", fields: [parentNotifiedById], references: [id], onDelete: SetNull)
+
+  // ── The family's copy in the parent portal ────────────────────────
+  sharedWithParentAt    DateTime?
+  sharedById            String?
+  sharedBy              User?     @relation("IncidentSharer", fields: [sharedById], references: [id], onDelete: SetNull)
+  /// Typed-name signature, same convention as ParentFormSignature.
+  parentAcknowledgedAt  DateTime?
+  parentAcknowledgedName String?
+  parentAcknowledgedEmail String?
+
+  // ── Reg 176(2)(a): telling the Regulatory Authority ───────────────
   reportableToAuthority Boolean   @default(false)
+  /// Reg 12's closed list, so the 24-hour vs 7-day question can be
+  /// answered from the record: death | serious_injury | serious_illness |
+  /// missing_child | unauthorised_removal | locked_in_or_out.
+  seriousIncidentCategory String?
+  /// The clock starts when the service BECAME AWARE, which can be days
+  /// after the incident date. Reg 176 is explicit about this.
+  becameAwareAt         DateTime?
   reportedToAuthorityAt DateTime?
+  /// NQA ITS notification reference, so the register proves the lodgement.
+  authorityReference    String?
+
   followUpRequired      Boolean   @default(false)
   followUpCompleted     Boolean   @default(false)
   ownaIncidentId        String?
   createdById           String?
   createdBy             User?     @relation("IncidentCreator", fields: [createdById], references: [id])
+  /// Reg 87(2)(h): the name and signature of the person making the entry.
+  /// createdBy gives the account; this gives the signature they typed.
+  recordedSignature     String?
   deleted               Boolean   @default(false)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -5919,6 +6025,12 @@ model IncidentRecord {
   @@index([incidentDate])
   @@index([incidentType])
   @@index([severity])
+  /// The parent portal's only query: this child's shared records, newest
+  /// first. Without it every parent page load sequentially scans.
+  @@index([childId, sharedWithParentAt])
+  /// Drives the "notification overdue" surfaces — the outstanding
+  /// Reg 176 lodgements, and the Reg 86 24-hour breaches.
+  @@index([serviceId, reportableToAuthority, reportedToAuthorityAt])
 }
 
 // ============================================================
@@ -6749,12 +6861,18 @@ model Child {
   discounts          FamilyDiscount[]      @relation("ChildDiscounts")
   attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
   statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
+  feeAssignments     ChildFeeAssignment[]  @relation("ChildFeeAssignments")
 
   // ── NQS relations ─────────────────────────────────
   observations  LearningObservation[]      @relation("ChildObservations")
   medications   MedicationAdministration[] @relation("ChildMedications")
   allAboutMe    AllAboutMe?                @relation("ChildAllAboutMe")
   feedbackItems ParentFeedback[]           @relation("ChildFeedback")
+
+  // ── Regulatory records (2026-08-09) ───────────────
+  incidents    IncidentRecord[]   @relation("ChildIncidents")
+  medicalPlans ChildMedicalPlan[] @relation("ChildMedicalPlans")
+  complaints   ComplaintRecord[]  @relation("ChildComplaints")
 
   ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorChild")
 
@@ -7237,6 +7355,110 @@ model ChildDocument {
   @@index([uploadedById])
 }
 
+/// Regulation 90 — the three plans a child with a medical condition must
+/// have, and the one thing the dashboard could not previously hold.
+///
+/// Before this, a child's anaphylaxis was `medicalConditions: ["Anaphylaxis"]`
+/// plus `anaphylaxisActionPlan: true` — a string in an array and a boolean.
+/// That records that a plan EXISTS somewhere; it is not the plan. Reg 90(1)(c)
+/// asks for three distinct documents per condition and assessors ask for all
+/// three by name:
+///
+///   (i)   the medical management plan, signed by a registered medical
+///         practitioner — an upload, because it is their document, not ours;
+///   (ii)  the risk minimisation plan, developed IN CONSULTATION WITH the
+///         family (hence `developedWithParentAt` — consultation is the part
+///         that gets challenged, so the record has to carry its own proof);
+///   (iii) the communication plan, which is how staff — including a casual
+///         who has never met the child — find out, and how the family tells
+///         us when things change.
+///
+/// One row per CONDITION, not per child: a child with asthma and a nut
+/// allergy has two management plans from two practitioners and two very
+/// different emergency responses. Collapsing them into one row is how a
+/// service ends up giving Ventolin to an anaphylaxis.
+model ChildMedicalPlan {
+  id        String @id @default(cuid())
+  childId   String
+  child     Child  @relation("ChildMedicalPlans", fields: [childId], references: [id], onDelete: Cascade)
+  /// Denormalised from the child so the register can be listed and
+  /// filtered per service without a join through Child on every read.
+  /// Nullable because a child may sit between services mid-transfer.
+  serviceId String?
+  service   Service? @relation("ServiceMedicalPlans", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  /// anaphylaxis | asthma | diabetes | epilepsy | allergy | dietary |
+  /// other. Drives the emergency-response template and the icon; free
+  /// text is still accepted so an unusual condition is never blocked.
+  conditionType String
+  /// The specific condition as it should read on the medical wall:
+  /// "Anaphylaxis — peanut and tree nut", not just "Anaphylaxis".
+  condition     String
+  /// mild | moderate | severe. Severe drives the red treatment on the
+  /// roll-call card and the sign-in kiosk.
+  severity      String @default("moderate")
+
+  // ── Reg 90(1)(c)(i): the practitioner's plan ──────────────────────
+  managementPlanUrl      String?
+  managementPlanFileName String?
+  /// The practitioner who signed it, and when. An ASCIA plan older than
+  /// its review date is treated as expired, not merely stale.
+  practitionerName       String?
+  planIssuedDate         DateTime? @db.Date
+  planExpiryDate         DateTime? @db.Date
+
+  // ── Reg 90(1)(c)(ii): risk minimisation ───────────────────────────
+  riskMinimisationPlan String  @db.Text
+  /// Reg 90(1)(c)(ii) requires this be developed in consultation with
+  /// the family. Null means it has not been — which is a finding, so it
+  /// is stored as an absent timestamp rather than a defaulted one.
+  developedWithParentAt DateTime?
+
+  // ── Reg 90(1)(c)(iii): communication ──────────────────────────────
+  communicationPlan String @db.Text
+
+  /// What to actually do, in order, when it happens. Held separately
+  /// from the uploaded plan because a PDF in blob storage is no use to
+  /// an educator holding a wheezing child.
+  emergencyResponse String? @db.Text
+
+  medicationRequired Boolean @default(false)
+  /// Name, dose, route, where it is stored. Storage location is the
+  /// detail people omit and the one that costs minutes in an emergency.
+  medicationDetails  String? @db.Text
+  medicationLocation String?
+
+  /// Families sign to confirm the plan is current and correct. Same
+  /// typed-name convention as ParentFormSignature.
+  parentAcknowledgedAt   DateTime?
+  parentAcknowledgedName String?
+  parentAcknowledgedEmail String?
+
+  /// Reviewed at least annually, and after any incident. Nullable so an
+  /// unreviewed plan is visibly unreviewed rather than silently due
+  /// "now".
+  reviewDueAt    DateTime? @db.Date
+  lastReviewedAt DateTime?
+  lastReviewedById String?
+  lastReviewedBy   User?   @relation("MedicalPlanReviewer", fields: [lastReviewedById], references: [id], onDelete: SetNull)
+
+  /// active | archived. Archive rather than delete — a plan that was in
+  /// force at the time of an incident has to remain readable afterwards.
+  status String @default("active")
+
+  createdById String?
+  createdBy   User?    @relation("MedicalPlanCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([childId, status])
+  @@index([serviceId, status])
+  /// The two expiry sweeps: plans past their practitioner review date,
+  /// and plans past our own annual review.
+  @@index([serviceId, planExpiryDate])
+  @@index([serviceId, reviewDueAt])
+}
+
 // ── Parent Posts (Staff-to-Parent Timeline) ─────────────────
 
 model ParentPost {
@@ -7602,6 +7824,107 @@ model IllnessRecord {
   @@index([serviceId, infectious])
 }
 
+/// The complaints and feedback register — Reg 168(2)(o) and, the sharp
+/// end, section 174(2)(b) of the National Law.
+///
+/// The dashboard had `incidentType: "complaint"` and a staff-performance
+/// case file, and neither is the register. A complaint about fees and a
+/// complaint alleging a child was left unsupervised are the same intake
+/// form and completely different legal objects: the second one starts a
+/// 24-HOUR clock to notify the Regulatory Authority, and missing it is an
+/// offence regardless of whether the allegation turns out to be true.
+///
+/// So `notifiable` is asked at intake, not derived at review — the person
+/// taking the phone call is the one who knows what was alleged, and by
+/// the time a manager triages it the next morning a third of the window
+/// is gone. `notificationDueAt` is stamped from `becameAwareAt` at write
+/// time rather than computed on read, so the deadline cannot silently
+/// move when someone corrects the date the complaint was received.
+///
+/// Note the two independent outcomes: `outcome` is what we tell the
+/// complainant, `investigationNotes` is what we write for ourselves.
+/// Merging them is how internal notes end up quoted back at a service.
+model ComplaintRecord {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation("ServiceComplaints", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Human reference for correspondence — CMP-2026-0001. Sequential per
+  /// year, minted the same way as the creative-request number.
+  reference String  @unique
+
+  receivedAt DateTime @default(now())
+  /// parent_portal | phone | email | in_person | letter | staff | anonymous.
+  /// A complaint received anonymously is still a notifiable complaint,
+  /// which is why anonymity is a source and not a reason to skip intake.
+  source     String   @default("in_person")
+
+  complainantName  String?
+  complainantEmail String?
+  complainantPhone String?
+  anonymous        Boolean @default(false)
+
+  childId   String?
+  child     Child?  @relation("ChildComplaints", fields: [childId], references: [id], onDelete: SetNull)
+  childName String?
+
+  /// fee | staff_conduct | child_safety | supervision | food | program |
+  /// communication | facilities | other.
+  category String
+  summary  String  @db.Text
+  details  String? @db.Text
+
+  // ── s.174(2)(b) / Reg 176(2)(b): the 24-hour clock ────────────────
+  /// True when the complaint ALLEGES either that a serious incident has
+  /// occurred, or that the Law/Regulations have been contravened.
+  notifiable       Boolean   @default(false)
+  /// serious_incident | law_contravention — s.174(2)(b)(i) and (ii).
+  notifiableReason String?
+  /// When the service became aware. The clock runs from here, not from
+  /// when the complaint was written or logged.
+  becameAwareAt    DateTime?
+  /// Stamped at write time from becameAwareAt + 24h. Stored so an
+  /// overdue notification stays overdue in the register even if someone
+  /// later edits the awareness date.
+  notificationDueAt   DateTime?
+  regulatorNotifiedAt DateTime?
+  /// NQA ITS reference for the lodged notification.
+  regulatorReference  String?
+
+  // ── Handling ──────────────────────────────────────────────────────
+  /// new | acknowledged | investigating | resolved | closed | escalated
+  status       String    @default("new")
+  assignedToId String?
+  assignedTo   User?     @relation("ComplaintAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  /// Receipt confirmed to the complainant — the first thing a family
+  /// asks about and the first thing a service forgets.
+  acknowledgedAt DateTime?
+
+  /// Internal. Never shown to the complainant, never returned on the
+  /// parent-facing endpoint.
+  investigationNotes String? @db.Text
+  /// What the complainant is told. Safe to surface in the portal.
+  outcome            String? @db.Text
+  resolvedAt         DateTime?
+  resolvedById       String?
+  resolvedBy         User?     @relation("ComplaintResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  /// Set for complaints raised through the parent portal, so the family
+  /// can follow their own one. Portal-raised complaints carry the
+  /// submitting parent's email; matching on it is what scopes the read.
+  parentVisible Boolean @default(false)
+
+  createdById String?
+  createdBy   User?    @relation("ComplaintCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceId, status])
+  @@index([serviceId, receivedAt])
+  /// The overdue-notification sweep.
+  @@index([notifiable, regulatorNotifiedAt])
+  @@index([complainantEmail, parentVisible])
+}
+
 /// A date a room (or the whole centre) isn't running.
 ///
 /// Pupil-free days, centre closures, a vacation-care day that's already
@@ -7624,6 +7947,107 @@ model ServiceBlockOutDate {
   createdAt   DateTime     @default(now())
 
   @@index([serviceId, date])
+}
+
+/// A window of care this centre sells — the "session of care" catalogue.
+///
+/// Modelled on OWNA's Service Info → Session Times, and it exists for the
+/// reason theirs does: every fee in every room has to name a window, and
+/// before this the window was typed freehand onto each fee. Six rooms
+/// meant six chances to type 15:00–18:30 as 15:00–18:00, and the number
+/// that drifts is the one reported to CCS as the session of care.
+///
+/// The catalogue is centre-level and the rooms point AT it, not the
+/// other way round. A centre runs one 3.5-hour afternoon session; which
+/// rooms sell it is a separate question from what the session is.
+///
+/// Deliberately NOT the same thing as `Service.sessionTimes`, which holds
+/// the fixed bsc/asc/vc room definitions. That field is the room list;
+/// this table is the hours. They will converge when rooms become
+/// first-class records rather than seven fixed enum slots.
+model ServiceSessionTime {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation("ServiceSessionTimes", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// Wall-clock "HH:mm" in the centre's local time. Opening hours, not
+  /// instants — 15:00 is three in the afternoon through daylight saving
+  /// in both directions, and storing these as timestamps would be wrong
+  /// twice a year.
+  start String
+  end   String
+
+  /// Optional name. Most centres think in times and leave this blank;
+  /// the ones that don't have a reason ("Ramadan Care") and that reason
+  /// is what they'll search the dropdown for.
+  label String?
+
+  /// Retired without being deleted. Fees already reference this window,
+  /// and a historical fee has to keep reading correctly — so retiring
+  /// hides it from new fees rather than orphaning old ones.
+  active Boolean @default(true)
+
+  createdById String?
+  createdBy   User?    @relation("SessionTimeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// The same window twice is always a mistake, and two identical rows
+  /// in the dropdown is the kind of thing nobody reports and everybody
+  /// works around.
+  @@unique([serviceId, start, end])
+  @@index([serviceId, active])
+}
+
+/// Which fee a child is charged at, in one room.
+///
+/// This is the link the fees matrix was missing. A `Booking` records the
+/// child, the date and the ROOM — it has never recorded which of that
+/// room's fees applies. So in a room running four fees (recurring,
+/// casual, Wednesday care, Ramadan care) there was no way to answer
+/// "how many children are on this rate", and no way to charge two
+/// children in the same room differently.
+///
+/// One row per child per room, enforced by the unique below. A child
+/// attending both before- and after-school care has two rows, because
+/// those are two rooms with two fee lists — but they cannot be on two
+/// fees for the SAME room at once, which is the mistake this prevents.
+///
+/// `feeTierId` points into the room's `fees` array in
+/// `Service.sessionTimes` rather than at a table, because that is where
+/// fee tiers live. `feeName` is denormalised beside it so the assignment
+/// still reads correctly after a tier is renamed or archived — a row
+/// saying "fee-3" answers nothing when a parent rings about their
+/// invoice.
+model ChildFeeAssignment {
+  id        String  @id @default(cuid())
+  childId   String
+  child     Child   @relation("ChildFeeAssignments", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation("ServiceFeeAssignments", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// The room. Same enum every Booking and AttendanceRecord uses.
+  sessionType SessionType
+  /// The tier's id within that room's `fees` array.
+  feeTierId   String
+  /// Denormalised at write time; see the note above.
+  feeName     String
+
+  /// When this rate starts applying to this child. Null means "now, and
+  /// we didn't record a date" — which is the honest answer for an
+  /// assignment made mid-term rather than a back-dated one.
+  effectiveFrom DateTime? @db.Date
+
+  createdById String?
+  createdBy   User?    @relation("FeeAssignmentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// One fee per child per room.
+  @@unique([childId, sessionType])
+  /// The "Applied To" count: group by tier within a service and room.
+  @@index([serviceId, sessionType, feeTierId])
+  @@index([feeTierId])
 }
 
 /// A change to a room's fee — scheduled for a date, or already applied.

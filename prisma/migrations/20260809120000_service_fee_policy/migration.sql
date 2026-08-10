@@ -1,0 +1,11 @@
+-- Per-centre fee POLICY (late collection, absence charging, cancellation,
+-- enrolment fee/bond, payment terms). Validated in application code by
+-- feePolicySchema — see src/lib/fee-policy.ts.
+--
+-- Named "feePolicy" rather than "billingSettings" to keep it distinct from
+-- the per-FAMILY billing arrangement in src/lib/family-billing.ts, which
+-- already owns the name BillingSettings.
+--
+-- Nullable with no default: an absent policy resolves to "charge nothing"
+-- in resolveFeePolicy(), so existing services are unaffected.
+ALTER TABLE "Service" ADD COLUMN "feePolicy" JSONB;

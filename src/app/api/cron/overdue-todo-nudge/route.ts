@@ -9,11 +9,11 @@ import {
   shouldReceiveNudge,
   NUDGE_LEADERSHIP_ROLES,
 } from "@/lib/notification-recipients";
+import { siteUrl } from "@/lib/site-url";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
-const DASHBOARD_URL =
-  process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+const DASHBOARD_URL = siteUrl();
 
 interface OverdueTodo {
   id: string;

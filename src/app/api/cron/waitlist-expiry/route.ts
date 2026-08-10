@@ -5,6 +5,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { spotExpiredEmail, spotAvailableEmail } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * POST /api/cron/waitlist-expiry — expire stale waitlist offers and auto-offer to next family
@@ -106,7 +107,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
         // Send spot-available email to next family (fire-and-forget)
         if (next.parentEmail) {
-          const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+          const baseUrl = siteUrl();
           const enrolUrl = `${baseUrl}/enrol?prefill=${next.id}`;
           const nextServiceName = next.service?.name ?? "our service";
           const { subject, html } = await spotAvailableEmail(next.parentName, nextServiceName, enrolUrl);

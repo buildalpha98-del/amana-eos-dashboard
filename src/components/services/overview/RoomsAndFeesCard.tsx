@@ -16,7 +16,18 @@
  */
 
 import { useState } from "react";
-import { Clock, Edit3, Plus, Trash2, DollarSign } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import {
+  Clock,
+  Edit3,
+  Plus,
+  Trash2,
+  DollarSign,
+  Archive,
+  RotateCcw,
+} from "lucide-react";
+import { fetchApi } from "@/lib/fetch-api";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { toast } from "@/hooks/useToast";
@@ -35,7 +46,12 @@ import {
 } from "@/lib/service-settings";
 import { formatCents, parseDollarsToCents } from "@/lib/family-billing";
 import { analyseRoomConfiguration } from "@/lib/room-configuration";
+import {
+  formatSessionOfCare,
+  sessionTimeOptionLabel,
+} from "@/lib/session-times";
 import { RoomDetailPanel } from "./RoomDetailPanel";
+import { FeeAppliedToPanel } from "./FeeAppliedToPanel";
 
 interface EditableRoom {
   label: string;
@@ -48,7 +64,17 @@ interface EditableRoom {
   maxAgeYears: string;
   staffOnly: boolean;
   disabled: boolean;
-  fees: Array<{ id: string; name: string; start: string; end: string; amount: string }>;
+  fees: Array<{
+    id: string;
+    name: string;
+    start: string;
+    end: string;
+    amount: string;
+    archived: boolean;
+    addedAt?: string;
+    updatedAt?: string;
+    updatedByName?: string;
+  }>;
 }
 
 type EditableRooms = Record<SessionKey, EditableRoom>;
@@ -77,6 +103,10 @@ function toEditable(value: SessionTimes | null | undefined): EditableRooms {
         start: f.start ?? "",
         end: f.end ?? "",
         amount: (f.amountCents / 100).toFixed(2),
+        archived: f.archived ?? false,
+        addedAt: f.addedAt,
+        updatedAt: f.updatedAt,
+        updatedByName: f.updatedByName,
       })),
     };
   }
@@ -123,6 +153,11 @@ export function RoomsAndFeesCard({
   canEdit: boolean;
 }) {
   const updateService = useUpdateService();
+  // Stamped onto a fee when its rate actually changes, so "who put this
+  // rate up" has an answer for rates typed straight into the matrix —
+  // ServiceFeeChange already answers it for scheduled ones.
+  const { data: authSession } = useSession();
+  const currentUserName = authSession?.user?.name ?? null;
   const [open, setOpen] = useState(false);
   const [rooms, setRooms] = useState<EditableRooms>(() =>
     toEditable(service.sessionTimes as SessionTimes | null),
@@ -131,6 +166,62 @@ export function RoomsAndFeesCard({
 
   const saved = (service.sessionTimes ?? null) as SessionTimes | null;
   const saving = updateService.isPending;
+
+  /**
+   * The centre's session-of-care catalogue, for the per-fee dropdown.
+   *
+   * Only ACTIVE windows are offered — a retired one stays valid on the
+   * fees already using it (they keep their own start/end and get a
+   * "not in session times" option), but shouldn't be offered to new
+   * ones. Failing to load leaves the dropdown with just "Whole room
+   * hours", which degrades to the behaviour before the catalogue
+   * existed rather than blocking the editor.
+   */
+  const { data: sessionTimeData } = useQuery<{
+    sessionTimes: Array<{
+      id: string;
+      start: string;
+      end: string;
+      label: string | null;
+      active: boolean;
+    }>;
+  }>({
+    queryKey: ["service", service.id, "session-times"],
+    queryFn: () => fetchApi(`/api/services/${service.id}/session-times`),
+    retry: 1,
+  });
+  const sessionTimes = (sessionTimeData?.sessionTimes ?? []).filter(
+    (s) => s.active,
+  );
+
+  /**
+   * How many children are on each fee — one groupBy for every badge on
+   * the page rather than a count per row.
+   *
+   * A failure leaves every badge absent rather than showing zero:
+   * "Applied to 0" and "we couldn't load the numbers" mean very
+   * different things to someone about to archive a fee.
+   */
+  const { data: appliedData } = useQuery<{
+    counts: Array<{ sessionType: string; feeTierId: string; count: number }>;
+  }>({
+    queryKey: ["service", service.id, "fee-assignments"],
+    queryFn: () => fetchApi(`/api/services/${service.id}/fee-assignments`),
+    retry: 1,
+  });
+  const appliedCount = (key: SessionKey, feeTierId: string): number | null => {
+    if (!appliedData) return null;
+    return (
+      appliedData.counts.find(
+        (c) => c.sessionType === key && c.feeTierId === feeTierId,
+      )?.count ?? 0
+    );
+  };
+  const [appliedPanel, setAppliedPanel] = useState<{
+    key: SessionKey;
+    feeTierId: string;
+    feeName: string;
+  } | null>(null);
 
   function update(key: SessionKey, patch: Partial<EditableRoom>) {
     setRooms((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
@@ -179,12 +270,39 @@ export function RoomsAndFeesCard({
             `"${name}" needs a dollar amount, e.g. 28 or 28.50.`,
           );
         }
+        // The rate that was saved last time, so the audit stamp only
+        // moves when something actually changed — re-saving the room
+        // to edit its capacity must not rewrite every fee's history.
+        const previous = (saved?.[key]?.fees ?? []).find((x) => x.id === f.id);
+        const changed =
+          !previous ||
+          previous.name !== name ||
+          previous.amountCents !== (cents ?? 0) ||
+          (previous.start ?? "") !== f.start.trim() ||
+          (previous.end ?? "") !== f.end.trim() ||
+          Boolean(previous.archived) !== f.archived;
+
         fees.push({
           id: f.id,
           name,
           amountCents: cents ?? 0,
           ...(f.start.trim() ? { start: f.start.trim() } : {}),
           ...(f.end.trim() ? { end: f.end.trim() } : {}),
+          ...(f.archived ? { archived: true } : {}),
+          // A fee that existed before this field did keeps no addedAt
+          // rather than claiming it started today.
+          ...(f.addedAt ? { addedAt: f.addedAt } : {}),
+          ...(changed
+            ? {
+                updatedAt: new Date().toISOString(),
+                ...(currentUserName ? { updatedByName: currentUserName } : {}),
+              }
+            : {
+                ...(f.updatedAt ? { updatedAt: f.updatedAt } : {}),
+                ...(f.updatedByName
+                  ? { updatedByName: f.updatedByName }
+                  : {}),
+              }),
         });
       }
 
@@ -569,6 +687,12 @@ export function RoomsAndFeesCard({
                                 start: "",
                                 end: "",
                                 amount: "",
+                                archived: false,
+                                // Stamped now so the matrix can show
+                                // when this rate started. Fees that
+                                // predate the field stay blank rather
+                                // than claiming today.
+                                addedAt: new Date().toISOString(),
                               },
                             ],
                           })
@@ -610,43 +734,57 @@ export function RoomsAndFeesCard({
                                 }}
                               />
                             </div>
-                            <div className="sm:col-span-3">
+                            <div className="col-span-2 sm:col-span-5">
                               <label
-                                htmlFor={`fee-${key}-${f.id}-start`}
+                                htmlFor={`fee-${key}-${f.id}-session`}
                                 className="block text-xs text-muted mb-1"
                               >
-                                From
+                                Session of care
                               </label>
-                              <input
-                                id={`fee-${key}-${f.id}-start`}
-                                type="time"
+                              <select
+                                id={`fee-${key}-${f.id}-session`}
                                 className={field}
-                                value={f.start}
+                                value={
+                                  f.start && f.end ? `${f.start}-${f.end}` : ""
+                                }
                                 onChange={(e) => {
+                                  const [s = "", en = ""] =
+                                    e.target.value.split("-");
                                   const fees = [...r.fees];
-                                  fees[i] = { ...f, start: e.target.value };
+                                  fees[i] = { ...f, start: s, end: en };
                                   update(key, { fees });
                                 }}
-                              />
-                            </div>
-                            <div className="sm:col-span-2">
-                              <label
-                                htmlFor={`fee-${key}-${f.id}-end`}
-                                className="block text-xs text-muted mb-1"
                               >
-                                To
-                              </label>
-                              <input
-                                id={`fee-${key}-${f.id}-end`}
-                                type="time"
-                                className={field}
-                                value={f.end}
-                                onChange={(e) => {
-                                  const fees = [...r.fees];
-                                  fees[i] = { ...f, end: e.target.value };
-                                  update(key, { fees });
-                                }}
-                              />
+                                <option value="">
+                                  {sessionTimes.length
+                                    ? "Whole room hours"
+                                    : "Whole room hours — none set up"}
+                                </option>
+                                {sessionTimes.map((s) => (
+                                  <option
+                                    key={s.id}
+                                    value={`${s.start}-${s.end}`}
+                                  >
+                                    {sessionTimeOptionLabel(s)}
+                                  </option>
+                                ))}
+                                {/* A fee configured before the catalogue
+                                    existed, or against a since-retired
+                                    window, keeps its own option so
+                                    opening this editor can't silently
+                                    reset the session of care to blank. */}
+                                {f.start &&
+                                  f.end &&
+                                  !sessionTimes.some(
+                                    (s) =>
+                                      s.start === f.start && s.end === f.end,
+                                  ) && (
+                                    <option value={`${f.start}-${f.end}`}>
+                                      {formatSessionOfCare(f.start, f.end)} (not
+                                      in session times)
+                                    </option>
+                                  )}
+                              </select>
                             </div>
                             <div className="sm:col-span-2">
                               <label
@@ -669,19 +807,99 @@ export function RoomsAndFeesCard({
                               />
                             </div>
                             <div className="sm:col-span-1 flex justify-end">
-                              <button
-                                type="button"
-                                aria-label={`Remove ${f.name || "fee"}`}
-                                onClick={() =>
-                                  update(key, {
-                                    fees: r.fees.filter((x) => x.id !== f.id),
-                                  })
-                                }
-                                className="p-2.5 rounded-lg text-muted hover:text-red-600 hover:bg-surface transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {/* Archive rather than delete once a fee
+                                  has been saved: a scheduled rate change
+                                  references it by id, the casual settings
+                                  may point at it, and a disputed invoice
+                                  needs the rate that was in force to stay
+                                  readable. A fee that was never saved has
+                                  none of that, so it can just go. */}
+                              {(saved?.[key]?.fees ?? []).some(
+                                (x) => x.id === f.id,
+                              ) ? (
+                                <button
+                                  type="button"
+                                  aria-label={
+                                    f.archived
+                                      ? `Restore ${f.name || "fee"}`
+                                      : `Archive ${f.name || "fee"}`
+                                  }
+                                  title={
+                                    f.archived
+                                      ? "Restore this fee"
+                                      : "Archive — keeps the history, takes it off the list"
+                                  }
+                                  onClick={() => {
+                                    const fees = [...r.fees];
+                                    fees[i] = { ...f, archived: !f.archived };
+                                    update(key, { fees });
+                                  }}
+                                  className="p-2.5 rounded-lg text-muted hover:text-foreground hover:bg-surface transition-colors"
+                                >
+                                  {f.archived ? (
+                                    <RotateCcw className="w-4 h-4" />
+                                  ) : (
+                                    <Archive className="w-4 h-4" />
+                                  )}
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  aria-label={`Remove ${f.name || "fee"}`}
+                                  onClick={() =>
+                                    update(key, {
+                                      fees: r.fees.filter((x) => x.id !== f.id),
+                                    })
+                                  }
+                                  className="p-2.5 rounded-lg text-muted hover:text-red-600 hover:bg-surface transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
+                            {/* Applied-to badge. Only for fees that have
+                                been saved — an unsaved row has no id
+                                anything could be assigned against. */}
+                            {(saved?.[key]?.fees ?? []).some(
+                              (x) => x.id === f.id,
+                            ) &&
+                              appliedCount(key, f.id) !== null && (
+                                <div className="col-span-2 sm:col-span-12 -mt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setAppliedPanel({
+                                        key,
+                                        feeTierId: f.id,
+                                        feeName:
+                                          f.name.trim() || "this fee",
+                                      })
+                                    }
+                                    className="text-2xs text-brand hover:underline"
+                                  >
+                                    Applied to {appliedCount(key, f.id)}{" "}
+                                    {appliedCount(key, f.id) === 1
+                                      ? "child"
+                                      : "children"}
+                                  </button>
+                                </div>
+                              )}
+                            {/* Audit line: who last moved this rate, and
+                                when it started. Blank for fees that
+                                predate the fields. */}
+                            {(f.addedAt || f.updatedByName) && (
+                              <p className="col-span-2 sm:col-span-12 -mt-1 text-2xs text-muted">
+                                {f.archived && (
+                                  <span className="font-medium">Archived · </span>
+                                )}
+                                {f.addedAt &&
+                                  `Added ${new Date(f.addedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`}
+                                {f.updatedByName &&
+                                  ` · Last changed by ${f.updatedByName}`}
+                                {f.updatedAt &&
+                                  ` on ${new Date(f.updatedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -881,6 +1099,19 @@ export function RoomsAndFeesCard({
           </div>
         </DialogContent>
       </Dialog>
+
+      {appliedPanel && (
+        <FeeAppliedToPanel
+          open
+          onClose={() => setAppliedPanel(null)}
+          serviceId={service.id}
+          sessionType={appliedPanel.key}
+          feeTierId={appliedPanel.feeTierId}
+          feeName={appliedPanel.feeName}
+          roomName={roomLabel(saved, appliedPanel.key)}
+          canEdit={canEdit}
+        />
+      )}
     </div>
   );
 }

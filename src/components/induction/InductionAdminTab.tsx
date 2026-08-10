@@ -28,6 +28,7 @@ import {
 } from "@/hooks/useTrainingCalendar";
 import { useLMSCourses } from "@/hooks/useLMS";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PublishEssentialPanel } from "./PublishEssentialPanel";
 
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -119,6 +120,10 @@ export function InductionAdminTab({ canBackfill }: { canBackfill: boolean }) {
 
   return (
     <div className="space-y-10">
+      {/* Publishing arms the gate, so it sits above the backfill — the
+          documented rollout is publish first, then backfill. */}
+      {canBackfill && <PublishEssentialPanel />}
+
       {/* Backfill launcher */}
       {canBackfill && (
         <section className="rounded-xl border border-border bg-surface/50 p-4">

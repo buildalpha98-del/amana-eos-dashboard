@@ -26,6 +26,7 @@ import { OnboardingPacksTab } from "@/components/onboarding/OnboardingPacksTab";
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
 import { TrainingComplianceTab } from "@/components/onboarding/TrainingComplianceTab";
+import { AssignmentsTab } from "@/components/onboarding/AssignmentsTab";
 import { SurveysTab } from "@/components/surveys/SurveysTab";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -64,9 +65,9 @@ interface ServiceOption {
 // Single source of truth for the tab ids — used for the state union, the
 // deep-link allow-list, and the URL round-trip. Admin-only tabs are gated so
 // a non-admin deep link can't land on a blank body.
-const TAB_IDS = ["onboarding", "lms", "induction", "compliance", "surveys", "exit-surveys"] as const;
+const TAB_IDS = ["onboarding", "lms", "induction", "assignments", "compliance", "surveys", "exit-surveys"] as const;
 type TabId = (typeof TAB_IDS)[number];
-const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "compliance", "surveys"];
+const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "assignments", "compliance", "surveys"];
 
 function isTabId(value: string): value is TabId {
   return (TAB_IDS as readonly string[]).includes(value);
@@ -432,6 +433,18 @@ function OnboardingPageInner() {
         )}
         {isAdmin && (
           <button
+            onClick={() => changeTab("assignments")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "assignments" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <Users className="w-4 h-4" />
+            Assignments
+          </button>
+        )}
+        {isAdmin && (
+          <button
             onClick={() => changeTab("compliance")}
             className={cn(
               "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
@@ -472,6 +485,7 @@ function OnboardingPageInner() {
       )}
 
       {/* Compliance Tab */}
+      {activeTab === "assignments" && isAdmin && <AssignmentsTab />}
       {activeTab === "compliance" && isAdmin && <TrainingComplianceTab />}
 
       {/* Seed Message */}
@@ -490,6 +504,9 @@ function OnboardingPageInner() {
         <OnboardingPacksTab
           isStaff={isStaff}
           isAdmin={isAdmin}
+          onViewAllAssignments={
+            isAdmin ? () => changeTab("assignments") : undefined
+          }
           assignments={assignments}
           packs={packs}
           expandedAssignment={expandedAssignment}

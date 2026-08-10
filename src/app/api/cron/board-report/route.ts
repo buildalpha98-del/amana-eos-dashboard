@@ -6,6 +6,7 @@ import { getResend, sendEmail } from "@/lib/email";
 import { boardReportDraftNotificationEmail } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * GET /api/cron/board-report
@@ -39,7 +40,7 @@ export const GET = withApiHandler(async (req) => {
     });
 
     const resend = getResend();
-    const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const baseUrl = siteUrl();
     let notificationsSent = 0;
 
     if (resend) {
