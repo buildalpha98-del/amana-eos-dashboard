@@ -1,7 +1,7 @@
 # Making rooms first-class records
 
-**Status:** proposal — nothing here has been built.
-**Written:** 2026-08-09
+**Status:** Stage 0 built. Stages 1–4 are still proposal.
+**Written:** 2026-08-09 · **Stage 0 landed:** 2026-08-10
 
 ## The problem
 
@@ -64,9 +64,35 @@ Four JSON structures are also keyed by session key and have to move:
 Each stage ships on its own, is separately revertible, and leaves the app
 working. No stage requires the next one to land.
 
-### Stage 0 — `Room` table, shadow only
+### Stage 0 — `Room` table, shadow only ✅ BUILT
 
 Create the table and backfill it. Nothing reads it.
+
+**What landed:**
+
+| Piece | Where |
+| --- | --- |
+| `Room` model + migration | `prisma/schema.prisma`, `prisma/migrations/20260810060000_rooms_stage_0` |
+| Pure derivation (no DB import) | `src/lib/rooms-mapping.ts` — `desiredRooms`, `roomKeys` |
+| Sync, reconcile, backfill | `src/lib/rooms.ts` |
+| Deploy backfill | `prisma/seed-rooms.ts`, called from `prisma/seed.ts` |
+| Gate endpoint | `GET/POST /api/services/rooms/backfill` (owner/head_office) |
+| Kept in step | `PATCH /api/services/[id]` on any `sessionTimes` write; `POST /api/services` on create |
+
+Three decisions worth carrying into Stage 1:
+
+- **A room exists if the slot was ever configured**, which is broader
+  than `activeSessionKeys`. That helper drops an extra with no label,
+  correctly, because an unnamed slot shouldn't appear on a booking form.
+  But bookings may already reference the key, and they need a room to
+  belong to. Disabled rooms are kept for the same reason.
+- **Orphans are reported, never deleted.** A room reaches that state by
+  being configured and then removed from the JSON, and may have
+  attendance behind it.
+- **The sync swallows its own failures** (`syncRoomsQuietly`). The JSON
+  write is the truth and has already succeeded; a shadow failure must
+  not roll back someone's settings save. **This inverts at Stage 2**,
+  when reads move and the table stops being optional.
 
 ```prisma
 model Room {
@@ -115,6 +141,12 @@ every table:
 ```sql
 SELECT count(*) FROM "Booking" WHERE "roomId" IS NULL;
 ```
+
+**Before STARTING Stage 1**, the Stage 0 gate must be clean —
+`GET /api/services/rooms/backfill` returning `clean: true` with no
+`missing` or `drifted` entries. A shadow table nobody has checked is
+worth nothing, and its failure mode is silent precisely because nothing
+reads it yet.
 
 **Revert:** drop the new columns and uniques. Reads never used them.
 

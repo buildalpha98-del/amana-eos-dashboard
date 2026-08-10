@@ -5,6 +5,7 @@ import { getStateScope } from "@/lib/service-scope";
 import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
 import { parsePagination } from "@/lib/pagination";
 import { withApiAuth } from "@/lib/server-auth";
+import { syncRoomsQuietly } from "@/lib/rooms";
 
 import { parseJsonBody } from "@/lib/api-error";
 const createServiceSchema = z.object({
@@ -127,6 +128,16 @@ const body = await parseJsonBody(req);
       manager: { select: { id: true, name: true, email: true, avatar: true } },
     },
   });
+
+  /**
+   * A new centre starts with no `sessionTimes`, which still means three
+   * rooms — before school, after school and vacation care exist at every
+   * centre, and their absence from the JSON means "not customised", not
+   * "doesn't exist". Seeding the shadow rows here rather than waiting
+   * for the next backfill keeps a brand-new service from being the one
+   * case with no rooms behind it.
+   */
+  await syncRoomsQuietly(service.id, null);
 
   await prisma.activityLog.create({
     data: {

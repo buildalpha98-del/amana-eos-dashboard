@@ -7,6 +7,7 @@ import { seedInduction } from "./seed-induction";
 import { seedAmbassadors } from "./seed-ambassadors";
 import { seedAmbassadorsPilot } from "./seed-ambassadors-pilot";
 import { seedHelpCentre } from "./seed-help-centre";
+import { seedRooms } from "./seed-rooms";
 
 const prisma = new PrismaClient();
 
@@ -2932,6 +2933,13 @@ Don't list every child by name. Don't invent events or meals — use only what's
   // Idempotent: categories found by slug; articles only seeded when the
   // category has none, so admin edits survive redeploys.
   await seedHelpCentre(prisma);
+
+  // ── Rooms shadow table (Stage 0) ──────────────────────────────
+  // Derived entirely from Service.sessionTimes and idempotent, so it is
+  // safe on every deploy: it re-derives what the JSON already says
+  // rather than holding any state of its own. Nothing reads these rows
+  // yet — see docs/rooms-migration-plan.md.
+  await seedRooms(prisma);
 
   console.log("\nSeed complete!");
 }
