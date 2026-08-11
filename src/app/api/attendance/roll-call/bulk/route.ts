@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { requireRoomId } from "@/lib/room-resolver";
 
 // ── Schema ─────────────────────────────────────────────────
 
@@ -58,6 +59,8 @@ export const POST = withApiAuth(
           const item = items[i];
           const [y, m, d] = item.date.split("-").map(Number);
           const dateObj = new Date(Date.UTC(y, m - 1, d));
+          // Stage 1 dual key. Required now — see room-resolver.ts.
+          const roomId = await requireRoomId(serviceId, item.sessionType);
           const uniqueKey = {
             childId_serviceId_date_sessionType: {
               childId: item.childId,
@@ -84,6 +87,7 @@ export const POST = withApiAuth(
                     childId: item.childId,
                     serviceId,
                     date: dateObj,
+                    roomId,
                     sessionType: item.sessionType,
                     status: "present",
                     signInTime,
@@ -105,6 +109,7 @@ export const POST = withApiAuth(
                     childId: item.childId,
                     serviceId,
                     date: dateObj,
+                    roomId,
                     sessionType: item.sessionType,
                     status: "present",
                     signInTime: signOutTime, // auto sign-in if missing
@@ -131,6 +136,7 @@ export const POST = withApiAuth(
                     childId: item.childId,
                     serviceId,
                     date: dateObj,
+                    roomId,
                     sessionType: item.sessionType,
                     status: "absent",
                     absenceReason: item.absenceReason ?? null,
@@ -154,6 +160,7 @@ export const POST = withApiAuth(
                     childId: item.childId,
                     serviceId,
                     date: dateObj,
+                    roomId,
                     sessionType: item.sessionType,
                     status: "booked",
                   },
@@ -209,6 +216,8 @@ export const POST = withApiAuth(
             create: {
               serviceId,
               date: dateObj,
+              // Stage 1 dual key — the aggregate row for this slot.
+              roomId: await requireRoomId(serviceId, sessionType),
               sessionType,
               attended,
               absent,

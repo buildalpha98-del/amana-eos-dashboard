@@ -28,7 +28,7 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
-import { stampRoomIds } from "@/lib/room-resolver";
+import { stampRequiredRoomIds } from "@/lib/room-resolver";
 
 // How far ahead to materialise. 14 days is enough to cover a full school
 // week + a buffer for parents to view next week's roll, while keeping the
@@ -98,7 +98,7 @@ export const GET = withApiHandler(async (req) => {
 
       const result = await prisma.booking.createMany({
         // Stage 1 dual key — see room-resolver.ts.
-        data: await stampRoomIds(inputs),
+        data: await stampRequiredRoomIds(inputs),
         skipDuplicates: true,
       });
       summary.bookingsCreated += result.count;

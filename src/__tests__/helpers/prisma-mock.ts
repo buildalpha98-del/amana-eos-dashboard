@@ -50,7 +50,35 @@ function createPrismaMock() {
                   // up on `undefined` (e.g. getCentreScope() maps over
                   // userServiceMembership.findMany()). Any test can still
                   // override with its own mockResolvedValue.
-                  if (method === "findMany") fn.mockResolvedValue([]);
+                  if (model === "room") {
+                    /**
+                     * Rooms resolve by default.
+                     *
+                     * Since Stage 1 of the rooms migration every write
+                     * that carries a session slot also resolves a
+                     * `roomId`, and on most models that column is NOT
+                     * NULL — so an unresolvable room is a thrown error,
+                     * not a null. Without a default here every route
+                     * test that creates a booking, shift or attendance
+                     * record would fail on plumbing rather than on
+                     * anything it meant to assert.
+                     *
+                     * A test that cares about the room — the resolver's
+                     * own tests, or one checking the "no room set up"
+                     * error — overrides this as usual.
+                     */
+                    if (method === "findUnique") {
+                      fn.mockResolvedValue({ id: "room-test", legacyKey: "asc" });
+                    } else if (method === "findMany") {
+                      fn.mockResolvedValue(
+                        ["bsc", "asc", "vc", "extra1", "extra2", "extra3", "extra4"].map(
+                          (legacyKey) => ({ id: `room-${legacyKey}`, legacyKey }),
+                        ),
+                      );
+                    } else if (method === "count") {
+                      fn.mockResolvedValue(0);
+                    }
+                  } else if (method === "findMany") fn.mockResolvedValue([]);
                   else if (method === "count") fn.mockResolvedValue(0);
                   methodCache[method] = fn;
                 }

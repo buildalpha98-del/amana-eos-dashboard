@@ -7,6 +7,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { casualBookingSettingsSchema, type CasualBookingSettings, type SessionTimes } from "@/lib/service-settings";
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
 import { parseJsonField } from "@/lib/schemas/json-fields";
+import { requireRoomId } from "@/lib/room-resolver";
 
 const bulkBookingSchema = z.object({
   childId: z.string().min(1),
@@ -162,6 +163,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
             childId,
             serviceId,
             date: bookingDate,
+            // Stage 1 dual key — see room-resolver.ts.
+            roomId: await requireRoomId(serviceId, b.sessionType),
             sessionType: b.sessionType,
             status: "requested",
             type: "casual",

@@ -26,6 +26,7 @@ import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { logAmbassadorEnrolmentForChild } from "@/lib/ambassadors/log-enrolment";
 import { generateBookings } from "@/lib/booking-generator";
 import { isPlacementReason } from "@/lib/placement-reason";
+import { stampRequiredRoomIds } from "@/lib/room-resolver";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -133,7 +134,8 @@ export const POST = withApiAuth(
         );
         if (rows.length > 0) {
           const res = await tx.booking.createMany({
-            data: rows,
+            // Stage 1 dual key — see room-resolver.ts.
+            data: await stampRequiredRoomIds(rows),
             skipDuplicates: true,
           });
           bookingsCreated = res.count;

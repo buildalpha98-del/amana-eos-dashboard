@@ -4,7 +4,7 @@ import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
-import { stampRoomIds } from "@/lib/room-resolver";
+import { stampRequiredRoomIds } from "@/lib/room-resolver";
 
 /**
  * Weekly cron — extends permanent bookings to maintain a 4-week rolling horizon.
@@ -64,7 +64,7 @@ export const GET = withApiHandler(async (req) => {
     if (bookings.length > 0) {
       const result = await prisma.booking.createMany({
         // Stage 1 dual key — see room-resolver.ts.
-        data: await stampRoomIds(bookings),
+        data: await stampRequiredRoomIds(bookings),
         skipDuplicates: true,
       });
       totalCreated += result.count;

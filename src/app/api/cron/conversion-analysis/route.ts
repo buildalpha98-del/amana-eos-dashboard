@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 
 /**
  * GET /api/cron/conversion-analysis
@@ -107,7 +107,7 @@ export const GET = withApiHandler(async (req) => {
               serviceId: service.id,
               familyRef,
               // Stage 1 dual key — see room-resolver.ts.
-              roomId: await resolveRoomId(service.id, sessionType),
+              roomId: await requireRoomId(service.id, sessionType),
               sessionType,
               casualCount: totalCasual,
               periodStart,

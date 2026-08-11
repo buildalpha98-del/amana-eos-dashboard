@@ -24,7 +24,7 @@ import {
   type SessionTimes,
 } from "@/lib/service-settings";
 import type { SessionType } from "@prisma/client";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 
 const SESSION_TYPES = [
   "bsc",
@@ -206,7 +206,7 @@ export const POST = withApiAuth(
 
     // Stage 1 dual key, resolved once — every day in the range shares
     // one (service, slot) pair.
-    const roomId = await resolveRoomId(id, d.sessionType);
+    const roomId = await requireRoomId(id, d.sessionType);
 
     // Upsert rather than createMany: setting a range twice should end at
     // the second value, not fail or duplicate.

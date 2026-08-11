@@ -6,6 +6,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { sendEnrolmentApprovedNotification } from "@/lib/notifications/enrolment";
 import { logger } from "@/lib/logger";
 import { logAmbassadorEnrolmentFromApplication } from "@/lib/ambassadors/log-enrolment";
+import { stampRequiredRoomIds } from "@/lib/room-resolver";
 
 const approveSchema = z.object({
   notes: z.string().optional(),
@@ -132,7 +133,8 @@ export const POST = withApiAuth(
 
         if (bookingData.length > 0) {
           await tx.booking.createMany({
-            data: bookingData,
+            // Stage 1 dual key — see room-resolver.ts.
+            data: await stampRequiredRoomIds(bookingData),
             skipDuplicates: true,
           });
         }

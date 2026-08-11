@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 interface SeedItem {
   category: string;
   label: string;
@@ -127,7 +127,7 @@ export const POST = withApiAuth(async (req, session) => {
           serviceId: service.id,
           date: today,
           // Stage 1 dual key — see room-resolver.ts.
-          roomId: await resolveRoomId(service.id, checklist.sessionType),
+          roomId: await requireRoomId(service.id, checklist.sessionType),
           sessionType: checklist.sessionType,
           status: "pending",
           notes: `[${checklist.category}] ${checklist.name}`,

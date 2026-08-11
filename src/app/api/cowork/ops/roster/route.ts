@@ -6,7 +6,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 const shiftSchema = z.object({
   date: z.string().min(1),
   staffName: z.string().min(1),
@@ -75,7 +75,7 @@ export const POST = withApiHandler(async (req) => {
           serviceId: service.id,
           date: dateObj,
           // Stage 1 dual key — see room-resolver.ts.
-          roomId: await resolveRoomId(service.id, shift.sessionType || "asc"),
+          roomId: await requireRoomId(service.id, shift.sessionType || "asc"),
           sessionType: shift.sessionType || "asc",
           staffName: shift.staffName,
           shiftStart: shift.shiftStart,

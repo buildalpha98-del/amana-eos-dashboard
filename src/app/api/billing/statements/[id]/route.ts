@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 
 /* ------------------------------------------------------------------ */
 /*  GET /api/billing/statements/[id] — statement detail               */
@@ -79,12 +80,25 @@ export const PATCH = withApiAuth(async (req, _session, context) => {
   const statement = await prisma.$transaction(async (tx) => {
     // If lineItems provided, delete existing and create new ones
     if (lineItems) {
+      /**
+       * Stage 1 dual key. A line item reaches a service only through its
+       * statement, so the rooms resolve against that.
+       */
+      const parent = await tx.statement.findUnique({
+        where: { id },
+        select: { serviceId: true },
+      });
+      const lineRoomIds = await resolveRoomIds(
+        parent?.serviceId,
+        lineItems.map((li) => li.sessionType),
+      );
       await tx.statementLineItem.deleteMany({ where: { statementId: id } });
       await tx.statementLineItem.createMany({
         data: lineItems.map((li) => ({
           statementId: id,
           childId: li.childId,
           date: new Date(li.date),
+          roomId: requireFromMap(lineRoomIds, li.sessionType),
           sessionType: li.sessionType,
           description: li.description,
           grossFee: li.grossFee,

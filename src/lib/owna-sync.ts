@@ -12,7 +12,7 @@ import type { OwnaChild, OwnaIncident, OwnaClient } from "@/lib/owna";
 import { logger } from "@/lib/logger";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
-import { resolveRoomIds } from "@/lib/room-resolver";
+import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -369,7 +369,7 @@ export async function syncOwnaService(
               create: {
                 serviceId,
                 date: new Date(`${dateStr}T00:00:00Z`),
-                roomId: roomIds.get(group.sessionType) ?? null,
+                roomId: requireFromMap(roomIds, group.sessionType),
                 sessionType: group.sessionType,
                 attended: group.attended,
                 absent: group.absent,

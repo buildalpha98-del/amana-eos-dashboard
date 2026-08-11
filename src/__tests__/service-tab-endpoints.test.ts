@@ -6,6 +6,19 @@ vi.mock("@/lib/prisma", () => {
   const fn = vi.fn;
   const models = {
     service: { findUnique: fn() },
+    // Rooms resolve by default. Every write carrying a session slot
+    // also resolves a roomId since Stage 1, and the column is NOT NULL
+    // on these models — so without a room the route fails on plumbing
+    // rather than on what the test is asserting.
+    room: {
+      findUnique: fn().mockResolvedValue({ id: "room-test", legacyKey: "asc" }),
+      findMany: fn().mockResolvedValue([
+        { id: "room-bsc", legacyKey: "bsc" },
+        { id: "room-asc", legacyKey: "asc" },
+        { id: "room-vc", legacyKey: "vc" },
+      ]),
+    },
+
     dailyChecklist: {
       upsert: fn(), findMany: fn(), findFirst: fn(), findUnique: fn(), update: fn(),
     },
