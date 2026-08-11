@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { safeAttachmentUrl } from "@/lib/schemas/message-attachments";
 
 const HHMM = /^\d{2}:\d{2}$/;
 
@@ -106,6 +107,15 @@ const roomSchema = z.object({
    * would orphan them; this hides it from everything forward-looking.
    */
   disabled: z.boolean().optional(),
+  /**
+   * A picture of the room.
+   *
+   * Validated against our own Blob storage rather than accepted as any
+   * URL: this is rendered in the dashboard, so a raw address would let
+   * whoever can edit a service point it at anything, and every request
+   * for the page would then call out to that host.
+   */
+  photoUrl: safeAttachmentUrl.optional(),
 });
 
 // ── sessionTimes ────────────────────────────────────────────

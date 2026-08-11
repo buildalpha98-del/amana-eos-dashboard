@@ -26,6 +26,7 @@ import {
   DollarSign,
   Archive,
   RotateCcw,
+  Image as ImageIcon,
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ interface EditableRoom {
   maxAgeYears: string;
   staffOnly: boolean;
   disabled: boolean;
+  photoUrl: string;
   fees: Array<{
     id: string;
     name: string;
@@ -98,6 +100,7 @@ function toEditable(value: SessionTimes | null | undefined): EditableRooms {
       maxAgeYears: room?.maxAgeYears != null ? String(room.maxAgeYears) : "",
       staffOnly: room?.staffOnly ?? false,
       disabled: room?.disabled ?? false,
+      photoUrl: room?.photoUrl ?? "",
       fees: (room?.fees ?? []).map((f) => ({
         id: f.id,
         name: f.name,
@@ -143,6 +146,100 @@ function nextFeeId(existing: EditableRoom["fees"]): string {
   const taken = new Set(existing.map((f) => f.id));
   while (taken.has(`fee-${n}`)) n += 1;
   return `fee-${n}`;
+}
+
+
+/**
+ * A picture of the room.
+ *
+ * Uploaded to our own Blob storage rather than pasted as a URL — the
+ * schema only accepts that host, so a pasted address would be rejected
+ * on save and the person would have no idea why. Downscaled first,
+ * because a coordinator photographing a room on a phone produces
+ * several megabytes and this renders on a settings page.
+ */
+function RoomPhotoField({
+  value,
+  roomName,
+  onChange,
+}: {
+  value: string;
+  roomName: string;
+  onChange: (url: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(file: File) {
+    setBusy(true);
+    setError(null);
+    try {
+      const { downscaleImage } = await import("@/lib/downscale-image");
+      const fd = new FormData();
+      fd.append("file", await downscaleImage(file));
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd });
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(payload.error || "Upload failed");
+      }
+      const { url } = (await res.json()) as { url: string };
+      onChange(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <span className="block text-sm font-medium text-foreground mb-1">
+        Photo <span className="font-normal text-muted">(optional)</span>
+      </span>
+      <div className="flex items-center gap-3">
+        {value ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={value}
+            alt={`${roomName} room`}
+            className="h-16 w-24 rounded-lg object-cover border border-border"
+          />
+        ) : (
+          <div className="flex h-16 w-24 items-center justify-center rounded-lg border border-dashed border-border text-muted">
+            <ImageIcon className="h-5 w-5" />
+          </div>
+        )}
+        <div className="flex flex-col gap-1">
+          <label className="cursor-pointer text-sm text-brand hover:underline">
+            {busy ? "Uploading…" : value ? "Replace" : "Upload a photo"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) upload(file);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {value && (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="text-left text-xs text-muted hover:text-red-600"
+            >
+              Remove
+            </button>
+          )}
+          {error && <span className="text-xs text-red-600">{error}</span>}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 type RoomFilter = "active" | "disabled" | "all";
@@ -362,6 +459,7 @@ export function RoomsAndFeesCard({
           : {}),
         ...(r.staffOnly ? { staffOnly: true } : {}),
         ...(r.disabled ? { disabled: true } : {}),
+        ...(r.photoUrl.trim() ? { photoUrl: r.photoUrl.trim() } : {}),
         ...(fees.length > 0 ? { fees } : {}),
       };
     }
@@ -633,6 +731,13 @@ export function RoomsAndFeesCard({
                         value={r.ratio}
                         placeholder={defaultRatio}
                         onChange={(e) => update(key, { ratio: e.target.value })}
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <RoomPhotoField
+                        value={r.photoUrl}
+                        roomName={r.label.trim() || DEFAULT_ROOMS[key].label || key}
+                        onChange={(url) => update(key, { photoUrl: url })}
                       />
                     </div>
                     <div className="sm:col-span-3">

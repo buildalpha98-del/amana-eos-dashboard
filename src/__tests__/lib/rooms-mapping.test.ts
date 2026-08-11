@@ -117,6 +117,25 @@ describe("desiredRooms — the rest of the definition", () => {
     },
   };
 
+  it("carries the photo across to the room record", () => {
+    const withPhoto: SessionTimes = {
+      asc: {
+        label: "Afternoons",
+        start: "15:00",
+        end: "18:30",
+        photoUrl: "https://abc.public.blob.vercel-storage.com/room.jpg",
+      },
+    };
+    const room = desiredRooms(withPhoto).find((r) => r.legacyKey === "asc");
+    expect(room?.photoUrl).toBe(
+      "https://abc.public.blob.vercel-storage.com/room.jpg",
+    );
+  });
+
+  it("leaves the photo null when there isn't one", () => {
+    expect(desiredRooms(null)[0].photoUrl).toBeNull();
+  });
+
   it("carries capacity, ratio, description and age range", () => {
     const room = desiredRooms(st).find((r) => r.legacyKey === "asc");
     expect(room).toMatchObject({
