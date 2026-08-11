@@ -6,7 +6,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 const opportunitySchema = z.object({
   familyRef: z.string().min(1),
   sessionType: z.enum(["bsc", "asc", "vc"]),
@@ -95,7 +95,7 @@ export const POST = withApiHandler(async (req) => {
             serviceId: service.id,
             familyRef: opp.familyRef,
             // Stage 1 dual key — see room-resolver.ts.
-            roomId: await resolveRoomId(service.id, opp.sessionType),
+            roomId: await requireRoomId(service.id, opp.sessionType),
             sessionType: opp.sessionType,
             casualCount: opp.casualCount || 0,
             periodStart,

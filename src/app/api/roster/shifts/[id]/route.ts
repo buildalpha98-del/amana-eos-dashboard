@@ -6,7 +6,7 @@ import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
 import { assertStaffCertsValidForShift } from "../../_lib/cert-guard";
 import { assertUserCleared } from "@/lib/induction";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 
 // ---------------------------------------------------------------------------
 // Partial-update schema mirrors the create schema but every field optional.
@@ -107,7 +107,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     data.sessionType !== undefined || data.serviceId !== undefined;
   const roomUpdate = movesRoom
     ? {
-        roomId: await resolveRoomId(
+        roomId: await requireRoomId(
           data.serviceId ?? existing.serviceId,
           data.sessionType ?? existing.sessionType,
         ),

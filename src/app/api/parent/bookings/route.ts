@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger";
 import { casualBookingSettingsSchema, resolveCasualFee, type CasualBookingSettings, type SessionTimes } from "@/lib/service-settings";
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
 import { parseJsonField } from "@/lib/schemas/json-fields";
+import { requireRoomId } from "@/lib/room-resolver";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -267,6 +268,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
           childId,
           serviceId,
           date: bookingDate,
+          // Stage 1 dual key — see room-resolver.ts.
+          roomId: await requireRoomId(serviceId, sessionType),
           sessionType,
           status: "confirmed",
           type: "casual",

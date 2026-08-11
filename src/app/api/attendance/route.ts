@@ -6,7 +6,11 @@ import { z } from "zod";
 import type { SessionType } from "@prisma/client";
 import { propagateEnrolledCounts } from "./propagate/route";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { resolveRoomId, resolveRoomIds } from "@/lib/room-resolver";
+import {
+  requireFromMap,
+  requireRoomId,
+  resolveRoomIds,
+} from "@/lib/room-resolver";
 import { logger } from "@/lib/logger";
 
 // ── GET: List attendance records ────────────────────────────
@@ -106,7 +110,7 @@ export const POST = withApiAuth(async (req, session) => {
       date: new Date(data.date),
       // Stage 1 dual key — see room-resolver.ts. Both keys are written;
       // reads still use sessionType until Stage 2.
-      roomId: await resolveRoomId(data.serviceId, data.sessionType),
+      roomId: await requireRoomId(data.serviceId, data.sessionType),
       sessionType: data.sessionType,
       enrolled: data.enrolled,
       attended: data.attended,
@@ -180,7 +184,7 @@ export const PUT = withApiAuth(async (req, session) => {
         create: {
           serviceId: item.serviceId,
           date: new Date(item.date),
-          roomId: roomIds.get(`${item.serviceId}:${item.sessionType}`) ?? null,
+          roomId: requireFromMap(roomIds, `${item.serviceId}:${item.sessionType}`),
           sessionType: item.sessionType,
           enrolled: item.enrolled,
           attended: item.attended,

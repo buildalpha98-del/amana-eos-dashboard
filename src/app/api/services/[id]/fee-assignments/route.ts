@@ -18,7 +18,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import type { SessionType } from "@prisma/client";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 
 const SESSION_TYPES = [
   "bsc",
@@ -167,7 +167,7 @@ export const POST = withApiAuth(
         childId: d.childId,
         serviceId: id,
         // Stage 1 dual key — see room-resolver.ts.
-        roomId: await resolveRoomId(id, d.sessionType),
+        roomId: await requireRoomId(id, d.sessionType),
         sessionType: d.sessionType as SessionType,
         feeTierId: d.feeTierId,
         feeName: d.feeName,

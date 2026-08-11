@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
@@ -140,7 +140,7 @@ export const PATCH = withParentAuth(async (req, ctx) => {
 
   const { isIllness, medicalCertificateUrl, notes } = parsed.data;
 
-  const absenceRoomId = await resolveRoomId(
+  const absenceRoomId = await requireRoomId(
     booking.serviceId,
     booking.sessionType,
   );

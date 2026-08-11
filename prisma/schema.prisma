@@ -4040,8 +4040,8 @@ model DailyAttendance {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId       String?
-  room         Room?       @relation("RoomDailyAttendance", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId       String
+  room         Room       @relation("RoomDailyAttendance", fields: [roomId], references: [id], onDelete: Restrict)
   enrolled     Int         @default(0)
   attended     Int         @default(0)
   capacity     Int         @default(0)
@@ -4078,8 +4078,8 @@ model AttendanceRecord {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId        String?
-  room          Room?       @relation("RoomAttendanceRecord", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId        String
+  room          Room       @relation("RoomAttendanceRecord", fields: [roomId], references: [id], onDelete: Restrict)
   status        String      @default("booked") // booked, present, absent
   signInTime    DateTime?
   signOutTime   DateTime?
@@ -5223,8 +5223,8 @@ model BookingForecast {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomBookingForecast", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomBookingForecast", fields: [roomId], references: [id], onDelete: Restrict)
   regular     Int         @default(0)
   casual      Int         @default(0)
   total       Int         @default(0)
@@ -5253,8 +5253,8 @@ model RosterShift {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomRosterShift", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomRosterShift", fields: [roomId], references: [id], onDelete: Restrict)
   staffName   String
   shiftStart  String // "HH:mm"
   shiftEnd    String // "HH:mm"
@@ -5312,8 +5312,8 @@ model ResponsiblePersonEntry {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomResponsiblePersonEntry", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomResponsiblePersonEntry", fields: [roomId], references: [id], onDelete: Restrict)
   personName  String
   personRole  String?
   userId      String?
@@ -5417,8 +5417,8 @@ model ShiftTemplate {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomShiftTemplate", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomShiftTemplate", fields: [roomId], references: [id], onDelete: Restrict)
   /// "HH:mm" — same shape as RosterShift.
   shiftStart  String
   shiftEnd    String
@@ -5444,8 +5444,8 @@ model ConversionOpportunity {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomConversionOpportunity", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomConversionOpportunity", fields: [roomId], references: [id], onDelete: Restrict)
   casualCount Int         @default(0) // casual bookings in analysis period
   periodStart DateTime
   periodEnd   DateTime
@@ -6371,8 +6371,8 @@ model DailyChecklist {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId        String?
-  room          Room?                @relation("RoomDailyChecklist", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId        String
+  room          Room                @relation("RoomDailyChecklist", fields: [roomId], references: [id], onDelete: Restrict)
   status        String               @default("pending") // pending | in_progress | completed
   completedAt   DateTime?
   completedById String?
@@ -7250,8 +7250,8 @@ model Booking {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId        String?
-  room          Room?          @relation("RoomBooking", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId        String
+  room          Room          @relation("RoomBooking", fields: [roomId], references: [id], onDelete: Restrict)
   status        BookingStatus  @default(requested)
   type          BookingType    @default(casual)
   fee           Float?
@@ -7297,8 +7297,8 @@ model Absence {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId                String?
-  room                  Room?       @relation("RoomAbsence", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId                String
+  room                  Room       @relation("RoomAbsence", fields: [roomId], references: [id], onDelete: Restrict)
   isIllness             Boolean     @default(false)
   medicalCertificateUrl String?
   reason                String? // "sick" | "holiday" | "other"
@@ -7360,8 +7360,8 @@ model StatementLineItem {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomStatementLineItem", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomStatementLineItem", fields: [roomId], references: [id], onDelete: Restrict)
   description String
   grossFee    Float
   ccsHours    Float       @default(0)
@@ -8254,8 +8254,8 @@ model ChildFeeAssignment {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomChildFeeAssignment", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomChildFeeAssignment", fields: [roomId], references: [id], onDelete: Restrict)
   /// The tier's id within that room's `fees` array.
   feeTierId   String
   /// Denormalised at write time; see the note above.
@@ -8302,8 +8302,8 @@ model ServiceFeeChange {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomServiceFeeChange", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomServiceFeeChange", fields: [roomId], references: [id], onDelete: Restrict)
   /// The fee tier's id within that room's `fees` array.
   feeTierId   String
   /// Denormalised so history stays readable after a fee is renamed or
@@ -8385,8 +8385,8 @@ model CasualDayConfig {
   /// Stage 1 dual key: the room this row belongs to, resolved from
   /// (serviceId, sessionType). Nullable while both keys are written —
   /// see docs/rooms-migration-plan.md.
-  roomId      String?
-  room        Room?       @relation("RoomCasualDayConfig", fields: [roomId], references: [id], onDelete: SetNull)
+  roomId      String
+  room        Room       @relation("RoomCasualDayConfig", fields: [roomId], references: [id], onDelete: Restrict)
   /// Spots for this day. Null means "use the room's usual number".
   spots       Int?
   /// Open the day for staff to fill without letting families book it —

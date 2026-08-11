@@ -7,7 +7,7 @@ import { resolveAppSettings } from "@/lib/app-settings";
 import { getParentChildIds } from "@/app/api/parent/bookings/route";
 import { sendAbsenceConfirmationNotification } from "@/lib/notifications/bookings";
 import { logger } from "@/lib/logger";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 
 const absenceSchema = z.object({
   childId: z.string().min(1, "childId is required"),
@@ -74,7 +74,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
       serviceId,
       date: absenceDate,
       // Stage 1 dual key — see room-resolver.ts.
-      roomId: await resolveRoomId(serviceId, sessionType),
+      roomId: await requireRoomId(serviceId, sessionType),
       sessionType,
       reason: reason || null,
       isIllness: reason === "sick",

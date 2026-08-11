@@ -11,6 +11,7 @@ import { enrolmentApprovedEmail } from "@/lib/email-templates/parent-account";
 import { parseJsonBody } from "@/lib/api-error";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { sendParentWelcomeInvite } from "@/lib/notifications/parent-welcome";
+import { stampRequiredRoomIds } from "@/lib/room-resolver";
 const patchEnrolmentSchema = z.object({
   status: z.enum(["submitted", "under_review", "processed", "rejected", "archived"], {
     error: "Invalid status. Must be one of: submitted, under_review, processed, rejected, archived",
@@ -105,7 +106,8 @@ const { id } = await context!.params!;
 
       if (allBookings.length > 0) {
         const result = await tx.booking.createMany({
-          data: allBookings,
+          // Stage 1 dual key — see room-resolver.ts.
+          data: await stampRequiredRoomIds(allBookings),
           skipDuplicates: true,
         });
         logger.info("Auto-generated bookings on enrolment approval", {

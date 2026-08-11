@@ -18,6 +18,9 @@ import {
   resolveRoomId,
   resolveRoomIds,
   stampRoomIds,
+  stampRequiredRoomIds,
+  requireRoomId,
+  requireFromMap,
   roomKeys,
   _clearRoomCache,
 } from "@/lib/room-resolver";
@@ -27,6 +30,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   _clearRoomCache();
   prismaMock.room.findUnique.mockResolvedValue({ id: "room-asc" });
+  prismaMock.service.findUnique.mockResolvedValue({ sessionTimes: null });
   prismaMock.room.findMany.mockResolvedValue([
     { id: "room-bsc", legacyKey: "bsc" },
     { id: "room-asc", legacyKey: "asc" },
@@ -80,11 +84,14 @@ describe("resolveRoomId — caching", () => {
 
   it("caches misses too", async () => {
     // Otherwise the service already in trouble — one with an
-    // unresolvable slot — pays a query on every single write.
+    // unresolvable slot — pays a query on every single write. The first
+    // miss costs two lookups because it re-derives and retries; the
+    // point is that the second call costs nothing.
     prismaMock.room.findUnique.mockResolvedValue(null);
     await resolveRoomId("svc-1", "extra4");
+    const afterFirst = prismaMock.room.findUnique.mock.calls.length;
     await resolveRoomId("svc-1", "extra4");
-    expect(prismaMock.room.findUnique).toHaveBeenCalledTimes(1);
+    expect(prismaMock.room.findUnique.mock.calls.length).toBe(afterFirst);
   });
 
   it("keys by service as well as slot", async () => {
@@ -188,5 +195,106 @@ describe("stampRoomIds", () => {
   it("is a no-op on an empty list, with no query", async () => {
     expect(await stampRoomIds([])).toEqual([]);
     expect(prismaMock.room.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("resolveRoomId — re-deriving a missing room", () => {
+  it("syncs the service and retries before giving up", async () => {
+    // roomId is NOT NULL from the end of Stage 1, so a miss would fail
+    // a booking. The room IS derivable from the service's settings —
+    // that is the premise of the whole migration — so a miss is a cue
+    // to re-derive, not an error.
+    prismaMock.room.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "room-rederived" });
+
+    expect(await resolveRoomId("svc-1", "asc")).toBe("room-rederived");
+    expect(prismaMock.room.findUnique).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives up quietly when the settings describe no such room", async () => {
+    prismaMock.room.findUnique.mockResolvedValue(null);
+    expect(await resolveRoomId("svc-1", "extra4")).toBeNull();
+  });
+
+  it("caches the give-up so it isn't paid twice", async () => {
+    // A service in this state would otherwise pay two queries and a
+    // sync on every single write — and it is already the service in
+    // trouble.
+    prismaMock.room.findUnique.mockResolvedValue(null);
+    await resolveRoomId("svc-1", "extra4");
+    const after = prismaMock.room.findUnique.mock.calls.length;
+    await resolveRoomId("svc-1", "extra4");
+    expect(prismaMock.room.findUnique.mock.calls.length).toBe(after);
+  });
+
+  it("does not re-derive for a service that doesn't exist", async () => {
+    prismaMock.room.findUnique.mockResolvedValue(null);
+    prismaMock.service.findUnique.mockResolvedValue(null);
+    expect(await resolveRoomId("gone", "asc")).toBeNull();
+  });
+});
+
+describe("requireRoomId", () => {
+  it("returns the room when there is one", async () => {
+    expect(await requireRoomId("svc-1", "asc")).toBe("room-asc");
+  });
+
+  it("throws rather than writing a record against no room", async () => {
+    // On the models where sessionType is required, roomId is NOT NULL —
+    // "no room" is a record that cannot exist, and refusing it beats a
+    // booking nobody can place.
+    prismaMock.room.findUnique.mockResolvedValue(null);
+    await expect(requireRoomId("svc-1", "extra4")).rejects.toThrow(
+      /no "extra4" room set up/,
+    );
+  });
+
+  it("says where to fix it", async () => {
+    prismaMock.room.findUnique.mockResolvedValue(null);
+    await expect(requireRoomId("svc-1", "extra4")).rejects.toThrow(
+      /Rooms & fees/,
+    );
+  });
+});
+
+describe("requireFromMap", () => {
+  it("pulls a resolved room out", () => {
+    const map = new Map([["asc", "room-asc"]]);
+    expect(requireFromMap(map, "asc")).toBe("room-asc");
+  });
+
+  it("throws on a slot the batch couldn't place", () => {
+    const map = new Map<string, string | null>([["asc", null]]);
+    expect(() => requireFromMap(map, "asc")).toThrow(/no "asc" room/);
+  });
+
+  it("throws on a slot that isn't in the map at all", () => {
+    expect(() => requireFromMap(new Map(), "vc")).toThrow(/no "vc" room/);
+  });
+});
+
+describe("stampRequiredRoomIds", () => {
+  const row = {
+    childId: "c-1",
+    serviceId: "svc-1",
+    date: new Date("2026-08-10"),
+    sessionType: "asc" as const,
+  };
+
+  it("stamps every row", async () => {
+    const out = await stampRequiredRoomIds([row]);
+    expect(out[0].roomId).toBe("room-asc");
+  });
+
+  it("refuses the whole batch when one row has no room", async () => {
+    // A partial booking run is worse than none: the family sees some
+    // days appear and has no way to tell which are missing.
+    prismaMock.room.findMany.mockResolvedValue([
+      { id: "room-asc", legacyKey: "asc" },
+    ]);
+    await expect(
+      stampRequiredRoomIds([row, { ...row, sessionType: "vc" as const }]),
+    ).rejects.toThrow(/no "vc" room set up/);
   });
 });

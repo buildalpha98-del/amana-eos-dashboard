@@ -24,7 +24,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 import { inferSessionType } from "@/lib/timeclock-pick";
 import { assertUserCleared } from "@/lib/induction";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 
 const bodySchema = z
   .object({
@@ -81,7 +81,7 @@ export const POST = withApiAuth(async (req, session) => {
       staffName: session.user.name ?? "Unscheduled walk-in",
       date: today,
       // Stage 1 dual key — see room-resolver.ts.
-      roomId: await resolveRoomId(serviceId, sessionType),
+      roomId: await requireRoomId(serviceId, sessionType),
       sessionType,
       shiftStart,
       shiftEnd,

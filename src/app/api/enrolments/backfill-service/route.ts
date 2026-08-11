@@ -24,6 +24,7 @@ import { matchSchoolToService } from "@/lib/school-service-match";
 import { logAmbassadorEnrolmentForChild } from "@/lib/ambassadors/log-enrolment";
 import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
 import { generateBookings } from "@/lib/booking-generator";
+import { stampRequiredRoomIds } from "@/lib/room-resolver";
 
 const bodySchema = z.object({
   /** Write the matches. Omitted = report only. */
@@ -184,7 +185,8 @@ export const POST = withApiAuth(
           );
           if (rows.length > 0) {
             const res = await tx.booking.createMany({
-              data: rows,
+              // Stage 1 dual key — see room-resolver.ts.
+              data: await stampRequiredRoomIds(rows),
               skipDuplicates: true,
             });
             bookingsCreated += res.count;

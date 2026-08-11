@@ -23,7 +23,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
-import { resolveRoomId } from "@/lib/room-resolver";
+import { requireRoomId } from "@/lib/room-resolver";
 import {
   defaultTimesForSession,
   type RpSessionType,
@@ -134,7 +134,7 @@ export const POST = withApiAuth(async (req, session, context) => {
       serviceId,
       date,
       // Stage 1 dual key — see room-resolver.ts.
-      roomId: await resolveRoomId(serviceId, sessionType),
+      roomId: await requireRoomId(serviceId, sessionType),
       sessionType,
       ...shared,
       createdById: session.user.id,

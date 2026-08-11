@@ -19,6 +19,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { applyFamilyDiscount } from "@/lib/family-discount";
 import { logger } from "@/lib/logger";
 import { sumDollars, fromCents } from "@/lib/money";
+import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 
 const bodySchema = z.object({
   contactId: z.string().min(1),
@@ -245,6 +246,19 @@ export const POST = withApiAuth(
 
     const allLines = [...lineItems, ...discountLines];
 
+    /**
+     * Stage 1 dual key. A line item reaches a service only through its
+     * statement, so the rooms resolve against that one service.
+     */
+    const lineRoomIds = await resolveRoomIds(
+      serviceId,
+      allLines.map((l) => l.sessionType),
+    );
+    const linesWithRooms = allLines.map((l) => ({
+      ...l,
+      roomId: requireFromMap(lineRoomIds, l.sessionType),
+    }));
+
     // Totals in cents, then back — summing floats across a fortnight of
     // sessions drifts, and this figure is what a family is asked to pay.
     const totalFeesCents = sumDollars(allLines.map((l) => l.grossFee));
@@ -265,7 +279,7 @@ export const POST = withApiAuth(
         // Draft, always. Staff review before a family sees anything.
         status: "draft",
         ...(dueDate ? { dueDate: day(dueDate) } : {}),
-        lineItems: { create: allLines },
+        lineItems: { create: linesWithRooms },
       },
       include: { lineItems: true },
     });

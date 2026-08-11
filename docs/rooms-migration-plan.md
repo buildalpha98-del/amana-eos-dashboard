@@ -1,6 +1,6 @@
 # Making rooms first-class records
 
-**Status:** Stages 0 and 1 built. Stages 2–4 are still proposal.
+**Status:** Stages 0 and 1 complete, gate passed. Stages 2–4 are still proposal.
 **Written:** 2026-08-09 · **Stage 0 landed:** 2026-08-10 · **Stage 1 landed:** 2026-08-10
 
 ## The problem
@@ -175,6 +175,39 @@ SELECT count(*) FROM "Booking" WHERE "roomId" IS NULL;
 `missing` or `drifted` entries. A shadow table nobody has checked is
 worth nothing, and its failure mode is silent precisely because nothing
 reads it yet.
+
+**Gate passed 2026-08-11** — the reconciliation reported clean on every
+service and every table, so `roomId` was made **NOT NULL** on the 14
+models where `sessionType` is itself required (migration
+`20260811001500_rooms_stage_1_not_null`), and the foreign key moved from
+`SET NULL` to `RESTRICT` — meaningless against a non-null column, and
+the honest rule anyway: a room with attendance behind it must not be
+deletable, only retired.
+
+The four models where `sessionType` is optional keep a nullable `roomId`.
+No slot means service-wide, so a null room is the right answer there.
+
+**Making it NOT NULL is what found the rest of Stage 1.** The compiler
+flagged **six write sites the regex scan had missed** — roll-call bulk,
+roster copy-week, both parent booking routes, family service assignment,
+and every billing statement line item — plus the enrolment paths that
+reach `createMany` through `generateBookings`. A hand audit found 34;
+the type system found the remainder, because a required column cannot be
+forgotten.
+
+Two helpers came out of it, and the split is the point:
+
+- `requireRoomId` / `requireFromMap` / `stampRequiredRoomIds` throw —
+  used where `roomId` is NOT NULL. "No room" there is a record that
+  cannot exist, and refusing the write beats a booking nobody can place.
+- `resolveRoomId` / `resolveRoomIds` / `stampRoomIds` stay nullable —
+  used on the four service-wide models.
+
+`resolveRoomId` also **re-derives before giving up**: on a miss it syncs
+the service's rooms from its settings and retries once. The room is
+derivable from that JSON — the premise of the whole migration — so a
+miss is a cue to re-derive rather than an error, and that is what makes
+NOT NULL safe on a booking path.
 
 **Revert:** drop the new columns and uniques. Reads never used them.
 

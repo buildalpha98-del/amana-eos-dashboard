@@ -12,6 +12,11 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     booking: { findUnique: vi.fn(), update: vi.fn() },
     service: { findUnique: vi.fn() },
+    // Stage 1: absence.create resolves a required roomId.
+    room: {
+      findUnique: vi.fn().mockResolvedValue({ id: "room-test", legacyKey: "asc" }),
+      findMany: vi.fn().mockResolvedValue([{ id: "room-asc", legacyKey: "asc" }]),
+    },
     absence: { create: vi.fn(), deleteMany: vi.fn() },
     $transaction: vi.fn(),
   },

@@ -20,6 +20,9 @@
 import type { SessionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { ApiError } from "@/lib/api-error";
+import { syncRoomsFromSessionTimes } from "@/lib/rooms";
+import type { SessionTimes } from "@/lib/service-settings";
 
 /**
  * Rooms change when an admin edits centre settings — rarely, and never
@@ -75,13 +78,63 @@ export async function resolveRoomId(
       },
       select: { id: true },
     });
-    const roomId = room?.id ?? null;
-    cache.set(k, { roomId, at: Date.now() });
-
-    if (!roomId) {
-      logger.warn("Rooms: no room for session slot", { serviceId, sessionType });
+    if (room) {
+      cache.set(k, { roomId: room.id, at: Date.now() });
+      return room.id;
     }
-    return roomId;
+
+    /**
+     * No room — derive one rather than giving up.
+     *
+     * `roomId` is NOT NULL from the end of Stage 1, so returning null
+     * here would fail the write, and the writes at risk are bookings and
+     * clock-ins. The gap this closes is narrow but real: a slot
+     * configured in a settings save whose shadow sync failed, or a
+     * service created before Stage 0 shipped. Both leave a service whose
+     * JSON describes a room that has no record.
+     *
+     * The room is derivable from that JSON — that is the whole premise
+     * of the migration — so a miss is a cue to re-derive, not an error.
+     * One extra query on a path that should almost never be taken, and
+     * the alternative is a family unable to book.
+     */
+    const service = await prisma.service.findUnique({
+      where: { id: serviceId },
+      select: { sessionTimes: true },
+    });
+    if (service) {
+      logger.warn("Rooms: no room for slot, re-deriving", {
+        serviceId,
+        sessionType,
+      });
+      await syncRoomsFromSessionTimes(
+        serviceId,
+        service.sessionTimes as SessionTimes | null,
+      );
+
+      const retried = await prisma.room.findUnique({
+        where: {
+          serviceId_legacyKey: {
+            serviceId,
+            legacyKey: sessionType as SessionType,
+          },
+        },
+        select: { id: true },
+      });
+      if (retried) {
+        cache.set(k, { roomId: retried.id, at: Date.now() });
+        return retried.id;
+      }
+    }
+
+    /**
+     * Still nothing. Cached so a service in this state doesn't pay two
+     * queries and a sync on every write — it is precisely the service
+     * already in trouble.
+     */
+    cache.set(k, { roomId: null, at: Date.now() });
+    logger.warn("Rooms: no room for session slot", { serviceId, sessionType });
+    return null;
   } catch (err) {
     /**
      * A resolver failure must not fail the write it decorates.
@@ -204,4 +257,68 @@ export async function stampRoomIds<
     ...r,
     roomId: byService.get(r.serviceId)?.get(r.sessionType) ?? null,
   }));
+}
+
+/**
+ * The room for a slot, or an error.
+ *
+ * From the end of Stage 1, `roomId` is NOT NULL on every model where
+ * `sessionType` is itself required — so on those, "no room" is not a
+ * degraded shadow any more, it is a record that cannot be written. This
+ * is the version those call sites use.
+ *
+ * Failing loudly here is the point. `resolveRoomId` already re-derives
+ * from the service's settings before giving up, so reaching this throw
+ * means the settings genuinely describe no such room — and writing a
+ * booking against a room nobody can name is worse than refusing it.
+ *
+ * `resolveRoomId` stays nullable for the four models where a null slot
+ * legitimately means "the whole service".
+ */
+export async function requireRoomId(
+  serviceId: string | null | undefined,
+  sessionType: SessionType | string | null | undefined,
+): Promise<string> {
+  const roomId = await resolveRoomId(serviceId, sessionType);
+  if (!roomId) {
+    throw ApiError.badRequest(
+      `This centre has no "${sessionType}" room set up. Add it under Service info → Rooms & fees first.`,
+    );
+  }
+  return roomId;
+}
+
+/** `stampRoomIds`, for the models where the room is required. */
+export async function stampRequiredRoomIds<
+  T extends { serviceId: string; sessionType: SessionType },
+>(rows: T[]): Promise<Array<T & { roomId: string }>> {
+  const stamped = await stampRoomIds(rows);
+  const missing = stamped.find((r) => !r.roomId);
+  if (missing) {
+    throw ApiError.badRequest(
+      `This centre has no "${missing.sessionType}" room set up. Add it under Service info → Rooms & fees first.`,
+    );
+  }
+  return stamped as Array<T & { roomId: string }>;
+}
+
+/**
+ * Pull a required room out of a batch-resolved map.
+ *
+ * The loop-friendly counterpart to `requireRoomId`: `resolveRoomIds`
+ * answers null for a slot it couldn't place, which is correct for the
+ * models where a null room is legal and a write failure on the ones
+ * where it isn't.
+ */
+export function requireFromMap(
+  map: Map<string, string | null>,
+  sessionType: SessionType | string,
+): string {
+  const roomId = map.get(String(sessionType));
+  if (!roomId) {
+    throw ApiError.badRequest(
+      `This centre has no "${sessionType}" room set up. Add it under Service info → Rooms & fees first.`,
+    );
+  }
+  return roomId;
 }
