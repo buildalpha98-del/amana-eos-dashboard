@@ -530,3 +530,38 @@ describe("feeTierSchema archive/audit fields", () => {
     expect(parsed.asc?.fees?.[0].archived).toBeUndefined();
   });
 });
+
+describe("sessionTimesSchema — the room photo", () => {
+  const room = { start: "15:00", end: "18:30" };
+
+  it("accepts a photo from our own storage", () => {
+    const r = sessionTimesSchema.safeParse({
+      asc: {
+        ...room,
+        photoUrl: "https://abc123.public.blob.vercel-storage.com/room.jpg",
+      },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("refuses a photo hosted anywhere else", () => {
+    // This renders in the dashboard. Accepting any URL would let whoever
+    // can edit a service point it at a host of their choosing, and every
+    // load of the page would then call out to it.
+    const r = sessionTimesSchema.safeParse({
+      asc: { ...room, photoUrl: "https://example.com/room.jpg" },
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("refuses something that isn't a URL at all", () => {
+    const r = sessionTimesSchema.safeParse({
+      asc: { ...room, photoUrl: "room.jpg" },
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("is optional — a room without one still parses", () => {
+    expect(sessionTimesSchema.safeParse({ asc: room }).success).toBe(true);
+  });
+});

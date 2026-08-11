@@ -30,6 +30,7 @@ export interface DesiredRoom {
   minAgeYears: number | null;
   maxAgeYears: number | null;
   staffOnly: boolean;
+  photoUrl: string | null;
   /** Whether the JSON says this room is retired. */
   disabled: boolean;
   sortOrder: number;
@@ -96,6 +97,7 @@ export function desiredRooms(
       minAgeYears: room?.minAgeYears ?? null,
       maxAgeYears: room?.maxAgeYears ?? null,
       staffOnly: room?.staffOnly ?? false,
+      photoUrl: room?.photoUrl ?? null,
       disabled: room?.disabled ?? false,
       sortOrder: index,
     };

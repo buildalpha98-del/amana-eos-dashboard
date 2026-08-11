@@ -52,6 +52,7 @@ export async function seedRooms(prisma: PrismaClient): Promise<void> {
         minAgeYears: room.minAgeYears,
         maxAgeYears: room.maxAgeYears,
         staffOnly: room.staffOnly,
+        photoUrl: room.photoUrl,
         sortOrder: room.sortOrder,
       };
 

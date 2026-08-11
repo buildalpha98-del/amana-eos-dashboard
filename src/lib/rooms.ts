@@ -74,6 +74,7 @@ export async function syncRoomsFromSessionTimes(
       minAgeYears: room.minAgeYears,
       maxAgeYears: room.maxAgeYears,
       staffOnly: room.staffOnly,
+      photoUrl: room.photoUrl,
       sortOrder: room.sortOrder,
     };
 

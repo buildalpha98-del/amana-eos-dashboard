@@ -205,6 +205,14 @@ export function RoomDetailPanel({
               {room?.description && (
                 <Row label="What it's for" value={room.description} />
               )}
+              {room?.photoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={room.photoUrl}
+                  alt={`${name} room`}
+                  className="mt-2 w-full max-w-sm rounded-lg border border-border object-cover"
+                />
+              )}
               {room?.staffOnly && (
                 <Row
                   label="Staff only"
