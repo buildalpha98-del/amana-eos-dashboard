@@ -231,7 +231,7 @@ So Stage 2 now runs room-listing surfaces first:
 | --- | --- |
 | `GET /api/services/[id]/rooms` + `useServiceRooms` | ✅ built |
 | Rooms & fees list | ✅ reads room records |
-| Room detail panel | ⬜ still keyed by the enum slot |
+| Room detail panel | ✅ takes the room record |
 | Booking form / casual spots | ⬜ |
 | The roll | ⬜ |
 | Reporting, billing | ⬜ — and lower priority than the plan claimed |
@@ -241,10 +241,12 @@ a `RoomFee` table in Stage 3; pulling them across early would mean
 writing that table before anything reads it — the shadow-write problem
 Stage 0 already solved once, and not worth solving twice.
 
-A room with a null `legacyKey` — one the enum never knew about — renders
-in the list today but can't open the detail panel, because that panel is
-still keyed by slot. It shows as plain text rather than a link that does
-nothing. That resolves when the panel moves.
+Every room opens the detail panel now, including one the enum never knew
+about. Three sections inside it still key off the slot — the children in
+a room, block-out dates and scheduled fee changes all sit behind routes
+that filter on `sessionType`. A room with no legacy key opens and shows
+its details; those three tabs are simply empty for it, which is true
+rather than broken. They move with their routes.
 
 The original ordering, for reference:
 
