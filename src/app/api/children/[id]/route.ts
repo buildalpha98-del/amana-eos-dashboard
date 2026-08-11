@@ -7,6 +7,7 @@ import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { stampRoomIds } from "@/lib/room-resolver";
 
 const patchSchema = z.object({
   // Existing
@@ -210,7 +211,8 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     );
     if (bookings.length > 0) {
       const result = await prisma.booking.createMany({
-        data: bookings,
+        // Stage 1 dual key — see room-resolver.ts.
+        data: await stampRoomIds(bookings),
         skipDuplicates: true,
       });
       logger.info("Manual booking generation", {

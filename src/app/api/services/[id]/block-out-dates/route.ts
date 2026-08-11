@@ -19,6 +19,7 @@ import { assertServiceAccess } from "@/lib/authz-scope";
 import { programmeName } from "@/lib/programme-names";
 import { dateOnly, expandBlockOutDates } from "@/lib/block-out-dates";
 import type { SessionType } from "@prisma/client";
+import { resolveRoomId } from "@/lib/room-resolver";
 
 const SESSION_TYPES = [
   "bsc",
@@ -127,12 +128,17 @@ export const POST = withApiAuth(
     if (!expanded.ok) throw ApiError.badRequest(expanded.error);
     const dates = expanded.dates;
 
+    // Stage 1 dual key, resolved once for the whole range rather than
+    // per date — every row here shares one (service, slot) pair.
+    const roomId = await resolveRoomId(id, d.sessionType);
+
     // skipDuplicates so re-submitting a range that overlaps an existing
     // one tops it up rather than failing the whole request.
     await prisma.serviceBlockOutDate.createMany({
       data: dates.map((date) => ({
         serviceId: id,
         date,
+        roomId,
         sessionType: (d.sessionType as SessionType) ?? null,
         reason: d.reason || null,
         createdById: session!.user.id,

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { sessionTimesSchema } from "@/lib/service-settings";
+import { sessionTimesSchema, type SessionTimes } from "@/lib/service-settings";
+import { syncRoomsQuietly } from "@/lib/rooms";
 import { getCentreScope } from "@/lib/centre-scope";
 import { z } from "zod";
 
@@ -192,6 +193,25 @@ export const PATCH = withApiAuth(
         manager: { select: { id: true, name: true, email: true, avatar: true } },
       },
     });
+
+    /**
+     * Keep the shadow `Room` rows in step with the JSON that still owns
+     * them (Stage 0, docs/rooms-migration-plan.md). A shadow that only
+     * gets written by a backfill drifts the moment anyone edits a room,
+     * and a drifted shadow is worse than an empty one — it looks
+     * populated.
+     *
+     * After the update, not inside a transaction with it: the JSON write
+     * is the truth, and a shadow-sync failure must not roll back a
+     * settings save. `syncRoomsQuietly` logs and swallows for the same
+     * reason. That changes at Stage 2, when reads move.
+     */
+    if ("sessionTimes" in data) {
+      await syncRoomsQuietly(
+        service.id,
+        service.sessionTimes as SessionTimes | null,
+      );
+    }
 
     await prisma.activityLog.create({
       data: {

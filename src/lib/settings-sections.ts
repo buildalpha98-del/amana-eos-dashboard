@@ -212,6 +212,23 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         keywords: ["assistant", "knowledge", "documents", "search", "rag"],
       },
       {
+        key: "rooms-migration",
+        label: "Rooms migration",
+        description:
+          "Progress moving rooms out of fixed slots, and the check that has to pass before the next step.",
+        roles: OWNER_HO,
+        href: "/settings/rooms-migration",
+        keywords: [
+          "rooms",
+          "sessions",
+          "migration",
+          "backfill",
+          "reconcile",
+          "bsc",
+          "asc",
+        ],
+      },
+      {
         key: "seed",
         label: "Seed template data",
         description:

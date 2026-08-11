@@ -21,6 +21,7 @@ import {
   CloudCog,
   Copy,
   Database,
+  DoorOpen,
   DollarSign,
   FileSpreadsheet,
   Filter,
@@ -3149,6 +3150,21 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
           icon={Mail}
           title="Email templates"
           description="Subject and body for transactional emails."
+        />
+      )}
+
+      {/* Rooms migration (owner/head office).
+          Registering an item in settings-sections.ts puts it in SEARCH
+          and in the group nav, but the browse view renders each href
+          item as its own tile here — so an entry added only to the
+          config is findable by typing its name and invisible to anyone
+          scrolling. */}
+      {showing === "system" && (isOwner || isHeadOffice) && (
+        <SettingsLink
+          href="/settings/rooms-migration"
+          icon={DoorOpen}
+          title="Rooms migration"
+          description="Progress moving rooms out of fixed slots, and the check that has to pass before the next step."
         />
       )}
 

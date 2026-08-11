@@ -23,6 +23,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { resolveRoomId } from "@/lib/room-resolver";
 import {
   defaultTimesForSession,
   type RpSessionType,
@@ -129,7 +130,15 @@ export const POST = withApiAuth(async (req, session, context) => {
 
   const entry = await prisma.responsiblePersonEntry.upsert({
     where: { serviceId_date_sessionType: { serviceId, date, sessionType } },
-    create: { serviceId, date, sessionType, ...shared, createdById: session.user.id },
+    create: {
+      serviceId,
+      date,
+      // Stage 1 dual key — see room-resolver.ts.
+      roomId: await resolveRoomId(serviceId, sessionType),
+      sessionType,
+      ...shared,
+      createdById: session.user.id,
+    },
     update: shared,
     include: { user: { select: { id: true, name: true, avatar: true } } },
   });

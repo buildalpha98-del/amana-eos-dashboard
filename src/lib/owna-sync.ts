@@ -12,6 +12,7 @@ import type { OwnaChild, OwnaIncident, OwnaClient } from "@/lib/owna";
 import { logger } from "@/lib/logger";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
+import { resolveRoomIds } from "@/lib/room-resolver";
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -336,6 +337,17 @@ export async function syncOwnaService(
 
       // Batch upsert aggregated records
       const entries = Array.from(groups.entries());
+
+      /**
+       * Stage 1 dual key. Resolved for every distinct slot before the
+       * transaction array is built — that form takes prepared arguments,
+       * not promises.
+       */
+      const roomIds = await resolveRoomIds(
+        serviceId,
+        entries.map(([, g]) => g.sessionType),
+      );
+
       const batches = chunk(entries, BATCH_SIZE);
       for (const batch of batches) {
         await prisma.$transaction(
@@ -357,6 +369,7 @@ export async function syncOwnaService(
               create: {
                 serviceId,
                 date: new Date(`${dateStr}T00:00:00Z`),
+                roomId: roomIds.get(group.sessionType) ?? null,
                 sessionType: group.sessionType,
                 attended: group.attended,
                 absent: group.absent,

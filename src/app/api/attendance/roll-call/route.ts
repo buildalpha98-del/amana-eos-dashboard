@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { SessionType } from "@prisma/client";
 import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
 import { logger } from "@/lib/logger";
+import { resolveRoomId } from "@/lib/room-resolver";
 
 // YYYY-MM-DD regex used by both handlers for DST-safe parsing.
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -306,6 +307,12 @@ export const POST = withApiAuth(async (req, session) => {
     },
   };
 
+  /**
+   * Stage 1 dual key, resolved once for every branch below — the whole
+   * handler works on one (service, slot) pair. See room-resolver.ts.
+   */
+  const roomId = await resolveRoomId(serviceId, sessionType);
+
   // Honour client-supplied timestamp (offline replay) or fall back to now.
   const actionTime = resolveActionTime(occurredAt);
   let record;
@@ -328,6 +335,7 @@ export const POST = withApiAuth(async (req, session) => {
           childId,
           serviceId,
           date: dateObj,
+          roomId,
           sessionType,
           status: "present",
           signInTime,
@@ -358,6 +366,7 @@ export const POST = withApiAuth(async (req, session) => {
           childId,
           serviceId,
           date: dateObj,
+          roomId,
           sessionType,
           status: "present",
           signInTime: signOutTime, // auto sign-in if missing
@@ -387,6 +396,7 @@ export const POST = withApiAuth(async (req, session) => {
           childId,
           serviceId,
           date: dateObj,
+          roomId,
           sessionType,
           status: "absent",
           absenceReason: absenceReason ?? null,
@@ -410,6 +420,7 @@ export const POST = withApiAuth(async (req, session) => {
           childId,
           serviceId,
           date: dateObj,
+          roomId,
           sessionType,
           status: "booked",
         },
@@ -446,6 +457,7 @@ export const POST = withApiAuth(async (req, session) => {
     create: {
       serviceId,
       date: dateObj,
+      roomId,
       sessionType,
       attended,
       absent,
