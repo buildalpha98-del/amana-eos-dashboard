@@ -28,6 +28,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { toast } from "@/hooks/useToast";
@@ -144,6 +145,14 @@ function nextFeeId(existing: EditableRoom["fees"]): string {
   return `fee-${n}`;
 }
 
+type RoomFilter = "active" | "disabled" | "all";
+
+const ROOM_FILTERS: Array<{ value: RoomFilter; label: string }> = [
+  { value: "active", label: "Active" },
+  { value: "disabled", label: "Retired" },
+  { value: "all", label: "All" },
+];
+
 export function RoomsAndFeesCard({
   service,
   canEdit,
@@ -159,6 +168,7 @@ export function RoomsAndFeesCard({
   const { data: authSession } = useSession();
   const currentUserName = authSession?.user?.name ?? null;
   const [open, setOpen] = useState(false);
+  const [roomFilter, setRoomFilter] = useState<RoomFilter>("active");
   const [rooms, setRooms] = useState<EditableRooms>(() =>
     toEditable(service.sessionTimes as SessionTimes | null),
   );
@@ -190,6 +200,27 @@ export function RoomsAndFeesCard({
     queryFn: () => fetchApi(`/api/services/${service.id}/session-times`),
     retry: 1,
   });
+  /**
+   * A retired room is hidden by default, because nothing forward-looking
+   * should offer it — but it is still findable, because its historical
+   * bookings and attendance point at it and "where did that room go" is
+   * a question people ask.
+   */
+  const disabledKeys = SESSION_KEYS.filter((k) => {
+    const r = saved?.[k];
+    // A slot that was never named isn't a retired room, it's an empty
+    // field — it belongs in neither list.
+    const named = CORE_SESSION_KEYS.includes(k) || Boolean(r?.label?.trim());
+    return named && r?.disabled;
+  });
+
+  const visibleRoomKeys =
+    roomFilter === "active"
+      ? activeSessionKeys(saved)
+      : roomFilter === "disabled"
+        ? disabledKeys
+        : [...activeSessionKeys(saved), ...disabledKeys];
+
   const sessionTimes = (sessionTimeData?.sessionTimes ?? []).filter(
     (s) => s.active,
   );
@@ -384,16 +415,48 @@ export function RoomsAndFeesCard({
         )}
       </div>
 
+      {/* Active / Disabled / All, the way OWNA lists rooms.
+          A retired room doesn't vanish — its historical bookings and
+          attendance still point at it — so "where did Holiday Quest go"
+          needs an answer that isn't "ask an engineer". */}
+      {disabledKeys.length > 0 && (
+        <div className="mb-3 inline-flex rounded-lg bg-surface p-1">
+          {ROOM_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setRoomFilter(f.value)}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                roomFilter === f.value
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground",
+              )}
+            >
+              {f.label}
+              {f.value === "disabled" && ` (${disabledKeys.length})`}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-3">
         {/* Only rooms this centre actually uses. An unnamed spare slot
             isn't a room yet — it's an empty field waiting in the editor. */}
-        {activeSessionKeys(saved).map((key) => {
+        {visibleRoomKeys.map((key) => {
           const room = saved?.[key];
           const configured = Boolean(room?.start && room?.end);
+          const retired = Boolean(room?.disabled);
           return (
             <div
               key={key}
-              className="rounded-lg border border-border p-3.5"
+              className={cn(
+                "rounded-lg border border-border p-3.5",
+                // A retired room reads as history rather than as an
+                // option, without being hidden from someone looking
+                // for it.
+                retired && "opacity-60",
+              )}
             >
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 {/* Opens the room's own view — details, fees, block-outs
