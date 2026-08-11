@@ -23,14 +23,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { fetchApi } from "@/lib/fetch-api";
 import { formatCents } from "@/lib/family-billing";
 import { cn } from "@/lib/utils";
-import {
-  DEFAULT_ROOMS,
-  formatTime,
-  roomFees,
-  roomLabel,
-  type SessionKey,
-  type SessionTimes,
-} from "@/lib/service-settings";
+import { formatTime } from "@/lib/service-settings";
+import type { ServiceRoom } from "@/hooks/useServiceRooms";
 
 type Tab = "details" | "fees" | "closures" | "children";
 
@@ -54,23 +48,34 @@ const dateAU = (iso: string) =>
 
 export function RoomDetailPanel({
   serviceId,
-  sessionKey,
-  sessionTimes,
+  room,
   approvedPlaces,
   open,
   onClose,
 }: {
   serviceId: string;
-  sessionKey: SessionKey | null;
-  sessionTimes: SessionTimes | null | undefined;
+  /**
+   * Stage 2: the panel takes the ROOM RECORD, not an enum slot. Its
+   * name, hours, capacity, ratio, photo and fees all come from the row,
+   * so a room the enum never knew about opens like any other.
+   */
+  room: ServiceRoom | null;
   approvedPlaces: number | null;
   open: boolean;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("details");
 
-  const room = sessionKey ? sessionTimes?.[sessionKey] : undefined;
-  const name = sessionKey ? roomLabel(sessionTimes, sessionKey) : "";
+  const name = room?.name ?? "";
+  /**
+   * Three things below still key off the enum slot: the children in a
+   * room, block-out dates and scheduled fee changes all live behind
+   * routes that filter on `sessionType`. Those move later in Stage 2.
+   * Until they do, a room with no legacy key opens and shows its
+   * details — it just has nothing to show on those three tabs, which
+   * is true rather than broken.
+   */
+  const legacyKey = room?.legacyKey ?? null;
 
   const { data: childData, isLoading: childrenLoading } = useQuery<{
     children: Array<{
@@ -81,12 +86,12 @@ export function RoomDetailPanel({
     }>;
     casualCount: number;
   }>({
-    queryKey: ["service", serviceId, "room-children", sessionKey],
+    queryKey: ["service", serviceId, "room-children", legacyKey],
     queryFn: () =>
-      fetchApi(`/api/services/${serviceId}/rooms/${sessionKey}/children`),
+      fetchApi(`/api/services/${serviceId}/rooms/${legacyKey}/children`),
     // Only fetched when that tab is opened — a room panel shouldn't
     // pull a booking table nobody looked at.
-    enabled: open && tab === "children" && Boolean(sessionKey),
+    enabled: open && tab === "children" && Boolean(legacyKey),
     retry: 1,
   });
 
@@ -120,21 +125,21 @@ export function RoomDetailPanel({
     retry: 1,
   });
 
-  if (!sessionKey) return null;
+  if (!room) return null;
 
-  const fees = roomFees(sessionTimes, sessionKey);
+  const fees = room.fees;
   // Whole-centre closures shut this room too, so both belong here.
   const closures = (blockOutData?.blockOutDates ?? []).filter(
-    (b) => b.sessionType === null || b.sessionType === sessionKey,
+    (b) => b.sessionType === null || b.sessionType === legacyKey,
   );
   const upcomingFeeChanges = (feeChangeData?.changes ?? []).filter(
-    (c) => c.sessionType === sessionKey && c.status === "scheduled",
+    (c) => c.sessionType === legacyKey && c.status === "scheduled",
   );
 
-  const start = room?.start ?? DEFAULT_ROOMS[sessionKey].start;
-  const end = room?.end ?? DEFAULT_ROOMS[sessionKey].end;
+  const start = room.startTime ?? "";
+  const end = room.endTime ?? "";
   const overCapacity =
-    typeof room?.capacity === "number" &&
+    typeof room.capacity === "number" &&
     approvedPlaces != null &&
     room.capacity > approvedPlaces;
 
@@ -220,7 +225,7 @@ export function RoomDetailPanel({
                   warn
                 />
               )}
-              {room?.disabled && (
+              {room.archivedAt && (
                 <Row
                   label="Retired"
                   value="Hidden from new bookings; past records intact"

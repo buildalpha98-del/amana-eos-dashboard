@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useServiceRooms } from "@/hooks/useServiceRooms";
+import { useServiceRooms, type ServiceRoom } from "@/hooks/useServiceRooms";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
@@ -270,7 +270,7 @@ export function RoomsAndFeesCard({
   const [rooms, setRooms] = useState<EditableRooms>(() =>
     toEditable(service.sessionTimes as SessionTimes | null),
   );
-  const [openRoom, setOpenRoom] = useState<SessionKey | null>(null);
+  const [openRoom, setOpenRoom] = useState<ServiceRoom | null>(null);
 
   const saved = (service.sessionTimes ?? null) as SessionTimes | null;
   const saving = updateService.isPending;
@@ -570,19 +570,15 @@ export function RoomsAndFeesCard({
                     renders as plain text rather than a link that does
                     nothing. That resolves when the panel moves in a
                     later part of Stage 2. */}
-                {room.legacyKey ? (
-                  <button
-                    type="button"
-                    onClick={() => setOpenRoom(room.legacyKey!)}
-                    className="text-sm font-medium text-foreground underline decoration-transparent underline-offset-2 hover:decoration-current"
-                  >
-                    {room.name}
-                  </button>
-                ) : (
-                  <span className="text-sm font-medium text-foreground">
-                    {room.name}
-                  </span>
-                )}
+                {/* Every room opens now, including one the enum never
+                    knew about — the panel takes the record. */}
+                <button
+                  type="button"
+                  onClick={() => setOpenRoom(room)}
+                  className="text-sm font-medium text-foreground underline decoration-transparent underline-offset-2 hover:decoration-current"
+                >
+                  {room.name}
+                </button>
                 <p className="text-xs text-muted flex items-center gap-1.5">
                   {room.capacity != null && room.capacity > 0 && (
                     <span className="mr-1">
@@ -631,8 +627,7 @@ export function RoomsAndFeesCard({
 
       <RoomDetailPanel
         serviceId={service.id}
-        sessionKey={openRoom}
-        sessionTimes={saved}
+        room={openRoom}
         approvedPlaces={service.capacity ?? null}
         open={openRoom !== null}
         onClose={() => setOpenRoom(null)}
