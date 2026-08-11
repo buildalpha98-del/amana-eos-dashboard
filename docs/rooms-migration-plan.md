@@ -1,6 +1,6 @@
 # Making rooms first-class records
 
-**Status:** Stages 0 and 1 complete, gate passed. Stages 2–4 are still proposal.
+**Status:** Stages 0 and 1 complete, gate passed. Stage 2 started. Stages 3–4 are still proposal.
 **Written:** 2026-08-09 · **Stage 0 landed:** 2026-08-10 · **Stage 1 landed:** 2026-08-10
 
 ## The problem
@@ -211,10 +211,42 @@ NOT NULL safe on a booking path.
 
 **Revert:** drop the new columns and uniques. Reads never used them.
 
-### Stage 2 — move reads, one surface at a time
+### Stage 2 — move reads, one surface at a time 🚧 STARTED
 
-Reads switch from `sessionType` to `roomId`, in ascending order of blast
-radius, each its own PR:
+**Scope correction.** The plan ordered this by blast radius, starting
+with reporting. Two of those surfaces can't move at all:
+`AttendanceAnomaly` and `RatioSnapshot` store `sessionType` as a plain
+`String`, not the enum, so Stage 1 never gave them a `roomId`. The same
+goes for `AmbassadorSession` and `EnrolmentApplication`.
+
+More importantly, blast radius is the wrong axis. Moving 42 reporting
+reads changes nothing anybody can see and gets no closer to the point of
+the migration. What blocks Stage 3 is not reads in general — it is the
+surfaces that ENUMERATE rooms. They ask for the seven slots and look
+each one up, so an eighth room could exist and still render nowhere.
+
+So Stage 2 now runs room-listing surfaces first:
+
+| Surface | State |
+| --- | --- |
+| `GET /api/services/[id]/rooms` + `useServiceRooms` | ✅ built |
+| Rooms & fees list | ✅ reads room records |
+| Room detail panel | ⬜ still keyed by the enum slot |
+| Booking form / casual spots | ⬜ |
+| The roll | ⬜ |
+| Reporting, billing | ⬜ — and lower priority than the plan claimed |
+
+Fees stay in the JSON through Stage 2, keyed by `legacyKey`. They move to
+a `RoomFee` table in Stage 3; pulling them across early would mean
+writing that table before anything reads it — the shadow-write problem
+Stage 0 already solved once, and not worth solving twice.
+
+A room with a null `legacyKey` — one the enum never knew about — renders
+in the list today but can't open the detail panel, because that panel is
+still keyed by slot. It shows as plain text rather than a link that does
+nothing. That resolves when the panel moves.
+
+The original ordering, for reference:
 
 1. Reporting and read-only surfaces (headcounts, anomalies, forecasts)
 2. Rosters and checklists

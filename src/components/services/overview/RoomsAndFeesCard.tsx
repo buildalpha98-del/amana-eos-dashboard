@@ -15,7 +15,7 @@
  * same room at different hours. Each tier carries its own window.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import {
@@ -29,13 +29,14 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useServiceRooms } from "@/hooks/useServiceRooms";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { toast } from "@/hooks/useToast";
 import { useUpdateService } from "@/hooks/useServices";
 import {
-  activeSessionKeys,
   CORE_SESSION_KEYS,
   DEFAULT_ROOMS,
   EXTRA_SESSION_KEYS,
@@ -298,25 +299,30 @@ export function RoomsAndFeesCard({
     retry: 1,
   });
   /**
-   * A retired room is hidden by default, because nothing forward-looking
-   * should offer it — but it is still findable, because its historical
-   * bookings and attendance point at it and "where did that room go" is
-   * a question people ask.
+   * Stage 2: the list reads ROOM RECORDS, not the seven enum slots.
+   *
+   * This is the change that makes an eighth room possible. Nothing here
+   * enumerates SESSION_KEYS any more — it renders whatever rooms the
+   * centre has, so a room added later appears without another edit.
+   *
+   * Every scope in one query, partitioned below: the filter needs a
+   * count of retired rooms to know whether to show itself at all, and
+   * fetching twice to learn that would be silly.
    */
-  const disabledKeys = SESSION_KEYS.filter((k) => {
-    const r = saved?.[k];
-    // A slot that was never named isn't a retired room, it's an empty
-    // field — it belongs in neither list.
-    const named = CORE_SESSION_KEYS.includes(k) || Boolean(r?.label?.trim());
-    return named && r?.disabled;
-  });
+  const { data: roomData, isLoading: roomsLoading } = useServiceRooms(
+    service.id,
+    "all",
+  );
+  const allRooms = useMemo(() => roomData?.rooms ?? [], [roomData]);
+  const retiredRooms = allRooms.filter((r) => r.archivedAt);
+  const activeRooms = allRooms.filter((r) => !r.archivedAt);
 
-  const visibleRoomKeys =
+  const visibleRooms =
     roomFilter === "active"
-      ? activeSessionKeys(saved)
+      ? activeRooms
       : roomFilter === "disabled"
-        ? disabledKeys
-        : [...activeSessionKeys(saved), ...disabledKeys];
+        ? retiredRooms
+        : allRooms;
 
   const sessionTimes = (sessionTimeData?.sessionTimes ?? []).filter(
     (s) => s.active,
@@ -517,7 +523,7 @@ export function RoomsAndFeesCard({
           A retired room doesn't vanish — its historical bookings and
           attendance still point at it — so "where did Holiday Quest go"
           needs an answer that isn't "ask an engineer". */}
-      {disabledKeys.length > 0 && (
+      {retiredRooms.length > 0 && (
         <div className="mb-3 inline-flex rounded-lg bg-surface p-1">
           {ROOM_FILTERS.map((f) => (
             <button
@@ -532,22 +538,22 @@ export function RoomsAndFeesCard({
               )}
             >
               {f.label}
-              {f.value === "disabled" && ` (${disabledKeys.length})`}
+              {f.value === "disabled" && ` (${retiredRooms.length})`}
             </button>
           ))}
         </div>
       )}
 
       <div className="space-y-3">
-        {/* Only rooms this centre actually uses. An unnamed spare slot
-            isn't a room yet — it's an empty field waiting in the editor. */}
-        {visibleRoomKeys.map((key) => {
-          const room = saved?.[key];
-          const configured = Boolean(room?.start && room?.end);
-          const retired = Boolean(room?.disabled);
+        {roomsLoading && allRooms.length === 0 && (
+          <Skeleton className="h-20 w-full rounded-lg" />
+        )}
+        {visibleRooms.map((room) => {
+          const configured = Boolean(room.startTime && room.endTime);
+          const retired = Boolean(room.archivedAt);
           return (
             <div
-              key={key}
+              key={room.id}
               className={cn(
                 "rounded-lg border border-border p-3.5",
                 // A retired room reads as history rather than as an
@@ -558,16 +564,27 @@ export function RoomsAndFeesCard({
             >
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 {/* Opens the room's own view — details, fees, block-outs
-                    and who's in it, without leaving this page. */}
-                <button
-                  type="button"
-                  onClick={() => setOpenRoom(key)}
-                  className="text-sm font-medium text-foreground underline decoration-transparent underline-offset-2 hover:decoration-current"
-                >
-                  {roomLabel(saved, key)}
-                </button>
+                    and who's in it, without leaving this page.
+                    The panel is still keyed by the enum slot, so a room
+                    the enum never knew about isn't openable yet; it
+                    renders as plain text rather than a link that does
+                    nothing. That resolves when the panel moves in a
+                    later part of Stage 2. */}
+                {room.legacyKey ? (
+                  <button
+                    type="button"
+                    onClick={() => setOpenRoom(room.legacyKey!)}
+                    className="text-sm font-medium text-foreground underline decoration-transparent underline-offset-2 hover:decoration-current"
+                  >
+                    {room.name}
+                  </button>
+                ) : (
+                  <span className="text-sm font-medium text-foreground">
+                    {room.name}
+                  </span>
+                )}
                 <p className="text-xs text-muted flex items-center gap-1.5">
-                  {room?.capacity != null && room.capacity > 0 && (
+                  {room.capacity != null && room.capacity > 0 && (
                     <span className="mr-1">
                       {room.capacity} places
                       {room.ratio ? ` at ${room.ratio}` : ""} ·
@@ -575,18 +592,16 @@ export function RoomsAndFeesCard({
                   )}
                   <Clock className="w-3.5 h-3.5" />
                   {configured ? (
-                    `${formatTime(room!.start)} – ${formatTime(room!.end)}`
+                    `${formatTime(room.startTime)} – ${formatTime(room.endTime)}`
                   ) : (
                     <span className="text-amber-700 dark:text-amber-300">
-                      Not set — defaults to{" "}
-                      {formatTime(DEFAULT_ROOMS[key].start)} –{" "}
-                      {formatTime(DEFAULT_ROOMS[key].end)}
+                      Hours not set
                     </span>
                   )}
                 </p>
               </div>
 
-              {room?.fees && room.fees.length > 0 ? (
+              {room.fees.length > 0 ? (
                 <ul className="mt-2 space-y-1">
                   {room.fees.map((f) => (
                     <li
