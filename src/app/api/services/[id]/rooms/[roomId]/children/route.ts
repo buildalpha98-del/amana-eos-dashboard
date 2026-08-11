@@ -14,30 +14,26 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
-import type { SessionType } from "@prisma/client";
-
-const SESSION_TYPES = new Set([
-  "bsc",
-  "asc",
-  "vc",
-  "extra1",
-  "extra2",
-  "extra3",
-  "extra4",
-]);
 
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const GET = withApiAuth(async (_req, session, context) => {
-  const { id, sessionType } = (await context!.params!) as {
+  const { id, roomId } = (await context!.params!) as {
     id: string;
-    sessionType: string;
+    roomId: string;
   };
   assertServiceAccess(session as never, id);
 
-  if (!SESSION_TYPES.has(sessionType)) {
-    throw ApiError.badRequest("Unknown room");
-  }
+  /**
+   * Stage 2: addressed by ROOM, not by enum slot. The room has to
+   * belong to this service — an id from elsewhere would otherwise list
+   * another centre's children through this centre's URL.
+   */
+  const room = await prisma.room.findFirst({
+    where: { id: roomId, serviceId: id },
+    select: { id: true },
+  });
+  if (!room) throw ApiError.notFound("Room not found at this service");
 
   // Only bookings from here on: a pattern set last year still describes
   // the room today, but one from two years ago is noise.
@@ -48,7 +44,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
   const bookings = await prisma.booking.findMany({
     where: {
       serviceId: id,
-      sessionType: sessionType as SessionType,
+      roomId,
       status: { in: ["confirmed", "requested"] },
       date: { gte: since },
     },

@@ -100,6 +100,9 @@ export const GET = withApiAuth(async (req, session, context) => {
       id: r.id,
       date: r.date,
       sessionType: r.sessionType,
+      // Stage 2: callers filter by room. Null still means the whole
+      // centre — a closure with no room shuts every room.
+      roomId: r.roomId,
       // Null session = the whole centre, and the UI should say so
       // rather than leaving a blank where a room name goes.
       programmeName: r.sessionType ? programmeName(r.sessionType) : null,

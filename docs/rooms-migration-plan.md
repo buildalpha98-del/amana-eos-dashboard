@@ -242,11 +242,14 @@ writing that table before anything reads it — the shadow-write problem
 Stage 0 already solved once, and not worth solving twice.
 
 Every room opens the detail panel now, including one the enum never knew
-about. Three sections inside it still key off the slot — the children in
-a room, block-out dates and scheduled fee changes all sit behind routes
-that filter on `sessionType`. A room with no legacy key opens and shows
-its details; those three tabs are simply empty for it, which is true
-rather than broken. They move with their routes.
+about — and all four of its tabs work. The children route is addressed
+by room id rather than slot (`/rooms/[roomId]/children`), and the
+block-out and fee-change payloads carry `roomId` so the panel filters on
+that. A closure with a null room still means the whole centre, which is
+why that filter reads `roomId === null || roomId === room.id` rather
+than dropping the null case.
+
+Nothing in the panel reads `sessionTimes` or a session key any more.
 
 The original ordering, for reference:
 

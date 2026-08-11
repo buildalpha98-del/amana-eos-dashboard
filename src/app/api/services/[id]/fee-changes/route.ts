@@ -69,6 +69,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
     changes: rows.map((r) => ({
       id: r.id,
       sessionType: r.sessionType,
+      // Stage 2: callers filter by room rather than by slot.
+      roomId: r.roomId,
       roomName: roomLabel(times, r.sessionType as never),
       feeTierId: r.feeTierId,
       feeName: r.feeName,
