@@ -93,17 +93,39 @@ function OwnerCell({
   );
 }
 
-function getTrailing13Weeks(): Date[] {
+/**
+ * The trailing weeks, most recent first. Index 0 is LAST week — the
+ * current week is still being lived and has nothing to review.
+ */
+function getTrailingWeeks(count: number): Date[] {
   const weeks: Date[] = [];
   const current = getWeekStart();
-  // Start from previous week (index 0 = last week), going back 13 weeks
-  for (let i = 1; i <= 13; i++) {
+  for (let i = 1; i <= count; i++) {
     const d = new Date(current);
     d.setDate(d.getDate() - i * 7);
     weeks.push(d);
   }
   return weeks;
 }
+
+/**
+ * The rolling average is always over 13 weeks — a quarter — whatever is
+ * on screen. It is an EOS measure, not a property of the view, and
+ * recomputing it from four visible columns would quietly change what
+ * the number means.
+ */
+const AVG_WEEKS = 13;
+
+/**
+ * How many week columns to show.
+ *
+ * Four by default: a quarter of columns is mostly empty most of the
+ * time, and thirteen of them squeeze the weeks that DO have numbers
+ * into a third of the width. The longer views stay one click away for
+ * anyone reading a trend rather than last month.
+ */
+const WEEK_OPTIONS = [4, 8, 13] as const;
+const DEFAULT_WEEKS = 4;
 
 function formatWeekRange(weekStart: Date): string {
   const endDate = new Date(weekStart);
@@ -133,7 +155,11 @@ export function ScorecardGrid({
   onEdit?: (measurable: ScorecardData["measurables"][number]) => void;
   onDelete?: (measurable: ScorecardData["measurables"][number]) => void;
 }) {
-  const weeks = useMemo(() => getTrailing13Weeks(), []);
+  const [weeksShown, setWeeksShown] = useState<number>(DEFAULT_WEEKS);
+
+  const weeks = useMemo(() => getTrailingWeeks(weeksShown), [weeksShown]);
+  /** Always 13, independent of the columns on screen. */
+  const avgWeeks = useMemo(() => getTrailingWeeks(AVG_WEEKS), []);
   const [dragId, setDragId] = useState<string | null>(null);
   const [trendId, setTrendId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -211,7 +237,7 @@ export function ScorecardGrid({
   const avgLookup = useMemo(() => {
     const avgs: Record<string, number | null> = {};
     for (const m of scorecard.measurables) {
-      const entries = weeks
+      const entries = avgWeeks
         .map((w) => entryLookup[m.id]?.[w.toISOString().split("T")[0]])
         .filter((e): e is MeasurableEntry => !!e);
       if (entries.length > 0) {
@@ -222,7 +248,7 @@ export function ScorecardGrid({
       }
     }
     return avgs;
-  }, [scorecard.measurables, weeks, entryLookup]);
+  }, [scorecard.measurables, avgWeeks, entryLookup]);
 
   // On-track stats for current week
   const currentWeekStats = useMemo(() => {
@@ -269,6 +295,22 @@ export function ScorecardGrid({
             No data entered this week yet
           </span>
         )}
+
+        <label className="ml-auto flex items-center gap-1.5 text-xs text-muted">
+          Show
+          <select
+            value={weeksShown}
+            onChange={(e) => setWeeksShown(Number(e.target.value))}
+            aria-label="How many weeks to show"
+            className="rounded-lg border border-border bg-card px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30"
+          >
+            {WEEK_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n === AVG_WEEKS ? `${n} weeks (full quarter)` : `${n} weeks`}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {/* Grid */}
@@ -288,7 +330,13 @@ export function ScorecardGrid({
                 Owner
               </th>
               <th className="px-2 py-3 text-center text-xs font-semibold text-brand uppercase tracking-wider w-[70px] bg-brand/5">
-                13wk Avg
+                <span className="inline-flex items-center gap-1">
+                  13wk Avg
+                  <HelpTooltip
+                    id="scorecard-13wk-avg"
+                    content="The rolling average over the last 13 weeks — a full quarter. It stays a 13-week average however many week columns you choose to show."
+                  />
+                </span>
               </th>
               {weeks.map((week) => (
                 <th
