@@ -19,12 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
-import {
-  activeSessionKeys,
-  roomLabel,
-  type SessionTimes,
-} from "@/lib/service-settings";
-
+import { useServiceRooms } from "@/hooks/useServiceRooms";
 interface SpotRow {
   date: string;
   sessionType: string;
@@ -67,11 +62,9 @@ const dayLabel = (ymd: string) =>
 
 export function CasualSpotsGrid({
   serviceId,
-  sessionTimes,
   canEdit,
 }: {
   serviceId: string;
-  sessionTimes: SessionTimes | null | undefined;
   canEdit: boolean;
 }) {
   const qc = useQueryClient();
@@ -126,7 +119,18 @@ export function CasualSpotsGrid({
       toast({ variant: "destructive", description: e.message }),
   });
 
-  const rooms = activeSessionKeys(sessionTimes);
+  /**
+   * Stage 2: the room list comes from the room records, so a room a
+   * centre adds later appears here without another change.
+   *
+   * The VALUE is still the legacy slot, because the casual-spots write
+   * route keys on `sessionType`. A room the enum never knew about is
+   * shown but not selectable — listing it and then failing the save
+   * would be worse than saying plainly that it can't be set yet. That
+   * lifts when the write route moves.
+   */
+  const { data: roomData } = useServiceRooms(serviceId);
+  const rooms = roomData?.rooms ?? [];
   const rows = (data?.rows ?? []).filter((r) => r.enabled);
 
   return (
@@ -180,8 +184,13 @@ export function CasualSpotsGrid({
               >
                 <option value="">Choose…</option>
                 {rooms.map((r) => (
-                  <option key={r} value={r}>
-                    {roomLabel(sessionTimes, r)}
+                  <option
+                    key={r.id}
+                    value={r.legacyKey ?? ""}
+                    disabled={!r.legacyKey}
+                  >
+                    {r.name}
+                    {r.legacyKey ? "" : " — not available yet"}
                   </option>
                 ))}
               </select>
