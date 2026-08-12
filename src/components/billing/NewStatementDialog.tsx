@@ -6,6 +6,8 @@ import { X, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCreateStatement } from "@/hooks/useBilling";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { useServiceRooms, type ServiceRoom } from "@/hooks/useServiceRooms";
+import type { SessionType } from "@prisma/client";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -15,7 +17,12 @@ interface LineItem {
   key: number;
   childId: string;
   date: string;
-  sessionType: "bsc" | "asc" | "vc";
+  /**
+   * Any of the centre's rooms. Stage 2 of docs/rooms-migration-plan.md
+   * — this was three literals and a three-option select, so a session
+   * in an extra room could not be hand-invoiced at all.
+   */
+  sessionType: SessionType;
   description: string;
   grossFee: number;
   ccsHours: number;
@@ -50,6 +57,12 @@ export function NewStatementDialog({
   // Form state
   const [contactId, setContactId] = useState("");
   const [serviceId, setServiceId] = useState("");
+  /**
+   * The chosen centre's rooms. Empty until a centre is picked, which is
+   * also when a line item can first be added.
+   */
+  const { data: roomData } = useServiceRooms(serviceId || null);
+  const rooms = roomData?.rooms ?? [];
   const [periodStart, setPeriodStart] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -79,14 +92,22 @@ export function NewStatementDialog({
         key: ++lineKeyCounter,
         childId: "",
         date: periodStart,
-        sessionType: "asc",
+        // The afternoon programme where the centre runs one, otherwise
+        // its first room. Defaulting to a slot the centre doesn't have
+        // would create a line that fails on save.
+        sessionType:
+          ((roomData?.rooms ?? []).find((r) => r.legacyKey === "asc") ??
+            roomData?.rooms?.[0])?.legacyKey ?? "asc",
         description: "",
         grossFee: 0,
         ccsHours: 0,
         ccsRate: 0,
       },
     ]);
-  }, [periodStart]);
+    // `roomData` rather than `rooms`: React Query hands back the same
+    // object while it's cached, where the `?? []` fallback would be a
+    // fresh array on every render.
+  }, [periodStart, roomData]);
 
   const updateLine = useCallback(
     (key: number, patch: Partial<LineItem>) => {
@@ -254,6 +275,7 @@ export function NewStatementDialog({
                     <LineItemRow
                       key={li.key}
                       item={li}
+                      rooms={rooms}
                       onChange={(patch) => updateLine(li.key, patch)}
                       onRemove={() => removeLine(li.key)}
                     />
@@ -307,10 +329,13 @@ export function NewStatementDialog({
 
 function LineItemRow({
   item,
+  rooms,
   onChange,
   onRemove,
 }: {
   item: LineItem;
+  /** The chosen centre's rooms — however many it has. */
+  rooms: ServiceRoom[];
   onChange: (patch: Partial<LineItem>) => void;
   onRemove: () => void;
 }) {
@@ -339,17 +364,27 @@ function LineItemRow({
             className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs min-h-[36px] focus:outline-none focus:ring-2 focus:ring-brand/50"
           />
         </Field>
-        <Field label="Session Type" compact>
+        <Field label="Room" compact>
           <select
             value={item.sessionType}
             onChange={(e) =>
-              onChange({ sessionType: e.target.value as LineItem["sessionType"] })
+              onChange({ sessionType: e.target.value as SessionType })
             }
             className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs min-h-[36px] focus:outline-none focus:ring-2 focus:ring-brand/50"
           >
-            <option value="bsc">BSC</option>
-            <option value="asc">ASC</option>
-            <option value="vc">VAC</option>
+            {/* A room with no legacy key can't be billed yet — the line
+                item is still keyed by slot until Stage 4 — so it's
+                listed and disabled rather than silently absent. */}
+            {rooms.map((r) => (
+              <option
+                key={r.id}
+                value={r.legacyKey ?? ""}
+                disabled={!r.legacyKey}
+              >
+                {r.name}
+                {r.legacyKey ? "" : " — not available yet"}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Description" compact>

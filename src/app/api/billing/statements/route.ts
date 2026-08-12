@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { $Enums } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
@@ -59,7 +60,15 @@ export const GET = withApiAuth(async (req, session) => {
 const lineItemSchema = z.object({
   childId: z.string().min(1),
   date: z.string().min(1),
-  sessionType: z.enum(["bsc", "asc", "vc"]),
+  /**
+   * Any of the centre's rooms.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md. This was a literal three,
+   * which meant a booking in an extra room could NEVER reach a
+   * statement — not a labelling problem, a family not being billed.
+   * `resolveRoomIds` below still refuses a slot the centre doesn't run.
+   */
+  sessionType: z.nativeEnum($Enums.SessionType),
   description: z.string().min(1),
   grossFee: z.number(),
   ccsHours: z.number(),

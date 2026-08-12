@@ -333,8 +333,76 @@ REPRESENTED — it couldn't be before, however correct the database row.
 
 **The roll's four label maps are now one thing: the room's name.**
 
-Left in Stage 2: reporting and billing. Both are lower priority than the
-plan originally claimed — see the note above.
+### Billing ✅ statements
+
+**The bug, not the label.** Both statement routes carried
+`z.enum(["bsc","asc","vc"])` on their line items, so a booking in an
+extra room could not reach a statement at all — the family simply was
+not billed for it, while the roll, the booking form and the casual
+spots had all already learned to offer that room. Both take the Prisma
+`SessionType` now.
+
+The naming half had **three separate hardcoded `{bsc:"BSC"}` maps** —
+the statement PDF, the staff detail panel, and the generated line
+description — plus `programmeName()` on the parent page, which is
+org-wide and ignores whatever a centre named its rooms. So a family in
+an extra room read "EXTRA1" on the document they keep. All four now
+show the room's own name.
+
+New: `src/lib/room-names.ts`, the read-side counterpart to
+`room-resolver.ts` — that turns a slot into a `roomId`, this turns a
+`roomId` into a name, with the same one-minute cache. **Retired rooms
+are included deliberately**: this is the path that renders history, and
+a statement from March whose room has since been retired still has to
+say which room it was.
+
+The manual invoice builder's three-option select is now one option per
+room, with no-legacy-key rooms listed and disabled.
+
+### Reporting ⚠️ bigger than this plan assumed — see below
+
+A survey found **31 unmigrated reporting surfaces**, and the shape is
+different from everything Stage 2 has done so far. Three findings change
+the plan:
+
+**1. The dominant pattern is hardcoded `bsc`/`asc`, not enumeration.**
+Very few of these call `SESSION_KEYS` or `activeSessionKeys`. They read
+`if (rec.sessionType === "bsc") … else if (… === "asc")`, as struct
+fields. Widening them is a rewrite of the aggregation, not a label swap.
+
+**2. `vc` is already silently dropped in ten of them** — staffing cost,
+board occupancy, the weekly report, coverage alerts, demand forecast,
+health scores. Vacation care does not appear in those numbers today.
+That is a live reporting bug independent of rooms, and arguably worth
+more than the rooms work: it is wrong for every centre right now, not
+just a hypothetical eighth room.
+
+**3. Several are blocked on the schema, not the code.** Session codes
+are *columns*, not rows:
+
+- `Service.bscTarget` / `ascTarget` / `bscDailyRate` / `ascDailyRate` /
+  `bscCasualRate` / `ascCasualRate`
+- `CentreMetric.bscOccupancy` / `ascOccupancy`
+- `CentreFinancials.bscEnrolments` / `ascEnrolments`
+
+And three models carry no `roomId` at all: `RatioSnapshot`,
+`AttendanceAnomaly`, `AmbassadorSession`.
+
+Those columns drive the marketing occupancy heatmap, the launch
+tracker, the exec dashboard, the board pack and health scores. No
+amount of read-migration reaches them — they need their own expand →
+migrate → contract, which is Stage 3-sized work on its own.
+
+**Also worth recording:** there are now **five competing label
+vocabularies** for the same three codes — `session-labels.ts` (twice),
+`programme-names.ts`, and local maps in `RatioWidget`,
+`ServiceTodayPanel`, `AttendancesTab` and `RoomDaysTab`. None of them
+reaches `roomLabel`, so none respects a centre's own room name.
+
+**Recommendation:** treat reporting as its own stage rather than the
+tail of this one. Do the `vc`-dropped bug first, since it is wrong
+today; then the per-session *columns*; then the read migration, which
+is the easy part once those land.
 
 The original ordering, for reference:
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { $Enums } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
@@ -18,7 +19,17 @@ export const GET = withApiAuth(async (_req, _session, context) => {
       contact: { select: { id: true, firstName: true, lastName: true, email: true } },
       service: { select: { id: true, name: true } },
       lineItems: {
-        include: { child: { select: { id: true, firstName: true, surname: true } } },
+        include: {
+          child: { select: { id: true, firstName: true, surname: true } },
+          /**
+           * Stage 2 of docs/rooms-migration-plan.md. The line has
+           * carried a NOT NULL roomId since Stage 1; this is the read
+           * that finally uses it. Every screen showing a session used
+           * its own hardcoded {bsc:"BSC"} map, so a line for a room the
+           * enum never knew about rendered as its raw code.
+           */
+          room: { select: { id: true, name: true } },
+        },
         orderBy: { date: "asc" },
       },
       payments: {
@@ -40,7 +51,15 @@ export const GET = withApiAuth(async (_req, _session, context) => {
 const lineItemSchema = z.object({
   childId: z.string().min(1),
   date: z.string().min(1),
-  sessionType: z.enum(["bsc", "asc", "vc"]),
+  /**
+   * Any of the centre's rooms.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md. This was a literal three,
+   * which meant a booking in an extra room could NEVER reach a
+   * statement — not a labelling problem, a family not being billed.
+   * `resolveRoomIds` below still refuses a slot the centre doesn't run.
+   */
+  sessionType: z.nativeEnum($Enums.SessionType),
   description: z.string().min(1),
   grossFee: z.number(),
   ccsHours: z.number(),

@@ -339,6 +339,13 @@ export interface StatementDetailResponse {
     id: string;
     date: string;
     sessionType: string;
+    /**
+     * The room's own name. Stage 2 of docs/rooms-migration-plan.md —
+     * a parent used to see "EXTRA1" here, because the label came from
+     * an org-wide map that only knew three codes and ignored whatever
+     * the centre had actually named its rooms.
+     */
+    room: { id: string; name: string } | null;
     description: string;
     grossFee: number;
     ccsAmount: number;
