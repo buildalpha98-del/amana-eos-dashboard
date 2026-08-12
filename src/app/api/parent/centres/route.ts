@@ -19,8 +19,25 @@ import { prisma } from "@/lib/prisma";
 import { mergeServiceContent } from "@/lib/service-content-shared";
 import {
   bookableSessionKeys,
+  type SessionKey,
   type SessionTimes,
 } from "@/lib/service-settings";
+import { desiredRooms } from "@/lib/rooms-mapping";
+
+/**
+ * A room as the booking form needs it.
+ *
+ * Stage 2 of docs/rooms-migration-plan.md. `id` is nullable because of
+ * the fallback below — a derived room genuinely has no record yet, and
+ * saying so beats inventing an id that resolves to nothing.
+ */
+interface ParentRoom {
+  id: string | null;
+  legacyKey: SessionKey | null;
+  name: string;
+  startTime: string | null;
+  endTime: string | null;
+}
 
 /**
  * Session keys this centre is currently accepting casual bookings for.
@@ -116,14 +133,83 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       // otherwise Holiday Quest (and any unused extra room) shows up as
       // bookable at a centre that doesn't run it.
       casualBookingSettings: true,
-      // Room names, hours and fees. Parents see "Rise and Shine
-      // (6:30am – 9:00am)", not "BSC" — the labels are per-centre, so
-      // they have to travel with the centre rather than be hardcoded
-      // in the booking form.
+      // Not sent to the client any more — rooms travel as records. Still
+      // read here because the casual-booking filter is keyed by slot,
+      // and because the no-rooms fallback derives from it.
       sessionTimes: true,
     },
     orderBy: { name: "asc" },
   });
+
+  /**
+   * The rooms themselves, as records.
+   *
+   * The booking form used to build its options by enumerating the seven
+   * enum slots and looking each one up in `sessionTimes`. That is what
+   * made an eighth room impossible to offer a family — not the storage,
+   * which has had a `Room` table since Stage 0, but the fact that
+   * nothing ASKED for the rooms.
+   *
+   * Staff-only and retired rooms are excluded here rather than in the
+   * form: a family should never be offered either, and a filter the
+   * caller can forget to apply is a filter that will be forgotten.
+   */
+  const roomRows = await prisma.room.findMany({
+    where: {
+      serviceId: { in: Array.from(serviceIds) },
+      archivedAt: null,
+      staffOnly: false,
+    },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      serviceId: true,
+      legacyKey: true,
+      name: true,
+      startTime: true,
+      endTime: true,
+    },
+  });
+
+  const roomsByService = new Map<string, ParentRoom[]>();
+  for (const r of roomRows) {
+    const list = roomsByService.get(r.serviceId) ?? [];
+    list.push({
+      id: r.id,
+      legacyKey: r.legacyKey as SessionKey | null,
+      name: r.name,
+      startTime: r.startTime,
+      endTime: r.endTime,
+    });
+    roomsByService.set(r.serviceId, list);
+  }
+
+  /**
+   * A centre with no room records falls back to deriving them.
+   *
+   * Every write path that creates or edits a service syncs its rooms,
+   * and the Stage 0 backfill covered the rest — so this should never
+   * fire. But `syncRoomsQuietly` swallows its failures by design, and
+   * the cost of being wrong here is a family opening the booking form
+   * to no programmes at all, with nothing to tell them why. Deriving
+   * from the same JSON the sync uses is a cheap, pure way to make that
+   * failure invisible to parents rather than total.
+   */
+  function roomsFor(id: string, sessionTimes: SessionTimes | null) {
+    const stored = roomsByService.get(id);
+    if (stored?.length) return stored;
+    return desiredRooms(sessionTimes)
+      .filter((r) => !r.disabled && !r.staffOnly)
+      .map(
+        (r): ParentRoom => ({
+          id: null,
+          legacyKey: r.legacyKey,
+          name: r.name,
+          startTime: r.startTime,
+          endTime: r.endTime,
+        }),
+      );
+  }
 
   // Resolve the policy documents each centre has selected. Fetched in one
   // query across all of them, and filtered to category "policy" here so a
@@ -166,6 +252,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       (s.sessionTimes ?? null) as SessionTimes | null,
     ),
     casualSessionDays: enabledCasualSessionDays(s.casualBookingSettings),
+    rooms: roomsFor(s.id, (s.sessionTimes ?? null) as SessionTimes | null),
     // Order follows the admin's selection, not the database's.
     policies: (contentByService.get(s.id)?.policyDocumentIds ?? [])
       .map((id) => policyById.get(id))
@@ -176,7 +263,6 @@ export const GET = withParentAuth(async (_req, { parent }) => {
         fileUrl: d.fileUrl,
         fileName: d.fileName,
       })),
-    sessionTimes: s.sessionTimes,
   }));
 
   return NextResponse.json({ centres });

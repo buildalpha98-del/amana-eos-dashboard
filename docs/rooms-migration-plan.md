@@ -233,7 +233,7 @@ So Stage 2 now runs room-listing surfaces first:
 | Rooms & fees list | ✅ reads room records |
 | Room detail panel | ✅ takes the room record |
 | Casual spots picker | ✅ reads room records |
-| Parent booking form | ⬜ |
+| Parent booking form | ✅ rooms travel on `/api/parent/centres` |
 | The roll | ⬜ |
 | Reporting, billing | ⬜ — and lower priority than the plan claimed |
 
@@ -251,6 +251,20 @@ why that filter reads `roomId === null || roomId === room.id` rather
 than dropping the null case.
 
 Nothing in the panel reads `sessionTimes` or a session key any more.
+
+The parent side moved the same way, with one difference worth recording:
+families can't call `/api/services/[id]/rooms` (staff session), so the
+rooms travel on `/api/parent/centres` instead, filtered to active and
+non-staff-only in the query rather than in the form. `sessionTimes` came
+OFF that payload entirely — leaving it there is an invitation to reach
+past the records into the JSON again.
+
+That route also carries the one fallback in Stage 2: a centre with no
+`Room` rows derives them from its JSON, with `id: null` to say so. Every
+service write path syncs rooms and the Stage 0 backfill covered the rest,
+so it should never fire — but `syncRoomsQuietly` swallows failures by
+design, and the cost of being wrong on this surface is a family opening
+the booking form to no programmes and no explanation.
 
 The original ordering, for reference:
 
