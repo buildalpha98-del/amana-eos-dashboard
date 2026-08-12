@@ -86,12 +86,12 @@ export function RoomDetailPanel({
     }>;
     casualCount: number;
   }>({
-    queryKey: ["service", serviceId, "room-children", legacyKey],
+    queryKey: ["service", serviceId, "room-children", room?.id],
     queryFn: () =>
-      fetchApi(`/api/services/${serviceId}/rooms/${legacyKey}/children`),
+      fetchApi(`/api/services/${serviceId}/rooms/${room?.id}/children`),
     // Only fetched when that tab is opened — a room panel shouldn't
     // pull a booking table nobody looked at.
-    enabled: open && tab === "children" && Boolean(legacyKey),
+    enabled: open && tab === "children" && Boolean(room?.id),
     retry: 1,
   });
 
@@ -99,7 +99,7 @@ export function RoomDetailPanel({
     blockOutDates: Array<{
       id: string;
       date: string;
-      sessionType: string | null;
+      roomId: string | null;
       reason: string | null;
     }>;
   }>({
@@ -112,7 +112,7 @@ export function RoomDetailPanel({
   const { data: feeChangeData } = useQuery<{
     changes: Array<{
       id: string;
-      sessionType: string;
+      roomId: string | null;
       feeName: string;
       toAmountCents: number;
       effectiveDate: string;
@@ -129,11 +129,12 @@ export function RoomDetailPanel({
 
   const fees = room.fees;
   // Whole-centre closures shut this room too, so both belong here.
+  // Whole-centre closures carry no room and shut this one too.
   const closures = (blockOutData?.blockOutDates ?? []).filter(
-    (b) => b.sessionType === null || b.sessionType === legacyKey,
+    (b) => b.roomId === null || b.roomId === room.id,
   );
   const upcomingFeeChanges = (feeChangeData?.changes ?? []).filter(
-    (c) => c.sessionType === legacyKey && c.status === "scheduled",
+    (c) => c.roomId === room.id && c.status === "scheduled",
   );
 
   const start = room.startTime ?? "";
@@ -301,7 +302,7 @@ export function RoomDetailPanel({
                   <li key={b.id} className="py-2">
                     <p className="text-sm text-foreground">{dateAU(b.date)}</p>
                     <p className="text-xs text-muted">
-                      {b.sessionType === null
+                      {b.roomId === null
                         ? "Whole centre closed"
                         : "This room only"}
                       {b.reason && ` · ${b.reason}`}
