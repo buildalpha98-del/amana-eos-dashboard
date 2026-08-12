@@ -232,7 +232,8 @@ So Stage 2 now runs room-listing surfaces first:
 | `GET /api/services/[id]/rooms` + `useServiceRooms` | ✅ built |
 | Rooms & fees list | ✅ reads room records |
 | Room detail panel | ✅ takes the room record |
-| Booking form / casual spots | ⬜ |
+| Casual spots picker | ✅ reads room records |
+| Parent booking form | ⬜ |
 | The roll | ⬜ |
 | Reporting, billing | ⬜ — and lower priority than the plan claimed |
 

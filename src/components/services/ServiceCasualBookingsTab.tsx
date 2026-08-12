@@ -215,11 +215,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
         <h3 className="text-sm font-semibold text-foreground mb-3">
           Casual spots
         </h3>
-        <CasualSpotsGrid
-          serviceId={service.id}
-          sessionTimes={service.sessionTimes}
-          canEdit={canEdit}
-        />
+        <CasualSpotsGrid serviceId={service.id} canEdit={canEdit} />
       </div>
 
       {/* ── What's actually enforced ────────────────────────
