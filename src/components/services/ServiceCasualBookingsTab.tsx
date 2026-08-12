@@ -13,14 +13,10 @@ import { isAdminRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 import {
   casualBookingSettingsSchema,
-  activeSessionKeys,
-  roomFees,
-  archivedRoomFees,
-  roomLabel,
   type BookingPolicy,
   type CasualBookingSettings,
-  type SessionTimes,
 } from "@/lib/service-settings";
+import { useServiceRooms, type ServiceRoom } from "@/hooks/useServiceRooms";
 import { cn } from "@/lib/utils";
 
 // ── Constants ─────────────────────────────────────────────────
@@ -41,18 +37,12 @@ const SESSION_TYPES = [
 type SessionType = (typeof SESSION_TYPES)[number];
 
 /**
- * Fallbacks only. The heading shown is the centre's OWN room name from
- * Service Info → Rooms & fees — "Rise and Shine", "Amana Afternoons",
- * "Holiday Quest" — because that's what staff and families call them.
+ * Short form for aria labels only. Extra slots fall back to their code.
+ *
+ * There is no label map here any more — the heading on each card is the
+ * room record's own name, which is what staff and families call it.
  * "Before School Care (BSC)" is the filing code, not the programme.
  */
-const SESSION_LABELS: Partial<Record<SessionType, string>> = {
-  bsc: "Rise and Shine",
-  asc: "Amana Afternoons",
-  vc: "Holiday Quest",
-};
-
-/** Short form for aria labels. Extra slots fall back to their code. */
 const SESSION_SHORT: Partial<Record<SessionType, string>> = {
   bsc: "BSC",
   asc: "ASC",
@@ -134,8 +124,6 @@ interface Service {
   id: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   casualBookingSettings?: any;
-  /** Room config — the grid needs room names and which rooms exist. */
-  sessionTimes?: SessionTimes | null;
 }
 
 export function ServiceCasualBookingsTab({ service }: { service: Service }) {
@@ -152,9 +140,20 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
   const [settings, setSettings] = useState<SettingsBlob>(() =>
     parseInitial(service.casualBookingSettings),
   );
-  const sessionTimes =
-    (service as { sessionTimes?: SessionTimes | null }).sessionTimes ?? null;
-  const activeTypes = activeSessionKeys(sessionTimes) as SessionType[];
+  /**
+   * One card per ROOM, from the room records.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md. This used to enumerate the
+   * seven enum slots and filter them through the centre's JSON, which
+   * meant an eighth room could exist and have no settings card. Rooms
+   * with no `legacyKey` are left out for now: the settings blob and the
+   * booking record are both keyed by slot until Stage 4, so there is
+   * nowhere yet to store their settings.
+   */
+  const { data: roomData } = useServiceRooms(service.id);
+  const rooms = (roomData?.rooms ?? []).filter(
+    (r): r is ServiceRoom & { legacyKey: SessionType } => r.legacyKey !== null,
+  );
 
   const saveMutation = useMutation({
     mutationFn: (payload: SettingsBlob) =>
@@ -196,12 +195,12 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
   }
 
   const previewLines = useMemo(() => {
-    return activeTypes.map((t) => {
-      const s = settings[t];
+    return rooms.map((room) => {
+      const s = settings[room.legacyKey];
       if (!s?.enabled) return null;
-      return `Parents can book casual ${roomLabel(sessionTimes, t)} up to ${s.cutOffHours} hours before the session at ${formatCurrency(s.fee)} (${s.spots} ${s.spots === 1 ? "spot" : "spots"} available).`;
+      return `Parents can book casual ${room.name} up to ${s.cutOffHours} hours before the session at ${formatCurrency(s.fee)} (${s.spots} ${s.spots === 1 ? "spot" : "spots"} available).`;
     }).filter((line): line is string => line !== null);
-  }, [settings, activeTypes, sessionTimes]);
+  }, [settings, rooms]);
 
   function handleSave() {
     saveMutation.mutate(settings);
@@ -282,8 +281,9 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
 
       {/* ── One card per programme this centre runs ──────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {activeTypes.map((type) => {
-          // A slot named a moment ago has no saved settings row yet, so
+        {rooms.map((room) => {
+          const type = room.legacyKey;
+          // A room named a moment ago has no saved settings row yet, so
           // it starts from the defaults rather than crashing the card.
           const s = settings[type] ?? { ...defaultSessionSetting, days: [] };
           return (
@@ -294,7 +294,7 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
             >
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-foreground">
-                  {roomLabel(sessionTimes, type)}
+                  {room.name}
                 </h4>
                 <label className="inline-flex items-center gap-2 text-xs text-muted">
                   <input
@@ -310,6 +310,17 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                   Enabled
                 </label>
               </div>
+
+              {/* The room record knows this; the settings blob doesn't.
+                  A staff-only room is filtered out of the family booking
+                  form regardless of what's ticked here, so saying so
+                  beats leaving someone to wonder why nothing appeared. */}
+              {room.staffOnly && (
+                <p className="text-2xs text-muted -mt-2">
+                  Staff-only room — families won&apos;t see this even when
+                  enabled.
+                </p>
+              )}
 
               {/* Price comes from Rooms & fees when a tier is linked, so
                   a fee rise happens once rather than being remembered
@@ -328,32 +339,29 @@ export function ServiceCasualBookingsTab({ service }: { service: Service }) {
                   aria-label={`${shortLabel(type)} price source`}
                 >
                   <option value="">Use the amount below</option>
-                  {roomFees(sessionTimes, type).map((f) => (
+                  {room.fees.map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.name} — {formatCurrency(f.amountCents / 100)}
                     </option>
                   ))}
-                  {/* `roomFees` hides archived tiers, which is right for
-                      picking a NEW fee — but if this session is already
+                  {/* `fees` excludes archived tiers, which is right for
+                      picking a NEW fee — but if this room is already
                       linked to one that's since been archived, dropping
                       it from the list would blank the select and the
                       next save would silently unlink a live price. Keep
                       it visible, and say why it's odd. */}
                   {s.feeTierId &&
-                    !roomFees(sessionTimes, type).some(
-                      (f) => f.id === s.feeTierId,
-                    ) && (
+                    !room.fees.some((f) => f.id === s.feeTierId) && (
                       <option value={s.feeTierId}>
-                        {archivedRoomFees(sessionTimes, type).find(
-                          (f) => f.id === s.feeTierId,
-                        )?.name ?? "Linked fee"}{" "}
+                        {room.archivedFees.find((f) => f.id === s.feeTierId)
+                          ?.name ?? "Linked fee"}{" "}
                         — archived
                       </option>
                     )}
                 </select>
-                {roomFees(sessionTimes, type).length === 0 && (
+                {room.fees.length === 0 && (
                   <span className="block mt-1 text-2xs text-muted">
-                    No fees set for {roomLabel(sessionTimes, type)}
+                    No fees set for {room.name}
                     {" "}yet — add them under Service Info → Rooms &amp; fees.
                   </span>
                 )}

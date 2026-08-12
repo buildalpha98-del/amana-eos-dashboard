@@ -162,6 +162,16 @@ describe("GET /api/services/[id]/rooms — fees", () => {
     );
   });
 
+  it("sends retired tiers separately, so a linked one can still be named", async () => {
+    // Dropping an archived tier entirely blanks the picker on anything
+    // already linked to it, and the next save silently unlinks a live
+    // price. It goes in its own field so nothing can mistake it for an
+    // option worth offering.
+    const body = await (await call()).json();
+    expect(body.rooms[0].archivedFees).toHaveLength(1);
+    expect(body.rooms[0].archivedFees[0].id).toBe("f-2");
+  });
+
   it("gives a room with no legacy key no fees rather than guessing", async () => {
     // Fees are still keyed by the enum slot. A room the enum never knew
     // about genuinely has none yet — that's Stage 3's RoomFee table.

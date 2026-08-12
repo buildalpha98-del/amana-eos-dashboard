@@ -26,6 +26,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import {
+  archivedRoomFees,
   roomFees,
   type SessionKey,
   type SessionTimes,
@@ -89,6 +90,17 @@ export const GET = withApiAuth(async (req, _session, context) => {
       /** Cheapest first, archived tiers excluded — same as `roomFees`. */
       fees: r.legacyKey
         ? roomFees(sessionTimes, r.legacyKey as SessionKey)
+        : [],
+      /**
+       * Retired tiers — history, not options.
+       *
+       * Sent alongside because a screen that has something LINKED to an
+       * archived tier still has to name it. Dropping it from the list
+       * blanks the picker, and the next save silently unlinks a live
+       * price. Callers offering a new fee should use `fees`.
+       */
+      archivedFees: r.legacyKey
+        ? archivedRoomFees(sessionTimes, r.legacyKey as SessionKey)
         : [],
     })),
   });

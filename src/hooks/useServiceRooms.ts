@@ -30,7 +30,13 @@ export interface ServiceRoom {
   photoUrl: string | null;
   staffOnly: boolean;
   archivedAt: string | null;
+  /** What this room can be charged at. Cheapest first, archived excluded. */
   fees: FeeTier[];
+  /**
+   * Retired tiers — history, not options. Needed only to NAME a tier
+   * something is already linked to; never to offer a new one.
+   */
+  archivedFees: FeeTier[];
 }
 
 export type RoomScope = "active" | "retired" | "all";
