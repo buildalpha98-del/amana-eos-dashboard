@@ -235,7 +235,8 @@ So Stage 2 now runs room-listing surfaces first:
 | Casual spots picker | ✅ reads room records |
 | Parent booking form | ✅ rooms travel on `/api/parent/centres` |
 | Casual booking settings | ✅ one card per room record |
-| The roll | ⬜ — bigger than it looks, see below |
+| The roll — API + daily view | ✅ any room, named |
+| The roll — weekly grid, sign in/out | ⬜ |
 | Reporting, billing | ⬜ — and lower priority than the plan claimed |
 
 Fees stay in the JSON through Stage 2, keyed by `legacyKey`. They move to
@@ -296,6 +297,30 @@ second.
 Worth noting the write side is already done: `requireRoomId` is called on
 every create branch in both roll-call routes. It's only the READ path
 that never returns the `roomId` it just stored.
+
+**Done so far:** the API and the daily view.
+
+- Both handlers accept any `SessionType` — `z.nativeEnum($Enums.SessionType)`
+  on POST in the single and bulk routes, and on GET the whitelist became
+  a lookup: the room must exist at this centre, keyed `(serviceId,
+  legacyKey)`. A slot the centre doesn't run now 404s "that isn't a room
+  at this centre" rather than 400ing "must be bsc, asc, or vc", which was
+  actively wrong at a centre running four rooms.
+- The GET returns `room: { id, name, retired }`. That's the first time
+  the read path has handed back the `roomId` the write path stores.
+  `retired` rather than refusing: a retired room's roll is a regulatory
+  record and still has to open.
+- The daily tab row is one tab per room, in the centre's order, named by
+  the room. Its local `{bsc:"BSC"}` map is gone. The selection is derived
+  during render rather than corrected in an effect — an effect would
+  render one frame asking the API for a room the centre doesn't have.
+
+**Still to do:** the weekly grid (`ServiceWeeklyRollCallGrid`,
+`WeeklyRollCallCell`, `EmptyCellPicker`, `AddChildDialog`) and
+`ServiceSignInOutTab`, plus the `"bsc" | "asc" | "vc"` types narrowed
+into `useWeeklyRollCall`. The weekly grid is the harder half: its cells
+are keyed by session and its picker offers three, so widening it changes
+the grid's shape, not just its labels.
 
 The original ordering, for reference:
 

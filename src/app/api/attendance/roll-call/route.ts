@@ -4,7 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { z } from "zod";
-import type { SessionType } from "@prisma/client";
+import { $Enums, type SessionType } from "@prisma/client";
 import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
 import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
@@ -44,8 +44,27 @@ export const GET = withApiAuth(async (req, session) => {
     throw ApiError.badRequest("date must be YYYY-MM-DD");
   }
 
-  if (!["bsc", "asc", "vc"].includes(sessionType)) {
-    throw ApiError.badRequest("sessionType must be bsc, asc, or vc");
+  /**
+   * Any room this centre has, not just the three core programmes.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md. This used to be a literal
+   * `["bsc","asc","vc"]` whitelist, which meant a centre could have
+   * attendance recorded against an extra room — the write paths resolve
+   * and store its `roomId` correctly — and then be refused when it tried
+   * to open the roll for it. The room, not the slot, is what decides.
+   */
+  if (!Object.values($Enums.SessionType).includes(sessionType)) {
+    throw ApiError.badRequest(`"${sessionType}" is not a session type`);
+  }
+
+  const room = await prisma.room.findUnique({
+    where: {
+      serviceId_legacyKey: { serviceId, legacyKey: sessionType },
+    },
+    select: { id: true, name: true, archivedAt: true },
+  });
+  if (!room) {
+    throw ApiError.notFound("That isn't a room at this centre");
   }
 
   const date = parseDateUTC(dateStr);
@@ -226,6 +245,13 @@ export const GET = withApiAuth(async (req, session) => {
   return NextResponse.json({
     records: rollCall,
     summary: { total, present, absent, notMarked },
+    /**
+     * The room this roll is for. Returned so a caller can say WHOSE roll
+     * it is showing without going back to the JSON for a label — and so
+     * the read path finally hands back the `roomId` the write path has
+     * been storing since Stage 1.
+     */
+    room: { id: room.id, name: room.name, retired: room.archivedAt !== null },
   });
 });
 
@@ -235,7 +261,12 @@ const actionSchema = z.object({
   childId: z.string().min(1),
   serviceId: z.string().min(1),
   date: z.string().regex(DATE_RE, "date must be YYYY-MM-DD"),
-  sessionType: z.enum(["bsc", "asc", "vc"]),
+  /**
+   * Any room, not just the three core programmes — see the GET above.
+   * `requireRoomId` below is what actually checks the room exists at
+   * this centre, so a slot the centre doesn't run still gets refused.
+   */
+  sessionType: z.nativeEnum($Enums.SessionType),
   action: z.enum(["sign_in", "sign_out", "mark_absent", "undo"]),
   absenceReason: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),

@@ -68,11 +68,23 @@ function createPrismaMock() {
                      * error — overrides this as usual.
                      */
                     if (method === "findUnique") {
-                      fn.mockResolvedValue({ id: "room-test", legacyKey: "asc" });
+                      fn.mockResolvedValue({
+                        id: "room-test",
+                        legacyKey: "asc",
+                        // Stage 2 reads select these too — a room the
+                        // read path can't NAME reads as a blank tab.
+                        name: "Amana Afternoons",
+                        archivedAt: null,
+                      });
                     } else if (method === "findMany") {
                       fn.mockResolvedValue(
                         ["bsc", "asc", "vc", "extra1", "extra2", "extra3", "extra4"].map(
-                          (legacyKey) => ({ id: `room-${legacyKey}`, legacyKey }),
+                          (legacyKey) => ({
+                            id: `room-${legacyKey}`,
+                            legacyKey,
+                            name: legacyKey,
+                            archivedAt: null,
+                          }),
                         ),
                       );
                     } else if (method === "count") {
