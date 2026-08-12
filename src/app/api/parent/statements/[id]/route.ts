@@ -30,7 +30,11 @@ export const GET = withParentAuth(async (_req, ctx) => {
     include: {
       service: { select: { id: true, name: true } },
       lineItems: {
-        include: { child: { select: { id: true, firstName: true, surname: true } } },
+        include: {
+          child: { select: { id: true, firstName: true, surname: true } },
+          /** The room's own name — see docs/rooms-migration-plan.md. */
+          room: { select: { id: true, name: true } },
+        },
         orderBy: { date: "asc" },
       },
     },

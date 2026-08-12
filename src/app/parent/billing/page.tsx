@@ -304,7 +304,10 @@ function StatementDetail({ statementId }: { statementId: string }) {
                     {formatDate(item.date)}
                   </td>
                   <td className="py-1.5 px-1 text-muted">
-                    {programmeName(item.sessionType)}
+                    {/* The centre's own room name. `programmeName` was
+                        org-wide and knew three codes, so a family in an
+                        extra room saw its slot code. */}
+                    {item.room?.name ?? programmeName(item.sessionType)}
                   </td>
                   <td className="py-1.5 px-1 text-right text-foreground">
                     ${item.grossFee.toFixed(2)}

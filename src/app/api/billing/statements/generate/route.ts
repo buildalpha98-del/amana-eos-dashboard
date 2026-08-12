@@ -20,6 +20,7 @@ import { applyFamilyDiscount } from "@/lib/family-discount";
 import { logger } from "@/lib/logger";
 import { sumDollars, fromCents } from "@/lib/money";
 import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
+import { roomsForService } from "@/lib/room-names";
 
 const bodySchema = z.object({
   contactId: z.string().min(1),
@@ -38,11 +39,12 @@ const bodySchema = z.object({
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
-const SESSION_LABEL: Record<string, string> = {
-  bsc: "Before school care",
-  asc: "After school care",
-  vc: "Vacation care",
-};
+/**
+ * No label map. The line description names the ROOM, looked up from
+ * the room records — Stage 2 of docs/rooms-migration-plan.md. The three
+ * codes this knew meant an extra room's line read "extra1" on the
+ * family's statement.
+ */
 
 /** Calendar dates, parsed as UTC — these are days, not instants. */
 const day = (s: string) => new Date(`${s}T00:00:00.000Z`);
@@ -139,6 +141,19 @@ export const POST = withApiAuth(
       ),
     );
 
+    /**
+     * Room names for the line descriptions, keyed by the slot the
+     * booking still carries. One query for the centre, cached — see
+     * room-names.ts. A room the enum never knew about has no slot to
+     * key on, which is why this is a stopgap until Stage 4 drops
+     * `sessionType` from the booking itself.
+     */
+    const roomLabels = new Map(
+      (await roomsForService(serviceId))
+        .filter((r) => r.legacyKey !== null)
+        .map((r) => [r.legacyKey!, r.name]),
+    );
+
     const fresh = bookings.filter(
       (b) =>
         !billedKey.has(
@@ -167,7 +182,7 @@ export const POST = withApiAuth(
         date: b.date,
         sessionType: b.sessionType,
         description: `${nameById.get(b.childId) ?? "Child"} — ${
-          SESSION_LABEL[b.sessionType] ?? b.sessionType
+          roomLabels.get(b.sessionType) ?? b.sessionType
         } ${b.date.toISOString().slice(0, 10)}`,
         grossFee: gross,
         ccsHours: 0,
