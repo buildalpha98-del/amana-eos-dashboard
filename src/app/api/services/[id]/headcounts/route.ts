@@ -10,11 +10,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { roomNameMap } from "@/lib/room-names";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { assertServiceAccess } from "@/lib/authz-scope";
-import { programmeName } from "@/lib/programme-names";
 import type { SessionType } from "@prisma/client";
 import { resolveRoomId } from "@/lib/room-resolver";
 
@@ -88,13 +88,22 @@ export const GET = withApiAuth(async (req, session, context) => {
       )
     : null;
 
+  const roomNames = await roomNameMap(id);
+
   return NextResponse.json({
     headcounts: rows.map((r) => ({
       id: r.id,
       kind: r.kind,
       conductedAt: r.conductedAt,
       sessionType: r.sessionType,
-      programmeName: r.sessionType ? programmeName(r.sessionType) : null,
+      /*
+       * Stage 2 — the room record's own name. `programmeName` knew
+       * three codes, so an `extra2` headcount read back as "EXTRA2"
+       * and a centre that renamed BSC still saw the org-wide label.
+       */
+      programmeName: r.roomId
+        ? (roomNames.get(r.roomId) ?? r.sessionType)
+        : null,
       childrenCount: r.childrenCount,
       staffCount: r.staffCount,
       visitorsCount: r.visitorsCount,

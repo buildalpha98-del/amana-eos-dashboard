@@ -11,10 +11,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { roomNameMap } from "@/lib/room-names";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
-import { programmeName } from "@/lib/programme-names";
 import type { SessionType } from "@prisma/client";
 import { resolveRoomId } from "@/lib/room-resolver";
 
@@ -87,6 +87,8 @@ export const GET = withApiAuth(
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
+    const roomNames = await roomNameMap(id);
+
     return NextResponse.json({
       discounts: rows.map((r) => ({
         id: r.id,
@@ -97,7 +99,17 @@ export const GET = withApiAuth(
         childId: r.childId,
         childName: r.child?.firstName ?? null,
         sessionType: r.sessionType,
-        roomName: r.sessionType ? programmeName(r.sessionType) : "Every room",
+        /** Stage 2 — the room record's own name. */
+        roomId: r.roomId,
+        /*
+         * `programmeName` was org-wide: it knew three codes, ignored
+         * whatever this centre had actually named its rooms, and
+         * rendered an extra room as its slot code. A null room really
+         * does mean every room, so that answer stays.
+         */
+        roomName: r.roomId
+          ? (roomNames.get(r.roomId) ?? r.sessionType ?? "Every room")
+          : "Every room",
         kind: r.kind,
         value: r.value,
         reason: r.reason,

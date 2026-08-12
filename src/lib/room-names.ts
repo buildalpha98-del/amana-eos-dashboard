@@ -136,6 +136,28 @@ export async function roomNameMap(
 }
 
 /**
+ * `roomId → name` for an arbitrary set of ids, across services.
+ *
+ * The group-report case: a `groupBy(["roomId"])` hands back ids from
+ * however many centres are in scope, and the caller has no service to
+ * key the per-service cache on. One query, ids only — deliberately not
+ * cached, because the id set differs on every call and caching it would
+ * fill memory with single-use entries.
+ */
+export async function roomNamesForIds(
+  roomIds: Array<string | null | undefined>,
+): Promise<Map<string, string>> {
+  const ids = [...new Set(roomIds.filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return new Map();
+
+  const rows = await prisma.room.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true },
+  });
+  return new Map(rows.map((r) => [r.id, r.name]));
+}
+
+/**
  * The name for one room, or a fallback.
  *
  * The fallback is the point of the signature. A row from before the
