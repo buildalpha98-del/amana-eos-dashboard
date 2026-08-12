@@ -236,7 +236,7 @@ So Stage 2 now runs room-listing surfaces first:
 | Parent booking form | ✅ rooms travel on `/api/parent/centres` |
 | Casual booking settings | ✅ one card per room record |
 | The roll — API + daily view | ✅ any room, named |
-| The roll — weekly grid, sign in/out | ⬜ |
+| The roll — weekly grid, sign in/out | ✅ |
 | Reporting, billing | ⬜ — and lower priority than the plan claimed |
 
 Fees stay in the JSON through Stage 2, keyed by `legacyKey`. They move to
@@ -315,12 +315,26 @@ that never returns the `roomId` it just stored.
   during render rather than corrected in an effect — an effect would
   render one frame asking the API for a room the centre doesn't have.
 
-**Still to do:** the weekly grid (`ServiceWeeklyRollCallGrid`,
-`WeeklyRollCallCell`, `EmptyCellPicker`, `AddChildDialog`) and
-`ServiceSignInOutTab`, plus the `"bsc" | "asc" | "vc"` types narrowed
-into `useWeeklyRollCall`. The weekly grid is the harder half: its cells
-are keyed by session and its picker offers three, so widening it changes
-the grid's shape, not just its labels.
+**Then the weekly grid and the door screen.** All four narrowed types
+(`useWeeklyRollCall`'s two, `CellShift`, the grid's own) now take the
+Prisma `SessionType`, so an extra room's attendance can at least be
+REPRESENTED — it couldn't be before, however correct the database row.
+
+- The empty-cell picker offers one button per room ("Book Homework
+  Club"), and the add-child dialog's grid is Mon–Fri × however many
+  rooms the centre has, not a fixed 5×3.
+- `CellShift` gained an optional `roomName`, attached by the grid when
+  it builds the shifts. A weekly cell is too small for "Amana
+  Afternoons" in full, so the chip truncates and carries the whole name
+  in its `title` and aria-label. Abbreviating was the alternative and it
+  was rejected: "Homework Club" and "Holiday Quest" both give HC.
+- `ServiceSignInOutTab` had the third independent label map in the roll
+  ("Before school"). It's gone; the door shows room names.
+
+**The roll's four label maps are now one thing: the room's name.**
+
+Left in Stage 2: reporting and billing. Both are lower priority than the
+plan originally claimed — see the note above.
 
 The original ordering, for reference:
 

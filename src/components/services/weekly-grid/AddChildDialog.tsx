@@ -15,7 +15,8 @@ import {
 } from "@/hooks/useWeeklyRollCall";
 import { cn } from "@/lib/utils";
 
-type SessionType = "bsc" | "asc" | "vc";
+import type { SessionType } from "@prisma/client";
+import type { PickerRoom } from "./EmptyCellPicker";
 
 interface SelectionKey {
   childId: string;
@@ -29,14 +30,20 @@ interface AddChildDialogProps {
   serviceId: string;
   weekStart: string;
   weekDates: string[]; // Mon..Fri ISO dates
+  /**
+   * The centre's rooms, in its own order — one grid row each.
+   * Stage 2 of docs/rooms-migration-plan.md: this was a hardcoded
+   * three, so a fourth room could never be booked from here.
+   */
+  rooms: PickerRoom[];
 }
 
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const SESSION_TYPES: SessionType[] = ["bsc", "asc", "vc"];
 
 /**
  * Dialog — lists enrollable children (those not yet on any attendance record
- * for the week) with a per-child 5×3 checkbox grid (Mon–Fri × BSC/ASC/VC).
+ * for the week) with a per-child checkbox grid: Mon–Fri × however many
+ * rooms the centre has.
  *
  * On submit:
  *   POST /api/attendance/roll-call/bulk { items: [{ action: "undo" }, …] }
@@ -51,6 +58,7 @@ export function AddChildDialog({
   serviceId,
   weekStart,
   weekDates,
+  rooms,
 }: AddChildDialogProps) {
   const { data, isLoading, error } = useEnrollableChildren(serviceId, weekStart);
   const qc = useQueryClient();
@@ -141,7 +149,7 @@ export function AddChildDialog({
           <table className="w-full text-xs">
             <thead>
               <tr>
-                <th className="text-left text-muted font-medium py-1 pr-2">Session</th>
+                <th className="text-left text-muted font-medium py-1 pr-2">Room</th>
                 {weekDates.map((d, i) => (
                   <th
                     key={d}
@@ -153,10 +161,15 @@ export function AddChildDialog({
               </tr>
             </thead>
             <tbody>
-              {SESSION_TYPES.map((st) => (
-                <tr key={st}>
-                  <td className="text-foreground font-semibold uppercase py-1 pr-2">
-                    {st}
+              {rooms.map((room) => {
+                const st = room.legacyKey;
+                return (
+                <tr key={room.id}>
+                  <td
+                    className="text-foreground font-semibold py-1 pr-2 max-w-[8rem] truncate"
+                    title={room.name}
+                  >
+                    {room.name}
                   </td>
                   {weekDates.map((date) => {
                     const selected = isSelected({
@@ -169,7 +182,7 @@ export function AddChildDialog({
                         <button
                           type="button"
                           aria-pressed={selected}
-                          aria-label={`${child.firstName} ${st} on ${date}`}
+                          aria-label={`${child.firstName} ${room.name} on ${date}`}
                           data-testid={`addchild-cell-${child.id}-${date}-${st}`}
                           disabled={submitting}
                           onClick={() =>
@@ -188,7 +201,8 @@ export function AddChildDialog({
                     );
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
