@@ -16,14 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
-import {
-  DEFAULT_ROOMS,
-  SESSION_KEYS,
-  type SessionKey,
-  formatTime,
-  roomLabel,
-  type SessionTimes,
-} from "@/lib/service-settings";
+import { formatTime } from "@/lib/service-settings";
 
 interface Props {
   open: boolean;
@@ -31,13 +24,30 @@ interface Props {
 }
 
 /**
- * Session codes stay bsc/asc/vc on the wire — they're written into every
- * booking in the system. What a parent SEES is the centre's own room
- * name, which each service sets for itself: "Rise and Shine", not "BSC".
+ * One of the centre's rooms.
+ *
+ * Stage 2 of docs/rooms-migration-plan.md: this form takes rooms as
+ * RECORDS from the API rather than enumerating the seven enum slots and
+ * looking each one up in the centre's JSON. The practical difference is
+ * that a centre which adds an eighth room can offer it to families
+ * without another change here.
+ *
+ * `legacyKey` is what goes on the wire — session codes stay bsc/asc/vc
+ * because they're written into every booking in the system. What a
+ * parent SEES is the room's own name: "Rise and Shine", not "BSC".
  */
+interface CentreRoom {
+  id: string | null;
+  legacyKey: string | null;
+  name: string;
+  startTime: string | null;
+  endTime: string | null;
+}
+
 interface Centre {
   id: string;
-  sessionTimes?: SessionTimes | null;
+  /** The centre's rooms — active, and not staff-only. */
+  rooms?: CentreRoom[];
   /** Session keys this centre has enabled for casual bookings. */
   casualSessions?: string[];
   /** Weekdays each enabled session runs, e.g. { asc: ["mon","tue"] }. */
@@ -218,26 +228,31 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
       ? new Set(["mon", "tue", "wed", "thu", "fri"])
       : new Set(lists.flat());
 
-  const bookableSessions = ((centre?.casualSessions ?? []) as string[])
-    .filter((k): k is SessionKey => (SESSION_KEYS as string[]).includes(k))
-    // Only sessions that run on EVERY day picked — offering Rise and
-    // Shine for a set that includes a day it doesn't run would fail the
-    // request after the button press.
-    .filter(
-      (k) =>
-        dates.length === 0 ||
+  /**
+   * The rooms this family can actually book, in the centre's own order.
+   *
+   * Built from the room list rather than from the enabled-session keys,
+   * so the form shows however many rooms the centre has. A room the
+   * enum never knew about (no `legacyKey`) can't be booked yet — the
+   * casual-booking settings and the booking record are both still keyed
+   * by slot until Stage 4 — so it isn't offered. That's the honest
+   * answer rather than a button that 400s.
+   */
+  const enabled = new Set(centre?.casualSessions ?? []);
+  const bookableRooms = (centre?.rooms ?? []).filter(
+    (room) =>
+      room.legacyKey !== null &&
+      enabled.has(room.legacyKey) &&
+      // Only rooms that run on EVERY day picked — offering Rise and
+      // Shine for a set that includes a day it doesn't run would fail
+      // the request after the button press.
+      (dates.length === 0 ||
         dates.every((iso) =>
-          (sessionDays[k] ?? []).includes(
+          (sessionDays[room.legacyKey!] ?? []).includes(
             DAY_KEY[new Date(`${iso}T00:00:00`).getDay()],
           ),
-        ),
-    );
-
-  // The rooms belong to the CHILD's centre — siblings at different
-  // campuses can have different room names and hours.
-  const sessionTimes =
-    (centreData?.centres.find((c) => c.id === selectedChild?.serviceId)
-      ?.sessionTimes as SessionTimes | null | undefined) ?? null;
+        )),
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -389,7 +404,7 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
             <label className="block text-xs font-medium text-foreground/70 mb-2">
               Which programme?
             </label>
-            {bookableSessions.length === 0 ? (
+            {bookableRooms.length === 0 ? (
               <p className="text-xs text-muted">
                 {selectedChild
                   ? "This centre isn't taking casual bookings online yet. Message head office and we'll sort it out."
@@ -397,35 +412,33 @@ export function RequestBookingDialog({ open, onOpenChange }: Props) {
               </p>
             ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {bookableSessions.map((key) => (
+              {bookableRooms.map((room) => (
                 <button
-                  key={key}
+                  key={room.id ?? room.legacyKey}
                   type="button"
-                  onClick={() => setSessionType(key)}
+                  onClick={() => setSessionType(room.legacyKey!)}
                   className={cn(
                     "py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all min-h-[44px] text-left",
-                    sessionType === key
+                    sessionType === room.legacyKey
                       ? "border-brand bg-brand text-white"
                       : "border-border text-foreground hover:border-brand/30"
                   )}
                 >
-                  <span className="block leading-tight">
-                    {roomLabel(sessionTimes, key)}
-                  </span>
-                  <span
-                    className={cn(
-                      "block text-xs leading-tight",
-                      sessionType === key ? "text-white/75" : "text-muted",
-                    )}
-                  >
-                    {formatTime(
-                      sessionTimes?.[key]?.start ?? DEFAULT_ROOMS[key].start,
-                    )}{" "}
-                    –{" "}
-                    {formatTime(
-                      sessionTimes?.[key]?.end ?? DEFAULT_ROOMS[key].end,
-                    )}
-                  </span>
+                  <span className="block leading-tight">{room.name}</span>
+                  {/* A room with no hours set shows none, rather than a
+                      made-up default that reads as the centre's times. */}
+                  {room.startTime && room.endTime && (
+                    <span
+                      className={cn(
+                        "block text-xs leading-tight",
+                        sessionType === room.legacyKey
+                          ? "text-white/75"
+                          : "text-muted",
+                      )}
+                    >
+                      {formatTime(room.startTime)} – {formatTime(room.endTime)}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
