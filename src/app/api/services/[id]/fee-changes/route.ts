@@ -11,13 +11,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { roomNameMap } from "@/lib/room-names";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { applyDueFeeChanges, todayUtc } from "@/lib/fee-changes";
 import {
   sessionTimesSchema,
-  roomLabel,
   type SessionTimes,
 } from "@/lib/service-settings";
 import type { SessionType } from "@prisma/client";
@@ -63,7 +63,8 @@ export const GET = withApiAuth(async (_req, session, context) => {
     }),
   ]);
 
-  const times = (service?.sessionTimes ?? null) as SessionTimes | null;
+
+  const roomNames = await roomNameMap(id);
 
   return NextResponse.json({
     changes: rows.map((r) => ({
@@ -71,7 +72,13 @@ export const GET = withApiAuth(async (_req, session, context) => {
       sessionType: r.sessionType,
       // Stage 2: callers filter by room rather than by slot.
       roomId: r.roomId,
-      roomName: roomLabel(times, r.sessionType as never),
+      /**
+       * The room record's own name, not `roomLabel(times, key)`.
+       * Stage 2 of docs/rooms-migration-plan.md: the JSON is keyed by
+       * slot, so a room the enum never knew about has nothing to look
+       * up and renders as its code.
+       */
+      roomName: roomNames.get(r.roomId) ?? r.sessionType,
       feeTierId: r.feeTierId,
       feeName: r.feeName,
       fromAmountCents: r.fromAmountCents,

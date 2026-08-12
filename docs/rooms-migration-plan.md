@@ -359,7 +359,36 @@ say which room it was.
 The manual invoice builder's three-option select is now one option per
 room, with no-legacy-key rooms listed and disabled.
 
-### Reporting ⚠️ bigger than this plan assumed — see below
+### Reporting — the two that were only ever a projection ✅
+
+Two report routes already had the right data and threw it away, so they
+moved with the rest of Stage 2:
+
+- **`/api/reports/bookings`** grouped by `sessionType` and then
+  re-projected the result through a literal `["bsc","asc","vc"]`,
+  discarding rooms the query had already counted. It groups by `roomId`
+  now.
+- **`/api/reports/attendance`** ran the same literal and shipped
+  `st.toUpperCase()` as the label — one count query per session. It
+  takes one grouped query and names rooms.
+
+Both name by the room, and **rooms sharing a name are summed**. Within
+one centre that can't happen; across the group it is the question being
+asked — twelve identically-named bars answer nothing. Their charts were
+already generic, so they needed no change.
+
+Three more reads that had `roomId` but labelled from the wrong source
+moved at the same time: `fee-changes` (used `roomLabel(times, key)`,
+the JSON), `family-discounts` and `headcounts` (both used
+`programmeName()`, which is org-wide and ignores whatever a centre
+named its rooms — an `extra2` headcount read back as "EXTRA2").
+
+`roomNamesForIds` was added to `room-names.ts` for the group case: a
+`groupBy(["roomId"])` returns ids from several centres and the caller
+has no single service to key the cache on. Deliberately uncached — the
+id set differs every call.
+
+### The rest of reporting ⚠️ bigger than this plan assumed
 
 A survey found **31 unmigrated reporting surfaces**, and the shape is
 different from everything Stage 2 has done so far. Three findings change
