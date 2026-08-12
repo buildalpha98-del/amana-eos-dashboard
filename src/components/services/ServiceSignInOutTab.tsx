@@ -27,14 +27,17 @@ import {
   DialogDescription,
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
+import { useServiceRooms } from "@/hooks/useServiceRooms";
 
-type SessionType = "bsc" | "asc" | "vc";
-
-const SESSION_LABEL: Record<SessionType, string> = {
-  bsc: "Before school",
-  asc: "After school",
-  vc: "Vacation care",
-};
+/**
+ * The door screen shows one button per ROOM.
+ *
+ * Stage 2 of docs/rooms-migration-plan.md — this was a hardcoded three
+ * with its own label map ("Before school"), which was the third such
+ * map in the roll. A centre running an extra room had no way to open
+ * its door list, even though the API had already recorded attendance
+ * against it.
+ */
 
 /** Matches GET /api/attendance/roll-call → { records, summary }. */
 interface RollRecord {
@@ -60,12 +63,29 @@ export function ServiceSignInOutTab({
   serviceName?: string;
 }) {
   const qc = useQueryClient();
-  const [session, setSession] = useState<SessionType>("asc");
+
+  const { data: roomData } = useServiceRooms(serviceId);
+  const rooms = (roomData?.rooms ?? []).filter((r) => r.legacyKey !== null);
+  /**
+   * Derived, not corrected in an effect: a stored key that isn't one of
+   * this centre's rooms falls back to the afternoon programme, then to
+   * whatever the centre's first room is. Same shape as the daily roll.
+   */
+  const [pickedRoom, setPickedRoom] = useState<string | null>(null);
+  const session =
+    pickedRoom && rooms.some((r) => r.legacyKey === pickedRoom)
+      ? pickedRoom
+      : ((rooms.find((r) => r.legacyKey === "asc") ?? rooms[0])?.legacyKey ??
+        "asc");
   const [search, setSearch] = useState("");
   const [pending, setPending] = useState<{
     child: RollRecord;
     action: "in" | "out";
   } | null>(null);
+
+  /** The room's own name, for the empty state. */
+  const currentRoomName =
+    rooms.find((r) => r.legacyKey === session)?.name ?? "session";
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -104,20 +124,20 @@ export function ServiceSignInOutTab({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex gap-2">
-          {(Object.keys(SESSION_LABEL) as SessionType[]).map((s) => (
+          {rooms.map((room) => (
             <button
-              key={s}
+              key={room.id}
               type="button"
-              onClick={() => setSession(s)}
-              aria-pressed={session === s}
+              onClick={() => setPickedRoom(room.legacyKey)}
+              aria-pressed={session === room.legacyKey}
               className={
-                "px-4 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
-                (session === s
+                "px-4 min-h-11 rounded-lg border text-sm font-medium whitespace-nowrap transition-colors " +
+                (session === room.legacyKey
                   ? "border-brand bg-brand/10 text-brand"
                   : "border-border bg-card text-muted hover:border-brand/40")
               }
             >
-              {SESSION_LABEL[s]}
+              {room.name}
             </button>
           ))}
         </div>
@@ -152,7 +172,7 @@ export function ServiceSignInOutTab({
           description={
             search
               ? "No children match that search."
-              : `No ${SESSION_LABEL[session].toLowerCase()} bookings today${serviceName ? ` at ${serviceName}` : ""}.`
+              : `No ${currentRoomName} bookings today${serviceName ? ` at ${serviceName}` : ""}.`
           }
         />
       ) : (
@@ -249,7 +269,7 @@ function SignDialog({
   onCancel,
 }: {
   serviceId: string;
-  sessionType: SessionType;
+  sessionType: string;
   date: string;
   child: RollRecord;
   action: "in" | "out";

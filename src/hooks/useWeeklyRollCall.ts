@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
+import type { SessionType } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -19,7 +20,13 @@ export interface WeeklyRollCallAttendanceRecord {
   childId: string;
   /** AttendanceRecord.date in prisma/schema.prisma — NOT `attendanceDate`. */
   date: string;
-  sessionType: "bsc" | "asc" | "vc";
+  /**
+   * Any of the centre's rooms, not just the three core programmes.
+   * Stage 2 of docs/rooms-migration-plan.md — narrowing this to three
+   * meant an extra room's attendance couldn't even be REPRESENTED at
+   * the boundary, however correct the row in the database was.
+   */
+  sessionType: SessionType;
   status: "booked" | "present" | "absent";
   signInTime: string | null;
   signOutTime: string | null;
@@ -33,7 +40,7 @@ export interface WeeklyRollCallBooking {
   id: string;
   childId: string;
   date: string;
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: SessionType;
   fee: number | null;
 }
 

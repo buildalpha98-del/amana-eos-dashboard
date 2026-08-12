@@ -23,14 +23,14 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 import { isAdminRole } from "@/lib/role-permissions";
+import { useServiceRooms } from "@/hooks/useServiceRooms";
+import type { SessionType } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────
 
 interface ServiceWeeklyRollCallGridProps {
   serviceId: string;
 }
-
-type SessionType = "bsc" | "asc" | "vc";
 
 interface RollCallMutationBody {
   childId: string;
@@ -114,11 +114,28 @@ export function ServiceWeeklyRollCallGrid({
 
   const { data, isLoading, error } = useWeeklyRollCall(serviceId, weekStart);
 
+  /**
+   * The centre's rooms — however many it has.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md. The grid's cells, its
+   * empty-cell picker and its add-child dialog all offered exactly
+   * three sessions, so a room beyond the enum's core three could hold
+   * real attendance and appear nowhere in the week.
+   */
+  const { data: roomData } = useServiceRooms(serviceId);
+  const rooms = (roomData?.rooms ?? []).filter(
+    (r): r is typeof r & { legacyKey: SessionType } => r.legacyKey !== null,
+  );
+
   // Build shiftsByChildAndDay map (child ID → date → CellShift[]).
   // Merges AttendanceRecords (authoritative) with booking-only rows (status: "booked").
   const shiftsMap = useMemo(() => {
     const m: Record<string, Record<string, CellShift[]>> = {};
     if (!data) return m;
+    // Built inside the memo: a Map constructed on every render would
+    // invalidate this one every render, which is the opposite of the
+    // point.
+    const roomNameByKey = new Map(rooms.map((r) => [r.legacyKey, r.name]));
 
     for (const rec of data.attendanceRecords) {
       const date = rec.date.split("T")[0]; // AttendanceRecord.date (NOT attendanceDate)
@@ -127,6 +144,7 @@ export function ServiceWeeklyRollCallGrid({
       m[rec.childId][date].push({
         attendanceId: rec.id,
         sessionType: rec.sessionType,
+        roomName: roomNameByKey.get(rec.sessionType),
         status: deriveStatus(rec),
         signInTime: rec.signInTime,
         signOutTime: rec.signOutTime,
@@ -144,12 +162,13 @@ export function ServiceWeeklyRollCallGrid({
       m[b.childId][date].push({
         bookingId: b.id,
         sessionType: b.sessionType,
+        roomName: roomNameByKey.get(b.sessionType),
         status: "booked",
         fee: b.fee,
       });
     }
     return m;
-  }, [data]);
+  }, [data, rooms]);
 
   // ── Mutation ─────────────────────────────────────────
   const qc = useQueryClient();
@@ -329,6 +348,7 @@ export function ServiceWeeklyRollCallGrid({
           open
           childName={emptyCellSession.childName}
           date={emptyCellSession.date}
+          rooms={rooms}
           onClose={() => setEmptyCellSession(null)}
           onPick={async (sessionType) => {
             try {
@@ -356,6 +376,7 @@ export function ServiceWeeklyRollCallGrid({
           serviceId={serviceId}
           weekStart={weekStart}
           weekDates={weekDates}
+          rooms={rooms}
         />
       )}
     </div>

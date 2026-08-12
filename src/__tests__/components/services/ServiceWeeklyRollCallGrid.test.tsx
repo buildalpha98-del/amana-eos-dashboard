@@ -103,10 +103,43 @@ function makeWrapper(qc: QueryClient) {
   };
 }
 
-function makeClient() {
-  return new QueryClient({
+/**
+ * The centre's rooms. Stage 2 of docs/rooms-migration-plan.md: the grid
+ * takes its cell labels, its empty-cell picker and its add-child rows
+ * from room RECORDS now. Seeded into the cache rather than mocked
+ * through fetchApi so these assertions stay synchronous.
+ */
+const ROOM_RECORDS = [
+  { legacyKey: "bsc", name: "Rise and Shine" },
+  { legacyKey: "asc", name: "Amana Afternoons" },
+  { legacyKey: "vc", name: "Holiday Quest" },
+].map((r, i) => ({
+  id: `room-${r.legacyKey}`,
+  startTime: null,
+  endTime: null,
+  capacity: null,
+  ratio: null,
+  description: null,
+  minAgeYears: null,
+  maxAgeYears: null,
+  photoUrl: null,
+  staffOnly: false,
+  archivedAt: null,
+  fees: [],
+  archivedFees: [],
+  sortOrder: i,
+  ...r,
+}));
+
+function makeClient(
+  rooms: Array<Record<string, unknown>> = ROOM_RECORDS,
+  serviceId = "svc-1",
+) {
+  const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnMount: false } },
   });
+  qc.setQueryData(["service-rooms", serviceId, "active"], { rooms });
+  return qc;
 }
 
 // Build a monday-of-this-week YYYY-MM-DD to mimic the grid's internal calc.
@@ -397,5 +430,65 @@ describe("ServiceWeeklyRollCallGrid", () => {
         },
       ],
     });
+  });
+});
+
+/**
+ * Stage 2 of docs/rooms-migration-plan.md. The grid's cells, its
+ * empty-cell picker and its add-child rows all offered exactly three
+ * sessions, and its types narrowed to three at the boundary — so a room
+ * beyond the enum's core three could hold real attendance and appear
+ * nowhere in the week.
+ */
+describe("ServiceWeeklyRollCallGrid — rooms as records", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionRef.role = "admin";
+    sessionRef.serviceId = null;
+    // No bookings, so every cell in the week is empty and clickable.
+    weeklyRef.data = makeData({ bookings: [] });
+    enrollableRef.data = undefined;
+  });
+
+  it("offers every room when booking an empty cell", async () => {
+    const qc = makeClient([
+      ...ROOM_RECORDS,
+      {
+        ...ROOM_RECORDS[0],
+        id: "room-x",
+        legacyKey: "extra1",
+        name: "Homework Club",
+      },
+    ]);
+    render(<ServiceWeeklyRollCallGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    const monday = mondayIso();
+    const empty = await screen.findByTestId(
+      `weekly-cell-empty-child-1-${monday}`,
+    );
+    fireEvent.click(empty);
+
+    expect(
+      await screen.findByRole("button", { name: /book homework club/i }),
+    ).toBeDefined();
+  });
+
+  it("names the rooms in the picker rather than shouting slot codes", async () => {
+    const qc = makeClient();
+    render(<ServiceWeeklyRollCallGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    const monday = mondayIso();
+    fireEvent.click(
+      await screen.findByTestId(`weekly-cell-empty-child-1-${monday}`),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: /book amana afternoons/i }),
+    ).toBeDefined();
+    expect(screen.queryByRole("button", { name: /^book asc$/i })).toBeNull();
   });
 });

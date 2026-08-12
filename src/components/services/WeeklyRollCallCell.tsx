@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@/lib/utils";
+import type { SessionType } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -10,7 +11,13 @@ export type CellStatus = "booked" | "signed_in" | "signed_out" | "absent";
 export interface CellShift {
   attendanceId?: string;
   bookingId?: string;
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: SessionType;
+  /**
+   * The room's own name, attached when the grid builds the shift.
+   * Absent only for a slot with no room record — the chip falls back
+   * to the code rather than rendering blank.
+   */
+  roomName?: string;
   status: CellStatus;
   signInTime?: string | null;
   signOutTime?: string | null;
@@ -81,15 +88,20 @@ function WeeklyRollCallCellImpl({
       disabled={!clickable}
       onClick={() => (clickable ? onClickShift(childId, date, shift) : undefined)}
       data-testid={`weekly-cell-shift-${childId}-${date}-${shift.sessionType}`}
-      aria-label={`${shift.sessionType.toUpperCase()} ${shift.status} on ${date}`}
+      title={shift.roomName ?? shift.sessionType.toUpperCase()}
+      aria-label={`${shift.roomName ?? shift.sessionType.toUpperCase()} ${shift.status} on ${date}`}
       className={cn(
         "w-full h-14 border rounded-md p-1 text-xs text-left flex flex-col justify-center overflow-hidden",
         color,
         clickable ? "cursor-pointer hover:brightness-95" : "cursor-default",
       )}
     >
-      <div className="font-semibold uppercase leading-tight">
-        {shift.sessionType}
+      {/* The room's name, clipped to the cell. A weekly grid cell is
+          too small for "Amana Afternoons" in full, and inventing an
+          abbreviation risks two rooms colliding — so it truncates, and
+          the title above carries the whole name. */}
+      <div className="font-semibold leading-tight truncate w-full">
+        {shift.roomName ?? shift.sessionType.toUpperCase()}
       </div>
       {shift.signInTime && (
         <div className="text-2xs leading-tight truncate">
