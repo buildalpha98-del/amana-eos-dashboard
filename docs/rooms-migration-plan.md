@@ -234,7 +234,8 @@ So Stage 2 now runs room-listing surfaces first:
 | Room detail panel | ✅ takes the room record |
 | Casual spots picker | ✅ reads room records |
 | Parent booking form | ✅ rooms travel on `/api/parent/centres` |
-| The roll | ⬜ |
+| Casual booking settings | ✅ one card per room record |
+| The roll | ⬜ — bigger than it looks, see below |
 | Reporting, billing | ⬜ — and lower priority than the plan claimed |
 
 Fees stay in the JSON through Stage 2, keyed by `legacyKey`. They move to
@@ -265,6 +266,36 @@ service write path syncs rooms and the Stage 0 backfill covered the rest,
 so it should never fire — but `syncRoomsQuietly` swallows failures by
 design, and the cost of being wrong on this surface is a family opening
 the booking form to no programmes and no explanation.
+
+### The roll is not like the others
+
+Every surface above was a room LIST that happened to be built from the
+enum. The roll is different, and it's worth writing down before starting
+it, because the scale isn't obvious from the outside:
+
+- Four separate hardcoded label maps — `ServiceRollCallTab` (`bsc: "BSC"`),
+  `ServiceSignInOutTab` (`bsc: "Before school"`), `RatioWidget`, and the
+  shared `lib/session-labels.ts` that none of the first three use.
+- `["bsc","asc","vc"]` written literally in the tab rows of
+  `ServiceRollCallTab`, `ServiceSignInOutTab`, `EmptyCellPicker` and
+  `AddChildDialog`, and as a narrowed TYPE in `useWeeklyRollCall`,
+  `ServiceWeeklyRollCallGrid` and `WeeklyRollCallCell` — so extras can't
+  even be represented at the boundary.
+- `/api/attendance/roll-call` **rejects** anything else: a literal
+  whitelist on GET and a `z.enum(["bsc","asc","vc"])` on POST. Same in
+  the bulk route.
+
+So a centre with an extra room can already have attendance against it
+(the write paths resolve `roomId` correctly and store it), and the roll
+will neither show it nor accept an action for it. Fixing that means the
+API accepting a room, the hooks carrying one, and the cells keyed by one
+— not a label swap. It's the largest single piece left in Stage 2 and
+should be its own change, with the daily roll first and the weekly grid
+second.
+
+Worth noting the write side is already done: `requireRoomId` is called on
+every create branch in both roll-call routes. It's only the READ path
+that never returns the `roomId` it just stored.
 
 The original ordering, for reference:
 
