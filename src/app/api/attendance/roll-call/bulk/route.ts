@@ -5,13 +5,20 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { requireRoomId } from "@/lib/room-resolver";
+import { $Enums } from "@prisma/client";
 
 // ── Schema ─────────────────────────────────────────────────
 
 const itemSchema = z.object({
   childId: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  sessionType: z.enum(["bsc", "asc", "vc"]),
+  /**
+   * Any room this centre has, not just the three core programmes —
+   * Stage 2 of docs/rooms-migration-plan.md. `requireRoomId` is what
+   * checks the room actually exists here, so a slot the centre doesn't
+   * run is still refused.
+   */
+  sessionType: z.nativeEnum($Enums.SessionType),
   action: z.enum(["sign_in", "sign_out", "mark_absent", "undo"]),
   absenceReason: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),
@@ -187,7 +194,7 @@ export const POST = withApiAuth(
           const [dateStr, st] = k.split("|");
           const [y, m, d] = dateStr.split("-").map(Number);
           const dateObj = new Date(Date.UTC(y, m - 1, d));
-          const sessionType = st as "bsc" | "asc" | "vc";
+          const sessionType = st as $Enums.SessionType;
           const counts = await tx.attendanceRecord.groupBy({
             by: ["status"],
             where: { serviceId, date: dateObj, sessionType },
