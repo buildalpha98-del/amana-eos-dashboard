@@ -25,6 +25,11 @@ function createPrismaMock() {
 
   // Support prisma.$queryRawUnsafe(...) — raw SQL queries
   const $queryRawUnsafe = vi.fn();
+  // ...and prisma.$queryRaw`...` — the tagged-template form, used where
+  // a query has to read inside a JSON column (see the parent magic-link
+  // lookup). Without this the proxy handed back a model object and the
+  // route died with a 500 that looked like a route bug.
+  const $queryRaw = vi.fn();
 
   // Support prisma.$queryRaw`...` — tagged-template raw queries
   const $queryRaw = vi.fn();
