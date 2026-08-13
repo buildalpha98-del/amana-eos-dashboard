@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendTeamsNotification } from "@/lib/teams-notify";
@@ -6,7 +6,7 @@ import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { enrolmentConfirmationEmail, schoolEnrolmentNotificationEmail } from "@/lib/email-templates";
 import { encryptField } from "@/lib/field-encryption";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { withApiHandler } from "@/lib/api-handler";
+import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
@@ -181,7 +181,33 @@ const enrolmentBodySchema = z.object({
 // Route handler
 // ---------------------------------------------------------------------------
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+/**
+ * POST /api/enrol — enrolment submission for the wizard.
+ *
+ * 2026-08-13 — now requires a parent session.
+ *
+ * This was unauthenticated, because it was built for the anonymous
+ * enrolment form at `/enrol`. That form was retired on 2026-07-30 and
+ * its last prefilled links now redirect to signup, so no anonymous
+ * caller remains — but the endpoint stayed open to the internet for
+ * months after the page that fed it was gone, creating
+ * `EnrolmentSubmission` and `Child` rows for anyone who found it.
+ *
+ * It is NOT closed, because it is still live: `/parent/children/new`
+ * renders the same wizard for a signed-in parent enrolling a sibling.
+ * That flow keeps working — those parents already hold a session, so
+ * the gate is invisible to them and shut to everyone else.
+ *
+ * Worth knowing, and deliberately not fixed here: this route's schema
+ * never gained the National Regulations fields the account flow
+ * enforces (doctor's address, immunisation status, the emergency
+ * contact's address, who a court order restricts), so a sibling
+ * enrolled through it is a thinner record than one enrolled through
+ * `/parent/enrol`. Closing the gap means moving sibling enrolment onto
+ * the account flow, which is a change to that feature rather than to
+ * this endpoint's access control.
+ */
+export const POST = withParentAuth(async (req) => {
   // Rate limit: 5 submissions per IP per 15 minutes
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

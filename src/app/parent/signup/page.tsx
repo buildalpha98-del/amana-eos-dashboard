@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { mutateApi } from "@/lib/fetch-api";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 // Ambassadors: educator QR codes land here as /parent/signup?ref=CODE.
 // window.location (not useSearchParams) so the page needs no Suspense
@@ -29,6 +29,47 @@ export default function ParentSignupPage() {
   const [error, setError] = useState("");
   const [refCode, setRefCode] = useState("");
   const router = useRouter();
+
+  /**
+   * `?enquiry=<id>` — a family arriving from a nurture or waitlist link.
+   *
+   * Those links used to open the old anonymous wizard, which is gone
+   * because everything submitted through it was an incomplete record.
+   * They land here instead, and this is what stops that being a
+   * downgrade: the name and email they already gave us are filled in,
+   * rather than asked for a second time.
+   *
+   * Prefill only — the email is editable and the account is still
+   * created from what's typed. Anyone can put any id in the URL, so
+   * this must never be treated as proof of who they are.
+   */
+  useEffect(() => {
+    const enquiryId = new URLSearchParams(window.location.search).get("enquiry");
+    if (!enquiryId) return;
+    let cancelled = false;
+
+    fetchApi<{ prefill: { firstName: string; surname: string; email: string } }>(
+      `/api/enrol/${encodeURIComponent(enquiryId)}`,
+    )
+      .then(({ prefill }) => {
+        if (cancelled) return;
+        const name = [prefill.firstName, prefill.surname]
+          .filter(Boolean)
+          .join(" ");
+        // Never clobber something the family has already typed — the
+        // fetch resolves after the field is interactive.
+        if (name) setFullName((prev) => prev || name);
+        if (prefill.email) setEmail((prev) => prev || prefill.email);
+      })
+      .catch(() => {
+        // An expired or unknown link is not an error worth showing:
+        // the form works perfectly well unfilled.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("ref");
