@@ -35,6 +35,7 @@ import { cancelPreEnrolmentNurture } from "@/lib/nurture-scheduler";
 import {
   draftSubmittable,
   firstIncompleteStep,
+  WEEKDAYS,
   type DraftChild,
   type EnrolDraft,
 } from "@/lib/enrol-draft";
@@ -168,6 +169,70 @@ export const POST = withParentAuth(async (req, ctx) => {
     gender: me.gender ?? "",
   };
 
+  /**
+   * Translate the parent's booking grid into the shape the DASHBOARD reads.
+   *
+   * Everything downstream of an enrolment — generateBookings() (approval,
+   * assign-service, the booking-generator and booking-extend crons), the
+   * enrolment PDF, and the service's children tab — reads
+   * `bookingPrefs.sessionTypes` plus `bookingPrefs.days` keyed BY SESSION
+   * TYPE with lowercase weekday names:
+   *
+   *   { sessionTypes: ["asc"], days: { asc: ["monday", "tuesday"] } }
+   *
+   * This route wrote neither. It wrote a flat capitalised list under
+   * `days`, built by reading `sessions.beforeSchool` and
+   * `sessions.afterSchool` — two keys no writer has ever produced (the
+   * grid's keys are SESSION_ROWS': riseAndShine / amanaAfternoons /
+   * holidayQuest). So the list was always empty, and even when it wasn't
+   * it was the wrong shape for every reader.
+   *
+   * The effect was silent and total: a family picked Rise and Shine on
+   * Monday and Tuesday, and their child's booking preferences printed
+   * blank on the enrolment pack, read "Not set" on the centre's children
+   * list, and generated ZERO bookings on approval — so the child never
+   * reached the roll.
+   */
+  const SESSION_TYPE_FOR_ROW: Record<string, string> = {
+    riseAndShine: "bsc",
+    amanaAfternoons: "asc",
+    holidayQuest: "vc",
+  };
+  const WEEKDAY_LOOKUP = new Map<string, string>(
+    WEEKDAYS.map((d) => [d.toLowerCase(), d.toLowerCase()]),
+  );
+
+  const gridSessionTypes: string[] = [];
+  const gridDays: Record<string, string[]> = {};
+  for (const [rowKey, picked] of Object.entries(billing.sessions ?? {})) {
+    const sessionType = SESSION_TYPE_FOR_ROW[rowKey];
+    if (!sessionType || !Array.isArray(picked) || picked.length === 0) continue;
+    gridSessionTypes.push(sessionType);
+    // A whole-of-session tick stores ["yes"] rather than weekdays (casual
+    // bookings, and Holiday Quest always). That's a real selection but not
+    // a weekly pattern — keeping it here would have generateBookings look
+    // up a weekday called "yes". The session still shows on the pack.
+    gridDays[sessionType] = picked
+      .map((d) => WEEKDAY_LOOKUP.get(String(d).toLowerCase()))
+      .filter((d): d is string => Boolean(d));
+  }
+
+  // A draft started before the booking grid existed stored a flat day list
+  // with no way to tell WHICH session those days belong to. Guessing would
+  // put a child on the wrong session's roll, so it goes to staff — the
+  // same call the unmatched-school branch below makes.
+  if (gridSessionTypes.length === 0 && (billing.days ?? []).length > 0) {
+    logger.warn("Enrolment: pre-grid booking days, session type unknown", {
+      accountId,
+      days: billing.days,
+    });
+  }
+
+  const bookingGrid = {
+    sessionTypes: gridSessionTypes,
+    days: gridDays,
+  };
+
   const enrichedChildren = children.map((c: DraftChild) => ({
     ...c,
     // Children inherit the account holder's address unless we ever collect
@@ -200,17 +265,10 @@ export const POST = withParentAuth(async (req, ctx) => {
     bookingPrefs: {
       bookingType: billing.bookingType ?? "",
       startDate: billing.startDate ?? "",
-      // Per-program selections from the booking grid.
+      // Per-program selections from the booking grid, kept verbatim so the
+      // parent's own answer survives however the canonical shape evolves.
       sessions: billing.sessions ?? {},
-      // Flattened weekday list, so anything already reading `days` (rosters,
-      // the enrolment PDF) keeps working without knowing about the grid.
-      days: Array.from(
-        new Set([
-          ...(billing.sessions?.beforeSchool ?? []),
-          ...(billing.sessions?.afterSchool ?? []),
-          ...(billing.days ?? []),
-        ]),
-      ),
+      ...bookingGrid,
     },
   }));
 
