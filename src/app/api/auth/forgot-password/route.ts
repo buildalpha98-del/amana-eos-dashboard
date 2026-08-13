@@ -7,6 +7,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import crypto from "crypto";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 const bodySchema = z.object({
   email: z.string().email("Valid email is required"),
@@ -70,17 +71,55 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     resetUrl
   );
 
+  /**
+   * Sent directly rather than through `sendEmail`, deliberately: that
+   * wrapper skips suppressed addresses, and an address that bounced
+   * once — a full mailbox, a bad forwarder — must still be able to
+   * reset its password. Locking someone out of their own account
+   * because of an old bounce is the worse failure.
+   */
   const resend = getResend();
-  if (resend) {
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: user.email,
-      subject,
-      html,
+  if (!resend) {
+    /**
+     * In development this is the intended path and the link goes to the
+     * console. In production it means RESEND_API_KEY is missing, and
+     * the user has just been told a link is on its way — so it is an
+     * error, not a shrug.
+     */
+    if (process.env.NODE_ENV === "production") {
+      logger.error("Password reset not sent: email is not configured", {
+        userId: user.id,
+      });
+    } else {
+      console.log(`[DEV] Password reset link for ${user.email}: ${resetUrl}`);
+    }
+    return successResponse;
+  }
+
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: user.email,
+    subject,
+    html,
+  });
+
+  /**
+   * The SDK resolves with `{ error }` rather than throwing, so this
+   * used to pass silently: an unverified sending domain, a rate limit
+   * or a blocked recipient all left the user staring at "a link has
+   * been sent" with nothing in their inbox and nothing in the logs.
+   *
+   * Still a 200. The response is identical whether or not the account
+   * exists — that is what stops this endpoint being used to enumerate
+   * staff email addresses — and a 500 here would leak exactly that, by
+   * failing only for addresses that turned out to be real.
+   */
+  if (error) {
+    logger.error("Password reset email rejected by provider", {
+      userId: user.id,
+      error: error.message,
+      name: error.name,
     });
-  } else {
-    // Dev fallback: log the reset URL
-    if (process.env.NODE_ENV !== "production") console.log(`[DEV] Password reset link for ${user.email}: ${resetUrl}`);
   }
 
   return successResponse;

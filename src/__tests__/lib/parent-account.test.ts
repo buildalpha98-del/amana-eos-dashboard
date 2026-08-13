@@ -10,6 +10,8 @@ vi.mock("@/lib/prisma", () => ({
     parentAccount: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     parentEmailVerification: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
     enrolmentSubmission: { findMany: vi.fn() },
+    // The enrolment lookup filters inside a JSON column, so it's raw SQL.
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(async (ops: unknown[]) => ops),
   },
 }));
@@ -35,12 +37,14 @@ const mockPrisma = prisma as unknown as {
   parentAccount: { findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   parentEmailVerification: { create: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   enrolmentSubmission: { findMany: ReturnType<typeof vi.fn> };
+  $queryRaw: ReturnType<typeof vi.fn>;
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
   (checkPasswordBreach as ReturnType<typeof vi.fn>).mockResolvedValue(0);
   mockPrisma.enrolmentSubmission.findMany.mockResolvedValue([]);
+  mockPrisma.$queryRaw.mockResolvedValue([]);
   mockPrisma.parentEmailVerification.create.mockResolvedValue({ id: "v1" });
 });
 
@@ -135,10 +139,12 @@ describe("confirmParentEmail", () => {
       id: "v1", accountId: "acc", usedAt: null, expiresAt: new Date(Date.now() + 10000),
       account: { id: "acc", email: "a@b.com", claimedAt: null },
     });
-    mockPrisma.enrolmentSubmission.findMany.mockResolvedValue([
-      { id: "e1", primaryParent: { email: "A@B.com", firstName: "Sam" }, secondaryParent: null },
-      { id: "e2", primaryParent: { email: "other@x.com" }, secondaryParent: { email: "a@b.com" } },
-      { id: "e3", primaryParent: { email: "nope@x.com" }, secondaryParent: null },
+    // The match is made in SQL now — LOWER/TRIM on both sides — so the
+    // non-matching row that used to be filtered in memory simply never
+    // comes back.
+    mockPrisma.$queryRaw.mockResolvedValue([
+      { id: "e1", first_name: "Sam", surname: null },
+      { id: "e2", first_name: null, surname: null },
     ]);
     const res = await confirmParentEmail("tok");
     expect(res.claimedEnrolmentIds).toEqual(["e1", "e2"]);
@@ -195,22 +201,56 @@ describe("authenticateParent", () => {
 });
 
 describe("findEnrolmentIdsForEmail", () => {
-  it("matches case-insensitively on primary and secondary parent", async () => {
-    mockPrisma.enrolmentSubmission.findMany.mockResolvedValue([
-      { id: "e1", primaryParent: { email: "  A@B.COM  " }, secondaryParent: null },
-      { id: "e2", primaryParent: null, secondaryParent: { email: "a@b.com" } },
+  it("asks the database rather than scanning a page of rows", async () => {
+    // The bug this replaced: a `take` plus an in-memory scan meant a
+    // parent outside that arbitrary window was reported as unknown, and
+    // with no `orderBy` the same parent could work once and fail next
+    // time. The address lives inside JSON, so the filter belongs in SQL.
+    mockPrisma.$queryRaw.mockResolvedValue([
+      { id: "e1", first_name: "Aysha", surname: "Khan" },
+    ]);
+    const { enrolmentIds } = await findEnrolmentIdsForEmail("a@b.com");
+
+    expect(enrolmentIds).toEqual(["e1"]);
+    expect(mockPrisma.enrolmentSubmission.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.$queryRaw).toHaveBeenCalled();
+  });
+
+  it("returns every enrolment the address appears on", async () => {
+    // A parent with two children at different centres must get both, or
+    // the session they're signed into is missing one of their kids.
+    mockPrisma.$queryRaw.mockResolvedValue([
+      { id: "e1", first_name: "Aysha", surname: "Khan" },
+      { id: "e2", first_name: "Aysha", surname: "Khan" },
     ]);
     const { enrolmentIds } = await findEnrolmentIdsForEmail("a@b.com");
     expect(enrolmentIds).toEqual(["e1", "e2"]);
   });
 
-  it("tolerates malformed JSON blobs without throwing", async () => {
-    mockPrisma.enrolmentSubmission.findMany.mockResolvedValue([
-      { id: "e1", primaryParent: null, secondaryParent: null },
-      { id: "e2", primaryParent: { email: 42 }, secondaryParent: undefined },
-      { id: "e3", primaryParent: "not-an-object", secondaryParent: null },
+  it("builds a display name from the first row that has one", async () => {
+    // The match may come off the secondary parent, whose name columns
+    // the query selects instead — so a row with no name isn't an error.
+    mockPrisma.$queryRaw.mockResolvedValue([
+      { id: "e1", first_name: null, surname: null },
+      { id: "e2", first_name: "Mo", surname: "Ali" },
     ]);
-    const { enrolmentIds } = await findEnrolmentIdsForEmail("a@b.com");
+    const { parentName } = await findEnrolmentIdsForEmail("a@b.com");
+    expect(parentName).toBe("Mo Ali");
+  });
+
+  it("gives a null name rather than a half one", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([
+      { id: "e1", first_name: null, surname: null },
+    ]);
+    const { parentName } = await findEnrolmentIdsForEmail("a@b.com");
+    expect(parentName).toBeNull();
+  });
+
+  it("returns nothing for an address with no enrolment", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([]);
+    const { enrolmentIds, parentName } =
+      await findEnrolmentIdsForEmail("stranger@example.com");
     expect(enrolmentIds).toEqual([]);
+    expect(parentName).toBeNull();
   });
 });

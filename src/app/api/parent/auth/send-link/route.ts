@@ -5,7 +5,8 @@ import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { sendEmail } from "@/lib/email";
+import { getResend, FROM_EMAIL } from "@/lib/email";
+import { findEnrolmentIdsForEmail } from "@/lib/parent-account";
 import { parentMagicLinkEmail } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
 
@@ -48,51 +49,17 @@ export const POST = withApiHandler(async (req) => {
   });
   if (enquiry?.parentName) parentName = enquiry.parentName;
 
-  // Look up the parent by email.
-  //
-  // 2026-08-06 — REWRITTEN. This used to fetch enrolments with
-  // `take: 100` and scan them in memory for a matching email, because
-  // the address lives inside the primaryParent JSON rather than in a
-  // column. With 1,000+ enrolments across 11 centres, any parent whose
-  // row fell outside that arbitrary 100 was reported as "unknown
-  // email": no link sent, but the page still said one had been. There
-  // was no `orderBy` either, so the same parent could work once and
-  // fail the next time.
-  //
-  // Postgres can read inside JSON, so this asks the database the exact
-  // question instead of guessing at a window. LOWER() on both sides
-  // because addresses were captured with whatever case a parent typed.
-  const matches = await prisma.$queryRaw<
-    Array<{ id: string; first_name: string | null; surname: string | null }>
-  >`
-    SELECT
-      id,
-      CASE
-        WHEN LOWER("primaryParent"->>'email') = ${emailLower}
-          THEN "primaryParent"->>'firstName'
-        ELSE "secondaryParent"->>'firstName'
-      END AS first_name,
-      CASE
-        WHEN LOWER("primaryParent"->>'email') = ${emailLower}
-          THEN "primaryParent"->>'surname'
-        ELSE "secondaryParent"->>'surname'
-      END AS surname
-    FROM "EnrolmentSubmission"
-    WHERE status <> 'draft'
-      AND (
-        LOWER("primaryParent"->>'email') = ${emailLower}
-        OR LOWER("secondaryParent"->>'email') = ${emailLower}
-      )
-    LIMIT 50
-  `;
-
-  const matchingEnrolmentIds = matches.map((m) => m.id);
-  if (!parentName) {
-    const named = matches.find((m) => m.first_name);
-    if (named?.first_name) {
-      parentName = `${named.first_name}${named.surname ? ` ${named.surname}` : ""}`;
-    }
-  }
+  /**
+   * The SQL moved to `findEnrolmentIdsForEmail`.
+   *
+   * `verify` carried its own copy of this lookup with a different limit,
+   * so a parent could receive a working link and land in a session with
+   * ZERO enrolments — signed in, with none of their own children. One
+   * implementation, both callers.
+   */
+  const { enrolmentIds: matchingEnrolmentIds, parentName: enrolmentName } =
+    await findEnrolmentIdsForEmail(emailLower);
+  if (!parentName) parentName = enrolmentName;
 
   // No match anywhere: return success without sending, so the page
   // can't be used to discover which addresses are registered.
@@ -121,24 +88,53 @@ export const POST = withApiHandler(async (req) => {
   const loginUrl = `${baseUrl}/api/parent/auth/verify?token=${token}`;
   const { subject, html } = await parentMagicLinkEmail(displayName, loginUrl);
 
-  try {
-    const result = await sendEmail({ to: emailLower, subject, html });
-    if (result.suppressed.length > 0) {
-      // A parent on the suppression list — one bounce or spam complaint,
-      // months ago — can never receive a login link again, and until now
-      // nothing anywhere said so. The parent-facing message stays vague
-      // on purpose; this is how STAFF find out.
-      logger.error("Parent magic link BLOCKED by suppression list", {
+  /**
+   * Sent directly rather than through `sendEmail`, deliberately.
+   *
+   * That wrapper skips suppressed addresses, and logging the block was
+   * only half the answer: it tells STAFF, while the parent stays locked
+   * out of their own child's enrolment until someone reads the log and
+   * acts. One bounce months ago, or an unsubscribe from a newsletter,
+   * should not cost a family access to their account.
+   *
+   * Suppression protects sender reputation on mail people can live
+   * without. It must not gate account recovery — which is why the staff
+   * password reset already bypassed it, and this is the same path for
+   * families.
+   */
+  const resend = getResend();
+  if (!resend) {
+    if (process.env.NODE_ENV === "production") {
+      logger.error("Parent magic link not sent: email is not configured", {
         email: emailLower,
-        action:
-          "Remove them from email suppression, or sign them in another way.",
       });
     } else {
-      logger.info("Parent magic link sent", { email: emailLower });
+      console.log(`[DEV] Parent magic link for ${emailLower}: ${loginUrl}`);
     }
-  } catch (err) {
-    logger.error("Failed to send parent magic link email", { email: emailLower, err });
-    // Still return success to avoid leaking info
+    return successResponse;
+  }
+
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: emailLower,
+    subject,
+    html,
+  });
+
+  /*
+   * Resend resolves with `{ error }` rather than throwing, so the
+   * try/catch this replaces never fired — a rejected send was logged as
+   * "sent". Still a 200 either way: the response must not differ by
+   * whether the account exists.
+   */
+  if (error) {
+    logger.error("Parent magic link rejected by provider", {
+      email: emailLower,
+      error: error.message,
+      name: error.name,
+    });
+  } else {
+    logger.info("Parent magic link sent", { email: emailLower });
   }
 
   return successResponse;

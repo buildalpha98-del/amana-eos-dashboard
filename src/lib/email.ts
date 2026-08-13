@@ -27,10 +27,26 @@ interface SendEmailParams {
   replyTo?: string;
 }
 
-interface SendEmailResult {
+export interface SendEmailResult {
   messageId?: string;
   suppressed: string[];
+  /**
+   * Addresses the provider ACCEPTED. Empty when the send was rejected —
+   * a caller logging "sent" off this field must not be told yes when
+   * the answer was no.
+   */
   sent: string[];
+  /**
+   * Set when Resend rejected the send.
+   *
+   * This exists because the SDK does NOT throw on an API error: it
+   * resolves with `{ data: null, error }`. Code that destructured only
+   * `data` therefore reported success for every rejected send — an
+   * unverified domain, a rate limit, a blocked recipient — and the one
+   * place it mattered most was the password reset, where the user is
+   * told "a link has been sent" and nothing arrives.
+   */
+  failed?: { message: string; name?: string };
 }
 
 /**
@@ -63,13 +79,37 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     return { suppressed, sent: [] };
   }
 
-  const { data } = await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: params.from ?? FROM_EMAIL,
     to: eligible,
     subject: params.subject,
     html: params.html,
     replyTo: params.replyTo,
   });
+
+  /**
+   * Deliberately not thrown.
+   *
+   * There are 80-odd callers, and for most of them the email is a
+   * side-effect of something that already succeeded — a user was
+   * created, an enrolment was submitted. Throwing would turn "the
+   * invite didn't send" into "creating the user failed", which is
+   * worse. So it's logged loudly and returned, and callers that need
+   * to act on it can read `failed`.
+   */
+  if (error) {
+    logger.error("Email rejected by provider", {
+      to: eligible,
+      subject: params.subject,
+      error: error.message,
+      name: error.name,
+    });
+    return {
+      suppressed,
+      sent: [],
+      failed: { message: error.message, name: error.name },
+    };
+  }
 
   return {
     messageId: data?.id,

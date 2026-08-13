@@ -18,7 +18,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { createRequest } from "../helpers/request";
 
-const sendEmail = vi.fn();
+const resendSend = vi.fn();
 const loggerError = vi.fn();
 const loggerInfo = vi.fn();
 
@@ -42,8 +42,14 @@ vi.mock("@/lib/logger", () => ({
   },
   generateRequestId: () => "test-req-id",
 }));
+/*
+ * `getResend`, not `sendEmail`. The route now sends directly so that
+ * suppression can't block account recovery — see the route's own note,
+ * and the bypass guard's allowlist.
+ */
 vi.mock("@/lib/email", () => ({
-  sendEmail: (...a: unknown[]) => sendEmail(...a),
+  getResend: () => ({ emails: { send: (...a: unknown[]) => resendSend(...a) } }),
+  FROM_EMAIL: "Amana OSHC <test@example.com>",
 }));
 vi.mock("@/lib/email-templates", () => ({
   parentMagicLinkEmail: vi.fn(() =>
@@ -61,7 +67,7 @@ describe("POST /api/parent/auth/send-link", () => {
     vi.clearAllMocks();
     prismaMock.parentEnquiry.findFirst.mockResolvedValue(null);
     prismaMock.parentMagicLink.create.mockResolvedValue({ id: "ml-1" });
-    sendEmail.mockResolvedValue({ sent: ["a@b.com"], suppressed: [] });
+    resendSend.mockResolvedValue({ data: { id: "msg-1" }, error: null });
   });
 
   it("asks the database for the email instead of scanning a page of rows", async () => {
@@ -74,7 +80,7 @@ describe("POST /api/parent/auth/send-link", () => {
     // ever comes back, this fails.
     expect(prismaMock.enrolmentSubmission.findMany).not.toHaveBeenCalled();
     expect(prismaMock.$queryRaw).toHaveBeenCalled();
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(resendSend).toHaveBeenCalledTimes(1);
   });
 
   it("finds a parent regardless of how many enrolments exist", async () => {
@@ -84,7 +90,7 @@ describe("POST /api/parent/auth/send-link", () => {
       { id: "enr-999", first_name: "Mo", surname: "Ali" },
     ]);
     await POST(req("mo@example.com"));
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(resendSend).toHaveBeenCalledTimes(1);
     expect(prismaMock.parentMagicLink.create).toHaveBeenCalled();
   });
 
@@ -96,34 +102,50 @@ describe("POST /api/parent/auth/send-link", () => {
     // Same response as success — the page must not reveal which
     // addresses are registered.
     expect(body.success).toBe(true);
-    expect(sendEmail).not.toHaveBeenCalled();
+    expect(resendSend).not.toHaveBeenCalled();
   });
 
-  it("shouts in the logs when the address is suppressed", async () => {
+  it("sends anyway when the address is on the suppression list", async () => {
+    // CHANGED 2026-08-13. This used to assert that suppression blocked
+    // the send and shouted in the logs. Logging it was only half an
+    // answer: it tells STAFF, while the parent stays locked out of
+    // their own child's enrolment until someone reads the log and acts.
+    //
+    // This link IS the parent's forgot-password path — there is no
+    // other. Suppression protects sender reputation on mail people can
+    // live without; it must not gate account recovery. The staff
+    // password reset already worked this way.
     prismaMock.$queryRaw.mockResolvedValue([
       { id: "enr-1", first_name: "Aysha", surname: "Khan" },
     ]);
-    sendEmail.mockResolvedValue({ sent: [], suppressed: ["aysha@example.com"] });
     const res = await POST(req("aysha@example.com"));
 
-    // The parent still sees the vague message...
+    expect(res.status).toBe(200);
+    expect(resendSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs when the provider rejects, rather than reporting success", async () => {
+    // Resend resolves with `{ error }` instead of throwing, so the
+    // try/catch this replaces never fired and a rejected send was
+    // logged as "sent".
+    prismaMock.$queryRaw.mockResolvedValue([
+      { id: "enr-1", first_name: "Aysha", surname: "Khan" },
+    ]);
+    resendSend.mockResolvedValue({
+      data: null,
+      error: { message: "Domain is not verified", name: "validation_error" },
+    });
+
+    const res = await POST(req("aysha@example.com"));
+
+    // The parent still sees the vague message — the response must not
+    // differ by whether the account exists.
     expect(res.status).toBe(200);
     expect((await res.json()).success).toBe(true);
-    // ...but staff get told, because otherwise "she never gets the
-    // email" has no answer anywhere.
-    const blocked = loggerError.mock.calls.find((c) =>
-      String(c[0]).includes("BLOCKED by suppression"),
-    );
-    expect(blocked).toBeTruthy();
-  });
 
-  it("still succeeds for the parent when sending throws", async () => {
-    prismaMock.$queryRaw.mockResolvedValue([
-      { id: "enr-1", first_name: "Aysha", surname: "Khan" },
-    ]);
-    sendEmail.mockRejectedValue(new Error("Resend down"));
-    const res = await POST(req("aysha@example.com"));
-    expect(res.status).toBe(200);
-    expect(loggerError).toHaveBeenCalled();
+    const rejected = loggerError.mock.calls.find((c) =>
+      String(c[0]).includes("rejected by provider"),
+    );
+    expect(rejected).toBeTruthy();
   });
 });
