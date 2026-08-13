@@ -260,6 +260,39 @@ export async function confirmParentEmail(rawToken: string): Promise<{
  * that one is safe to disclose, because the person already proved they know
  * the password, and they need telling why they can't get in.
  */
+/**
+ * The account behind an email, for the magic-link path.
+ *
+ * `send-link` and `verify` used to look only at `ParentEnquiry` and
+ * non-draft `EnrolmentSubmission`. A parent who created an account and
+ * hasn't finished their enrolment appears in NEITHER — their enrolment
+ * is still a draft, and they may never have made an enquiry — so the
+ * magic link, which is their only forgot-password path, silently sent
+ * nothing and told them a link was on its way.
+ *
+ * Deactivated accounts are excluded: a login link is a way back in, and
+ * a closed account shouldn't have one.
+ */
+export async function findParentAccountForLogin(emailLower: string): Promise<{
+  accountId: string;
+  name: string | null;
+} | null> {
+  const account = await prisma.parentAccount.findUnique({
+    where: { email: emailLower },
+    select: {
+      id: true,
+      firstName: true,
+      surname: true,
+      deactivatedAt: true,
+    },
+  });
+  if (!account || account.deactivatedAt) return null;
+
+  const name =
+    [account.firstName, account.surname].filter(Boolean).join(" ") || null;
+  return { accountId: account.id, name };
+}
+
 export async function authenticateParent(
   email: string,
   password: string,

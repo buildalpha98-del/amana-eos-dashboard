@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { withApiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
-import { findEnrolmentIdsForEmail } from "@/lib/parent-account";
+import {
+  findEnrolmentIdsForEmail,
+  findParentAccountForLogin,
+} from "@/lib/parent-account";
 import { signParentJwt } from "@/lib/parent-auth";
 import { logger } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -78,10 +81,24 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   }
 
   // Sign JWT
+  /**
+   * `accountId` too — the password login has always set it, and this
+   * didn't.
+   *
+   * Without it `requireAccountId` refuses the enrolment draft with
+   * "Please sign in with your Amana OSHC account to continue your
+   * enrolment" — told to a parent who just used the only recovery path
+   * they have, about the password they've forgotten. It also made
+   * fixing the send side hollow: a link that arrives and then can't
+   * reach their half-finished enrolment is barely better than no link.
+   */
+  const account = await findParentAccountForLogin(emailLower);
+
   const jwt = await signParentJwt({
     email: emailLower,
     name: parentName,
     enrolmentIds: matchingEnrolmentIds,
+    ...(account ? { accountId: account.accountId } : {}),
   });
 
   logger.info("Parent session created", {

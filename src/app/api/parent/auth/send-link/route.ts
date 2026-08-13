@@ -6,7 +6,10 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getResend, FROM_EMAIL } from "@/lib/email";
-import { findEnrolmentIdsForEmail } from "@/lib/parent-account";
+import {
+  findEnrolmentIdsForEmail,
+  findParentAccountForLogin,
+} from "@/lib/parent-account";
 import { parentMagicLinkEmail } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
 
@@ -61,9 +64,23 @@ export const POST = withApiHandler(async (req) => {
     await findEnrolmentIdsForEmail(emailLower);
   if (!parentName) parentName = enrolmentName;
 
-  // No match anywhere: return success without sending, so the page
-  // can't be used to discover which addresses are registered.
-  if (!parentName && matchingEnrolmentIds.length === 0) {
+  /**
+   * The account itself, which is what was missing.
+   *
+   * This route looked only at `ParentEnquiry` and non-draft
+   * `EnrolmentSubmission`. A parent who created an account and hasn't
+   * finished their enrolment is in NEITHER — their enrolment is still a
+   * draft, and if they signed up directly rather than through an
+   * enquiry form there is no enquiry either. So the one group most
+   * likely to need a way back in was the one group guaranteed not to
+   * get one, while being told a link was on its way.
+   */
+  const account = await findParentAccountForLogin(emailLower);
+  if (!parentName) parentName = account?.name ?? null;
+
+  // Nothing anywhere: return success without sending, so the page can't
+  // be used to discover which addresses are registered.
+  if (!account && !parentName && matchingEnrolmentIds.length === 0) {
     logger.info("Parent magic link requested for unknown email", { email: emailLower });
     return successResponse;
   }
