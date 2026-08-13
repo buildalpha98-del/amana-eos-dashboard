@@ -267,10 +267,25 @@ export function documentRows(submission: {
   medicalFiles?: Record<string, unknown>[] | null;
   courtOrderFiles?: Record<string, unknown>[] | null;
 }): Array<{ label: string; filename: string }> {
+  /**
+   * These are `Json` columns, and the route reaches them through an
+   * `as any` — so the declared types above are a hope, not a guarantee.
+   * Spreading whatever is really there threw `is not iterable` on any
+   * non-array value, which surfaced as a 500 on the whole PDF: a
+   * document staff could no longer open because of a field that only
+   * decorates it.
+   *
+   * A string is the nastier case. `[..."none"]` doesn't throw, it
+   * yields four one-character "files", so the guard is an array check
+   * rather than a try/catch.
+   */
+  const asRows = (v: unknown): Record<string, unknown>[] =>
+    Array.isArray(v) ? (v.filter((r) => r && typeof r === "object") as Record<string, unknown>[]) : [];
+
   const uploads = [
-    ...(submission.documentUploads ?? []),
-    ...(submission.medicalFiles ?? []),
-    ...(submission.courtOrderFiles ?? []),
+    ...asRows(submission.documentUploads),
+    ...asRows(submission.medicalFiles),
+    ...asRows(submission.courtOrderFiles),
   ];
 
   /** "immunisation_record" reads badly on a printed page. */
@@ -286,7 +301,9 @@ export function documentRows(submission: {
    */
   const childName = (i: unknown) => {
     if (typeof i !== "number") return null;
-    const child = submission.children?.[i];
+    // Same reasoning as `asRows` — `children` is a Json column too.
+    if (!Array.isArray(submission.children)) return null;
+    const child = submission.children[i];
     if (!child) return null;
     const first = typeof child.firstName === "string" ? child.firstName : "";
     const last = typeof child.surname === "string" ? child.surname : "";

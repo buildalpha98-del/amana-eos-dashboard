@@ -103,3 +103,75 @@ describe("documentRows", () => {
     expect(documentRows({ children })).toEqual([]);
   });
 });
+
+/**
+ * Regression: opening an enrolment PDF returned
+ * `{"error":"Internal server error"}`.
+ *
+ * These are `Json` columns and the route reaches them through an
+ * `as any`, so the declared array types are a hope rather than a
+ * guarantee. Spreading a non-array threw "is not iterable", which had
+ * no try/catch above it — so a field that only DECORATES the document
+ * took the whole document down, and the 500 named neither the
+ * submission nor the field.
+ */
+describe("documentRows — untrusted JSON columns", () => {
+  it("survives an object where an array was declared", () => {
+    expect(() =>
+      documentRows({
+        children,
+        documentUploads: {} as never,
+      }),
+    ).not.toThrow();
+  });
+
+  it("survives a keyed object", () => {
+    const rows = documentRows({
+      children,
+      medicalFiles: { "0": { filename: "a.pdf" } } as never,
+    });
+    expect(rows).toEqual([]);
+  });
+
+  it("does not shred a string into one-character files", () => {
+    // The nastier case: `[..."none"]` doesn't throw, it yields four
+    // single-character entries. A guard that only caught throws would
+    // have printed four fake documents onto the pack.
+    const rows = documentRows({ children, documentUploads: "none" as never });
+    expect(rows).toEqual([]);
+  });
+
+  it("drops non-object entries inside an otherwise valid array", () => {
+    const rows = documentRows({
+      children,
+      documentUploads: [
+        null,
+        "junk",
+        { childIndex: 0, type: "birth_certificate", filename: "real.pdf" },
+      ] as never,
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].filename).toBe("real.pdf");
+  });
+
+  it("survives children not being an array either", () => {
+    const rows = documentRows({
+      children: {} as never,
+      documentUploads: [{ childIndex: 0, type: "birth_certificate", filename: "a.pdf" }],
+    });
+    expect(rows[0].label).toBe("Birth certificate");
+  });
+
+  it("still renders the valid uploads when one column is malformed", () => {
+    // A bad value in one column must not hide the documents in another.
+    const rows = documentRows({
+      children,
+      documentUploads: {} as never,
+      medicalFiles: [
+        { childIndex: 0, type: "medical_action_plan", filename: "plan.pdf" },
+      ],
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].label).toBe("Medical action plan — Aysha Khan");
+  });
+});
