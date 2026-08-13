@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import path from "path";
 import { uploadFile } from "@/lib/storage";
 import { validateFileContent } from "@/lib/file-validation";
-import { withApiHandler } from "@/lib/api-handler";
+import { withParentAuth } from "@/lib/parent-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
@@ -13,7 +13,16 @@ const bodySchema = z.object({
   contentType: z.string().optional(),
 });
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+/**
+ * 4 MB, matching `/api/parent/upload`.
+ *
+ * The 10 MB this replaces was unreachable: Vercel caps a serverless
+ * request body at roughly 4.5 MB, so a file between the two limits was
+ * rejected by the platform before this route ran and the parent saw
+ * `Unexpected token 'R', "Request En"... is not valid JSON` instead of
+ * a message. A limit you can actually hit produces a real error.
+ */
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
 const EXTENSION_TO_MIME: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -22,29 +31,22 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   ".png": "image/png",
 };
 
-// Simple in-memory rate limiter for this public endpoint
-const uploadAttempts = new Map<string, { count: number; resetAt: number }>();
-const MAX_UPLOADS_PER_IP = 20; // 20 uploads per 15 min window
-const WINDOW_MS = 15 * 60 * 1000;
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = uploadAttempts.get(ip);
-  if (!entry || now > entry.resetAt) {
-    uploadAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return true;
-  }
-  if (entry.count >= MAX_UPLOADS_PER_IP) return false;
-  entry.count++;
-  return true;
-}
-
-export const POST = withApiHandler(async (req) => {
-  // Rate limit — this endpoint is intentionally public for parent enrolment forms
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json({ error: "Too many uploads. Please try again later." }, { status: 429 });
-  }
+/**
+ * POST /api/upload/enrolment-file — now requires a parent session.
+ *
+ * This was public, and had to be: it served the anonymous enrolment
+ * form at `/enrol`. That form is gone, and every caller left — the
+ * medical, child and parent steps of the wizard — is reached only from
+ * `/parent/children/new`, where the parent is signed in.
+ *
+ * What it was in the meantime: an unauthenticated file-upload endpoint
+ * on the public internet, guarded by a rate limiter held in a
+ * module-level `Map`. On serverless that map is per-instance and resets
+ * on every cold start, so the 20-per-15-minutes cap was closer to
+ * decorative than real. `withParentAuth` brings the shared Redis-backed
+ * limit (60/min per parent) with it, and the bespoke map is gone.
+ */
+export const POST = withParentAuth(async (req) => {
 
   try {
     const raw = await parseJsonBody(req);

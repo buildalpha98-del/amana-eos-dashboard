@@ -7,6 +7,7 @@ import { enrolmentConfirmationEmail, schoolEnrolmentNotificationEmail } from "@/
 import { encryptField } from "@/lib/field-encryption";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withParentAuth } from "@/lib/parent-auth";
+import { runAfter } from "@/lib/run-after";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
@@ -428,12 +429,24 @@ export const POST = withParentAuth(async (req) => {
     await logEnquiryStageEvent(enquiryId, priorStage, "enrolled");
   }
 
-  // Teams notification (fire and forget)
+  /**
+   * The three notifications below run AFTER the response.
+   *
+   * They used to be bare promises with a `.catch()`. On serverless a
+   * bare promise is killed the moment the response returns, so the
+   * confirmation email — the one thing that tells a family their
+   * enrolment arrived — was a race against the runtime freezing, and
+   * losing it left no trace: the `.catch()` never ran either.
+   *
+   * `runAfter` is the same fix `/api/public/enquiries` already made for
+   * its nurture scheduling.
+   */
   const childNames = children
     .map((c) => `${c.firstName} ${c.surname}`)
     .join(", ");
-  sendTeamsNotification({
-    title: "New Enrolment Submitted",
+  runAfter(async () => {
+    await sendTeamsNotification({
+      title: "New Enrolment Submitted",
     body: `${primaryParent.firstName} ${primaryParent.surname} has submitted an enrolment for ${childNames}.`,
     facts: [
       { title: "Parent Email", value: primaryParent.email },
@@ -447,60 +460,100 @@ export const POST = withParentAuth(async (req) => {
         url: `${process.env.NEXTAUTH_URL}/enrolments`,
       },
     ],
-  }).catch((err) => logger.error("Failed to send Teams notification for new enrolment", { err, enrolmentId: submission.id }));
-
-  // Send confirmation email to parent (fire and forget)
-  if (primaryParent.email) {
-    const { subject, html } = await enrolmentConfirmationEmail(
-      primaryParent.firstName,
-      childNames,
+    }).catch((err) =>
+      logger.error("Failed to send Teams notification for new enrolment", {
+        err,
+        enrolmentId: submission.id,
+      }),
     );
-    sendEmail({
-      from: FROM_EMAIL,
-      to: primaryParent.email,
-      subject,
-      html,
-    }).catch((err) => logger.error("Failed to send enrolment confirmation email to parent", { err, enrolmentId: submission.id }));
+  });
+
+  // Confirmation email to the parent — the single most important mail
+  // in this flow, and the one most exposed to the bare-promise bug.
+  if (primaryParent.email) {
+    const parentEmail = primaryParent.email;
+    const parentFirstName = primaryParent.firstName;
+    runAfter(async () => {
+      try {
+        const { subject, html } = await enrolmentConfirmationEmail(
+          parentFirstName,
+          childNames,
+        );
+        const result = await sendEmail({
+          from: FROM_EMAIL,
+          to: parentEmail,
+          subject,
+          html,
+        });
+        if (result.failed) {
+          logger.error("Enrolment confirmation rejected by provider", {
+            enrolmentId: submission.id,
+            error: result.failed.message,
+          });
+        }
+      } catch (err) {
+        logger.error("Failed to send enrolment confirmation email to parent", {
+          err,
+          enrolmentId: submission.id,
+        });
+      }
+    });
   }
 
-  // Send notification to school (fire and forget)
+  // Notification to the school. Also after the response — it does a
+  // query of its own, and the family shouldn't wait on it.
   if (serviceId) {
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
-      select: { name: true, email: true },
-    });
-    if (service?.email) {
-      // Build per-child details with medical info and action plan filenames
-      const schoolChildren = enrichedChildren.map((child, i) => {
-        const actionPlans: string[] = [];
-        const medFiles = medicalFiles.filter((f) => f.childIndex === i);
-        for (const f of medFiles) {
-          actionPlans.push(f.filename);
-        }
-        return {
+    const notifyServiceId = serviceId;
+    runAfter(async () => {
+      try {
+        const service = await prisma.service.findUnique({
+          where: { id: notifyServiceId },
+          select: { name: true, email: true },
+        });
+        if (!service?.email) return;
+
+        // Per-child details with medical info and action plan filenames
+        const schoolChildren = enrichedChildren.map((child, i) => ({
           firstName: child.firstName,
           surname: child.surname,
           yearLevel: child.yearLevel,
           schoolName: child.schoolName,
           medical: child.medical,
-          actionPlans,
-        };
-      });
+          actionPlans: medicalFiles
+            .filter((f) => f.childIndex === i)
+            .map((f) => f.filename),
+        }));
 
-      const { subject: schoolSubject, html: schoolHtml } = schoolEnrolmentNotificationEmail({
-        serviceName: service.name,
-        parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
-        parentEmail: primaryParent.email,
-        parentPhone: primaryParent.mobile,
-        children: schoolChildren,
-      });
-      sendEmail({
-        from: FROM_EMAIL,
-        to: service.email,
-        subject: schoolSubject,
-        html: schoolHtml,
-      }).catch((err) => logger.error("Failed to send school enrolment notification email", { err, enrolmentId: submission.id, serviceId }));
-    }
+        const { subject: schoolSubject, html: schoolHtml } =
+          schoolEnrolmentNotificationEmail({
+            serviceName: service.name,
+            parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
+            parentEmail: primaryParent.email,
+            parentPhone: primaryParent.mobile,
+            children: schoolChildren,
+          });
+
+        const result = await sendEmail({
+          from: FROM_EMAIL,
+          to: service.email,
+          subject: schoolSubject,
+          html: schoolHtml,
+        });
+        if (result.failed) {
+          logger.error("School enrolment notification rejected by provider", {
+            enrolmentId: submission.id,
+            serviceId: notifyServiceId,
+            error: result.failed.message,
+          });
+        }
+      } catch (err) {
+        logger.error("Failed to send school enrolment notification email", {
+          err,
+          enrolmentId: submission.id,
+          serviceId: notifyServiceId,
+        });
+      }
+    });
   }
 
   return NextResponse.json({
