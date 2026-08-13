@@ -35,66 +35,67 @@ export const POST = withApiHandler(async (req) => {
     message: "If an account exists, a login link has been sent.",
   });
 
-  // Look up email in EnrolmentSubmission (primaryParent or secondaryParent)
-  // or ParentEnquiry
+  // The enquiry is consulted only for a friendly NAME now — it used to
+  // also narrow the enrolment search by centre, which is what made this
+  // work for some parents and not others.
   let parentName: string | null = null;
-
-  // Check ParentEnquiry first to narrow enrolment search by serviceId
   const enquiry = await prisma.parentEnquiry.findFirst({
     where: {
       parentEmail: { equals: emailLower, mode: "insensitive" },
       deleted: false,
     },
-    select: { parentName: true, serviceId: true },
+    select: { parentName: true },
   });
+  if (enquiry?.parentName) parentName = enquiry.parentName;
 
-  if (enquiry?.parentName) {
-    parentName = enquiry.parentName;
-  }
+  // Look up the parent by email.
+  //
+  // 2026-08-06 — REWRITTEN. This used to fetch enrolments with
+  // `take: 100` and scan them in memory for a matching email, because
+  // the address lives inside the primaryParent JSON rather than in a
+  // column. With 1,000+ enrolments across 11 centres, any parent whose
+  // row fell outside that arbitrary 100 was reported as "unknown
+  // email": no link sent, but the page still said one had been. There
+  // was no `orderBy` either, so the same parent could work once and
+  // fail the next time.
+  //
+  // Postgres can read inside JSON, so this asks the database the exact
+  // question instead of guessing at a window. LOWER() on both sides
+  // because addresses were captured with whatever case a parent typed.
+  const matches = await prisma.$queryRaw<
+    Array<{ id: string; first_name: string | null; surname: string | null }>
+  >`
+    SELECT
+      id,
+      CASE
+        WHEN LOWER("primaryParent"->>'email') = ${emailLower}
+          THEN "primaryParent"->>'firstName'
+        ELSE "secondaryParent"->>'firstName'
+      END AS first_name,
+      CASE
+        WHEN LOWER("primaryParent"->>'email') = ${emailLower}
+          THEN "primaryParent"->>'surname'
+        ELSE "secondaryParent"->>'surname'
+      END AS surname
+    FROM "EnrolmentSubmission"
+    WHERE status <> 'draft'
+      AND (
+        LOWER("primaryParent"->>'email') = ${emailLower}
+        OR LOWER("secondaryParent"->>'email') = ${emailLower}
+      )
+    LIMIT 50
+  `;
 
-  // Check EnrolmentSubmission — primaryParent.email or secondaryParent.email
-  // Narrow by serviceId from enquiry when possible, fallback with .take(100) limit
-  const enrolments = await prisma.enrolmentSubmission.findMany({
-    where: {
-      status: { not: "draft" },
-      ...(enquiry?.serviceId ? { serviceId: enquiry.serviceId } : {}),
-    },
-    select: {
-      id: true,
-      primaryParent: true,
-      secondaryParent: true,
-    },
-    take: 100,
-  });
-
-  const matchingEnrolmentIds: string[] = [];
-
-  for (const enrolment of enrolments) {
-    const primary = enrolment.primaryParent as Record<string, unknown> | null;
-    const secondary = enrolment.secondaryParent as Record<string, unknown> | null;
-
-    if (
-      primary &&
-      typeof primary.email === "string" &&
-      primary.email.toLowerCase().trim() === emailLower
-    ) {
-      matchingEnrolmentIds.push(enrolment.id);
-      if (!parentName && primary.firstName) {
-        parentName = `${primary.firstName}${primary.surname ? ` ${primary.surname}` : ""}`;
-      }
-    } else if (
-      secondary &&
-      typeof secondary.email === "string" &&
-      secondary.email.toLowerCase().trim() === emailLower
-    ) {
-      matchingEnrolmentIds.push(enrolment.id);
-      if (!parentName && secondary.firstName) {
-        parentName = `${secondary.firstName}${secondary.surname ? ` ${secondary.surname}` : ""}`;
-      }
+  const matchingEnrolmentIds = matches.map((m) => m.id);
+  if (!parentName) {
+    const named = matches.find((m) => m.first_name);
+    if (named?.first_name) {
+      parentName = `${named.first_name}${named.surname ? ` ${named.surname}` : ""}`;
     }
   }
 
-  // If no matching parent found, return success without sending (don't leak)
+  // No match anywhere: return success without sending, so the page
+  // can't be used to discover which addresses are registered.
   if (!parentName && matchingEnrolmentIds.length === 0) {
     logger.info("Parent magic link requested for unknown email", { email: emailLower });
     return successResponse;
@@ -121,8 +122,20 @@ export const POST = withApiHandler(async (req) => {
   const { subject, html } = await parentMagicLinkEmail(displayName, loginUrl);
 
   try {
-    await sendEmail({ to: emailLower, subject, html });
-    logger.info("Parent magic link sent", { email: emailLower });
+    const result = await sendEmail({ to: emailLower, subject, html });
+    if (result.suppressed.length > 0) {
+      // A parent on the suppression list — one bounce or spam complaint,
+      // months ago — can never receive a login link again, and until now
+      // nothing anywhere said so. The parent-facing message stays vague
+      // on purpose; this is how STAFF find out.
+      logger.error("Parent magic link BLOCKED by suppression list", {
+        email: emailLower,
+        action:
+          "Remove them from email suppression, or sign them in another way.",
+      });
+    } else {
+      logger.info("Parent magic link sent", { email: emailLower });
+    }
   } catch (err) {
     logger.error("Failed to send parent magic link email", { email: emailLower, err });
     // Still return success to avoid leaking info

@@ -25,14 +25,20 @@ function createPrismaMock() {
 
   // Support prisma.$queryRawUnsafe(...) — raw SQL queries
   const $queryRawUnsafe = vi.fn();
+  // ...and prisma.$queryRaw`...` — the tagged-template form, used where
+  // a query has to read inside a JSON column (see the parent magic-link
+  // lookup). Without this the proxy handed back a model object and the
+  // route died with a 500 that looked like a route bug.
+  const $queryRaw = vi.fn();
 
   const proxy = new Proxy(
-    { $transaction, $queryRawUnsafe } as Record<string, unknown>,
+    { $transaction, $queryRawUnsafe, $queryRaw } as Record<string, unknown>,
     {
       get(target, model: string) {
         // Return top-level callable methods directly
         if (model === "$transaction") return target.$transaction;
         if (model === "$queryRawUnsafe") return target.$queryRawUnsafe;
+        if (model === "$queryRaw") return target.$queryRaw;
 
         if (!cache[model]) {
           cache[model] = new Proxy(
