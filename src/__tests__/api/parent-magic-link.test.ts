@@ -149,3 +149,71 @@ describe("POST /api/parent/auth/send-link", () => {
     expect(rejected).toBeTruthy();
   });
 });
+
+/**
+ * Reported: parents who created an account but haven't finished their
+ * enrolment never receive a forgot-password email.
+ *
+ * The lookup consulted `ParentEnquiry` and non-draft
+ * `EnrolmentSubmission`. That group is in NEITHER — their enrolment is
+ * still a draft, and a parent who signed up directly rather than
+ * through an enquiry form has no enquiry either. So the people most
+ * likely to need a way back in were the ones guaranteed not to get one,
+ * while being told a link was on its way.
+ */
+describe("POST /api/parent/auth/send-link — account without an enrolment", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.parentEnquiry.findFirst.mockResolvedValue(null);
+    prismaMock.parentMagicLink.create.mockResolvedValue({ id: "ml-1" });
+    prismaMock.$queryRaw.mockResolvedValue([]);
+    resendSend.mockResolvedValue({ data: { id: "msg-1" }, error: null });
+  });
+
+  it("sends to an account with no enquiry and no submitted enrolment", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({
+      id: "acc-1",
+      firstName: "Aysha",
+      surname: "Khan",
+      deactivatedAt: null,
+    });
+
+    const res = await POST(req("aysha@example.com"));
+    expect(res.status).toBe(200);
+    expect(resendSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("greets them by the name on the account", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue({
+      id: "acc-1",
+      firstName: "Aysha",
+      surname: "Khan",
+      deactivatedAt: null,
+    });
+
+    await POST(req("aysha@example.com"));
+    expect(prismaMock.parentMagicLink.create).toHaveBeenCalled();
+  });
+
+  it("still sends nothing for an address with no account at all", async () => {
+    prismaMock.parentAccount.findUnique.mockResolvedValue(null);
+    const res = await POST(req("stranger@example.com"));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
+    expect(resendSend).not.toHaveBeenCalled();
+  });
+
+  it("refuses a deactivated account", async () => {
+    // A login link is a way back in; a closed account shouldn't have one.
+    prismaMock.parentAccount.findUnique.mockResolvedValue({
+      id: "acc-1",
+      firstName: "Aysha",
+      surname: "Khan",
+      deactivatedAt: new Date(),
+    });
+
+    await POST(req("aysha@example.com"));
+    expect(resendSend).not.toHaveBeenCalled();
+  });
+});
