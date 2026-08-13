@@ -74,9 +74,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       const serviceName = enquiry.service?.name ?? "our service";
       if (enquiry.parentEmail) {
         const { subject, html } = await spotExpiredEmail(enquiry.parentName, serviceName);
-        sendEmail({ from: FROM_EMAIL, to: enquiry.parentEmail, subject, html }).catch((err) => {
+        // Awaited: a cron has no response to race, and a bare promise
+        // here could be cut off when the invocation ends.
+        try {
+          await sendEmail({ from: FROM_EMAIL, to: enquiry.parentEmail, subject, html });
+        } catch (err) {
           logger.error("Waitlist expiry: failed to send expired email", { err, enquiryId: enquiry.id });
-        });
+        }
       }
 
       // Auto-offer to next person in line for this service
@@ -120,9 +124,11 @@ export const POST = withApiHandler(async (req: NextRequest) => {
           const enrolUrl = `${baseUrl}/parent/signup?enquiry=${next.id}`;
           const nextServiceName = next.service?.name ?? "our service";
           const { subject, html } = await spotAvailableEmail(next.parentName, nextServiceName, enrolUrl);
-          sendEmail({ from: FROM_EMAIL, to: next.parentEmail, subject, html }).catch((err) => {
+          try {
+            await sendEmail({ from: FROM_EMAIL, to: next.parentEmail, subject, html });
+          } catch (err) {
             logger.error("Waitlist expiry: failed to send offer email", { err, enquiryId: next.id });
-          });
+          }
         }
       }
     }
