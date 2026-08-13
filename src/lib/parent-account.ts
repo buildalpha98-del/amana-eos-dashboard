@@ -107,6 +107,63 @@ export async function findEnrolmentIdsForEmail(
   };
 }
 
+/**
+ * Enrolments for many parent emails at once, as `email → enrolments`.
+ *
+ * The staff families list needs this: it starts from `ParentAccount`
+ * (correctly — that is where a parent exists) and then has to attach
+ * each account's enrolments, which are linked only by an email buried
+ * in JSON.
+ *
+ * It used to do that by fetching the newest 1000 enrolments and
+ * indexing them in memory. Same shape as the magic-link bug: with more
+ * enrolments than the cap, a family whose enrolment fell outside the
+ * window appeared on the staff screen as having no enrolment and no
+ * children — indistinguishable from one who signed up and never
+ * enrolled, and so liable to be chased for something they had already
+ * done.
+ *
+ * It also indexed `primaryParent` only, so a family whose account email
+ * belonged to the SECOND carer looked equally empty.
+ *
+ * This asks for exactly the emails it has accounts for, so the result
+ * is bounded by the caller's page rather than by a guess.
+ */
+export async function findEnrolmentsForEmails(
+  emailsLower: string[],
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  const emails = [...new Set(emailsLower.filter(Boolean))];
+  if (emails.length === 0) return out;
+
+  const rows = await prisma.$queryRaw<
+    Array<{ id: string; matched_email: string }>
+  >`
+    SELECT
+      id,
+      CASE
+        WHEN LOWER(TRIM("primaryParent"->>'email')) = ANY(${emails})
+          THEN LOWER(TRIM("primaryParent"->>'email'))
+        ELSE LOWER(TRIM("secondaryParent"->>'email'))
+      END AS matched_email
+    FROM "EnrolmentSubmission"
+    WHERE status <> 'draft'
+      AND (
+        LOWER(TRIM("primaryParent"->>'email')) = ANY(${emails})
+        OR LOWER(TRIM("secondaryParent"->>'email')) = ANY(${emails})
+      )
+    ORDER BY "createdAt" DESC
+  `;
+
+  for (const r of rows) {
+    if (!r.matched_email) continue;
+    const list = out.get(r.matched_email) ?? [];
+    list.push(r.id);
+    out.set(r.matched_email, list);
+  }
+  return out;
+}
+
 export interface CreateAccountResult {
   accountId: string;
   /** Raw token to embed in the confirmation email. Never persisted. */

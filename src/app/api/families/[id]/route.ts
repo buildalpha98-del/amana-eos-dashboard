@@ -19,6 +19,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { findEnrolmentsForEmails } from "@/lib/parent-account";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
@@ -32,8 +33,25 @@ type Ctx = { params: Promise<{ id: string }> };
  * column, not a foreign key. Shared by GET and PATCH so the two can't
  * disagree about which submissions belong to a family.
  */
+/**
+ * Every submission this parent's email appears on.
+ *
+ * This used to fetch the newest 500 submissions and filter them in
+ * memory on `primaryParent` alone. Two ways to be wrong, both silent:
+ * a family whose enrolment fell outside the window showed as having no
+ * enrolment and no children, and so did a family whose account email
+ * belonged to the SECOND carer.
+ *
+ * `findEnrolmentsForEmails` asks the database for this one email —
+ * both carers, no window — and the ids come back to be hydrated.
+ */
 async function submissionsForEmail(email: string) {
-  const all = await prisma.enrolmentSubmission.findMany({
+  const idsByEmail = await findEnrolmentsForEmails([email]);
+  const ids = idsByEmail.get(email) ?? [];
+  if (ids.length === 0) return [];
+
+  return prisma.enrolmentSubmission.findMany({
+    where: { id: { in: ids } },
     select: {
       id: true,
       status: true,
@@ -59,14 +77,6 @@ async function submissionsForEmail(email: string) {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 500,
-  });
-
-  return all.filter((s) => {
-    const p = s.primaryParent as Record<string, unknown> | null;
-    return (
-      p && typeof p.email === "string" && p.email.toLowerCase().trim() === email
-    );
   });
 }
 

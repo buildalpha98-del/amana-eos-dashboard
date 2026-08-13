@@ -59,13 +59,43 @@ export const PATCH = withParentAuth(async (req, { parent }) => {
     smsOptIn,
   } = parsed.data;
 
-  if (parent.enrolmentIds.length === 0) {
-    throw ApiError.notFound("No enrolment found for this account");
+  /**
+   * No enrolment is not "no account".
+   *
+   * This used to 404 with "No enrolment found for this account" when
+   * `enrolmentIds` was empty — refusing a parent permission to edit
+   * their own name because identity was taken from their enrolment
+   * rather than from their account. A parent who has signed up and not
+   * finished, or whose enrolment lists a different email for the
+   * primary carer, could not save their own details.
+   */
+  const emailLower = parent.email.toLowerCase().trim();
+
+  /**
+   * The account first, because it is the one row that definitely
+   * exists.
+   *
+   * `CentreContact` doesn't exist until staff approve the enrolment,
+   * and `ParentAccount` was never written here at all — so a family in
+   * `pending_review` corrected the spelling of their surname, got a
+   * success toast, and the `updateMany` below matched zero rows. The
+   * change landed nowhere, including nowhere the staff Families list
+   * reads.
+   */
+  if (parent.accountId) {
+    const accountUpdate: Record<string, unknown> = {};
+    if (firstName !== undefined) accountUpdate.firstName = firstName;
+    if (lastName !== undefined) accountUpdate.surname = lastName;
+    if (Object.keys(accountUpdate).length > 0) {
+      await prisma.parentAccount.update({
+        where: { id: parent.accountId },
+        data: accountUpdate,
+      });
+    }
   }
 
   // 1. Sync to all CentreContact rows this parent owns (primary source of truth
   //    for structured profile going forward)
-  const emailLower = parent.email.toLowerCase().trim();
   const contactUpdate: Record<string, unknown> = {};
   if (firstName !== undefined) contactUpdate.firstName = firstName;
   if (lastName !== undefined) contactUpdate.lastName = lastName;
