@@ -2,6 +2,29 @@ import type jsPDF from "jspdf";
 import { parseJsonField, primaryParentSchema } from "@/lib/schemas/json-fields";
 import { BRAND, drawLogo, createPdfBuilder } from "@/lib/pdf/branding";
 
+/**
+ * Every field this generator reads is a `Json` column, and the route
+ * hands the row over as `any` — so the types on the interface below
+ * describe what SHOULD be there, not what is.
+ *
+ * That distinction stopped being academic when the pack started
+ * returning `{"error":"Internal server error"}`: spreading a non-array
+ * throws "is not iterable", `.forEach` on an object throws, and
+ * `Object.entries(null)` throws. Any one of them takes down the whole
+ * document — including sections that render perfectly well — for a
+ * staff member who just wanted to print an enrolment.
+ *
+ * A string is the case worth naming, because it doesn't throw:
+ * `[..."none"]` yields four one-character entries. So this checks for
+ * an array rather than wrapping the lot in a try/catch, and drops
+ * entries that aren't objects.
+ */
+function asRows(v: unknown): Record<string, unknown>[] {
+  return Array.isArray(v)
+    ? (v.filter((r) => r && typeof r === "object") as Record<string, unknown>[])
+    : [];
+}
+
 interface EnrolmentSubmission {
   id: string;
   primaryParent: Record<string, unknown>;
@@ -69,7 +92,7 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
   b.y = 38;
 
   // ── Children ──
-  const children = (submission.children || []) as Record<string, unknown>[];
+  const children = asRows(submission.children);
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
     heading(`Child ${i + 1}: ${child.firstName} ${child.surname}`);
@@ -82,7 +105,8 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
     row("School", child.schoolName as string);
     row("Year Level", child.yearLevel as string);
     const cultural = child.culturalBackground as string[] | undefined;
-    if (cultural?.length) row("Cultural Background", cultural.join(", "));
+    if (Array.isArray(cultural) && cultural.length)
+      row("Cultural Background", cultural.join(", "));
     row("CRN", child.crn as string);
 
     // Medical
@@ -106,8 +130,12 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
       if (med.allergies) row("Allergy Details", med.allergyDetails as string);
       row("Asthma", med.asthma as boolean);
       row("Other Conditions", med.otherConditions as string);
-      const meds = med.medications as { name: string; dosage: string; frequency: string }[] | undefined;
-      if (meds?.length) {
+      const meds = asRows(med.medications) as unknown as {
+        name: string;
+        dosage: string;
+        frequency: string;
+      }[];
+      if (meds.length) {
         row("Medications", meds.map((m) => `${m.name} (${m.dosage}, ${m.frequency})`).join("; "));
       }
       row("Dietary Requirements", med.dietaryRequirements as boolean);
@@ -123,13 +151,15 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
       doc.setTextColor(...BRAND.green.rgb);
       doc.text("Booking Preferences", margin, b.y);
       b.y += 5;
-      const sessions = bp.sessionTypes as string[] | undefined;
+      const sessions = Array.isArray(bp.sessionTypes)
+        ? (bp.sessionTypes.filter((x) => typeof x === "string") as string[])
+        : [];
       const days = bp.days as Record<string, string[]> | undefined;
       const SESSION_LABELS: Record<string, string> = { bsc: "Before School Care", asc: "After School Care", vc: "Vacation Care" };
-      if (sessions?.length) {
+      if (sessions.length) {
         for (const st of sessions) {
-          const sessionDays = days?.[st];
-          const dayStr = sessionDays?.length
+          const sessionDays = Array.isArray(days?.[st]) ? days![st] : [];
+          const dayStr = sessionDays.length
             ? sessionDays.map((d) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ")
             : "Days not specified";
           row(SESSION_LABELS[st] || st.toUpperCase(), dayStr);
@@ -169,14 +199,14 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
 
   // ── Emergency Contacts ──
   heading("Emergency Contacts");
-  const contacts = (submission.emergencyContacts || []) as Record<string, unknown>[];
+  const contacts = asRows(submission.emergencyContacts);
   contacts.forEach((c, i) => {
     if (c.name) {
       row(`Contact ${i + 1}`, `${c.name} (${c.relationship}) — ${c.phone}`);
     }
   });
 
-  const pickup = (submission.authorisedPickup || []) as Record<string, unknown>[];
+  const pickup = asRows(submission.authorisedPickup);
   if (pickup.length) {
     checkPage(8);
     doc.setFontSize(9);
@@ -189,7 +219,15 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
 
   // ── Consents ──
   heading("Consents & Permissions");
-  const consents = submission.consents as Record<string, boolean>;
+  /*
+   * `Object.entries(null)` throws, and `consents` is a Json column like
+   * every other field here — a submission missing it would have taken
+   * the whole pack down.
+   */
+  const consents =
+    submission.consents && typeof submission.consents === "object"
+      ? (submission.consents as Record<string, boolean>)
+      : {};
   Object.entries(consents).forEach(([key, val]) => {
     row(key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()), val);
   });
@@ -268,9 +306,9 @@ export function documentRows(submission: {
   courtOrderFiles?: Record<string, unknown>[] | null;
 }): Array<{ label: string; filename: string }> {
   const uploads = [
-    ...(submission.documentUploads ?? []),
-    ...(submission.medicalFiles ?? []),
-    ...(submission.courtOrderFiles ?? []),
+    ...asRows(submission.documentUploads),
+    ...asRows(submission.medicalFiles),
+    ...asRows(submission.courtOrderFiles),
   ];
 
   /** "immunisation_record" reads badly on a printed page. */
@@ -286,7 +324,9 @@ export function documentRows(submission: {
    */
   const childName = (i: unknown) => {
     if (typeof i !== "number") return null;
-    const child = submission.children?.[i];
+    // Same reasoning as `asRows` — `children` is a Json column too.
+    if (!Array.isArray(submission.children)) return null;
+    const child = submission.children[i];
     if (!child) return null;
     const first = typeof child.firstName === "string" ? child.firstName : "";
     const last = typeof child.surname === "string" ? child.surname : "";
