@@ -1,5 +1,12 @@
 /**
- * POST /api/enrol — public enrolment submission.
+ * POST /api/enrol — enrolment submission.
+ *
+ * No longer public: it requires a parent session as of 2026-08-13. It
+ * was built for the anonymous form at `/enrol`, which retired months
+ * ago, and stayed open to the internet after the page that fed it was
+ * gone. `/parent/children/new` still renders the same wizard for a
+ * signed-in parent enrolling a sibling, so the route lives on behind
+ * the gate those parents already pass.
  *
  * Focus: the enquiry stage-event log. The route updates a linked
  * enquiry to `stage: "enrolled"` inside the submission transaction —
@@ -33,6 +40,24 @@ vi.mock("@/lib/email-templates", () => ({
     subject: "New enrolment",
     html: "<p>New enrolment</p>",
   })),
+}));
+
+/*
+ * Parent auth stubbed through, so these keep testing what they were
+ * written for. The gate itself is covered in enrol-auth.test.ts.
+ */
+vi.mock("@/lib/parent-auth", () => ({
+  withParentAuth:
+    (handler: (req: Request, ctx: unknown) => unknown) =>
+    (req: Request, routeContext?: unknown) =>
+      handler(req, {
+        ...((routeContext as object) ?? {}),
+        parent: {
+          email: "parent@example.com",
+          name: "Test Parent",
+          enrolmentIds: [],
+        },
+      }),
 }));
 
 const logStageEvent = vi.fn(() => Promise.resolve());
