@@ -32,12 +32,22 @@ export async function sendNotificationEmail({
       html,
     });
 
-    // Determine actual status — if recipient was suppressed, no email was sent
+    /**
+     * Three outcomes, not two.
+     *
+     * This used to ask only "was the recipient suppressed", so a send
+     * the provider REJECTED — unverified domain, rate limit, blocked
+     * recipient — was recorded as `status: "sent"`. The ledger then
+     * showed a delivery that never happened, which is the worst kind of
+     * record to have: it stops anyone looking further.
+     */
     const wasSuppressed = result.sent.length === 0 && result.suppressed.length > 0;
-    const status = wasSuppressed ? "failed" : "sent";
-    const errorMessage = wasSuppressed
-      ? `Recipient suppressed (bounce/complaint): ${to}`
-      : null;
+    const status = result.failed || wasSuppressed ? "failed" : "sent";
+    const errorMessage = result.failed
+      ? `Rejected by provider: ${result.failed.message}`
+      : wasSuppressed
+        ? `Recipient suppressed (bounce/complaint): ${to}`
+        : null;
 
     // Log result — wrapped so logging failure never crashes the caller
     try {

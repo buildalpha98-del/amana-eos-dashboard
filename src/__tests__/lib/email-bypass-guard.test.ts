@@ -13,12 +13,22 @@ import { join, relative } from "path";
  *   - src/app/api/auth/forgot-password/route.ts
  *     (deliberate: a muted/suppressed user must still be able to recover
  *      access to their account)
+ *   - src/app/api/parent/auth/send-link/route.ts
+ *     (same reason, for families. The magic link IS the parent's
+ *      forgot-password path — there is no other. Honouring suppression
+ *      here would mean a parent who once bounced, or who unsubscribed
+ *      from a newsletter, is permanently locked out of their own
+ *      child's enrolment while being told a link is on its way.)
+ *
+ * The rule these two share: suppression protects sender reputation on
+ * mail people can live without. It must never gate account recovery.
  */
 const SRC_ROOT = join(__dirname, "..", "..");
 
 const ALLOWED = new Set([
   "lib/email.ts",
   "app/api/auth/forgot-password/route.ts",
+  "app/api/parent/auth/send-link/route.ts",
 ]);
 
 function walk(dir: string, out: string[] = []): string[] {

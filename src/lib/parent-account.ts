@@ -54,34 +54,57 @@ function hashToken(raw: string): string {
 export async function findEnrolmentIdsForEmail(
   emailLower: string,
 ): Promise<{ enrolmentIds: string[]; parentName: string | null }> {
-  const enrolments = await prisma.enrolmentSubmission.findMany({
-    where: { status: { not: "draft" } },
-    select: { id: true, primaryParent: true, secondaryParent: true },
-    orderBy: { createdAt: "desc" },
-    take: 500,
-  });
+  /**
+   * Asks the database the exact question.
+   *
+   * This used to fetch enrolments with a `take` and scan them in memory,
+   * because a parent's address lives inside the `primaryParent` JSON
+   * rather than in a column. Any parent whose row fell outside that
+   * window was reported as unknown — no link sent, while the page said
+   * one had been — and with no `orderBy` the same parent could work
+   * once and fail the next time.
+   *
+   * Postgres can read inside JSON, so it filters there instead.
+   * LOWER() because addresses were captured with whatever case a parent
+   * typed, and TRIM() because some were captured with trailing spaces —
+   * the in-memory scan this replaces normalised both, and dropping that
+   * would swap one silent miss for another.
+   *
+   * The SQL lives here rather than in a route because `send-link` and
+   * `verify` both need it: they each used to carry their own copy, and
+   * the copies had different limits.
+   */
+  const matches = await prisma.$queryRaw<
+    Array<{ id: string; first_name: string | null; surname: string | null }>
+  >`
+    SELECT
+      id,
+      CASE
+        WHEN LOWER(TRIM("primaryParent"->>'email')) = ${emailLower}
+          THEN "primaryParent"->>'firstName'
+        ELSE "secondaryParent"->>'firstName'
+      END AS first_name,
+      CASE
+        WHEN LOWER(TRIM("primaryParent"->>'email')) = ${emailLower}
+          THEN "primaryParent"->>'surname'
+        ELSE "secondaryParent"->>'surname'
+      END AS surname
+    FROM "EnrolmentSubmission"
+    WHERE status <> 'draft'
+      AND (
+        LOWER(TRIM("primaryParent"->>'email')) = ${emailLower}
+        OR LOWER(TRIM("secondaryParent"->>'email')) = ${emailLower}
+      )
+    LIMIT 50
+  `;
 
-  const ids: string[] = [];
-  let parentName: string | null = null;
-
-  const matches = (blob: unknown): Record<string, unknown> | null => {
-    const p = blob as Record<string, unknown> | null;
-    if (!p || typeof p.email !== "string") return null;
-    return p.email.toLowerCase().trim() === emailLower ? p : null;
+  const named = matches.find((m) => m.first_name);
+  return {
+    enrolmentIds: matches.map((m) => m.id),
+    parentName: named?.first_name
+      ? `${named.first_name}${named.surname ? ` ${named.surname}` : ""}`
+      : null,
   };
-
-  for (const e of enrolments) {
-    const hit = matches(e.primaryParent) ?? matches(e.secondaryParent);
-    if (!hit) continue;
-    ids.push(e.id);
-    if (!parentName && typeof hit.firstName === "string") {
-      parentName = `${hit.firstName}${
-        typeof hit.surname === "string" && hit.surname ? ` ${hit.surname}` : ""
-      }`;
-    }
-  }
-
-  return { enrolmentIds: ids, parentName };
 }
 
 export interface CreateAccountResult {

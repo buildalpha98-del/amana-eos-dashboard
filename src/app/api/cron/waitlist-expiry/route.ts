@@ -108,7 +108,20 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         // Send spot-available email to next family (fire-and-forget)
         if (next.parentEmail) {
           const baseUrl = siteUrl();
-          const enrolUrl = `${baseUrl}/enrol?prefill=${next.id}`;
+          /**
+     * `/parent/signup`, not `/enrol?prefill=`.
+     *
+     * `/enrol` is a bare `redirect("/parent/signup")`, and a
+     * redirect drops the query string — so every family offered a
+     * waitlist spot followed this link to a blank signup page with
+     * nothing carried over. Signup only reads `?ref=` anyway, so the
+     * prefill never did anything on either end; linking straight to
+     * the real destination at least stops the bounce.
+     *
+     * Carrying the enquiry into signup is a real gap, but it needs
+     * signup to accept it — not a query param that lands nowhere.
+     */
+    const enrolUrl = `${baseUrl}/parent/signup`;
           const nextServiceName = next.service?.name ?? "our service";
           const { subject, html } = await spotAvailableEmail(next.parentName, nextServiceName, enrolUrl);
           sendEmail({ from: FROM_EMAIL, to: next.parentEmail, subject, html }).catch((err) => {
