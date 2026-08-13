@@ -19,6 +19,16 @@ interface EnrolmentSubmission {
   courtOrders: boolean;
   courtOrderFiles?: Record<string, unknown>[] | null;
   medicalFiles?: Record<string, unknown>[] | null;
+  /**
+   * Birth certificates, immunisation records, court orders — everything
+   * the family uploaded that isn't a medical action plan.
+   *
+   * This field was missing from the interface entirely, and the route
+   * passed the submission through as `any`, so it type-checked and
+   * silently vanished. See the Documents section below for why that
+   * mattered.
+   */
+  documentUploads?: Record<string, unknown>[] | null;
   createdAt: Date | string;
 }
 
@@ -203,6 +213,27 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
   // ── Referral ──
   row("Referral Source", submission.referralSource);
 
+  /**
+   * ── Documents provided ──
+   *
+   * None of this appeared in the pack before. `medicalFiles` and
+   * `courtOrderFiles` were declared on the interface and never
+   * rendered; `documentUploads` wasn't even declared. So the printed
+   * enrolment — the artefact staff check and file — recorded no
+   * evidence of a birth certificate, an immunisation history or an
+   * anaphylaxis action plan, however many the family had uploaded.
+   *
+   * Filenames rather than the files themselves: embedding a scanned PDF
+   * or a photo would balloon the pack and can't be done for every
+   * format. What this needs to answer is "did they give us the
+   * immunisation record", and a named list answers it.
+   */
+  const docRows = documentRows(submission);
+  if (docRows.length > 0) {
+    heading("Documents Provided");
+    for (const { label, filename } of docRows) row(label, filename);
+  }
+
   // ── Footer ──
   checkPage(15);
   b.y += 5;
@@ -221,4 +252,57 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
   doc.text(`Submission ID: ${submission.id}`, margin, b.y);
 
   return doc;
+}
+
+/**
+ * The "Documents Provided" rows: one per uploaded file, grouped by child.
+ *
+ * Exported and pure so it can be asserted without rendering a PDF —
+ * this is the part with the judgement in it, and the part that was
+ * silently absent.
+ */
+export function documentRows(submission: {
+  children: Record<string, unknown>[];
+  documentUploads?: Record<string, unknown>[] | null;
+  medicalFiles?: Record<string, unknown>[] | null;
+  courtOrderFiles?: Record<string, unknown>[] | null;
+}): Array<{ label: string; filename: string }> {
+  const uploads = [
+    ...(submission.documentUploads ?? []),
+    ...(submission.medicalFiles ?? []),
+    ...(submission.courtOrderFiles ?? []),
+  ];
+
+  /** "immunisation_record" reads badly on a printed page. */
+  const prettyType = (t: unknown) =>
+    typeof t === "string" && t
+      ? t.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())
+      : "Document";
+
+  /**
+   * Grouped by child, because "we have an action plan" is only useful
+   * when you know WHOSE. `childIndex` is how the submit route flattens
+   * them; anything without one is a household-level document.
+   */
+  const childName = (i: unknown) => {
+    if (typeof i !== "number") return null;
+    const child = submission.children?.[i];
+    if (!child) return null;
+    const first = typeof child.firstName === "string" ? child.firstName : "";
+    const last = typeof child.surname === "string" ? child.surname : "";
+    return [first, last].filter(Boolean).join(" ") || null;
+  };
+
+  return uploads.map((file) => {
+    const who = childName(file.childIndex);
+    return {
+      label: who
+        ? `${prettyType(file.type)} — ${who}`
+        : prettyType(file.type),
+      filename:
+        typeof file.filename === "string" && file.filename
+          ? file.filename
+          : "(unnamed file)",
+    };
+  });
 }
