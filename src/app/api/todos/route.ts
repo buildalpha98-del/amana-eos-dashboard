@@ -35,8 +35,13 @@ export const GET = withApiAuth(async (req, session) => {
     where.serviceId = serviceId;
   }
 
-  // Centre scoping: scoped roles see only their centre's todos + personally assigned
-  const { serviceIds } = await getCentreScope(session);
+  // Centre scoping: scoped roles see only their centre's todos + personally assigned.
+  // Marketing is org-wide — same carve-out as /api/issues and /api/rocks.
+  // getCentreScope() returns `{ serviceIds: [] }` (not `null`) for marketing
+  // with no primary serviceId, which reads as "unscoped" everywhere else but
+  // would have dropped the cross-centre clause here too, same as the Issues bug.
+  const role = session!.user.role as string;
+  const { serviceIds } = role === "marketing" ? { serviceIds: null } : await getCentreScope(session);
   const stateScope = getStateScope(session);
   const orFilter = buildCentreOrPersonalFilter(serviceIds, session!.user.id);
   if (orFilter) {
