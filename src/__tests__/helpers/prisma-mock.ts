@@ -31,9 +31,6 @@ function createPrismaMock() {
   // route died with a 500 that looked like a route bug.
   const $queryRaw = vi.fn();
 
-  // Support prisma.$queryRaw`...` — tagged-template raw queries
-  const $queryRaw = vi.fn();
-
   const proxy = new Proxy(
     { $transaction, $queryRawUnsafe, $queryRaw } as Record<string, unknown>,
     {

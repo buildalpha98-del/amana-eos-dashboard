@@ -302,7 +302,15 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // ── EOS — Directors of Service participate in EOS ─────────
     "/rocks",
     "/todos",
-    "/issues",
+    // 2026-08-06: the org-wide L10 Issues page is NOT here on purpose.
+    // Per Daniel: only owner/head_office/admin/marketing — "the higher
+    // up" — see the cross-centre list. A Director of Service raises and
+    // works issues for their OWN centre via the EOS tab inside
+    // /services/[id] (ServiceIssuesTab, serviceId-scoped), which already
+    // existed and is unaffected by this. Issues raised there still land
+    // in the same table leadership's /issues page reads from, so nothing
+    // a Director raises is hidden from leadership — they just don't get
+    // the cross-centre view themselves.
     "/meetings",
     "/accountability-chart",
     // ── Their centre — primary surface ─────────────────────────
