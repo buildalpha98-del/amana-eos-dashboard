@@ -42,6 +42,24 @@ describe("GET /api/todos", () => {
     expect(res.status).toBe(401);
   });
 
+  it("marketing sees cross-centre todos, not just ones assigned to them", async () => {
+    // Regression (2026-08-17): the same getCentreScope() bug found on
+    // /api/issues — `{ serviceIds: [] }` instead of `{ serviceIds: null }`
+    // for marketing with no primary serviceId — applies here too, despite
+    // this route's own comment promising marketing "fully open" access.
+    const { getCentreScope, buildCentreOrPersonalFilter } = await import("@/lib/centre-scope");
+    (getCentreScope as ReturnType<typeof vi.fn>).mockResolvedValue({ serviceIds: [] });
+    mockSession({ id: "u9", name: "Marketing", role: "marketing" });
+    prismaMock.todo.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/todos");
+    await GET(req);
+
+    // The route must treat marketing as unscoped (null), not as the
+    // empty array getCentreScope() itself returned.
+    expect(buildCentreOrPersonalFilter).toHaveBeenCalledWith(null, "u9");
+  });
+
   it("returns todos for authenticated user", async () => {
     mockSession({ id: "user-1", name: "Test", role: "owner" });
 
