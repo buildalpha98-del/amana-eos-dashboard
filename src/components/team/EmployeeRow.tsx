@@ -23,6 +23,8 @@ import {
   Mail,
   Building2,
   AlertCircle,
+  BellOff,
+  Bell,
 } from "lucide-react";
 import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
@@ -148,6 +150,24 @@ export function EmployeeRow({
         onSelect: () => setPendingConfirm("toggle_active"),
       });
     }
+    // Admin-only mute for the payroll/contract badges — for accounts
+    // that aren't real employees (shared service-admin logins, system
+    // accounts) so the warnings stop being noise on rows that will
+    // never get a payroll link or a contract.
+    if (isAdmin) {
+      items.push({
+        key: "toggle_hr_warnings_muted",
+        label: employee.hrWarningsMuted
+          ? "Unmute payroll/contract warnings"
+          : "Mute payroll/contract warnings",
+        icon: employee.hrWarningsMuted ? (
+          <Bell className="h-3.5 w-3.5" />
+        ) : (
+          <BellOff className="h-3.5 w-3.5" />
+        ),
+        onSelect: () => quickAction.mutate("toggle_hr_warnings_muted"),
+      });
+    }
   }
 
   const confirmCopy =
@@ -166,13 +186,20 @@ export function EmployeeRow({
   // Payroll employee record yet. Deactivated users don't need a
   // badge — they're not expected to be on payroll. Pending invites
   // do show it so admin remembers to link them as part of onboarding.
+  // 2026-08-18: also suppressed for accounts an admin has explicitly
+  // marked as not real employees (hrWarningsMuted) — e.g. shared
+  // service-admin logins that will never have a payroll ID.
   const needsPayrollLink =
-    !employee.payrollLinked && employee.status !== "deactivated";
+    !employee.payrollLinked &&
+    employee.status !== "deactivated" &&
+    !employee.hrWarningsMuted;
   // Yellow flag for active staff who don't have any contract on file
   // (active or awaiting signature). Same status gating as the red
-  // payroll badge — deactivated users are exempt.
+  // payroll badge — deactivated users and muted accounts are exempt.
   const needsContract =
-    !employee.hasActiveContract && employee.status !== "deactivated";
+    !employee.hasActiveContract &&
+    employee.status !== "deactivated" &&
+    !employee.hrWarningsMuted;
 
   const nameInner = (
     <>

@@ -572,6 +572,14 @@ model User {
   // historical accounts). Populated by the daily sync cron based on email
   // match; admins can manually override for unmatched users.
   employmentHeroEmployeeId Int?      @unique
+  // 2026-08-18: some accounts are deliberately not real employees —
+  // shared service-admin logins, system accounts — so the red "needs
+  // payroll link" / yellow "no contract" badges on /team are noise for
+  // them, not a real gap. Admin-toggleable per user; hides BOTH badges
+  // together since they're the same "not a person on payroll" case.
+  // Default false so every existing account keeps showing the badges
+  // (no silent muting on rollout).
+  hrWarningsMuted          Boolean   @default(false)
   // 2026-06-01 (right to disconnect — Fair Work Act s333M, in force
   // Aug 2024). Staff-set preference: "don't message me between these
   // hours." Stored as HH:MM strings to avoid timezone/`@db.Time`

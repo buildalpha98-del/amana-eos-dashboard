@@ -42,6 +42,10 @@ export interface EmployeeRowInput {
    *  "active" or "contract_draft" status. False drives the yellow
    *  "no contract issued" badge on the /team list. */
   hasActiveContract: boolean;
+  /** 2026-08-18 — admin-set: true suppresses BOTH the payroll-link and
+   *  no-contract badges for this user, for accounts that are
+   *  deliberately not real employees (shared service-admin logins). */
+  hrWarningsMuted: boolean;
 }
 
 export type EmployeeStatus = "active" | "pending" | "deactivated";
@@ -66,6 +70,9 @@ export interface EmployeeRow {
   /** True when the user has at least one active or draft contract.
    *  False drives a yellow "no contract issued" indicator. */
   hasActiveContract: boolean;
+  /** True hides both the payroll-link and no-contract indicators —
+   *  set by an admin for accounts that aren't real employees. */
+  hrWarningsMuted: boolean;
 }
 
 function deriveStatus(input: EmployeeRowInput): EmployeeStatus {
@@ -91,5 +98,6 @@ export function formatEmployeeRow(
     status: deriveStatus(input),
     payrollLinked: input.employmentHeroEmployeeId !== null,
     hasActiveContract: input.hasActiveContract,
+    hrWarningsMuted: input.hrWarningsMuted,
   };
 }
