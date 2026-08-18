@@ -52,6 +52,7 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     // additionalServices — omitting this crashed the handler with a 500.
     serviceMemberships: [] as Array<{ service: { id: string; name: string } }>,
     employmentHeroEmployeeId: null,
+    hrWarningsMuted: false,
     ...overrides,
   };
 }
@@ -86,6 +87,17 @@ describe("GET /api/employees", () => {
     expect(body.total).toBe(1);
     expect(body.page).toBe(1);
     expect(body.pageSize).toBe(50);
+  });
+
+  it("surfaces hrWarningsMuted so the /team badges can be suppressed", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.user.findMany.mockResolvedValue([
+      makeUser({ hrWarningsMuted: true }),
+    ]);
+    prismaMock.user.count.mockResolvedValue(1);
+    const res = await GET(createRequest("GET", "/api/employees"));
+    const body = await res.json();
+    expect(body.employees[0].hrWarningsMuted).toBe(true);
   });
 
   it("strips PII for marketing viewer", async () => {

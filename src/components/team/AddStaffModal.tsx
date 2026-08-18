@@ -89,7 +89,7 @@ export function AddStaffModal({
             : {}),
         },
       });
-      qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["employees-list"] });
       toast({
         description: newStarter
           ? `${name.trim()} invited as a new starter — they'll clear induction before rostering.`
