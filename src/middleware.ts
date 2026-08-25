@@ -39,6 +39,7 @@ export default withAuth(
       isInductionLocked(
         token?.inductionStatus as string | undefined,
         token?.inductionGraceUntil as string | null | undefined,
+        { role: token?.role as string | undefined },
       )
     ) {
       if (!isInductionAllowedPath(pathname)) {
