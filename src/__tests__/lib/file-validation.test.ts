@@ -57,9 +57,20 @@ describe("detectFileType", () => {
   });
 
   it("detects BMP files (BM header)", () => {
-    // BM + 4-byte size + reserved + offset
-    const buffer = createBuffer([0x42, 0x4d, 0x36, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    // A full 14-byte BITMAPFILEHEADER: "BM", 4-byte size, two 2-byte reserved
+    // fields (spec says both are zero), then the 4-byte pixel-data offset.
+    // The old fixture stopped at 8 bytes, so it never covered the reserved
+    // fields the detector now checks to tell a bitmap from text starting "BM".
+    const buffer = createBuffer([
+      0x42, 0x4d, 0x36, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x00,
+      0x00, 0x00,
+    ]);
     expect(detectFileType(buffer)).toBe("image/bmp");
+  });
+
+  it("does not mistake text beginning \"BM\" for a bitmap", () => {
+    const csv = new TextEncoder().encode("BMI,Weight\n22.4,70\n");
+    expect(detectFileType(csv.buffer)).toBe("text/plain");
   });
 
   it("detects ZIP-based Office formats (PK header)", () => {
@@ -228,5 +239,42 @@ describe("validateFileContent — HEIC/HEIF", () => {
 
   it("rejects heic content declared as image/jpeg", () => {
     expect(validateFileContent(heicBuffer("heic"), "image/jpeg")).toBe(false);
+  });
+});
+
+/**
+ * 2026-08-25: /api/upload's allow-list and detectFileType had drifted apart.
+ * Five types were advertised as uploadable but had no magic-byte signature, so
+ * detectFileType returned null and validateFileContent rejected them every
+ * single time with "File content does not match declared type". A user could
+ * pick a .doc or .csv the picker offered and never be able to upload it.
+ *
+ * The allow-list is now shared (UPLOAD_ALLOWED_MIMES); this test pins the two
+ * halves together so the drift cannot come back silently.
+ */
+describe("allow-list / sniffer parity", () => {
+  const ole2 = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+  const plainText = new TextEncoder().encode("Name,Role\nTracie,Coordinator\n");
+
+  it.each([
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
+  ])("accepts legacy Office container %s (OLE2 header)", (mime) => {
+    expect(validateFileContent(ole2.buffer, mime)).toBe(true);
+  });
+
+  it.each(["text/plain", "text/csv"])("accepts plain text as %s", (mime) => {
+    expect(validateFileContent(plainText.buffer, mime)).toBe(true);
+  });
+
+  it("still rejects a binary payload masquerading as text", () => {
+    const binary = new Uint8Array([0x00, 0x01, 0x02, 0xff, 0xfe, 0x00]);
+    expect(validateFileContent(binary.buffer, "text/plain")).toBe(false);
+  });
+
+  it("still rejects a PNG that claims to be a PDF", () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+    expect(validateFileContent(png.buffer, "application/pdf")).toBe(false);
   });
 });

@@ -7,6 +7,7 @@ import { ImagePlus, Eye, EyeOff, Loader2 } from "lucide-react";
 import { LMS_MARKDOWN_REHYPE_PLUGINS } from "@/lib/lms-sanitize-schema";
 import { toVideoEmbedUrl } from "@/lib/course-player";
 import { toast } from "@/hooks/useToast";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 /**
  * Authoring toolbar for a module's markdown content: an "Insert image" button
@@ -30,14 +31,7 @@ export function MediaToolbar({
     if (!file) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Upload failed");
-      }
-      const { fileUrl } = (await res.json()) as { fileUrl: string };
+      const { fileUrl } = await uploadFileSmart(file);
       const alt = file.name.replace(/\.[^.]+$/, "");
       const snippet = `\n\n![${alt}](${fileUrl})\n\n`;
       onChange((value || "") + snippet);

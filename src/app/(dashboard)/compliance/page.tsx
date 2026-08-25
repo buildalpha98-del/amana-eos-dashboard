@@ -44,6 +44,7 @@ import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
 import { AuditResultsTab } from "@/components/compliance/AuditResultsTab";
 import { QualificationRatiosTab } from "@/components/compliance/QualificationRatiosTab";
 import { StaffCertUploadModal } from "@/components/compliance/StaffCertUploadModal";
+import { uploadFileSmart } from "@/lib/upload-client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   CalendarDays,
@@ -270,23 +271,12 @@ function StaffComplianceView() {
     if (!modalType) return;
     setUploading(modalType);
     try {
-      // Upload file via /api/upload — same blob storage path as everywhere
-      // else in the app. Surface the server's actual error message so HEIC /
-      // unsupported-type / size rejections aren't silent.
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!uploadRes.ok) {
-        const body = await uploadRes.json().catch(() => ({}));
-        throw new Error(body?.error ?? `Upload failed (${uploadRes.status})`);
-      }
-      const { fileUrl: uploadedFileUrl } = await uploadRes.json();
-      if (!uploadedFileUrl) {
-        throw new Error("Upload completed but no file URL was returned");
-      }
+      // uploadFileSmart downscales photos, then picks the route that will
+      // actually succeed for the resulting size. Phone photos and scanned
+      // PDFs used to exceed Vercel's ~4.5MB request-body cap and come back as
+      // a bare "Upload failed (413)" — the single biggest reason staff could
+      // not get a WWCC on file, and therefore could not clear induction.
+      const { fileUrl: uploadedFileUrl } = await uploadFileSmart(file);
 
       // Attach-or-create logic: when a cert of this type already exists for
       // THIS user but has no file yet (typically an OWNA-synced metadata
