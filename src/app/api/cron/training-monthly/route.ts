@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
+import { INDUCTION_EXEMPT_ROLES } from "@/lib/induction-lock";
 
 /**
  * GET /api/cron/training-monthly
@@ -59,9 +60,16 @@ export const GET = withApiHandler(async (req) => {
       });
 
       if (courses.length > 0) {
-        // Every cleared, active user.
+        // Every cleared, active user whose role the curriculum applies to.
+        // Exempt roles (admin-tier, marketing) are skipped: enrolling them
+        // would hand them training they are not gated on and, for marketing,
+        // training that is entirely about working on the floor.
         const users = await prisma.user.findMany({
-          where: { active: true, inductionStatus: "cleared" },
+          where: {
+            active: true,
+            inductionStatus: "cleared",
+            role: { notIn: [...INDUCTION_EXEMPT_ROLES] },
+          },
           select: { id: true },
         });
 

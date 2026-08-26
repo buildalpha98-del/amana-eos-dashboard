@@ -11,6 +11,7 @@ import {
   useUploadProof,
   type CreativeRequestItem,
 } from "@/hooks/useCreativeRequests";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 const DECISION_CHIP: Record<ProofDecision, { label: string; className: string }> = {
   approved: {
@@ -72,19 +73,9 @@ export function ProofsSection({
     if (!file) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(err?.error || "Upload failed");
-      }
-      const json = (await res.json()) as {
-        fileName: string;
-        fileUrl: string;
-        fileSize: number;
-        mimeType: string;
-      };
+      // Proofs are high-resolution artwork — the most likely thing in the app
+      // to exceed Vercel's ~4.5MB request-body cap and 413 before the route runs.
+      const json = await uploadFileSmart(file);
       uploadProof.mutate(
         { id: requestId, ...json, note: note.trim() || undefined },
         { onSuccess: () => setNote("") },

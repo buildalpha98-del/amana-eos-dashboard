@@ -45,7 +45,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // the induction surfaces in the sidebar, mirroring the middleware redirect.
   const inductionLocked = isInductionLocked(
     session?.user?.inductionStatus,
-    session?.user?.inductionGraceUntil
+    session?.user?.inductionGraceUntil,
+    { role: session?.user?.role }
   );
 
   // Group filtered nav items by section.

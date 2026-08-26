@@ -47,9 +47,29 @@ export function detectFileType(buffer: ArrayBuffer): string | null {
     return "image/tiff";
   }
 
-  // BMP: BM (Windows bitmap)
-  if (bytes[0] === 0x42 && bytes[1] === 0x4d) {
+  // BMP: "BM", plus the four reserved bytes at offset 6 that every real
+  // bitmap zeroes. Without that check a text file starting "BM" — perfectly
+  // possible in a CSV — sniffs as an image and is then rejected as text.
+  if (
+    bytes[0] === 0x42 &&
+    bytes[1] === 0x4d &&
+    bytes.length >= 10 &&
+    bytes[6] === 0x00 &&
+    bytes[7] === 0x00 &&
+    bytes[8] === 0x00 &&
+    bytes[9] === 0x00
+  ) {
     return "image/bmp";
+  }
+
+  // Legacy Office (.doc/.xls/.ppt) share one OLE2 compound-file header.
+  // These MIME types were on the upload allow-list with no signature here, so
+  // every such upload failed "content does not match declared type".
+  if (
+    bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0 &&
+    bytes[4] === 0xa1 && bytes[5] === 0xb1 && bytes[6] === 0x1a && bytes[7] === 0xe1
+  ) {
+    return "application/x-ole-storage";
   }
 
   // DOCX/XLSX/PPTX (ZIP-based Office formats): PK header
@@ -82,7 +102,27 @@ export function detectFileType(buffer: ArrayBuffer): string | null {
     if (HEIC_BRANDS.has(brand)) return "image/heic";
   }
 
+  // Plain text / CSV carry no magic bytes, so they are inferred last — only
+  // once every binary signature above has been ruled out. Same reason as the
+  // OLE2 case: both were allow-listed for upload with nothing to detect them.
+  if (looksLikeText(bytes)) return "text/plain";
+
   return null; // Unknown
+}
+
+/**
+ * Heuristic: a run of bytes is text if it holds no NUL and no stray control
+ * characters. Bytes >= 0x80 are allowed through as UTF-8 continuation bytes.
+ */
+function looksLikeText(bytes: Uint8Array): boolean {
+  if (bytes.length === 0) return false;
+  const sample = bytes.subarray(0, 512);
+  for (const b of sample) {
+    if (b === 0x00) return false;
+    const printable = b >= 0x20 || b === 0x09 || b === 0x0a || b === 0x0d;
+    if (!printable) return false;
+  }
+  return true;
 }
 
 const HEIC_BRANDS = new Set([
@@ -98,6 +138,15 @@ const HEIC_BRANDS = new Set([
  * Map of MIME types that are zip-based Office formats.
  * When magic bytes detect "application/zip", check if the declared MIME matches.
  */
+const OLE2_BASED_MIMES = new Set([
+  "application/msword", // .doc
+  "application/vnd.ms-excel", // .xls
+  "application/vnd.ms-powerpoint", // .ppt
+]);
+
+/** MIME types that are plain text on the wire. */
+const TEXT_BASED_MIMES = new Set(["text/plain", "text/csv"]);
+
 const ZIP_BASED_MIMES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // xlsx
@@ -121,6 +170,13 @@ export function validateFileContent(buffer: ArrayBuffer, declaredMime: string): 
 
   // HEIC/HEIF: Apple uses both MIME types for the same container format.
   if (detected === "image/heic" && declaredMime === "image/heif") return true;
+
+  // Legacy Office formats all sit in one OLE2 container.
+  if (detected === "application/x-ole-storage" && OLE2_BASED_MIMES.has(declaredMime))
+    return true;
+
+  // CSV is text; so is anything else we accept as text.
+  if (detected === "text/plain" && TEXT_BASED_MIMES.has(declaredMime)) return true;
 
   return false;
 }
