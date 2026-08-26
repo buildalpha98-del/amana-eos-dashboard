@@ -1,5 +1,11 @@
 "use client";
 
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { AlertCircle, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, FileText, Globe, Loader2, Mail, Phone, RotateCcw } from "lucide-react";
 import {
@@ -284,6 +290,10 @@ export function EnrolmentWizard({
         parentName: result.parentName,
       });
       setSubmitted(true);
+      // Meta Pixel conversion — the event ad campaigns optimise on. The
+      // pixel loads only in production (enrol layout), so this is a no-op
+      // everywhere else.
+      window.fbq?.("track", "CompleteRegistration");
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
