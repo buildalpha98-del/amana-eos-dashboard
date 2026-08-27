@@ -131,6 +131,11 @@ jobs:
       # parent-auth.ts throws when this is unset, so any spec touching a parent
       # session fails at import. Must be >= 32 bytes for HS256.
       PARENT_JWT_SECRET: test-parent-jwt-secret-at-least-32-chars-long
+      # playwright.config.ts only injects MOCK_PDF via its `webServer` block,
+      # which is disabled under CI — so CI has to set it itself, as that file's
+      # own comment spells out. Without it the contract-issue route tries to
+      # launch a nested Chromium to render a PDF.
+      MOCK_PDF: "1"
       PLAYWRIGHT_BASE_URL: http://localhost:3000
 
     steps:

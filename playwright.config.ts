@@ -40,9 +40,23 @@ export default defineConfig({
   },
 
   projects: [
+    // auth.setup.ts writes .playwright/auth/{owner,staff,admin}.json, which
+    // most specs consume via `test.use({ storageState: ... })`. It was never
+    // declared as a setup project, so Playwright treated it as an ordinary
+    // spec and ran it in alphabetical order — after admin-management.spec.ts
+    // and most others. Those specs then failed with "Error reading storage
+    // state from .playwright/auth/owner.json" because the file did not exist
+    // yet. Declaring it as a dependency guarantees it runs first.
+    {
+      name: "setup",
+      testMatch: /.*\.setup\.ts/,
+    },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+      // Without this the setup file would also run as a normal spec here.
+      testIgnore: /.*\.setup\.ts/,
     },
   ],
 
