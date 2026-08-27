@@ -103,7 +103,11 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # 130 specs run serially (workers: 1, fullyParallel: false) with retries: 2
+    # in CI, so a handful of genuine failures can each burn 3 x the 60s test
+    # timeout. 40 minutes was not enough once the suite actually started
+    # running; the job was killed mid-suite with no usable result.
+    timeout-minutes: 60
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     services:

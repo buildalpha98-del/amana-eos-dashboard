@@ -30,7 +30,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: process.env.CI ? "github" : "html",
+  // "github" alone only emits annotations for failures, so a CI run that is
+  // still going gives no progress signal at all — a timeout looks identical to
+  // a hang. "list" adds a line per test so partial runs are diagnosable.
+  reporter: process.env.CI ? [["github"], ["list"]] : "html",
   timeout: 60_000,
 
   use: {
