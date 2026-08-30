@@ -1132,6 +1132,11 @@ model Todo {
   // by /api/surveys/[id]/publish; null for every other todo.
   surveyId    String?
   survey      Survey?    @relation("SurveyTodos", fields: [surveyId], references: [id], onDelete: SetNull)
+  // 2026-08-31: meeting this todo was created in (IDS create-todo,
+  // To-Do Review quick-add). SetNull so deleting a mis-started meeting
+  // never destroys todos.
+  meetingId   String?
+  meeting     Meeting?   @relation("MeetingTodos", fields: [meetingId], references: [id], onDelete: SetNull)
   dueDate     DateTime
   status      TodoStatus @default(pending)
   weekOf      DateTime
@@ -1159,6 +1164,7 @@ model Todo {
   @@index([weekOf, serviceId])
   @@index([assigneeId, status])
   @@index([dueDate, status])
+  @@index([meetingId])
 }
 
 model TodoAssignee {
@@ -3057,6 +3063,11 @@ model Meeting {
   // same-day meetings. Null until prepared; facilitators can regenerate.
   aiAgendaDraft   Json?
   aiAgendaDraftAt DateTime?
+  // 2026-08-31: completion-time snapshot of meeting outcomes (todos done,
+  // issues solved, rock statuses). Written ONCE when the meeting completes
+  // so past meetings stop mutating as live data changes. Null = legacy
+  // meeting; the UI falls back to live computation.
+  outcomes        Json?
   startedAt       DateTime?
   completedAt     DateTime?
   createdById     String?
@@ -3066,6 +3077,7 @@ model Meeting {
 
   cascades  CascadeMessage[]  @relation("MeetingCascade")
   attendees MeetingAttendee[] @relation("MeetingAttendees")
+  todos     Todo[]            @relation("MeetingTodos")
 
   @@index([date])
   @@index([status])
