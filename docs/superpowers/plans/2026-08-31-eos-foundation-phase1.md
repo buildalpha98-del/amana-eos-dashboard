@@ -231,7 +231,7 @@ status: scheduledFor ? "scheduled" : "in_progress",
 startedAt: scheduledFor ? null : new Date(),
 ```
 
-- [ ] **Step 3: PATCH route:** schema gains `action: z.literal("start").optional()`. When present, handle FIRST and return early:
+- [ ] **Step 3: PATCH route:** add `"marketing"` to the PATCH roles array (`["owner", "head_office", "admin", "marketing", "eos_implementer"]`) with a comment — POST has allowed marketing since 2026-06-03 because the marketing pod runs its own L10, but PATCH never did, so today they can create a meeting they cannot save progress on, and with scheduling they could create a meeting they can never start. Schema gains `action: z.literal("start").optional()`. When present, handle FIRST and return early:
 
 ```ts
 if (parsed.data.action === "start") {
@@ -289,7 +289,7 @@ updateData.outcomes = {
 };
 ```
 
-(Import `getCurrentQuarter` from `@/lib/utils`. The `!existing.completedAt` + `existing.status !== "completed"` guards already make this write-once.)
+Guard the whole block with `&& !existing.outcomes` (the status-transition check alone is NOT write-once — a meeting PATCHed back to `in_progress` and re-completed would overwrite the snapshot). `todoWhere` deliberately mirrors the in-meeting candidate list (`ActiveMeetingView`'s memo): attendee filter when attendees exist, service-scope fallback otherwise — do NOT also AND service scope onto the attendee branch; the UI doesn't. Import `getCurrentQuarter` from `@/lib/utils`.
 - [ ] **Step 3: Panel:** add `outcomes?: MeetingOutcomes | null` to `MeetingData` (type the shape). In `MeetingOutcomesPanel`, when `meeting.outcomes` exists use its numbers (todosDone/todosTotal/rocksOnTrack/rocksTotal/`issuesSolvedIds.length`/avgRating); else keep the current live fallback.
 - [ ] **Step 4: Tests pass; commit** — `feat(meetings): write-once outcome snapshot on completion`
 
@@ -303,7 +303,7 @@ updateData.outcomes = {
 - [ ] **Step 1:** Extend `TodoReviewSection` props: `attendees` (`MeetingAttendee[] | undefined`), `users` (fallback assignee list, same `users` already fetched in ActiveMeetingView), `onQuickAdd?: (data: { title: string; assigneeId: string; dueDate: string }) => void`, `onReassign?: (id: string, assigneeId: string) => void`, `onRedate?: (id: string, dueDate: string) => void`, `isCompleted: boolean`, `lastMeetingId?: string | null`.
 - [ ] **Step 2:** Quick-add row (hidden when `isCompleted`): title input + assignee `<select>` (present attendees first, then remaining users) + date input defaulting to +7 days + Add button (disabled without title/assignee). Calls `onQuickAdd`.
 - [ ] **Step 3:** Each row (when not completed): swap the static assignee name for a compact `<select>` (onChange → `onReassign`) and add a date input (defaultValue from `todo.dueDate`, onChange → `onRedate`). Keep the complete-toggle as is. Add a `from last meeting` `text-2xs` badge when `todo.meetingId && todo.meetingId === lastMeetingId`.
-- [ ] **Step 4:** In `ActiveMeetingView`: `lastMeetingId` needs the previous completed meeting — compute from a lightweight `useMeetings({ status: "completed", limit: 20 })` already-cached list is NOT available here; instead pass it down from `meetings/page.tsx` (it holds the full list): previous completed meeting matching `isLeadership` flag, most recent by date. Wire handlers: `handleQuickAddTodo` → `createTodo.mutate({ title, assigneeId, dueDate, weekOf: getWeekStart().toISOString(), meetingId: meeting.id, serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined })`; `handleReassign` / `handleRedate` → `updateTodo.mutate`. `TodoData` needs `meetingId` (added in Task 6).
+- [ ] **Step 4:** In `ActiveMeetingView`: `lastMeetingId` needs the previous completed meeting — compute from a lightweight `useMeetings({ status: "completed", limit: 20 })` already-cached list is NOT available here; instead pass it down from `meetings/page.tsx` (it holds the full list): previous completed meeting matching `isLeadership` flag AND overlapping `serviceIds` (both empty counts as overlap — org-wide), most recent by date. Wire handlers: `handleQuickAddTodo` → `createTodo.mutate({ title, assigneeId, dueDate, weekOf: getWeekStart().toISOString(), meetingId: meeting.id, serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined })`; `handleReassign` / `handleRedate` → `updateTodo.mutate`. `TodoData` needs `meetingId` (added in Task 6).
 - [ ] **Step 5:** Typecheck + manual smoke via dev server (start meeting → add todo in section 5 → appears with meetingId; reassign; re-date). Commit — `feat(meetings): To-Do Review becomes a capture surface`
 
 ### Task 10: AI prep consolidation
