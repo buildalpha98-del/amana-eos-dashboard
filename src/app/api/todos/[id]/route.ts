@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { recomputeRockProgress } from "@/lib/todos/recompute-rock-progress";
 
 const updateTodoSchema = z.object({
   title: z.string().min(1).optional(),
@@ -88,18 +89,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   // Auto-update rock progress when a linked todo status changes
   if (parsed.data.status !== undefined && todo.rockId) {
-    const linkedTodos = await prisma.todo.findMany({
-      where: { rockId: todo.rockId, deleted: false },
-      select: { status: true },
-    });
-    const total = linkedTodos.length;
-    const completed = linkedTodos.filter((t) => t.status === "complete").length;
-    const newPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-    await prisma.rock.update({
-      where: { id: todo.rockId },
-      data: { percentComplete: newPercent },
-    });
+    await recomputeRockProgress(prisma, todo.rockId);
   }
 
   await prisma.activityLog.create({

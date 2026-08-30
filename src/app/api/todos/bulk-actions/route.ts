@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { recomputeRocksProgress } from "@/lib/todos/recompute-rock-progress";
 
 import { parseJsonBody } from "@/lib/api-error";
 const bulkActionSchema = z.object({
@@ -25,10 +26,10 @@ try {
 
   const { action, ids, assigneeId } = parsed.data;
 
-  // Validate the todos exist
+  // Validate the todos exist (and aren't already soft-deleted)
   const todos = await prisma.todo.findMany({
-    where: { id: { in: ids } },
-    select: { id: true },
+    where: { id: { in: ids }, deleted: false },
+    select: { id: true, rockId: true },
   });
   const validIds = todos.map((t) => t.id);
 
@@ -45,12 +46,27 @@ try {
         where: { id: { in: validIds } },
         data: { status: "complete", completedAt: new Date() },
       });
+      // updateMany bypasses the single-todo PATCH path, so recompute
+      // linked rocks' percentComplete here too — same shared helper.
+      await recomputeRocksProgress(prisma, todos.map((t) => t.rockId));
       return NextResponse.json({ updated: validIds.length });
     }
 
     case "delete": {
-      await prisma.todo.deleteMany({
+      // Soft delete, matching DELETE /api/todos/[id] — a bulk hard
+      // deleteMany here used to silently bypass the audit trail.
+      await prisma.todo.updateMany({
         where: { id: { in: validIds } },
+        data: { deleted: true },
+      });
+      await prisma.activityLog.create({
+        data: {
+          userId: session!.user.id,
+          action: "bulk_delete",
+          entityType: "Todo",
+          entityId: validIds[0],
+          details: { ids: validIds, count: validIds.length },
+        },
       });
       return NextResponse.json({ deleted: validIds.length });
     }
