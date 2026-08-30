@@ -254,8 +254,10 @@ Teams file). Each is processed independently; the meeting page lists all of them
   `/api/upload/verify` routes accept the same context flag and switch to the
   recording allow-list + ceiling when set. Default context behaviour is
   byte-for-byte unchanged. A 90-min mic recording (~22 MB) and typical
-  Teams/Zoom mp4 exports both fit; recordings always exceed the 4 MB serverless
-  body limit in practice, so they take the direct-to-Blob + verify path.
+  Teams/Zoom mp4 exports both fit. Recording-context uploads **always** take
+  the direct-to-Blob + verify path regardless of size (a short mic clip could
+  be under the 4 MB serverless threshold, and `/api/upload` deliberately does
+  NOT learn the context flag — one gate, not two).
 
 ### 2.3 Upload-a-recording path
 
@@ -438,7 +440,7 @@ Vitest, in `src/__tests__/` per house patterns (prisma-mock with
 `$transaction`, `mockImplementation` input routing, `_clearUserActiveCache()`).
 
 **Phase 1**
-- `api/meetings`: scheduling (POST with `scheduledAt` → scheduled; `action: "start"` happy/409), outcomes snapshot written once on completion, completion still splits cascades.
+- `api/meetings`: scheduling (POST with `scheduledFor` → scheduled; `action: "start"` happy/409), outcomes snapshot written once on completion, completion still splits cascades.
 - `api/todos`: `isPrivate` filtering matrix (assignee sees, co-assignee sees, creator sees, admin sees, unrelated member does NOT), `meetingId` create/validation.
 - `api/todos/bulk-actions`: delete is soft + logged; complete recomputes rock progress (shared helper unit-tested directly).
 - `cron/recurring-todos`: per-rule due dates.
