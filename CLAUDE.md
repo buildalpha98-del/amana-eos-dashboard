@@ -11,7 +11,7 @@
 
 ## Commands
 - `npm run dev` — start dev server
-- `npm run build` — production build (always verify after changes)
+- `npm run build` — production build (`prisma generate && next build`; always verify after changes). It deliberately does NOT run `prisma migrate deploy` — production migrations come from `vercel.json`'s `buildCommand`. Putting them in the npm script meant a local build pointed `migrate deploy` at the production DB, and broke CI's E2E job with P3005.
 - `npm run lint` — ESLint check
 - `npm test` — run Vitest unit tests
 - `npm run test:integration` — integration tests
