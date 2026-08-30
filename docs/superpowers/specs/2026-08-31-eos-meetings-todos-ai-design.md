@@ -48,8 +48,9 @@ Each phase ships as its own PR. Phase 2 depends on Phase 1's schema.
 ```prisma
 model Meeting {
   // new:
-  scheduledAt DateTime?   // null for legacy + start-now meetings
-  outcomes    Json?       // completion-time snapshot, see 1.4
+  outcomes Json?   // completion-time snapshot, see 1.4
+  // NOTE: no scheduledAt column — the existing required `Meeting.date`
+  // DateTime carries the scheduled datetime (see 1.2).
 }
 
 model Todo {
@@ -66,10 +67,14 @@ production by the existing `vercel.json` buildCommand.
 
 ### 1.2 Meeting scheduling
 
-- `POST /api/meetings` gains an optional `scheduledAt` (ISO datetime, must be
-  future-or-today). When present: `status: "scheduled"`, `startedAt: null`,
-  `scheduledAt` stored. When absent: current behaviour unchanged
-  (`in_progress` + `startedAt: now`).
+- `POST /api/meetings` gains an optional `scheduledFor` body field (ISO
+  datetime, must be future-or-today). When present: `status: "scheduled"`,
+  `startedAt: null`, and **`date = scheduledFor`** (the existing required
+  `Meeting.date` DateTime carries the scheduled moment — no new column).
+  When absent: current behaviour unchanged (`in_progress` + `startedAt: now`,
+  `date: now`). Because the morning-briefing cron already matches scheduled
+  meetings on `date` within today, setting `date = scheduledFor` is what makes
+  its auto-prep branch reachable — no cron changes needed.
 - New endpoint behaviour on `PATCH /api/meetings/[id]`: accepts
   `action: "start"` → guarded `updateMany where status: "scheduled"` flips to
   `in_progress`, stamps `startedAt` (409 if already started — protects against
@@ -79,9 +84,9 @@ production by the existing `vercel.json` buildCommand.
 - `MeetingListView` shows an "Upcoming" group (scheduled meetings, soonest first)
   above the history list, each with a **Start** button (roles: same as meeting
   PATCH roles) and a cancel option (sets `status: "cancelled"`).
-- Effect: the existing morning-briefing cron branch (auto-runs
-  `prepareMeetingAgenda()` for `scheduled` meetings dated today) becomes reachable
-  for the first time. No cron changes needed.
+- The existing `Meeting.date` ordering on the list page keeps upcoming meetings
+  sorted naturally; no query changes beyond the status filter for the
+  "Upcoming" group.
 
 ### 1.3 Meeting↔Todo linkage + carry-over visibility
 
@@ -109,7 +114,8 @@ type MeetingOutcomes = {
   issuesSolvedIds: string[];   // issues with status "solved" + solvedAt within the meeting window
   rocksOnTrack: number;
   rocksTotal: number;
-  avgRating: number | null;
+  avgRating: number | null;    // = Meeting.rating (server-computed average of
+                               //   present attendees' MeetingAttendee.rating)
   capturedAt: string;          // ISO
 };
 ```
@@ -145,12 +151,16 @@ type MeetingOutcomes = {
 
 ### 1.7 Bug fixes (each with a regression test)
 
-1. **`isPrivate` enforcement** (`GET /api/todos`, `GET /api/todos/[id]`):
-   private todos are visible only to (a) primary assignee, (b) any
-   `TodoAssignee`, (c) `createdById`, (d) roles `owner|head_office|admin`.
-   Implemented as an additional `AND` clause composed with the existing
-   centre-or-personal filter. Every list surface (todos page, meeting To-Do
-   Review, dashboards) inherits it because they all go through these routes.
+1. **`isPrivate` enforcement**: private todos are visible only to (a) primary
+   assignee, (b) any `TodoAssignee`, (c) `createdById`, (d) roles
+   `owner|head_office|admin`. Implemented as a shared helper
+   `privateTodoWhere(session)` in `src/lib/todos/private-filter.ts` returning a
+   `TodoWhereInput` clause, applied at **every** route that queries
+   `prisma.todo` for read (apply-100% rule): `GET /api/todos`,
+   `GET /api/todos/[id]`, `GET /api/search` (which today leaks private todos to
+   all non-staff roles), and `GET /api/services/[id]/today` (no private filter
+   at all today). An implementation-time grep for `prisma.todo.find` confirms
+   no other read surface is missed; any found are included in the sweep.
 2. **Bulk delete → soft delete** (`POST /api/todos/bulk-actions`): `delete`
    becomes `updateMany { deleted: true }` + one ActivityLog entry (action
    `bulk_delete`, ids in metadata) — matching the single-route semantics.
@@ -232,12 +242,20 @@ Teams file). Each is processed independently; the meeting page lists all of them
   go direct-to-Blob with verify), then `POST /api/meetings/[id]/recordings`
   with `{ url, source: "live_mic", durationSeconds }`.
 - **Upload-strategy additions**: add `audio/webm`, `audio/mp4`, `audio/mpeg`,
-  `audio/wav`, `audio/x-m4a` to `UPLOAD_ALLOWED_MIMES` **and** matching
-  magic-byte signatures to `detectFileType` in `src/lib/file-validation.ts`
-  (webm/EBML `1A45DFA3`, mp4/m4a `ftyp`, mp3 `ID3`/`FFFB`-family sync,
-  wav `RIFF..WAVE`). Raise nothing else — `ABSOLUTE_MAX_UPLOAD` already
-  accommodates the file sizes involved; if it does not (check at implementation
-  time), raise it for audio MIMEs only via an explicit carve-out.
+  `audio/wav`, `audio/x-m4a`, `video/mp4`, `video/webm` to a **new, separate**
+  allow-list `RECORDING_ALLOWED_MIMES` in `src/lib/upload-strategy.ts`, with
+  matching magic-byte signatures added to `detectFileType` in
+  `src/lib/file-validation.ts` (webm/EBML `1A45DFA3`, mp4/m4a `ftyp` box,
+  mp3 `ID3`/`FFF*` frame sync, wav `RIFF..WAVE`).
+- **Size ceilings** (the general `ABSOLUTE_MAX_UPLOAD` is 10 MB and stays
+  untouched): a new `RECORDING_MAX_UPLOAD = 500 MB` applies only to the
+  recording context. `uploadFileSmart` gains an optional
+  `{ context: "recording" }` argument; the `/api/upload/blob-token` and
+  `/api/upload/verify` routes accept the same context flag and switch to the
+  recording allow-list + ceiling when set. Default context behaviour is
+  byte-for-byte unchanged. A 90-min mic recording (~22 MB) and typical
+  Teams/Zoom mp4 exports both fit; recordings always exceed the 4 MB serverless
+  body limit in practice, so they take the direct-to-Blob + verify path.
 
 ### 2.3 Upload-a-recording path
 
@@ -286,7 +304,10 @@ same pattern as the Brevo webhook):
 a sweep — recordings in `uploaded`/`transcribing` older than 2 h →
 `status: failed`, `error: "transcription timed out"`, delete Blob if
 `audioBlobUrl` still set. Recordings in `transcribed` older than 2 h → retry
-summarisation once, else fail.
+summarisation once, else fail. Because the janitor is daily, a stuck recording
+may sit up to ~24 h before being swept — acceptable: the UI's status strip
+shows "still processing" honestly, and Regenerate/re-upload remain available
+after the sweep.
 
 **`POST /api/meetings/[id]/recordings/[recordingId]/regenerate`**
 (`withApiAuth`, same roles, rate limit 5/min): re-runs summarisation from the
@@ -305,8 +326,10 @@ New module `src/lib/meeting-review.ts` (mirrors `l10-prep.ts` conventions):
     (same scoping rules as `l10-prep.ts`), transcript utterances (truncated to
     fit budget: keep all, but if projected input exceeds ~150k chars, drop
     utterance timestamps and coalesce consecutive same-speaker lines).
-  - Calls `generateStructured()` — `providerModel: "anthropic/claude-sonnet-4-5-20250514"`,
-    `maxTokens: 4096`, Zod-validated output:
+  - Calls `generateStructured()` with the `showcase` default provider-model
+    (same as `l10-prep.ts` — `DEFAULT_PROVIDER_MODEL.showcase`, an
+    `{ provider, modelId }` object; no hardcoded model literal in the new
+    module), `maxTokens: 4096`, Zod-validated output:
 
 ```ts
 type MeetingAiReview = {
@@ -361,8 +384,10 @@ in-progress view once a recording reaches `complete`:
   creates a real Todo (`meetingId` stamped, `issueId` absent) and marks the
   item `accepted` + `todoId` in `aiReview`. Dismiss marks `dismissed`.
   Both are single-item PATCH-style endpoints (`withApiAuth`, meeting roles)
-  that mutate the `aiReview` Json with a read-modify-write inside a
-  transaction re-checking item status (double-accept → 409).
+  that mutate the `aiReview` Json via read-modify-write **inside one
+  interactive `$transaction`**: re-read the row inside the transaction, 409 if
+  the item's status is no longer `proposed`, create the Todo/Issue, write the
+  updated Json — so a double-accept race cannot create two todos.
 - **Things you may have missed** — same accept/dismiss pattern;
   `uncaptured_issue` accept creates an Issue (short_term, priority medium,
   raisedById = actor, serviceId from meeting scope when unambiguous) and marks
@@ -433,4 +458,8 @@ Build (`npm run build`), `npm test`, lint must pass before each PR.
 1. Phase 1 PR → merge. Migration is additive; existing meetings/todos unaffected.
 2. Jayden adds `DEEPGRAM_API_KEY` + `DEEPGRAM_WEBHOOK_SECRET` to Vercel env.
 3. Phase 2 PR → merge. Feature is inert until someone records/uploads.
-4. Socialise: recording indicator = consent surface; audio is never retained.
+4. Socialise: recording indicator = on-screen consent surface, **plus** a house
+   convention that the meeting runner verbally announces recording at the start
+   of the Segue (Australian states, incl. NSW, require all-party consent for
+   recording private conversations — an on-screen badge alone is thin).
+   Audio is never retained.
