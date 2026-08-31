@@ -86,14 +86,14 @@ export function isEosAssigneeRole(role: string | null | undefined): boolean {
  * the meeting and also those that have the roles admin, marketing, EOS,
  * owner. No other staff member should show."
  *
- * NOTE this is deliberately NARROWER than EOS_ASSIGNEE_ROLES — it omits
- * `head_office` (State Manager), which Daniel did not list. State
- * Managers remain valid EOS assignees everywhere else; they're just not
- * part of the leadership-meeting roster. Flip that by adding
- * "head_office" here if regional managers should attend.
+ * 2026-08-31, per Jayden: `head_office` (State Manager) added — Tracie
+ * and Mirna attend the weekly Leadership L10 and their todos belong in
+ * its To-Do Review. (The original list deliberately omitted them per
+ * Daniel; this is the "flip that" case the old comment anticipated.)
  */
 export const LEADERSHIP_MEETING_ROLES: readonly Role[] = [
   "owner",
+  "head_office",
   "admin",
   "marketing",
   "eos",
