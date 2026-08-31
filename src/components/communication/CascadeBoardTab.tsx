@@ -363,6 +363,16 @@ function CascadeCard({
               )}
             </div>
           </div>
+
+          {/* Who's acknowledged (admin, 2026-08-31) */}
+          {isAdmin && showAcks && (
+            <AckBreakdown
+              msg={msg}
+              team={team}
+              onRemind={() => remind.mutate(msg.id)}
+              reminding={remind.isPending}
+            />
+          )}
         </div>
 
         {/* Published at label */}
@@ -370,6 +380,57 @@ function CascadeCard({
           Published {formatPublishedDate(msg.publishedAt)}
         </p>
       </div>
+    </div>
+  );
+}
+
+/** Admin-only expandable: who's acked, who hasn't, remind the rest. */
+function AckBreakdown({
+  msg,
+  team,
+  onRemind,
+  reminding,
+}: {
+  msg: { id: string };
+  team: Array<{ id: string; name: string }> | undefined;
+  onRemind: () => void;
+  reminding: boolean;
+}) {
+  // The [id] GET returns every ack with the user's name — data the board
+  // fetched but never rendered until now.
+  const { data: detail } = useCascadeMessage(msg.id);
+  const acks: Array<{ user?: { id: string; name: string } }> =
+    detail?.acknowledgments ?? [];
+  const ackedIds = new Set(acks.map((a) => a.user?.id).filter(Boolean));
+  const pending = (team ?? []).filter((t) => !ackedIds.has(t.id));
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50 text-xs space-y-2">
+      {acks.length > 0 && (
+        <p className="text-muted">
+          <span className="font-medium text-emerald-700 dark:text-emerald-400">
+            Acknowledged:
+          </span>{" "}
+          {acks.map((a) => a.user?.name).filter(Boolean).join(", ")}
+        </p>
+      )}
+      {pending.length > 0 ? (
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-muted flex-1">
+            <span className="font-medium text-amber-700 dark:text-amber-400">
+              Waiting on:
+            </span>{" "}
+            {pending.map((t) => t.name).join(", ")}
+          </p>
+          <Button variant="ghost" size="xs" onClick={onRemind} loading={reminding}>
+            Remind them
+          </Button>
+        </div>
+      ) : (
+        <p className="text-emerald-700 dark:text-emerald-400">
+          Everyone has acknowledged 🎉
+        </p>
+      )}
     </div>
   );
 }
