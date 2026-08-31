@@ -110,15 +110,19 @@ export const GET = withApiHandler(async (req) => {
         }
       }
 
-      await prisma.activityLog.create({
-        data: {
-          userId: m.ownerId,
-          action: "create",
-          entityType: "Issue",
-          entityId: issue.id,
-          details: { auto: true, measurableId: m.id, weeks },
-        },
-      });
+      // ActivityLog.userId is required — attribute to the measurable
+      // owner when set; otherwise skip the log (system-raised).
+      if (m.ownerId) {
+        await prisma.activityLog.create({
+          data: {
+            userId: m.ownerId,
+            action: "create",
+            entityType: "Issue",
+            entityId: issue.id,
+            details: { auto: true, measurableId: m.id, weeks },
+          },
+        });
+      }
       raised++;
     }
 

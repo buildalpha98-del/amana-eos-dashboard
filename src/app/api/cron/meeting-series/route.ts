@@ -94,15 +94,19 @@ export const GET = withApiHandler(async (req) => {
         }
       }
 
-      await prisma.activityLog.create({
-        data: {
-          userId: series.createdById,
-          action: "create",
-          entityType: "Meeting",
-          entityId: meeting.id,
-          details: { seriesId: series.id, auto: true, title },
-        },
-      });
+      // ActivityLog.userId is required — attribute to the series creator
+      // when they still exist; otherwise skip the log (cron-created).
+      if (series.createdById) {
+        await prisma.activityLog.create({
+          data: {
+            userId: series.createdById,
+            action: "create",
+            entityType: "Meeting",
+            entityId: meeting.id,
+            details: { seriesId: series.id, auto: true, title },
+          },
+        });
+      }
       created++;
     }
 
