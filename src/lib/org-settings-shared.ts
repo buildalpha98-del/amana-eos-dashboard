@@ -188,6 +188,16 @@ export const orgSettingsConfigSchema = z.object({
     // must still parse (same precedent as the eos_viewer role labels).
     marketingWeeklyCap: z.number().int().min(1).max(20).default(3),
   }),
+  // 2026-08-31 (execution layer): EOS automation knobs. OBJECT-level
+  // .default({}) is mandatory — PATCH is a strict full-replace and every
+  // legacy stored config lacks this block.
+  eos: z
+    .object({
+      // Consecutive off-track weeks before the scorecard watchdog
+      // auto-raises an Issue for a measurable.
+      measurableOffTrackWeeks: z.number().int().min(2).max(6).default(3),
+    })
+    .default({}),
   ratios: z.object({
     federalDefaultMinRatio: ratioStringSchema,
   }),
@@ -276,6 +286,9 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     // Mirrors MARKETING_EMAIL_WEEKLY_CAP in src/lib/frequency-cap.ts (the
     // lib-level fallback when a caller doesn't resolve the org setting).
     marketingWeeklyCap: 3,
+  },
+  eos: {
+    measurableOffTrackWeeks: 3,
   },
   ratios: {
     federalDefaultMinRatio: "1:15",
@@ -401,6 +414,10 @@ export function mergeOrgSettings(
     string,
     unknown
   >;
+  const eos = (safe.eos && typeof safe.eos === "object" ? safe.eos : {}) as Record<
+    string,
+    unknown
+  >;
   const gr = (safe.groceryRates && typeof safe.groceryRates === "object"
     ? safe.groceryRates
     : {}) as Record<string, unknown>;
@@ -440,6 +457,15 @@ export function mergeOrgSettings(
         email.marketingWeeklyCap <= 20
           ? (email.marketingWeeklyCap as number)
           : defaults.email.marketingWeeklyCap,
+    },
+    eos: {
+      measurableOffTrackWeeks:
+        typeof eos.measurableOffTrackWeeks === "number" &&
+        Number.isInteger(eos.measurableOffTrackWeeks) &&
+        eos.measurableOffTrackWeeks >= 2 &&
+        eos.measurableOffTrackWeeks <= 6
+          ? (eos.measurableOffTrackWeeks as number)
+          : defaults.eos.measurableOffTrackWeeks,
     },
     ratios: {
       federalDefaultMinRatio:

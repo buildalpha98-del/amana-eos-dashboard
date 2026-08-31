@@ -59,6 +59,11 @@ export const NOTIFICATION_TYPES = {
   // each school term. ONE digest per active marketing user per run (never
   // per-request notifyRequestSubmitted — 20 services x 4 requests = spam).
   TERM_PACK_CREATED: "term_pack_created",
+  // 2026-08-31 (execution layer): meetings/scorecard/cascade fan-outs.
+  MEETING_REVIEW_READY: "meeting_review_ready",
+  SCORECARD_WATCHDOG: "scorecard_watchdog",
+  CASCADE_PUBLISHED: "cascade_published",
+  CASCADE_REMINDER: "cascade_reminder",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
