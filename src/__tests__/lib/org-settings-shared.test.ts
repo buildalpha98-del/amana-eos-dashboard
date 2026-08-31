@@ -96,3 +96,36 @@ describe("mergeOrgSettings — email.marketingWeeklyCap branch", () => {
     });
   });
 });
+
+// ── eos block (execution layer, 2026-08-31) ─────────────────────────────
+
+import {
+  orgSettingsConfigSchema as schema2,
+  ORG_SETTINGS_DEFAULTS as defaults2,
+  mergeOrgSettings as merge2,
+} from "@/lib/org-settings-shared";
+
+describe("eos.measurableOffTrackWeeks", () => {
+  it("legacy documents without the block still parse (object default)", () => {
+    // A pre-2026-08-31 stored config is exactly today's shape minus `eos`.
+    const legacy = { ...(defaults2 as Record<string, unknown>) };
+    delete legacy.eos;
+    const parsed = schema2.parse(legacy as never);
+    expect(parsed.eos.measurableOffTrackWeeks).toBe(3);
+  });
+
+  it("rejects out-of-range values", () => {
+    expect(() =>
+      schema2.parse({ ...defaults2, eos: { measurableOffTrackWeeks: 1 } } as never),
+    ).toThrow();
+    expect(() =>
+      schema2.parse({ ...defaults2, eos: { measurableOffTrackWeeks: 7 } } as never),
+    ).toThrow();
+  });
+
+  it("merge branch keeps a valid stored value and defaults an invalid one", () => {
+    expect(merge2({ eos: { measurableOffTrackWeeks: 5 } }).eos.measurableOffTrackWeeks).toBe(5);
+    expect(merge2({ eos: { measurableOffTrackWeeks: 99 } }).eos.measurableOffTrackWeeks).toBe(3);
+    expect(merge2({}).eos.measurableOffTrackWeeks).toBe(3);
+  });
+});

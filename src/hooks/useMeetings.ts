@@ -81,6 +81,7 @@ export interface MeetingData {
   aiAgendaDraft?: MeetingAgendaDraft | null;
   aiAgendaDraftAt?: string | null;
   outcomes?: MeetingOutcomes | null;
+  seriesId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -122,6 +123,8 @@ export function useCreateMeeting() {
       scorecardId?: string | null;
       /** ISO datetime — creates the meeting as `scheduled` instead of starting now. */
       scheduledFor?: string;
+      /** Recurring series this occurrence belongs to. */
+      seriesId?: string;
     }) => {
       return mutateApi<MeetingData>("/api/meetings", { method: "POST", body: data });
     },

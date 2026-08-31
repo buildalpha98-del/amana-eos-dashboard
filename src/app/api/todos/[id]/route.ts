@@ -17,6 +17,8 @@ const updateTodoSchema = z.object({
   rockId: z.string().nullable().optional(),
   issueId: z.string().nullable().optional(),
   isPrivate: z.boolean().optional(),
+  /** Outcome note recorded on completion (2026-08-31). */
+  completionNote: z.string().max(2000).nullable().optional(),
 });
 
 // GET /api/todos/[id]
@@ -78,7 +80,13 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       data.completedAt = new Date();
     } else {
       data.completedAt = null;
+      // Re-opening a todo clears its outcome note — the note describes a
+      // completion that no longer stands.
+      data.completionNote = null;
     }
+  }
+  if (parsed.data.completionNote !== undefined && data.completionNote === undefined) {
+    data.completionNote = parsed.data.completionNote;
   }
   if (parsed.data.dueDate !== undefined) data.dueDate = new Date(parsed.data.dueDate);
   if (parsed.data.weekOf !== undefined) data.weekOf = new Date(parsed.data.weekOf);
@@ -100,6 +108,20 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   // Auto-update rock progress when a linked todo status changes
   if (parsed.data.status !== undefined && todo.rockId) {
     await recomputeRockProgress(prisma, todo.rockId);
+  }
+
+  // Auto-FORWARD project status (2026-08-31): first activity on a
+  // not_started project flips it to in_progress. Forward-only — nothing
+  // ever auto-completes or reopens a project.
+  if (
+    parsed.data.status !== undefined &&
+    todo.projectId &&
+    (parsed.data.status === "complete" || parsed.data.status === "in_progress")
+  ) {
+    await prisma.project.updateMany({
+      where: { id: todo.projectId, status: "not_started" },
+      data: { status: "in_progress" },
+    });
   }
 
   await prisma.activityLog.create({

@@ -600,6 +600,7 @@ model User {
   assignedTodos                 Todo[]                         @relation("TodoAssignee")
   createdTodos                  Todo[]                         @relation("TodoCreator")
   meetingRecordings             MeetingRecording[]             @relation("RecordingCreator")
+  meetingSeries                 MeetingSeries[]                @relation("SeriesCreator")
   raisedIssues                  Issue[]                        @relation("IssueRaiser")
   ownedIssues                   Issue[]                        @relation("IssueOwner")
   ownedMeasurables              Measurable[]                   @relation("MeasurableOwner")
@@ -1089,6 +1090,7 @@ model Rock {
   issues      Issue[]
   milestones  Milestone[]
   measurables Measurable[]
+  projects    Project[]     @relation("RockProjects")
   attachments Attachment[]
 
   @@index([quarter])
@@ -1142,6 +1144,9 @@ model Todo {
   status      TodoStatus @default(pending)
   weekOf      DateTime
   isPrivate   Boolean    @default(false)
+  /// Optional outcome note recorded when the todo is completed; cleared
+  /// server-side if the todo is re-opened (2026-08-31).
+  completionNote String? @db.Text
   deleted     Boolean    @default(false)
   createdAt   DateTime   @default(now())
   completedAt DateTime?
@@ -1190,6 +1195,10 @@ model Issue {
   owner        User?         @relation("IssueOwner", fields: [ownerId], references: [id])
   rockId       String?
   rock         Rock?         @relation(fields: [rockId], references: [id], onDelete: SetNull)
+  // 2026-08-31: the off-track measurable this issue polices (scorecard
+  // watchdog). SetNull — deleting a measurable keeps discussion history.
+  measurableId String?
+  measurable   Measurable?   @relation(fields: [measurableId], references: [id], onDelete: SetNull)
   serviceId    String?
   service      Service?      @relation("ServiceIssues", fields: [serviceId], references: [id], onDelete: SetNull)
   priority     IssuePriority @default(medium)
@@ -1217,6 +1226,7 @@ model Issue {
   @@index([ownerId, status])
   @@index([category])
   @@index([category, status])
+  @@index([measurableId])
 }
 
 model Scorecard {
@@ -1276,6 +1286,7 @@ model Measurable {
   updatedAt     DateTime            @updatedAt
 
   entries MeasurableEntry[]
+  issues  Issue[]
 
   @@index([ownerId])
   @@index([scorecardId])
@@ -3013,6 +3024,9 @@ model Project {
   service     Service?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   templateId  String?
   template    ProjectTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  // 2026-08-31: the quarterly Rock this project executes (optional).
+  rockId      String?
+  rock        Rock?            @relation("RockProjects", fields: [rockId], references: [id], onDelete: SetNull)
   ownerId     String?
   owner       User?            @relation("ProjectOwner", fields: [ownerId], references: [id])
   status      ProjectStatus    @default(not_started)
@@ -3029,6 +3043,7 @@ model Project {
   @@index([serviceId])
   @@index([ownerId])
   @@index([status])
+  @@index([rockId])
 }
 
 // ============================================================
@@ -3069,6 +3084,9 @@ model Meeting {
   // so past meetings stop mutating as live data changes. Null = legacy
   // meeting; the UI falls back to live computation.
   outcomes        Json?
+  // 2026-08-31: recurring series this occurrence belongs to.
+  seriesId        String?
+  series          MeetingSeries? @relation("SeriesMeetings", fields: [seriesId], references: [id], onDelete: SetNull)
   startedAt       DateTime?
   completedAt     DateTime?
   createdById     String?
@@ -3084,6 +3102,35 @@ model Meeting {
   @@index([date])
   @@index([status])
   @@index([createdById])
+  @@index([seriesId])
+}
+
+// ── Meeting series (execution layer, 2026-08-31) ────────────────────────
+// Recurring meeting template. A daily cron materialises the next
+// occurrence as a `scheduled` Meeting, which the morning-briefing cron
+// then auto-preps on the day. Wall-clock time is anchored to an IANA
+// timezone so DST never shifts the meeting.
+model MeetingSeries {
+  id              String   @id @default(cuid())
+  name            String // e.g. "Leadership L10"
+  /// 0=Sunday … 6=Saturday, in the series' local timezone
+  dayOfWeek       Int
+  /// Minutes from local midnight (13:30 → 810)
+  minuteOfDay     Int
+  timezone        String   @default("Australia/Sydney")
+  isLeadership    Boolean  @default(false)
+  serviceIds      String[]
+  scorecardId     String?
+  attendeeUserIds String[]
+  active          Boolean  @default(true)
+  createdById     String?
+  createdBy       User?    @relation("SeriesCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  meetings Meeting[] @relation("SeriesMeetings")
+
+  @@index([active])
 }
 
 enum AttendeeStatus {
@@ -3122,6 +3169,8 @@ model MeetingRecording {
   transcript        Json? // utterances: [{ speaker, start, end, text }]
   transcriptText    String?                @db.Text // "Speaker N: ..." rendering
   aiReview          Json? // MeetingAiReview (summary, action items, missed items)
+  /// Post-review digest sent to attendees (guarded claim — one send ever).
+  digestSentAt      DateTime?
   error             String?
   createdById       String?
   createdBy         User?                  @relation("RecordingCreator", fields: [createdById], references: [id], onDelete: SetNull)

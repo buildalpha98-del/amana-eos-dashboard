@@ -94,6 +94,10 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
     Number.isInteger(config.email.marketingWeeklyCap) &&
     config.email.marketingWeeklyCap >= 1 &&
     config.email.marketingWeeklyCap <= 20;
+  const offTrackWeeksValid =
+    Number.isInteger(config.eos.measurableOffTrackWeeks) &&
+    config.eos.measurableOffTrackWeeks >= 2 &&
+    config.eos.measurableOffTrackWeeks <= 6;
   const labelsValid = ROLE_KEYS.every(
     (k) => config.roleLabels[k].trim().length > 0,
   );
@@ -114,6 +118,7 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
     ratioValid &&
     emailValid &&
     capValid &&
+    offTrackWeeksValid &&
     labelsValid &&
     onboardingValid &&
     welcomePackValid;
@@ -536,6 +541,38 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
                 email: {
                   ...c.email,
                   marketingWeeklyCap: Number(e.target.value),
+                },
+              }))
+            }
+            className="w-24 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </Field>
+      </Section>
+
+      {/* EOS automation */}
+      <Section
+        title="EOS automation"
+        description="Knobs for the scorecard watchdog and other EOS automations."
+        onReset={() => resetSection("eos")}
+      >
+        <Field
+          label="Weeks off-track before a measurable auto-raises an Issue"
+          valid={offTrackWeeksValid}
+          error="Must be a whole number between 2 and 6"
+          hint="Every Sunday night the watchdog checks each weekly measurable's latest entries; this many consecutive off-track weeks drops it into IDS automatically"
+        >
+          <input
+            type="number"
+            min={2}
+            max={6}
+            step={1}
+            value={config.eos.measurableOffTrackWeeks}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                eos: {
+                  ...c.eos,
+                  measurableOffTrackWeeks: Number(e.target.value),
                 },
               }))
             }

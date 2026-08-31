@@ -46,6 +46,7 @@ export function TodoDetailPanel({
     new Date(todo.dueDate).toISOString().split("T")[0]
   );
   const [status, setStatus] = useState<TodoStatus>(todo.status);
+  const [completionNote, setCompletionNote] = useState(todo.completionNote ?? "");
   const [rockId, setRockId] = useState(todo.rockId || "");
   const [isPrivate, setIsPrivate] = useState(todo.isPrivate);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -57,6 +58,7 @@ export function TodoDetailPanel({
     setAssigneeId(todo.assigneeId);
     setDueDate(new Date(todo.dueDate).toISOString().split("T")[0]);
     setStatus(todo.status);
+    setCompletionNote(todo.completionNote ?? "");
     setRockId(todo.rockId || "");
     setIsPrivate(todo.isPrivate);
     setShowDeleteConfirm(false);
@@ -177,6 +179,28 @@ export function TodoDetailPanel({
               ))}
             </div>
           </div>
+
+          {/* Outcome note (2026-08-31): shown while complete; the server
+              clears it if the todo is re-opened. */}
+          {status === "complete" && (
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">
+                Outcome / what was done <span className="font-normal">(optional)</span>
+              </label>
+              <AutoGrowTextarea
+                value={completionNote}
+                onChange={(e) => setCompletionNote(e.target.value)}
+                onBlur={() => {
+                  if ((todo.completionNote ?? "") !== completionNote) {
+                    saveField("completionNote", completionNote || null);
+                  }
+                }}
+                minHeight={64}
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                placeholder="e.g. Emailed all families; two follow-ups booked for Friday"
+              />
+            </div>
+          )}
 
           {/* Assignee + Due Date */}
           <div className="grid grid-cols-2 gap-4">
