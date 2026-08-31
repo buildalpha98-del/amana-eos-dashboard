@@ -63,6 +63,7 @@ export const GET = withApiAuth(async (req, session) => {
     assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
     rock: { select: { id: true, title: true } },
     issue: { select: { id: true, title: true } },
+    meeting: { select: { id: true, title: true, date: true } },
     assignees: {
       include: { user: { select: { id: true, name: true } } },
     },
@@ -100,6 +101,17 @@ const body = await parseJsonBody(req);
     );
   }
 
+  // Validate meetingId points at a real meeting before linking (2026-08-31)
+  if (parsed.data.meetingId) {
+    const meeting = await prisma.meeting.findUnique({
+      where: { id: parsed.data.meetingId },
+      select: { id: true },
+    });
+    if (!meeting) {
+      return NextResponse.json({ error: "Meeting not found" }, { status: 400 });
+    }
+  }
+
   const todo = await prisma.todo.create({
     data: {
       title: parsed.data.title,
@@ -110,6 +122,7 @@ const body = await parseJsonBody(req);
       issueId: parsed.data.issueId || null,
       serviceId: parsed.data.serviceId || null,
       projectId: parsed.data.projectId || null,
+      meetingId: parsed.data.meetingId || null,
       isPrivate: parsed.data.isPrivate ?? false,
       dueDate: new Date(parsed.data.dueDate),
       weekOf: new Date(parsed.data.weekOf),
@@ -118,6 +131,7 @@ const body = await parseJsonBody(req);
       assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
+      meeting: { select: { id: true, title: true, date: true } },
       assignees: {
         include: { user: { select: { id: true, name: true } } },
       },

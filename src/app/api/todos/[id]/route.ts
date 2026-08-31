@@ -29,6 +29,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
+      meeting: { select: { id: true, title: true, date: true } },
       assignees: { select: { userId: true } },
     },
   });
@@ -88,6 +89,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
+      meeting: { select: { id: true, title: true, date: true } },
     },
   });
 

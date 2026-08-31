@@ -332,11 +332,12 @@ export function ActiveMeetingView({
         assigneeIds: data.assigneeIds.length > 1 ? data.assigneeIds : undefined,
         issueId: data.issueId,
         serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
+        meetingId: meeting.id,
         dueDate: new Date(ws.getTime() + 6 * 86400000).toISOString().split("T")[0],
         weekOf: ws.toISOString(),
       });
     },
-    [createTodo, meetingServiceIds]
+    [createTodo, meetingServiceIds, meeting.id]
   );
 
   const handleDropToIDS = useCallback(
