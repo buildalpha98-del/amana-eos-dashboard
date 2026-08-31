@@ -13,22 +13,18 @@ import {
   Calendar,
   Search,
   History,
-  X,
 } from "lucide-react";
-import { useTodos } from "@/hooks/useTodos";
-import { useRocks } from "@/hooks/useRocks";
-import { useScorecard } from "@/hooks/useScorecard";
-import { useIssues } from "@/hooks/useIssues";
 import type { MeetingData } from "@/hooks/useMeetings";
 import {
   useDeleteMeeting,
+  usePrepareMeeting,
   useStartMeeting,
   useUpdateMeeting,
 } from "@/hooks/useMeetings";
+import { toast } from "@/hooks/useToast";
 import { useSession } from "next-auth/react";
 import { Trash2 } from "lucide-react";
-import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
-import { AiButton } from "@/components/ui/AiButton";
+import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { L10_SECTIONS } from "./sections";
 
@@ -55,7 +51,6 @@ export function MeetingListView({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "cancelled">("all");
   const [visibleCount, setVisibleCount] = useState(10);
-  const [aiPrep, setAiPrep] = useState("");
 
   const activeMeeting = meetings.find((m) => m.status === "in_progress");
   const startMeeting = useStartMeeting();
@@ -76,54 +71,21 @@ export function MeetingListView({
     });
   };
 
-  // Data hooks for AI Prep variables
-  const weekStart = getWeekStart();
-  const { data: allTodos } = useTodos({ weekOf: weekStart.toISOString() });
-  const { data: allRocks } = useRocks(getCurrentQuarter());
-  const { data: scorecard } = useScorecard();
-  const { data: allIssues } = useIssues({ status: "open,in_discussion" });
+  const prepareMeeting = usePrepareMeeting();
 
-  // Format AI Prep variables
-  const aiPrepVariables = useMemo(() => {
-    const overdueTodos = (allTodos ?? [])
-      .filter((t) => t.status !== "complete" && new Date(t.dueDate) < new Date())
-      .map((t) => `- ${t.title} (due ${formatDateAU(new Date(t.dueDate))}, assigned to ${t.assignee?.name ?? "unassigned"})`)
-      .join("\n") || "None";
-
-    const offTrackRocks = (allRocks ?? [])
-      .filter((r) => r.status === "off_track")
-      .map((r) => `- ${r.title} (${r.status.replace(/_/g, " ")}, ${r.percentComplete}% complete, owner: ${r.owner?.name ?? "unassigned"})`)
-      .join("\n") || "None";
-
-    const scorecardMisses = (scorecard?.measurables ?? [])
-      .filter((m) => {
-        const latest = m.entries?.[0];
-        if (!latest) return true; // no entry = miss
-        return !latest.onTrack;
-      })
-      .map((m) => {
-        const latest = m.entries?.[0];
-        const val = latest ? `${latest.value}` : "no entry";
-        return `- ${m.title}: ${val} (goal: ${m.goalDirection === "above" ? "≥" : m.goalDirection === "below" ? "≤" : "="} ${m.goalValue}${m.unit ? ` ${m.unit}` : ""})`;
-      })
-      .join("\n") || "None";
-
-    const openIssues = (allIssues ?? [])
-      .slice(0, 15)
-      .map((i) => `- ${i.title} (priority: ${i.priority}, raised by ${i.raisedBy?.name ?? "unknown"})`)
-      .join("\n") || "None";
-
-    const completedMeetings = meetings.filter((m) => m.status === "completed");
-    const lastMeeting = completedMeetings[0];
-    const recentUpdates = [
-      `Total meetings completed: ${completedMeetings.length}`,
-      lastMeeting ? `Last meeting: ${formatDateAU(new Date(lastMeeting.date))}${lastMeeting.rating ? ` (rated ${lastMeeting.rating}/10)` : ""}` : null,
-      `Current quarter rocks: ${(allRocks ?? []).length} total, ${(allRocks ?? []).filter((r) => r.status === "complete").length} complete`,
-      `Open todos this week: ${(allTodos ?? []).filter((t) => t.status !== "complete").length}`,
-    ].filter(Boolean).join("\n");
-
-    return { overdueTodos, offTrackRocks, scorecardMisses, openIssues, recentUpdates };
-  }, [allTodos, allRocks, scorecard, allIssues, meetings]);
+  const handleAiPrep = () => {
+    const target = activeMeeting ?? upcomingMeetings[0];
+    if (!target) {
+      toast({
+        description:
+          "Start or schedule a meeting first — AI Prep briefs a specific meeting.",
+      });
+      return;
+    }
+    prepareMeeting.mutate(target.id, {
+      onSuccess: () => onSelect(target),
+    });
+  };
 
   // Stats from completed meetings
   const stats = useMemo(() => {
@@ -191,27 +153,17 @@ export function MeetingListView({
           onClick: onStartNew,
         }}
       >
-        <AiButton
-          templateSlug="meetings/l10-prep"
-          variables={aiPrepVariables}
-          onResult={(text) => setAiPrep(text)}
-          label="AI Prep"
-          size="sm"
-          section="meetings"
-        />
+        {/* 2026-08-31: single AI-prep path — generates the PERSISTED
+            aiAgendaDraft (rendered by AiAgendaPanel inside the meeting)
+            instead of the old ephemeral prose blob. */}
+        <button
+          onClick={handleAiPrep}
+          disabled={prepareMeeting.isPending}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors disabled:opacity-60"
+        >
+          {prepareMeeting.isPending ? "Preparing…" : "AI Prep"}
+        </button>
       </PageHeader>
-
-      {/* AI Meeting Prep */}
-      {aiPrep && (
-        <div className="mb-6 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiPrep}</div>
-            <button onClick={() => setAiPrep("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Active Meeting Banner */}
       {activeMeeting && (
