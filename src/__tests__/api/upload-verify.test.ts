@@ -122,3 +122,59 @@ describe("POST /api/upload/verify", () => {
     expect(res.status).toBe(400);
   });
 });
+
+// ── Recording context (Phase 2, 2026-08-31) ─────────────────────────────
+
+describe("POST /api/upload/verify — recording context", () => {
+  const WEBM_BYTES = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x00, 0x00]);
+  const RECORDING_BLOB =
+    "https://abc123.public.blob.vercel-storage.com/l10-recording.webm";
+
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "admin" });
+    mockSession({ id: "u1", name: "Admin", role: "admin" });
+  });
+
+  it("accepts a recording MIME under context: recording", async () => {
+    mockBlobBody(WEBM_BYTES);
+    const res = await POST(
+      createRequest("POST", "/api/upload/verify", {
+        body: { url: RECORDING_BLOB, mimeType: "audio/webm", context: "recording" },
+      }),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("REJECTS a recording MIME in the default context — the recording lane must never widen the general one", async () => {
+    mockBlobBody(WEBM_BYTES);
+    const res = await POST(
+      createRequest("POST", "/api/upload/verify", {
+        body: { url: RECORDING_BLOB, mimeType: "audio/webm" },
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("deletes a recording blob whose bytes contradict the declared type", async () => {
+    mockBlobBody(PNG_BYTES); // PNG bytes declared as audio
+    const res = await POST(
+      createRequest("POST", "/api/upload/verify", {
+        body: { url: RECORDING_BLOB, mimeType: "audio/webm", context: "recording" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(deleteFile).toHaveBeenCalledWith(RECORDING_BLOB);
+  });
+
+  it("still accepts the default lane exactly as before (pdf)", async () => {
+    mockBlobBody(PDF_BYTES);
+    const res = await POST(
+      createRequest("POST", "/api/upload/verify", {
+        body: { url: BLOB, mimeType: "application/pdf" },
+      }),
+    );
+    expect(res.status).toBe(200);
+  });
+});

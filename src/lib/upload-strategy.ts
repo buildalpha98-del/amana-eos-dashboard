@@ -91,3 +91,32 @@ export const UPLOAD_ALLOWED_MIMES = [
   "image/tiff",
   "image/bmp",
 ] as const;
+
+// ── Meeting-recording upload lane (Phase 2, 2026-08-31) ─────────────────
+// A SEPARATE allow-list + ceiling, switched on by `context: "recording"`.
+// The general ABSOLUTE_MAX_UPLOAD (10 MB) stays untouched — a 90-min mic
+// recording is ~22 MB and Teams/Zoom mp4 exports run far larger.
+// Recording uploads ALWAYS take the direct-to-Blob + verify path (a short
+// clip could fit the serverless route, but /api/upload deliberately does
+// NOT learn this context — one gate, not two).
+
+export type UploadContext = "default" | "recording";
+
+export const RECORDING_ALLOWED_MIMES = [
+  "audio/webm", // MediaRecorder (Chrome/Firefox)
+  "audio/mp4", // MediaRecorder (Safari)
+  "audio/mpeg",
+  "audio/wav",
+  "audio/x-m4a",
+  // Teams/Zoom exports are usually video containers with the audio inside.
+  "video/mp4",
+  "video/webm",
+] as const;
+
+export const RECORDING_MAX_UPLOAD = 500 * 1024 * 1024;
+
+/** Oversize message for the recording lane ("" when the size is fine). */
+export function describeRecordingOversizeError(sizeBytes: number): string {
+  if (sizeBytes <= RECORDING_MAX_UPLOAD) return "";
+  return `That recording is ${asMb(sizeBytes)}MB — the limit is ${asMb(RECORDING_MAX_UPLOAD)}MB. Export a lower-quality or audio-only version and try again.`;
+}

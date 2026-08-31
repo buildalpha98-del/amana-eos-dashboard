@@ -5,8 +5,10 @@ import {
   ABSOLUTE_MAX_UPLOAD,
   SERVERLESS_BODY_LIMIT,
   describeOversizeError,
+  describeRecordingOversizeError,
   isCompressibleImage,
   needsDirectUpload,
+  type UploadContext,
 } from "@/lib/upload-strategy";
 
 /**
@@ -78,7 +80,44 @@ export type UploadResult = {
  * Upload `file`, choosing the route that will actually succeed for its size.
  * Throws an `Error` whose message is safe to show the user.
  */
-export async function uploadFileSmart(input: File): Promise<UploadResult> {
+export async function uploadFileSmart(
+  input: File,
+  opts?: { context?: UploadContext },
+): Promise<UploadResult> {
+  const context: UploadContext = opts?.context ?? "default";
+
+  // Recording lane (2026-08-31): no image compression, its own 500 MB
+  // ceiling, and ALWAYS direct-to-Blob + verify — /api/upload deliberately
+  // never learns this context, so even a small clip skips it.
+  if (context === "recording") {
+    const oversizeRec = describeRecordingOversizeError(input.size);
+    if (oversizeRec) throw new Error(oversizeRec);
+
+    const blob = await upload(input.name, input, {
+      access: "public",
+      handleUploadUrl: "/api/upload/blob-token",
+      contentType: input.type,
+      clientPayload: JSON.stringify({ context }),
+    });
+
+    const verify = await fetch("/api/upload/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: blob.url, mimeType: input.type, context }),
+    });
+    if (!verify.ok) {
+      const body = await verify.json().catch(() => ({}));
+      throw new Error(body?.error ?? "Uploaded recording failed verification");
+    }
+
+    return {
+      fileUrl: blob.url,
+      fileName: input.name,
+      fileSize: input.size,
+      mimeType: input.type,
+    };
+  }
+
   const file = await compressImage(input);
 
   const oversize = describeOversizeError(file.size);
