@@ -57,9 +57,13 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   const existing = await prisma.todo.findUnique({
     where: { id, deleted: false },
+    include: { assignees: { select: { userId: true } } },
   });
 
-  if (!existing) {
+  // Same 404-no-existence-leak rule as GET: a private todo can only be
+  // modified by its assignee/co-assignee/creator/admin tier — otherwise
+  // PATCH would leak (and let strangers edit) what GET hides.
+  if (!existing || !canViewTodo(session!, existing)) {
     return NextResponse.json({ error: "Todo not found" }, { status: 404 });
   }
 

@@ -68,6 +68,8 @@ try {
           details: { ids: validIds, count: validIds.length },
         },
       });
+      // Deleting rock-linked todos shrinks the recompute denominator.
+      await recomputeRocksProgress(prisma, todos.map((t) => t.rockId));
       return NextResponse.json({ deleted: validIds.length });
     }
 

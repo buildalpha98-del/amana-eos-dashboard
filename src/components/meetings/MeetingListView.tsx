@@ -25,6 +25,7 @@ import { toast } from "@/hooks/useToast";
 import { useSession } from "next-auth/react";
 import { Trash2 } from "lucide-react";
 import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { L10_SECTIONS } from "./sections";
 
@@ -83,7 +84,18 @@ export function MeetingListView({
       return;
     }
     prepareMeeting.mutate(target.id, {
-      onSuccess: () => onSelect(target),
+      onSuccess: () => {
+        // Only open the runner for a meeting that's actually running —
+        // opening a `scheduled` one here would bypass the guarded start
+        // (and let it be completed without ever being started).
+        if (target.status === "in_progress") {
+          onSelect(target);
+        } else {
+          toast({
+            description: `AI agenda prepared for "${target.title}" — you'll see it when the meeting starts.`,
+          });
+        }
+      },
     });
   };
 
@@ -156,13 +168,14 @@ export function MeetingListView({
         {/* 2026-08-31: single AI-prep path — generates the PERSISTED
             aiAgendaDraft (rendered by AiAgendaPanel inside the meeting)
             instead of the old ephemeral prose blob. */}
-        <button
+        <Button
+          variant="outline"
+          size="xs"
           onClick={handleAiPrep}
-          disabled={prepareMeeting.isPending}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors disabled:opacity-60"
+          loading={prepareMeeting.isPending}
         >
           {prepareMeeting.isPending ? "Preparing…" : "AI Prep"}
-        </button>
+        </Button>
       </PageHeader>
 
       {/* Active Meeting Banner */}
@@ -220,7 +233,9 @@ export function MeetingListView({
                     &middot; {meeting.createdBy?.name ?? "Unknown"}
                   </p>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => {
                     if (
                       confirm(
@@ -231,18 +246,17 @@ export function MeetingListView({
                     }
                   }}
                   disabled={updateMeeting.isPending}
-                  className="text-xs px-3 py-1.5 text-muted hover:text-red-600 transition-colors"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="xs"
                   onClick={() => handleStartScheduled(meeting)}
-                  disabled={startMeeting.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
+                  loading={startMeeting.isPending}
+                  iconLeft={<Play className="w-3.5 h-3.5" />}
                 >
-                  <Play className="w-3.5 h-3.5" />
                   Start
-                </button>
+                </Button>
               </div>
             ))}
           </div>

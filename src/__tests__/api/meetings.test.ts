@@ -489,9 +489,11 @@ describe("PATCH /api/meetings/[id] — outcome snapshot (2026-08-31)", () => {
             : [{ userId: "u1" }, { userId: "u2" }],
         ),
     );
-    prismaMock.todo.count
-      .mockResolvedValueOnce(3) // completed in window
-      .mockResolvedValueOnce(1); // still open
+    // Input-based routing: completed-in-window vs still-open counts.
+    prismaMock.todo.count.mockImplementation(
+      (args: { where?: { status?: unknown } }) =>
+        Promise.resolve(args?.where?.status === "complete" ? 3 : 1),
+    );
     prismaMock.issue.findMany.mockResolvedValue([{ id: "i-1" }, { id: "i-2" }]);
     prismaMock.rock.findMany.mockResolvedValue([
       { status: "on_track" },

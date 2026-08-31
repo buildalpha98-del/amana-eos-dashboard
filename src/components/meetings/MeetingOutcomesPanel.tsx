@@ -31,7 +31,7 @@ export function MeetingOutcomesPanel({
       .length ?? 0);
   const rocksTotal = snap?.rocksTotal ?? (rocks?.length ?? 0);
   const solvedIssues =
-    snap?.issuesSolvedIds.length ??
+    snap?.issuesSolvedIds?.length ??
     (issues?.filter((i) => i.status === "solved" || i.status === "closed")
       .length ?? 0);
   const cascadeLines = meeting.cascadeMessages

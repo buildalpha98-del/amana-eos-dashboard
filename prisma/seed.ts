@@ -2845,6 +2845,8 @@ Don't list every child by name. Don't invent events or meals — use only what's
   for (const tpl of aiTemplates) {
     // Templates default to active; a template can opt out (e.g. the
     // superseded meetings/l10-prep) and the seed deactivates existing rows.
+    // NOTE: this stamps `active` on every deploy — if an admin surface for
+    // toggling AiPromptTemplate.active is ever added, make this create-only.
     const active = (tpl as { active?: boolean }).active ?? true;
     await prisma.aiPromptTemplate.upsert({
       where: { slug: tpl.slug },

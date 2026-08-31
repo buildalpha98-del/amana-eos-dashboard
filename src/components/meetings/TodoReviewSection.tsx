@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Plus } from "lucide-react";
 import type { TodoData } from "@/hooks/useTodos";
 import type { MeetingAttendee } from "@/hooks/useMeetings";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 function defaultDueDate(): string {
@@ -40,15 +41,25 @@ export function TodoReviewSection({
   const [newAssigneeId, setNewAssigneeId] = useState("");
   const [newDueDate, setNewDueDate] = useState(defaultDueDate);
 
-  // Present attendees first, then the rest of the assignable users.
+  // When the meeting has attendees, only they are assignable — the review
+  // list filters to attendee-owned todos, so a todo assigned to anyone
+  // else would be created fine but instantly vanish from this view.
+  // Present attendees list first. Meetings without attendees fall back to
+  // the full assignable-users list (matching the list's service fallback).
   const assigneeOptions = useMemo(() => {
     const seen = new Set<string>();
     const options: { id: string; name: string }[] = [];
-    for (const a of attendees ?? []) {
-      if (a.status === "present" && !seen.has(a.userId)) {
-        seen.add(a.userId);
-        options.push({ id: a.userId, name: a.user.name });
+    if (attendees && attendees.length > 0) {
+      const sorted = [...attendees].sort((a, b) =>
+        a.status === b.status ? 0 : a.status === "present" ? -1 : 1,
+      );
+      for (const a of sorted) {
+        if (!seen.has(a.userId)) {
+          seen.add(a.userId);
+          options.push({ id: a.userId, name: a.user.name });
+        }
       }
+      return options;
     }
     for (const u of users ?? []) {
       if (!seen.has(u.id)) {
@@ -123,14 +134,14 @@ export function TodoReviewSection({
             aria-label="Due date"
             className="px-2 py-1.5 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           />
-          <button
+          <Button
+            size="xs"
             onClick={handleAdd}
             disabled={!newTitle.trim() || !newAssigneeId}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
+            iconLeft={<Plus className="w-3.5 h-3.5" />}
           >
-            <Plus className="w-3.5 h-3.5" />
             Add
-          </button>
+          </Button>
         </div>
       )}
 
@@ -239,7 +250,7 @@ export function TodoReviewSection({
                     </select>
                     <input
                       type="date"
-                      value={todo.dueDate.split("T")[0]}
+                      defaultValue={todo.dueDate.split("T")[0]}
                       onChange={(e) =>
                         e.target.value && onRedate(todo.id, e.target.value)
                       }

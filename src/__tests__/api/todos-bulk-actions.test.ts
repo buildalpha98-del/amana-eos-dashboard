@@ -67,16 +67,21 @@ describe("POST /api/todos/bulk-actions", () => {
 
   it("complete recomputes progress for each affected rock", async () => {
     mockSession({ id: "u1", name: "Admin", role: "admin" });
-    prismaMock.todo.findMany
-      // 1st call: bulk-action validation lookup
-      .mockResolvedValueOnce([
-        { id: "t1", rockId: "rock-a" },
-        { id: "t2", rockId: "rock-a" },
-        { id: "t3", rockId: "rock-b" },
-        { id: "t4", rockId: null },
-      ])
-      // subsequent calls: recompute helper reading each rock's todos
-      .mockResolvedValue([{ status: "complete" }]);
+    // Input-based routing (house standard — no Once chains): the
+    // validation lookup filters by id; the recompute helper by rockId.
+    prismaMock.todo.findMany.mockImplementation(
+      (args: { where?: { id?: unknown; rockId?: unknown } }) =>
+        Promise.resolve(
+          args?.where?.id
+            ? [
+                { id: "t1", rockId: "rock-a" },
+                { id: "t2", rockId: "rock-a" },
+                { id: "t3", rockId: "rock-b" },
+                { id: "t4", rockId: null },
+              ]
+            : [{ status: "complete" }],
+        ),
+    );
     prismaMock.todo.updateMany.mockResolvedValue({ count: 4 });
     prismaMock.rock.update.mockResolvedValue({});
 
