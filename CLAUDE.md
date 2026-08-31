@@ -24,6 +24,14 @@
 ## Environment
 - Copy `.env.example` to `.env.local` and fill in required values
 - Required: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
+- **Databases (2026-09-01)**: `DATABASE_URL` in `.env.local` is the LOCAL dev
+  database (`postgresql://…@localhost:5432/amana_eos_dev`, Homebrew
+  postgresql@17; schema via `npx prisma db push`, data via `npx prisma db seed`).
+  Production (Neon) lives in `PROD_DATABASE_URL`/`PROD_DATABASE_URL_UNPOOLED`
+  and must be exported EXPLICITLY per command — nothing may touch prod by
+  default. This ended the standing landmine behind the 2026-07-07 prod wipe
+  and the 2026-08-31 P3009 deploy blockage. E2E keeps its own
+  `amana_eos_test` via `.env.test`.
 
 ## Key Conventions
 - Prisma schema changes: use `npx prisma migrate dev` for tracked migrations, `npx prisma db push` for quick dev iteration
