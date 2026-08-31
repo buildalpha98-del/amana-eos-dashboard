@@ -5,13 +5,18 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createParentPostSchema, type CreateParentPostInput } from "@/lib/schemas/parent-post";
 import { useCreateParentPost, useUpdateParentPost, type ParentPost } from "@/hooks/useParentPosts";
+import { MTOP_OUTCOMES, NQS_AREAS, nqsLabel } from "@/lib/curriculum";
 import { useChildren } from "@/hooks/useChildren";
+import { downscaleImage } from "@/lib/downscale-image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { FormField } from "@/components/ui/form/FormField";
 import { FormInput } from "@/components/ui/form/FormInput";
 import { FormTextarea } from "@/components/ui/form/FormTextarea";
 import { FormSelect } from "@/components/ui/form/FormSelect";
 import { Button } from "@/components/ui/Button";
+import { Sparkles, Loader2 } from "lucide-react";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 const MAX_IMAGES = 6;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -21,16 +26,70 @@ interface CreateParentPostFormProps {
   open: boolean;
   onClose: () => void;
   editingPost?: ParentPost | null;
+  /**
+   * Set when this post follows up on an earlier observation. The
+   * composer says so, and the id is sent with the post — that link is
+   * what turns a feed into the planning cycle.
+   */
+  extendingPost?: ParentPost | null;
 }
 
-export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: CreateParentPostFormProps) {
+export function CreateParentPostForm({
+  serviceId,
+  open,
+  onClose,
+  editingPost,
+  extendingPost,
+}: CreateParentPostFormProps) {
   const createPost = useCreateParentPost(serviceId);
   const updatePost = useUpdateParentPost(serviceId);
   const { data: childrenData } = useChildren({ serviceId, status: "active" });
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
+  const [mtop, setMtop] = useState<string[]>([]);
+  const [nqs, setNqs] = useState<string[]>([]);
+  // Scheduling. Empty = publish now; a local datetime string otherwise.
+  const [publishAt, setPublishAt] = useState<string>("");
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // Amana AI: rough notes in, drafted post + curriculum tags out.
+  const [aiNotes, setAiNotes] = useState("");
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+
+  async function draftWithAi() {
+    setAiBusy(true);
+    try {
+      const draft = await mutateApi<{
+        title: string;
+        content: string;
+        mtop: string[];
+        nqs: string[];
+      }>(`/api/services/${serviceId}/posts/ai-draft`, {
+        method: "POST",
+        body: { notes: aiNotes.trim() },
+      });
+      // Fills the fields; it never posts. The educator reads it, edits
+      // it, and decides — the draft is a starting point, not an author.
+      setValue("title", draft.title, { shouldValidate: true });
+      setValue("content", draft.content, { shouldValidate: true });
+      if (draft.mtop.length) setMtop(draft.mtop);
+      if (draft.nqs.length) setNqs(draft.nqs);
+      setAiOpen(false);
+      toast({
+        description:
+          "Drafted below — have a read and change anything that isn't right.",
+      });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description:
+          err instanceof Error ? err.message : "Couldn't draft that one.",
+      });
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   const isEditing = !!editingPost;
   const mutation = isEditing ? updatePost : createPost;
@@ -38,8 +97,8 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
   const {
     register,
     handleSubmit,
-    watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CreateParentPostInput>({
     resolver: zodResolver(createParentPostSchema),
@@ -48,7 +107,8 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
       content: "",
       type: "observation",
       mediaUrls: [],
-      isCommunity: false,
+      // Every published post is centre-wide.
+      isCommunity: true,
       childIds: [],
     },
   });
@@ -60,7 +120,7 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
         content: editingPost.content,
         type: editingPost.type as "observation" | "announcement" | "reminder",
         mediaUrls: editingPost.mediaUrls,
-        isCommunity: editingPost.isCommunity,
+        isCommunity: true,
         childIds: [],
       });
       setSelectedChildIds(editingPost.tags.map((t) => t.childId));
@@ -71,7 +131,8 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
         content: "",
         type: "observation",
         mediaUrls: [],
-        isCommunity: false,
+        // Every published post is centre-wide.
+      isCommunity: true,
         childIds: [],
       });
       setSelectedChildIds([]);
@@ -80,7 +141,6 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
     setUploadError(null);
   }, [editingPost, reset]);
 
-  const isCommunity = watch("isCommunity");
   const children = childrenData?.children ?? [];
 
   function toggleChild(childId: string) {
@@ -116,8 +176,12 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
 
       setUploading((n) => n + 1);
       try {
+        // Shrink before it leaves the phone. A post with four camera
+        // originals is a 20 MB upload over school wifi and a 20 MB
+        // download for every family who scrolls past it.
+        const toSend = await downscaleImage(file);
         const fd = new FormData();
-        fd.append("file", file);
+        fd.append("file", toSend);
         const res = await fetch("/api/upload/image", { method: "POST", body: fd });
         if (!res.ok) {
           const payload = (await res.json().catch(() => ({}))) as { error?: string };
@@ -138,10 +202,25 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
   }
 
   function onSubmit(data: CreateParentPostInput) {
+    if (extendingPost) {
+      data = { ...data, extendsPostId: extendingPost.id };
+    }
     const payload = {
       ...data,
       mediaUrls,
-      childIds: data.isCommunity ? [] : selectedChildIds,
+      // Always sent: tagging no longer suppresses the tag list.
+      childIds: selectedChildIds,
+      mtopOutcomes: mtop,
+      nqsAreas: nqs,
+      // datetime-local has no timezone, so it's read as LOCAL time and
+      // converted to an instant here. Sending the raw string would be
+      // interpreted as UTC and shift the post by the offset.
+      ...(publishAt
+        ? {
+            status: "scheduled" as const,
+            publishAt: new Date(publishAt).toISOString(),
+          }
+        : { status: "published" as const }),
     };
 
     if (isEditing) {
@@ -176,9 +255,88 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent size="lg">
         <DialogTitle className="text-lg font-semibold">
-          {isEditing ? "Edit Post" : "Create Post"}
+          {isEditing
+            ? "Edit Post"
+            : extendingPost
+              ? "Follow up"
+              : "Create Post"}
         </DialogTitle>
+        {extendingPost && (
+          <p className="mt-1 text-sm text-muted">
+            What came out of{" "}
+            <strong className="text-foreground">
+              &ldquo;{extendingPost.title}&rdquo;
+            </strong>
+            . Families see this as its own post; the link is what shows the
+            planning cycle.
+          </p>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
+          {/* Amana AI. Above the fields because on a busy afternoon
+              "type what happened" is easier to start than a blank title
+              box — and it fills the curriculum tags, which is the part
+              educators skip when they're rushing. */}
+          {!isEditing && (
+            <div className="rounded-lg border border-brand/25 bg-brand/5 p-3">
+              {!aiOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setAiOpen(true)}
+                  className="flex min-h-11 w-full items-center gap-2 text-left text-sm font-medium text-brand"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Write it with Amana AI
+                  <span className="font-normal text-muted">
+                    — tell it what you did
+                  </span>
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="ai-notes"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    What did the children do today?
+                  </label>
+                  <textarea
+                    id="ai-notes"
+                    rows={3}
+                    value={aiNotes}
+                    onChange={(e) => setAiNotes(e.target.value)}
+                    placeholder="Rough notes are fine — built an obstacle course in the hall, most of the group had a go, a few worked together on the tunnel bit"
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                  <p className="text-xs text-muted">
+                    It drafts the post and picks the MTOP outcomes and NQS
+                    areas. Nothing is posted — you read it first.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={draftWithAi}
+                      disabled={aiBusy || aiNotes.trim().length < 3}
+                    >
+                      {aiBusy ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" /> Drafting…
+                        </>
+                      ) : (
+                        "Draft it"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setAiOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <FormField label="Title" error={errors.title}>
             <FormInput
               registration={register("title")}
@@ -259,25 +417,44 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
             <FormField label="Type" error={errors.type}>
               <FormSelect registration={register("type")} hasError={!!errors.type}>
                 <option value="observation">Observation</option>
+                <option value="programme">Programme</option>
+                <option value="food">Food</option>
+                <option value="celebration">Celebration</option>
                 <option value="announcement">Announcement</option>
                 <option value="reminder">Reminder</option>
               </FormSelect>
             </FormField>
 
-            <FormField label="Community Post">
-              <label className="flex items-center gap-2 mt-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  {...register("isCommunity")}
-                  className="w-4 h-4 rounded border-border text-brand focus:ring-brand"
-                />
-                <span className="text-sm text-muted">Visible to all parents</span>
-              </label>
-            </FormField>
+            {/*
+              The "Community post — visible to all parents" tick is gone.
+              Every published post now reaches every family at the centre,
+              so the box could only ever mislead: leaving it unticked used
+              to make a post private to the tagged families, which is not
+              what anyone reading "community post" would expect.
+            */}
           </div>
 
-          {!isCommunity && (
-            <FormField label="Tag Children">
+          <FormField label="Tag children (optional)">
+              {children.length > 0 && (
+                <label className="flex items-center gap-2 px-2 py-1.5 mb-1 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedChildIds.length === children.length &&
+                      children.length > 0
+                    }
+                    onChange={(e) =>
+                      setSelectedChildIds(
+                        e.target.checked ? children.map((c) => c.id) : [],
+                      )
+                    }
+                    className="w-4 h-4 rounded border-border text-brand focus:ring-brand"
+                  />
+                  <span className="text-sm font-medium">
+                    Select all children ({children.length})
+                  </span>
+                </label>
+              )}
               <div className="border border-border rounded-lg max-h-48 overflow-y-auto p-2 space-y-1">
                 {children.length === 0 ? (
                   <p className="text-sm text-muted p-2">No enrolled children found</p>
@@ -300,13 +477,84 @@ export function CreateParentPostForm({ serviceId, open, onClose, editingPost }: 
                   ))
                 )}
               </div>
-              {!isCommunity && selectedChildIds.length === 0 && (
-                <p className="mt-1 text-xs text-amber-600">
-                  Select at least one child, or mark as community post
-                </p>
-              )}
-            </FormField>
-          )}
+            <p className="mt-1 text-xs text-muted">
+              Everyone at this centre sees this post. Tagging decides whose
+              child page it also appears on — and only that family is ever
+              shown their child&apos;s name.
+            </p>
+          </FormField>
+
+          {/* Curriculum tagging — MTOP is the school-age framework, so
+              EYLF is deliberately not offered here. */}
+          <FormField label="My Time, Our Place (MTOP) outcomes">
+            <div className="flex flex-wrap gap-2">
+              {MTOP_OUTCOMES.map((o) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  title={o.description}
+                  onClick={() =>
+                    setMtop((prev) =>
+                      prev.includes(o.label)
+                        ? prev.filter((x) => x !== o.label)
+                        : [...prev, o.label],
+                    )
+                  }
+                  aria-pressed={mtop.includes(o.label)}
+                  className={
+                    "px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
+                    (mtop.includes(o.label)
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-border bg-card text-muted hover:border-brand/40")
+                  }
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </FormField>
+
+          <FormField label="NQS quality areas">
+            <div className="flex flex-wrap gap-2">
+              {NQS_AREAS.map((a) => (
+                <button
+                  key={a.code}
+                  type="button"
+                  title={a.label}
+                  onClick={() =>
+                    setNqs((prev) =>
+                      prev.includes(a.code)
+                        ? prev.filter((x) => x !== a.code)
+                        : [...prev, a.code],
+                    )
+                  }
+                  aria-pressed={nqs.includes(a.code)}
+                  aria-label={nqsLabel(a.code)}
+                  className={
+                    "px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors " +
+                    (nqs.includes(a.code)
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-border bg-card text-muted hover:border-brand/40")
+                  }
+                >
+                  {a.code}
+                </button>
+              ))}
+            </div>
+          </FormField>
+
+          <FormField label="Schedule">
+            <input
+              type="datetime-local"
+              value={publishAt}
+              onChange={(e) => setPublishAt(e.target.value)}
+              className="w-full px-3 py-2.5 border border-border rounded-lg text-base sm:text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30"
+            />
+            <p className="mt-1 text-xs text-muted">
+              Leave blank to publish immediately. A time in the past
+              publishes straight away rather than sitting pending.
+            </p>
+          </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={handleClose}>

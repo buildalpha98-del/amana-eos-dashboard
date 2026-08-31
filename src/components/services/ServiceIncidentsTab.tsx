@@ -82,9 +82,9 @@ const SEVERITY_FILTER_OPTIONS = [
 
 const SEVERITY_BADGE: Record<string, string> = {
   minor: "bg-surface text-foreground/80",
-  moderate: "bg-yellow-100 text-yellow-800",
-  reportable: "bg-orange-100 text-orange-800",
-  serious: "bg-red-100 text-red-800",
+  moderate: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-800 dark:text-yellow-200",
+  reportable: "bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-200",
+  serious: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200",
 };
 
 function formatLabel(v: string): string {
@@ -121,7 +121,7 @@ export function ServiceIncidentsTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+        <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
           Incidents
         </h2>
         <BrandButton onClick={() => setCreateOpen(true)}>
@@ -227,7 +227,7 @@ function BrandButton({
       className={cn(
         "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
         "min-h-[44px]",
-        "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
+        "bg-[color:var(--color-brand)] text-white text-sm font-medium",
         "hover:bg-[color:var(--color-brand-hover)] transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",
       )}
@@ -260,18 +260,18 @@ function IncidentCard({
       <header className="flex items-start gap-2 mb-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] uppercase tracking-wide font-semibold text-[color:var(--color-brand)]">
+            <span className="text-2xs uppercase tracking-wide font-semibold text-[color:var(--color-brand)]">
               {formatLabel(incident.incidentType)}
             </span>
             <span
               className={cn(
-                "text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)]",
+                "text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)]",
                 SEVERITY_BADGE[incident.severity] ?? "bg-surface text-foreground/80",
               )}
             >
               {formatLabel(incident.severity)}
             </span>
-            <span className="text-[11px] text-[color:var(--color-muted)]">
+            <span className="text-xs text-[color:var(--color-muted)]">
               {incident.createdBy?.name ?? "Unknown"} ·{" "}
               {date.toLocaleDateString(undefined, {
                 day: "numeric",
@@ -330,12 +330,12 @@ function IncidentCard({
         )}
       </header>
 
-      <p className="text-[13px] text-[color:var(--color-foreground)]/80 whitespace-pre-wrap">
+      <p className="text-sm text-[color:var(--color-foreground)]/80 whitespace-pre-wrap">
         {incident.description}
       </p>
 
       {(incident.location || incident.timeOfDay) && (
-        <div className="mt-2 flex gap-1 flex-wrap text-[11px] text-[color:var(--color-muted)]">
+        <div className="mt-2 flex gap-1 flex-wrap text-xs text-[color:var(--color-muted)]">
           {incident.location && <span>📍 {formatLabel(incident.location)}</span>}
           {incident.timeOfDay && <span>· 🕒 {formatLabel(incident.timeOfDay)}</span>}
         </div>
@@ -344,17 +344,17 @@ function IncidentCard({
       {(incident.parentNotified || incident.reportableToAuthority || incident.followUpRequired) && (
         <div className="mt-2 flex gap-1 flex-wrap">
           {incident.parentNotified && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-emerald-100 text-emerald-800">
+            <span className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200">
               Parent notified
             </span>
           )}
           {incident.reportableToAuthority && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-rose-100 text-rose-800">
+            <span className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200">
               Reportable
             </span>
           )}
           {incident.followUpRequired && !incident.followUpCompleted && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-amber-100 text-amber-800">
+            <span className="text-2xs font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200">
               Follow-up due
             </span>
           )}
@@ -638,7 +638,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
+      <span className="block text-2xs font-semibold uppercase tracking-wide text-[color:var(--color-muted)] mb-1">
         {label}
       </span>
       {children}

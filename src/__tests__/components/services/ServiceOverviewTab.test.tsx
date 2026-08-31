@@ -147,14 +147,15 @@ describe("ServiceOverviewTab — approvals & session times card", () => {
     expect(within(card).getByText("SE-00012345")).toBeDefined();
     expect(within(card).getByText("PR-00067890")).toBeDefined();
 
-    // Session rows — use uppercase codes and em-dash.
-    // BSC label and times appear as separate DOM nodes — check both exist in
-    // the card scoped, and that the card's text content has the full row.
-    expect(within(card).getByText(/06:30\s+–\s+08:45/)).toBeDefined();
-    expect(within(card).getByText(/15:00\s+–\s+18:00/)).toBeDefined();
-    // There should be exactly 2 time rows (BSC + ASC) — VC unpopulated ⇒ not rendered.
+    // Session rows read in 12-hour time and under the centre's own room
+    // names — nobody here says "BSC", they say "Rise and Shine".
+    expect(within(card).getByText(/6:30am\s+–\s+8:45am/)).toBeDefined();
+    expect(within(card).getByText(/3:00pm\s+–\s+6:00pm/)).toBeDefined();
+    expect(within(card).getByText("Rise and Shine")).toBeDefined();
+    expect(within(card).getByText("Amana Afternoons")).toBeDefined();
+    // Exactly 2 rows — VC unpopulated ⇒ not rendered.
     expect(
-      within(card).getAllByText(/\d{2}:\d{2}\s+–\s+\d{2}:\d{2}/),
+      within(card).getAllByText(/\d{1,2}:\d{2}[ap]m\s+–\s+\d{1,2}:\d{2}[ap]m/),
     ).toHaveLength(2);
   });
 

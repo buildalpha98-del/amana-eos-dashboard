@@ -12,7 +12,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Sunrise, Check, Sparkles } from "lucide-react";
 import { useMorningBrief, useMarkBriefRead } from "@/hooks/useMorningBrief";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import { AttentionCard } from "@/components/ui/AttentionCard";
 
 export function MorningBriefCard() {
@@ -54,16 +54,14 @@ export function MorningBriefCard() {
             </p>
           </div>
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={() => markRead.mutate()}
-          disabled={markRead.isPending}
-          className={cn(
-            "rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-foreground",
-            markRead.isPending && "opacity-50",
-          )}
+          loading={markRead.isPending}
         >
           Mark as read
-        </button>
+        </Button>
       </header>
 
       <div className="prose prose-sm max-w-none text-sm text-foreground [&_ul]:my-1 [&_li]:my-0.5">

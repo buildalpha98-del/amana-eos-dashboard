@@ -54,12 +54,12 @@ function MultiSelect({
 }) {
   const colorMap = {
     red: {
-      selected: "bg-red-100 text-red-700 border-red-300",
-      unselected: "bg-card text-muted border-border hover:border-red-200 hover:bg-red-50",
+      selected: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800",
+      unselected: "bg-card text-muted border-border hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-950/40",
     },
     amber: {
-      selected: "bg-amber-100 text-amber-700 border-amber-300",
-      unselected: "bg-card text-muted border-border hover:border-amber-200 hover:bg-amber-50",
+      selected: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800",
+      unselected: "bg-card text-muted border-border hover:border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/40",
     },
   };
 

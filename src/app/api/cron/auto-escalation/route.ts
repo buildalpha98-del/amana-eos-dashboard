@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getCurrentQuarter, quarterDateRange } from "@/lib/utils";
+import { getResend, sendEmail } from "@/lib/email";
 import { todoReminderEmail } from "@/lib/email-templates";
 import {
   notifyOverdueTodos,
@@ -10,6 +11,7 @@ import {
 import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * GET /api/cron/auto-escalation
@@ -38,7 +40,7 @@ export const GET = withApiHandler(async (req) => {
 
   try {
     const now = new Date();
-    const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const baseUrl = siteUrl();
     const resend = getResend();
     let emailsSent = 0;
     const errors: string[] = [];
@@ -88,7 +90,7 @@ export const GET = withApiHandler(async (req) => {
             user.todos,
             `${baseUrl}/todos`
           );
-          await resend.emails.send({ from: FROM_EMAIL, to: user.email, subject, html });
+          await sendEmail({ to: user.email, subject, html });
           emailsSent++;
         } catch (err) {
           errors.push(`Todo email ${user.email}: ${err instanceof Error ? err.message : "Unknown"}`);
@@ -108,16 +110,19 @@ export const GET = withApiHandler(async (req) => {
     // ── 2. Off-Track Rocks ────────────────────────────────────
 
     // Determine expected progress based on quarter timeline
-    const currentMonth = now.getMonth() + 1;
-    const currentQuarter = Math.ceil(currentMonth / 3);
-    const currentYear = now.getFullYear();
-    const quarterStr = `Q${currentQuarter}-${currentYear}`;
+    // 2026-07-28: EOS quarters are financial-year based, so both the label
+    // AND the quarter's date range come from the shared helpers — Q1 now
+    // starts in JULY, and the old (q-1)*3 month maths was calendar-only.
+    const quarterStr = getCurrentQuarter();
 
-    // Quarter start/end months
-    const qStartMonth = (currentQuarter - 1) * 3 + 1;
-    const qStart = new Date(currentYear, qStartMonth - 1, 1);
-    const qEnd = new Date(currentYear, qStartMonth + 2, 0); // last day of quarter
-    const totalDays = (qEnd.getTime() - qStart.getTime()) / 86400000;
+    // Quarter start/end from the FY-aware helper (end is exclusive).
+    const range = quarterDateRange(quarterStr);
+    const qStart = range?.start ?? now;
+    const qEnd = range?.end ?? now;
+    const totalDays = Math.max(
+      1, // guard: never divide by zero if the label failed to parse
+      (qEnd.getTime() - qStart.getTime()) / 86400000,
+    );
     const elapsedDays = Math.max(0, (now.getTime() - qStart.getTime()) / 86400000);
     const expectedProgress = Math.min(100, Math.round((elapsedDays / totalDays) * 100));
 

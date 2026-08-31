@@ -23,6 +23,8 @@ import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import type { ProfileData } from "@/hooks/useMyPortal";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
+import { MyCertificatesSection } from "@/components/profile/MyCertificatesSection";
 
 /* ------------------------------------------------------------------ */
 /* Profile Page                                                        */
@@ -276,7 +278,7 @@ export default function ProfilePage() {
             <ArrowLeft className="w-5 h-5 text-muted" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
+            <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground">Edit Profile</h1>
             <p className="text-sm text-muted mt-0.5">
               Update your personal details and superannuation information
             </p>
@@ -319,7 +321,7 @@ export default function ProfilePage() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
+              <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground">Edit Profile</h1>
               {hasChanges && <UnsavedBadge />}
             </div>
             <p className="text-sm text-muted mt-0.5">
@@ -442,6 +444,18 @@ export default function ProfilePage() {
           </FieldRow>
         </div>
       </div>
+
+      {/* Working With Children Check — a gate requirement, so it sits with
+          the other things induction checks rather than buried on /compliance. */}
+      {userId && <MyCertificatesSection userId={userId} />}
+
+      {/* Emergency Contacts — also a gate requirement. */}
+      {userId && (
+        <EmergencyContactsSection
+          userId={userId}
+          contacts={profile?.emergencyContacts ?? []}
+        />
+      )}
 
       {/* Address */}
       <div className="bg-card rounded-xl border border-border p-6">

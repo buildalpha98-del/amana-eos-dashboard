@@ -32,7 +32,6 @@ import {
   useRevokeKiosk,
   type KioskRow,
 } from "@/hooks/useKiosks";
-import { cn } from "@/lib/utils";
 
 interface ServiceOption {
   id: string;
@@ -111,7 +110,7 @@ function KioskRowItem({ kiosk }: { kiosk: KioskRow }) {
             {kiosk.label}
           </span>
           {isRevoked && (
-            <span className="text-[10px] uppercase tracking-wide font-medium text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+            <span className="text-2xs uppercase tracking-wide font-medium text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/50 px-1.5 py-0.5 rounded">
               revoked
             </span>
           )}
@@ -125,21 +124,23 @@ function KioskRowItem({ kiosk }: { kiosk: KioskRow }) {
       {!isRevoked &&
         (confirming ? (
           <div className="flex items-center gap-1">
-            <button
+            <Button
               type="button"
+              variant="destructive"
+              size="xs"
               onClick={() => revoke.mutate({ id: kiosk.id })}
-              disabled={revoke.isPending}
-              className="text-xs px-2 py-1 rounded bg-rose-600 text-white"
+              loading={revoke.isPending}
             >
-              {revoke.isPending ? "…" : "Confirm"}
-            </button>
-            <button
+              Confirm
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="xs"
               onClick={() => setConfirming(false)}
-              className="text-xs px-2 py-1 rounded text-muted"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         ) : (
           <button
@@ -203,7 +204,7 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
         {!token ? (
           <div className="space-y-3">
             <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-muted mb-1">
                 Service
               </span>
               <select
@@ -220,7 +221,7 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
               </select>
             </label>
             <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-muted mb-1">
                 Label
               </span>
               <input
@@ -231,14 +232,15 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
               />
             </label>
             <div className="flex justify-end gap-2 pt-2">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="md"
                 onClick={onClose}
                 disabled={register.isPending}
-                className="min-h-[44px] px-4 py-2 text-sm font-medium text-muted"
               >
                 Cancel
-              </button>
+              </Button>
               <Button
                 variant="primary"
                 size="md"
@@ -251,7 +253,7 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
                 <strong>Copy the token now.</strong> We don't store the
@@ -260,7 +262,7 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-muted mb-1">
                 Bearer token
               </span>
               <textarea
@@ -272,25 +274,21 @@ function RegisterKioskDialog({ onClose }: { onClose: () => void }) {
               />
             </label>
             <div className="flex justify-end gap-2 pt-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="md"
                 onClick={copyToken}
-                className={cn(
-                  "min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 rounded-lg",
-                  "border border-border text-sm font-medium",
-                  "hover:bg-surface transition-colors",
-                )}
+                iconLeft={
+                  copied ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )
+                }
               >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4" /> Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" /> Copy token
-                  </>
-                )}
-              </button>
+                {copied ? "Copied" : "Copy token"}
+              </Button>
               <Button variant="primary" size="md" onClick={onClose}>
                 Done
               </Button>

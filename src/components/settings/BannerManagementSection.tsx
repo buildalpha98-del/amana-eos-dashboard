@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
@@ -39,11 +40,11 @@ interface Banner {
 }
 
 const BANNER_TYPES = [
-  { value: "info", label: "Info", icon: Info, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
-  { value: "success", label: "Success", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
-  { value: "warning", label: "Warning", icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" },
-  { value: "feature", label: "Feature", icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
-  { value: "celebration", label: "Celebration", icon: PartyPopper, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-300" },
+  { value: "info", label: "Info", icon: Info, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40", border: "border-blue-200" },
+  { value: "success", label: "Success", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-emerald-200" },
+  { value: "warning", label: "Warning", icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200" },
+  { value: "feature", label: "Feature", icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40", border: "border-purple-200" },
+  { value: "celebration", label: "Celebration", icon: PartyPopper, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40", border: "border-purple-300" },
 ] as const;
 
 function getTypeConfig(type: string) {
@@ -53,9 +54,9 @@ function getTypeConfig(type: string) {
 function getBannerStatus(banner: Banner): { label: string; color: string } {
   if (!banner.active) return { label: "Inactive", color: "bg-surface text-muted" };
   const now = new Date();
-  if (banner.startsAt && new Date(banner.startsAt) > now) return { label: "Scheduled", color: "bg-blue-100 text-blue-700" };
-  if (banner.expiresAt && new Date(banner.expiresAt) <= now) return { label: "Expired", color: "bg-red-100 text-red-700" };
-  return { label: "Active", color: "bg-emerald-100 text-emerald-700" };
+  if (banner.startsAt && new Date(banner.startsAt) > now) return { label: "Scheduled", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" };
+  if (banner.expiresAt && new Date(banner.expiresAt) <= now) return { label: "Expired", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" };
+  return { label: "Active", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" };
 }
 
 function formatDate(dateStr: string | null) {
@@ -182,6 +183,7 @@ function BannerFormModal({
           </h3>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
@@ -366,19 +368,18 @@ function BannerFormModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 p-6 pt-4 border-t border-border/50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-foreground/80 rounded-lg border border-border hover:bg-surface"
-          >
+          <Button variant="secondary" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => saveMutation.mutate(form)}
-            disabled={!form.title.trim() || !form.body.trim() || saveMutation.isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!form.title.trim() || !form.body.trim()}
+            loading={saveMutation.isPending}
           >
             {saveMutation.isPending ? "Saving..." : isEditing ? "Update Banner" : "Create Banner"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -450,13 +451,14 @@ export function BannerManagementSection() {
             {banners.length}
           </span>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
+          iconLeft={<Plus className="w-4 h-4" />}
         >
-          <Plus className="w-4 h-4" />
           New Banner
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -493,14 +495,14 @@ export function BannerManagementSection() {
                       </p>
                       <span
                         className={cn(
-                          "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                          "text-2xs font-medium px-1.5 py-0.5 rounded-full",
                           status.color,
                         )}
                       >
                         {status.label}
                       </span>
                       {!banner.dismissible && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-surface text-muted">
+                        <span className="text-2xs font-medium px-1.5 py-0.5 rounded-full bg-surface text-muted">
                           Pinned
                         </span>
                       )}
@@ -508,7 +510,7 @@ export function BannerManagementSection() {
                     <p className="text-xs text-muted mt-0.5 line-clamp-1">
                       {banner.body}
                     </p>
-                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted">
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted">
                       {banner.startsAt && (
                         <span>Starts: {formatDate(banner.startsAt)}</span>
                       )}
@@ -527,6 +529,7 @@ export function BannerManagementSection() {
                       onClick={() => toggleMutation.mutate({ id: banner.id, active: !banner.active })}
                       className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors"
                       title={banner.active ? "Deactivate" : "Activate"}
+                      aria-label={banner.active ? "Deactivate banner" : "Activate banner"}
                     >
                       {banner.active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -534,13 +537,15 @@ export function BannerManagementSection() {
                       onClick={() => setEditBanner(banner)}
                       className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors"
                       title="Edit"
+                      aria-label="Edit banner"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeleteId(banner.id)}
-                      className="p-1.5 rounded-md text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+                      className="p-1.5 rounded-md text-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                       title="Delete"
+                      aria-label="Delete banner"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

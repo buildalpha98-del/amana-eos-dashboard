@@ -25,18 +25,18 @@ interface Props {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "Social Media": "bg-blue-100 text-blue-700",
-  Content: "bg-purple-100 text-purple-700",
-  Community: "bg-green-100 text-green-700",
-  Events: "bg-amber-100 text-amber-700",
-  Communications: "bg-cyan-100 text-cyan-700",
-  Brand: "bg-rose-100 text-rose-700",
+  "Social Media": "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  Content: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  Community: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  Events: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  Communications: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300",
+  Brand: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
 };
 
 const PRIORITY_DOT: Record<string, string> = {
   high: "bg-red-400",
   medium: "bg-amber-400",
-  low: "bg-gray-300",
+  low: "bg-muted/30",
 };
 
 export function TaskTemplatePickerModal({ open, onClose }: Props) {
@@ -119,7 +119,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-foreground transition-colors"
-          >
+           aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -161,7 +161,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                           </h3>
                           {template.category && (
                             <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold ${
                                 CATEGORY_COLORS[template.category] ??
                                 "bg-surface text-muted"
                               }`}
@@ -178,7 +178,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
+                        <span className="rounded-full bg-surface px-2 py-0.5 text-2xs font-semibold text-muted">
                           {template.items.length} tasks
                         </span>
                         <button
@@ -212,7 +212,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                             </span>
                             <span
                               className={`shrink-0 h-1.5 w-1.5 rounded-full ${
-                                PRIORITY_DOT[item.priority] ?? "bg-gray-300"
+                                PRIORITY_DOT[item.priority] ?? "bg-muted/30"
                               }`}
                             />
                             <span className="flex-1 text-foreground/80 truncate">

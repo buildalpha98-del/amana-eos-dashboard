@@ -423,7 +423,7 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                         data-testid={`shift-cell-${member.id}-${date}`}
                       >
                         {daysShifts.length === 0 ? (
-                          <div className="min-h-[44px] flex items-center justify-center text-[11px] text-muted/70">
+                          <div className="min-h-[44px] flex items-center justify-center text-xs text-muted/70">
                             {canEdit ? "+ Add" : "—"}
                           </div>
                         ) : (
@@ -591,8 +591,8 @@ function RatioSummaryBanner({
       className={cn(
         "rounded-lg border px-3 py-2 text-sm",
         hasBreach
-          ? "border-red-300 bg-red-50 text-red-900"
-          : "border-amber-300 bg-amber-50 text-amber-900",
+          ? "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200"
+          : "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200",
       )}
     >
       <div className="font-medium">
@@ -659,8 +659,8 @@ function CertExpiryBadge({ status }: { status: UserCertStatus }) {
   const Icon = variant === "expired" ? ShieldAlert : ShieldCheck;
   const palette =
     variant === "expired"
-      ? "bg-red-100 text-red-700 border-red-300"
-      : "bg-amber-100 text-amber-700 border-amber-400";
+      ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800"
+      : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-400";
   const verdictText = variant === "expired" ? "Cert expired" : "Cert expiring";
   // Build a compact tooltip: list each non-OK cert with its formatted
   // date. Skip certs that are well in the future (the tooltip only
@@ -672,7 +672,7 @@ function CertExpiryBadge({ status }: { status: UserCertStatus }) {
     <span
       title={tooltip || verdictText}
       className={cn(
-        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-[10px] font-medium",
+        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-2xs font-medium",
         palette,
       )}
     >
@@ -724,7 +724,7 @@ function RosterCostChip({
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium",
         unpricedHours > 0
-          ? "border-amber-300 bg-amber-50 text-amber-800"
+          ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200"
           : "border-border bg-surface text-foreground/80",
       )}
     >

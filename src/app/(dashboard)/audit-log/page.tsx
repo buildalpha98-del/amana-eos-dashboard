@@ -59,18 +59,18 @@ const ACTION_OPTIONS = [
 ];
 
 const ACTION_COLORS: Record<string, string> = {
-  "user.login": "bg-blue-100 text-blue-700",
-  "user.logout": "bg-gray-100 text-gray-700",
-  "user.password_reset": "bg-amber-100 text-amber-700",
-  "user.role_change": "bg-purple-100 text-purple-700",
-  "user.created": "bg-teal-100 text-teal-700",
-  "user.deleted": "bg-red-100 text-red-700",
-  "user.mfa_enabled": "bg-emerald-100 text-emerald-700",
-  "user.mfa_disabled": "bg-orange-100 text-orange-700",
-  "api_key.created": "bg-emerald-100 text-emerald-700",
-  "api_key.revoked": "bg-rose-100 text-rose-700",
-  "cron.executed": "bg-indigo-100 text-indigo-700",
-  "session.revoked": "bg-pink-100 text-pink-700",
+  "user.login": "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  "user.logout": "bg-surface text-foreground/80",
+  "user.password_reset": "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  "user.role_change": "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  "user.created": "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
+  "user.deleted": "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  "user.mfa_enabled": "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  "user.mfa_disabled": "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  "api_key.created": "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  "api_key.revoked": "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
+  "cron.executed": "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  "session.revoked": "bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300",
 };
 
 const LIMIT = 50;
@@ -97,7 +97,7 @@ function metadataPreview(meta: Record<string, unknown> | null): string {
 }
 
 function actionBadge(action: string) {
-  const color = ACTION_COLORS[action] ?? "bg-gray-100 text-gray-500";
+  const color = ACTION_COLORS[action] ?? "bg-surface text-muted";
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
       {action}
@@ -246,7 +246,7 @@ export default function AuditLogPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-300">
           Failed to load audit log. You may not have permission to view this
           page.
         </div>

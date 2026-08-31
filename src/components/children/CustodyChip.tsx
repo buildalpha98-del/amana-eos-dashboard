@@ -22,10 +22,10 @@ const TYPE_TONE: Record<
   CustodyArrangements["type"],
   { chipBg: string; chipText: string }
 > = {
-  shared: { chipBg: "bg-blue-50", chipText: "text-blue-700" },
-  sole: { chipBg: "bg-blue-50", chipText: "text-blue-700" },
-  court_order: { chipBg: "bg-amber-100", chipText: "text-amber-800" },
-  informal: { chipBg: "bg-blue-50", chipText: "text-blue-700" },
+  shared: { chipBg: "bg-blue-50 dark:bg-blue-950/40", chipText: "text-blue-700" },
+  sole: { chipBg: "bg-blue-50 dark:bg-blue-950/40", chipText: "text-blue-700" },
+  court_order: { chipBg: "bg-amber-100 dark:bg-amber-950/50", chipText: "text-amber-800" },
+  informal: { chipBg: "bg-blue-50 dark:bg-blue-950/40", chipText: "text-blue-700" },
 };
 
 export function CustodyChip({
@@ -49,7 +49,7 @@ export function CustodyChip({
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`View custody arrangements${childName ? ` for ${childName}` : ""}`}
-        className={`inline-flex items-center gap-1 ${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs"} rounded-full ${tone.chipBg} ${tone.chipText} font-semibold hover:brightness-95 transition`}
+        className={`inline-flex items-center gap-1 ${compact ? "px-1.5 py-0.5 text-2xs" : "px-2 py-1 text-xs"} rounded-full ${tone.chipBg} ${tone.chipText} font-semibold hover:brightness-95 transition`}
       >
         <Shield className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
         {compact && custody.type !== "court_order" ? "Custody" : label}

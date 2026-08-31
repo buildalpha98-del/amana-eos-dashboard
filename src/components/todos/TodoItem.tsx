@@ -126,7 +126,7 @@ export function TodoItem({
           isDone
             ? "bg-surface/50 border-border/50"
             : isOverdue
-            ? "bg-red-50/50 border-red-100"
+            ? "bg-red-50/50 border-red-100 dark:border-red-800"
             : "bg-card border-border hover:border-border",
           justCompleted && "animate-row-complete"
         )}
@@ -218,7 +218,7 @@ export function TodoItem({
 
           {/* Linked Issue */}
           {todo.issue && (
-            <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+            <span className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded">
               <AlertCircle className="w-3 h-3" />
               <span className="truncate max-w-[120px]">{todo.issue.title}</span>
             </span>

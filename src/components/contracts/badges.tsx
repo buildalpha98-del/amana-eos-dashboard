@@ -35,12 +35,12 @@ export function StatusBadge({ status }: { status: string }) {
  */
 export function AcknowledgeBadge({ acknowledged }: { acknowledged: boolean }) {
   return acknowledged ? (
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
       <CheckCircle2 className="w-3 h-3" />
       Signed
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full">
       <Clock className="w-3 h-3" />
       Pending
     </span>

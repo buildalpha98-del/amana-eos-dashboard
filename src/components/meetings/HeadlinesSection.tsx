@@ -9,7 +9,7 @@ export function HeadlinesSection({
 }) {
   return (
     <div className="space-y-4">
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-amber-800 mb-1">
           Customer &amp; Employee Headlines
         </h4>
@@ -22,7 +22,7 @@ export function HeadlinesSection({
         value={headlines}
         onChange={(e) => onUpdate(e.target.value)}
         placeholder="Capture headlines here...&#10;&#10;Example:&#10;- Customer: New enrolment at Greenfield centre (+12 places)&#10;- Employee: Sarah passed her cert III &#10;- Customer: Complaint from parent at Eastside re pickup times (IDS)"
-        className="w-full h-48 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+        className="w-full min-h-48 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
       />
     </div>
   );

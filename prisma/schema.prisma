@@ -24,6 +24,7 @@ enum Role {
   staff // displayed as "Educator"
   eos_viewer // view-only access to the EOS surface — for EOS coaches / board observers / advisors
   eos_implementer // full write access to the EOS surface (org-wide) — for the EOS implementer running L10s, rocks, scorecard, etc.
+  eos // 2026-07-13: broad EOS Member role — full EOS surface plus Services / Operations / Growth / People. Effectively admin-tier org-wide access; distinct from eos_viewer/eos_implementer which are EOS-only.
 }
 
 enum RockStatus {
@@ -114,6 +115,19 @@ enum SessionType {
   bsc
   asc
   vc
+  // 2026-08-04: four spare slots a centre can name and enable itself
+  // (Service Info → Rooms & fees). Generic codes rather than named ones
+  // because the code is written into every Booking, AttendanceRecord and
+  // fortnight pattern — it has to be stable forever, while the LABEL is
+  // the centre's to change whenever they like.
+  //
+  // Four, not unlimited: Postgres enum values can be added but never
+  // removed, so an open-ended list would accumulate dead values no one
+  // can clear. If a centre ever needs a fifth, adding it is one line.
+  extra1
+  extra2
+  extra3
+  extra4
 }
 
 enum BookingStatus {
@@ -167,6 +181,13 @@ enum ParentPostType {
   announcement
   reminder
   newsletter
+  // 2026-08-04: the categories families actually reason about. Added
+  // alongside the originals rather than replacing them — every existing
+  // post carries one of the old values, and a rename would be a data
+  // migration to gain nothing.
+  programme
+  food
+  celebration
 }
 
 enum ActivityCategory {
@@ -490,6 +511,7 @@ enum LeadSource {
   build_alpha_kids
   referral
   community_connection
+  website
 }
 
 enum PipelineStage {
@@ -517,39 +539,47 @@ enum TouchpointType {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  name           String
-  email          String    @unique
-  passwordHash   String
-  role           Role      @default(member)
-  avatar         String?
-  active         Boolean   @default(true)
-  serviceId      String?
-  service        Service?  @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
-  state          String? // Australian state for State Manager scoping (VIC, NSW, QLD, etc.)
+  id                       String    @id @default(cuid())
+  name                     String
+  email                    String    @unique
+  passwordHash             String
+  role                     Role      @default(member)
+  avatar                   String?
+  active                   Boolean   @default(true)
+  serviceId                String?
+  service                  Service?  @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
+  state                    String? // Australian state for State Manager scoping (VIC, NSW, QLD, etc.)
   // 2026-05-12: free-form admin-managed tags for /team filtering and
   // org-specific grouping (e.g. "nsw", "lead-trainer", "weekend-only").
   // Always lowercased + trimmed at write time so "NSW" and "nsw" are
   // the same tag. Default empty array so existing rows don't need a
   // backfill. Max 20 per user enforced at the API layer.
-  tags           String[]  @default([])
-  tokenVersion   Int       @default(0) // Bump to invalidate all existing sessions
-  mfaSecret      String? // Encrypted TOTP secret (null = MFA not enrolled)
-  mfaBackupCodes String[] // Hashed one-time recovery codes
-  mfaEnabledAt   DateTime? // Non-null = MFA is active
-  lastLoginAt    DateTime? // Updated on each successful sign-in
+  tags                     String[]  @default([])
+  tokenVersion             Int       @default(0) // Bump to invalidate all existing sessions
+  mfaSecret                String? // Encrypted TOTP secret (null = MFA not enrolled)
+  mfaBackupCodes           String[] // Hashed one-time recovery codes
+  mfaEnabledAt             DateTime? // Non-null = MFA is active
+  lastLoginAt              DateTime? // Updated on each successful sign-in
   // 2026-05-04 (timeclock v1): 4-digit PIN used at the kiosk to clock
   // in/out. Staff sets it themselves in My Portal; admin can `reset`
   // (clear the hash, never read it). `kioskPinSetAt` lets us flag
   // "PIN required before you can use the kiosk" for first-time users.
-  kioskPinHash   String?
-  kioskPinSetAt  DateTime?
+  kioskPinHash             String?
+  kioskPinSetAt            DateTime?
   // 2026-06-01: maps this User to their Employment Hero Payroll employee
   // record so My Portal can surface payslips/leave/expenses. Nullable —
   // not every dashboard user is in payroll (e.g. casuals during trial,
   // historical accounts). Populated by the daily sync cron based on email
   // match; admins can manually override for unmatched users.
-  employmentHeroEmployeeId Int? @unique
+  employmentHeroEmployeeId Int?      @unique
+  // 2026-08-18: some accounts are deliberately not real employees —
+  // shared service-admin logins, system accounts — so the red "needs
+  // payroll link" / yellow "no contract" badges on /team are noise for
+  // them, not a real gap. Admin-toggleable per user; hides BOTH badges
+  // together since they're the same "not a person on payroll" case.
+  // Default false so every existing account keeps showing the badges
+  // (no silent muting on rollout).
+  hrWarningsMuted          Boolean   @default(false)
   // 2026-06-01 (right to disconnect — Fair Work Act s333M, in force
   // Aug 2024). Staff-set preference: "don't message me between these
   // hours." Stored as HH:MM strings to avoid timezone/`@db.Time`
@@ -558,17 +588,18 @@ model User {
   // we'd lose evidence of an explicit refusal pattern).
   // When `quietHoursStart > quietHoursEnd` the window wraps midnight
   // (e.g. "20:00" → "07:00" = evening + overnight + early morning).
-  quietHoursStart String?
-  quietHoursEnd   String?
+  quietHoursStart          String?
+  quietHoursEnd            String?
   // Free-form expansion — "no contact on weekends", "calls OK in
   // genuine emergencies only", etc. Helps managers calibrate.
-  quietHoursNotes String?   @db.Text
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  quietHoursNotes          String?   @db.Text
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   ownedRocks                    Rock[]                         @relation("RockOwner")
   assignedTodos                 Todo[]                         @relation("TodoAssignee")
   createdTodos                  Todo[]                         @relation("TodoCreator")
+  meetingRecordings             MeetingRecording[]             @relation("RecordingCreator")
   raisedIssues                  Issue[]                        @relation("IssueRaiser")
   ownedIssues                   Issue[]                        @relation("IssueOwner")
   ownedMeasurables              Measurable[]                   @relation("MeasurableOwner")
@@ -584,6 +615,31 @@ model User {
   assignedDocuments             Document[]                     @relation("DocumentAssignee")
   uploadedAttachments           Attachment[]                   @relation("AttachmentUploader")
   assignedTickets               SupportTicket[]                @relation("TicketAssignee")
+  createdParentForms            ParentForm[]                   @relation("ParentFormCreator")
+  createdExcursions             ServiceExcursion[]             @relation("ExcursionCreator")
+  conductedHeadcounts           ServiceHeadcount[]             @relation("HeadcountConductor")
+  recordedVisitors              ServiceVisitor[]               @relation("VisitorRecordedBy")
+  staffIncidentsAbout           StaffIncidentReport[]          @relation("StaffIncidentSubject")
+  staffIncidentsReported        StaffIncidentReport[]          @relation("StaffIncidentReporter")
+  staffIncidentsSignedOff       StaffIncidentReport[]          @relation("StaffIncidentSignOff")
+  illnessRecorded               IllnessRecord[]                @relation("IllnessRecordedBy")
+  illnessNotified               IllnessRecord[]                @relation("IllnessNotifier")
+  incidentsParentNotified       IncidentRecord[]               @relation("IncidentParentNotifier")
+  incidentsSharedWithParents    IncidentRecord[]               @relation("IncidentSharer")
+  createdMedicalPlans           ChildMedicalPlan[]             @relation("MedicalPlanCreator")
+  reviewedMedicalPlans          ChildMedicalPlan[]             @relation("MedicalPlanReviewer")
+  createdComplaints             ComplaintRecord[]              @relation("ComplaintCreator")
+  assignedComplaints            ComplaintRecord[]              @relation("ComplaintAssignee")
+  resolvedComplaints            ComplaintRecord[]              @relation("ComplaintResolver")
+  createdBlockOutDates          ServiceBlockOutDate[]          @relation("BlockOutDateCreator")
+  createdSessionTimes           ServiceSessionTime[]           @relation("SessionTimeCreator")
+  createdCasualDays             CasualDayConfig[]              @relation("CasualDayCreator")
+  createdDiscounts              FamilyDiscount[]               @relation("DiscountCreator")
+  createdFeeChanges             ServiceFeeChange[]             @relation("FeeChangeCreator")
+  createdFeeAssignments         ChildFeeAssignment[]           @relation("FeeAssignmentCreator")
+  debtChases                    FamilyDebtContact[]            @relation("DebtChaser")
+  signedOffHeadcounts           ServiceHeadcount[]             @relation("HeadcountSignOff")
+  reviewedExcursionRisks        ServiceExcursion[]             @relation("ExcursionRiskReviewer")
   sentMessages                  TicketMessage[]                @relation("MessageSender")
   dismissedNotifications        NotificationDismissal[]
   marketingPosts                MarketingPost[]                @relation("MarketingPostAssignee")
@@ -627,44 +683,44 @@ model User {
 
   // Performance review back-refs (separate from PerformanceCase —
   // reviews are scheduled assessments, cases are disciplinary records).
-  performanceReviews     PerformanceReview[] @relation("ReviewSubject")
-  reviewsReviewing       PerformanceReview[] @relation("ReviewReviewer")
-  reviewsCreated         PerformanceReview[] @relation("ReviewCreator")
+  performanceReviews PerformanceReview[] @relation("ReviewSubject")
+  reviewsReviewing   PerformanceReview[] @relation("ReviewReviewer")
+  reviewsCreated     PerformanceReview[] @relation("ReviewCreator")
 
   // Position description assignment. The PD library is the formal
   // "this is what this job is" document — separate from contracts
   // (legal terms) and from the role enum (auth bucket).
-  positionDescriptionId           String?
-  positionDescription             PositionDescription? @relation("UserPositionDescription", fields: [positionDescriptionId], references: [id], onDelete: SetNull)
-  positionDescriptionAssignedAt   DateTime?
-  createdPositionDescriptions     PositionDescription[] @relation("PDCreator")
+  positionDescriptionId         String?
+  positionDescription           PositionDescription?  @relation("UserPositionDescription", fields: [positionDescriptionId], references: [id], onDelete: SetNull)
+  positionDescriptionAssignedAt DateTime?
+  createdPositionDescriptions   PositionDescription[] @relation("PDCreator")
 
   // Reference checks — back-refs for both subject-side (checks ABOUT
   // this user during their hiring) and checker-side (checks this user
   // PERFORMED on others). Subject-side is the primary use case.
-  referenceChecks                 ReferenceCheck[] @relation("RefCheckSubject")
-  performedReferenceChecks        ReferenceCheck[] @relation("RefCheckChecker")
+  referenceChecks          ReferenceCheck[] @relation("RefCheckSubject")
+  performedReferenceChecks ReferenceCheck[] @relation("RefCheckChecker")
 
   // Diversity & inclusion self-disclosed profile (opt-in). Withdrawal
   // hard-deletes the row, so the relation cascades.
-  diversityProfile                DiversityProfile?
+  diversityProfile DiversityProfile?
 
   // Per-(userId, threshold) dedup marker for the visa-expiry alert
   // cron. Mirrors ComplianceCertificateAlert but keyed on User
   // because visa lives on the User row, not a separate cert record.
-  visaAlerts             VisaAlert[]       @relation("UserVisaAlerts")
+  visaAlerts VisaAlert[] @relation("UserVisaAlerts")
 
   // Back-ref for SafeReport.reviewedBy — SafeReport has NO reporterId
   // (anonymity is the whole point). This relation only tracks who
   // *reviewed* / *resolved* a report; never who filed it.
-  reviewedSafeReports    SafeReport[]      @relation("SafeReportReviewer")
+  reviewedSafeReports SafeReport[] @relation("SafeReportReviewer")
 
   // Per-User separation record (Fair Work termination evidence).
   // Complements StaffOffboarding (operational checklist) — Separation
   // is the legal-fact record of why and how they left.
-  separationRecord       SeparationRecord? @relation("SeparationSubject")
-  recordedSeparations    SeparationRecord[] @relation("SeparationRecorder")
-  finalisedSeparations   SeparationRecord[] @relation("SeparationFinaliser")
+  separationRecord     SeparationRecord?  @relation("SeparationSubject")
+  recordedSeparations  SeparationRecord[] @relation("SeparationRecorder")
+  finalisedSeparations SeparationRecord[] @relation("SeparationFinaliser")
 
   // Casual conversion elections — Closing Loopholes No. 2 Act 2024
   // (employee-choice model). Multiple records possible over a casual's
@@ -673,14 +729,14 @@ model User {
   respondedConversions      CasualConversionElection[] @relation("CasualConversionResponder")
 
   // Workers Compensation claims (Health & WHS section).
-  workersCompClaims         WorkersCompensationClaim[] @relation("WCClaimant")
-  createdWCClaims           WorkersCompensationClaim[] @relation("WCClaimCreator")
-  closedWCClaims            WorkersCompensationClaim[] @relation("WCClaimCloser")
+  workersCompClaims WorkersCompensationClaim[] @relation("WCClaimant")
+  createdWCClaims   WorkersCompensationClaim[] @relation("WCClaimCreator")
+  closedWCClaims    WorkersCompensationClaim[] @relation("WCClaimCloser")
 
   // Reasonable adjustment records (Disability Discrimination Act 1992
   // defence). Sensitive — admin-only.
-  reasonableAdjustments     ReasonableAdjustment[]   @relation("AdjustmentSubject")
-  recordedAdjustments       ReasonableAdjustment[]   @relation("AdjustmentRecorder")
+  reasonableAdjustments ReasonableAdjustment[] @relation("AdjustmentSubject")
+  recordedAdjustments   ReasonableAdjustment[] @relation("AdjustmentRecorder")
 
   // Purchase-approval requests — staff submit these from the service
   // Finance tab when they need to buy something with personal funds.
@@ -720,31 +776,31 @@ model User {
   inductionClearedById   String?
   inductionGraceUntil    DateTime?
   inductionOverrideUntil DateTime?
-  bankDetailsNote   String?
-  bankAccountName   String?
-  bankBSB           String?
-  bankAccountNumber String?
-  xeroEmployeeId    String?
+  bankDetailsNote        String?
+  bankAccountName        String?
+  bankBSB                String?
+  bankAccountNumber      String?
+  xeroEmployeeId         String?
 
   // ── HR Relations ─────────────────────────────────────────────
-  emergencyContacts        EmergencyContact[]
-  qualifications           StaffQualification[]
-  pdRecords                ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
-  contracts                EmploymentContract[]            @relation("ContractEmployee")
+  emergencyContacts         EmergencyContact[]
+  qualifications            StaffQualification[]
+  pdRecords                 ProfessionalDevelopmentRecord[] @relation("UserPdRecords")
+  contracts                 EmploymentContract[]            @relation("ContractEmployee")
   // Back-ref for contracts where this user signed as the issuing
   // admin. 2026-06-02 — two-party contract signature feature.
-  signedContractsAsAdmin   EmploymentContract[]            @relation("ContractAdminSigner")
-  createdContractTemplates ContractTemplate[]              @relation("TemplateCreator")
-  updatedContractTemplates ContractTemplate[]              @relation("TemplateUpdater")
-  createdContractCustomTags ContractCustomTag[]            @relation("ContractCustomTagCreator")
-  leaveRequests            LeaveRequest[]                  @relation("LeaveRequester")
-  approvedLeaves           LeaveRequest[]                  @relation("LeaveApprover")
-  leaveBalances            LeaveBalance[]
-  timesheetEntries         TimesheetEntry[]                @relation("TimesheetStaff")
-  policyDocVersionUploads  PolicyDocumentVersion[]         @relation("PolicyDocVersionUploader")
-  policyDocAcks            PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
-  offboardings             StaffOffboarding[]              @relation("OffboardingUser")
-  apiKeys                  ApiKey[]                        @relation("ApiKeyCreator")
+  signedContractsAsAdmin    EmploymentContract[]            @relation("ContractAdminSigner")
+  createdContractTemplates  ContractTemplate[]              @relation("TemplateCreator")
+  updatedContractTemplates  ContractTemplate[]              @relation("TemplateUpdater")
+  createdContractCustomTags ContractCustomTag[]             @relation("ContractCustomTagCreator")
+  leaveRequests             LeaveRequest[]                  @relation("LeaveRequester")
+  approvedLeaves            LeaveRequest[]                  @relation("LeaveApprover")
+  leaveBalances             LeaveBalance[]
+  timesheetEntries          TimesheetEntry[]                @relation("TimesheetStaff")
+  policyDocVersionUploads   PolicyDocumentVersion[]         @relation("PolicyDocVersionUploader")
+  policyDocAcks             PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
+  offboardings              StaffOffboarding[]              @relation("OffboardingUser")
+  apiKeys                   ApiKey[]                        @relation("ApiKeyCreator")
 
   // ── CRM Relations ───────────────────────────────────────────
   assignedLeads           Lead[]                         @relation("LeadAssignee")
@@ -792,7 +848,15 @@ model User {
   // ── Onboarding & Preferences ──────────────────────
   gettingStartedProgress Json? // Tracks completed checklist items per role
   notificationPrefs      Json? // { overdueTodos: true, newAssignments: true, ... }
-  notificationsMuted     Boolean @default(false) // master mute — no external pings (email/push); in-app kept
+  notificationsMuted     Boolean                 @default(false) // master mute — no external pings (email/push); in-app kept
+  // 2026-07-24: opt-in for cron/system nudges (overdue todos, compliance
+  // alerts, meeting reminders, weekly digest, etc.). Default is OFF for
+  // everyone; the recipient resolver auto-includes leadership roles
+  // (owner/head_office/admin/eos) regardless of this flag, plus each
+  // service's shared inbox email. Flip this to `true` for the select
+  // non-leadership individuals who should ALSO be nudged (e.g. a specific
+  // OSHC Coordinator who wants a copy of their centre's alerts).
+  receivesNudges         Boolean                 @default(false)
   systemBanners          SystemBannerDismissal[] @relation("BannerDismissals")
   internalFeedback       InternalFeedback[]      @relation("FeedbackAuthor")
 
@@ -840,14 +904,14 @@ model User {
   notifications UserNotification[] @relation("UserNotifications")
 
   // ── Staff Rostering ──────────────────────────────
-  rosterShifts        RosterShift[]      @relation("UserRosterShifts")
-  createdRosterShifts RosterShift[]      @relation("CreatedRosterShifts")
+  rosterShifts                    RosterShift[]            @relation("UserRosterShifts")
+  createdRosterShifts             RosterShift[]            @relation("CreatedRosterShifts")
   // 2026-06-11: responsible-person register entries this user is named on / created.
   responsiblePersonEntries        ResponsiblePersonEntry[] @relation("UserResponsiblePersonEntries")
   createdResponsiblePersonEntries ResponsiblePersonEntry[] @relation("CreatedResponsiblePersonEntries")
-  proposedShiftSwaps  ShiftSwapRequest[] @relation("ProposedShiftSwaps")
-  targetShiftSwaps    ShiftSwapRequest[] @relation("TargetShiftSwaps")
-  approvedShiftSwaps  ShiftSwapRequest[] @relation("ApprovedShiftSwaps")
+  proposedShiftSwaps              ShiftSwapRequest[]       @relation("ProposedShiftSwaps")
+  targetShiftSwaps                ShiftSwapRequest[]       @relation("TargetShiftSwaps")
+  approvedShiftSwaps              ShiftSwapRequest[]       @relation("ApprovedShiftSwaps")
 
   // ── Marketing Cockpit (Sprint 2) ─────────────────
   contentTeamRole        ContentTeamRole?
@@ -899,6 +963,32 @@ model User {
   // single staff member be at multiple centres with per-service role+access.
   serviceMemberships UserServiceMembership[] @relation("UserMemberships")
 
+  // 2026-07-23: family balance follow-up contacts this user logged.
+  familyBalanceContactsCreated FamilyBalanceContact[] @relation("FamilyBalanceContactCreator")
+
+  // 2026-08-03 (Amana Ambassadors pilot): educator enrolment-incentive tracker.
+  educatorRefCode           EducatorRefCode?       @relation("EducatorRefCode")
+  ambassadorCredits         AmbassadorEnrolment[]  @relation("AmbassadorCredited")
+  ambassadorTransitions     AmbassadorTransition[] @relation("AmbassadorTransitionActor")
+  ambassadorAdjustments     AmbassadorAdjustment[] @relation("AmbassadorAdjustments")
+  ambassadorSessionsCreated AmbassadorSession[]    @relation("AmbassadorSessionCreatedBy")
+  ambassadorPilotsClosed    AmbassadorPilot[]      @relation("AmbassadorPilotClosedBy")
+
+  // 2026-08-05 (creative requests v1): tickets requested/fulfilled between
+  // centre staff and the marketing team.
+  creativeRequestsRequested     CreativeRequest[]           @relation("CreativeRequestsRequested")
+  creativeRequestsAssigned      CreativeRequest[]           @relation("CreativeRequestsAssigned")
+  creativeRequestMessages       CreativeRequestMessage[]    @relation("CreativeRequestMessages")
+  creativeRequestUploads        CreativeRequestAttachment[] @relation("CreativeRequestUploads")
+  creativeRequestProofsUploaded CreativeRequestProof[]      @relation("CreativeRequestProofsUploaded")
+  creativeRequestProofsDecided  CreativeRequestProof[]      @relation("CreativeRequestProofsDecided")
+
+  // 2026-08-08 (marketing hub phase 6): one-tap requester CSAT on delivered requests.
+  creativeRequestSatisfactions CreativeRequestSatisfaction[] @relation("CreativeRequestSatisfactions")
+
+  // 2026-08-07 (marketing hub phase 4): saved email audiences this user created.
+  emailAudiencesCreated EmailAudience[] @relation("EmailAudiencesCreated")
+
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
   @@index([name])
@@ -933,30 +1023,30 @@ model CalendarIntegration {
 }
 
 model VisionTractionOrganiser {
-  id                String   @id @default(cuid())
-  coreValues        String[]
-  corePurpose       String?
-  coreNiche         String?
-  tenYearTarget     String?  @db.Text
-  threeYearPicture  String?  @db.Text // legacy freeform — superseded by the threeYear* fields below; rendered read-only until cleared
-  threeYearFutureDate   DateTime?
-  threeYearRevenue      String?
-  threeYearProfit       String?
-  threeYearMeasurables  String?  @db.Text
-  threeYearLooksLike    String?  @db.Text
-  oneYearFutureDate     DateTime?
-  oneYearRevenue        String?
-  oneYearProfit         String?
-  oneYearMeasurables    String?  @db.Text
-  marketingStrategy String?  @db.Text // legacy freeform — superseded by the four gtm* fields below; rendered read-only until cleared
-  gtmTargetMarket   String?  @db.Text
-  gtmThreeUniques   String?  @db.Text
-  gtmProvenProcess  String?  @db.Text
-  gtmGuarantee      String?  @db.Text
-  sectionLabels     Json? // Custom section titles e.g. { tenYearTarget: "5-Year Target" }
-  updatedAt         DateTime @updatedAt
-  updatedById       String?
-  updatedBy         User?    @relation("VTOUpdater", fields: [updatedById], references: [id])
+  id                   String    @id @default(cuid())
+  coreValues           String[]
+  corePurpose          String?
+  coreNiche            String?
+  tenYearTarget        String?   @db.Text
+  threeYearPicture     String?   @db.Text // legacy freeform — superseded by the threeYear* fields below; rendered read-only until cleared
+  threeYearFutureDate  DateTime?
+  threeYearRevenue     String?
+  threeYearProfit      String?
+  threeYearMeasurables String?   @db.Text
+  threeYearLooksLike   String?   @db.Text
+  oneYearFutureDate    DateTime?
+  oneYearRevenue       String?
+  oneYearProfit        String?
+  oneYearMeasurables   String?   @db.Text
+  marketingStrategy    String?   @db.Text // legacy freeform — superseded by the four gtm* fields below; rendered read-only until cleared
+  gtmTargetMarket      String?   @db.Text
+  gtmThreeUniques      String?   @db.Text
+  gtmProvenProcess     String?   @db.Text
+  gtmGuarantee         String?   @db.Text
+  sectionLabels        Json? // Custom section titles e.g. { tenYearTarget: "5-Year Target" }
+  updatedAt            DateTime  @updatedAt
+  updatedById          String?
+  updatedBy            User?     @relation("VTOUpdater", fields: [updatedById], references: [id])
 
   oneYearGoals OneYearGoal[]
 }
@@ -1043,6 +1133,11 @@ model Todo {
   // by /api/surveys/[id]/publish; null for every other todo.
   surveyId    String?
   survey      Survey?    @relation("SurveyTodos", fields: [surveyId], references: [id], onDelete: SetNull)
+  // 2026-08-31: meeting this todo was created in (IDS create-todo,
+  // To-Do Review quick-add). SetNull so deleting a mis-started meeting
+  // never destroys todos.
+  meetingId   String?
+  meeting     Meeting?   @relation("MeetingTodos", fields: [meetingId], references: [id], onDelete: SetNull)
   dueDate     DateTime
   status      TodoStatus @default(pending)
   weekOf      DateTime
@@ -1052,9 +1147,13 @@ model Todo {
   completedAt DateTime?
   updatedAt   DateTime   @updatedAt
 
-  assignees  TodoAssignee[] @relation("TodoAssignees")
-  aiDrafts   AiTaskDraft[]  @relation("TodoAiDraft")
-  sourceCall VapiCall?      @relation("TodoFromCall")
+  assignees             TodoAssignee[]        @relation("TodoAssignees")
+  aiDrafts              AiTaskDraft[]         @relation("TodoAiDraft")
+  sourceCall            VapiCall?             @relation("TodoFromCall")
+  // 2026-07-23: reverse side of FamilyBalanceContact.followUpTodo.
+  // Only populated when the parent contact had outcome=no_answer
+  // and the endpoint auto-generated a follow-up.
+  familyContactFollowUp FamilyBalanceContact? @relation("FamilyContactFollowUp")
 
   @@index([assigneeId])
   @@index([rockId])
@@ -1066,6 +1165,7 @@ model Todo {
   @@index([weekOf, serviceId])
   @@index([assigneeId, status])
   @@index([dueDate, status])
+  @@index([meetingId])
 }
 
 model TodoAssignee {
@@ -1276,16 +1376,21 @@ model BoardReport {
 // ============================================================
 
 model EmailEvent {
-  id        String   @id @default(cuid())
-  messageId String // Resend message ID
-  type      String // delivered, bounced, complained, opened, clicked
-  email     String // recipient email
-  payload   Json? // full webhook payload
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  messageId     String // Provider message ID (Resend or Brevo message-id; `camp:<id>` for Brevo campaign-level events with no per-recipient id)
+  /// Resolved at webhook-ingest time by matching the provider identifier
+  /// against DeliveryLog.externalId (see externalIdType there). Null when
+  /// no send row matched (e.g. events for mail sent outside the dashboard).
+  deliveryLogId String?
+  type          String // delivered, bounced, complained, opened, clicked
+  email         String // recipient email
+  payload       Json? // full webhook payload
+  createdAt     DateTime @default(now())
 
   @@index([messageId])
   @@index([email, type])
   @@index([createdAt])
+  @@index([deliveryLogId])
 }
 
 model EmailSuppression {
@@ -1296,6 +1401,28 @@ model EmailSuppression {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+/// Saved email audience — stores RULES, never a frozen recipient list
+/// (Survey-audience precedent: evaluate at read/send time so membership is
+/// always current). Rules shape is validated by src/lib/audience-rules.ts.
+model EmailAudience {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  /// AudienceRules JSON — see audienceRulesSchema. Conditions are AND-combined:
+  /// { serviceIds?: string[], statuses?: string[], joinedAfter?: ISO,
+  ///   joinedBefore?: ISO, engagement?: { kind: "opened"|"clicked"|"not_opened", days: number } }
+  rules       Json
+  archived    Boolean @default(false)
+
+  createdById String?
+  createdBy   User?   @relation("EmailAudiencesCreated", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([archived])
 }
 
 // ============================================================
@@ -1327,6 +1454,7 @@ model MarketingCampaign {
   activationAssignments CampaignActivationAssignment[]
   termCalendarEntries   TermCalendarEntry[]            @relation("TermCalendarCampaign")
   centreAvatarLogs      CentreAvatarCampaignLog[]      @relation("MarketingCampaignCentreAvatarLog")
+  creativeRequests      CreativeRequest[]
 
   @@index([status])
   @@index([startDate])
@@ -1747,6 +1875,197 @@ model VendorContact {
   @@index([active])
 }
 
+// ============================================================
+// Creative Requests — centre staff request design work from the
+// marketing team (Phase 1 of the Marketing Hub rebuild).
+// Modelled on VendorBrief (numbered, staged, timestamped) +
+// SupportTicket/TicketMessage (thread).
+// ============================================================
+
+enum CreativeRequestType {
+  flyer
+  poster
+  social_tile
+  table_cover
+  banner_signage
+  email_header
+  merch
+  other
+}
+
+enum CreativeRequestStatus {
+  new
+  briefed
+  in_progress
+  in_review
+  changes_requested
+  approved
+  delivered
+  cancelled
+}
+
+model CreativeRequest {
+  id            String                @id @default(cuid())
+  /// Human-readable number — e.g. "REQ-2026-0042". Generated via
+  /// generateRequestNumber(); unique. Primary identifier in the UI.
+  requestNumber String                @unique
+  title         String
+  type          CreativeRequestType
+  status        CreativeRequestStatus @default(new)
+  /// Reuses the existing TicketPriority enum (urgent/high/normal/low).
+  priority      TicketPriority        @default(normal)
+
+  serviceId String?
+  service   Service? @relation("ServiceCreativeRequests", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  campaignId String?
+  campaign   MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  requestedById String
+  requestedBy   User    @relation("CreativeRequestsRequested", fields: [requestedById], references: [id], onDelete: Cascade)
+  assigneeId    String?
+  assignee      User?   @relation("CreativeRequestsAssigned", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  /// The free-text brief: what it's for, audience, context.
+  purpose      String  @db.Text
+  /// Verbatim copy the designer pastes without edits (Design Pickle rule).
+  exactCopy    String? @db.Text
+  /// e.g. "6ft trestle 1800×750mm", "A3", "1080×1350"
+  sizeSpec     String?
+  /// e.g. "Print-ready PDF, CMYK, 3mm bleed", "PNG"
+  outputFormat String?
+
+  /// Server-computed from type default turnaround when omitted at create.
+  dueDate DateTime
+
+  briefedAt          DateTime?
+  inProgressAt       DateTime?
+  inReviewAt         DateTime?
+  changesRequestedAt DateTime?
+  approvedAt         DateTime?
+  deliveredAt        DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?   @db.Text
+
+  /// Turnaround-pause accounting. pausedAt is set while status is in_review
+  /// (waiting on the requester); on exit the elapsed ms accumulate into
+  /// pausedMs. Effective due date = dueDate + pausedMs (+ live pause).
+  pausedAt DateTime?
+  pausedMs Int       @default(0)
+
+  /// Fulfiller checklist [{ label, done }], seeded from the type's default
+  /// at create. Null for requests created before Phase 2.
+  checklist Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages     CreativeRequestMessage[]
+  attachments  CreativeRequestAttachment[]
+  proofs       CreativeRequestProof[]
+  satisfaction CreativeRequestSatisfaction?
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([requestedById])
+  @@index([serviceId])
+  @@index([campaignId])
+  @@index([dueDate])
+  @@index([createdAt])
+}
+
+model CreativeRequestMessage {
+  id        String          @id @default(cuid())
+  requestId String
+  request   CreativeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User            @relation("CreativeRequestMessages", fields: [authorId], references: [id], onDelete: Cascade)
+  body      String          @db.Text
+  /// Team-only note — never returned to the requester (JSM pattern).
+  internal  Boolean         @default(false)
+  createdAt DateTime        @default(now())
+
+  attachments CreativeRequestAttachment[]
+
+  @@index([requestId])
+}
+
+model CreativeRequestAttachment {
+  id           String                  @id @default(cuid())
+  requestId    String
+  request      CreativeRequest         @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  /// Null = attached to the request brief itself; set = attached to a message.
+  messageId    String?
+  message      CreativeRequestMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  fileName     String
+  /// Vercel Blob URL from POST /api/upload.
+  fileUrl      String
+  fileSize     Int?
+  mimeType     String?
+  uploadedById String?
+  uploadedBy   User?                   @relation("CreativeRequestUploads", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime                @default(now())
+
+  @@index([requestId])
+}
+
+enum ProofDecision {
+  approved
+  approved_with_changes
+  changes_requested
+}
+
+/// A versioned proof (draft deliverable) sent to the requester for review.
+/// One undecided proof at a time per request; decisions drive request status.
+model CreativeRequestProof {
+  id        String          @id @default(cuid())
+  requestId String
+  request   CreativeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  /// 1-based, unique per request; assigned server-side (max + 1).
+  version   Int
+  fileName  String
+  /// Vercel Blob URL — validated by safeAttachmentUrl at the API boundary.
+  fileUrl   String
+  fileSize  Int?
+  mimeType  String?
+  /// Optional note from the designer accompanying the proof.
+  note      String?         @db.Text
+
+  uploadedById String?
+  uploadedBy   User?   @relation("CreativeRequestProofsUploaded", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  decision     ProofDecision?
+  /// Required for approved_with_changes and changes_requested (Ziflow rule).
+  decisionNote String?        @db.Text
+  decidedById  String?
+  decidedBy    User?          @relation("CreativeRequestProofsDecided", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([requestId, version])
+  @@index([requestId])
+}
+
+/// One-tap requester CSAT (👍/👎 + optional comment) captured after a
+/// creative request is delivered. One per request (@@unique on requestId);
+/// written ONLY via its own endpoint (POST /api/creative-requests/[id]/satisfaction) —
+/// never inline on the PATCH status route.
+model CreativeRequestSatisfaction {
+  id        String          @id @default(cuid())
+  requestId String          @unique
+  request   CreativeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  positive  Boolean
+  comment   String?         @db.Text
+
+  ratedById String
+  ratedBy   User   @relation("CreativeRequestSatisfactions", fields: [ratedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model WhatsAppCoordinatorPost {
   id               String                 @id @default(cuid())
   serviceId        String
@@ -2126,6 +2445,9 @@ model QrCode {
 
   scans QrScan[]
 
+  /// 2026-08-03: set when this QR is an educator's Ambassadors referral QR.
+  educatorRefCode EducatorRefCode? @relation("EducatorRefQr")
+
   @@index([active])
   @@index([activationId])
   @@index([serviceId])
@@ -2242,6 +2564,25 @@ model Service {
   /// Null means the federal-default `{ bsc: "1:15", asc: "1:15", vc: "1:15" }` applies
   /// (resolved by the ratio API route — `@default` isn't supported for Json).
   ratioSettings Json?
+  /// Per-centre behaviour toggles — what families can do in the app and
+  /// how posts are published. Validated by `appSettingsSchema`; see
+  /// src/lib/app-settings.ts. Json rather than columns because these are
+  /// settings, not data: they're read as a set and change shape as
+  /// features land.
+  appSettings   Json?
+
+  /// The centre's fee POLICY — late collection, absence charging,
+  /// cancellation, enrolment fee and bond, payment terms. Validated by
+  /// `feePolicySchema`; see src/lib/fee-policy.ts.
+  ///
+  /// Distinct from `sessionTimes`, which holds what a session COSTS.
+  /// This holds what happens around that price, and it is separate
+  /// because the two are edited by different people at different times:
+  /// a coordinator adjusts room hours, a director sets the late fee.
+  ///
+  /// Every key is optional and every default is "charge nothing", so a
+  /// null here behaves exactly as the system did before it existed.
+  feePolicy Json?
 
   /// Per-service editable content (admin or Director of Service for this
   /// service). Shape validated by Zod in src/lib/service-content-shared.ts.
@@ -2298,18 +2639,33 @@ model Service {
   nurtureSteps   ParentNurtureStep[] @relation("ServiceNurtureSteps")
 
   // ── Holiday Quest Relations ──────────────────────────────
-  holidayQuests HolidayQuestDay[] @relation("ServiceHolidayQuest")
+  holidayQuests   HolidayQuestDay[]     @relation("ServiceHolidayQuest")
+  parentForms     ParentForm[]          @relation("ServiceParentForms")
+  excursions      ServiceExcursion[]    @relation("ServiceExcursions")
+  headcounts      ServiceHeadcount[]    @relation("ServiceHeadcounts")
+  visitors        ServiceVisitor[]      @relation("ServiceVisitors")
+  staffIncidents  StaffIncidentReport[] @relation("ServiceStaffIncidents")
+  illnessRecords  IllnessRecord[]       @relation("ServiceIllnessRecords")
+  sessionTimeList ServiceSessionTime[]  @relation("ServiceSessionTimes")
+  medicalPlans    ChildMedicalPlan[]    @relation("ServiceMedicalPlans")
+  complaints      ComplaintRecord[]     @relation("ServiceComplaints")
+  blockOutDates   ServiceBlockOutDate[] @relation("ServiceBlockOutDates")
+  casualDays      CasualDayConfig[]     @relation("ServiceCasualDays")
+  discounts       FamilyDiscount[]      @relation("ServiceDiscounts")
+  feeChanges      ServiceFeeChange[]    @relation("ServiceFeeChanges")
+  feeAssignments  ChildFeeAssignment[]  @relation("ServiceFeeAssignments")
+  rooms           Room[]                @relation("ServiceRooms")
 
   // ── OWNA Integration Relations ──────────────────────────
-  bookingForecasts        BookingForecast[]       @relation("ServiceBookings")
-  rosterShifts            RosterShift[]           @relation("ServiceRosterShifts")
+  bookingForecasts         BookingForecast[]        @relation("ServiceBookings")
+  rosterShifts             RosterShift[]            @relation("ServiceRosterShifts")
   // 2026-06-11: responsible-person register entries for this service.
   responsiblePersonEntries ResponsiblePersonEntry[] @relation("ServiceResponsiblePersons")
   // 2026-05-04 (timeclock v1): kiosks registered to this service.
-  kiosks                  Kiosk[]                 @relation("ServiceKiosks")
+  kiosks                   Kiosk[]                  @relation("ServiceKiosks")
   // 2026-05-04 (shift templates v1): saved shift patterns for this service.
-  shiftTemplates          ShiftTemplate[]         @relation("ServiceShiftTemplates")
-  conversionOpportunities ConversionOpportunity[] @relation("ServiceConversions")
+  shiftTemplates           ShiftTemplate[]          @relation("ServiceShiftTemplates")
+  conversionOpportunities  ConversionOpportunity[]  @relation("ServiceConversions")
 
   // ── Compliance Audit Relations ─────────────────────────
   audits AuditInstance[] @relation("ServiceAudits")
@@ -2403,6 +2759,18 @@ model Service {
   // top of staffMembers (which is the User.serviceId one-to-many). Lets a
   // single staff member be at multiple centres with per-service role+access.
   serviceMemberships UserServiceMembership[] @relation("ServiceMemberships")
+
+  // 2026-07-23: family balance follow-up log — parent contact attempts
+  // for outstanding balances at this centre.
+  familyBalanceContacts FamilyBalanceContact[] @relation("ServiceFamilyBalanceContacts")
+
+  // 2026-08-03 (Amana Ambassadors pilot)
+  ambassadorPilotCentres AmbassadorPilotCentre[] @relation("AmbassadorPilotCentres")
+  ambassadorEnrolments   AmbassadorEnrolment[]   @relation("AmbassadorEnrolments")
+
+  // 2026-08-05 (creative requests v1): design/print work requested by this
+  // centre from the marketing team.
+  creativeRequests CreativeRequest[] @relation("ServiceCreativeRequests")
 
   @@index([status])
   @@index([managerId])
@@ -2681,12 +3049,26 @@ model Meeting {
   cascadeMessages String?       @db.Text
   serviceIds      String[] // IDs of services scoped to this meeting
   rockIds         String[] // IDs of rocks linked to this meeting
+  // 2026-07-28: Leadership (L10) meeting. Drives the To-Do Review filter —
+  // a leadership meeting only surfaces todos owned by attendees whose role
+  // is in LEADERSHIP_MEETING_ROLES (owner/admin/marketing/eos), so a
+  // centre educator's todos never appear in the leadership agenda.
+  isLeadership    Boolean       @default(false)
+  // 2026-07-28: which Scorecard this meeting reviews. Null = fall back to
+  // the legacy single scorecard (/api/scorecard), so every pre-existing
+  // meeting keeps working untouched.
+  scorecardId     String?
   // 2026-07-05 (draft-first L10): AI-prepared agenda — proposed IDS
   // order, scorecard commentary, rock suggestions. Generated by
   // POST /api/meetings/[id]/prepare or the morning-briefing cron for
   // same-day meetings. Null until prepared; facilitators can regenerate.
   aiAgendaDraft   Json?
   aiAgendaDraftAt DateTime?
+  // 2026-08-31: completion-time snapshot of meeting outcomes (todos done,
+  // issues solved, rock statuses). Written ONCE when the meeting completes
+  // so past meetings stop mutating as live data changes. Null = legacy
+  // meeting; the UI falls back to live computation.
+  outcomes        Json?
   startedAt       DateTime?
   completedAt     DateTime?
   createdById     String?
@@ -2694,8 +3076,10 @@ model Meeting {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  cascades  CascadeMessage[]  @relation("MeetingCascade")
-  attendees MeetingAttendee[] @relation("MeetingAttendees")
+  cascades   CascadeMessage[]   @relation("MeetingCascade")
+  attendees  MeetingAttendee[]  @relation("MeetingAttendees")
+  todos      Todo[]             @relation("MeetingTodos")
+  recordings MeetingRecording[] @relation("MeetingRecordings")
 
   @@index([date])
   @@index([status])
@@ -2705,6 +3089,48 @@ model Meeting {
 enum AttendeeStatus {
   present
   absent
+}
+
+// ── Meeting recordings (Phase 2, 2026-08-31) ────────────────────────────
+// Audio (browser mic or uploaded Teams/Zoom file) → Deepgram diarized
+// transcription (webhook callback) → Claude structured review. The raw
+// audio blob is DELETED immediately after successful transcription — the
+// transcript is the durable record (privacy decision, see spec).
+
+enum MeetingRecordingStatus {
+  uploaded // blob stored, transcription requested
+  transcribing // Deepgram accepted the request
+  transcribed // transcript stored, audio deleted, summarisation running
+  complete // aiReview stored
+  failed // error recorded; audio deleted if still present
+}
+
+enum MeetingRecordingSource {
+  live_mic
+  upload
+}
+
+model MeetingRecording {
+  id                String                 @id @default(cuid())
+  meetingId         String
+  meeting           Meeting                @relation("MeetingRecordings", fields: [meetingId], references: [id], onDelete: Cascade)
+  source            MeetingRecordingSource
+  status            MeetingRecordingStatus @default(uploaded)
+  audioBlobUrl      String? // nulled after post-transcription deletion
+  durationSeconds   Int?
+  deepgramRequestId String? // request_id echoed in the webhook callback
+  transcript        Json? // utterances: [{ speaker, start, end, text }]
+  transcriptText    String?                @db.Text // "Speaker N: ..." rendering
+  aiReview          Json? // MeetingAiReview (summary, action items, missed items)
+  error             String?
+  createdById       String?
+  createdBy         User?                  @relation("RecordingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([meetingId])
+  @@index([status, createdAt])
+  @@index([deepgramRequestId])
 }
 
 model MeetingAttendee {
@@ -3426,8 +3852,8 @@ model LMSCourse {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  modules      LMSModule[]
-  enrollments  LMSEnrollment[]
+  modules       LMSModule[]
+  enrollments   LMSEnrollment[]
   calendarSlots TrainingCalendarSlot[] @relation("CalendarCourse")
 
   @@index([status])
@@ -3520,17 +3946,21 @@ model LMSQuizQuestion {
 }
 
 model LMSQuizAttempt {
-  id            String        @id @default(cuid())
-  enrollmentId  String
-  enrollment    LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  moduleId      String
-  module        LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  answers       Json          @default("[]") // [{questionId, selectedIndex}]
-  score         Float         @default(0)
-  passed        Boolean       @default(false)
-  attemptNumber Int
-  submittedAt   DateTime? // null = in-progress (created at GET); set on POST submit
-  createdAt     DateTime      @default(now())
+  id                 String        @id @default(cuid())
+  enrollmentId       String
+  enrollment         LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  moduleId           String
+  module             LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  answers            Json          @default("[]") // [{questionId, selectedIndex}]
+  score              Float         @default(0)
+  passed             Boolean       @default(false)
+  attemptNumber      Int
+  submittedAt        DateTime? // null = in-progress (created at GET); set on POST submit
+  // Fingerprint of the question set (ids + options) served at start. Submit
+  // rejects (409) if it no longer matches — an option edit mid-attempt would
+  // otherwise silently corrupt the display→canonical answer mapping.
+  optionsFingerprint String?
+  createdAt          DateTime      @default(now())
 
   // Shuffle seed is derived from (enrollmentId + moduleId + attemptNumber),
   // all persisted here, so submit re-derives the exact permutation. No seed column.
@@ -3671,6 +4101,11 @@ model DailyAttendance {
   service      Service     @relation("ServiceAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
   date         DateTime    @db.Date
   sessionType  SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId       String
+  room         Room       @relation("RoomDailyAttendance", fields: [roomId], references: [id], onDelete: Restrict)
   enrolled     Int         @default(0)
   attended     Int         @default(0)
   capacity     Int         @default(0)
@@ -3683,36 +4118,76 @@ model DailyAttendance {
   updatedAt    DateTime    @updatedAt
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "DailyAttendance_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
 }
 
 model AttendanceRecord {
-  id                  String      @id @default(cuid())
-  childId             String
-  child               Child       @relation("ChildAttendance", fields: [childId], references: [id], onDelete: Cascade)
-  serviceId           String
-  service             Service     @relation("ServiceIndividualAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
-  date                DateTime    @db.Date
-  sessionType         SessionType
-  status              String      @default("booked") // booked, present, absent
-  signInTime          DateTime?
-  signOutTime         DateTime?
-  signedInById        String?
-  signedOutById       String?
-  signedInBy          User?       @relation("SignInRecorder", fields: [signedInById], references: [id], onDelete: SetNull)
-  signedOutBy         User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
+  id            String      @id @default(cuid())
+  childId       String
+  child         Child       @relation("ChildAttendance", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service     @relation("ServiceIndividualAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime    @db.Date
+  sessionType   SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId        String
+  room          Room       @relation("RoomAttendanceRecord", fields: [roomId], references: [id], onDelete: Restrict)
+  status        String      @default("booked") // booked, present, absent
+  signInTime    DateTime?
+  signOutTime   DateTime?
+  signedInById  String?
+  signedOutById String?
+  signedInBy    User?       @relation("SignInRecorder", fields: [signedInById], references: [id], onDelete: SetNull)
+  signedOutBy   User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
+
+  // ── Who actually signed (2026-08-01) ─────────────────────────────────
+  // signedInById references User, i.e. STAFF. There was no way to record
+  // a PARENT or authorised person signing a child in or out — which is
+  // what Regulation 158 actually asks for: a record of the person who
+  // delivered or collected the child, and their signature.
+  //
+  // Stored as a name + method rather than a foreign key because the
+  // signer is often an authorised pickup person or a grandparent, not
+  // anyone with a login.
+  signedInByName      String?
+  signedOutByName     String?
+  // "staff" | "parent_kiosk" | "parent_app"
+  signedInMethod      String?
+  signedOutMethod     String?
+  // Drawn signature, stored as a data URL. Nullable because a kiosk PIN
+  // is an acceptable alternative and not every service will use ink.
+  signedInSignature   String?   @db.Text
+  signedOutSignature  String?   @db.Text
   absenceReason       String?
-  notes               String?     @db.Text
+  notes               String?   @db.Text
   // ── First-day photo SMS (Amana Way stage 5) ──
   firstDayPhotoUrl    String?
   firstDayPhotoSentAt DateTime?
   firstDayPhotoSentTo String? // recipient mobile in E.164 — audit trail
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([childId, roomId, date], map: "AttendanceRecord_roomId_unique_idx")
   @@index([serviceId, date, sessionType])
   @@index([childId])
 }
@@ -4085,21 +4560,21 @@ model PolicyDocumentAcknowledgement {
 // ============================================================
 
 model EmploymentContract {
-  id                  String               @id @default(cuid())
+  id                  String         @id @default(cuid())
   userId              String
-  user                User                 @relation("ContractEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  user                User           @relation("ContractEmployee", fields: [userId], references: [id], onDelete: Cascade)
   contractType        ContractType
   awardLevel          AwardLevel?
   awardLevelCustom    String?
   payRate             Float
   hoursPerWeek        Float?
-  startDate           DateTime             @db.Date
-  endDate             DateTime?            @db.Date
-  status              ContractStatus       @default(contract_draft)
+  startDate           DateTime       @db.Date
+  endDate             DateTime?      @db.Date
+  status              ContractStatus @default(contract_draft)
   documentUrl         String?
   documentId          String?
   signedAt            DateTime?
-  acknowledgedByStaff Boolean              @default(false)
+  acknowledgedByStaff Boolean        @default(false)
   acknowledgedAt      DateTime?
 
   // ── Two-party signatures (2026-06-02) ────────────────────────────
@@ -4113,28 +4588,28 @@ model EmploymentContract {
   // Legacy contracts (issued before this feature) leave these null;
   // the render-html signature placeholder substitution treats null
   // as "no signature available" and renders blank.
-  adminSignatureDataUrl  String?           @db.Text
-  adminSignedById        String?
-  adminSignedBy          User?             @relation("ContractAdminSigner", fields: [adminSignedById], references: [id], onDelete: SetNull)
-  adminSignedAt          DateTime?
-  staffSignatureDataUrl  String?           @db.Text
+  adminSignatureDataUrl String?              @db.Text
+  adminSignedById       String?
+  adminSignedBy         User?                @relation("ContractAdminSigner", fields: [adminSignedById], references: [id], onDelete: SetNull)
+  adminSignedAt         DateTime?
+  staffSignatureDataUrl String?              @db.Text
   // staffSignedAt is intentionally NOT a new column — `acknowledgedAt`
   // already records the moment the staff member completed their
   // acknowledgement, which under the new flow IS the signature.
-  notes               String?              @db.Text
-  previousContractId  String?
-  previousContract    EmploymentContract?  @relation("ContractHistory", fields: [previousContractId], references: [id])
-  supersededBy        EmploymentContract[] @relation("ContractHistory")
-  templateId          String?
-  template            ContractTemplate?    @relation("ContractFromTemplate", fields: [templateId], references: [id], onDelete: SetNull)
-  templateValues      Json?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  notes                 String?              @db.Text
+  previousContractId    String?
+  previousContract      EmploymentContract?  @relation("ContractHistory", fields: [previousContractId], references: [id])
+  supersededBy          EmploymentContract[] @relation("ContractHistory")
+  templateId            String?
+  template              ContractTemplate?    @relation("ContractFromTemplate", fields: [templateId], references: [id], onDelete: SetNull)
+  templateValues        Json?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   // Back-ref for CasualConversionElection — when this contract was the
   // result of an accepted conversion election, the election row points
   // back here. Unique because one contract = one election (or null).
-  conversionElection  CasualConversionElection? @relation("ConversionResultContract")
+  conversionElection CasualConversionElection? @relation("ConversionResultContract")
 
   @@index([userId])
   @@index([status])
@@ -4291,21 +4766,21 @@ model TimesheetEntry {
 // ============================================================
 
 model OffboardingPack {
-  id          String   @id @default(cuid())
-  name        String
-  description String?  @db.Text
-  serviceId   String?
-  service     Service? @relation("ServiceOffboardingPacks", fields: [serviceId], references: [id], onDelete: SetNull)
-  isDefault   Boolean  @default(false)
+  id                        String           @id @default(cuid())
+  name                      String
+  description               String?          @db.Text
+  serviceId                 String?
+  service                   Service?         @relation("ServiceOffboardingPacks", fields: [serviceId], references: [id], onDelete: SetNull)
+  isDefault                 Boolean          @default(false)
   // 2026-07-08: employment-type-aware packs. When set, the assign
   // endpoint auto-picks this pack for departing staff whose active
   // contract has a matching type. Empty array = fallback / manual only.
   // Introduced with the MA000120 Casual + Permanent packs so casuals
   // don't get the full-time NES notice checklist and vice versa.
   applicableEmploymentTypes EmploymentType[] @default([])
-  deleted     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  deleted                   Boolean          @default(false)
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
 
   tasks       OffboardingTask[]
   assignments StaffOffboarding[]
@@ -4600,6 +5075,8 @@ model CentreContact {
   exitSurveys           ExitSurvey[]           @relation("ContactExitSurveys")
   sequenceEnrolments    SequenceEnrolment[]    @relation("ContactSequenceEnrolments")
   statements            Statement[]            @relation("ContactStatements")
+  debtContacts          FamilyDebtContact[]    @relation("ContactDebtChases")
+  discounts             FamilyDiscount[]       @relation("ContactDiscounts")
   payments              Payment[]              @relation("ContactPayments")
   documents             ParentDocument[]       @relation("ContactDocuments")
   supportTickets        SupportTicket[]        @relation("ParentTickets")
@@ -4616,6 +5093,7 @@ model CentreContact {
   @@unique([email, serviceId])
   @@index([serviceId])
   @@index([serviceId, status])
+  @@index([createdAt])
 }
 
 // ============================================================
@@ -4689,21 +5167,27 @@ model SocialAccount {
 }
 
 model DeliveryLog {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   channel        String // email, whatsapp, social
   serviceCode    String?
   messageType    String? // week_ahead, newsletter, etc.
   externalId     String? // provider message/post ID
-  recipientCount Int      @default(0)
-  status         String // sent, scheduled, failed
-  errorMessage   String?  @db.Text
+  /// Disambiguates what externalId holds: "resend_message" | "brevo_message"
+  /// (<50-recipient transactional sends) | "brevo_campaign" (>=50 sends,
+  /// Brevo numeric campaign id as string). Null on legacy rows.
+  externalIdType String?
+  recipientCount Int       @default(0)
+  status         String // sent, scheduled, failed, sending, partial
+  errorMessage   String?   @db.Text
   payload        Json? // original request body for debugging
   entityType     String?
   entityId       String?
   subject        String?
   templateId     String?
-  renderedHtml   String?  @db.Text
-  createdAt      DateTime @default(now())
+  renderedHtml   String?   @db.Text
+  createdAt      DateTime  @default(now())
+  /// When dispatch actually completed (createdAt is row creation; differs for scheduled + pre-created "sending" rows).
+  sentAt         DateTime?
 
   @@index([channel])
   @@index([serviceCode])
@@ -4712,6 +5196,28 @@ model DeliveryLog {
   @@index([serviceCode, createdAt])
   @@index([status])
   @@index([channel, status])
+  @@index([externalId])
+}
+
+/// Per-recipient marketing send ledger — the frequency-cap data source.
+/// Written by recordMarketingSends() at EVERY marketing send path (campaign
+/// both branches, cowork, nurture, resend); retention-swept by email-janitor
+/// (rows older than 30 days are deleted).
+model MarketingSendRecipient {
+  id String @id @default(cuid())
+
+  /// ALWAYS lowercased — see recordMarketingSends. Compare lowercase to
+  /// lowercase or the frequency-cap filter silently matches nothing.
+  email         String
+  deliveryLogId String?
+  contactId     String?
+  /// "campaign" | "cowork" | "nurture" | "resend" | "lifecycle"
+  source        String
+  sentAt        DateTime @default(now())
+
+  @@index([email, sentAt])
+  @@index([deliveryLogId])
+  @@index([sentAt])
 }
 
 // ============================================================
@@ -4778,6 +5284,11 @@ model BookingForecast {
   service     Service     @relation("ServiceBookings", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomBookingForecast", fields: [roomId], references: [id], onDelete: Restrict)
   regular     Int         @default(0)
   casual      Int         @default(0)
   total       Int         @default(0)
@@ -4785,6 +5296,14 @@ model BookingForecast {
   syncedAt    DateTime    @default(now())
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "BookingForecast_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
 }
@@ -4795,6 +5314,11 @@ model RosterShift {
   service     Service     @relation("ServiceRosterShifts", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomRosterShift", fields: [roomId], references: [id], onDelete: Restrict)
   staffName   String
   shiftStart  String // "HH:mm"
   shiftEnd    String // "HH:mm"
@@ -4849,6 +5373,11 @@ model ResponsiblePersonEntry {
   service     Service     @relation("ServiceResponsiblePersons", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomResponsiblePersonEntry", fields: [roomId], references: [id], onDelete: Restrict)
   personName  String
   personRole  String?
   userId      String?
@@ -4862,6 +5391,14 @@ model ResponsiblePersonEntry {
   updatedAt   DateTime    @updatedAt
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "ResponsiblePersonEntry_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
@@ -4941,6 +5478,11 @@ model ShiftTemplate {
   /// Short admin-facing label, e.g. "ASC educator 3-6pm".
   label       String
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomShiftTemplate", fields: [roomId], references: [id], onDelete: Restrict)
   /// "HH:mm" — same shape as RosterShift.
   shiftStart  String
   shiftEnd    String
@@ -4963,6 +5505,11 @@ model ConversionOpportunity {
   service     Service     @relation("ServiceConversions", fields: [serviceId], references: [id], onDelete: Cascade)
   familyRef   String // identifier from OWNA (family ID or child name)
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomConversionOpportunity", fields: [roomId], references: [id], onDelete: Restrict)
   casualCount Int         @default(0) // casual bookings in analysis period
   periodStart DateTime
   periodEnd   DateTime
@@ -5189,10 +5736,9 @@ model ParentEnquiry {
   touchpoints  ParentEnquiryTouchpoint[]
   nurtureSteps ParentNurtureStep[]
   sourceCall   VapiCall?                 @relation("EnquiryFromCall")
+  stageEvents  ParentEnquiryStageEvent[]
 
   @@index([serviceId])
-  stageEvents ParentEnquiryStageEvent[]
-
   @@index([stage])
   @@index([assigneeId])
   @@index([nextActionDue])
@@ -5267,13 +5813,13 @@ model Referral {
 // ============================================================
 
 model RecruitmentVacancy {
-  id                    String                 @id @default(cuid())
+  id                    String         @id @default(cuid())
   serviceId             String
-  service               Service                @relation("ServiceVacancies", fields: [serviceId], references: [id])
+  service               Service        @relation("ServiceVacancies", fields: [serviceId], references: [id])
   role                  String // educator, senior_educator, coordinator, director
   employmentType        EmploymentType
   qualificationRequired String? // none, cert_iii, diploma
-  status                String                 @default("open") // open, interviewing, offered, filled, cancelled
+  status                String         @default("open") // open, interviewing, offered, filled, cancelled
 
   // Optional link to the Position Description library — when set,
   // the vacancy detail surface shows the PD inline so interviewers
@@ -5498,40 +6044,126 @@ model QIPQualityArea {
 // INCIDENT TRACKING & TREND ANALYSIS
 // ═══════════════════════════════════════════════════════════
 
+/// The incident, injury, trauma and illness record — Regulation 87.
+///
+/// The original model was a trend-analysis table: enough to count injuries
+/// by location, nowhere near enough to be the record Reg 87 actually
+/// prescribes. Reg 87(2) lists the entries by name, and an authorised
+/// officer reads that list literally. The 2026-08-09 columns below close
+/// it: witnesses, first aid and who gave it, medical personnel contacted,
+/// and — the one that gets services in trouble — WHO was notified and at
+/// WHAT TIME, because Reg 86 gives you 24 hours from becoming aware and a
+/// bare `parentNotified` boolean can't prove you met it.
+///
+/// `sharedWithParentAt` is the gate for the family's copy in the parent
+/// portal. It is deliberately separate from `parentNotifiedAt`: notifying
+/// a parent is a phone call at the time, publishing the written record is
+/// a later, considered act. A behaviour incident naming another child
+/// must never auto-publish, so nothing reaches a parent until a human
+/// sets this.
 model IncidentRecord {
-  id                    String    @id @default(cuid())
-  serviceId             String
-  service               Service   @relation("ServiceIncidents", fields: [serviceId], references: [id])
-  incidentDate          DateTime
-  childName             String?
-  incidentType          String // injury | illness | behaviour | missing_child | near_miss | medication_error | property_damage | complaint
-  severity              String // minor | moderate | reportable | serious
-  location              String? // indoor | outdoor | playground | transition | bathroom | kitchen
-  timeOfDay             String? // arrival | programme | meal_time | packdown | departure
-  description           String    @db.Text
-  actionTaken           String?   @db.Text
-  parentNotified        Boolean   @default(false)
-  reportableToAuthority Boolean   @default(false)
-  reportedToAuthorityAt DateTime?
-  followUpRequired      Boolean   @default(false)
-  followUpCompleted     Boolean   @default(false)
-  ownaIncidentId        String?
-  createdById           String?
-  createdBy             User?     @relation("IncidentCreator", fields: [createdById], references: [id])
-  deleted               Boolean   @default(false)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id            String   @id @default(cuid())
+  serviceId     String
+  service       Service  @relation("ServiceIncidents", fields: [serviceId], references: [id])
+  incidentDate  DateTime
+  childName     String?
+  /// Linked child, where the record is about one. Kept ALONGSIDE
+  /// childName (not replacing it) so the record still reads correctly
+  /// after the child leaves and the row is set null.
+  childId       String?
+  child         Child?   @relation("ChildIncidents", fields: [childId], references: [id], onDelete: SetNull)
+  /// Reg 87(2)(a) wants the age, and "age today" is the wrong answer on a
+  /// record read two years later — so it is stamped, not derived.
+  childAge      Int?
+  incidentType  String // injury | illness | behaviour | missing_child | near_miss | medication_error | property_damage | complaint
+  severity      String // minor | moderate | reportable | serious
+  location      String? // indoor | outdoor | playground | transition | bathroom | kitchen
+  timeOfDay     String? // arrival | programme | meal_time | packdown | departure
+  description   String   @db.Text
+  /// Reg 87(2)(b): the circumstances LEADING UP TO it, which is a
+  /// different question from what happened and is the one most often
+  /// left blank.
+  circumstances String?  @db.Text
+  actionTaken   String?  @db.Text
+
+  // ── Reg 87(2)(d)-(e): first aid and medical response ──────────────
+  firstAidGiven             Boolean @default(false)
+  /// Free text rather than a user FK: first aid is often given by a
+  /// casual or a visiting parent who has no dashboard account.
+  firstAidBy                String?
+  firstAidDetails           String? @db.Text
+  /// Reg 87(2)(e): "details of any medical personnel contacted" —
+  /// ambulance, GP, hospital, poisons line.
+  medicalPersonnelContacted String? @db.Text
+  ambulanceCalled           Boolean @default(false)
+
+  /// Reg 87(2)(f): who saw it happen. Names, free text — a witness is
+  /// frequently a child or a passer-by.
+  witnesses String? @db.Text
+
+  // ── Reg 86: notification of the family ────────────────────────────
+  parentNotified       Boolean   @default(false)
+  /// The timestamp Reg 86's 24-hour obligation is measured against.
+  parentNotifiedAt     DateTime?
+  /// Reg 87(2)(g) asks for the name of the person notified — which is
+  /// not always the enrolled parent (grandparent, emergency contact).
+  parentNotifiedName   String?
+  /// phone | in_person | email | sms | portal | attempted_no_answer.
+  /// The last value matters: Reg 87(2)(g) counts an ATTEMPT as an entry.
+  parentNotifiedMethod String?
+  parentNotifiedById   String?
+  parentNotifiedBy     User?     @relation("IncidentParentNotifier", fields: [parentNotifiedById], references: [id], onDelete: SetNull)
+
+  // ── The family's copy in the parent portal ────────────────────────
+  sharedWithParentAt      DateTime?
+  sharedById              String?
+  sharedBy                User?     @relation("IncidentSharer", fields: [sharedById], references: [id], onDelete: SetNull)
+  /// Typed-name signature, same convention as ParentFormSignature.
+  parentAcknowledgedAt    DateTime?
+  parentAcknowledgedName  String?
+  parentAcknowledgedEmail String?
+
+  // ── Reg 176(2)(a): telling the Regulatory Authority ───────────────
+  reportableToAuthority   Boolean   @default(false)
+  /// Reg 12's closed list, so the 24-hour vs 7-day question can be
+  /// answered from the record: death | serious_injury | serious_illness |
+  /// missing_child | unauthorised_removal | locked_in_or_out.
+  seriousIncidentCategory String?
+  /// The clock starts when the service BECAME AWARE, which can be days
+  /// after the incident date. Reg 176 is explicit about this.
+  becameAwareAt           DateTime?
+  reportedToAuthorityAt   DateTime?
+  /// NQA ITS notification reference, so the register proves the lodgement.
+  authorityReference      String?
+
+  followUpRequired  Boolean  @default(false)
+  followUpCompleted Boolean  @default(false)
+  ownaIncidentId    String?
+  createdById       String?
+  createdBy         User?    @relation("IncidentCreator", fields: [createdById], references: [id])
+  /// Reg 87(2)(h): the name and signature of the person making the entry.
+  /// createdBy gives the account; this gives the signature they typed.
+  recordedSignature String?
+  deleted           Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Workers compensation claim that may stem from this incident.
   // SetNull on the FK in the back-relation so an incident can be
   // deleted without taking the WC record with it (the claim is its
   // own legal artifact at that point).
-  workersCompClaims     WorkersCompensationClaim[] @relation("IncidentWCClaim")
+  workersCompClaims WorkersCompensationClaim[] @relation("IncidentWCClaim")
 
   @@index([serviceId])
   @@index([incidentDate])
   @@index([incidentType])
   @@index([severity])
+  /// The parent portal's only query: this child's shared records, newest
+  /// first. Without it every parent page load sequentially scans.
+  @@index([childId, sharedWithParentAt])
+  /// Drives the "notification overdue" surfaces — the outstanding
+  /// Reg 176 lodgements, and the Reg 86 24-hour breaches.
+  @@index([serviceId, reportableToAuthority, reportedToAuthorityAt])
 }
 
 // ============================================================
@@ -5716,6 +6348,47 @@ model KnowledgeBaseArticle {
 }
 
 // ============================================================
+// Parent Help Centre (public Freshdesk-style support portal)
+// ============================================================
+// Parent-facing knowledge base served at /support (no auth).
+// Deliberately separate from KnowledgeBaseArticle (staff-facing /help)
+// so parent and staff content never mix. Ticket submissions from the
+// portal create SupportTicket rows (source "portal") via a stub
+// WhatsAppContact, landing in the contact-centre queue.
+
+model HelpCategory {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String        @default("")
+  icon        String        @default("book-open") // lucide icon key rendered on the category card
+  sortOrder   Int           @default(0)
+  published   Boolean       @default(false)
+  articles    HelpArticle[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([published, sortOrder])
+}
+
+model HelpArticle {
+  id         String       @id @default(cuid())
+  categoryId String
+  category   HelpCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title      String
+  slug       String       @unique
+  body       String       @db.Text // markdown, rendered with the standard sanitised pipeline
+  sortOrder  Int          @default(0)
+  published  Boolean      @default(false)
+  viewCount  Int          @default(0) // incremented on public article reads; drives "popular articles"
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([categoryId, published, sortOrder])
+  @@index([published, viewCount])
+}
+
+// ============================================================
 // Cowork Reports (AI-generated seat reports)
 // ============================================================
 
@@ -5759,6 +6432,11 @@ model DailyChecklist {
   service       Service              @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   date          DateTime             @db.Date
   sessionType   SessionType          @default(asc)
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId        String
+  room          Room                @relation("RoomDailyChecklist", fields: [roomId], references: [id], onDelete: Restrict)
   status        String               @default("pending") // pending | in_progress | completed
   completedAt   DateTime?
   completedById String?
@@ -5769,6 +6447,14 @@ model DailyChecklist {
   updatedAt     DateTime             @updatedAt
 
   @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "DailyChecklist_roomId_unique_idx")
   @@index([serviceId])
   @@index([date])
   @@index([status])
@@ -6193,11 +6879,14 @@ model EnrolmentSubmission {
   paymentDetails Json? // { lastFour, cardType } or { bsbLastThree, accountLastFour } — MASKED
 
   // Phase 8: Submission
-  referralSource  String?
-  signature       String? @db.Text
-  termsAccepted   Boolean @default(false)
-  privacyAccepted Boolean @default(false)
-  debitAgreement  Boolean @default(false)
+  referralSource       String?
+  /// 2026-08-03 (Ambassadors): free-text answer to "Which educator spoke
+  /// with you?" — shown when referralSource is the educator option.
+  referralEducatorName String?
+  signature            String? @db.Text
+  termsAccepted        Boolean @default(false)
+  privacyAccepted      Boolean @default(false)
+  debitAgreement       Boolean @default(false)
 
   // Court orders
   courtOrders     Boolean @default(false)
@@ -6221,6 +6910,8 @@ model EnrolmentSubmission {
 
   childRecords Child[]
 
+  ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorFromSubmission")
+
   @@index([status])
   @@index([enquiryId])
   @@index([token])
@@ -6231,6 +6922,11 @@ model EnrolmentSubmission {
 // ============================================================
 
 model Child {
+  // 2026-08-03: why this child sits at THIS service. A child enrolled at
+  // two centres has two Child rows, and without this the second one looks
+  // like a duplicate or a mistake. Null = ordinary term care.
+  // Values: holiday_quest | sibling_campus | casual | transferring | other
+  placementReason       String?
   id                    String               @id @default(cuid())
   enrolmentId           String?
   enrolment             EnrolmentSubmission? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
@@ -6268,29 +6964,63 @@ model Child {
   room                  String? // dashboard-controlled room label; decoupled from OWNA's ownaRoomName
   tags                  String[]             @default([]) // optional filter tags; empty-array default means existing rows don't need backfill
   photo                 String? // URL to profile photo (Vercel Blob)
-  status                String               @default("pending") // pending, active, withdrawn
-  // OWNA sync fields
-  ownaChildId           String?              @unique
-  ownaRoomId            String?
-  ownaRoomName          String?
-  ownaSyncedAt          DateTime?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
 
-  bookings           Booking[]            @relation("ChildBookings")
-  absences           Absence[]            @relation("ChildAbsences")
-  documents          ParentDocument[]     @relation("ChildDocuments")
-  childDocuments     ChildDocument[]      @relation("ChildProfileDocuments")
-  authorisedPickups  AuthorisedPickup[]   @relation("ChildPickups")
-  postTags           ParentPostChildTag[] @relation("ChildPostTags")
-  attendanceRecords  AttendanceRecord[]   @relation("ChildAttendance")
-  statementLineItems StatementLineItem[]  @relation("ChildStatementLines")
+  // ── OSHC enrolment record (2026-07-31) ───────────────────────────────
+  // Modelled on the fields OWNA collects, trimmed to what school-age care
+  // actually needs. Toileting and sleep-check were deliberately NOT
+  // carried over — they're under-24-month concerns and meaningless here.
+  preferredName             String? // what educators actually call them
+  livesWith                 String? // "Both parents", "Mother", shared care…
+  // Reg 160(3)(h)-(i): language and cultural background of the child.
+  mainLanguageAtHome        String?
+  languagesOtherThanEnglish String?
+  englishAssistance         Boolean @default(false)
+  // Collected for reporting; "Neither" is a real answer, so null means
+  // "not asked yet" rather than "no".
+  indigenousStatus          String?
+  yearOfArrival             Int? // if not born in Australia
+  // Drives the staff discount, so it's a billing input, not just a note.
+  isStaffChild              Boolean @default(false)
+  // ── Posting / consent preferences ──
+  suppressBirthdayPost      Boolean @default(false)
+  ownSunscreen              Boolean @default(false)
+  noAppPosting              Boolean @default(false)
+  allowSocialMediaPost      Boolean @default(false)
+
+  status       String    @default("pending") // pending, active, withdrawn
+  // OWNA sync fields
+  ownaChildId  String?   @unique
+  ownaRoomId   String?
+  ownaRoomName String?
+  ownaSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  bookings           Booking[]             @relation("ChildBookings")
+  absences           Absence[]             @relation("ChildAbsences")
+  documents          ParentDocument[]      @relation("ChildDocuments")
+  childDocuments     ChildDocument[]       @relation("ChildProfileDocuments")
+  authorisedPickups  AuthorisedPickup[]    @relation("ChildPickups")
+  postTags           ParentPostChildTag[]  @relation("ChildPostTags")
+  formSignatures     ParentFormSignature[] @relation("ChildFormSignatures")
+  illnessRecords     IllnessRecord[]       @relation("ChildIllnessRecords")
+  discounts          FamilyDiscount[]      @relation("ChildDiscounts")
+  attendanceRecords  AttendanceRecord[]    @relation("ChildAttendance")
+  statementLineItems StatementLineItem[]   @relation("ChildStatementLines")
+  feeAssignments     ChildFeeAssignment[]  @relation("ChildFeeAssignments")
 
   // ── NQS relations ─────────────────────────────────
   observations  LearningObservation[]      @relation("ChildObservations")
   medications   MedicationAdministration[] @relation("ChildMedications")
   allAboutMe    AllAboutMe?                @relation("ChildAllAboutMe")
   feedbackItems ParentFeedback[]           @relation("ChildFeedback")
+
+  // ── Regulatory records (2026-08-09) ───────────────
+  incidents    IncidentRecord[]   @relation("ChildIncidents")
+  medicalPlans ChildMedicalPlan[] @relation("ChildMedicalPlans")
+  complaints   ComplaintRecord[]  @relation("ChildComplaints")
+
+  ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorChild")
 
   @@index([enrolmentId])
   @@index([serviceId])
@@ -6413,6 +7143,154 @@ model SequenceStepExecution {
 
 // ── Parent Portal ───────────────────────────────────────────
 
+// ─── Parent accounts (2026-07-30) ────────────────────────────────────
+//
+// Phase 1 of the enrolment re-architecture. Previously parents had NO
+// account: they submitted an anonymous enrolment and were identified
+// afterwards by scanning EnrolmentSubmission JSON for their email.
+// Now the account exists FIRST and owns everything that follows.
+//
+// Login is password-primary with the existing magic link kept as the
+// forgot-password path, so a parent can never be locked out of their
+// own enrolment.
+model ParentAccount {
+  id                        String    @id @default(cuid())
+  // Always stored lowercased+trimmed — the lookup path depends on it.
+  email                     String    @unique
+  passwordHash              String
+  // Null until the parent clicks the emailed confirmation link. Gates
+  // login: an unverified account cannot start an enrolment.
+  emailVerifiedAt           DateTime?
+  // Captured at sign-up so we can address them in the confirmation email
+  // before any enrolment data exists.
+  firstName                 String?
+  surname                   String?
+  // Set when an existing family claims their pre-account enrolments, so
+  // the one-time backfill is auditable and never re-runs.
+  claimedAt                 DateTime?
+  lastLoginAt               DateTime?
+  // 2026-07-30: when staff last nudged this family to finish their
+  // enrolment. Stored so the Families list can show "reminded 2 days ago"
+  // and staff don't unknowingly send the same parent three emails.
+  enrolmentReminderSentAt   DateTime?
+  // 2026-08-03: staff can switch a family's portal access off without
+  // deleting them. Deleting loses the enrolment history and the billing
+  // arrangement; a family who leaves, or who is in dispute, needs the
+  // access gone but the record kept. Null = active.
+  // 2026-08-04: the "Add Amana to your phone" card on the portal home.
+  // Against the ACCOUNT, not localStorage — a parent who dismisses it on
+  // their phone shouldn't meet it again on the tablet.
+  appInstallCardDismissedAt DateTime?
+  deactivatedAt             DateTime?
+  deactivatedById           String?
+  deactivatedReason         String?
+
+  // ── Family identity ──────────────────────────────────────────────────
+  // 2026-07-31: the household's name, taken from the PRIMARY carer's
+  // surname when they submit their enrolment. Stored rather than derived
+  // so staff can correct it — blended families, hyphenated names and
+  // parents with different surnames to their children are all normal, and
+  // guessing wrong every time you render the list is worse than storing
+  // it once.
+  familyName String?
+
+  // ── Billing arrangement ──────────────────────────────────────────────
+  // Kept on the account rather than a separate model: the family IS the
+  // billing entity here, and a one-to-one table would be indirection with
+  // no second owner.
+  billingFrequency  String? // "weekly" | "fortnightly" | "monthly"
+  // Day the debit falls. 1-7 (Mon-Sun) for weekly/fortnightly, 1-28 for
+  // monthly — capped at 28 so a February billing date always exists.
+  billingAnchorDay  Int?
+  // Optional ceiling per debit, in CENTS. Integer on purpose: floats and
+  // money don't mix, and this figure is compared against real charges.
+  billingLimitCents Int?
+  billingNotes      String? @db.Text
+
+  // ── Invoicing schedule ───────────────────────────────────────────────
+  // Modelled on what OWNA exposes, because that's the shape the office
+  // already reasons in. Daniel: "billing day, and then starting week of —
+  // e.g. starting from the week of 3 April, the billing date would be the
+  // 13th." A weekday alone can't express that, so the cycle is anchored to
+  // real DATES: which period it covers, when the next invoice goes out,
+  // and how many weeks each cycle spans.
+  //
+  // Anything before this is ignored when generating invoices.
+  billingStartDate     DateTime? @db.Date
+  // The period the NEXT invoice covers, and when it is raised.
+  billingPeriodStart   DateTime? @db.Date
+  nextBillingDate      DateTime? @db.Date
+  // Weeks per invoice cycle (1 = weekly, 2 = fortnightly, 4 = monthly-ish).
+  billingWeeks         Int?
+  // Inverted from OWNA's "Do NOT Auto Invoice" so the default is the safe,
+  // expected behaviour rather than depending on a false meaning "on".
+  autoInvoice          Boolean   @default(true)
+  // Suspends the debit without losing the arrangement — a payment plan or
+  // a family in hardship, where deleting the setup would lose the history.
+  pauseDebiting        Boolean   @default(false)
+  // Staff follow-up, surfaced in the communication diary.
+  billingReminderDate  DateTime? @db.Date
+  billingReminderNotes String?   @db.Text
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  verifications  ParentEmailVerification[]
+  enrolmentDraft EnrolmentDraft?
+
+  /// 2026-08-03 (Ambassadors): educator ref code captured from
+  /// /parent/signup?ref= — validated against EducatorRefCode at signup,
+  /// resolved into attribution when an enrolment is submitted.
+  ambassadorRefCode String?
+
+  @@index([email])
+}
+
+// Single-use, hashed email-confirmation tokens. Mirrors ParentMagicLink's
+// shape deliberately: only the hash is stored, so a database leak cannot
+// be replayed to verify someone else's address.
+model ParentEmailVerification {
+  id        String        @id @default(cuid())
+  accountId String
+  account   ParentAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([accountId])
+  @@index([tokenHash])
+}
+
+// ─── Enrolment draft (2026-07-30, Phase 2) ───────────────────────────
+//
+// A parent's in-progress enrolment, owned by their account. Separate from
+// EnrolmentSubmission on purpose: a submission is a completed, immutable
+// record staff act on, whereas this is scratch state that changes on every
+// keystroke. Mixing them would mean half-filled rows appearing in the
+// staff enrolment queue.
+//
+// One draft per account (@unique on accountId) — a parent completes one
+// enrolment at a time, adding multiple children within it.
+//
+// `data` is the whole form blob rather than columns because the shape is
+// still moving; it's validated on SUBMIT, not on autosave. Autosave must
+// never reject a half-typed field — losing a parent's work to a validation
+// error they can't see is worse than storing something incomplete.
+model EnrolmentDraft {
+  id          String        @id @default(cuid())
+  accountId   String        @unique
+  account     ParentAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  // Which step they were last on, so "continue where you left off" lands
+  // them in the right place rather than back at step 1.
+  currentStep Int           @default(0)
+  data        Json          @default("{}")
+  submittedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([accountId])
+}
+
 model ParentMagicLink {
   id        String    @id @default(cuid())
   email     String
@@ -6433,6 +7311,11 @@ model Booking {
   service       Service        @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
   date          DateTime       @db.Date
   sessionType   SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId        String
+  room          Room          @relation("RoomBooking", fields: [roomId], references: [id], onDelete: Restrict)
   status        BookingStatus  @default(requested)
   type          BookingType    @default(casual)
   fee           Float?
@@ -6449,6 +7332,14 @@ model Booking {
   updatedAt     DateTime       @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([childId, roomId, date], map: "Booking_roomId_unique_idx")
   @@index([childId])
   @@index([serviceId])
   @@index([date])
@@ -6467,6 +7358,11 @@ model Absence {
   service               Service     @relation("ServiceAbsences", fields: [serviceId], references: [id], onDelete: Cascade)
   date                  DateTime    @db.Date
   sessionType           SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId                String
+  room                  Room       @relation("RoomAbsence", fields: [roomId], references: [id], onDelete: Restrict)
   isIllness             Boolean     @default(false)
   medicalCertificateUrl String?
   reason                String? // "sick" | "holiday" | "other"
@@ -6476,6 +7372,14 @@ model Absence {
   createdAt             DateTime    @default(now())
 
   @@unique([childId, serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([childId, roomId, date], map: "Absence_roomId_unique_idx")
   @@index([childId, date])
   @@index([serviceId, date])
   @@index([childId])
@@ -6517,6 +7421,11 @@ model StatementLineItem {
   childId     String
   date        DateTime    @db.Date
   sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomStatementLineItem", fields: [roomId], references: [id], onDelete: Restrict)
   description String
   grossFee    Float
   ccsHours    Float       @default(0)
@@ -6623,6 +7532,110 @@ model ChildDocument {
   @@index([uploadedById])
 }
 
+/// Regulation 90 — the three plans a child with a medical condition must
+/// have, and the one thing the dashboard could not previously hold.
+///
+/// Before this, a child's anaphylaxis was `medicalConditions: ["Anaphylaxis"]`
+/// plus `anaphylaxisActionPlan: true` — a string in an array and a boolean.
+/// That records that a plan EXISTS somewhere; it is not the plan. Reg 90(1)(c)
+/// asks for three distinct documents per condition and assessors ask for all
+/// three by name:
+///
+///   (i)   the medical management plan, signed by a registered medical
+///         practitioner — an upload, because it is their document, not ours;
+///   (ii)  the risk minimisation plan, developed IN CONSULTATION WITH the
+///         family (hence `developedWithParentAt` — consultation is the part
+///         that gets challenged, so the record has to carry its own proof);
+///   (iii) the communication plan, which is how staff — including a casual
+///         who has never met the child — find out, and how the family tells
+///         us when things change.
+///
+/// One row per CONDITION, not per child: a child with asthma and a nut
+/// allergy has two management plans from two practitioners and two very
+/// different emergency responses. Collapsing them into one row is how a
+/// service ends up giving Ventolin to an anaphylaxis.
+model ChildMedicalPlan {
+  id        String   @id @default(cuid())
+  childId   String
+  child     Child    @relation("ChildMedicalPlans", fields: [childId], references: [id], onDelete: Cascade)
+  /// Denormalised from the child so the register can be listed and
+  /// filtered per service without a join through Child on every read.
+  /// Nullable because a child may sit between services mid-transfer.
+  serviceId String?
+  service   Service? @relation("ServiceMedicalPlans", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  /// anaphylaxis | asthma | diabetes | epilepsy | allergy | dietary |
+  /// other. Drives the emergency-response template and the icon; free
+  /// text is still accepted so an unusual condition is never blocked.
+  conditionType String
+  /// The specific condition as it should read on the medical wall:
+  /// "Anaphylaxis — peanut and tree nut", not just "Anaphylaxis".
+  condition     String
+  /// mild | moderate | severe. Severe drives the red treatment on the
+  /// roll-call card and the sign-in kiosk.
+  severity      String @default("moderate")
+
+  // ── Reg 90(1)(c)(i): the practitioner's plan ──────────────────────
+  managementPlanUrl      String?
+  managementPlanFileName String?
+  /// The practitioner who signed it, and when. An ASCIA plan older than
+  /// its review date is treated as expired, not merely stale.
+  practitionerName       String?
+  planIssuedDate         DateTime? @db.Date
+  planExpiryDate         DateTime? @db.Date
+
+  // ── Reg 90(1)(c)(ii): risk minimisation ───────────────────────────
+  riskMinimisationPlan  String    @db.Text
+  /// Reg 90(1)(c)(ii) requires this be developed in consultation with
+  /// the family. Null means it has not been — which is a finding, so it
+  /// is stored as an absent timestamp rather than a defaulted one.
+  developedWithParentAt DateTime?
+
+  // ── Reg 90(1)(c)(iii): communication ──────────────────────────────
+  communicationPlan String @db.Text
+
+  /// What to actually do, in order, when it happens. Held separately
+  /// from the uploaded plan because a PDF in blob storage is no use to
+  /// an educator holding a wheezing child.
+  emergencyResponse String? @db.Text
+
+  medicationRequired Boolean @default(false)
+  /// Name, dose, route, where it is stored. Storage location is the
+  /// detail people omit and the one that costs minutes in an emergency.
+  medicationDetails  String? @db.Text
+  medicationLocation String?
+
+  /// Families sign to confirm the plan is current and correct. Same
+  /// typed-name convention as ParentFormSignature.
+  parentAcknowledgedAt    DateTime?
+  parentAcknowledgedName  String?
+  parentAcknowledgedEmail String?
+
+  /// Reviewed at least annually, and after any incident. Nullable so an
+  /// unreviewed plan is visibly unreviewed rather than silently due
+  /// "now".
+  reviewDueAt      DateTime? @db.Date
+  lastReviewedAt   DateTime?
+  lastReviewedById String?
+  lastReviewedBy   User?     @relation("MedicalPlanReviewer", fields: [lastReviewedById], references: [id], onDelete: SetNull)
+
+  /// active | archived. Archive rather than delete — a plan that was in
+  /// force at the time of an incident has to remain readable afterwards.
+  status String @default("active")
+
+  createdById String?
+  createdBy   User?    @relation("MedicalPlanCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([childId, status])
+  @@index([serviceId, status])
+  /// The two expiry sweeps: plans past their practitioner review date,
+  /// and plans past our own annual review.
+  @@index([serviceId, planExpiryDate])
+  @@index([serviceId, reviewDueAt])
+}
+
 // ── Parent Posts (Staff-to-Parent Timeline) ─────────────────
 
 model ParentPost {
@@ -6636,15 +7649,53 @@ model ParentPost {
   authorId    String?
   author      User?          @relation("PostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
   isCommunity Boolean        @default(false) // If true, visible to all parents at the service. If false, only tagged children's parents.
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+
+  // ── Scheduling (2026-08-01) ──────────────────────────────────────────
+  // draft | scheduled | published. Default "published" so every existing
+  // row stays visible after the migration — the alternative would hide
+  // every post already live.
+  status    String    @default("published")
+  // When the post becomes visible. Null = immediately.
+  //
+  // Visibility is evaluated at READ time (publishAt <= now) rather than
+  // by a cron flipping a flag: a cron that fails or lags means a
+  // scheduled post silently never appears, whereas a comparison can't
+  // drift.
+  publishAt DateTime?
+
+  // ── Curriculum tagging ───────────────────────────────────────────────
+  // MTOP, not EYLF — MTOP is the school-age framework, and offering both
+  // invites tagging an OSHC post against the birth-to-five one.
+  mtopOutcomes       String[] @default([])
+  nqsAreas           String[] @default([])
+  // Links to the program activities this post evidences.
+  programActivityIds String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── The planning cycle (2026-08-06) ──────────────────────────────────
+  // A post can EXTEND an earlier one: you observed something, you did
+  // something about it, and this is that. NQS Element 1.3 is the
+  // assessment-and-planning cycle, and it's the element services most
+  // often sit on "Working Towards" — not because nobody observes, but
+  // because nothing shows what happened next.
+  //
+  // Self-relation rather than a join table: a follow-up extends exactly
+  // one post, and the chain is read in both directions (what did this
+  // come from / what came of it).
+  extendsPostId String?
+  extendsPost   ParentPost?  @relation("PostExtensions", fields: [extendsPostId], references: [id], onDelete: SetNull)
+  extensions    ParentPost[] @relation("PostExtensions")
 
   tags     ParentPostChildTag[]
   likes    ParentPostLike[]
   comments ParentPostComment[]
 
   @@index([serviceId])
+  @@index([extendsPostId])
   @@index([createdAt])
+  @@index([status, publishAt])
 }
 
 model ParentPostChildTag {
@@ -6689,6 +7740,807 @@ model ParentPostComment {
 }
 
 // ── Parent Notifications (In-App Bell) ──────────────────
+
+// ── Parent forms ───────────────────────────────────────────────────────
+// Permission slips, policy acknowledgements, excursion consents — the
+// paper a centre needs a family's signature on, without the paper.
+model ParentForm {
+  id          String    @id @default(cuid())
+  serviceId   String
+  service     Service   @relation("ServiceParentForms", fields: [serviceId], references: [id], onDelete: Cascade)
+  title       String
+  description String?   @db.Text
+  /// The document itself (PDF or image in blob storage). Optional — an
+  /// acknowledgement can be pure text ("I agree to the sun-safety policy").
+  fileUrl     String?
+  fileName    String?
+  /// Signatures wanted by this date. Informational, not enforced.
+  dueDate     DateTime? @db.Date
+  /// One signature PER CHILD rather than per family. This is the CWA /
+  /// medical-consent shape: "signed for Abdul" says nothing about his
+  /// sister, so each child needs their own row.
+  perChild    Boolean   @default(false)
+  status      String    @default("active") // active | archived
+  createdById String?
+  createdBy   User?     @relation("ParentFormCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  signatures ParentFormSignature[]
+  excursion  ServiceExcursion?     @relation("ExcursionForm")
+
+  @@index([serviceId, status])
+}
+
+/// An excursion or incursion as a thing, not a form.
+///
+/// A permission slip is only half of it. Regulation 100-102 wants a risk
+/// assessment written BEFORE the outing and reviewed, and the service
+/// needs to know how many of the attending children have actually been
+/// signed for. Holding those together is the whole point: an excursion
+/// with 31 children and 8 signatures is a fact you want on one line,
+/// not something you reconstruct from a form list the night before.
+///
+/// Permissions reuse ParentForm with `perChild: true` rather than a
+/// second signature system — a signature is a signature, and the CWA
+/// shape is already exactly right for "signed for Abdul, not Amira".
+model ServiceExcursion {
+  id          String       @id @default(cuid())
+  serviceId   String
+  service     Service      @relation("ServiceExcursions", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// excursion (they leave) | incursion (someone comes in). Different
+  /// risk profiles, same paperwork shape.
+  kind        String       @default("excursion")
+  title       String
+  /// Where they're going. Null for an incursion.
+  destination String?
+  date        DateTime     @db.Date
+  /// The programme the outing belongs to, so attendance can be derived
+  /// from that day's bookings rather than kept as a second list that
+  /// drifts. SessionType, not free text.
+  sessionType SessionType?
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?        @relation("RoomServiceExcursion", fields: [roomId], references: [id], onDelete: SetNull)
+  departTime  String? // "HH:mm"
+  returnTime  String? // "HH:mm"
+  transport   String? // "Walking", "Chartered bus"…
+  notes       String?      @db.Text
+
+  /// Reg 101: the written risk assessment, and evidence someone senior
+  /// actually read it. Reviewed is a separate act from uploading.
+  riskAssessmentUrl          String?
+  riskAssessmentFileName     String?
+  riskAssessmentReviewedAt   DateTime?
+  riskAssessmentReviewedById String?
+  riskAssessmentReviewedBy   User?     @relation("ExcursionRiskReviewer", fields: [riskAssessmentReviewedById], references: [id], onDelete: SetNull)
+
+  /// The permission slip families sign. Optional only because an
+  /// incursion sometimes needs none.
+  formId String?     @unique
+  form   ParentForm? @relation("ExcursionForm", fields: [formId], references: [id], onDelete: SetNull)
+
+  headcounts ServiceHeadcount[] @relation("ExcursionHeadcounts")
+
+  status      String   @default("planned") // planned | completed | cancelled
+  createdById String?
+  createdBy   User?    @relation("ExcursionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceId, date])
+  @@index([serviceId, status])
+}
+
+/// A headcount or an evacuation drill.
+///
+/// Reg 168(2)(e) wants emergency evacuation rehearsed and recorded, and
+/// on an OSHC service a headcount is the routine act that catches a
+/// child who walked to the wrong gate. Both are the same shape: a moment
+/// in time, who was counted, and who says the count was right.
+///
+/// Counting STAFF and VISITORS as well as children is the part people
+/// skip and regulators ask about — an evacuation record that only counts
+/// children can't prove the building was cleared.
+model ServiceHeadcount {
+  id          String            @id @default(cuid())
+  serviceId   String
+  service     Service           @relation("ServiceHeadcounts", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// head_count | evacuation_drill | excursion_head_count | bus_run
+  kind        String            @default("head_count")
+  conductedAt DateTime          @default(now())
+  /// The programme running at the time, when there is one.
+  sessionType SessionType?
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?             @relation("RoomServiceHeadcount", fields: [roomId], references: [id], onDelete: SetNull)
+  /// Set when this count belongs to an outing, so an excursion can show
+  /// its own counts rather than them floating loose in the register.
+  excursionId String?
+  excursion   ServiceExcursion? @relation("ExcursionHeadcounts", fields: [excursionId], references: [id], onDelete: SetNull)
+
+  childrenCount Int
+  staffCount    Int      @default(0)
+  visitorsCount Int      @default(0)
+  /// Who was counted, when the counter went child-by-child. Optional: a
+  /// quick gate count is a number, and pretending otherwise would push
+  /// people to skip recording it at all.
+  childIds      String[] @default([])
+
+  /// Drills only: how long the building took to clear, and what went
+  /// wrong. "Nothing" is a valid answer; null means nobody said.
+  evacuationSeconds Int?
+  issuesIdentified  String? @db.Text
+  notes             String? @db.Text
+
+  conductedById String?
+  conductedBy   User?     @relation("HeadcountConductor", fields: [conductedById], references: [id], onDelete: SetNull)
+  /// Countersigned by someone senior. A drill nobody reviewed is a drill
+  /// that taught nobody anything.
+  signedOffAt   DateTime?
+  signedOffById String?
+  signedOffBy   User?     @relation("HeadcountSignOff", fields: [signedOffById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([serviceId, conductedAt])
+  @@index([serviceId, kind])
+  @@index([excursionId])
+}
+
+/// Who came into the service, and when they left.
+///
+/// Reg 165-166: the service must know who is on the premises. It is also
+/// the register that makes a headcount honest — "23 children, 3 staff,
+/// 1 visitor" is only checkable if the visitor signed in somewhere.
+///
+/// Signed out is nullable on purpose: someone still in the building is
+/// the normal state, and it's what the "still on site" list is built
+/// from at close.
+model ServiceVisitor {
+  id           String    @id @default(cuid())
+  serviceId    String
+  service      Service   @relation("ServiceVisitors", fields: [serviceId], references: [id], onDelete: Cascade)
+  name         String
+  organisation String?
+  /// Why they're here: contractor, parent tour, regulator, maintenance…
+  purpose      String?
+  /// Who they're here to see.
+  visitingWhom String?
+  phone        String?
+  signedInAt   DateTime  @default(now())
+  signedOutAt  DateTime?
+  /// Recorded when a visitor's WWCC was sighted at the door. Null means
+  /// nobody checked — which is different from "they don't have one".
+  wwccSighted  Boolean   @default(false)
+  wwccNumber   String?
+  notes        String?   @db.Text
+  recordedById String?
+  recordedBy   User?     @relation("VisitorRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+
+  @@index([serviceId, signedInAt])
+  @@index([serviceId, signedOutAt])
+}
+
+/// A staff injury or near-miss. Deliberately separate from
+/// IncidentRecord, which is about children: the fields differ (workers
+/// compensation, body part, treatment) and mixing them makes both
+/// registers harder to read and to report from.
+model StaffIncidentReport {
+  id                    String    @id @default(cuid())
+  serviceId             String
+  service               Service   @relation("ServiceStaffIncidents", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// The person hurt. Nullable so a casual or contractor can be recorded
+  /// by name without an account.
+  userId                String?
+  user                  User?     @relation("StaffIncidentSubject", fields: [userId], references: [id], onDelete: SetNull)
+  staffName             String
+  occurredAt            DateTime
+  /// injury | near_miss | illness | property | other
+  incidentType          String    @default("injury")
+  severity              String    @default("minor") // minor | moderate | serious | notifiable
+  location              String?
+  description           String    @db.Text
+  bodyPart              String?
+  treatment             String?   @db.Text
+  witnessNames          String?
+  /// SafeWork and the like. A notifiable incident that was never
+  /// notified is the thing this flag exists to make visible.
+  reportableToAuthority Boolean   @default(false)
+  reportedToAuthorityAt DateTime?
+  workersCompClaim      Boolean   @default(false)
+  followUpRequired      Boolean   @default(false)
+  followUpCompleted     Boolean   @default(false)
+  followUpNotes         String?   @db.Text
+
+  reportedById  String?
+  reportedBy    User?     @relation("StaffIncidentReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  signedOffAt   DateTime?
+  signedOffById String?
+  signedOffBy   User?     @relation("StaffIncidentSignOff", fields: [signedOffById], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([serviceId, occurredAt])
+  @@index([serviceId, severity])
+}
+
+/// Illness and infectious disease.
+///
+/// Reg 88: when a child has an infectious disease the service must
+/// notify families. Recording the case and the notification together is
+/// the point — an outbreak where nobody can show when parents were told
+/// is the situation this prevents.
+model IllnessRecord {
+  id                  String    @id @default(cuid())
+  serviceId           String
+  service             Service   @relation("ServiceIllnessRecords", fields: [serviceId], references: [id], onDelete: Cascade)
+  childId             String?
+  child               Child?    @relation("ChildIllnessRecords", fields: [childId], references: [id], onDelete: SetNull)
+  /// Kept alongside childId so a record survives a child leaving.
+  personName          String
+  /// child | staff — staff illness matters for exclusion periods too.
+  personType          String    @default("child")
+  illness             String
+  /// True for the notifiable list (gastro, hand foot and mouth, measles…).
+  infectious          Boolean   @default(false)
+  onsetDate           DateTime  @db.Date
+  excludedFrom        DateTime? @db.Date
+  /// When they may return. The date staff are actually asked for.
+  returnDate          DateTime? @db.Date
+  symptoms            String?   @db.Text
+  actionTaken         String?   @db.Text
+  /// Families told, and when. Reg 88's whole point.
+  familiesNotifiedAt  DateTime?
+  notifiedById        String?
+  notifiedBy          User?     @relation("IllnessNotifier", fields: [notifiedById], references: [id], onDelete: SetNull)
+  /// Public health unit, where the disease requires it.
+  authorityNotifiedAt DateTime?
+  notes               String?   @db.Text
+  recordedById        String?
+  recordedBy          User?     @relation("IllnessRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([serviceId, onsetDate])
+  @@index([serviceId, infectious])
+}
+
+/// The complaints and feedback register — Reg 168(2)(o) and, the sharp
+/// end, section 174(2)(b) of the National Law.
+///
+/// The dashboard had `incidentType: "complaint"` and a staff-performance
+/// case file, and neither is the register. A complaint about fees and a
+/// complaint alleging a child was left unsupervised are the same intake
+/// form and completely different legal objects: the second one starts a
+/// 24-HOUR clock to notify the Regulatory Authority, and missing it is an
+/// offence regardless of whether the allegation turns out to be true.
+///
+/// So `notifiable` is asked at intake, not derived at review — the person
+/// taking the phone call is the one who knows what was alleged, and by
+/// the time a manager triages it the next morning a third of the window
+/// is gone. `notificationDueAt` is stamped from `becameAwareAt` at write
+/// time rather than computed on read, so the deadline cannot silently
+/// move when someone corrects the date the complaint was received.
+///
+/// Note the two independent outcomes: `outcome` is what we tell the
+/// complainant, `investigationNotes` is what we write for ourselves.
+/// Merging them is how internal notes end up quoted back at a service.
+model ComplaintRecord {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation("ServiceComplaints", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Human reference for correspondence — CMP-2026-0001. Sequential per
+  /// year, minted the same way as the creative-request number.
+  reference String  @unique
+
+  receivedAt DateTime @default(now())
+  /// parent_portal | phone | email | in_person | letter | staff | anonymous.
+  /// A complaint received anonymously is still a notifiable complaint,
+  /// which is why anonymity is a source and not a reason to skip intake.
+  source     String   @default("in_person")
+
+  complainantName  String?
+  complainantEmail String?
+  complainantPhone String?
+  anonymous        Boolean @default(false)
+
+  childId   String?
+  child     Child?  @relation("ChildComplaints", fields: [childId], references: [id], onDelete: SetNull)
+  childName String?
+
+  /// fee | staff_conduct | child_safety | supervision | food | program |
+  /// communication | facilities | other.
+  category String
+  summary  String  @db.Text
+  details  String? @db.Text
+
+  // ── s.174(2)(b) / Reg 176(2)(b): the 24-hour clock ────────────────
+  /// True when the complaint ALLEGES either that a serious incident has
+  /// occurred, or that the Law/Regulations have been contravened.
+  notifiable          Boolean   @default(false)
+  /// serious_incident | law_contravention — s.174(2)(b)(i) and (ii).
+  notifiableReason    String?
+  /// When the service became aware. The clock runs from here, not from
+  /// when the complaint was written or logged.
+  becameAwareAt       DateTime?
+  /// Stamped at write time from becameAwareAt + 24h. Stored so an
+  /// overdue notification stays overdue in the register even if someone
+  /// later edits the awareness date.
+  notificationDueAt   DateTime?
+  regulatorNotifiedAt DateTime?
+  /// NQA ITS reference for the lodged notification.
+  regulatorReference  String?
+
+  // ── Handling ──────────────────────────────────────────────────────
+  /// new | acknowledged | investigating | resolved | closed | escalated
+  status         String    @default("new")
+  assignedToId   String?
+  assignedTo     User?     @relation("ComplaintAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  /// Receipt confirmed to the complainant — the first thing a family
+  /// asks about and the first thing a service forgets.
+  acknowledgedAt DateTime?
+
+  /// Internal. Never shown to the complainant, never returned on the
+  /// parent-facing endpoint.
+  investigationNotes String?   @db.Text
+  /// What the complainant is told. Safe to surface in the portal.
+  outcome            String?   @db.Text
+  resolvedAt         DateTime?
+  resolvedById       String?
+  resolvedBy         User?     @relation("ComplaintResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  /// Set for complaints raised through the parent portal, so the family
+  /// can follow their own one. Portal-raised complaints carry the
+  /// submitting parent's email; matching on it is what scopes the read.
+  parentVisible Boolean @default(false)
+
+  createdById String?
+  createdBy   User?    @relation("ComplaintCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceId, status])
+  @@index([serviceId, receivedAt])
+  /// The overdue-notification sweep.
+  @@index([notifiable, regulatorNotifiedAt])
+  @@index([complainantEmail, parentVisible])
+}
+
+/// A date a room (or the whole centre) isn't running.
+///
+/// Pupil-free days, centre closures, a vacation-care day that's already
+/// full by design. Without this, a coordinator's only options are to
+/// switch casual bookings off entirely — which closes every other day
+/// too — or to let families book a day nobody will be there.
+///
+/// sessionType null = the whole centre is closed that day.
+model ServiceBlockOutDate {
+  id          String       @id @default(cuid())
+  serviceId   String
+  service     Service      @relation("ServiceBlockOutDates", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime     @db.Date
+  sessionType SessionType?
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?        @relation("RoomServiceBlockOutDate", fields: [roomId], references: [id], onDelete: SetNull)
+  /// Shown to families when a booking is refused, so the answer is
+  /// "we're closed for the pupil-free day", not "unavailable".
+  reason      String?
+  createdById String?
+  createdBy   User?        @relation("BlockOutDateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+
+  @@index([serviceId, date])
+}
+
+/// A window of care this centre sells — the "session of care" catalogue.
+///
+/// Modelled on OWNA's Service Info → Session Times, and it exists for the
+/// reason theirs does: every fee in every room has to name a window, and
+/// before this the window was typed freehand onto each fee. Six rooms
+/// meant six chances to type 15:00–18:30 as 15:00–18:00, and the number
+/// that drifts is the one reported to CCS as the session of care.
+///
+/// The catalogue is centre-level and the rooms point AT it, not the
+/// other way round. A centre runs one 3.5-hour afternoon session; which
+/// rooms sell it is a separate question from what the session is.
+///
+/// Deliberately NOT the same thing as `Service.sessionTimes`, which holds
+/// the fixed bsc/asc/vc room definitions. That field is the room list;
+/// this table is the hours. They will converge when rooms become
+/// first-class records rather than seven fixed enum slots.
+model ServiceSessionTime {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation("ServiceSessionTimes", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// Wall-clock "HH:mm" in the centre's local time. Opening hours, not
+  /// instants — 15:00 is three in the afternoon through daylight saving
+  /// in both directions, and storing these as timestamps would be wrong
+  /// twice a year.
+  start String
+  end   String
+
+  /// Optional name. Most centres think in times and leave this blank;
+  /// the ones that don't have a reason ("Ramadan Care") and that reason
+  /// is what they'll search the dropdown for.
+  label String?
+
+  /// Retired without being deleted. Fees already reference this window,
+  /// and a historical fee has to keep reading correctly — so retiring
+  /// hides it from new fees rather than orphaning old ones.
+  active Boolean @default(true)
+
+  createdById String?
+  createdBy   User?    @relation("SessionTimeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// The same window twice is always a mistake, and two identical rows
+  /// in the dropdown is the kind of thing nobody reports and everybody
+  /// works around.
+  @@unique([serviceId, start, end])
+  @@index([serviceId, active])
+}
+
+/// Which fee a child is charged at, in one room.
+///
+/// This is the link the fees matrix was missing. A `Booking` records the
+/// child, the date and the ROOM — it has never recorded which of that
+/// room's fees applies. So in a room running four fees (recurring,
+/// casual, Wednesday care, Ramadan care) there was no way to answer
+/// "how many children are on this rate", and no way to charge two
+/// children in the same room differently.
+///
+/// One row per child per room, enforced by the unique below. A child
+/// attending both before- and after-school care has two rows, because
+/// those are two rooms with two fee lists — but they cannot be on two
+/// fees for the SAME room at once, which is the mistake this prevents.
+///
+/// `feeTierId` points into the room's `fees` array in
+/// `Service.sessionTimes` rather than at a table, because that is where
+/// fee tiers live. `feeName` is denormalised beside it so the assignment
+/// still reads correctly after a tier is renamed or archived — a row
+/// saying "fee-3" answers nothing when a parent rings about their
+/// invoice.
+/// A room at a centre, as a record rather than an enum slot.
+///
+/// Rooms are currently seven fixed slots baked into `SessionType` —
+/// `bsc`, `asc`, `vc` and four generic spares — with their definitions
+/// living as JSON on `Service.sessionTimes`. A centre cannot add an
+/// eighth without a schema change, a room cannot own a roll, and
+/// educators cannot be assigned to one.
+///
+/// STAGE 0 of the migration in docs/rooms-migration-plan.md: this table
+/// is a SHADOW. It is written by `syncRoomsFromSessionTimes` whenever
+/// the JSON changes, and nothing reads it yet. That is deliberate — it
+/// lets the backfill run, be checked against the JSON, and be corrected,
+/// while the app carries on reading the JSON exactly as before. Dropping
+/// this table today would change no behaviour.
+///
+/// `legacyKey` is the join back to the enum, and is kept FOREVER. It is
+/// how every later dual-write reconciles, and once the enum columns are
+/// dropped it is the only record of what a historical row meant.
+model Room {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation("ServiceRooms", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// What this centre calls the room. Not globally unique — two centres
+  /// each having a "Rise and Shine" is normal, not a conflict.
+  name String
+
+  /// The `SessionType` slot this room was created from. Nullable because
+  /// a room added AFTER the enum is retired has no legacy slot; every
+  /// row created by the Stage 0 backfill has one.
+  legacyKey SessionType?
+
+  /// Opening hours, "HH:MM". Strings rather than DateTime: these are
+  /// wall-clock times of day with no date, and storing them as
+  /// timestamps invites a timezone to be applied to something that
+  /// doesn't have one.
+  startTime String?
+  endTime   String?
+
+  capacity    Int?
+  /// Minimum educator:child ratio, "1:15" style. Null means the service
+  /// default applies — a room must not silently carry a looser ratio
+  /// than the service it sits in.
+  ratio       String?
+  description String? @db.Text
+  /// Age range in whole YEARS. School-age care talks in school years,
+  /// not months.
+  minAgeYears Int?
+  maxAgeYears Int?
+  photoUrl    String?
+
+  /// A room children can't be booked into — a staff room, an office. It
+  /// still exists for rostering and ratios.
+  staffOnly Boolean @default(false)
+
+  /// Retired, not deleted. A room with historical attendance can never
+  /// be removed without orphaning those records, so retiring is the only
+  /// way out. Timestamped rather than a boolean: "when did this room
+  /// close" is a question that gets asked.
+  archivedAt DateTime?
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One room per enum slot per service — this is what makes the
+  /// backfill idempotent and the resolver unambiguous. Rooms added later
+  /// with a null `legacyKey` are exempt, since Postgres treats NULLs as
+  /// distinct in a unique index, which is exactly what an unlimited
+  /// number of new rooms needs.
+  /// Stage 1 back-relations. Nothing reads these yet; they exist so the
+  /// dual-written foreign keys are declared on both sides.
+  absences                Absence[]                @relation("RoomAbsence")
+  attendanceRecords       AttendanceRecord[]       @relation("RoomAttendanceRecord")
+  bookings                Booking[]                @relation("RoomBooking")
+  bookingForecasts        BookingForecast[]        @relation("RoomBookingForecast")
+  casualDayConfigs        CasualDayConfig[]        @relation("RoomCasualDayConfig")
+  childFeeAssignments     ChildFeeAssignment[]     @relation("RoomChildFeeAssignment")
+  conversionOpportunitys  ConversionOpportunity[]  @relation("RoomConversionOpportunity")
+  dailyAttendances        DailyAttendance[]        @relation("RoomDailyAttendance")
+  dailyChecklists         DailyChecklist[]         @relation("RoomDailyChecklist")
+  familyDiscounts         FamilyDiscount[]         @relation("RoomFamilyDiscount")
+  responsiblePersonEntrys ResponsiblePersonEntry[] @relation("RoomResponsiblePersonEntry")
+  rosterShifts            RosterShift[]            @relation("RoomRosterShift")
+  serviceBlockOutDates    ServiceBlockOutDate[]    @relation("RoomServiceBlockOutDate")
+  serviceExcursions       ServiceExcursion[]       @relation("RoomServiceExcursion")
+  serviceFeeChanges       ServiceFeeChange[]       @relation("RoomServiceFeeChange")
+  serviceHeadcounts       ServiceHeadcount[]       @relation("RoomServiceHeadcount")
+  shiftTemplates          ShiftTemplate[]          @relation("RoomShiftTemplate")
+  statementLineItems      StatementLineItem[]      @relation("RoomStatementLineItem")
+
+  @@unique([serviceId, legacyKey])
+  @@index([serviceId, archivedAt])
+}
+
+model ChildFeeAssignment {
+  id        String  @id @default(cuid())
+  childId   String
+  child     Child   @relation("ChildFeeAssignments", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation("ServiceFeeAssignments", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  /// The room. Same enum every Booking and AttendanceRecord uses.
+  sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomChildFeeAssignment", fields: [roomId], references: [id], onDelete: Restrict)
+  /// The tier's id within that room's `fees` array.
+  feeTierId   String
+  /// Denormalised at write time; see the note above.
+  feeName     String
+
+  /// When this rate starts applying to this child. Null means "now, and
+  /// we didn't record a date" — which is the honest answer for an
+  /// assignment made mid-term rather than a back-dated one.
+  effectiveFrom DateTime? @db.Date
+
+  createdById String?
+  createdBy   User?    @relation("FeeAssignmentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// One fee per child per room.
+  @@unique([childId, sessionType])
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+  /// sessionType one above — a resolver bug then fails the write
+  /// instead of diverging quietly.
+  @@unique([childId, roomId], map: "ChildFeeAssignment_roomId_unique_idx")
+  /// The "Applied To" count: group by tier within a service and room.
+  @@index([serviceId, sessionType, feeTierId])
+  @@index([feeTierId])
+}
+
+/// A change to a room's fee — scheduled for a date, or already applied.
+///
+/// Two jobs in one table, deliberately. A centre raising fees decides in
+/// July that the rate changes in August; without this they write it in a
+/// calendar and do it by hand on the day, which is how a fee rise gets
+/// missed or applied a fortnight early. And every applied change leaves
+/// a row, so "who put the rate up, and when" has an answer — the
+/// question that arrives when a family disputes an invoice.
+///
+/// Fees themselves stay in Service.sessionTimes JSON. This table is the
+/// intent and the history, not the current price.
+model ServiceFeeChange {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceFeeChanges", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Which room the fee belongs to.
+  sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomServiceFeeChange", fields: [roomId], references: [id], onDelete: Restrict)
+  /// The fee tier's id within that room's `fees` array.
+  feeTierId   String
+  /// Denormalised so history stays readable after a fee is renamed or
+  /// deleted. A history row that says "fee-3" answers nothing.
+  feeName     String
+
+  /// What it was, and what it becomes. Nullable "from" because a
+  /// scheduled change recorded before the first rate exists is possible.
+  fromAmountCents Int?
+  toAmountCents   Int
+  fromCasualCents Int?
+  toCasualCents   Int?
+  fromStaffCents  Int?
+  toStaffCents    Int?
+
+  /// The day the new rate starts. For an immediate edit this is today
+  /// and the row is written already applied.
+  effectiveDate DateTime  @db.Date
+  /// scheduled | applied | cancelled
+  status        String    @default("scheduled")
+  appliedAt     DateTime?
+
+  createdById String?
+  createdBy   User?    @relation("FeeChangeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  note        String?
+
+  @@index([serviceId, status, effectiveDate])
+  @@index([serviceId, sessionType])
+}
+
+/// A record that someone chased a family about money.
+///
+/// Aged debtors could show who owed what, but not whether anyone had
+/// actually rung them — so the same family got chased twice in a week
+/// while another sat at 90 days untouched. "Nobody has contacted this
+/// family" is the most useful filter on a debtors list, and it needs a
+/// place for the contact to be written down.
+///
+/// Separate from Statement.notes because this is about the CHASE, not
+/// the invoice: one debt takes several calls, and each is its own event.
+model FamilyDebtContact {
+  id          String        @id @default(cuid())
+  contactId   String
+  contact     CentreContact @relation("ContactDebtChases", fields: [contactId], references: [id], onDelete: Cascade)
+  contactedAt DateTime      @default(now())
+  /// call | email | sms | in_person | letter
+  method      String
+  /// What came of it — a payment plan, a promise, no answer.
+  outcome     String?
+  note        String?       @db.Text
+  byId        String?
+  by          User?         @relation("DebtChaser", fields: [byId], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+
+  @@index([contactId, contactedAt])
+}
+
+/// A single day's casual capacity for one room, where it differs from
+/// the room's standing configuration.
+///
+/// OWNA materialises every casual SPOT as a row — twenty rows for twenty
+/// seats, generated a fortnight ahead by a job. That makes the grid easy
+/// and everything else hard: thousands of rows a term, a generator that
+/// can fall behind, and a booking that has to claim a specific seat.
+///
+/// A day only needs a COUNT and a switch. Which seats are taken comes
+/// from the bookings that already exist, so the two can never disagree
+/// and there's nothing to generate.
+///
+/// A row here exists only when a day differs from the default — most
+/// days have none.
+model CasualDayConfig {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceCasualDays", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime    @db.Date
+  sessionType SessionType
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String
+  room        Room       @relation("RoomCasualDayConfig", fields: [roomId], references: [id], onDelete: Restrict)
+  /// Spots for this day. Null means "use the room's usual number".
+  spots       Int?
+  /// Open the day for staff to fill without letting families book it —
+  /// the vacation-care day you're holding for siblings, or a day you
+  /// haven't announced yet.
+  closed      Boolean     @default(false)
+  note        String?
+  createdById String?
+  createdBy   User?       @relation("CasualDayCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([serviceId, date, sessionType])
+
+  /// Stage 1 parallel unique. Held AT THE SAME TIME as the
+
+  /// sessionType one above — a resolver bug then fails the write
+
+  /// instead of diverging quietly.
+
+  @@unique([roomId, date], map: "CasualDayConfig_roomId_unique_idx")
+  @@index([serviceId, date])
+}
+
+/// A standing discount on what a family pays.
+///
+/// Sibling arrangements, staff rates, hardship. OWNA calls the nearest
+/// thing "Room Discount" and hangs it off the room; that models the
+/// wrong noun. A discount belongs to a FAMILY — it follows them across
+/// rooms, it survives a fee rise, and it ends on a date. Hanging it off
+/// the room means re-applying it every time the fee matrix changes.
+///
+/// Scoped to one room when it needs to be (a staff rate that only
+/// applies to after-school care), otherwise every room.
+model FamilyDiscount {
+  id          String        @id @default(cuid())
+  contactId   String
+  contact     CentreContact @relation("ContactDiscounts", fields: [contactId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service       @relation("ServiceDiscounts", fields: [serviceId], references: [id], onDelete: Cascade)
+  /// Null = every room at this service.
+  sessionType SessionType?
+  /// Stage 1 dual key: the room this row belongs to, resolved from
+  /// (serviceId, sessionType). Nullable while both keys are written —
+  /// see docs/rooms-migration-plan.md.
+  roomId      String?
+  room        Room?         @relation("RoomFamilyDiscount", fields: [roomId], references: [id], onDelete: SetNull)
+  /// Set when the arrangement is for ONE child rather than the whole
+  /// family. A staff member's own child gets the staff rate; their
+  /// siblings might not. Null = every child in the family.
+  childId     String?
+  child       Child?        @relation("ChildDiscounts", fields: [childId], references: [id], onDelete: Cascade)
+  /// percent | amount
+  kind        String
+  /// Percent (1–100) or cents off, depending on `kind`.
+  value       Int
+  /// Why, in a word or two — it ends up on the family's billing.
+  reason      String
+  startDate   DateTime      @db.Date
+  /// Open-ended when null. A sibling discount runs until it doesn't.
+  endDate     DateTime?     @db.Date
+  createdById String?
+  createdBy   User?         @relation("DiscountCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([contactId, startDate])
+  @@index([serviceId])
+}
+
+model ParentFormSignature {
+  id          String     @id @default(cuid())
+  formId      String
+  form        ParentForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  /// The signing convention the enrolment form already uses: a typed
+  /// full name, stored with the moment it was given.
+  parentEmail String
+  signedName  String
+  /// Set when the form is per-child (CWA, medical consent). Null for a
+  /// family-level form. Uniqueness lives in two PARTIAL indexes in SQL —
+  /// a plain composite unique treats NULLs as distinct and would allow
+  /// double family signatures — so the model carries no @@unique and the
+  /// API checks before creating.
+  childId     String?
+  child       Child?     @relation("ChildFormSignatures", fields: [childId], references: [id], onDelete: Cascade)
+  signedAt    DateTime   @default(now())
+
+  @@index([formId, parentEmail])
+  @@index([parentEmail])
+}
 
 model ParentNotification {
   id          String   @id @default(cuid())
@@ -6821,6 +8673,8 @@ model EnrolmentApplication {
   service    Service       @relation("ServiceEnrolmentApplications", fields: [serviceId], references: [id])
   family     CentreContact @relation("ContactEnrolmentApplications", fields: [familyId], references: [id])
   reviewedBy User?         @relation("EnrolmentReviewedBy", fields: [reviewedById], references: [id])
+
+  ambassadorRecords AmbassadorEnrolment[] @relation("AmbassadorFromApplication")
 
   @@index([serviceId, status])
   @@index([familyId, status])
@@ -7017,7 +8871,6 @@ model EmailTemplateOverride {
   updatedAt   DateTime @updatedAt
 }
 
-
 // ─────────────────────────────────────────────────────────────────────
 // HR — Performance & disciplinary cases (2026-06-01)
 // ─────────────────────────────────────────────────────────────────────
@@ -7037,57 +8890,57 @@ model EmailTemplateOverride {
 // so the audit chain survives.
 
 model PerformanceCase {
-  id          String                @id @default(cuid())
+  id String @id @default(cuid())
 
   // Subject of the case — the staff member it concerns.
-  userId      String
-  user        User                  @relation("CaseSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("CaseSubject", fields: [userId], references: [id], onDelete: Cascade)
 
   // Manager / admin who logged it.
-  raisedById  String
-  raisedBy    User                  @relation("CaseRaiser", fields: [raisedById], references: [id])
+  raisedById String
+  raisedBy   User   @relation("CaseRaiser", fields: [raisedById], references: [id])
 
   // Manager who closed it out (null while open).
-  closedById  String?
-  closedBy    User?                 @relation("CaseCloser", fields: [closedById], references: [id])
+  closedById String?
+  closedBy   User?   @relation("CaseCloser", fields: [closedById], references: [id])
 
-  type        PerformanceCaseType
-  status      PerformanceCaseStatus @default(open)
+  type   PerformanceCaseType
+  status PerformanceCaseStatus @default(open)
 
-  title       String                @db.VarChar(200)
-  summary     String                @db.Text
+  title   String @db.VarChar(200)
+  summary String @db.Text
 
   // The date the incident/conversation/etc actually happened. Separate
   // from `createdAt` because cases are often logged days after the fact.
-  occurredAt  DateTime              @db.Date
+  occurredAt DateTime  @db.Date
   // Optional follow-up review date (e.g. PIP review in 4 weeks).
-  followUpAt  DateTime?             @db.Date
+  followUpAt DateTime? @db.Date
 
   // Free-text resolution — what was the outcome. Null until closed.
-  outcome     String?               @db.Text
-  closedAt    DateTime?
+  outcome  String?   @db.Text
+  closedAt DateTime?
 
   // Optional attachment — typically the signed warning letter PDF,
   // PIP document, or supporting evidence. Stored as Vercel Blob URL.
-  fileUrl     String?
-  fileName    String?
+  fileUrl  String?
+  fileName String?
 
   // Confidential flag — restricts visibility to owner role only.
   // Use for sensitive allegations where even other admins shouldn't
   // see the detail (e.g. allegations of harassment against a colleague).
-  confidential Boolean              @default(false)
+  confidential Boolean @default(false)
 
   // Soft delete — Fair Work retention is 7 years; physical deletion
   // is restricted to owner and stays a future concern.
-  deleted     Boolean               @default(false)
+  deleted Boolean @default(false)
 
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Back-ref for SeparationRecord — when a dismissal record references
   // this case as the justifying disciplinary chain. Many separations
   // CAN cite the same case (rare but legal), so it's a list.
-  separations SeparationRecord[]    @relation("SeparationCase")
+  separations SeparationRecord[] @relation("SeparationCase")
 
   @@index([userId, status])
   @@index([type, occurredAt])
@@ -7169,69 +9022,69 @@ model VisaAlert {
 // retained 7 years per Fair Work record-keeping.
 
 model PerformanceReview {
-  id              String              @id @default(cuid())
+  id String @id @default(cuid())
 
   // Subject of the review — the staff member being reviewed.
-  userId          String
-  user            User                @relation("ReviewSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("ReviewSubject", fields: [userId], references: [id], onDelete: Cascade)
 
   // The manager assigned to complete the review. Selected by the admin
   // at creation time (the User model has no direct "manager" relation,
   // so we can't auto-default — typically the centre Director or the
   // service manager from `Service.managerId` where applicable).
-  reviewerUserId  String?
-  reviewer        User?               @relation("ReviewReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+  reviewerUserId String?
+  reviewer       User?   @relation("ReviewReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
 
   // Whoever created the cycle (admin scheduling it).
-  createdById     String
-  createdBy       User                @relation("ReviewCreator", fields: [createdById], references: [id])
+  createdById String
+  createdBy   User   @relation("ReviewCreator", fields: [createdById], references: [id])
 
-  type            ReviewType
-  status          ReviewStatus        @default(scheduled)
+  type   ReviewType
+  status ReviewStatus @default(scheduled)
 
   // The review period this assessment covers. e.g. probation review =
   // start date → 75 days later; annual = anniversary year.
-  periodStart     DateTime            @db.Date
-  periodEnd       DateTime            @db.Date
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
   // When the completed review is due.
-  dueDate         DateTime            @db.Date
+  dueDate     DateTime @db.Date
 
   // ── Self-assessment (phase 2 workflow, columns ready now) ──
-  selfAssessment       String?        @db.Text
-  selfStrengths        String?        @db.Text
-  selfImprovements     String?        @db.Text
-  selfSubmittedAt      DateTime?
+  selfAssessment   String?   @db.Text
+  selfStrengths    String?   @db.Text
+  selfImprovements String?   @db.Text
+  selfSubmittedAt  DateTime?
 
   // ── Manager assessment ──
-  managerAssessment    String?        @db.Text
-  managerStrengths     String?        @db.Text
-  managerImprovements  String?        @db.Text
-  managerSubmittedAt   DateTime?
+  managerAssessment   String?   @db.Text
+  managerStrengths    String?   @db.Text
+  managerImprovements String?   @db.Text
+  managerSubmittedAt  DateTime?
 
   // Optional overall rating. Nullable so a review can be completed
   // without a rating where the type doesn't call for one (e.g. a
   // check-in conversation).
-  overallRating        ReviewRating?
+  overallRating ReviewRating?
 
   // Staff acknowledgement — they've seen and signed off (or noted
   // disagreement in `acknowledgementNotes`).
   acknowledgedAt       DateTime?
-  acknowledgementNotes String?        @db.Text
+  acknowledgementNotes String?   @db.Text
 
   // Admin-only HR commentary. Never returned to the subject.
-  privateNotes         String?        @db.Text
+  privateNotes String? @db.Text
 
   // When the review was finalised end-to-end (status = completed).
-  completedAt          DateTime?
+  completedAt DateTime?
 
   // Soft delete — 7-year Fair Work retention.
-  deleted              Boolean         @default(false)
+  deleted Boolean @default(false)
 
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Per-review goals carried forward.
-  goals                PerformanceReviewGoal[]
+  goals PerformanceReviewGoal[]
 
   @@index([userId, status])
   @@index([reviewerUserId, status])
@@ -7240,19 +9093,19 @@ model PerformanceReview {
 }
 
 enum ReviewType {
-  probation         // ~75 days after start; binary pass/extend/end
-  mid_year          // Light-touch check-in mid annual cycle
-  annual            // Yearly full review
-  ad_hoc            // Manager-initiated outside the normal cadence
+  probation // ~75 days after start; binary pass/extend/end
+  mid_year // Light-touch check-in mid annual cycle
+  annual // Yearly full review
+  ad_hoc // Manager-initiated outside the normal cadence
 }
 
 enum ReviewStatus {
-  scheduled                  // Created, not yet open for self-assessment
-  self_assessment            // Subject can fill self-assessment
-  manager_review             // Subject submitted; manager writing assessment
-  awaiting_acknowledgement   // Manager submitted; subject must sign off
-  completed                  // Acknowledged + closed
-  cancelled                  // Cycle abandoned (subject left, etc.)
+  scheduled // Created, not yet open for self-assessment
+  self_assessment // Subject can fill self-assessment
+  manager_review // Subject submitted; manager writing assessment
+  awaiting_acknowledgement // Manager submitted; subject must sign off
+  completed // Acknowledged + closed
+  cancelled // Cycle abandoned (subject left, etc.)
 }
 
 enum ReviewRating {
@@ -7268,27 +9121,27 @@ enum ReviewRating {
 // mid-year check-ins can mark progress without re-opening the review.
 
 model PerformanceReviewGoal {
-  id            String         @id @default(cuid())
-  reviewId      String
-  review        PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  id       String            @id @default(cuid())
+  reviewId String
+  review   PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
-  title         String         @db.VarChar(200)
-  description   String?        @db.Text
+  title       String  @db.VarChar(200)
+  description String? @db.Text
 
   // Optional target date. Nullable for open-ended development goals.
-  dueDate       DateTime?      @db.Date
+  dueDate DateTime? @db.Date
 
-  status        ReviewGoalStatus @default(not_started)
+  status ReviewGoalStatus @default(not_started)
 
   // Manager's running notes on this goal between reviews.
-  progressNotes String?        @db.Text
+  progressNotes String? @db.Text
 
   // Render order in the UI — managers like to put the most important
   // goal first.
-  sortOrder     Int            @default(0)
+  sortOrder Int @default(0)
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([reviewId, sortOrder])
 }
@@ -7298,7 +9151,7 @@ enum ReviewGoalStatus {
   in_progress
   achieved
   not_achieved
-  deferred       // Carried forward to a later cycle
+  deferred // Carried forward to a later cycle
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -7318,41 +9171,41 @@ enum ReviewGoalStatus {
 // references survive even after a PD is no longer in active use.
 
 model PositionDescription {
-  id                String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Short identifying title. Used as the link label everywhere.
-  title             String   @db.VarChar(200)
+  title String @db.VarChar(200)
 
   // Plain-text fields (markdown-friendly via the viewer). All are
   // long-form so the same component renders any PD consistently.
-  summary           String   @db.Text
-  responsibilities  String   @db.Text
-  selectionCriteria String   @db.Text
-  qualifications    String   @db.Text
+  summary           String @db.Text
+  responsibilities  String @db.Text
+  selectionCriteria String @db.Text
+  qualifications    String @db.Text
 
   // Optional hint matching this PD to a Role. Used in the assignment
   // picker to surface PDs that "fit" the staff member's role, but not
   // enforced — a staff-role user can still hold a Lead PD.
-  targetRole        Role?
+  targetRole Role?
 
-  status            PDStatus @default(draft)
+  status PDStatus @default(draft)
 
-  publishedAt       DateTime?
-  archivedAt        DateTime?
+  publishedAt DateTime?
+  archivedAt  DateTime?
 
-  createdById       String
-  createdBy         User     @relation("PDCreator", fields: [createdById], references: [id])
+  createdById String
+  createdBy   User   @relation("PDCreator", fields: [createdById], references: [id])
 
   // Users currently assigned this PD. SetNull on PD delete so a
   // mistakenly deleted PD doesn't cascade-delete staff records.
-  assignedUsers     User[]   @relation("UserPositionDescription")
+  assignedUsers User[] @relation("UserPositionDescription")
 
   // Vacancies linked to this PD — interviewers see the PD inline on
   // the vacancy detail surface.
-  vacancies         RecruitmentVacancy[] @relation("VacancyPositionDescription")
+  vacancies RecruitmentVacancy[] @relation("VacancyPositionDescription")
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, targetRole])
   @@index([targetRole])
@@ -7382,43 +9235,43 @@ enum PDStatus {
 // Retention: 7 years per Fair Work record-keeping. Soft delete only.
 
 model ReferenceCheck {
-  id                  String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Subject of the check — the (prospective) hire.
-  userId              String
-  user                User     @relation("RefCheckSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("RefCheckSubject", fields: [userId], references: [id], onDelete: Cascade)
 
   // Who performed the check.
-  checkedById         String
-  checkedBy           User     @relation("RefCheckChecker", fields: [checkedById], references: [id])
+  checkedById String
+  checkedBy   User   @relation("RefCheckChecker", fields: [checkedById], references: [id])
 
   // Referee identity
-  refereeName         String   @db.VarChar(200)
-  refereeRelationship String   @db.VarChar(200)
-  refereeOrganisation String?  @db.VarChar(200)
+  refereeName         String  @db.VarChar(200)
+  refereeRelationship String  @db.VarChar(200)
+  refereeOrganisation String? @db.VarChar(200)
   refereePhone        String?
   refereeEmail        String?
 
-  method              RefCheckMethod
-  contactedAt         DateTime?
+  method      RefCheckMethod
+  contactedAt DateTime?
 
-  status              RefCheckStatus           @default(pending)
-  recommendation      RefCheckRecommendation?
+  status         RefCheckStatus          @default(pending)
+  recommendation RefCheckRecommendation?
 
   // Free-form structured notes — capture what was discussed. v1
   // doesn't enforce a fixed Q&A list; admins write down what was said.
-  notes               String   @db.Text
-  redFlags            String?  @db.Text
+  notes    String  @db.Text
+  redFlags String? @db.Text
 
   // Specific anti-fraud / quality flags
-  employmentVerified  Boolean?
-  wouldRehire         Boolean?
+  employmentVerified Boolean?
+  wouldRehire        Boolean?
 
   // 7-year Fair Work retention via soft delete.
-  deleted             Boolean  @default(false)
+  deleted Boolean @default(false)
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, status])
   @@index([checkedById])
@@ -7433,11 +9286,11 @@ enum RefCheckMethod {
 }
 
 enum RefCheckStatus {
-  pending           // Created but not yet contacted
-  contacted         // Attempted; awaiting response
-  completed         // Done, notes captured
-  unable_to_reach   // Couldn't get hold of the referee
-  declined          // Referee declined to provide a reference
+  pending // Created but not yet contacted
+  contacted // Attempted; awaiting response
+  completed // Done, notes captured
+  unable_to_reach // Couldn't get hold of the referee
+  declined // Referee declined to provide a reference
 }
 
 enum RefCheckRecommendation {
@@ -7468,15 +9321,15 @@ enum RefCheckRecommendation {
 //     read another user's profile are 403'd.
 
 model DiversityProfile {
-  id                     String   @id @default(cuid())
-  userId                 String   @unique
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Gender identity — modeled per ABS Standard for Sex and Gender
   // Variables 2020. `prefer_to_self_describe` opens a free-text field
   // (genderSelfDescribed). Null = not disclosed.
-  genderIdentity         DiversityGender?
-  genderSelfDescribed    String?  @db.VarChar(200)
+  genderIdentity      DiversityGender?
+  genderSelfDescribed String?          @db.VarChar(200)
 
   // Cultural background — free text. Culture is too varied for an enum.
   culturalIdentity       String?  @db.VarChar(200)
@@ -7485,25 +9338,25 @@ model DiversityProfile {
   languageAtHome         String?  @db.VarChar(200)
 
   // Indigenous identity (ABS Standard).
-  indigenousIdentity     DiversityIndigenous?
+  indigenousIdentity DiversityIndigenous?
 
   // Disability — high-level disclosure + optional self-described detail.
-  disabilityStatus       DiversityDisability?
-  disabilityType         String?  @db.VarChar(200)
+  disabilityStatus DiversityDisability?
+  disabilityType   String?              @db.VarChar(200)
 
   // Carer responsibilities (relevant for flexible work + family-friendly
   // policy planning).
-  carerStatus            DiversityCarer?
+  carerStatus DiversityCarer?
 
   // Australian Defence Force veteran status.
-  veteranStatus          Boolean?
+  veteranStatus Boolean?
 
   // Explicit consent stamp — set when first saved, refreshed on update.
   // Used in the privacy notice ("you opted in on YYYY-MM-DD").
-  consentGivenAt         DateTime
+  consentGivenAt DateTime
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum DiversityGender {
@@ -7556,30 +9409,30 @@ enum DiversityCarer {
 // pattern for a new column and a 7-year audit footprint.
 
 model PurchaseApproval {
-  id           String  @id @default(cuid())
+  id String @id @default(cuid())
 
-  serviceId    String
-  service      Service @relation("ServicePurchaseApprovals", fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation("ServicePurchaseApprovals", fields: [serviceId], references: [id], onDelete: Cascade)
 
   // Who's asking to buy the thing.
   requestedById String
   requestedBy   User   @relation("PurchaseApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
 
-  vendor       String  @db.VarChar(200)   // e.g. "Officeworks"
-  product      String  @db.VarChar(500)   // e.g. "Pack of coloring pens (50 ct)"
-  costCents    Int                        // e.g. 2000 = $20.00
-  reason       String? @db.Text           // optional rationale
+  vendor    String  @db.VarChar(200) // e.g. "Officeworks"
+  product   String  @db.VarChar(500) // e.g. "Pack of coloring pens (50 ct)"
+  costCents Int // e.g. 2000 = $20.00
+  reason    String? @db.Text // optional rationale
 
-  status       PurchaseApprovalStatus @default(pending)
+  status PurchaseApprovalStatus @default(pending)
 
   // Decision audit.
   decidedById  String?
-  decidedBy    User?    @relation("PurchaseApprovalDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedBy    User?     @relation("PurchaseApprovalDecider", fields: [decidedById], references: [id], onDelete: SetNull)
   decidedAt    DateTime?
-  decisionNote String?  @db.Text   // admin's note on approve/reject
+  decisionNote String?   @db.Text // admin's note on approve/reject
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([serviceId, status])
   @@index([requestedById, status])
@@ -7590,7 +9443,7 @@ enum PurchaseApprovalStatus {
   pending
   approved
   rejected
-  cancelled  // requester withdrew before decision
+  cancelled // requester withdrew before decision
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -7611,19 +9464,19 @@ enum PurchaseApprovalStatus {
 // useful enough that we don't want them pruning aggressively.
 
 model EhWebhookEvent {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  eventType       String   @db.VarChar(100)
+  eventType       String  @db.VarChar(100)
   // EH provides an event ID we can dedup on. Optional because not
   // every event type carries one.
-  providerEventId String?  @db.VarChar(200)
+  providerEventId String? @db.VarChar(200)
   payload         Json
 
-  receivedAt      DateTime @default(now())
-  processedAt     DateTime?
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
   // Free-text error from the handler when processing failed. Null
   // when processedAt is set successfully.
-  error           String?  @db.Text
+  error       String?   @db.Text
 
   @@unique([providerEventId])
   @@index([eventType, receivedAt])
@@ -7653,51 +9506,51 @@ model EhWebhookEvent {
 //     once truly resolved.
 
 model SafeReport {
-  id          String              @id @default(cuid())
+  id String @id @default(cuid())
 
   // What the report is about — drives triage. `child_safety` is
   // separately flagged because it carries mandatory-reporting
   // implications and may need to be escalated to authorities.
-  category    SafeReportCategory
+  category SafeReportCategory
 
   // Optional service context. Reports about the whole org leave this
   // null. Helps the reviewer route + scope follow-up.
-  serviceId   String?
-  service     Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
 
   // The report itself. Up to ~20k chars (enforced at zod layer).
-  content     String              @db.Text
+  content String @db.Text
 
-  status      SafeReportStatus    @default(received)
+  status SafeReportStatus @default(received)
 
   // Private to the reviewer — never displayed to anyone except the
   // owner/reviewer. Things like "called Mirna 12 May, agreed to mediate."
-  reviewNotes String?             @db.Text
+  reviewNotes String? @db.Text
 
   reviewedById String?
-  reviewedBy   User?               @relation("SafeReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedBy   User?   @relation("SafeReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  resolvedAt   DateTime?
+  resolvedAt DateTime?
 
   // Soft delete for "received in error / resolved with no further
   // action needed and we'd like to declutter." Owner only.
-  deleted      Boolean             @default(false)
+  deleted Boolean @default(false)
 
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
   @@index([category, createdAt])
 }
 
 enum SafeReportCategory {
-  harassment           // Including sexual harassment (positive-duty)
-  discrimination       // Sex, race, disability, age, religion, etc
+  harassment // Including sexual harassment (positive-duty)
+  discrimination // Sex, race, disability, age, religion, etc
   bullying
-  safety               // WHS / hazard concerns
-  conduct              // General staff conduct concerns
-  retaliation          // Retaliation against another reporter — critical
-  child_safety         // Child Safe Standards concerns — most urgent
+  safety // WHS / hazard concerns
+  conduct // General staff conduct concerns
+  retaliation // Retaliation against another reporter — critical
+  child_safety // Child Safe Standards concerns — most urgent
   other
 }
 
@@ -7728,36 +9581,36 @@ enum SafeReportStatus {
 // Retention: 7 years (Fair Work record-keeping). Soft-delete only.
 
 model SeparationRecord {
-  id              String           @id @default(cuid())
+  id String @id @default(cuid())
 
   // ONE separation per user (re-hires get a new record under a new
   // User row or we soft-delete + recreate). Unique constraint enforces.
-  userId          String           @unique
-  user            User             @relation("SeparationSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user   User   @relation("SeparationSubject", fields: [userId], references: [id], onDelete: Cascade)
 
-  reason          SeparationReason
+  reason       SeparationReason
   // Free-text expansion of reason. Required at the UI layer for any
   // dismissal type (capacity / misconduct) so the why is documented.
-  reasonDetail    String?          @db.Text
+  reasonDetail String?          @db.Text
 
   // Timeline.
-  noticeStartDate DateTime?        @db.Date
-  lastWorkingDay  DateTime         @db.Date
+  noticeStartDate   DateTime? @db.Date
+  lastWorkingDay    DateTime  @db.Date
   noticePeriodWeeks Float?
 
   // Final-pay tracking — the most common dispute source after dismissal.
-  finalPayProcessed   Boolean      @default(false)
+  finalPayProcessed   Boolean   @default(false)
   finalPayProcessedAt DateTime?
-  finalPayNotes       String?      @db.Text
+  finalPayNotes       String?   @db.Text
 
   // Reference letter.
-  referenceLetterIssued Boolean    @default(false)
+  referenceLetterIssued Boolean @default(false)
   referenceLetterUrl    String?
-  referenceNotes        String?    @db.Text
+  referenceNotes        String? @db.Text
 
   // Rehire eligibility — drives the casual pool / re-recruitment view.
-  eligibleForRehire Boolean        @default(true)
-  rehireNotes       String?        @db.Text
+  eligibleForRehire Boolean @default(true)
+  rehireNotes       String? @db.Text
 
   // Employment Hero termination sync (2026-07-08).
   // When a Separation record is created / updated with a lastWorkingDay
@@ -7766,7 +9619,7 @@ model SeparationRecord {
   // sync timestamp here on success and the error message on failure so
   // the SeparationTab can show a status badge + retry button.
   ehTerminationSyncedAt DateTime?
-  ehTerminationError    String?    @db.Text
+  ehTerminationError    String?   @db.Text
 
   // Exit interview — separate from the offboarding pack so it's an
   // explicit fact, not just one task in a list.
@@ -7780,8 +9633,8 @@ model SeparationRecord {
   performanceCase   PerformanceCase? @relation("SeparationCase", fields: [performanceCaseId], references: [id], onDelete: SetNull)
 
   // Audit.
-  recordedById  String
-  recordedBy    User             @relation("SeparationRecorder", fields: [recordedById], references: [id])
+  recordedById String
+  recordedBy   User   @relation("SeparationRecorder", fields: [recordedById], references: [id])
 
   // ── Finalisation (2026-06-01) ─────────────────────────────
   // `finalisedAt` is the point of no return: when set, the system
@@ -7790,7 +9643,7 @@ model SeparationRecord {
   // Owner-only action via POST /api/separations/[id]/finalise.
   finalisedAt   DateTime?
   finalisedById String?
-  finalisedBy   User?            @relation("SeparationFinaliser", fields: [finalisedById], references: [id], onDelete: SetNull)
+  finalisedBy   User?     @relation("SeparationFinaliser", fields: [finalisedById], references: [id], onDelete: SetNull)
 
   // If specified at finalisation, who took over the leaving staff
   // member's ownership of Rocks / open Todos / Issues. Null = no
@@ -7798,10 +9651,10 @@ model SeparationRecord {
   successorUserId String?
 
   // Soft delete — Fair Work retention is 7 years.
-  deleted       Boolean          @default(false)
+  deleted Boolean @default(false)
 
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([reason])
   @@index([lastWorkingDay])
@@ -7810,13 +9663,13 @@ model SeparationRecord {
 
 enum SeparationReason {
   resignation
-  dismissal_capacity         // unable to perform the role
-  dismissal_misconduct       // serious or sustained misconduct
+  dismissal_capacity // unable to perform the role
+  dismissal_misconduct // serious or sustained misconduct
   redundancy
-  end_of_contract            // fixed-term contract completed
+  end_of_contract // fixed-term contract completed
   mutual_separation
   retirement
-  abandonment                // stopped showing up; no contact
+  abandonment // stopped showing up; no contact
   deceased
   other
 }
@@ -7836,42 +9689,42 @@ enum SeparationReason {
 // where casuals can submit their own election.
 
 model CasualConversionElection {
-  id              String                    @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId          String
-  user            User                      @relation("CasualConversionUser", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("CasualConversionUser", fields: [userId], references: [id], onDelete: Cascade)
 
   // The Act gives the employee the choice — part-time vs full-time.
-  requestedType   ConversionRequestType
+  requestedType ConversionRequestType
 
   // When the election was lodged (employee → employer).
-  electedAt       DateTime                  @default(now())
+  electedAt     DateTime @default(now())
   // Optional context the employee provided in their written request.
-  electionNotes   String?                   @db.Text
+  electionNotes String?  @db.Text
 
   // ─── Employer response ─────────────────────────────────────
   // Per s66B(2), employer must respond in writing within 21 days.
   // The dashboard surface shows a countdown ticker when this is null.
-  respondedAt     DateTime?
-  respondedById   String?
-  respondedBy     User?                     @relation("CasualConversionResponder", fields: [respondedById], references: [id], onDelete: SetNull)
-  response        ConversionResponse?
+  respondedAt    DateTime?
+  respondedById  String?
+  respondedBy    User?               @relation("CasualConversionResponder", fields: [respondedById], references: [id], onDelete: SetNull)
+  response       ConversionResponse?
   // REQUIRED for declined responses. Per s66B(3) the only valid grounds
   // are limited (operational, position not existing in 12mo, etc).
   // Free text so admin can document the specific grounds cited.
-  declineReasons  String?                   @db.Text
+  declineReasons String?             @db.Text
 
   // If accepted, link to the new EmploymentContract that was issued.
   // SetNull because deleting the contract shouldn't cascade-delete the
   // election record — the election history stands regardless.
-  newContractId   String?                   @unique
-  newContract     EmploymentContract?       @relation("ConversionResultContract", fields: [newContractId], references: [id], onDelete: SetNull)
+  newContractId String?             @unique
+  newContract   EmploymentContract? @relation("ConversionResultContract", fields: [newContractId], references: [id], onDelete: SetNull)
 
   // Soft delete only — Fair Work retention is 7 years.
-  deleted         Boolean                   @default(false)
+  deleted Boolean @default(false)
 
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, electedAt])
   @@index([response])
@@ -7904,60 +9757,60 @@ enum ConversionResponse {
 // per Fair Work + workers comp scheme record-keeping.
 
 model WorkersCompensationClaim {
-  id              String                @id @default(cuid())
+  id String @id @default(cuid())
 
   // Claimant — the injured staff member.
-  userId          String
-  user            User                  @relation("WCClaimant", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("WCClaimant", fields: [userId], references: [id], onDelete: Cascade)
 
   // Optional originating incident.
-  incidentId      String?
-  incident        IncidentRecord?       @relation("IncidentWCClaim", fields: [incidentId], references: [id], onDelete: SetNull)
+  incidentId String?
+  incident   IncidentRecord? @relation("IncidentWCClaim", fields: [incidentId], references: [id], onDelete: SetNull)
 
   // Insurer / claim metadata.
-  claimNumber     String?               // e.g. "WC-2026-001234"
-  insurerName     String?               // e.g. "iCare", "Allianz Workers Comp"
-  insurerContact  String?               @db.Text // claims manager name + email/phone
+  claimNumber    String? // e.g. "WC-2026-001234"
+  insurerName    String? // e.g. "iCare", "Allianz Workers Comp"
+  insurerContact String? @db.Text // claims manager name + email/phone
 
-  status          WCClaimStatus         @default(lodged)
+  status WCClaimStatus @default(lodged)
 
   // Timeline.
-  dateOfInjury    DateTime              @db.Date
-  dateLodged      DateTime              @db.Date
-  dateOfDecision  DateTime?             @db.Date
+  dateOfInjury   DateTime  @db.Date
+  dateLodged     DateTime  @db.Date
+  dateOfDecision DateTime? @db.Date
 
   // Injury detail (free text for flexibility — body part can be
   // multi-site, mechanism is highly varied).
-  injuryDescription String?             @db.Text
+  injuryDescription String? @db.Text
   bodyPart          String?
-  mechanismOfInjury String?             @db.Text
+  mechanismOfInjury String? @db.Text
 
   // Return to work tracking — the most operational piece.
-  rtwPlanCreated      Boolean           @default(false)
+  rtwPlanCreated      Boolean   @default(false)
   rtwPlanUrl          String?
-  rtwStartDate        DateTime?         @db.Date
-  rtwFullCapacityDate DateTime?         @db.Date
-  currentRestrictions String?           @db.Text
+  rtwStartDate        DateTime? @db.Date
+  rtwFullCapacityDate DateTime? @db.Date
+  currentRestrictions String?   @db.Text
 
   // Payment status (high-level — we don't replicate the insurer's
   // ledger, just flag whether weekly payments are active).
-  weeklyPaymentActive Boolean           @default(false)
+  weeklyPaymentActive Boolean @default(false)
   weeklyPaymentRate   Float?
   medicalExpensesPaid Float?
 
-  notes           String?               @db.Text
+  notes String? @db.Text
 
-  closedAt        DateTime?
-  closedById      String?
-  closedBy        User?                 @relation("WCClaimCloser", fields: [closedById], references: [id], onDelete: SetNull)
+  closedAt   DateTime?
+  closedById String?
+  closedBy   User?     @relation("WCClaimCloser", fields: [closedById], references: [id], onDelete: SetNull)
 
-  createdById     String
-  createdBy       User                  @relation("WCClaimCreator", fields: [createdById], references: [id])
+  createdById String
+  createdBy   User   @relation("WCClaimCreator", fields: [createdById], references: [id])
 
-  deleted         Boolean               @default(false)
+  deleted Boolean @default(false)
 
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, status])
   @@index([incidentId])
@@ -7990,48 +9843,48 @@ enum WCClaimStatus {
 // disability information.
 
 model ReasonableAdjustment {
-  id              String                       @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId          String
-  user            User                         @relation("AdjustmentSubject", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("AdjustmentSubject", fields: [userId], references: [id], onDelete: Cascade)
 
   // The request
-  requestedAt     DateTime                     @db.Date
-  requestSummary  String                       @db.Text
+  requestedAt    DateTime @db.Date
+  requestSummary String   @db.Text
 
   // Free-text context — disability or protected attribute the
   // adjustment relates to. Optional because the employee may not
   // wish to specify (and the employer can't insist).
-  contextNotes    String?                      @db.Text
+  contextNotes String? @db.Text
 
   // Assessment
-  assessedAt      DateTime?                    @db.Date
+  assessedAt      DateTime? @db.Date
   // What was considered: alternatives weighed, who was consulted
   // (OT, medical, HR advisor), trade-offs.
-  assessmentNotes String?                      @db.Text
+  assessmentNotes String?   @db.Text
 
   // Decision
-  status          ReasonableAdjustmentStatus   @default(under_assessment)
-  decisionAt      DateTime?                    @db.Date
-  decisionDetail  String?                      @db.Text
+  status         ReasonableAdjustmentStatus @default(under_assessment)
+  decisionAt     DateTime?                  @db.Date
+  decisionDetail String?                    @db.Text
   // REQUIRED when status=declined per DDA. Free text so admin can
   // document the specific "unjustifiable hardship" basis.
-  declineReasons  String?                      @db.Text
+  declineReasons String?                    @db.Text
 
   // Review schedule — adjustments aren't set-and-forget.
-  reviewAt        DateTime?                    @db.Date
+  reviewAt DateTime? @db.Date
 
   // Optional attachment — medical note, OT recommendation, etc.
-  fileUrl         String?
-  fileName        String?
+  fileUrl  String?
+  fileName String?
 
   // Audit
-  recordedById    String
-  recordedBy      User                         @relation("AdjustmentRecorder", fields: [recordedById], references: [id])
+  recordedById String
+  recordedBy   User   @relation("AdjustmentRecorder", fields: [recordedById], references: [id])
 
-  deleted         Boolean                      @default(false)
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, status])
   @@index([reviewAt])
@@ -8039,10 +9892,10 @@ model ReasonableAdjustment {
 
 enum ReasonableAdjustmentStatus {
   under_assessment
-  provided              // exactly as requested
-  modified              // alternative provided, not exact match
+  provided // exactly as requested
+  modified // alternative provided, not exact match
   declined
-  withdrawn             // employee withdrew the request
+  withdrawn // employee withdrew the request
   no_longer_needed
 }
 
@@ -8091,28 +9944,28 @@ enum SurveyQuestionType {
   multi_choice
   short_text
   long_text
-  rating           // 1-5 stars
+  rating // 1-5 stars
 }
 
 enum SurveyAudience {
-  all_staff              // every active User
-  by_role                // filter to specific Role values
-  by_service             // filter to specific service IDs
-  by_employment_type     // filter to specific EmploymentType values
+  all_staff // every active User
+  by_role // filter to specific Role values
+  by_service // filter to specific service IDs
+  by_employment_type // filter to specific EmploymentType values
 }
 
 model Survey {
-  id              String       @id @default(cuid())
-  title           String
-  description     String?      @db.Text
-  status          SurveyStatus @default(draft)
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  status      SurveyStatus @default(draft)
 
   // When true, SurveyResponse.respondentId is nullified before storage
   // (so results can still be aggregated but individuals can't be
   // identified — critical for satisfaction / feedback surveys).
-  anonymous       Boolean      @default(false)
+  anonymous Boolean @default(false)
 
-  audience        SurveyAudience @default(all_staff)
+  audience                SurveyAudience   @default(all_staff)
   // Filters used when the audience type demands them. Empty arrays for
   // the other types. We deliberately don't join on User at the schema
   // level — audience is evaluated at read time in /api/surveys so
@@ -8121,57 +9974,57 @@ model Survey {
   audienceServiceIds      String[]         @default([])
   audienceEmploymentTypes EmploymentType[] @default([])
 
-  closesAt        DateTime?
-  publishedAt     DateTime?
+  closesAt    DateTime?
+  publishedAt DateTime?
 
-  createdById     String
-  createdBy       User         @relation("SurveyCreator", fields: [createdById], references: [id])
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  deleted         Boolean      @default(false)
+  createdById String
+  createdBy   User     @relation("SurveyCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deleted     Boolean  @default(false)
 
-  questions       SurveyQuestion[]
-  responses       SurveyResponse[]
-  todos           Todo[]           @relation("SurveyTodos")
+  questions SurveyQuestion[]
+  responses SurveyResponse[]
+  todos     Todo[]           @relation("SurveyTodos")
 
   @@index([status])
   @@index([createdById])
 }
 
 model SurveyQuestion {
-  id            String             @id @default(cuid())
-  surveyId      String
-  survey        Survey             @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  type          SurveyQuestionType
-  title         String
-  description   String?            @db.Text
-  required      Boolean            @default(true)
+  id          String             @id @default(cuid())
+  surveyId    String
+  survey      Survey             @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  type        SurveyQuestionType
+  title       String
+  description String?            @db.Text
+  required    Boolean            @default(true)
   // Options for single_choice / multi_choice. Empty for other types.
   // Order preserved from the array; option index is stable so answer
   // rows can reference by integer position.
-  options       String[]           @default([])
-  sortOrder     Int                @default(0)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  options     String[]           @default([])
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
-  answers       SurveyAnswer[]
+  answers SurveyAnswer[]
 
   @@index([surveyId])
 }
 
 model SurveyResponse {
-  id            String    @id @default(cuid())
-  surveyId      String
-  survey        Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  surveyId     String
+  survey       Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   // Null when the survey is anonymous. We still enforce one-response-
   // per-user via a separate anonymous-cookie fingerprint (not stored
   // here) — anonymous surveys accept unlimited responses per browser
   // in this MVP; deferring anti-brigading to a later iteration.
-  respondentId  String?
-  respondent    User?     @relation("SurveyRespondent", fields: [respondentId], references: [id], onDelete: SetNull)
-  submittedAt   DateTime  @default(now())
+  respondentId String?
+  respondent   User?    @relation("SurveyRespondent", fields: [respondentId], references: [id], onDelete: SetNull)
+  submittedAt  DateTime @default(now())
 
-  answers       SurveyAnswer[]
+  answers SurveyAnswer[]
 
   // Enforced only for non-anonymous surveys — a non-null respondentId
   // uniquely maps to at most one response per survey. Anonymous
@@ -8184,21 +10037,312 @@ model SurveyResponse {
 }
 
 model SurveyAnswer {
-  id           String         @id @default(cuid())
-  responseId   String
-  response     SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
-  questionId   String
-  question     SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  id         String         @id @default(cuid())
+  responseId String
+  response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   // Exactly one of these fields is populated based on the question's
   // type. Kept as separate typed columns rather than a JSON blob so
   // aggregation queries (count per option, avg rating) stay cheap.
-  yesNo         Boolean?           // yes_no
-  choiceIndexes Int[]     @default([]) // single_choice (1 elem) / multi_choice
-  textValue     String?   @db.Text     // short_text / long_text
-  ratingValue   Int?                    // rating 1-5
+  yesNo         Boolean? // yes_no
+  choiceIndexes Int[]    @default([]) // single_choice (1 elem) / multi_choice
+  textValue     String?  @db.Text // short_text / long_text
+  ratingValue   Int? // rating 1-5
 
   @@unique([responseId, questionId])
   @@index([responseId])
   @@index([questionId])
+}
+
+// ============================================================
+// Family balance follow-ups (2026-07-23)
+// ============================================================
+//
+// Track every contact attempt with a family that has an outstanding
+// balance — who was called/emailed, when, and what the outcome was.
+// If the outcome is `no_answer`, the create endpoint auto-generates a
+// Todo (assigned to the admin who logged the contact) for the next day
+// so nobody falls through the cracks.
+//
+// Deliberately a lightweight log, not a full receivables ledger — the
+// point is the follow-up cadence, not accounting.
+
+enum FamilyContactMethod {
+  email
+  phone
+  sms
+  in_person
+}
+
+enum FamilyContactOutcome {
+  answered // spoke to them; check notes for what was agreed
+  no_answer // didn't pick up / didn't reply — auto-generates follow-up Todo
+  promised_payment
+  disputed
+  payment_plan
+  other
+}
+
+model FamilyBalanceContact {
+  id             String               @id @default(cuid())
+  // Denormalised on purpose — Amana's OWNA account codes don't currently
+  // map cleanly to a dashboard entity, and Daniel wants to type these in
+  // free-form as he chases balances. Add an accountId FK later when we
+  // have proper family/account records in the dashboard.
+  accountName    String
+  parentName     String
+  mobileNumber   String?
+  parentEmail    String?
+  amountOwing    Decimal              @db.Decimal(10, 2)
+  contactedAt    DateTime             @default(now())
+  contactMethod  FamilyContactMethod
+  outcome        FamilyContactOutcome
+  outcomeNotes   String?              @db.Text
+  // Populated automatically to `contactedAt + 1 day` when outcome =
+  // no_answer, at which point a Todo is also created. Admin can adjust
+  // via the edit form. Null for outcomes that don't need a follow-up.
+  followUpDate   DateTime?
+  // Link back to the auto-generated follow-up Todo (if any) so
+  // completing/deleting the contact can propagate. Nullable; only set
+  // when outcome triggered a Todo.
+  followUpTodoId String?              @unique
+  followUpTodo   Todo?                @relation("FamilyContactFollowUp", fields: [followUpTodoId], references: [id], onDelete: SetNull)
+  serviceId      String?
+  service        Service?             @relation("ServiceFamilyBalanceContacts", fields: [serviceId], references: [id], onDelete: SetNull)
+  createdById    String
+  createdBy      User                 @relation("FamilyBalanceContactCreator", fields: [createdById], references: [id])
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([serviceId])
+  @@index([contactedAt])
+  @@index([outcome])
+  @@index([createdById])
+}
+
+// ─── Enrolment form translations (2026-07-27) ──────────────────
+// DB-backed i18n strings for the public parent enrolment wizard. English
+// is the source of truth in `src/lib/enrol-i18n.ts`; other locales are
+// AI-generated and reviewable by staff via /settings/enrol-translations
+// (Phase 3). A missing (key, locale) row falls back to the English source.
+model EnrolFormTranslation {
+  id        String   @id @default(cuid())
+  key       String
+  locale    String
+  text      String   @db.Text
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@unique([key, locale])
+  @@index([locale])
+}
+
+// ============================================================
+// Amana Ambassadors — staff enrolment-incentive pilot (2026-08-03)
+//
+// Educators are credited when they bring in a new enrolment during a
+// pilot window. Distinct from Referral (parent $50 referral) and
+// StaffReferral (recruitment $200 bonus). All derived values on
+// AmbassadorEnrolment are written ONLY by recomputeAmbassadorRecord
+// (src/lib/ambassadors/recompute.ts).
+// ============================================================
+
+enum AmbassadorPilotStatus {
+  draft
+  active
+  closed
+}
+
+enum AmbassadorAttributionSource {
+  form_field
+  qr_ref
+  both
+  unknown
+}
+
+enum AmbassadorRecordStatus {
+  logged
+  director_verified
+  sm_approved
+  sent_to_payroll
+  paid
+  rejected
+}
+
+enum AmbassadorNewChildStatus {
+  new_child
+  existing_child
+  uncertain
+}
+
+enum AmbassadorSessionSource {
+  manual
+  csv_import
+  owna
+}
+
+model AmbassadorPilot {
+  id        String                @id @default(cuid())
+  name      String
+  startDate DateTime              @db.Date
+  endDate   DateTime              @db.Date
+  status    AmbassadorPilotStatus @default(draft)
+
+  closedAt   DateTime?
+  closedById String?
+  closedBy   User?     @relation("AmbassadorPilotClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  centres     AmbassadorPilotCentre[]
+  records     AmbassadorEnrolment[]
+  adjustments AmbassadorAdjustment[]
+
+  @@index([status])
+}
+
+model AmbassadorPilotCentre {
+  id                        String          @id @default(cuid())
+  pilotId                   String
+  pilot                     AmbassadorPilot @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  serviceId                 String
+  service                   Service         @relation("AmbassadorPilotCentres", fields: [serviceId], references: [id], onDelete: Cascade)
+  targetQualifiedEnrolments Int
+  teamBonusAmount           Float           @default(200)
+
+  @@unique([pilotId, serviceId])
+}
+
+model EducatorRefCode {
+  id     String  @id @default(cuid())
+  userId String  @unique
+  user   User    @relation("EducatorRefCode", fields: [userId], references: [id], onDelete: Cascade)
+  /// 6-char unambiguous code (charset excludes 0/O/1/I/L) — appears in
+  /// /parent/signup?ref=CODE.
+  code   String  @unique
+  active Boolean @default(true)
+
+  /// Linked marketing QrCode so printed QRs go through the /a/{shortCode}
+  /// redirect and get QrScan analytics for free. Nullable: a code still
+  /// works typed by hand without a QR.
+  qrCodeId String? @unique
+  qrCode   QrCode? @relation("EducatorRefQr", fields: [qrCodeId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AmbassadorEnrolment {
+  id      String          @id @default(cuid())
+  pilotId String
+  pilot   AmbassadorPilot @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation("AmbassadorEnrolments", fields: [serviceId], references: [id])
+
+  childId                String?
+  child                  Child?                @relation("AmbassadorChild", fields: [childId], references: [id], onDelete: SetNull)
+  enrolmentSubmissionId  String?
+  enrolmentSubmission    EnrolmentSubmission?  @relation("AmbassadorFromSubmission", fields: [enrolmentSubmissionId], references: [id], onDelete: SetNull)
+  enrolmentApplicationId String?
+  enrolmentApplication   EnrolmentApplication? @relation("AmbassadorFromApplication", fields: [enrolmentApplicationId], references: [id], onDelete: SetNull)
+  /// Privacy: every Ambassadors surface shows initials only (e.g. "A.K.");
+  /// full names stay behind the existing enrolment permissions.
+  childInitials          String
+
+  creditedEducatorId  String?
+  creditedEducator    User?                       @relation("AmbassadorCredited", fields: [creditedEducatorId], references: [id], onDelete: SetNull)
+  /// Parent's free-text answer to "Which educator spoke with you?".
+  namedEducatorText   String?
+  /// EducatorRefCode.code captured at signup, if any.
+  refCode             String?
+  attributionSource   AmbassadorAttributionSource @default(unknown)
+  /// True when the ref code and the named educator resolve to DIFFERENT
+  /// people — the Director must resolve; we never silently pick one.
+  attributionConflict Boolean                     @default(false)
+
+  newChildStatus    AmbassadorNewChildStatus @default(uncertain)
+  newChildCheckedAt DateTime?
+  newChildDetail    String?                  @db.Text
+
+  regularSessionsPerWeek Int?
+  firstAttendanceDate    DateTime? @db.Date
+  /// Derived: fee>0 sessions inside the 28-day window from first attendance.
+  paidSessionsAttended   Int       @default(0)
+  tierAmount             Float?
+  incentiveAmount        Float?
+  qualified              Boolean   @default(false)
+  qualifiedAt            DateTime?
+
+  status          AmbassadorRecordStatus @default(logged)
+  rejectionReason String?
+  sentToPayrollAt DateTime?
+  paidAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions    AmbassadorSession[]
+  transitions AmbassadorTransition[]
+
+  @@index([pilotId, serviceId])
+  @@index([creditedEducatorId])
+  @@index([status])
+  @@index([childId])
+}
+
+model AmbassadorSession {
+  id       String              @id @default(cuid())
+  recordId String
+  record   AmbassadorEnrolment @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  date        DateTime                @db.Date
+  /// "bsc" | "asc" | "vc" | "unknown" — a String (not the SessionType enum)
+  /// because CSV rows may not identify the session and the enum has no
+  /// unknown value.
+  sessionType String                  @default("unknown")
+  /// Fee charged for the session. $0 = the free first session — attends
+  /// but never counts toward the 4 qualifying paid sessions.
+  fee         Float
+  source      AmbassadorSessionSource
+  createdById String?
+  createdBy   User?                   @relation("AmbassadorSessionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime                @default(now())
+
+  @@unique([recordId, date, sessionType])
+}
+
+model AmbassadorTransition {
+  id         String                 @id @default(cuid())
+  recordId   String
+  record     AmbassadorEnrolment    @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  fromStatus AmbassadorRecordStatus
+  toStatus   AmbassadorRecordStatus
+  actorId    String?
+  actor      User?                  @relation("AmbassadorTransitionActor", fields: [actorId], references: [id], onDelete: SetNull)
+  reason     String?
+  createdAt  DateTime               @default(now())
+
+  @@index([recordId])
+}
+
+model AmbassadorAdjustment {
+  id         String          @id @default(cuid())
+  pilotId    String
+  pilot      AmbassadorPilot @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  educatorId String
+  educator   User            @relation("AmbassadorAdjustments", fields: [educatorId], references: [id], onDelete: Cascade)
+
+  /// "milestone_kicker" is the only type today; the $200 team bonus is
+  /// display-only (paid manually by State Managers, no per-educator split).
+  type            String
+  amount          Float
+  sentToPayrollAt DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@unique([pilotId, educatorId, type])
 }

@@ -12,6 +12,7 @@ import {
 const STORAGE_KEY_COLLAPSED = "amana-sidebar-collapsed";
 const STORAGE_KEY_SECTIONS = "amana-sidebar-sections";
 const STORAGE_KEY_FAVOURITES = "amana-sidebar-favourites";
+const STORAGE_KEY_EXPANDED = "amana-sidebar-expanded";
 
 // ─── Helpers (try-catch + JSON pattern from CommandPalette) ──
 function loadCollapsed(): boolean {
@@ -70,6 +71,26 @@ function saveFavourites(favourites: Set<string>) {
   }
 }
 
+function loadExpandedSections(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_EXPANDED);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return new Set(parsed);
+  } catch {
+    // ignore
+  }
+  return new Set();
+}
+
+function saveExpandedSections(sections: Set<string>) {
+  try {
+    localStorage.setItem(STORAGE_KEY_EXPANDED, JSON.stringify([...sections]));
+  } catch {
+    // ignore
+  }
+}
+
 // ─── Context ────────────────────────────────────────────────
 interface SidebarContextValue {
   collapsed: boolean;
@@ -79,6 +100,9 @@ interface SidebarContextValue {
   toggleSection: (section: string) => void;
   favourites: Set<string>;
   toggleFavourite: (href: string) => void;
+  /** Sections whose "+N more" overflow is expanded (curated sidebar, 2026-07-12). */
+  expandedSections: Set<string>;
+  toggleExpandedSection: (section: string) => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
@@ -95,6 +119,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [collapsedSections, setCollapsedSections] =
     useState<Set<string>>(loadCollapsedSections);
   const [favourites, setFavourites] = useState<Set<string>>(loadFavourites);
+  const [expandedSections, setExpandedSections] =
+    useState<Set<string>>(loadExpandedSections);
 
   const setCollapsed = useCallback((value: boolean) => {
     setCollapsedRaw(value);
@@ -122,6 +148,19 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const toggleExpandedSection = useCallback((section: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      saveExpandedSections(next);
+      return next;
+    });
+  }, []);
+
   const toggleFavourite = useCallback((href: string) => {
     setFavourites((prev) => {
       const next = new Set(prev);
@@ -145,6 +184,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
         toggleSection,
         favourites,
         toggleFavourite,
+        expandedSections,
+        toggleExpandedSection,
       }}
     >
       {children}

@@ -5,12 +5,12 @@ import { acquireCronLock } from "@/lib/cron-guard";
 import { parseJsonField, primaryParentSchema } from "@/lib/schemas/json-fields";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 // ── Brand constants ─────────────────────────────────────────
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
-const DASHBOARD_URL =
-  process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+const DASHBOARD_URL = siteUrl();
 
 // ── Types ───────────────────────────────────────────────────
 

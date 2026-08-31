@@ -6,9 +6,10 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBookingRequestNotification } from "@/lib/notifications/bookings";
 import { logger } from "@/lib/logger";
-import { casualBookingSettingsSchema, type CasualBookingSettings } from "@/lib/service-settings";
+import { casualBookingSettingsSchema, resolveCasualFee, type CasualBookingSettings, type SessionTimes } from "@/lib/service-settings";
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
 import { parseJsonField } from "@/lib/schemas/json-fields";
+import { requireRoomId } from "@/lib/room-resolver";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -120,6 +121,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
       ascCasualRate: true,
       vcDailyRate: true,
       casualBookingSettings: true,
+      // Refusals name the room the way the family knows it.
+      sessionTimes: true,
     },
   });
   if (!service) {
@@ -160,28 +163,100 @@ export const POST = withParentAuth(async (req, { parent }) => {
         },
       });
 
+      // This day's own capacity, when the centre has set one.
+      const dayConfig = await tx.casualDayConfig.findUnique({
+        where: {
+          serviceId_date_sessionType: {
+            serviceId,
+            date: bookingDate,
+            sessionType: sessionType,
+          },
+        },
+        select: { spots: true, closed: true },
+      });
+
+      // A room may carry an age range. Unknown DOB passes the check —
+      // our missing data isn't the family's problem.
+      const childRow = await tx.child.findUnique({
+        where: { id: childId },
+        select: { dob: true },
+      });
+      const childAgeYears = childRow?.dob
+        ? Math.floor(
+            (bookingDate.getTime() - childRow.dob.getTime()) /
+              (365.25 * 86400_000),
+          )
+        : null;
+
+      // Closures and pupil-free days. Matches either a whole-centre
+      // block-out (sessionType null) or one for this room.
+      const blockOut = await tx.serviceBlockOutDate.findFirst({
+        where: {
+          serviceId,
+          date: bookingDate,
+          OR: [{ sessionType: null }, { sessionType }],
+        },
+        select: { reason: true },
+      });
+
+      // "Enrolled only" rooms need to know whether this child already
+      // holds a permanent booking here.
+      const enrolledCount = await tx.booking.count({
+        where: {
+          childId,
+          serviceId,
+          sessionType,
+          type: "permanent",
+          status: { in: ["requested", "confirmed"] },
+        },
+      });
+
       const check = checkCasualBookingAllowed({
         settings,
         sessionType,
         bookingDate,
         now: new Date(),
         currentCasualBookings: currentCount,
+        sessionTimes: service.sessionTimes as SessionTimes | null,
+        blockedOutReason: blockOut ? (blockOut.reason ?? "") : null,
+        childEnrolledInSession: enrolledCount > 0,
+        childAgeYears,
+        spotsOverride: dayConfig?.spots ?? null,
+        closedForBooking: dayConfig?.closed ?? false,
       });
       if (!check.ok) {
         throw ApiError.badRequest(check.reason);
       }
 
-      const feeMap: Record<string, number | null> = {
+      // Price comes from the room's fee tier when one is linked, so a
+      // fee rise happens once in Rooms & fees instead of also having to
+      // be remembered on the service's legacy rate columns.
+      const linked = resolveCasualFee(
+        settings,
+        service.sessionTimes as SessionTimes | null,
+        sessionType,
+      );
+      const legacyMap: Record<string, number | null> = {
         bsc: service.bscCasualRate,
         asc: service.ascCasualRate,
         vc: service.vcDailyRate ?? null,
       };
-      const fee = feeMap[sessionType] ?? null;
+      const fee = linked > 0 ? linked : (legacyMap[sessionType] ?? null);
 
       const contact = await tx.centreContact.findFirst({
         where: { email: parent.email, serviceId },
         select: { id: true },
       });
+
+      // A family's standing discount is NOT applied here on purpose.
+      // The booking stores the room's fee — the list price — and
+      // whoever bills decides when a discount comes off. An automatic
+      // reduction at booking time means a price nobody chose, applied
+      // to a booking that might be cancelled, with no one having
+      // checked the arrangement still holds.
+      //
+      // The discount is recorded against the family and surfaced at
+      // billing (see FamilyDiscountsCard / applyFamilyDiscount).
 
       // Auto-confirm: checkCasualBookingAllowed (above) has already verified
       // every policy constraint (session enabled, day allowed, cut-off met,
@@ -193,6 +268,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
           childId,
           serviceId,
           date: bookingDate,
+          // Stage 1 dual key — see room-resolver.ts.
+          roomId: await requireRoomId(serviceId, sessionType),
           sessionType,
           status: "confirmed",
           type: "casual",

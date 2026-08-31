@@ -32,6 +32,33 @@ import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+/**
+ * The room for a session slot, created if the shadow sync hasn't run.
+ *
+ * `roomId` is required on these models from the end of Stage 1 (see
+ * docs/rooms-migration-plan.md). Standalone scripts can't reach the app
+ * resolver — different Prisma client, no path aliases — so they find or
+ * derive the row themselves. Idempotent, keyed on the same
+ * (serviceId, legacyKey) unique the app uses.
+ */
+async function roomIdFor(
+  serviceId: string,
+  sessionType: SessionType,
+): Promise<string> {
+  const existing = await prisma.room.findUnique({
+    where: { serviceId_legacyKey: { serviceId, legacyKey: sessionType } },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const created = await prisma.room.create({
+    data: { serviceId, legacyKey: sessionType, name: sessionType },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+
 // ── Safety: production DB guard ────────────────────────────────
 function isProductionDb(url: string | undefined): boolean {
   if (!url) return false;
@@ -454,6 +481,7 @@ async function main() {
             childId: child.id,
             serviceId: child.serviceId!,
             date,
+            roomId: await roomIdFor(child.serviceId!, sessionType),
             sessionType,
             status,
             signInTime,
@@ -497,6 +525,7 @@ async function main() {
           childId: child.id,
           serviceId: child.serviceId,
           date,
+          roomId: await roomIdFor(child.serviceId, sessionType),
           sessionType,
           status: BookingStatus.confirmed,
           type: BookingType.permanent,
@@ -536,6 +565,7 @@ async function main() {
           childId: child.id,
           serviceId: child.serviceId,
           date,
+          roomId: await roomIdFor(child.serviceId, sessionType),
           sessionType,
           status,
           type: BookingType.casual,

@@ -53,7 +53,7 @@ export function RockDetailPanel({
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
-      const res = await fetch("/api/users");
+      const res = await fetch("/api/users?scope=eos_assignees");
       if (!res.ok) return [];
       return res.json();
     },
@@ -1050,7 +1050,7 @@ export function RockDetailPanel({
                       className={cn(
                         "text-xs px-1.5 py-0.5 rounded",
                         issue.status === "solved"
-                          ? "bg-green-50 text-green-600"
+                          ? "bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400"
                           : "bg-surface text-muted"
                       )}
                     >

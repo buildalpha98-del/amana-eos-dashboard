@@ -76,6 +76,7 @@ export interface DashboardResponse {
     unassignedTickets: { id: string; ticketNumber: number; subject: string }[];
     idsIssues: { id: string; title: string; priority: string }[];
     overdueRocks: { id: string; title: string; ownerName: string; quarter: string }[];
+    offTrackRockCount: number;
   };
   keyMetrics: {
     totalRevenue: number;

@@ -10,6 +10,16 @@ const createMeetingSchema = z.object({
   date: z.string().min(1, "Date is required"),
   serviceIds: z.array(z.string()).optional(),
   attendeeIds: z.array(z.string()).optional(),
+  // 2026-07-28: Leadership (L10) meeting — restricts the To-Do Review to
+  // attendees holding a leadership role.
+  isLeadership: z.boolean().optional(),
+  // 2026-07-28: which Scorecard to review. Omitted = legacy single scorecard.
+  scorecardId: z.string().optional().nullable(),
+  // 2026-08-31: schedule-for-later. When present the meeting is created
+  // as `scheduled` with date = scheduledFor (the existing `date` column
+  // carries the scheduled moment — no separate column). The morning
+  // briefing cron auto-preps scheduled meetings dated today.
+  scheduledFor: z.string().datetime().optional(),
 });
 
 // GET /api/meetings — list meetings ordered by date desc
@@ -64,14 +74,30 @@ const body = await parseJsonBody(req);
     );
   }
 
+  const scheduledFor = parsed.data.scheduledFor
+    ? new Date(parsed.data.scheduledFor)
+    : null;
+  if (scheduledFor) {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (scheduledFor < todayStart) {
+      return NextResponse.json(
+        { error: "scheduledFor must be today or in the future" },
+        { status: 400 },
+      );
+    }
+  }
+
   const meeting = await prisma.meeting.create({
     data: {
       title: parsed.data.title,
-      date: new Date(parsed.data.date),
-      status: "in_progress",
-      startedAt: new Date(),
+      date: scheduledFor ?? new Date(parsed.data.date),
+      status: scheduledFor ? "scheduled" : "in_progress",
+      startedAt: scheduledFor ? null : new Date(),
       createdById: session!.user.id,
       serviceIds: parsed.data.serviceIds || [],
+      isLeadership: parsed.data.isLeadership ?? false,
+      scorecardId: parsed.data.scorecardId ?? null,
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },

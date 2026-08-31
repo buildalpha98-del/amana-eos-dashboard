@@ -262,7 +262,7 @@ export function ContractQuickUpload({ userId, userName }: Props) {
               <p className="text-xs text-muted">
                 or click to choose a file · max 10 MB
               </p>
-              <p className="text-[11px] text-muted/80 mt-1 flex items-center gap-1">
+              <p className="text-xs text-muted/80 mt-1 flex items-center gap-1">
                 <FileText className="h-3 w-3" />
                 Other contract details stay inside the PDF.
               </p>

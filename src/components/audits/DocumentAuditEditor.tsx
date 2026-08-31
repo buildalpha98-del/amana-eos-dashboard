@@ -47,6 +47,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 interface DocumentAuditEditorProps {
   auditId: string;
@@ -89,6 +90,7 @@ function ToolbarBtn({
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       disabled={disabled}
       className={cn(
@@ -137,7 +139,7 @@ export function DocumentAuditEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose max-w-none focus:outline-none min-h-[60vh] px-6 py-8 bg-white rounded-b-xl",
+          "prose prose-sm sm:prose max-w-none focus:outline-none min-h-[60vh] px-6 py-8 bg-card rounded-b-xl",
       },
     },
     immediatelyRender: false,
@@ -232,17 +234,17 @@ export function DocumentAuditEditor({
           <p className="text-xs text-muted mt-0.5">
             {serviceName} · Due {new Date(dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
             {docQuery.data?.source === "template" && (
-              <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+              <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
                 Fresh copy of template
               </span>
             )}
             {docQuery.data?.source === "saved" && !isCompleted && (
-              <span className="ml-2 inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+              <span className="ml-2 inline-flex items-center gap-1 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded">
                 Resuming saved draft
               </span>
             )}
             {isCompleted && (
-              <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+              <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
                 <CheckCircle2 className="w-3 h-3" /> Completed (read-only)
               </span>
             )}
@@ -323,28 +325,32 @@ export function DocumentAuditEditor({
         </div>
       )}
 
-      <div className={cn("border border-border bg-white", editor && !isCompleted ? "border-t-0 rounded-b-xl" : "rounded-xl")}>
+      <div className={cn("border border-border bg-card", editor && !isCompleted ? "border-t-0 rounded-b-xl" : "rounded-xl")}>
         <EditorContent editor={editor} />
       </div>
 
       {!isCompleted && (
         <div className="sticky bottom-4 z-10 mx-auto max-w-fit bg-card border border-border rounded-full shadow-lg px-3 py-2 flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => saveDraft.mutate()}
-            disabled={saveDraft.isPending || completeMut.isPending}
-            className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-foreground border border-border rounded-full hover:bg-surface disabled:opacity-50"
+            disabled={completeMut.isPending}
+            loading={saveDraft.isPending}
+            iconLeft={<Save className="w-4 h-4" />}
           >
-            {saveDraft.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save draft
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleComplete}
-            disabled={saveDraft.isPending || completeMut.isPending}
-            className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-brand rounded-full hover:bg-brand/90 disabled:opacity-50"
+            disabled={saveDraft.isPending}
+            loading={completeMut.isPending}
+            iconLeft={<CheckCircle2 className="w-4 h-4" />}
           >
-            {completeMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             Complete audit
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -365,12 +371,12 @@ function AiFlagsPanel({
   const low = flags.filter((f) => f.severity === "low");
 
   const accent = high.length
-    ? "border-red-200 bg-red-50/60"
+    ? "border-red-200 dark:border-red-800 bg-red-50/60"
     : medium.length
-      ? "border-amber-200 bg-amber-50/60"
+      ? "border-amber-200 dark:border-amber-800 bg-amber-50/60"
       : flags.length
-        ? "border-blue-200 bg-blue-50/60"
-        : "border-emerald-200 bg-emerald-50/60";
+        ? "border-blue-200 dark:border-blue-800 bg-blue-50/60"
+        : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60";
 
   return (
     <div className={cn("rounded-xl border p-4 space-y-3", accent)}>
@@ -380,7 +386,7 @@ function AiFlagsPanel({
           AI review of this audit
         </p>
         {scannedAt && (
-          <span className="text-[11px] text-muted ml-auto">
+          <span className="text-xs text-muted ml-auto">
             Scanned{" "}
             {new Date(scannedAt).toLocaleDateString("en-AU", {
               day: "numeric",

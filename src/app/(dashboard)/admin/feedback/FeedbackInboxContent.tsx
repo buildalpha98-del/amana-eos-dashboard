@@ -26,17 +26,17 @@ const CATEGORY_OPTIONS = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-100 text-blue-700",
-  acknowledged: "bg-indigo-100 text-indigo-700",
-  in_progress: "bg-amber-100 text-amber-700",
-  resolved: "bg-emerald-100 text-emerald-700",
+  new: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  acknowledged: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  in_progress: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  resolved: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  bug: "bg-rose-100 text-rose-700",
-  feature_request: "bg-violet-100 text-violet-700",
-  question: "bg-sky-100 text-sky-700",
-  general: "bg-gray-100 text-gray-700",
+  bug: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
+  feature_request: "bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300",
+  question: "bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300",
+  general: "bg-surface text-foreground/80",
 };
 
 function formatDate(d: string) {
@@ -100,7 +100,7 @@ export function FeedbackInboxContent() {
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-300">
           Failed to load feedback inbox. You may not have permission to view this page.
         </div>
       )}

@@ -9,7 +9,7 @@ export function SegueSection({
 }) {
   return (
     <div className="space-y-4">
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+      <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-purple-800 mb-1">
           Good News
         </h4>
@@ -22,7 +22,7 @@ export function SegueSection({
         value={notes}
         onChange={(e) => onUpdate(e.target.value)}
         placeholder="Capture good news shared by team members..."
-        className="w-full h-40 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+        className="w-full min-h-40 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
       />
     </div>
   );

@@ -14,6 +14,7 @@ import { useChildren, type ChildRecord } from "@/hooks/useChildren";
 import { ChildDetailPanel } from "@/components/children/ChildDetailPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { serviceWithReason } from "@/lib/placement-reason";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -23,9 +24,9 @@ const STATUS_TABS = [
 ];
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "bg-amber-50 text-amber-700" },
-  active: { label: "Active", color: "bg-green-50 text-green-700" },
-  withdrawn: { label: "Withdrawn", color: "bg-red-50 text-red-700" },
+  pending: { label: "Pending", color: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300" },
+  active: { label: "Active", color: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300" },
+  withdrawn: { label: "Withdrawn", color: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300" },
 };
 
 type ChildStatusFilter = "current" | "all" | "withdrawn" | "active" | "pending";
@@ -46,6 +47,12 @@ function normaliseStatus(value: string): ChildStatusFilter {
 export default function ChildrenPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
+  // Children with no service or school sort LAST, not first — an unset
+  // value isn't "before A", it's "unknown", and burying it keeps the top
+  // of the list useful.
+  const [sortBy, setSortBy] = useState<
+    "firstName" | "surname" | "service" | "school" | "status"
+  >("firstName");
   // Deep-linkable: /children?id=<childId> opens the detail panel —
   // the ⌘K palette lands here (2026-07-06). window.location, not
   // useSearchParams, to avoid a Suspense boundary.
@@ -58,7 +65,45 @@ export default function ChildrenPage() {
     search: search || undefined,
   });
 
-  const children = data?.children || [];
+  const rawChildren = data?.children || [];
+
+  /**
+   * Client-side sort. The list is already capped by the API's page size,
+   * so sorting here avoids a round trip per click — and staff scanning for
+   * a child care far more about it being ordered than about it being
+   * ordered server-side.
+   */
+  const children = [...rawChildren].sort((a, b) => {
+    switch (sortBy) {
+      case "surname":
+        return (
+          (a.surname ?? "").localeCompare(b.surname ?? "") ||
+          (a.firstName ?? "").localeCompare(b.firstName ?? "")
+        );
+      case "service":
+        return (
+          (a.service?.name ?? "\uffff").localeCompare(
+            b.service?.name ?? "\uffff",
+          ) || (a.firstName ?? "").localeCompare(b.firstName ?? "")
+        );
+      case "school":
+        return (
+          (a.schoolName ?? "\uffff").localeCompare(b.schoolName ?? "\uffff") ||
+          (a.firstName ?? "").localeCompare(b.firstName ?? "")
+        );
+      case "status":
+        return (
+          (a.status ?? "").localeCompare(b.status ?? "") ||
+          (a.firstName ?? "").localeCompare(b.firstName ?? "")
+        );
+      case "firstName":
+      default:
+        return (
+          (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
+          (a.surname ?? "").localeCompare(b.surname ?? "")
+        );
+    }
+  });
 
   const counts = {
     all: data?.total || 0,
@@ -130,6 +175,25 @@ export default function ChildrenPage() {
             aria-label="Search children"
             className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="child-sort" className="text-sm text-muted shrink-0">
+            Sort by
+          </label>
+          <select
+            id="child-sort"
+            value={sortBy}
+            onChange={(e) =>
+              setSortBy(e.target.value as typeof sortBy)
+            }
+            className="px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-brand/30"
+          >
+            <option value="firstName">First name</option>
+            <option value="surname">Last name</option>
+            <option value="service">Service</option>
+            <option value="school">School</option>
+            <option value="status">Status</option>
+          </select>
         </div>
       </div>
 
@@ -220,7 +284,8 @@ function ChildRow({ child, onClick }: { child: ChildRecord; onClick: () => void 
       <div className="sm:col-span-2 flex items-center gap-1.5">
         <Building2 className="h-3.5 w-3.5 text-foreground/30 shrink-0 hidden sm:block" />
         <span className="text-xs text-foreground/60 truncate">
-          {child.service?.name || "Unassigned"}
+          {serviceWithReason(child.service?.name, child.placementReason) ||
+            "Unassigned"}
         </span>
       </div>
 

@@ -339,7 +339,7 @@ function EmploymentEditForm({
             <div className="mt-1">
               <RoleBadge role={targetUser.role} />
             </div>
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-xs text-muted">
               Role changes are managed by admins from the Team list.
             </p>
           </div>

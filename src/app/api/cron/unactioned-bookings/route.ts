@@ -105,9 +105,9 @@ export async function GET(req: NextRequest) {
           <table style="width:100%;border-collapse:collapse;margin:16px 0;">
             <thead>
               <tr style="background:#f8f5f2;">
-                <th style="padding:8px 12px;text-align:left;font-size:13px;color:#7c7c8a;">Child</th>
-                <th style="padding:8px 12px;text-align:left;font-size:13px;color:#7c7c8a;">Date</th>
-                <th style="padding:8px 12px;text-align:left;font-size:13px;color:#7c7c8a;">Session</th>
+                <th style="padding:8px 12px;text-align:left;font-size:13px;color:#6b6b78;">Child</th>
+                <th style="padding:8px 12px;text-align:left;font-size:13px;color:#6b6b78;">Date</th>
+                <th style="padding:8px 12px;text-align:left;font-size:13px;color:#6b6b78;">Session</th>
               </tr>
             </thead>
             <tbody>${bookingRows}</tbody>

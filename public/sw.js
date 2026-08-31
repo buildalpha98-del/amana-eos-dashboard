@@ -3,7 +3,7 @@
 // This is intentionally minimal — the app requires API access so full offline
 // mode is not supported.
 
-const CACHE_NAME = "amana-v1";
+const CACHE_NAME = "amana-v2";
 
 // App shell assets to cache on install
 const APP_SHELL = ["/dashboard", "/icons/icon-192.png", "/icons/icon-512.png"];
@@ -36,13 +36,37 @@ self.addEventListener("fetch", (event) => {
   // Only cache GET requests
   if (request.method !== "GET") return;
 
-  // Skip API calls, auth routes, and non-HTTP(S) requests
   const url = new URL(request.url);
-  if (
-    url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/auth/") ||
-    !url.protocol.startsWith("http")
-  ) {
+  if (!url.protocol.startsWith("http") || url.pathname.startsWith("/auth/")) {
+    return;
+  }
+
+  // A short allowlist of parent GETs gets network-first-with-fallback:
+  // the school gate is exactly where reception dies, and "where in the
+  // school are we / what's booked / what's on this week" are the
+  // questions being asked there. Fresh whenever online — the cache is
+  // only ever what you saw last time, never served in preference.
+  // Everything else under /api/ stays uncached: bookings POSTs, auth,
+  // and anything whose staleness could mislead.
+  const OFFLINE_OK = [
+    "/api/parent/centres",
+    "/api/parent/bookings",
+    "/api/parent/daily-info",
+    "/api/parent/today",
+  ];
+  if (url.pathname.startsWith("/api/")) {
+    if (!OFFLINE_OK.some((p) => url.pathname === p)) return;
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
     return;
   }
 

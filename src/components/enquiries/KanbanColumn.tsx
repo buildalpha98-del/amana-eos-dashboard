@@ -74,7 +74,7 @@ export function KanbanColumn({
     <div
       ref={setNodeRef}
       className={`flex-shrink-0 w-64 rounded-lg bg-surface/50 border ${
-        isOver ? "border-blue-400 bg-blue-50" : "border-border"
+        isOver ? "border-blue-400 bg-blue-50 dark:bg-blue-950/40" : "border-border"
       }`}
     >
       <div className="p-3 border-b border-border">
@@ -92,7 +92,7 @@ export function KanbanColumn({
           </span>
         </div>
         {stuckCount > 0 && !isWaitlisted && (
-          <span className="text-[10px] text-red-600 font-medium">
+          <span className="text-2xs text-red-600 font-medium">
             {stuckCount} stuck
           </span>
         )}

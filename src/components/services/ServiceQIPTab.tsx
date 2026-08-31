@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AiButton } from "@/components/ui/AiButton";
 import { toast } from "@/hooks/useToast";
@@ -69,18 +70,18 @@ const NQS_AREA_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
-  active: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
-  draft: { bg: "bg-gray-100", text: "text-gray-600", icon: Clock },
-  under_review: { bg: "bg-amber-100", text: "text-amber-700", icon: AlertCircle },
-  archived: { bg: "bg-gray-100", text: "text-gray-400", icon: Clock },
+  active: { bg: "bg-emerald-100 dark:bg-emerald-950/50", text: "text-emerald-700", icon: CheckCircle2 },
+  draft: { bg: "bg-surface", text: "text-muted", icon: Clock },
+  under_review: { bg: "bg-amber-100 dark:bg-amber-950/50", text: "text-amber-700", icon: AlertCircle },
+  archived: { bg: "bg-surface", text: "text-muted/70", icon: Clock },
 };
 
 const RATING_COLORS: Record<string, string> = {
-  exceeding: "bg-emerald-100 text-emerald-700",
-  meeting: "bg-blue-100 text-blue-700",
-  working_towards: "bg-amber-100 text-amber-700",
-  requires_improvement: "bg-red-100 text-red-700",
-  not_assessed: "bg-gray-100 text-gray-500",
+  exceeding: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  meeting: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  working_towards: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  requires_improvement: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  not_assessed: "bg-surface text-muted",
 };
 
 export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
@@ -172,18 +173,15 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
           Create {docLabels.article} {docLabels.long} to track NQS quality
           areas, strengths, and improvement strategies for this service.
         </p>
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => createQIP.mutate()}
-          disabled={createQIP.isPending}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-lg transition disabled:opacity-50"
+          loading={createQIP.isPending}
+          iconLeft={<Plus className="w-4 h-4" />}
         >
-          {createQIP.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Plus className="w-4 h-4" />
-          )}
           Create {docLabels.short}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -317,19 +315,21 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                           </div>
                         ))}
                         <div className="flex justify-end gap-2 pt-2">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => { setEditingArea(null); setEditForm({}); }}
-                            className="px-3 py-1.5 text-sm text-muted hover:text-foreground"
                           >
                             Cancel
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
                             onClick={() => updateArea.mutate({ qipId: qip.id, areaId: area.id, data: editForm })}
-                            disabled={updateArea.isPending}
-                            className="px-3 py-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-lg transition disabled:opacity-50"
+                            loading={updateArea.isPending}
                           >
                             {updateArea.isPending ? "Saving..." : "Save"}
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : (
@@ -397,13 +397,14 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
 
                         {/* AI Action Plan Result Panel */}
                         {aiResult[area.id] && (
-                          <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                          <div className="mt-3 p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="text-sm font-medium text-purple-800">
                                 AI-Generated Action Plan
                               </h4>
                               <button
                                 onClick={() => setAiResult((prev) => ({ ...prev, [area.id]: null }))}
+                                aria-label="Dismiss action plan"
                                 className="text-purple-400 hover:text-purple-600"
                               >
                                 <X className="w-4 h-4" />

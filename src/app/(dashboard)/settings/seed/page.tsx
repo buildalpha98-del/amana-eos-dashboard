@@ -4,20 +4,23 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
-  Database,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  ArrowLeft,
-  BookOpen,
-  Shield,
   AlertTriangle,
-  ClipboardList,
-  Mail,
-  GitBranch,
+  ArrowLeft,
   BarChart3,
-  Play,
   Bell,
+  BookOpen,
+  CheckCircle2,
+  ClipboardList,
+  Database,
+  FolderKanban,
+  GitBranch,
+  Loader2,
+  LogOut,
+  Mail,
+  Megaphone,
+  Play,
+  Shield,
+  XCircle,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 
@@ -44,6 +47,36 @@ const SEED_ENDPOINTS: SeedEndpoint[] = [
     description: "34 help articles across 6 categories",
     endpoint: "/api/knowledge-base/seed",
     icon: <BookOpen className="w-5 h-5" />,
+  },
+  // These four seeders existed but were never listed here, so the only
+  // way to run them was to POST the URL by hand (2026-08-01 sweep).
+  {
+    key: "marketing-templates",
+    name: "Marketing Templates",
+    description: "OSHC content templates for the marketing planner",
+    endpoint: "/api/marketing/templates/seed",
+    icon: <Megaphone className="w-5 h-5" />,
+  },
+  {
+    key: "offboarding",
+    name: "Offboarding Packs",
+    description: "Standard exit checklists and tasks",
+    endpoint: "/api/offboarding/seed",
+    icon: <LogOut className="w-5 h-5" />,
+  },
+  {
+    key: "project-templates",
+    name: "Project Templates",
+    description: "Reusable project plans and task lists",
+    endpoint: "/api/project-templates/seed",
+    icon: <FolderKanban className="w-5 h-5" />,
+  },
+  {
+    key: "welcome-banner",
+    name: "Welcome Banner",
+    description: "The default system welcome banner",
+    endpoint: "/api/system-banners/seed-welcome",
+    icon: <Megaphone className="w-5 h-5" />,
   },
   {
     key: "policies",
@@ -203,7 +236,7 @@ export default function SeedPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Database className="w-5 h-5 text-brand" />
-              <h1 className="text-xl font-bold text-foreground">
+              <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground">
                 Seed Template Data
               </h1>
             </div>

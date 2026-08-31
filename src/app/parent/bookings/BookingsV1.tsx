@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
+import { programmeName } from "@/lib/programme-names";
 import {
   Calendar,
   CalendarDays,
@@ -9,6 +14,8 @@ import {
   AlertTriangle,
   XCircle,
   Clock,
+  Info,
+  RotateCcw,
 } from "lucide-react";
 import {
   useParentBookings,
@@ -27,23 +34,42 @@ import { cn } from "@/lib/utils";
 type Tab = "upcoming" | "past";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  requested: { bg: "bg-amber-100", text: "text-amber-700", label: "Requested" },
-  confirmed: { bg: "bg-green-100", text: "text-green-700", label: "Confirmed" },
-  waitlisted: { bg: "bg-blue-100", text: "text-blue-700", label: "Waitlisted" },
-  cancelled: { bg: "bg-gray-100", text: "text-gray-500", label: "Cancelled" },
-  absent_notified: { bg: "bg-red-100", text: "text-red-600", label: "Absent" },
+  requested: { bg: "bg-amber-100 dark:bg-amber-950/50", text: "text-amber-700", label: "Requested" },
+  confirmed: { bg: "bg-green-100 dark:bg-green-950/50", text: "text-green-700", label: "Confirmed" },
+  waitlisted: { bg: "bg-blue-100 dark:bg-blue-950/50", text: "text-blue-700", label: "Waitlisted" },
+  cancelled: { bg: "bg-surface", text: "text-muted", label: "Cancelled" },
+  absent_notified: { bg: "bg-red-100 dark:bg-red-950/50", text: "text-red-600", label: "Absent" },
 };
 
 const SESSION_STYLES: Record<string, { bg: string; text: string }> = {
-  bsc: { bg: "bg-[#004E64]/10", text: "text-[#004E64]" },
-  asc: { bg: "bg-amber-100", text: "text-amber-700" },
-  vc: { bg: "bg-purple-100", text: "text-purple-700" },
+  bsc: { bg: "bg-brand/10", text: "text-brand" },
+  asc: { bg: "bg-amber-100 dark:bg-amber-950/50", text: "text-amber-700" },
+  vc: { bg: "bg-purple-100 dark:bg-purple-950/50", text: "text-purple-700" },
 };
 
 export default function BookingsV1() {
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
   const { data, isLoading } = useParentBookings(activeTab);
   const cancelBooking = useCancelBooking();
+  const qc = useQueryClient();
+
+  /**
+   * Undo an absence. Same endpoint as marking absent, opposite action —
+   * the server owns the 24-hour rule, this just asks.
+   */
+  const markAttending = useMutation({
+    mutationFn: (bookingId: string) =>
+      mutateApi(`/api/parent/bookings/${bookingId}`, {
+        method: "PATCH",
+        body: { action: "attending" },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["parent", "bookings"] });
+      toast({ description: "Marked as attending again." });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
 
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [absentBooking, setAbsentBooking] = useState<BookingRecord | null>(null);
@@ -66,16 +92,16 @@ export default function BookingsV1() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
+          <h1 className="text-2xl font-heading font-bold text-foreground">
             My Bookings
           </h1>
-          <p className="text-sm text-[#7c7c8a] mt-1">
+          <p className="text-sm text-muted mt-1">
             Manage your children&apos;s sessions.
           </p>
         </div>
         <button
           onClick={() => setShowRequestDialog(true)}
-          className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[44px]"
+          className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[44px]"
         >
           <Plus className="w-4 h-4" />
           Request Booking
@@ -85,14 +111,33 @@ export default function BookingsV1() {
       {/* Mobile CTA */}
       <button
         onClick={() => setShowRequestDialog(true)}
-        className="sm:hidden w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] min-h-[48px]"
+        className="sm:hidden w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] min-h-[48px]"
       >
         <Plus className="w-4 h-4" />
-        Request Casual Booking
+        Book a casual session
       </button>
 
+      {/* Recurring bookings aren't self-serve — changing a permanent
+          pattern moves ratios, rosters and invoices, so it goes through
+          the office. Said here rather than leaving parents to hunt for
+          a button that doesn't exist. */}
+      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-surface">
+        <Info className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+        <p className="text-sm text-foreground">
+          Need to change your <strong>regular weekly days</strong>? Head to{" "}
+          <Link
+            href="/parent/messages"
+            className="text-brand font-semibold underline underline-offset-2"
+          >
+            Messages
+          </Link>{" "}
+          and message head office — we&apos;ll update them for you. Casual
+          one-off sessions can be booked here.
+        </p>
+      </div>
+
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#F2EDE8] rounded-xl p-1">
+      <div className="flex gap-1 bg-surface rounded-xl p-1">
         {(["upcoming", "past"] as const).map((tab) => (
           <button
             key={tab}
@@ -100,8 +145,8 @@ export default function BookingsV1() {
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] capitalize",
               activeTab === tab
-                ? "bg-white text-[#004E64] shadow-sm"
-                : "text-[#7c7c8a] hover:text-[#1a1a2e]"
+                ? "bg-card text-brand shadow-sm"
+                : "text-muted hover:text-foreground"
             )}
           >
             {tab === "upcoming" ? (
@@ -120,7 +165,7 @@ export default function BookingsV1() {
           onClick={() => setView("list")}
           className={cn(
             "p-2 rounded-lg transition-colors",
-            view === "list" ? "bg-[#004E64] text-white" : "text-[#7c7c8a] hover:bg-[#F2EDE8]",
+            view === "list" ? "bg-brand text-white" : "text-muted hover:bg-surface",
           )}
           aria-label="List view"
         >
@@ -130,7 +175,7 @@ export default function BookingsV1() {
           onClick={() => setView("calendar")}
           className={cn(
             "p-2 rounded-lg transition-colors",
-            view === "calendar" ? "bg-[#004E64] text-white" : "text-[#7c7c8a] hover:bg-[#F2EDE8]",
+            view === "calendar" ? "bg-brand text-white" : "text-muted hover:bg-surface",
           )}
           aria-label="Calendar view"
         >
@@ -157,16 +202,16 @@ export default function BookingsV1() {
       {view === "list" && (isLoading ? (
         <BookingsSkeleton />
       ) : bookings.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-          <div className="w-12 h-12 rounded-full bg-[#FECE00]/20 flex items-center justify-center mx-auto mb-3">
-            <Calendar className="w-6 h-6 text-[#004E64]" />
+        <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
+          <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3">
+            <Calendar className="w-6 h-6 text-brand" />
           </div>
-          <h2 className="text-base font-heading font-semibold text-[#1a1a2e] mb-1">
+          <h2 className="text-base font-heading font-semibold text-foreground mb-1">
             {activeTab === "upcoming"
               ? "No upcoming bookings"
               : "No past bookings"}
           </h2>
-          <p className="text-sm text-[#7c7c8a]">
+          <p className="text-sm text-muted">
             {activeTab === "upcoming"
               ? 'Tap "Request Booking" to book a casual session.'
               : "Past booking history will appear here."}
@@ -176,7 +221,7 @@ export default function BookingsV1() {
         <div className="space-y-6">
           {grouped.map(({ dateLabel, items }) => (
             <div key={dateLabel}>
-              <h2 className="text-xs font-semibold text-[#7c7c8a] uppercase tracking-wider mb-2">
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
                 {dateLabel}
               </h2>
               <div className="space-y-2">
@@ -186,6 +231,7 @@ export default function BookingsV1() {
                     booking={booking}
                     isUpcoming={activeTab === "upcoming"}
                     onMarkAbsent={() => setAbsentBooking(booking)}
+                    onMarkAttending={() => markAttending.mutate(booking.id)}
                     onCancel={() => setCancelTarget(booking)}
                   />
                 ))}
@@ -213,7 +259,7 @@ export default function BookingsV1() {
           open={!!cancelTarget}
           onOpenChange={(open) => !open && setCancelTarget(null)}
           title="Cancel Booking"
-          description={`Are you sure you want to cancel ${cancelTarget.child.firstName}'s ${cancelTarget.sessionType.toUpperCase()} session?`}
+          description={`Are you sure you want to cancel ${cancelTarget.child.firstName}'s ${programmeName(cancelTarget.sessionType)} session?`}
           confirmLabel="Yes, Cancel"
           onConfirm={handleCancel}
           variant="danger"
@@ -230,11 +276,13 @@ function BookingCard({
   booking,
   isUpcoming,
   onMarkAbsent,
+  onMarkAttending,
   onCancel,
 }: {
   booking: BookingRecord;
   isUpcoming: boolean;
   onMarkAbsent: () => void;
+  onMarkAttending: () => void;
   onCancel: () => void;
 }) {
   const status = STATUS_STYLES[booking.status] ?? STATUS_STYLES.requested;
@@ -245,25 +293,44 @@ function BookingCard({
     booking.status === "confirmed" &&
     isTodayOrFutureInServiceTz(booking.date);
 
+  // Changing their mind. Same 24-hour window as cancelling: after that
+  // the centre has staffed and catered to the number.
+  const canUndoAbsence =
+    isUpcoming &&
+    booking.status === "absent_notified" &&
+    isMoreThanHoursAway(booking.date, 24);
+
+  /**
+   * Cancel is a CASUAL-only action (2026-08-06).
+   *
+   * A regular weekly booking isn't cancellable online at all: "not this
+   * Tuesday" is marking the child not attending, which keeps the place,
+   * and "change our days" is an enrolment change with fee and CCS
+   * consequences. Offering Cancel invited the first and silently did
+   * the second.
+   *
+   * The centre can also switch casual cancellation off entirely, which
+   * this can't see; that path is refused server-side.
+   */
   const canCancel =
     isUpcoming &&
-    booking.type === "casual" &&
     (booking.status === "requested" || booking.status === "confirmed") &&
+    booking.type === "casual" &&
     isMoreThanHoursAway(booking.date, 24);
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+    <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-[#004E64]/10 flex items-center justify-center text-xs font-bold text-[#004E64] shrink-0">
+          <div className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center text-xs font-bold text-brand shrink-0">
             {booking.child.firstName[0]}
             {booking.child.surname[0]}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#1a1a2e] truncate">
+            <p className="text-sm font-semibold text-foreground truncate">
               {booking.child.firstName} {booking.child.surname}
             </p>
-            <p className="text-xs text-[#7c7c8a] truncate">
+            <p className="text-xs text-muted truncate">
               {booking.service.name}
               {booking.child.yearLevel ? ` \u00b7 ${booking.child.yearLevel}` : ""}
             </p>
@@ -272,16 +339,16 @@ function BookingCard({
         <div className="flex items-center gap-2 shrink-0">
           <span
             className={cn(
-              "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase",
+              "inline-flex px-2 py-0.5 rounded-full text-2xs font-semibold",
               session.bg,
               session.text
             )}
           >
-            {booking.sessionType.toUpperCase()}
+            {programmeName(booking.sessionType)}
           </span>
           <span
             className={cn(
-              "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold",
+              "inline-flex px-2 py-0.5 rounded-full text-2xs font-semibold",
               status.bg,
               status.text
             )}
@@ -293,18 +360,27 @@ function BookingCard({
 
       {/* Fee row */}
       {booking.gapFee != null && (
-        <div className="mt-2 ml-12 text-xs text-[#7c7c8a]">
+        <div className="mt-2 ml-12 text-xs text-muted">
           ${booking.gapFee.toFixed(2)} gap fee
         </div>
       )}
 
       {/* Actions */}
-      {(canMarkAbsent || canCancel) && (
+      {(canMarkAbsent || canUndoAbsence || canCancel) && (
         <div className="flex items-center gap-4 mt-3 ml-12">
+          {canUndoAbsence && (
+            <button
+              onClick={onMarkAttending}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-light transition-colors min-h-[44px]"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              They&apos;re coming after all
+            </button>
+          )}
           {canMarkAbsent && (
             <button
               onClick={onMarkAbsent}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#7c7c8a] hover:text-[#1a1a2e] transition-colors min-h-[44px]"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-foreground transition-colors min-h-[44px]"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
               Mark absent
@@ -313,7 +389,7 @@ function BookingCard({
           {canCancel && (
             <button
               onClick={onCancel}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#7c7c8a] hover:text-[#1a1a2e] transition-colors min-h-[44px]"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-foreground transition-colors min-h-[44px]"
             >
               <XCircle className="w-3.5 h-3.5" />
               Cancel

@@ -263,8 +263,8 @@ export function DataEntryCell({
           justSaved
             ? "bg-emerald-200"
             : isOnTrack
-            ? "text-emerald-700 bg-emerald-50"
-            : "text-red-700 bg-red-50"
+            ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
+            : "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40"
         )}
         title={`Goal: ${goalDirection === "above" ? "\u2265" : goalDirection === "below" ? "\u2264" : "="} ${formatValue(goalValue)}${entry.notes ? `\nNote: ${entry.notes}` : ""}`}
       >

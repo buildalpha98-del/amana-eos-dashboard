@@ -26,10 +26,18 @@ import {
   orgSettingsConfigSchema,
   writeOrgSettings,
 } from "@/lib/org-settings";
+import { getEmailBranding } from "@/lib/email-branding";
 
 export const GET = withApiAuth(async () => {
   const config = await getOrgSettings();
-  return NextResponse.json({ config });
+  // Branding slice for the email composer's pristine layout seed. Read via
+  // getEmailBranding() — the SAME source the send routes use for their
+  // layout base (OrgSettings row name/primaryColor, non-sensitive) — so the
+  // composer panel previews what an untouched send will actually render.
+  // Needed here because this GET is open to any authed user, while the
+  // row-level /api/org-settings GET is role-gated away from marketing users.
+  const branding = await getEmailBranding();
+  return NextResponse.json({ config, branding });
 });
 
 export const PATCH = withApiAuth(

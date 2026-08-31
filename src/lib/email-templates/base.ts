@@ -5,7 +5,37 @@
 export const BRAND_COLOR = "#004E64";
 export const ACCENT_COLOR = "#FECE00";
 
-export function baseLayout(content: string) {
+/**
+ * Which portal an email belongs to. Drives the header sub-label and the
+ * footer line.
+ *
+ * 2026-07-30: parents were receiving mail branded "EOS Dashboard" with a
+ * "Leadership Team Portal" footer — internal staff wording, on a
+ * family-facing confirmation email. Callers now say who the audience is.
+ * Defaults to "staff" so every existing caller keeps its current
+ * behaviour unchanged.
+ */
+export type EmailAudience = "staff" | "family";
+
+const AUDIENCE_COPY: Record<
+  EmailAudience,
+  { subLabel: string; footer: string }
+> = {
+  staff: {
+    subLabel: "Staff Portal",
+    footer: "Amana OSHC Staff Portal",
+  },
+  family: {
+    subLabel: "Family Portal",
+    footer: "Amana OSHC Family Portal",
+  },
+};
+
+export function baseLayout(
+  content: string,
+  audience: EmailAudience = "staff",
+) {
+  const { subLabel, footer } = AUDIENCE_COPY[audience];
   return `
 <!DOCTYPE html>
 <html>
@@ -25,7 +55,7 @@ export function baseLayout(content: string) {
                 Amana OSHC
               </h1>
               <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;">
-                EOS Dashboard
+                ${subLabel}
               </p>
             </td>
           </tr>
@@ -39,7 +69,7 @@ export function baseLayout(content: string) {
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                Amana OSHC Leadership Team Portal<br/>
+                ${footer}<br/>
                 This is an automated email — please do not reply directly.
               </p>
             </td>

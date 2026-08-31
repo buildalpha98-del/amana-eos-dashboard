@@ -174,19 +174,19 @@ function StatCard({
 function CertBadge({ status }: { status: CertData["status"] }) {
   const config = {
     valid: {
-      bg: "bg-green-50",
+      bg: "bg-green-50 dark:bg-green-950/40",
       text: "text-green-700",
       border: "border-green-200",
       label: "Valid",
     },
     expiring: {
-      bg: "bg-amber-50",
+      bg: "bg-amber-50 dark:bg-amber-950/40",
       text: "text-amber-700",
       border: "border-amber-200",
       label: "Expiring",
     },
     expired: {
-      bg: "bg-red-50",
+      bg: "bg-red-50 dark:bg-red-950/40",
       text: "text-red-700",
       border: "border-red-200",
       label: "Expired",
@@ -463,9 +463,9 @@ export function StaffDashboard() {
         if (actions.length === 0) return null;
 
         return (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center mt-0.5">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center mt-0.5">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
               </div>
               <div className="flex-1 min-w-0">
@@ -589,7 +589,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">My Compliance</p>
-            <p className="text-[10px] text-muted">Upload certificates</p>
+            <p className="text-2xs text-muted">Upload certificates</p>
           </div>
         </Link>
         <Link href="/leave" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -598,7 +598,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Leave</p>
-            <p className="text-[10px] text-muted">Request time off</p>
+            <p className="text-2xs text-muted">Request time off</p>
           </div>
         </Link>
         <Link href="/my-portal" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -607,7 +607,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">My Portal</p>
-            <p className="text-[10px] text-muted">Profile & payslips</p>
+            <p className="text-2xs text-muted">Profile & payslips</p>
           </div>
         </Link>
         <Link href="/onboarding" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -616,16 +616,16 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Training</p>
-            <p className="text-[10px] text-muted">Courses & modules</p>
+            <p className="text-2xs text-muted">Courses & modules</p>
           </div>
         </Link>
         <button onClick={() => setShowReportModal(true)} className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-amber-300 hover:shadow-sm transition-all group text-left">
-          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
             <Send className="w-4.5 h-4.5 text-amber-600" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Report Issue</p>
-            <p className="text-[10px] text-muted">Contact Head Office</p>
+            <p className="text-2xs text-muted">Contact Head Office</p>
           </div>
         </button>
       </div>

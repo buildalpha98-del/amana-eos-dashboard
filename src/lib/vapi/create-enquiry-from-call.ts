@@ -9,6 +9,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { resolveServiceId } from "@/lib/vapi/centre-resolver";
 
@@ -65,6 +66,7 @@ export async function createEnquiryFromCall(callId: string): Promise<string | nu
         notes: notesParts.join("\n"),
       },
     });
+    await logEnquiryStageEvent(enquiry.id, null, "new_enquiry");
 
     await prisma.vapiCall.update({
       where: { id: call.id },

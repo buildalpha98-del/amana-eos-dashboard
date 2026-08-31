@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { generateTempPassword } from "@/lib/temp-password";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -9,11 +10,12 @@ import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { siteUrl } from "@/lib/site-url";
 const bulkUserSchema = z.object({
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   name: z.string().min(1, "Name is required"),
   role: z
-    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer"])
+    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "eos"])
     // Default to "staff" (Educator) per training feedback — admin
     // promotes individuals to OSHC Educator (`member`) after vetting.
     .default("staff"),
@@ -23,40 +25,6 @@ const bulkUserSchema = z.object({
 const bulkInviteSchema = z.object({
   users: z.array(bulkUserSchema).min(1).max(500),
 });
-
-function generateTempPassword(): string {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghjkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const special = "!@#$%&*";
-  const all = upper + lower + digits + special;
-
-  // Use cryptographically secure randomness
-  const randomBytes = new Uint8Array(12);
-  crypto.getRandomValues(randomBytes);
-
-  // Ensure at least one of each required type
-  let pwd = "";
-  pwd += upper[randomBytes[0] % upper.length];
-  pwd += lower[randomBytes[1] % lower.length];
-  pwd += digits[randomBytes[2] % digits.length];
-  pwd += special[randomBytes[3] % special.length];
-
-  // Fill remaining 8 chars
-  for (let i = 0; i < 8; i++) {
-    pwd += all[randomBytes[4 + i] % all.length];
-  }
-
-  // Shuffle using Fisher-Yates with crypto randomness
-  const shuffleBytes = new Uint8Array(pwd.length);
-  crypto.getRandomValues(shuffleBytes);
-  const arr = pwd.split("");
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = shuffleBytes[i] % (i + 1);
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr.join("");
-}
 
 const BATCH_SIZE = 10;
 
@@ -105,7 +73,7 @@ export const POST = withApiAuth(async (req, session) => {
   const skipped: Array<{ email: string; reason: string }> = [];
   const errors: Array<{ email: string; error: string }> = [];
 
-  const loginUrl = `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/login`;
+  const loginUrl = `${siteUrl()}/login`;
 
   // Process users in batches
   for (let i = 0; i < users.length; i += BATCH_SIZE) {

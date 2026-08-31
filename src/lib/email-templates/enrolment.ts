@@ -9,6 +9,7 @@
 
 import { parentEmailLayout, buttonHtml, escapeHtml } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
+import { siteUrl } from "@/lib/site-url";
 
 // ─── Enrolment Confirmation ─────────────────────────────────
 
@@ -74,7 +75,7 @@ export function schoolEnrolmentNotificationEmail(opts: {
   children: SchoolEmailChild[];
 }) {
   const { serviceName, parentName, parentEmail, parentPhone, children } = opts;
-  const dashboardUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+  const dashboardUrl = siteUrl();
   const childNames = children.map((c) => `${c.firstName} ${c.surname}`).join(", ");
   const subject = `New Enrolment Submitted — ${childNames}`;
 

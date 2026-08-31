@@ -145,8 +145,8 @@ export function CasualConversionTab({
         className={cn(
           "rounded-lg border p-4 flex items-start gap-3",
           eligibility.eligible
-            ? "border-emerald-200 bg-emerald-50"
-            : "border-amber-200 bg-amber-50",
+            ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40"
+            : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40",
         )}
       >
         {eligibility.eligible ? (
@@ -234,10 +234,10 @@ function PendingCard({
       className={cn(
         "rounded-lg border p-4",
         overdue
-          ? "border-red-300 bg-red-50"
+          ? "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40"
           : urgent
-            ? "border-amber-300 bg-amber-50"
-            : "border-blue-200 bg-blue-50",
+            ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40"
+            : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40",
       )}
     >
       <div className="flex items-start gap-3">
@@ -302,8 +302,8 @@ function PastRow({ election }: { election: Election }) {
         className={cn(
           "shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs font-medium",
           accepted
-            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-            : "bg-red-50 text-red-800 border-red-200",
+            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800"
+            : "bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
         )}
       >
         {accepted ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StatCard } from "@/components/ui/StatCard";
 import { useQuery } from "@tanstack/react-query";
 import {
   Clock,
@@ -36,7 +37,7 @@ const statusColors: Record<string, string> = {
   open: "bg-amber-500",
   pending_parent: "bg-purple-500",
   resolved: "bg-emerald-500",
-  closed: "bg-gray-400",
+  closed: "bg-muted/60",
 };
 
 const statusLabels: Record<string, string> = {
@@ -101,27 +102,21 @@ export function TicketAnalytics() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageSquare className="w-4 h-4 text-brand" />
-            <span className="text-xs font-medium text-muted uppercase tracking-wider">Total Tickets</span>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{data.totalTickets}</p>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-amber-600" />
-            <span className="text-xs font-medium text-muted uppercase tracking-wider">Avg First Response</span>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{formatHours(data.avgFirstResponseHours)}</p>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span className="text-xs font-medium text-muted uppercase tracking-wider">Avg Resolution</span>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{formatHours(data.avgResolutionHours)}</p>
-        </div>
+        <StatCard size="sm" title="Total Tickets" value={data.totalTickets} icon={MessageSquare} />
+        <StatCard
+          size="sm"
+          title="Avg First Response"
+          value={formatHours(data.avgFirstResponseHours)}
+          icon={Clock}
+          iconColor="#D97706"
+        />
+        <StatCard
+          size="sm"
+          title="Avg Resolution"
+          value={formatHours(data.avgResolutionHours)}
+          icon={CheckCircle2}
+          iconColor="#059669"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -137,7 +132,7 @@ export function TicketAnalytics() {
                 <span className="text-xs font-medium text-muted w-16 capitalize">{priority}</span>
                 <div className="flex-1 h-6 bg-surface rounded-full overflow-hidden">
                   <div
-                    className={cn("h-full rounded-full transition-all", priorityColors[priority] || "bg-gray-400")}
+                    className={cn("h-full rounded-full transition-all", priorityColors[priority] || "bg-muted/60")}
                     style={{ width: `${(count / maxPriority) * 100}%` }}
                   />
                 </div>
@@ -159,7 +154,7 @@ export function TicketAnalytics() {
                 <span className="text-xs font-medium text-muted w-24">{statusLabels[status] || status}</span>
                 <div className="flex-1 h-6 bg-surface rounded-full overflow-hidden">
                   <div
-                    className={cn("h-full rounded-full transition-all", statusColors[status] || "bg-gray-400")}
+                    className={cn("h-full rounded-full transition-all", statusColors[status] || "bg-muted/60")}
                     style={{ width: `${(count / maxStatus) * 100}%` }}
                   />
                 </div>
@@ -203,8 +198,8 @@ export function TicketAnalytics() {
               {data.agentWorkload.map((agent, i) => (
                 <div key={agent.id} className="flex items-center gap-3 py-1.5 px-2 rounded-md hover:bg-surface">
                   <span className={cn(
-                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
-                    i === 0 ? "bg-amber-100 text-amber-700" : i === 1 ? "bg-border text-muted" : i === 2 ? "bg-orange-100 text-orange-700" : "bg-surface text-muted"
+                    "w-5 h-5 rounded-full flex items-center justify-center text-2xs font-bold",
+                    i === 0 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : i === 1 ? "bg-border text-muted" : i === 2 ? "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300" : "bg-surface text-muted"
                   )}>
                     {i + 1}
                   </span>

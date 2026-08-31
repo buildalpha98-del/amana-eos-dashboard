@@ -40,20 +40,20 @@ const STATUS_BUTTONS: Array<{
   {
     value: "on_track",
     label: "On Track",
-    tone: "text-emerald-700 hover:bg-emerald-50",
-    activeTone: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300",
+    tone: "text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40",
+    activeTone: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-300",
   },
   {
     value: "off_track",
     label: "Off Track",
-    tone: "text-red-700 hover:bg-red-50",
-    activeTone: "bg-red-100 text-red-800 ring-1 ring-red-300",
+    tone: "text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40",
+    activeTone: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200 ring-1 ring-red-300",
   },
   {
     value: "complete",
     label: "Completed",
-    tone: "text-green-700 hover:bg-green-50",
-    activeTone: "bg-green-100 text-green-800 ring-1 ring-green-300",
+    tone: "text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40",
+    activeTone: "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200 ring-1 ring-green-300",
   },
 ];
 
@@ -94,7 +94,7 @@ export function RockReviewSection({
 
   return (
     <div className="space-y-4">
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+      <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-emerald-800 mb-1">
           Quarterly Rocks
         </h4>
@@ -168,11 +168,11 @@ function RockRow({
       className={cn(
         "rounded-lg border p-3 space-y-2",
         rock.status === "complete"
-          ? "border-green-200 bg-green-50/50"
+          ? "border-green-200 dark:border-green-800 bg-green-50/50"
           : isPositive
-          ? "border-emerald-200 bg-emerald-50/50"
+          ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50"
           : rock.status === "off_track"
-          ? "border-red-200 bg-red-50/50"
+          ? "border-red-200 dark:border-red-800 bg-red-50/50"
           : "border-border bg-card",
       )}
       data-testid={`rock-review-row-${rock.id}`}
@@ -199,7 +199,7 @@ function RockRow({
             type="button"
             onClick={onSendToIDS}
             disabled={sendingToIDS}
-            className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 disabled:cursor-wait"
+            className="inline-flex items-center gap-1 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/50 disabled:opacity-50 disabled:cursor-wait"
             data-testid={`rock-drop-to-ids-${rock.id}`}
             title="Create an Issue linked to this rock and drop it into IDS for discussion"
           >

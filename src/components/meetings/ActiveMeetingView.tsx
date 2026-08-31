@@ -1,20 +1,25 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Mic,
   Pause,
   Play,
+  Square,
   UserCheck,
   UserX,
 } from "lucide-react";
 import { useUpdateMeeting, usePrepareMeeting } from "@/hooks/useMeetings";
 import { useScorecard, useCreateEntry } from "@/hooks/useScorecard";
+import { useScorecardDetail } from "@/hooks/useScorecards";
 import { useRocks, useUpdateRock } from "@/hooks/useRocks";
 import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
+import { isLeadershipMeetingRole } from "@/lib/role-enum";
 import { useIssues, useUpdateIssue, useCreateIssue } from "@/hooks/useIssues";
 import type { MeetingData } from "@/hooks/useMeetings";
 import { useServices } from "@/hooks/useServices";
@@ -26,6 +31,7 @@ import {
 } from "@/lib/utils";
 import { fetchApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { L10_SECTIONS } from "./sections";
 import { useTimer } from "./useTimer";
@@ -38,13 +44,21 @@ import { IDSSection } from "./IDSSection";
 import { ConcludeSection } from "./ConcludeSection";
 import { MeetingOutcomesPanel } from "./MeetingOutcomesPanel";
 import { AiAgendaPanel } from "./AiAgendaPanel";
+import { MeetingAiReviewPanel } from "./MeetingAiReviewPanel";
+import { useMeetingRecorder } from "@/hooks/useMeetingRecorder";
+import { useCreateRecording } from "@/hooks/useMeetingRecordings";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 export function ActiveMeetingView({
   meeting,
   onBack,
+  lastMeetingId,
 }: {
   meeting: MeetingData;
   onBack: () => void;
+  /** Previous completed meeting of the same kind — drives the To-Do
+   *  Review "from last meeting" carry-over badge. */
+  lastMeetingId?: string | null;
 }) {
   const [currentSection, setCurrentSection] = useState(meeting.currentSection);
   const [segueNotes, setSegueNotes] = useState(meeting.segueNotes || "");
@@ -75,8 +89,45 @@ export function ActiveMeetingView({
   const createTodo = useCreateTodo();
   const createEntry = useCreateEntry();
 
+  // ── Recording (Phase 2, 2026-08-31) ─────────────────────────────
+  // Mirrors the server's meeting-role gate; the API enforces it too.
+  const { data: sessionData } = useSession();
+  const canRecord = [
+    "owner",
+    "head_office",
+    "admin",
+    "marketing",
+    "eos_implementer",
+  ].includes(sessionData?.user?.role ?? "");
+  const createRecording = useCreateRecording(meeting.id);
+  const recorder = useMeetingRecorder({
+    onRecorded: async (file, durationSeconds) => {
+      try {
+        const result = await uploadFileSmart(file, { context: "recording" });
+        createRecording.mutate({
+          url: result.fileUrl,
+          source: "live_mic",
+          durationSeconds,
+        });
+      } catch (err) {
+        toast({
+          variant: "destructive",
+          description:
+            err instanceof Error ? err.message : "Recording upload failed",
+        });
+      }
+    },
+  });
+
   // Data hooks
-  const { data: scorecard } = useScorecard();
+  // 2026-07-28: a meeting can target a specific Scorecard. Meetings created
+  // before that column existed have scorecardId = null and fall back to the
+  // legacy single scorecard, so historical meetings render unchanged.
+  // useScorecardDetail is disabled when the id is null, so only one of these
+  // two queries ever actually fires.
+  const { data: selectedScorecard } = useScorecardDetail(meeting.scorecardId);
+  const { data: legacyScorecard } = useScorecard();
+  const scorecard = meeting.scorecardId ? selectedScorecard : legacyScorecard;
   const { data: allRocks } = useRocks(getCurrentQuarter());
   // 2026-06-05: To-Do Review now shows ALL open todos for the people
   // attending this meeting — not just last week's todos. Daniel
@@ -91,7 +142,7 @@ export function ActiveMeetingView({
   const { data: services } = useServices("active");
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
-    queryFn: () => fetchApi<{ id: string; name: string }[]>("/api/users"),
+    queryFn: () => fetchApi<{ id: string; name: string }[]>("/api/users?scope=eos_assignees"),
     retry: 2,
     staleTime: 60_000,
   });
@@ -165,18 +216,34 @@ export function ActiveMeetingView({
       return completed >= lastMonday && completed < thisMonday;
     });
 
+    // 2026-07-28: on a Leadership (L10) meeting the review is restricted
+    // to leadership-role owners as well as attendance, so an educator's
+    // or coordinator's todos never surface in the leadership agenda even
+    // if they were added to the meeting. Non-leadership meetings keep the
+    // previous attendance-only behaviour.
+    const byRole = meeting.isLeadership
+      ? openOrRecent.filter((t) => isLeadershipMeetingRole(t.assignee?.role))
+      : openOrRecent;
+
     if (attendeeUserIds.size > 0) {
-      return openOrRecent.filter(
+      return byRole.filter(
         (t) => !!t.assigneeId && attendeeUserIds.has(t.assigneeId),
       );
     }
     // No attendees recorded — fall back to service scope so the
-    // legacy "all todos at this centre" behaviour still works.
-    if (!hasServiceScope) return openOrRecent;
-    return openOrRecent.filter(
+    // legacy "all todos at this centre" behaviour still works. A
+    // leadership meeting stays role-restricted even on this path.
+    if (!hasServiceScope) return byRole;
+    return byRole.filter(
       (t) => !t.serviceId || meetingServiceIds.includes(t.serviceId),
     );
-  }, [allTodos, attendeeUserIds, hasServiceScope, meetingServiceIds]);
+  }, [
+    allTodos,
+    attendeeUserIds,
+    hasServiceScope,
+    meetingServiceIds,
+    meeting.isLeadership,
+  ]);
 
   // Filter + deduplicate IDS issues by service scope
   const allIDSIssues = useMemo(() => {
@@ -268,6 +335,37 @@ export function ActiveMeetingView({
     [updateTodo]
   );
 
+  // 2026-08-31: To-Do Review is a capture surface — new commitments made
+  // in the room land here, stamped with this meeting's id.
+  const handleQuickAddTodo = useCallback(
+    (data: { title: string; assigneeId: string; dueDate: string }) => {
+      createTodo.mutate({
+        title: data.title,
+        assigneeId: data.assigneeId,
+        dueDate: data.dueDate,
+        weekOf: getWeekStart().toISOString(),
+        meetingId: meeting.id,
+        serviceId:
+          meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
+      });
+    },
+    [createTodo, meeting.id, meetingServiceIds]
+  );
+
+  const handleReassignTodo = useCallback(
+    (id: string, assigneeId: string) => {
+      updateTodo.mutate({ id, assigneeId });
+    },
+    [updateTodo]
+  );
+
+  const handleRedateTodo = useCallback(
+    (id: string, dueDate: string) => {
+      updateTodo.mutate({ id, dueDate });
+    },
+    [updateTodo]
+  );
+
   const handleIssueStatus = useCallback(
     (id: string, status: string) => {
       updateIssue.mutate({
@@ -307,11 +405,12 @@ export function ActiveMeetingView({
         assigneeIds: data.assigneeIds.length > 1 ? data.assigneeIds : undefined,
         issueId: data.issueId,
         serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
+        meetingId: meeting.id,
         dueDate: new Date(ws.getTime() + 6 * 86400000).toISOString().split("T")[0],
         weekOf: ws.toISOString(),
       });
     },
-    [createTodo, meetingServiceIds]
+    [createTodo, meetingServiceIds, meeting.id]
   );
 
   const handleDropToIDS = useCallback(
@@ -340,10 +439,21 @@ export function ActiveMeetingView({
     [createIssue, updateRock],
   );
 
+  /**
+   * Record a scorecard figure against a specific week.
+   *
+   * The week is passed in rather than assumed to be this one: numbers
+   * arrive late — an activation nobody had counted, a correction — and
+   * the L10 is where that gets noticed. Defaulting to the current week
+   * would file the fix against the wrong one.
+   */
   const handleScorecardEntry = useCallback(
-    (measurableId: string, value: number) => {
-      const weekOf = getWeekStart().toISOString();
-      createEntry.mutate({ measurableId, value, weekOf });
+    (measurableId: string, value: number, weekOf?: string) => {
+      createEntry.mutate({
+        measurableId,
+        value,
+        weekOf: weekOf ?? getWeekStart().toISOString(),
+      });
     },
     [createEntry]
   );
@@ -382,6 +492,14 @@ export function ActiveMeetingView({
   const isCompleted = meeting.status === "completed";
   const SectionIcon = section.icon;
 
+  // Surface mic-permission / unsupported-browser errors as toasts.
+  const recorderError = recorder.error;
+  useEffect(() => {
+    if (recorderError) {
+      toast({ variant: "destructive", description: recorderError });
+    }
+  }, [recorderError]);
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Top Bar */}
@@ -419,8 +537,39 @@ export function ActiveMeetingView({
             )}
           </p>
         </div>
+        {/* Recording controls — the on-screen indicator is the consent
+            surface; the runner also announces recording verbally. */}
+        {!isCompleted && canRecord && (
+          recorder.isRecording ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={recorder.stop}
+              iconLeft={
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+                </span>
+              }
+              iconRight={<Square className="w-3.5 h-3.5" />}
+            >
+              REC {String(Math.floor(recorder.elapsedSeconds / 60)).padStart(2, "0")}:
+              {String(recorder.elapsedSeconds % 60).padStart(2, "0")}
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => recorder.start()}
+              title="Record this meeting — audio is transcribed then deleted; the AI review lands on the meeting afterwards"
+              iconLeft={<Mic className="w-4 h-4" />}
+            >
+              Record
+            </Button>
+          )
+        )}
         {isCompleted ? (
-          <span className="text-xs px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+          <span className="text-xs px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
             Completed
           </span>
         ) : (
@@ -478,7 +627,7 @@ export function ActiveMeetingView({
                   )}
                 >
                   <Icon className="w-3 h-3" />
-                  <span className="text-[10px] font-medium hidden lg:inline">
+                  <span className="text-2xs font-medium hidden lg:inline">
                     {s.label}
                   </span>
                 </div>
@@ -538,7 +687,7 @@ export function ActiveMeetingView({
                   className={cn(
                     "p-1.5 rounded-md border transition-colors",
                     timer.isRunning
-                      ? "border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100"
+                      ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50"
                       : "border-brand bg-brand/10 text-brand hover:bg-brand/20"
                   )}
                 >
@@ -602,6 +751,13 @@ export function ActiveMeetingView({
               <TodoReviewSection
                 todos={todos}
                 onToggle={handleTodoToggle}
+                attendees={meeting.attendees}
+                users={users}
+                onQuickAdd={handleQuickAddTodo}
+                onReassign={handleReassignTodo}
+                onRedate={handleRedateTodo}
+                isCompleted={isCompleted}
+                lastMeetingId={lastMeetingId}
               />
             )}
             {currentSection === 5 && (
@@ -734,7 +890,7 @@ export function ActiveMeetingView({
                     </div>
                     <span
                       className={cn(
-                        "text-[10px] font-medium",
+                        "text-2xs font-medium",
                         isActive ? "text-brand" : "text-muted"
                       )}
                     >
@@ -791,10 +947,10 @@ export function ActiveMeetingView({
                           )
                         }
                         className={cn(
-                          "text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors",
+                          "text-2xs px-2 py-0.5 rounded-full font-medium transition-colors",
                           attendee.status === "present"
-                            ? "bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700"
-                            : "bg-red-100 text-red-600 hover:bg-emerald-100 hover:text-emerald-700"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-red-100 dark:hover:bg-red-950/50 hover:text-red-700"
+                            : "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 hover:text-emerald-700"
                         )}
                       >
                         {attendee.status === "present" ? "Present" : "Absent"}
@@ -802,10 +958,10 @@ export function ActiveMeetingView({
                     )}
                     {isCompleted && (
                       <span className={cn(
-                        "text-[10px] px-2 py-0.5 rounded-full font-medium",
+                        "text-2xs px-2 py-0.5 rounded-full font-medium",
                         attendee.status === "present"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-red-100 text-red-600"
+                          ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                          : "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400"
                       )}>
                         {attendee.status === "present" ? "Present" : "Absent"}
                       </span>
@@ -869,6 +1025,15 @@ export function ActiveMeetingView({
               </div>
             </div>
           )}
+
+          {/* AI meeting review — recordings, transcripts, proposed action
+              items (Phase 2, 2026-08-31) */}
+          <MeetingAiReviewPanel
+            meetingId={meeting.id}
+            attendees={meeting.attendees}
+            users={users}
+            canManage={canRecord}
+          />
         </div>
       </div>
 

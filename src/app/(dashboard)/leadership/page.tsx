@@ -77,10 +77,10 @@ export default function LeadershipPage() {
           <section>
             <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-3">Org KPIs</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Kpi icon={Users} value={data.staffCount} label="Active staff" iconClass="bg-blue-100 text-blue-600" />
-              <Kpi icon={Building2} value={data.serviceCount} label="Active services" iconClass="bg-emerald-100 text-emerald-600" />
-              <Kpi icon={AlertCircle} value={data.openIssueCount} label="Open issues" iconClass="bg-amber-100 text-amber-600" />
-              <Kpi icon={MessageSquare} value={data.openTicketCount} label="Open tickets" iconClass="bg-purple-100 text-purple-600" />
+              <Kpi icon={Users} value={data.staffCount} label="Active staff" iconClass="bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400" />
+              <Kpi icon={Building2} value={data.serviceCount} label="Active services" iconClass="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400" />
+              <Kpi icon={AlertCircle} value={data.openIssueCount} label="Open issues" iconClass="bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400" />
+              <Kpi icon={MessageSquare} value={data.openTicketCount} label="Open tickets" iconClass="bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400" />
             </div>
           </section>
 
@@ -114,20 +114,20 @@ export default function LeadershipPage() {
                 <p className="text-2xl font-bold text-foreground">{data.rocksRollup.total}</p>
                 <p className="text-xs text-muted">Total</p>
               </div>
-              <div className="text-center p-3 rounded-lg bg-emerald-50">
+              <div className="text-center p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40">
                 <p className="text-2xl font-bold text-emerald-700">{data.rocksRollup.onTrack}</p>
                 <p className="text-xs text-emerald-700/80">On track</p>
               </div>
-              <div className="text-center p-3 rounded-lg bg-red-50">
+              <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-950/40">
                 <p className="text-2xl font-bold text-red-700">{data.rocksRollup.offTrack}</p>
                 <p className="text-xs text-red-700/80">Off track</p>
               </div>
-              <div className="text-center p-3 rounded-lg bg-blue-50">
+              <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950/40">
                 <p className="text-2xl font-bold text-blue-700">{data.rocksRollup.complete}</p>
                 <p className="text-xs text-blue-700/80">Complete</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-muted/10">
-                <p className="text-2xl font-bold text-muted-foreground">{data.rocksRollup.dropped}</p>
+                <p className="text-2xl font-bold text-muted">{data.rocksRollup.dropped}</p>
                 <p className="text-xs text-muted">Dropped</p>
               </div>
             </div>

@@ -12,10 +12,10 @@ export interface ComplianceMatrixCellProps {
 }
 
 const STATUS_STYLES: Record<CertStatus, string> = {
-  valid: "bg-green-100 hover:bg-green-200 border-green-200",
-  expiring: "bg-amber-100 hover:bg-amber-200 border-amber-200",
-  expired: "bg-red-100 hover:bg-red-200 border-red-200",
-  missing: "bg-gray-100 hover:bg-gray-200 border-gray-200",
+  valid: "bg-green-100 dark:bg-green-950/50 hover:bg-green-200 border-green-200 dark:border-green-800",
+  expiring: "bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 border-amber-200 dark:border-amber-800",
+  expired: "bg-red-100 dark:bg-red-950/50 hover:bg-red-200 border-red-200 dark:border-red-800",
+  missing: "bg-surface hover:bg-border border-border",
 };
 
 const STATUS_LABELS: Record<CertStatus, string> = {
@@ -60,7 +60,7 @@ export function ComplianceMatrixCell({
       title={`${certTypeLabel} · ${tooltip}`}
       data-status={status}
       className={cn(
-        "flex items-center justify-center h-8 w-8 rounded border transition-colors text-[10px] font-semibold",
+        "flex items-center justify-center h-8 w-8 rounded border transition-colors text-2xs font-semibold",
         STATUS_STYLES[status],
         onClick ? "cursor-pointer" : "cursor-default",
       )}

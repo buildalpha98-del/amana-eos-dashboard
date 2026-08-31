@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
+import { recalcEnrollmentStatus } from "@/lib/lms-progress";
 const enrollSchema = z.object({
   courseId: z.string().min(1),
   userIds: z.array(z.string().min(1)).min(1),
@@ -33,15 +35,41 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
       );
     }
 
-    // Staff can only update their own progress
+    // Non-admins can only update their own progress (admins may override).
+    const isAdmin = isAdminRole(session!.user.role);
     const enrollment = await prisma.lMSEnrollment.findUnique({
       where: { id: parsed.data.enrollmentId },
     });
     if (!enrollment) {
       return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
     }
-    if (session!.user.role === "staff" && enrollment.userId !== session!.user.id) {
+    if (!isAdmin && enrollment.userId !== session!.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const progressModule = await prisma.lMSModule.findUnique({
+      where: { id: parsed.data.moduleId },
+      select: { id: true, type: true, courseId: true },
+    });
+    if (!progressModule || progressModule.courseId !== enrollment.courseId) {
+      return NextResponse.json(
+        { error: "Module not found in this course" },
+        { status: 404 }
+      );
+    }
+    // Quiz modules are completed by PASSING the quiz (server-side scored) —
+    // never by a manual tick. Without this, the induction gate is bypassable.
+    if (progressModule.type === "quiz" && parsed.data.completed && !isAdmin) {
+      const passedAttempt = await prisma.lMSQuizAttempt.findFirst({
+        where: { enrollmentId: enrollment.id, moduleId: progressModule.id, passed: true },
+        select: { id: true },
+      });
+      if (!passedAttempt) {
+        return NextResponse.json(
+          { error: "Quiz modules are completed by passing the quiz in the course player." },
+          { status: 403 }
+        );
+      }
     }
 
     const progress = await prisma.lMSModuleProgress.upsert({
@@ -63,34 +91,7 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
       },
     });
 
-    // Recalculate enrollment status
-    const fullEnrollment = await prisma.lMSEnrollment.findUnique({
-      where: { id: parsed.data.enrollmentId },
-      include: {
-        course: { include: { modules: { where: { isRequired: true } } } },
-        moduleProgress: true,
-      },
-    });
-
-    if (fullEnrollment) {
-      const requiredModuleIds = fullEnrollment.course.modules.map((m) => m.id);
-      const completedRequired = fullEnrollment.moduleProgress.filter(
-        (p) => p.completed && requiredModuleIds.includes(p.moduleId)
-      ).length;
-      const anyStarted = fullEnrollment.moduleProgress.some((p) => p.completed);
-      const allDone =
-        requiredModuleIds.length > 0 && completedRequired >= requiredModuleIds.length;
-
-      await prisma.lMSEnrollment.update({
-        where: { id: parsed.data.enrollmentId },
-        data: {
-          status: allDone ? "completed" : anyStarted ? "in_progress" : "enrolled",
-          startedAt:
-            anyStarted && !fullEnrollment.startedAt ? new Date() : undefined,
-          completedAt: allDone ? new Date() : null,
-        },
-      });
-    }
+    await recalcEnrollmentStatus(parsed.data.enrollmentId);
 
     return NextResponse.json(progress);
   }

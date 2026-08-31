@@ -58,6 +58,7 @@ const ROLE_LABEL: Record<Role, string> = {
   staff: "OSHC Educator",
   eos_viewer: "EOS Viewer",
   eos_implementer: "EOS Implementer",
+  eos: "EOS Member",
 };
 
 const ADMIN_ROLES = new Set(["owner", "head_office", "admin"]);
@@ -174,7 +175,7 @@ function PDDisplay({ pd }: { pd: PositionDescription }) {
       <div className="flex flex-wrap items-center gap-2">
         <h4 className="text-base font-semibold text-foreground">{pd.title}</h4>
         {pd.targetRole && (
-          <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-surface text-muted">
+          <span className="text-2xs uppercase font-semibold px-1.5 py-0.5 rounded bg-surface text-muted">
             {ROLE_LABEL[pd.targetRole]}
           </span>
         )}

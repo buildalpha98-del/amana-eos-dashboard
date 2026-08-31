@@ -58,7 +58,18 @@ describe("buildListWhere", () => {
       params: { s: "svc-1,svc-2" },
       scopedServiceIds: null,
     });
-    expect(out.serviceId).toEqual({ in: ["svc-1", "svc-2"] });
+    // 2026-07-08: the service filter matches primary serviceId OR an active
+    // UserServiceMembership, folded into AND (see build-list-where.ts).
+    expect(out.AND).toContainEqual({
+      OR: [
+        { serviceId: { in: ["svc-1", "svc-2"] } },
+        {
+          serviceMemberships: {
+            some: { serviceId: { in: ["svc-1", "svc-2"] }, status: "active" },
+          },
+        },
+      ],
+    });
   });
 
   it("applies multi-select role filter (r=staff,member)", () => {
@@ -76,7 +87,16 @@ describe("buildListWhere", () => {
       params: { s: "svc-2" },
       scopedServiceIds: ["svc-1"],
     });
-    expect(out.serviceId).toEqual({ in: [] });
+    expect(out.AND).toContainEqual({
+      OR: [
+        { serviceId: { in: [] } },
+        {
+          serviceMemberships: {
+            some: { serviceId: { in: [] }, status: "active" },
+          },
+        },
+      ],
+    });
   });
 
   it("uses scopedServiceIds when no s= filter is passed", () => {
@@ -84,7 +104,16 @@ describe("buildListWhere", () => {
       params: {},
       scopedServiceIds: ["svc-1", "svc-2"],
     });
-    expect(out.serviceId).toEqual({ in: ["svc-1", "svc-2"] });
+    expect(out.AND).toContainEqual({
+      OR: [
+        { serviceId: { in: ["svc-1", "svc-2"] } },
+        {
+          serviceMemberships: {
+            some: { serviceId: { in: ["svc-1", "svc-2"] }, status: "active" },
+          },
+        },
+      ],
+    });
   });
 });
 

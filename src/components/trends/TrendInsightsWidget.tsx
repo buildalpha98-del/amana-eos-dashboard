@@ -20,9 +20,9 @@ interface TrendInsight {
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
-  critical: "border-red-200 bg-red-50",
-  warning: "border-amber-200 bg-amber-50",
-  info: "border-blue-200 bg-blue-50",
+  critical: "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40",
+  warning: "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40",
+  info: "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40",
 };
 
 const SEVERITY_ICON_STYLES: Record<string, string> = {
@@ -119,7 +119,7 @@ export function TrendInsightsWidget({ serviceId, category, className }: TrendIns
                         key={i}
                         className={cn(
                           "w-2 rounded-t-sm",
-                          i >= (t.dataPoints as number[]).length - 2 ? "bg-blue-400" : "bg-gray-300"
+                          i >= (t.dataPoints as number[]).length - 2 ? "bg-blue-400" : "bg-muted/30"
                         )}
                         style={{ height: `${Math.max(height, 8)}%` }}
                       />

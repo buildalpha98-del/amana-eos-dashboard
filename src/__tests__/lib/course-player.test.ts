@@ -31,9 +31,9 @@ describe("toVideoEmbedUrl", () => {
 });
 
 describe("requiredSecondsOnPage", () => {
-  it("is a 60s anti-skip floor", () => {
-    expect(requiredSecondsOnPage({ duration: null })).toBe(60);
-    expect(requiredSecondsOnPage({ duration: 10 })).toBe(60);
+  it("is a 30s anti-skip floor", () => {
+    expect(requiredSecondsOnPage({ duration: null })).toBe(30);
+    expect(requiredSecondsOnPage({ duration: 10 })).toBe(30);
   });
 });
 
@@ -42,14 +42,14 @@ describe("canAdvanceModule", () => {
 
   it("document: locked until dwell floor met", () => {
     const m = { type: "document" as const, duration: null };
-    expect(canAdvanceModule(m, { ...base, timeOnPageSec: 30 })).toBe(false);
-    expect(canAdvanceModule(m, { ...base, timeOnPageSec: 60 })).toBe(true);
+    expect(canAdvanceModule(m, { ...base, timeOnPageSec: 15 })).toBe(false);
+    expect(canAdvanceModule(m, { ...base, timeOnPageSec: 30 })).toBe(true);
   });
 
   it("video: same dwell rule", () => {
     const m = { type: "video" as const, duration: 5 };
-    expect(canAdvanceModule(m, { ...base, timeOnPageSec: 59 })).toBe(false);
-    expect(canAdvanceModule(m, { ...base, timeOnPageSec: 61 })).toBe(true);
+    expect(canAdvanceModule(m, { ...base, timeOnPageSec: 29 })).toBe(false);
+    expect(canAdvanceModule(m, { ...base, timeOnPageSec: 31 })).toBe(true);
   });
 
   it("quiz: locked until passed", () => {

@@ -82,11 +82,13 @@ const STAFF_SELF_FIELDS = new Set([
 export const GET = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
 
-  // Staff can only view own profile
-  if (
-    session!.user.role === "staff" &&
-    session!.user.id !== id
-  ) {
+  // 2026-07-12 authz fix: this profile exposes bank account / BSB / DOB /
+  // home address / super. Read access now mirrors the PATCH check exactly
+  // (owner/admin or self) — previously only the `staff` role was restricted,
+  // so member/marketing/eos_* could read any employee's financial PII.
+  const isAdmin = ["owner", "admin"].includes(session!.user.role);
+  const isSelf = session!.user.id === id;
+  if (!isAdmin && !isSelf) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

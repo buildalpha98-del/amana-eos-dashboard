@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Save } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   useActivationAssignments,
   useUpdateActivationAssignments,
@@ -32,8 +33,8 @@ interface RowData {
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending", color: "bg-surface text-muted" },
-  { value: "confirmed", label: "Confirmed", color: "bg-blue-100 text-blue-700" },
-  { value: "completed", label: "Completed", color: "bg-emerald-100 text-emerald-700" },
+  { value: "confirmed", label: "Confirmed", color: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
+  { value: "completed", label: "Completed", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
 ];
 
 export function ActivationAssignmentGrid({
@@ -280,7 +281,7 @@ export function ActivationAssignmentGrid({
                       updateRow(row.serviceId, "status", e.target.value)
                     }
                     disabled={!row.assigned}
-                    className={`w-full rounded-full px-2 py-1 text-[10px] font-medium border-0 focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed ${
+                    className={`w-full rounded-full px-2 py-1 text-2xs font-medium border-0 focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed ${
                       STATUS_OPTIONS.find((s) => s.value === row.status)
                         ?.color ?? "bg-surface text-muted"
                     }`}
@@ -318,14 +319,15 @@ export function ActivationAssignmentGrid({
 
       {/* Save button */}
       <div className="flex justify-end">
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={handleSave}
           disabled={!dirty || updateAssignments.isPending}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
+          iconLeft={<Save className="h-3.5 w-3.5" />}
         >
-          <Save className="h-3.5 w-3.5" />
           {updateAssignments.isPending ? "Saving..." : "Save All"}
-        </button>
+        </Button>
       </div>
     </div>
   );

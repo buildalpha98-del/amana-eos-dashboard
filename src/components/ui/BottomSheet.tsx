@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, type ReactNode } from "react";
+import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Check, type LucideIcon } from "lucide-react";
@@ -15,6 +15,8 @@ interface BottomSheetProps {
 }
 
 export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const sheetRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const currentY = useRef(0);
@@ -62,7 +64,11 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     currentY.current = 0;
   }, [onClose]);
 
-  if (typeof window === "undefined") return null;
+  // Render nothing until after mount. A bare `typeof window` check renders
+  // null on the server but the portal on the client's HYDRATION pass —
+  // React 19 flags the mismatch and regenerates the tree (visible as a
+  // hydration error on every PageHeader page with actions).
+  if (!mounted) return null;
 
   return createPortal(
     <>

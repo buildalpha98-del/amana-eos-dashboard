@@ -79,7 +79,7 @@ export function MessageAttachmentGrid({
               aria-label={`Open attachment ${i + 1}`}
               className={cn(
                 tileBase,
-                "transition-transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#004E64]",
+                "transition-transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand",
                 urls.length === 1 && "aspect-[4/3]",
                 urls.length === 2 && "aspect-square",
                 isHeroIn3 && "col-span-2 aspect-[2/1]",

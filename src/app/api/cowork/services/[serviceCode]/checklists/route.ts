@@ -5,6 +5,7 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { requireRoomId } from "@/lib/room-resolver";
 const checklistItemSchema = z.object({
   category: z.string().optional(),
   label: z.string().min(1),
@@ -71,6 +72,8 @@ export const POST = withApiHandler(async (req, context) => {
       create: {
         serviceId: service.id,
         date: dateObj,
+        // Stage 1 dual key — see room-resolver.ts.
+        roomId: await requireRoomId(service.id, sessionType),
         sessionType,
         status: "pending",
         notes: notes || null,

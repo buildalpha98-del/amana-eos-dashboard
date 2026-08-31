@@ -37,10 +37,10 @@ export function OfflineSyncBadge() {
       aria-label="Retry offline sync"
       className={cn(
         "inline-flex items-center gap-1.5 px-2 py-1 rounded-[var(--radius-sm)]",
-        "text-[11px] font-medium transition-colors",
+        "text-xs font-medium transition-colors",
         counts.failed > 0
-          ? "bg-rose-100 text-rose-800 hover:bg-rose-200"
-          : "bg-amber-100 text-amber-800 hover:bg-amber-200",
+          ? "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 hover:bg-rose-200"
+          : "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 hover:bg-amber-200",
       )}
     >
       {retrying ? (

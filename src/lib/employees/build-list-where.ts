@@ -95,12 +95,13 @@ export function buildListWhere(
       scopedServiceIds.includes(id),
     );
     // AND on top of any existing OR (search): fold into `AND`.
-    if (intersection.length > 0) {
-      where.AND = [
-        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
-        { OR: buildServiceIdOr(intersection) },
-      ];
-    }
+    // Apply even when the intersection is EMPTY — a scoped caller filtering
+    // by an out-of-scope service must match nothing, not escape their scope
+    // (skipping the constraint here silently returned every employee).
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      { OR: buildServiceIdOr(intersection) },
+    ];
   } else if (requestedServices.length > 0) {
     where.AND = [
       ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),

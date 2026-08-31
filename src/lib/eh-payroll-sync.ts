@@ -18,7 +18,12 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { listEmployees, type EhEmployee } from "@/lib/eh-payroll";
+import {
+  getEmployee,
+  listEmployees,
+  EhPayrollError,
+  type EhEmployee,
+} from "@/lib/eh-payroll";
 
 export interface SyncSummary {
   totalEhEmployees: number;
@@ -29,6 +34,24 @@ export interface SyncSummary {
   newlyMapped: number;
   /** Mappings cleared because the EH side became inactive / disappeared. */
   cleared: number;
+  /**
+   * WHO was cleared and why (2026-08-07). The 2026-08-04 run cleared 9
+   * mappings and recorded only the count — we still don't know whose
+   * payroll links it wiped. Never again: every clear is itemised here
+   * (and therefore in the CronRun details + structured log).
+   */
+  clearedDetails: Array<{
+    userId: string;
+    email: string;
+    ehId: number;
+    reason: "terminated" | "not_in_eh";
+  }>;
+  /**
+   * Mappings that looked missing in the list but were verified Active by
+   * a direct single-record fetch — list/record inconsistency on the EH
+   * side. Kept, not cleared; itemised so we can see how often EH does this.
+   */
+  keptAfterVerify: number;
   unmatchedCount: number;
   /** First 10 unmatched users — full list is in the structured log. */
   unmatchedSample: Array<{ userId: string; email: string; name: string }>;
@@ -43,6 +66,18 @@ export interface SyncSummary {
 export async function runEmployeeSync(): Promise<SyncSummary> {
   const startMs = Date.now();
   const employees = await listEmployees();
+
+  // Safety net (2026-08-07): an empty employee list means the EH fetch
+  // went wrong, not that every employee was terminated. Running the
+  // clear pass against it would wipe every mapping in one run — the
+  // exact "payroll IDs revert" incident this guard exists to prevent
+  // (listEmployees used to truncate at 100 rows and the sync cleared
+  // whatever fell outside the page). Abort instead of clearing.
+  if (employees.length === 0) {
+    throw new Error(
+      "EH Payroll returned 0 employees — refusing to run the mapping sync (a clear pass against an empty list would wipe every mapping)",
+    );
+  }
 
   // O(1) lookups for both directions.
   const byEmail = new Map<string, EhEmployee>();
@@ -71,22 +106,53 @@ export async function runEmployeeSync(): Promise<SyncSummary> {
 
   let unchanged = 0;
   let newlyMapped = 0;
-  let cleared = 0;
+  let keptAfterVerify = 0;
+  const clearedDetails: SyncSummary["clearedDetails"] = [];
   const unmatched: Array<{ userId: string; email: string; name: string }> = [];
 
   for (const u of users) {
     // Tier 1: already mapped — verify EH side still has them Active.
     if (u.employmentHeroEmployeeId !== null) {
       const eh = ehById.get(u.employmentHeroEmployeeId);
-      if (!eh || eh.status !== "Active") {
-        await prisma.user.update({
-          where: { id: u.id },
-          data: { employmentHeroEmployeeId: null },
-        });
-        cleared += 1;
-      } else {
+      if (eh && eh.status === "Active") {
         unchanged += 1;
+        continue;
       }
+
+      // 2026-08-07: verify-before-clear. The manual-map endpoint
+      // validates against getEmployee() at write time, so a mapping we
+      // can't see in the LIST may be a list/record inconsistency on the
+      // EH side rather than a real termination — clearing on the list
+      // alone is how "we set the payroll ID and it reverted overnight"
+      // happens. Before clearing a mapping that's merely MISSING from
+      // the list, double-check the single-record endpoint; if it says
+      // Active, keep the mapping and log the discrepancy. An explicit
+      // Terminated in the list is trusted as-is.
+      if (!eh) {
+        const verified = await getEmployee(u.employmentHeroEmployeeId).catch(
+          (err: unknown) => {
+            if (err instanceof EhPayrollError && err.status === 404) return null;
+            // Non-404 lookup failure (rate limit, outage): we can't
+            // prove the employee is gone, so don't clear on doubt.
+            return "unverifiable" as const;
+          },
+        );
+        if (verified === "unverifiable" || (verified && verified.status === "Active")) {
+          keptAfterVerify += 1;
+          continue;
+        }
+      }
+
+      await prisma.user.update({
+        where: { id: u.id },
+        data: { employmentHeroEmployeeId: null },
+      });
+      clearedDetails.push({
+        userId: u.id,
+        email: u.email,
+        ehId: u.employmentHeroEmployeeId,
+        reason: eh ? "terminated" : "not_in_eh",
+      });
       continue;
     }
 
@@ -109,7 +175,9 @@ export async function runEmployeeSync(): Promise<SyncSummary> {
     activeEhEmployees: employees.filter((e) => e.status === "Active").length,
     unchanged,
     newlyMapped,
-    cleared,
+    cleared: clearedDetails.length,
+    clearedDetails,
+    keptAfterVerify,
     unmatchedCount: unmatched.length,
     unmatchedSample: unmatched.slice(0, 10),
     durationMs: Date.now() - startMs,

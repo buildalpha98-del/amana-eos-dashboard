@@ -39,19 +39,19 @@ export default async function CareersIndexPage() {
   return (
     <main className="min-h-screen bg-[#FFFAE6] px-4 py-10 md:py-16">
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm font-semibold uppercase tracking-wide text-[#004E64]/60">
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand/60">
           Amana OSHC
         </p>
-        <h1 className="mt-2 text-4xl font-semibold leading-tight text-[#004E64] md:text-5xl">
+        <h1 className="mt-2 text-4xl font-semibold leading-tight text-brand md:text-5xl">
           Work Beyond The Bell
         </h1>
-        <p className="mt-3 text-xl text-[#004E64]/80">
+        <p className="mt-3 text-xl text-brand/80">
           Open roles at our Islamic-school centres across NSW &amp; VIC.
         </p>
 
         {vacancies.length === 0 ? (
-          <div className="mt-10 rounded-2xl bg-white p-8 text-center text-[#004E64]/80 shadow-sm ring-1 ring-black/5">
-            <p className="text-lg font-medium text-[#004E64]">No open roles right now.</p>
+          <div className="mt-10 rounded-2xl bg-card p-8 text-center text-brand/80 shadow-sm ring-1 ring-black/5">
+            <p className="text-lg font-medium text-brand">No open roles right now.</p>
             <p className="mt-2">
               We&rsquo;re always keen to meet great educators — email your CV to{" "}
               <a href="mailto:contact@amanaoshc.com.au" className="underline">contact@amanaoshc.com.au</a>.
@@ -67,21 +67,21 @@ export default async function CareersIndexPage() {
                 <Link
                   key={v.id}
                   href={`/careers/${v.id}`}
-                  className="block rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 transition-transform hover:-translate-y-0.5"
+                  className="block rounded-2xl bg-card p-6 shadow-sm ring-1 ring-black/5 transition-transform hover:-translate-y-0.5"
                 >
-                  <h2 className="text-2xl font-semibold text-[#004E64]">{roleLabel}</h2>
-                  <p className="mt-1 text-[#004E64]/80">{centre}</p>
+                  <h2 className="text-2xl font-semibold text-brand">{roleLabel}</h2>
+                  <p className="mt-1 text-brand/80">{centre}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-[#FFF2BF] px-3 py-1 text-sm font-medium text-[#004E64]">
+                    <span className="rounded-full bg-[#FFF2BF] px-3 py-1 text-sm font-medium text-brand">
                       {EMPLOYMENT_LABELS[v.employmentType] ?? v.employmentType}
                     </span>
                     {location && (
-                      <span className="rounded-full bg-[#FFF2BF] px-3 py-1 text-sm font-medium text-[#004E64]">
+                      <span className="rounded-full bg-[#FFF2BF] px-3 py-1 text-sm font-medium text-brand">
                         {location}
                       </span>
                     )}
                   </div>
-                  <p className="mt-4 font-semibold text-[#004E64] underline decoration-[#FECE00] decoration-2 underline-offset-4">
+                  <p className="mt-4 font-semibold text-brand underline decoration-accent decoration-2 underline-offset-4">
                     View &amp; apply →
                   </p>
                 </Link>

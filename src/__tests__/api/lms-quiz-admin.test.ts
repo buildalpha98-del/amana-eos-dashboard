@@ -97,8 +97,13 @@ describe("module-progress endpoint", () => {
 
   it("completes a module for the owner and recomputes status", async () => {
     mockSession({ id: "u1", name: "U", role: "staff" });
+    prismaMock.lMSModule.findUnique.mockResolvedValue({
+      id: "m1",
+      type: "document",
+      courseId: "c1",
+    });
     prismaMock.lMSEnrollment.findUnique
-      .mockResolvedValueOnce({ id: "e1", userId: "u1", startedAt: null }) // ownership
+      .mockResolvedValueOnce({ id: "e1", userId: "u1", courseId: "c1", startedAt: null }) // ownership
       .mockResolvedValueOnce({
         id: "e1", startedAt: null,
         course: { modules: [{ id: "m1" }] },

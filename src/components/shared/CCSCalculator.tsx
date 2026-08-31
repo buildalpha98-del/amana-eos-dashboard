@@ -116,8 +116,8 @@ export function CCSCalculator({
       {/* Header */}
       {!compact && (
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-[#004E64]/10">
-            <Calculator className="h-6 w-6 text-[#004E64]" />
+          <div className="p-2 rounded-xl bg-brand/10">
+            <Calculator className="h-6 w-6 text-brand" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-foreground">CCS Calculator</h3>
@@ -129,9 +129,9 @@ export function CCSCalculator({
       )}
 
       {/* Callout */}
-      <div className="bg-[#FECE00]/20 border border-[#FECE00] rounded-xl p-4 text-center">
+      <div className="bg-accent/20 border border-accent rounded-xl p-4 text-center">
         <p className="text-sm text-muted">From as little as</p>
-        <p className="text-3xl font-bold text-[#004E64]">
+        <p className="text-3xl font-bold text-brand">
           ${result.youPay.toFixed(2)}
         </p>
         <p className="text-sm text-muted">per session</p>
@@ -163,7 +163,7 @@ export function CCSCalculator({
               onClick={() => setSessionType("bsc")}
               className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
                 sessionType === "bsc"
-                  ? "bg-[#004E64] text-white border-[#004E64]"
+                  ? "bg-brand text-white border-brand"
                   : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
@@ -173,7 +173,7 @@ export function CCSCalculator({
               onClick={() => setSessionType("asc")}
               className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
                 sessionType === "asc"
-                  ? "bg-[#004E64] text-white border-[#004E64]"
+                  ? "bg-brand text-white border-brand"
                   : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
@@ -191,7 +191,7 @@ export function CCSCalculator({
               onClick={() => setBookingType("regular")}
               className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
                 bookingType === "regular"
-                  ? "bg-[#004E64] text-white border-[#004E64]"
+                  ? "bg-brand text-white border-brand"
                   : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
@@ -201,7 +201,7 @@ export function CCSCalculator({
               onClick={() => setBookingType("casual")}
               className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
                 bookingType === "casual"
-                  ? "bg-[#004E64] text-white border-[#004E64]"
+                  ? "bg-brand text-white border-brand"
                   : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
@@ -220,7 +220,7 @@ export function CCSCalculator({
             max={5}
             value={daysPerWeek}
             onChange={(e) => setDaysPerWeek(Number(e.target.value))}
-            className="w-full accent-[#004E64]"
+            className="w-full accent-brand"
           />
           <div className="flex justify-between text-xs text-muted mt-1">
             <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
@@ -267,7 +267,7 @@ function ResultRow({
     highlight === "green"
       ? "text-green-600"
       : highlight === "blue"
-      ? "text-[#004E64]"
+      ? "text-brand"
       : "text-foreground";
 
   return (

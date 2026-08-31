@@ -48,6 +48,11 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     lastLoginAt: new Date("2026-04-01"),
     tags: [] as string[],
     service: { id: "svc-1", name: "Mawson Lakes" },
+    // 2026-07-08: the route selects active memberships and maps them to
+    // additionalServices — omitting this crashed the handler with a 500.
+    serviceMemberships: [] as Array<{ service: { id: string; name: string } }>,
+    employmentHeroEmployeeId: null,
+    hrWarningsMuted: false,
     ...overrides,
   };
 }
@@ -82,6 +87,17 @@ describe("GET /api/employees", () => {
     expect(body.total).toBe(1);
     expect(body.page).toBe(1);
     expect(body.pageSize).toBe(50);
+  });
+
+  it("surfaces hrWarningsMuted so the /team badges can be suppressed", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.user.findMany.mockResolvedValue([
+      makeUser({ hrWarningsMuted: true }),
+    ]);
+    prismaMock.user.count.mockResolvedValue(1);
+    const res = await GET(createRequest("GET", "/api/employees"));
+    const body = await res.json();
+    expect(body.employees[0].hrWarningsMuted).toBe(true);
   });
 
   it("strips PII for marketing viewer", async () => {
@@ -127,7 +143,17 @@ describe("GET /api/employees", () => {
     prismaMock.user.count.mockResolvedValue(0);
     await GET(createRequest("GET", "/api/employees"));
     const findManyCall = prismaMock.user.findMany.mock.calls[0][0];
-    expect(findManyCall.where.serviceId).toEqual({ in: ["svc-1"] });
+    // 2026-07-08: scope folds into AND as a primary-OR-membership filter.
+    expect(findManyCall.where.AND).toContainEqual({
+      OR: [
+        { serviceId: { in: ["svc-1"] } },
+        {
+          serviceMemberships: {
+            some: { serviceId: { in: ["svc-1"] }, status: "active" },
+          },
+        },
+      ],
+    });
   });
 
   it("returns pendingCount for admin viewers (drives the bulk-resend button)", async () => {

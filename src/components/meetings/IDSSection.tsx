@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, CheckCircle2 } from "lucide-react";
 import type { IssueData } from "@/hooks/useIssues";
 import { cn } from "@/lib/utils";
+import { AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 
 export function IDSSection({
   issues,
@@ -44,7 +45,7 @@ export function IDSSection({
 
   return (
     <div className="space-y-4">
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-red-800 mb-1">
           IDS: Identify, Discuss, Solve
         </h4>
@@ -166,10 +167,10 @@ export function IDSSection({
                 className={cn(
                   "text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0",
                   issue.status === "open"
-                    ? "bg-amber-100 text-amber-700"
+                    ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                     : issue.status === "in_discussion"
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-emerald-100 text-emerald-700"
+                    ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
+                    : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                 )}
               >
                 {issue.status === "in_discussion"
@@ -182,7 +183,7 @@ export function IDSSection({
 
             {selectedIssue === issue.id && (
               <div className="px-4 pb-4 border-t border-border/50 pt-3 space-y-3">
-                <textarea
+                <AutoGrowTextarea
                   defaultValue={issue.description || ""}
                   onBlur={(e) => {
                     const val = e.target.value.trim();
@@ -191,7 +192,8 @@ export function IDSSection({
                     }
                   }}
                   placeholder="Add notes or description..."
-                  className="w-full text-sm text-muted border border-border rounded-md p-2 resize-none h-20 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-surface/50"
+                  minHeight={180}
+                  className="w-full text-sm text-foreground border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-surface/50"
                 />
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted">Priority:</span>
@@ -213,7 +215,7 @@ export function IDSSection({
                       onClick={() =>
                         onUpdateStatus(issue.id, "in_discussion")
                       }
-                      className="text-xs px-3 py-1 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors font-medium"
+                      className="text-xs px-3 py-1 rounded-md bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors font-medium"
                     >
                       Discuss
                     </button>
@@ -221,14 +223,14 @@ export function IDSSection({
                   {issue.status !== "solved" && (
                     <button
                       onClick={() => onUpdateStatus(issue.id, "solved")}
-                      className="text-xs px-3 py-1 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors font-medium"
+                      className="text-xs px-3 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition-colors font-medium"
                     >
                       Solved
                     </button>
                   )}
                   <button
                     onClick={() => onDropToLongTerm(issue.id)}
-                    className="text-xs px-3 py-1 rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors font-medium"
+                    className="text-xs px-3 py-1 rounded-md bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 transition-colors font-medium"
                     title="Too big for this week — park it on the long-term list (V/TO)"
                   >
                     Drop to Long-Term
@@ -237,8 +239,8 @@ export function IDSSection({
 
                 {/* Inline Create To-Do */}
                 {showCreateTodo === issue.id ? (
-                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
-                    <p className="text-[10px] font-medium text-emerald-700 uppercase tracking-wider">Create To-Do from Issue</p>
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-2">
+                    <p className="text-2xs font-medium text-emerald-700 uppercase tracking-wider">Create To-Do from Issue</p>
                     <input
                       autoFocus
                       value={newTodoTitle}
@@ -256,15 +258,16 @@ export function IDSSection({
                         if (e.key === "Escape") setShowCreateTodo(null);
                       }}
                     />
-                    <textarea
+                    <AutoGrowTextarea
                       value={newTodoDescription}
                       onChange={(e) => setNewTodoDescription(e.target.value)}
                       placeholder="Description (optional)..."
-                      className="w-full px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 h-16 resize-none"
+                      minHeight={90}
+                      className="w-full px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                     {/* Multi-select assignees */}
                     <div>
-                      <p className="text-[10px] font-medium text-muted mb-1">Assign to ({newTodoAssignees.length} selected)</p>
+                      <p className="text-2xs font-medium text-muted mb-1">Assign to ({newTodoAssignees.length} selected)</p>
                       <div className="max-h-32 overflow-y-auto border border-border rounded-md divide-y divide-border/50">
                         {users?.map((u) => {
                           const isSelected = newTodoAssignees.includes(u.id);
@@ -279,7 +282,7 @@ export function IDSSection({
                               }}
                               className={cn(
                                 "w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-colors",
-                                isSelected ? "bg-emerald-50 text-emerald-700" : "hover:bg-surface text-foreground/80"
+                                isSelected ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300" : "hover:bg-surface text-foreground/80"
                               )}
                             >
                               <div className={cn(

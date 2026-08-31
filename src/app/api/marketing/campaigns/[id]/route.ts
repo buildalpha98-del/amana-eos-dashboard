@@ -61,6 +61,19 @@ export const GET = withApiAuth(async (req, session, context) => {
         },
         orderBy: { createdAt: "asc" },
       },
+      // Linked creative requests — a deliberately slim select for the panel's
+      // Assets section (NOT the shared requestInclude; keep this lean).
+      creativeRequests: {
+        select: {
+          id: true,
+          requestNumber: true,
+          title: true,
+          status: true,
+          dueDate: true,
+          assignee: { select: { name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
       _count: {
         select: {
           posts: { where: { deleted: false } },
@@ -74,7 +87,22 @@ export const GET = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
-  return NextResponse.json(campaign);
+  // Email sends linked to this campaign (via the send route's
+  // marketingCampaignId passthrough) live on the delivery log.
+  const emailSends = await prisma.deliveryLog.findMany({
+    where: { entityType: "MarketingCampaign", entityId: id },
+    select: {
+      id: true,
+      subject: true,
+      status: true,
+      recipientCount: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+
+  return NextResponse.json({ ...campaign, emailSends });
 }, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // PATCH /api/marketing/campaigns/:id — update a campaign

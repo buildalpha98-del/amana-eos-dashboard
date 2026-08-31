@@ -48,13 +48,13 @@ export function MedicalAlertBadge({ child, compact = false }: MedicalAlertBadgeP
     return (
       <div className="flex items-center gap-1">
         {conditions.length > 0 && (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-semibold">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-2xs font-semibold">
             <AlertTriangle className="w-3 h-3" />
             Medical
           </span>
         )}
         {dietary.length > 0 && (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-semibold">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-2xs font-semibold">
             <UtensilsCrossed className="w-3 h-3" />
             Dietary
           </span>
@@ -68,7 +68,7 @@ export function MedicalAlertBadge({ child, compact = false }: MedicalAlertBadgeP
       {conditions.map((c) => (
         <span
           key={c}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 text-xs font-medium"
         >
           <AlertTriangle className="w-3 h-3" />
           {c}
@@ -77,7 +77,7 @@ export function MedicalAlertBadge({ child, compact = false }: MedicalAlertBadgeP
       {dietary.map((d) => (
         <span
           key={d}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-xs font-medium"
         >
           <UtensilsCrossed className="w-3 h-3" />
           {d}

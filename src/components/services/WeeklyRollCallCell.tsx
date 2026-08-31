@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@/lib/utils";
+import type { SessionType } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -10,7 +11,13 @@ export type CellStatus = "booked" | "signed_in" | "signed_out" | "absent";
 export interface CellShift {
   attendanceId?: string;
   bookingId?: string;
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: SessionType;
+  /**
+   * The room's own name, attached when the grid builds the shift.
+   * Absent only for a slot with no room record — the chip falls back
+   * to the code rather than rendering blank.
+   */
+  roomName?: string;
   status: CellStatus;
   signInTime?: string | null;
   signOutTime?: string | null;
@@ -37,10 +44,10 @@ function formatHourMinute(iso: string | null | undefined): string {
 }
 
 const STATUS_COLORS: Record<CellStatus, string> = {
-  booked: "bg-teal-50 border-teal-300 text-teal-900",
-  signed_in: "bg-green-100 border-green-400 text-green-900",
-  signed_out: "bg-blue-100 border-blue-400 text-blue-900",
-  absent: "bg-red-100 border-red-400 text-red-900",
+  booked: "bg-teal-50 dark:bg-teal-950/40 border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200",
+  signed_in: "bg-green-100 dark:bg-green-950/50 border-green-400 text-green-900 dark:text-green-200",
+  signed_out: "bg-blue-100 dark:bg-blue-950/50 border-blue-400 text-blue-900 dark:text-blue-200",
+  absent: "bg-red-100 dark:bg-red-950/50 border-red-400 text-red-900 dark:text-red-200",
 };
 
 // ── Component ────────────────────────────────────────────
@@ -62,7 +69,7 @@ function WeeklyRollCallCellImpl({
         onClick={() => (clickable ? onClickEmpty(childId, date) : undefined)}
         data-testid={`weekly-cell-empty-${childId}-${date}`}
         className={cn(
-          "w-full h-14 border border-dashed border-border rounded-md text-[11px] text-muted",
+          "w-full h-14 border border-dashed border-border rounded-md text-xs text-muted",
           clickable ? "hover:bg-surface cursor-pointer" : "cursor-default",
         )}
         aria-label={canEdit ? `Add booking on ${date}` : "No booking"}
@@ -81,23 +88,28 @@ function WeeklyRollCallCellImpl({
       disabled={!clickable}
       onClick={() => (clickable ? onClickShift(childId, date, shift) : undefined)}
       data-testid={`weekly-cell-shift-${childId}-${date}-${shift.sessionType}`}
-      aria-label={`${shift.sessionType.toUpperCase()} ${shift.status} on ${date}`}
+      title={shift.roomName ?? shift.sessionType.toUpperCase()}
+      aria-label={`${shift.roomName ?? shift.sessionType.toUpperCase()} ${shift.status} on ${date}`}
       className={cn(
         "w-full h-14 border rounded-md p-1 text-xs text-left flex flex-col justify-center overflow-hidden",
         color,
         clickable ? "cursor-pointer hover:brightness-95" : "cursor-default",
       )}
     >
-      <div className="font-semibold uppercase leading-tight">
-        {shift.sessionType}
+      {/* The room's name, clipped to the cell. A weekly grid cell is
+          too small for "Amana Afternoons" in full, and inventing an
+          abbreviation risks two rooms colliding — so it truncates, and
+          the title above carries the whole name. */}
+      <div className="font-semibold leading-tight truncate w-full">
+        {shift.roomName ?? shift.sessionType.toUpperCase()}
       </div>
       {shift.signInTime && (
-        <div className="text-[10px] leading-tight truncate">
+        <div className="text-2xs leading-tight truncate">
           In: {formatHourMinute(shift.signInTime)}
         </div>
       )}
       {shift.signOutTime && (
-        <div className="text-[10px] leading-tight truncate">
+        <div className="text-2xs leading-tight truncate">
           Out: {formatHourMinute(shift.signOutTime)}
         </div>
       )}

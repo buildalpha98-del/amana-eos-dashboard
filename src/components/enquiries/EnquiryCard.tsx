@@ -12,12 +12,12 @@ const CHANNEL_ICONS: Record<string, React.ComponentType<{ className?: string }>>
 };
 
 const DRIVER_COLOURS: Record<string, string> = {
-  homework: "bg-blue-100 text-blue-700",
-  quran: "bg-emerald-100 text-emerald-700",
-  enrichment: "bg-purple-100 text-purple-700",
-  working_parent: "bg-amber-100 text-amber-700",
-  traffic: "bg-orange-100 text-orange-700",
-  sports: "bg-green-100 text-green-700",
+  homework: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  quran: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  enrichment: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  working_parent: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  traffic: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  sports: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
 };
 
 interface EnquiryCardProps {
@@ -62,7 +62,7 @@ export function EnquiryCard({ enquiry, onClick, waitlistPosition }: EnquiryCardP
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 min-w-0">
           {waitlistPosition != null && (
-            <span className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-100 text-teal-700 text-[10px] font-bold">
+            <span className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 text-2xs font-bold">
               #{waitlistPosition}
             </span>
           )}
@@ -80,7 +80,7 @@ export function EnquiryCard({ enquiry, onClick, waitlistPosition }: EnquiryCardP
       )}
 
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface text-muted truncate">
+        <span className="text-2xs px-1.5 py-0.5 rounded bg-surface text-muted truncate">
           {enquiry.service?.name?.replace("Amana OSHC ", "") || "Unknown"}
         </span>
       </div>
@@ -88,10 +88,10 @@ export function EnquiryCard({ enquiry, onClick, waitlistPosition }: EnquiryCardP
       {/* Waitlist offer status */}
       {hasOffer && (
         <div className="flex items-center gap-1 mb-2">
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
+          <span className="text-2xs px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 font-medium">
             Offered
           </span>
-          <span className="text-[10px] text-muted flex items-center gap-0.5">
+          <span className="text-2xs text-muted flex items-center gap-0.5">
             <Clock className="w-3 h-3" />
             {getOfferCountdown(enquiry.waitlistOfferedAt)}
           </span>
@@ -102,7 +102,7 @@ export function EnquiryCard({ enquiry, onClick, waitlistPosition }: EnquiryCardP
         <div className="flex items-center gap-1.5">
           {enquiry.parentDriver && (
             <span
-              className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+              className={`text-2xs px-1.5 py-0.5 rounded font-medium ${
                 DRIVER_COLOURS[enquiry.parentDriver] || "bg-surface text-muted"
               }`}
             >
@@ -111,7 +111,7 @@ export function EnquiryCard({ enquiry, onClick, waitlistPosition }: EnquiryCardP
           )}
         </div>
         <span
-          className={`text-[10px] font-medium ${
+          className={`text-2xs font-medium ${
             isWaitlisted
               ? "text-amber-600"
               : isStuck
@@ -124,7 +124,7 @@ export function EnquiryCard({ enquiry, onClick, waitlistPosition }: EnquiryCardP
       </div>
 
       {enquiry.nextActionDue && (
-        <p className="text-[10px] text-muted mt-1">
+        <p className="text-2xs text-muted mt-1">
           Due:{" "}
           {new Date(enquiry.nextActionDue).toLocaleDateString("en-AU", {
             day: "numeric",

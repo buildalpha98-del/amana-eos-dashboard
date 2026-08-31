@@ -14,25 +14,32 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { buildShuffledQuestions, scoreAttempt, type QuizQuestion } from "@/lib/quiz";
+import {
+  buildShuffledQuestions,
+  displayCorrectIndex,
+  questionsFingerprint,
+  scoreAttempt,
+  type QuizQuestion,
+} from "@/lib/quiz";
 import { onModuleProgressed } from "@/lib/induction";
+import { recalcEnrollmentStatus } from "@/lib/lms-progress";
 
 /** Resolve the module, its course, and the caller's enrollment — or throw. */
 async function resolveEnrollment(moduleId: string, userId: string) {
-  const module = await prisma.lMSModule.findUnique({
+  const lmsModule = await prisma.lMSModule.findUnique({
     where: { id: moduleId },
     select: { id: true, courseId: true, type: true },
   });
-  if (!module) throw ApiError.notFound("Module not found");
+  if (!lmsModule) throw ApiError.notFound("Module not found");
 
   const enrollment = await prisma.lMSEnrollment.findUnique({
-    where: { userId_courseId: { userId, courseId: module.courseId } },
+    where: { userId_courseId: { userId, courseId: lmsModule.courseId } },
     select: { id: true },
   });
   if (!enrollment) {
     throw ApiError.forbidden("You are not enrolled in this course.");
   }
-  return { module, enrollmentId: enrollment.id };
+  return { module: lmsModule, enrollmentId: enrollment.id };
 }
 
 async function loadQuestions(moduleId: string): Promise<QuizQuestion[]> {
@@ -49,23 +56,46 @@ async function loadQuestions(moduleId: string): Promise<QuizQuestion[]> {
   }));
 }
 
-// GET — start an attempt.
+// GET — start (or resume) an attempt.
 export const GET = withApiAuth(async (_req, session, context) => {
   const { moduleId } = await context!.params!;
   const userId = session!.user.id;
   const { enrollmentId } = await resolveEnrollment(moduleId, userId);
 
-  const priorAttempts = await prisma.lMSQuizAttempt.count({
-    where: { enrollmentId, moduleId },
-  });
-  const attemptNumber = priorAttempts + 1;
-
-  const attempt = await prisma.lMSQuizAttempt.create({
-    data: { enrollmentId, moduleId, attemptNumber },
-    select: { id: true },
-  });
-
   const questions = await loadQuestions(moduleId);
+  const fingerprint = questionsFingerprint(questions);
+
+  // Reuse an in-progress attempt (abandoned "start" clicks) instead of minting
+  // a new row every GET — the deterministic shuffle re-serves the same view.
+  // The questions returned are always freshly built, so the fingerprint is
+  // refreshed to match what this response shows.
+  const existing = await prisma.lMSQuizAttempt.findFirst({
+    where: { enrollmentId, moduleId, submittedAt: null },
+    orderBy: { attemptNumber: "desc" },
+    select: { id: true, attemptNumber: true },
+  });
+
+  let attemptId: string;
+  let attemptNumber: number;
+  if (existing) {
+    attemptId = existing.id;
+    attemptNumber = existing.attemptNumber;
+    await prisma.lMSQuizAttempt.update({
+      where: { id: existing.id },
+      data: { optionsFingerprint: fingerprint },
+    });
+  } else {
+    const priorAttempts = await prisma.lMSQuizAttempt.count({
+      where: { enrollmentId, moduleId },
+    });
+    attemptNumber = priorAttempts + 1;
+    const attempt = await prisma.lMSQuizAttempt.create({
+      data: { enrollmentId, moduleId, attemptNumber, optionsFingerprint: fingerprint },
+      select: { id: true },
+    });
+    attemptId = attempt.id;
+  }
+
   const shuffled = buildShuffledQuestions({
     enrollmentId,
     moduleId,
@@ -74,7 +104,7 @@ export const GET = withApiAuth(async (_req, session, context) => {
   });
 
   return NextResponse.json({
-    attemptId: attempt.id,
+    attemptId,
     attemptNumber,
     questions: shuffled,
   });
@@ -101,7 +131,14 @@ export const POST = withApiAuth(async (req, session, context) => {
 
   const attempt = await prisma.lMSQuizAttempt.findUnique({
     where: { id: parsed.data.attemptId },
-    select: { id: true, enrollmentId: true, moduleId: true, attemptNumber: true, submittedAt: true },
+    select: {
+      id: true,
+      enrollmentId: true,
+      moduleId: true,
+      attemptNumber: true,
+      submittedAt: true,
+      optionsFingerprint: true,
+    },
   });
   if (!attempt || attempt.enrollmentId !== enrollmentId || attempt.moduleId !== moduleId) {
     throw ApiError.notFound("Attempt not found");
@@ -111,6 +148,17 @@ export const POST = withApiAuth(async (req, session, context) => {
   }
 
   const questions = await loadQuestions(moduleId);
+  // If the question set changed since the attempt started, the display
+  // positions the learner clicked no longer map to the options they saw —
+  // scoring would be silently wrong. Reject; the player restarts the quiz.
+  if (
+    attempt.optionsFingerprint &&
+    attempt.optionsFingerprint !== questionsFingerprint(questions)
+  ) {
+    throw ApiError.conflict(
+      "This quiz was updated while your attempt was in progress. Please start it again.",
+    );
+  }
   const { score, passed, results } = scoreAttempt({
     enrollmentId,
     moduleId,
@@ -134,44 +182,15 @@ export const POST = withApiAuth(async (req, session, context) => {
     await onModuleProgressed(userId);
   }
 
-  // Explanations only after submit — never before.
+  // Explanations only after submit — never before. correctIndex is returned in
+  // DISPLAY space (the attempt's shuffled order), since that's what the client
+  // renders — the canonical index would highlight the wrong option.
+  const ctx = { enrollmentId, moduleId, attemptNumber: attempt.attemptNumber };
   const explanations = questions.map((q) => ({
     questionId: q.id,
-    correctIndex: q.correctIndex,
+    correctIndex: displayCorrectIndex(ctx, q),
     explanation: q.explanation ?? null,
   }));
 
   return NextResponse.json({ score, passed, results, explanations });
 });
-
-/**
- * Recompute an enrollment's status from its required-module completion.
- * Mirrors the legacy pattern in enrollments/route.ts. Completion requires at
- * least one required module (all-optional courses never "complete").
- */
-async function recalcEnrollmentStatus(enrollmentId: string) {
-  const enrollment = await prisma.lMSEnrollment.findUnique({
-    where: { id: enrollmentId },
-    include: {
-      course: { include: { modules: { where: { isRequired: true }, select: { id: true } } } },
-      moduleProgress: true,
-    },
-  });
-  if (!enrollment) return;
-
-  const requiredIds = enrollment.course.modules.map((m) => m.id);
-  const completedRequired = enrollment.moduleProgress.filter(
-    (p) => p.completed && requiredIds.includes(p.moduleId),
-  ).length;
-  const anyStarted = enrollment.moduleProgress.some((p) => p.completed);
-  const allDone = requiredIds.length > 0 && completedRequired >= requiredIds.length;
-
-  await prisma.lMSEnrollment.update({
-    where: { id: enrollmentId },
-    data: {
-      status: allDone ? "completed" : anyStarted ? "in_progress" : "enrolled",
-      startedAt: anyStarted && !enrollment.startedAt ? new Date() : undefined,
-      completedAt: allDone ? new Date() : null,
-    },
-  });
-}

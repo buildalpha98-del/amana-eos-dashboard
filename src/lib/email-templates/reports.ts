@@ -4,6 +4,7 @@
 
 import { baseLayout, buttonHtml, BRAND_COLOR } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
+import { siteUrl } from "@/lib/site-url";
 
 // ─── Weekly Report ──────────────────────────────────────────
 
@@ -593,7 +594,7 @@ export function holidayQuestProgrammeEmail(
         </td>
       </tr>
     </table>
-    ${buttonHtml("Book Now", `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/holiday-quest`)}
+    ${buttonHtml("Book Now", `${siteUrl()}/holiday-quest`)}
     <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
       Places are limited — book early to avoid missing out!
     </p>

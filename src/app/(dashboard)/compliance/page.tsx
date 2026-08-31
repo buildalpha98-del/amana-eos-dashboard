@@ -24,6 +24,7 @@ import {
   FileText,
   ExternalLink,
   FileSpreadsheet,
+  Shield,
 } from "lucide-react";
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -32,20 +33,25 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { StatCard } from "@/components/ui/StatCard";
+import { StatusChip, type StatusChipLevel } from "@/components/ui/StatusChip";
 import { Pagination } from "@/components/ui/Pagination";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
+import { ComplaintsRegister } from "@/components/compliance/ComplaintsRegister";
 import { ComplianceMatrix } from "@/components/compliance/ComplianceMatrix";
 import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
 import { AuditResultsTab } from "@/components/compliance/AuditResultsTab";
 import { QualificationRatiosTab } from "@/components/compliance/QualificationRatiosTab";
 import { StaffCertUploadModal } from "@/components/compliance/StaffCertUploadModal";
+import { uploadFileSmart } from "@/lib/upload-client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   CalendarDays,
   BarChart3,
   GraduationCap,
   Grid3X3,
+  MessageSquareWarning,
   List,
   LayoutGrid,
   ClipboardList,
@@ -73,19 +79,19 @@ const typeLabels: Record<string, string> = {
 };
 
 const typeBadgeColors: Record<string, string> = {
-  wwcc: "bg-indigo-100 text-indigo-700",
-  first_aid: "bg-red-100 text-red-700",
-  anaphylaxis: "bg-orange-100 text-orange-700",
-  asthma: "bg-teal-100 text-teal-700",
-  cpr: "bg-rose-100 text-rose-700",
-  police_check: "bg-slate-100 text-slate-700",
-  annual_review: "bg-violet-100 text-violet-700",
-  child_protection: "bg-blue-100 text-blue-700",
-  geccko: "bg-emerald-100 text-emerald-700",
-  food_safety: "bg-amber-100 text-amber-700",
-  food_handler: "bg-yellow-100 text-yellow-700",
-  mandatory_reporter_training: "bg-purple-100 text-purple-700",
-  child_safe_code_of_conduct: "bg-pink-100 text-pink-700",
+  wwcc: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  first_aid: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  anaphylaxis: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  asthma: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
+  cpr: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
+  police_check: "bg-surface text-foreground/80",
+  annual_review: "bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300",
+  child_protection: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  geccko: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  food_safety: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  food_handler: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300",
+  mandatory_reporter_training: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  child_safe_code_of_conduct: "bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300",
   other: "bg-surface text-foreground/80",
 };
 
@@ -146,15 +152,18 @@ function expiryStatus(days: number): "expired" | "critical" | "warning" | "valid
   return "valid";
 }
 
-function statusColor(status: string) {
+/** Expiry status → the app-wide attention ladder (StatusChip). Valid certs
+ *  are informational — grey, per the 2026-07-06 design system, so only
+ *  genuinely expiring certs draw colour. */
+function expiryLevel(status: string): StatusChipLevel {
   switch (status) {
     case "expired":
     case "critical":
-      return "text-red-600 bg-red-50 border-red-200";
+      return "now";
     case "warning":
-      return "text-amber-600 bg-amber-50 border-amber-200";
+      return "soon";
     default:
-      return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      return "queue";
   }
 }
 
@@ -262,23 +271,12 @@ function StaffComplianceView() {
     if (!modalType) return;
     setUploading(modalType);
     try {
-      // Upload file via /api/upload — same blob storage path as everywhere
-      // else in the app. Surface the server's actual error message so HEIC /
-      // unsupported-type / size rejections aren't silent.
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!uploadRes.ok) {
-        const body = await uploadRes.json().catch(() => ({}));
-        throw new Error(body?.error ?? `Upload failed (${uploadRes.status})`);
-      }
-      const { fileUrl: uploadedFileUrl } = await uploadRes.json();
-      if (!uploadedFileUrl) {
-        throw new Error("Upload completed but no file URL was returned");
-      }
+      // uploadFileSmart downscales photos, then picks the route that will
+      // actually succeed for the resulting size. Phone photos and scanned
+      // PDFs used to exceed Vercel's ~4.5MB request-body cap and come back as
+      // a bare "Upload failed (413)" — the single biggest reason staff could
+      // not get a WWCC on file, and therefore could not clear induction.
+      const { fileUrl: uploadedFileUrl } = await uploadFileSmart(file);
 
       // Attach-or-create logic: when a cert of this type already exists for
       // THIS user but has no file yet (typically an OWNA-synced metadata
@@ -421,17 +419,10 @@ function StaffComplianceView() {
                     {typeLabels[type]}
                   </span>
                   {cert && hasNoExpiry && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">
-                      No expiry
-                    </span>
+                    <StatusChip level="queue">No expiry</StatusChip>
                   )}
                   {cert && !hasNoExpiry && status && (
-                    <span
-                      className={cn(
-                        "text-xs font-medium px-2 py-0.5 rounded-lg border",
-                        statusColor(status)
-                      )}
-                    >
+                    <StatusChip level={expiryLevel(status)}>
                       {status === "expired"
                         ? "Expired"
                         : status === "critical"
@@ -439,7 +430,7 @@ function StaffComplianceView() {
                         : status === "warning"
                         ? `${days}d left`
                         : "Valid"}
-                    </span>
+                    </StatusChip>
                   )}
                 </div>
                 {!cert && (
@@ -516,6 +507,7 @@ const complianceTabs = [
   { key: "audit-results", label: "Audit Results", icon: BarChart3 },
   { key: "qual-ratios", label: "Qualification Ratios", icon: GraduationCap },
   { key: "matrix", label: "Compliance Matrix", icon: Grid3X3 },
+  { key: "complaints", label: "Complaints", icon: MessageSquareWarning },
 ] as const;
 
 type ComplianceTabKey = (typeof complianceTabs)[number]["key"];
@@ -624,6 +616,27 @@ export default function CompliancePage() {
                 NQF Registers
                 <ExternalLink className="w-3.5 h-3.5" />
               </Link>
+              {/* 2026-07-12 (nav fold): Policies & Safe Reports left the
+                  sidebar — both are compliance channels. Safe Reports is
+                  owner/head_office only, mirroring its page access. */}
+              <Link
+                href="/policies"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted hover:text-foreground hover:border-border transition-colors whitespace-nowrap"
+              >
+                <Shield className="w-4 h-4" />
+                Policies
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+              {(role === "owner" || role === "head_office") && (
+                <Link
+                  href="/safe-reports"
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted hover:text-foreground hover:border-border transition-colors whitespace-nowrap"
+                >
+                  <Shield className="w-4 h-4" />
+                  Safe Reports
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -633,6 +646,7 @@ export default function CompliancePage() {
           {activeTab === "audit-results" && <AuditResultsTab />}
           {activeTab === "qual-ratios" && <QualificationRatiosTab />}
           {activeTab === "matrix" && <MatrixTabWrapper />}
+          {activeTab === "complaints" && <ComplaintsTabWrapper />}
         </>
       )}
     </div>
@@ -650,6 +664,21 @@ function MatrixTabWrapper() {
     },
   });
   return <ComplianceMatrixView services={services} />;
+}
+
+/** Same services source as the matrix tab — the register is per centre. */
+function ComplaintsTabWrapper() {
+  const { data: services = [] } = useQuery<ServiceOption[]>({
+    queryKey: ["services"],
+    queryFn: async () => {
+      const res = await fetch("/api/services?limit=100");
+      if (!res.ok) throw new Error("Failed to load services");
+      const d = await res.json();
+      return d.services || d;
+    },
+  });
+
+  return <ComplaintsRegister services={services} />;
 }
 
 const complianceImportColumns: ColumnConfig[] = [
@@ -852,35 +881,37 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
       <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div className="bg-card rounded-xl border border-border p-4">
-              <p className="text-xs font-medium text-muted uppercase tracking-wider mb-1">
-                Total Certs
-              </p>
-              <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-            </div>
-            <div className="bg-card rounded-xl border border-amber-200 p-4">
-              <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-1">
-                Expiring Soon
-              </p>
-              <p className="text-2xl font-bold text-amber-600">{stats.expiringSoon}</p>
-            </div>
-            <div className="bg-card rounded-xl border border-red-200 p-4">
-              <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">
-                Expired
-              </p>
-              <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
-            </div>
-            <div className="bg-card rounded-xl border border-emerald-200 p-4">
-              <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-1">
-                Valid
-              </p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.valid}</p>
-            </div>
+            <StatCard size="sm" title="Total Certs" value={stats.total} icon={FileText} />
+            <StatCard
+              size="sm"
+              title="Expiring Soon"
+              value={stats.expiringSoon}
+              icon={Clock}
+              iconColor="#D97706"
+              valueColor="text-amber-600 dark:text-amber-400"
+            />
+            <StatCard
+              size="sm"
+              title="Expired"
+              value={stats.expired}
+              icon={AlertTriangle}
+              iconColor="#DC2626"
+              valueColor="text-red-600 dark:text-red-400"
+            />
+            <StatCard
+              size="sm"
+              title="Valid"
+              value={stats.valid}
+              icon={CheckCircle2}
+              iconColor="#059669"
+              valueColor="text-emerald-600 dark:text-emerald-400"
+            />
           </div>
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <select
+              aria-label="Filter by centre"
               value={serviceFilter}
               onChange={(e) => { setServiceFilter(e.target.value); setCertPage(1); }}
               className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
@@ -893,6 +924,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
               ))}
             </select>
             <select
+              aria-label="Filter by certificate type"
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setCertPage(1); }}
               className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
@@ -993,6 +1025,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <input
                               type="checkbox"
+                              aria-label={`Select certificate for ${cert.user?.name ?? cert.label ?? "unnamed"}`}
                               checked={selectedIds.has(cert.id)}
                               onChange={(e) => {
                                 const next = new Set(selectedIds);
@@ -1022,8 +1055,17 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                               </p>
                               <div className="flex items-center gap-2">
                                 <p className="text-xs text-muted truncate">
-                                  {cert.service.name}{" "}
-                                  <span className="text-muted">({cert.service.code})</span>
+                                  {/* service is null for personal certs
+                                      (serviceId relaxed 2026-06-05) — this
+                                      unguarded read crashed the whole tab. */}
+                                  {cert.service ? (
+                                    <>
+                                      {cert.service.name}{" "}
+                                      <span className="text-muted">({cert.service.code})</span>
+                                    </>
+                                  ) : (
+                                    "Personal — no centre"
+                                  )}
                                 </p>
                                 {cert.fileUrl && (
                                   <a
@@ -1048,24 +1090,17 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                                 {cert.expiryDate ? formatDate(cert.expiryDate) : "No expiry"}
                               </p>
                             </div>
-                            <span
-                              className={cn(
-                                "text-xs font-semibold px-2 py-1 rounded-lg border",
-                                statusColor(status)
-                              )}
-                            >
-                              {/* `days` is `null` for no-expiry certs (post-
-                                  2026-05 nullable migration). In that case
-                                  `status` is "valid" and we render a "No
-                                  expiry" pill instead of "nulld left".
-                                  Otherwise `days` is a number and the
-                                  status-driven branches all narrow cleanly. */}
+                            {/* `days` is `null` for no-expiry certs (post-
+                                2026-05 nullable migration). In that case
+                                `status` is "valid" and we render a "No
+                                expiry" chip instead of "nulld left". */}
+                            <StatusChip level={expiryLevel(status)}>
                               {days === null
                                 ? "No expiry"
                                 : status === "expired"
                                 ? `${Math.abs(days)}d overdue`
                                 : `${days}d left`}
-                            </span>
+                            </StatusChip>
 
                             {/* Acknowledge expired */}
                             {(status === "expired" || status === "critical") &&

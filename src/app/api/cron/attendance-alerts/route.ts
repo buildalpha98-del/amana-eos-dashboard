@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { notifyLowOccupancy } from "@/lib/teams-notify";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * GET /api/cron/attendance-alerts
@@ -35,7 +36,7 @@ export const GET = withApiHandler(async (req) => {
 
   try {
     const now = new Date();
-    const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const baseUrl = siteUrl();
 
     // Yesterday's date
     const yesterday = new Date(now);
@@ -119,8 +120,7 @@ export const GET = withApiHandler(async (req) => {
 
               if (manager) {
                 try {
-                  await resend.emails.send({
-                    from: FROM_EMAIL,
+                  await sendEmail({
                     to: manager.email,
                     subject: `Low Occupancy Alert: ${service.name} ${rec.sessionType.toUpperCase()} at ${Math.round(occupancy)}%`,
                     html: buildLowOccupancyEmailHtml({

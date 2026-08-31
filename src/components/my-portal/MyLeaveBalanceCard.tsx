@@ -88,7 +88,7 @@ export function MyLeaveBalanceCard({}: MyLeaveBalanceCardProps) {
           {balances.map((b) => (
             <li
               key={b.leaveCategoryId}
-              className="border border-border rounded-lg p-4 bg-white"
+              className="border border-border rounded-lg p-4 bg-card"
               data-testid={`leave-balance-${b.leaveCategoryId}`}
             >
               <div className="text-sm font-medium text-foreground/80">

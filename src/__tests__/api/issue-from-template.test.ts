@@ -161,8 +161,17 @@ describe("POST /api/contracts/issue-from-template", () => {
     });
     // Default prisma $transaction: runs the callback and returns its result
     // (prisma-mock already does this — `$transaction` passes the proxy client to the callback)
-    // Default contract create mock
-    prismaMock.employmentContract.create.mockResolvedValue(MOCK_CONTRACT);
+    // Draft-first flow (2026-08-07): create makes the contract_draft row,
+    // update finalizes it to active (and handles supersede flips).
+    prismaMock.employmentContract.create.mockImplementation(
+      (args: { data: Record<string, unknown> }) =>
+        Promise.resolve({ ...MOCK_CONTRACT, ...args.data, id: "contract-1" }),
+    );
+    prismaMock.employmentContract.update.mockImplementation(
+      (args: { where: { id: string }; data: Record<string, unknown> }) =>
+        Promise.resolve({ ...MOCK_CONTRACT, id: args.where.id, ...args.data }),
+    );
+    prismaMock.employmentContract.findFirst.mockResolvedValue(null);
     prismaMock.activityLog.create.mockResolvedValue({ id: "log-1" });
     // Default user lookup for email
     prismaMock.user.findUniqueOrThrow.mockResolvedValue(MOCK_STAFF);
@@ -258,9 +267,25 @@ describe("POST /api/contracts/issue-from-template", () => {
 
   // ── Resolution / render errors ───────────────────────────────────────────────
 
-  it("returns 400 when resolveTemplateData returns missingBlocking fields", async () => {
+  it("returns 400 when the template references a missingBlocking field", async () => {
     mockSession({ id: "user-1", name: "Test", role: "admin" });
-    prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE);
+    // The template must actually reference the tag — the route only blocks
+    // on missing staff fields the document uses (see the filter test below).
+    prismaMock.contractTemplate.findUnique.mockResolvedValue({
+      ...MOCK_TEMPLATE,
+      contentJson: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "text", text: "Address: " },
+              { type: "mergeTag", attrs: { key: "staff.address" } },
+            ],
+          },
+        ],
+      },
+    });
     mockResolveTemplateData.mockResolvedValue({
       resolved: {},
       missingBlocking: ["staff.address", "staff.phone"],
@@ -272,7 +297,28 @@ describe("POST /api/contracts/issue-from-template", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("staff.address");
-    expect(body.error).toContain("staff.phone");
+    // staff.phone is missing on the profile but unused by this template,
+    // so it must NOT be reported as a blocker.
+    expect(body.error).not.toContain("staff.phone");
+  });
+
+  it("ignores missingBlocking fields the template never references", async () => {
+    // 2026-07-27 regression guard: issuing the Casual Educator template
+    // failed with "staff.address missing" even though that template has no
+    // address tag and the wizard offered no way to supply one. The route
+    // now intersects missingBlocking with the tags actually present in the
+    // document body.
+    mockSession({ id: "user-1", name: "Test", role: "admin" });
+    prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE); // SIMPLE_DOC — no merge tags
+    mockResolveTemplateData.mockResolvedValue({
+      resolved: {},
+      missingBlocking: ["staff.address", "staff.phone"],
+    });
+
+    const req = createRequest("POST", "/api/contracts/issue-from-template", { body: VALID_BODY });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
   });
 
   // ── Happy path ───────────────────────────────────────────────────────────────
@@ -288,15 +334,34 @@ describe("POST /api/contracts/issue-from-template", () => {
     const resBody = await res.json();
     expect(resBody.emailFailed).toBe(false);
     expect(resBody.id).toBe("contract-1");
+    expect(resBody.status).toBe("active");
 
-    // employmentContract.create called with correct shape
+    // Draft-first (2026-08-07): the row is created as a contract_draft
+    // BEFORE the slow PDF render, so a mid-request crash leaves evidence.
     expect(prismaMock.employmentContract.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          status: "active",
+          status: "contract_draft",
           templateId: "tpl-1",
-          documentUrl: "https://blob.test/contract-xyz.pdf",
+          documentUrl: null,
           documentId: null,
+        }),
+      }),
+    );
+    expect(
+      (prismaMock.employmentContract.create as ReturnType<typeof vi.fn>).mock
+        .invocationCallOrder[0],
+    ).toBeLessThan(
+      (renderContractPdf as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0],
+    );
+
+    // ...then finalized to active with the uploaded document.
+    expect(prismaMock.employmentContract.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "contract-1" },
+        data: expect.objectContaining({
+          status: "active",
+          documentUrl: "https://blob.test/contract-xyz.pdf",
         }),
       }),
     );
@@ -334,8 +399,14 @@ describe("POST /api/contracts/issue-from-template", () => {
   });
 
   // ── PDF render failure ────────────────────────────────────────────────────────
+  //
+  // 2026-08-07 hardening: these used to assert "no DB row on failure".
+  // That silence is exactly what burned us — a timed-out issue left NO
+  // trace and the admin believed the contract had been sent (real
+  // incident, reported 2026-08-07). Now a failure AFTER the draft row is
+  // created must LEAVE the draft as visible evidence and point at it.
 
-  it("returns 500 and does NOT create a DB row when PDF render throws", async () => {
+  it("PDF render failure: 502 pointing at the surviving draft; no finalize/log/email", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE);
     (renderContractPdf as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
@@ -345,13 +416,20 @@ describe("POST /api/contracts/issue-from-template", () => {
     const req = createRequest("POST", "/api/contracts/issue-from-template", { body: VALID_BODY });
     const res = await POST(req);
 
-    expect(res.status).toBe(500);
-    expect(prismaMock.employmentContract.create).not.toHaveBeenCalled();
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error).toContain("saved as a draft");
+    expect(body.details?.contractId).toBe("contract-1");
+
+    expect(prismaMock.employmentContract.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.employmentContract.update).not.toHaveBeenCalled();
+    expect(prismaMock.activityLog.create).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 
   // ── Upload failure ─────────────────────────────────────────────────────────
 
-  it("returns 500 and does NOT create a DB row when uploadFile throws", async () => {
+  it("upload failure: 502 pointing at the surviving draft; no finalize/log/email", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE);
     (uploadFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
@@ -361,8 +439,37 @@ describe("POST /api/contracts/issue-from-template", () => {
     const req = createRequest("POST", "/api/contracts/issue-from-template", { body: VALID_BODY });
     const res = await POST(req);
 
-    expect(res.status).toBe(500);
-    expect(prismaMock.employmentContract.create).not.toHaveBeenCalled();
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.details?.contractId).toBe("contract-1");
+    expect(prismaMock.employmentContract.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.employmentContract.update).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  // ── Supersede ──────────────────────────────────────────────────────────────
+
+  it("supersede: flips the existing contract and links previousContractId on the new one", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE);
+    prismaMock.employmentContract.findFirst.mockResolvedValue({ id: "old-contract" });
+
+    const req = createRequest("POST", "/api/contracts/issue-from-template", {
+      body: { ...VALID_BODY, supersedeExisting: true },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const createCall = (prismaMock.employmentContract.create as ReturnType<typeof vi.fn>)
+      .mock.calls[0][0];
+    expect(createCall.data.previousContractId).toBe("old-contract");
+
+    const updates = (prismaMock.employmentContract.update as ReturnType<typeof vi.fn>)
+      .mock.calls as Array<[{ where: { id: string }; data: { status: string } }]>;
+    const superseded = updates.find((c) => c[0].where.id === "old-contract");
+    const finalized = updates.find((c) => c[0].where.id === "contract-1");
+    expect(superseded?.[0].data.status).toBe("superseded");
+    expect(finalized?.[0].data.status).toBe("active");
   });
 
   // ── Email failure ────────────────────────────────────────────────────────────

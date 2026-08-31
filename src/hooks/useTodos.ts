@@ -30,6 +30,9 @@ export interface TodoData {
   issueId: string | null;
   issue: { id: string; title: string } | null;
   serviceId: string | null;
+  /** Meeting this todo was created in (IDS / To-Do Review capture). */
+  meetingId?: string | null;
+  meeting?: { id: string; title: string; date: string } | null;
   isPrivate: boolean;
   dueDate: string;
   weekOf: string;
@@ -74,6 +77,7 @@ export function useCreateTodo() {
       rockId?: string | null;
       issueId?: string | null;
       serviceId?: string | null;
+      meetingId?: string | null;
       isPrivate?: boolean;
       dueDate: string;
       weekOf: string;

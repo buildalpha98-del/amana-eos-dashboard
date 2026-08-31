@@ -215,7 +215,7 @@ export function ReportToHOModal({ open, onClose }: ReportToHOModalProps) {
           </div>
 
           {/* Page context */}
-          <p className="text-[11px] text-muted truncate">
+          <p className="text-xs text-muted truncate">
             Submitted from: {pathname}
           </p>
 

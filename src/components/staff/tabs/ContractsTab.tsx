@@ -232,7 +232,7 @@ function ContractRow({
                 </button>
               ) : (
                 <span
-                  className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded"
+                  className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded"
                   data-testid="contract-no-file-badge"
                 >
                   <AlertTriangle className="w-3 h-3" />

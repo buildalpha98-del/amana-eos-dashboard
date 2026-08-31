@@ -134,3 +134,7 @@ async function exportToCsv(
 
   return { table: tableName, rows: rows.length, url };
 }
+
+// Vercel Cron invokes endpoints with GET; alias so the scheduled job runs
+// (verifyCronSecret still gates it). Previously POST-only → every run 405ed.
+export const GET = POST;

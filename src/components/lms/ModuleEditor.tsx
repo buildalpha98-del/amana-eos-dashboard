@@ -34,16 +34,17 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import type { LMSModuleData } from "@/hooks/useLMS";
 import { useCreateModule, useUpdateModule, useDeleteModule, useReorderModules } from "@/hooks/useLMS";
 import { MediaToolbar, VideoUrlHint } from "./MediaToolbar";
 import { QuizQuestionEditor } from "./QuizQuestionEditor";
 
 const typeConfig = {
-  document: { label: "Document", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
-  video: { label: "Video", icon: Play, color: "text-purple-600", bg: "bg-purple-50" },
-  quiz: { label: "Quiz", icon: HelpCircle, color: "text-amber-600", bg: "bg-amber-50" },
-  checklist: { label: "Checklist", icon: CheckSquare, color: "text-emerald-600", bg: "bg-emerald-50" },
+  document: { label: "Document", icon: FileText, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+  video: { label: "Video", icon: Play, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/40" },
+  quiz: { label: "Quiz", icon: HelpCircle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  checklist: { label: "Checklist", icon: CheckSquare, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
   external_link: { label: "External Link", icon: ExternalLink, color: "text-muted", bg: "bg-surface/50" },
 };
 
@@ -181,13 +182,12 @@ function ModuleCard({
             Required
           </label>
           <div className="flex gap-2">
-            <button
-              onClick={onCancelEdit}
-              className="px-3 py-1.5 text-sm text-muted hover:bg-surface rounded-lg"
-            >
+            <Button variant="ghost" size="sm" onClick={onCancelEdit}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() =>
                 onSaveEdit({
                   title: editTitle,
@@ -198,11 +198,10 @@ function ModuleCard({
                   isRequired: editRequired,
                 })
               }
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover"
+              iconLeft={<Save className="w-3.5 h-3.5" />}
             >
-              <Save className="w-3.5 h-3.5" />
               Save
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -227,17 +226,17 @@ function ModuleCard({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground truncate">{module.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", config.bg, config.color)}>
+          <span className={cn("text-2xs font-medium px-1.5 py-0.5 rounded", config.bg, config.color)}>
             {config.label}
           </span>
           {module.duration && (
-            <span className="text-[10px] text-muted flex items-center gap-0.5">
+            <span className="text-2xs text-muted flex items-center gap-0.5">
               <Clock className="w-2.5 h-2.5" />
               {module.duration}min
             </span>
           )}
           {module.isRequired && (
-            <span className="text-[10px] text-emerald-600 flex items-center gap-0.5">
+            <span className="text-2xs text-emerald-600 flex items-center gap-0.5">
               <ShieldCheck className="w-2.5 h-2.5" />
               Required
             </span>
@@ -251,15 +250,23 @@ function ModuleCard({
         </button>
         {confirmDel ? (
           <div className="flex items-center gap-1">
-            <button onClick={onDelete} className="px-2 py-1 text-[10px] font-medium text-white bg-red-600 rounded hover:bg-red-700">
+            <Button variant="destructive" size="xs" onClick={onDelete}>
               Delete
-            </button>
-            <button onClick={() => setConfirmDel(false)} className="p-1 text-muted hover:text-foreground">
+            </Button>
+            <button
+              onClick={() => setConfirmDel(false)}
+              aria-label="Cancel delete"
+              className="p-1 text-muted hover:text-foreground"
+            >
               <X className="w-3 h-3" />
             </button>
           </div>
         ) : (
-          <button onClick={() => setConfirmDel(true)} className="p-1.5 text-muted hover:text-danger rounded-md hover:bg-surface">
+          <button
+            onClick={() => setConfirmDel(true)}
+            aria-label="Delete module"
+            className="p-1.5 text-muted hover:text-danger rounded-md hover:bg-surface"
+          >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         )}
@@ -473,20 +480,18 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
               Required
             </label>
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowAdd(false)}
-                className="px-3 py-1.5 text-sm text-muted hover:bg-surface rounded-lg"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleAdd}
                 disabled={!newTitle.trim() || createModule.isPending}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
+                iconLeft={<Plus className="w-3.5 h-3.5" />}
               >
-                <Plus className="w-3.5 h-3.5" />
                 {createModule.isPending ? "Adding..." : "Add Module"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

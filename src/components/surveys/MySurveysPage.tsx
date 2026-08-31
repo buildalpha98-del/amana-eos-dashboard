@@ -107,7 +107,7 @@ function SurveyCard({
             )}
           </div>
           {survey.anonymous && (
-            <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold uppercase">
+            <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-2xs font-semibold uppercase">
               <Lock className="w-3 h-3" />
               Anonymous
             </span>

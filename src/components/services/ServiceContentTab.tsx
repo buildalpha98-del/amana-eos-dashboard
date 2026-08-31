@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, Upload, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import type { Role } from "@prisma/client";
@@ -27,6 +27,14 @@ const ORG_WIDE_EDIT_ROLES = new Set<Role>(["owner", "head_office", "admin"]);
 
 interface Props {
   serviceId: string;
+}
+
+/** A policy from the document library, offered for selection. */
+interface PolicyDoc {
+  id: string;
+  title: string;
+  fileName: string;
+  fileUrl: string;
 }
 
 export function ServiceContentTab({ serviceId }: Props) {
@@ -47,7 +55,37 @@ export function ServiceContentTab({ serviceId }: Props) {
   );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingMap, setUploadingMap] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const mapRef = useRef<HTMLInputElement>(null);
+  const [policyDocs, setPolicyDocs] = useState<PolicyDoc[]>([]);
+
+  // The policy library is org-wide and jurisdiction-mixed — a Victorian
+  // regulation and a NSW one sit side by side — so this offers ALL of
+  // them and the admin picks which apply here.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/documents?category=policy", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (cancelled || !body) return;
+        const list = Array.isArray(body) ? body : (body.documents ?? []);
+        setPolicyDocs(
+          list.map((d: Record<string, unknown>) => ({
+            id: String(d.id),
+            title: String(d.title ?? d.fileName ?? "Untitled"),
+            fileName: String(d.fileName ?? ""),
+            fileUrl: String(d.fileUrl ?? ""),
+          })),
+        );
+      })
+      .catch(() => {
+        /* the picker just shows empty; the rest of the tab still works */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,6 +155,41 @@ export function ServiceContentTab({ serviceId }: Props) {
     }
   }
 
+  /**
+   * The service map. Same uploader as the hero, but the FILE NAME is kept
+   * too: a PDF has no preview, so the name is the only thing telling an
+   * admin which map is currently attached.
+   */
+  async function handleMapUpload(file: File) {
+    setUploadingMap(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/content-uploads", {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Upload failed (${res.status})`);
+      }
+      const body = (await res.json()) as { url: string };
+      setContent((c) => ({
+        ...c,
+        serviceMapUrl: body.url,
+        serviceMapName: file.name,
+      }));
+      toast({ description: "Map uploaded. Save to apply." });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Upload failed",
+      });
+    } finally {
+      setUploadingMap(false);
+    }
+  }
+
   function addContact() {
     setContent((c) => ({
       ...c,
@@ -158,15 +231,16 @@ export function ServiceContentTab({ serviceId }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">
-            About this centre
+            What families see
           </h2>
           <p className="text-sm text-muted mt-1 max-w-2xl">
-            Editable content for parent-facing surfaces, the centre's About
-            section, and the daily routine summary. Owner / admin / State
-            Manager can edit any centre; Directors of Service edit their own.
+            Everything below appears on the family&apos;s My Centre tab.
+            Anything left blank is hidden there rather than shown empty.
+            Owner / admin / State Manager can edit any centre; Directors of
+            Service edit their own.
             {!canEdit && (
               <span className="block mt-1 text-amber-700">
-                You're viewing this centre in read-only mode.
+                You&apos;re viewing this centre in read-only mode.
               </span>
             )}
           </p>
@@ -260,14 +334,147 @@ export function ServiceContentTab({ serviceId }: Props) {
         </div>
       </Section>
 
+      <Section title="Where to find us">
+        <Field label="Location within the school">
+          <Textarea
+            value={content.locationWithinSchool}
+            onChange={(v) =>
+              setContent((c) => ({ ...c, locationWithinSchool: v }))
+            }
+            disabled={!canEdit}
+            rows={2}
+            placeholder="e.g. Hall, next to the canteen. Enter via Gate 3."
+          />
+        </Field>
+        <p className="text-xs text-muted -mt-1">
+          A street address gets a family to the school. This gets them to us.
+        </p>
+
+        <Field label="Meeting / pick-up points">
+          <Textarea
+            value={content.meetingPoints}
+            onChange={(v) => setContent((c) => ({ ...c, meetingPoints: v }))}
+            disabled={!canEdit}
+            rows={3}
+            placeholder="Where families meet us at drop-off and pick-up."
+          />
+        </Field>
+
+        <div className="pt-2">
+          <span className="text-xs font-medium text-muted block mb-2">
+            Service map
+          </span>
+          {content.serviceMapUrl ? (
+            <div className="flex items-start gap-3 flex-wrap">
+              {/* A PDF has no thumbnail without a renderer, so it gets a
+                  labelled card instead of a broken image box. */}
+              {content.serviceMapUrl.toLowerCase().endsWith(".pdf") ? (
+                <a
+                  href={content.serviceMapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface text-sm text-foreground"
+                >
+                  <FileText className="h-4 w-4 text-muted" />
+                  {content.serviceMapName || "Service map (PDF)"}
+                </a>
+              ) : (
+                <a
+                  href={content.serviceMapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-40 h-28 rounded-lg border border-border overflow-hidden bg-surface"
+                  style={{
+                    backgroundImage: `url(${content.serviceMapUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                  aria-label="Open the service map"
+                />
+              )}
+              {canEdit && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => mapRef.current?.click()}
+                    disabled={uploadingMap}
+                  >
+                    {uploadingMap ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Upload className="h-3 w-3" />
+                    )}
+                    Replace
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setContent((c) => ({
+                        ...c,
+                        serviceMapUrl: "",
+                        serviceMapName: "",
+                      }))
+                    }
+                  >
+                    <Trash2 className="h-3 w-3" /> Remove
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : canEdit ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => mapRef.current?.click()}
+              disabled={uploadingMap}
+            >
+              {uploadingMap ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Upload className="h-3 w-3" />
+              )}
+              Upload map
+            </Button>
+          ) : (
+            <p className="text-xs text-muted">No map uploaded.</p>
+          )}
+          <input
+            ref={mapRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void handleMapUpload(f);
+            }}
+          />
+          <p className="mt-2 text-xs text-muted">
+            An image works best — a parent at the gate can pinch to zoom it.
+            PDFs open in a new tab.
+          </p>
+        </div>
+      </Section>
+
       <Section title="About / Welcome message">
         <Textarea
           value={content.about}
           onChange={(v) => setContent((c) => ({ ...c, about: v }))}
           disabled={!canEdit}
           rows={6}
-          placeholder="What makes this centre special. Shared with families and used on the parent-facing About page."
+          placeholder="What makes this centre special. Shared with families and shown at the top of their My Centre tab."
         />
+        <Field label="Vision statement">
+          <Textarea
+            value={content.vision}
+            onChange={(v) => setContent((c) => ({ ...c, vision: v }))}
+            disabled={!canEdit}
+            rows={2}
+            placeholder="The one or two lines you'd want a family to remember."
+          />
+        </Field>
       </Section>
 
       <Section
@@ -371,6 +578,64 @@ export function ServiceContentTab({ serviceId }: Props) {
           rows={5}
           placeholder="What new families can expect when they enrol — orientation steps, first-day routine, who to call."
         />
+      </Section>
+
+      {/* Selected, not "everything for this centre": the library is
+          jurisdiction-mixed, and showing a Sydney family a Victorian
+          regulation is worse than showing them nothing. The document
+          stays in the library, so updating it there updates it here. */}
+      <Section title="Policies shown to families">
+        {policyDocs.length === 0 ? (
+          <p className="text-sm text-muted">
+            No policy documents in the library yet. Upload them under
+            Documents with the category &ldquo;policy&rdquo; and they&apos;ll
+            appear here to select.
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-muted">
+              Tick the ones that apply at this centre. Families see only
+              these, on their My Centre tab.
+            </p>
+            <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
+              {policyDocs.map((d) => {
+                const checked = content.policyDocumentIds.includes(d.id);
+                return (
+                  <label
+                    key={d.id}
+                    className="flex items-start gap-3 py-1.5 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={!canEdit}
+                      onChange={() =>
+                        setContent((c) => ({
+                          ...c,
+                          policyDocumentIds: checked
+                            ? c.policyDocumentIds.filter((x) => x !== d.id)
+                            : [...c.policyDocumentIds, d.id],
+                        }))
+                      }
+                      className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                    />
+                    <span className="text-sm text-foreground">
+                      {d.title}
+                      {d.fileName && (
+                        <span className="block text-xs text-muted">
+                          {d.fileName}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted">
+              {content.policyDocumentIds.length} selected.
+            </p>
+          </>
+        )}
       </Section>
     </div>
   );

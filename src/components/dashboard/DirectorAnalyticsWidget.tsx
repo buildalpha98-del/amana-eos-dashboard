@@ -27,9 +27,9 @@ function getComplianceColor(rate: number): {
   text: string;
   iconBg: string;
 } {
-  if (rate >= 90) return { bg: "bg-green-50", text: "text-green-700", iconBg: "bg-green-100" };
-  if (rate >= 70) return { bg: "bg-amber-50", text: "text-amber-700", iconBg: "bg-amber-100" };
-  return { bg: "bg-red-50", text: "text-red-700", iconBg: "bg-red-100" };
+  if (rate >= 90) return { bg: "bg-green-50 dark:bg-green-950/40", text: "text-green-700", iconBg: "bg-green-100 dark:bg-green-950/50" };
+  if (rate >= 70) return { bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-700", iconBg: "bg-amber-100 dark:bg-amber-950/50" };
+  return { bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-700", iconBg: "bg-red-100 dark:bg-red-950/50" };
 }
 
 interface MetricCardProps {
@@ -109,21 +109,21 @@ export function DirectorAnalyticsWidget() {
         label="Pending Leave"
         value={data.pendingLeave}
         icon={<Clock className="h-5 w-5 text-blue-600" />}
-        iconBg="bg-blue-100"
+        iconBg="bg-blue-100 dark:bg-blue-950/50"
         trend={data.pendingLeaveTrend}
       />
       <MetricCard
         label="Open Issues"
         value={data.openIssues}
         icon={<AlertTriangle className="h-5 w-5 text-orange-600" />}
-        iconBg="bg-orange-100"
+        iconBg="bg-orange-100 dark:bg-orange-950/50"
         trend={data.openIssuesTrend}
       />
       <MetricCard
         label="Staff Count"
         value={data.staffCount}
         icon={<Users className="h-5 w-5 text-violet-600" />}
-        iconBg="bg-violet-100"
+        iconBg="bg-violet-100 dark:bg-violet-950/50"
         trend={data.staffCountTrend}
       />
     </div>

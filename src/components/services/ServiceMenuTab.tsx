@@ -16,6 +16,7 @@ import {
   Copy,
   ShieldAlert,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { AiButton } from "@/components/ui/AiButton";
@@ -55,14 +56,14 @@ const ALLERGEN_OPTIONS = [
 ];
 
 const ALLERGEN_COLORS: Record<string, string> = {
-  gluten: "bg-amber-100 text-amber-700",
-  dairy: "bg-blue-100 text-blue-700",
-  nuts: "bg-orange-100 text-orange-700",
-  eggs: "bg-yellow-100 text-yellow-700",
-  soy: "bg-green-100 text-green-700",
-  shellfish: "bg-red-100 text-red-700",
-  vegan: "bg-emerald-100 text-emerald-700",
-  halal: "bg-purple-100 text-purple-700",
+  gluten: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  dairy: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  nuts: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  eggs: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300",
+  soy: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  shellfish: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  vegan: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  halal: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
 };
 
 type CellKey = string;
@@ -243,6 +244,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekOffset((o) => o + 1)}
+              aria-label="Previous week"
               className="p-2 rounded-lg border border-border hover:bg-surface/50 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -252,6 +254,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             </span>
             <button
               onClick={() => setWeekOffset((o) => o - 1)}
+              aria-label="Next week"
               className="p-2 rounded-lg border border-border hover:bg-surface/50 transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
@@ -265,18 +268,16 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
               </button>
             )}
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={handleSave}
-            disabled={!dirty || saveMutation.isPending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+            disabled={!dirty}
+            loading={saveMutation.isPending}
+            iconLeft={<Save className="w-3.5 h-3.5" />}
           >
-            {saveMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Save className="w-3.5 h-3.5" />
-            )}
             Save
-          </button>
+          </Button>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <input
@@ -286,27 +287,25 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             onChange={handleFileUpload}
             className="hidden"
           />
-          <button
+          <Button
+            variant="secondary"
+            size="xs"
             onClick={handleCopyPrevWeek}
             disabled={!prevMenuWeek?.items?.length}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Copy menu from previous week"
+            iconLeft={<Copy className="w-3.5 h-3.5" />}
           >
-            <Copy className="w-3.5 h-3.5" />
             Copy Last Week
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="xs"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploadMutation.isPending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors disabled:opacity-50"
+            loading={uploadMutation.isPending}
+            iconLeft={<Upload className="w-3.5 h-3.5" />}
           >
-            {uploadMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Upload className="w-3.5 h-3.5" />
-            )}
             Upload Menu
-          </button>
+          </Button>
           <a
             href={`/services/${serviceId}/menu/print?weekStart=${weekKey}`}
             target="_blank"
@@ -416,7 +415,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
 
       {/* Allergen Check Results */}
       {allergenCheckResult && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium text-amber-800 flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4" />
@@ -424,6 +423,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             </h4>
             <button
               onClick={() => setAllergenCheckResult(null)}
+              aria-label="Dismiss allergen check"
               className="text-amber-400 hover:text-amber-600"
             >
               <X className="w-4 h-4" />
@@ -540,8 +540,8 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                             type="button"
                             onClick={() => toggleAllergen(key, a)}
                             className={cn(
-                              "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
-                              ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+                              "px-1.5 py-0.5 text-2xs font-medium rounded-full",
+                              ALLERGEN_COLORS[a] || "bg-surface text-muted"
                             )}
                           >
                             {a}
@@ -561,7 +561,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                                 e.preventDefault();
                                 toggleAllergen(key, a);
                               }}
-                              className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-surface/50 text-muted hover:bg-surface hover:text-muted"
+                              className="px-1.5 py-0.5 text-2xs font-medium rounded-full bg-surface/50 text-muted hover:bg-surface hover:text-muted"
                             >
                               + {a}
                             </button>
@@ -637,8 +637,8 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                                   type="button"
                                   onClick={() => toggleAllergen(key, a)}
                                   className={cn(
-                                    "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
-                                    ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+                                    "px-1.5 py-0.5 text-2xs font-medium rounded-full",
+                                    ALLERGEN_COLORS[a] || "bg-surface text-muted"
                                   )}
                                 >
                                   {a}
@@ -659,7 +659,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                                       e.preventDefault();
                                       toggleAllergen(key, a);
                                     }}
-                                    className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-surface/50 text-muted hover:bg-surface hover:text-muted"
+                                    className="px-1.5 py-0.5 text-2xs font-medium rounded-full bg-surface/50 text-muted hover:bg-surface hover:text-muted"
                                   >
                                     + {a}
                                   </button>
@@ -702,8 +702,8 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           <span
             key={a}
             className={cn(
-              "px-2 py-0.5 text-[10px] font-medium rounded-full capitalize",
-              ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+              "px-2 py-0.5 text-2xs font-medium rounded-full capitalize",
+              ALLERGEN_COLORS[a] || "bg-surface text-muted"
             )}
           >
             {a}

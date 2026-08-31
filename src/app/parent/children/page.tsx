@@ -13,7 +13,7 @@ export default function ChildrenListPage() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
+          <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
             Your Children
           </h1>
           <p className="text-sm text-[color:var(--color-muted)] mt-1">

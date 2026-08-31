@@ -67,7 +67,12 @@ export const POST = withApiAuth(
 
     // Return `resolved` so the client can show a read-only summary of staff.*
     // and other auto-resolved tags alongside the iframe preview.
-    return NextResponse.json({ html, missingTags, resolved });
+    // 2026-07-27: explicit no-store so no edge cache serves stale preview
+    // HTML after "Seed default templates" overwrites the row.
+    return NextResponse.json(
+      { html, missingTags, resolved },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   },
   { roles: ["owner", "admin"], feature: "contracts.view", rateLimit: { max: 20, windowMs: 60_000 } }
 );

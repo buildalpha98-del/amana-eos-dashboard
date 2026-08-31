@@ -113,7 +113,7 @@ export function DiversityDashboardContent() {
         never displayed.
       </p>
 
-      <div className="rounded-md border border-blue-200 bg-blue-50/40 p-4 text-sm text-blue-900 flex items-start gap-2">
+      <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-4 text-sm text-blue-900 dark:text-blue-200 flex items-start gap-2">
         <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
         <div>
           <p className="font-semibold">Privacy</p>

@@ -33,7 +33,8 @@ type Role =
   | "member"
   | "staff"
   | "eos_viewer"
-  | "eos_implementer";
+  | "eos_implementer"
+  | "eos";
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,7 @@ const roleLabelsSchema = z.object({
   // in once and persists when the row is next written.
   eos_viewer: z.string().min(1).max(60).default("EOS Viewer"),
   eos_implementer: z.string().min(1).max(60).default("EOS Implementer"),
+  eos: z.string().min(1).max(60).default("EOS Member"),
 });
 
 // 2026-06-02: optional per-role page-access overrides. Each role can
@@ -99,6 +101,7 @@ const rolePageOverridesSchema = z.object({
   staff: z.array(z.string()).nullable(),
   eos_viewer: z.array(z.string()).nullable().default(null),
   eos_implementer: z.array(z.string()).nullable().default(null),
+  eos: z.array(z.string()).nullable().default(null),
 });
 
 // 2026-05-16: per-role guide overrides — welcome message only for v1.
@@ -116,6 +119,9 @@ const roleGuidesSchema = z.object({
     .object({ welcomeMessage: z.string().max(2_000) })
     .default({ welcomeMessage: "" }),
   eos_implementer: z
+    .object({ welcomeMessage: z.string().max(2_000) })
+    .default({ welcomeMessage: "" }),
+  eos: z
     .object({ welcomeMessage: z.string().max(2_000) })
     .default({ welcomeMessage: "" }),
 });
@@ -139,6 +145,7 @@ const checklistOverridesSchema = z.object({
   staff: z.record(z.string(), checklistOverrideEntrySchema),
   eos_viewer: z.record(z.string(), checklistOverrideEntrySchema).default({}),
   eos_implementer: z.record(z.string(), checklistOverrideEntrySchema).default({}),
+  eos: z.record(z.string(), checklistOverrideEntrySchema).default({}),
 });
 
 // 2026-05-16: onboarding welcome announcement seed override. The original
@@ -173,6 +180,13 @@ export const orgSettingsConfigSchema = z.object({
   email: z.object({
     senderEmail: z.string().email(),
     senderName: z.string().min(1).max(100),
+    // 2026-08-08 (Marketing Hub Phase 7): weekly marketing-email frequency
+    // cap per recipient, enforced on BULK sends only (campaign + cowork) via
+    // getFrequencyCapped — nurture/enquiry/lifecycle mail is recorded but
+    // never blocked. `.default(3)` is REQUIRED: PATCH is a strict
+    // full-replace, so a legacy document saved before this field existed
+    // must still parse (same precedent as the eos_viewer role labels).
+    marketingWeeklyCap: z.number().int().min(1).max(20).default(3),
   }),
   ratios: z.object({
     federalDefaultMinRatio: ratioStringSchema,
@@ -240,6 +254,7 @@ export const ROLE_LABEL_DEFAULTS: RoleLabels = {
   staff: "OSHC Educator",
   eos_viewer: "EOS Viewer",
   eos_implementer: "EOS Implementer",
+  eos: "EOS Member",
 };
 
 /** Server-safe label getter. Pass the merged `OrgSettingsConfig.roleLabels`. */
@@ -258,6 +273,9 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
   email: {
     senderEmail: process.env.BREVO_SENDER_EMAIL || "admin@amanaoshc.com.au",
     senderName: process.env.BREVO_SENDER_NAME || "Amana OSHC",
+    // Mirrors MARKETING_EMAIL_WEEKLY_CAP in src/lib/frequency-cap.ts (the
+    // lib-level fallback when a caller doesn't resolve the org setting).
+    marketingWeeklyCap: 3,
   },
   ratios: {
     federalDefaultMinRatio: "1:15",
@@ -293,6 +311,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     staff: null,
     eos_viewer: null,
     eos_implementer: null,
+    eos: null,
   },
   roleGuides: {
     owner: { welcomeMessage: "" },
@@ -303,6 +322,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     staff: { welcomeMessage: "" },
     eos_viewer: { welcomeMessage: "" },
     eos_implementer: { welcomeMessage: "" },
+    eos: { welcomeMessage: "" },
   },
   checklistOverrides: {
     owner: {},
@@ -313,6 +333,7 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
     staff: {},
     eos_viewer: {},
     eos_implementer: {},
+    eos: {},
   },
   welcomePack: {
     welcomeIntro:
@@ -410,6 +431,15 @@ export function mergeOrgSettings(
         typeof email.senderName === "string" && email.senderName.length > 0
           ? (email.senderName as string)
           : defaults.email.senderName,
+      // Every NEW field needs its own branch here — this merger is
+      // hand-rolled per field, and a missed field silently never merges.
+      marketingWeeklyCap:
+        typeof email.marketingWeeklyCap === "number" &&
+        Number.isInteger(email.marketingWeeklyCap) &&
+        email.marketingWeeklyCap >= 1 &&
+        email.marketingWeeklyCap <= 20
+          ? (email.marketingWeeklyCap as number)
+          : defaults.email.marketingWeeklyCap,
     },
     ratios: {
       federalDefaultMinRatio:
@@ -475,6 +505,7 @@ export function mergeOrgSettings(
       staff: pickLabel("staff"),
       eos_viewer: pickLabel("eos_viewer"),
       eos_implementer: pickLabel("eos_implementer"),
+      eos: pickLabel("eos"),
     },
     rolePageOverrides: mergeRolePageOverrides(
       safe.rolePageOverrides,
@@ -577,6 +608,7 @@ function mergeRolePageOverrides(
     staff: pick("staff"),
     eos_viewer: pick("eos_viewer"),
     eos_implementer: pick("eos_implementer"),
+    eos: pick("eos"),
   };
 }
 
@@ -609,6 +641,7 @@ function mergeRoleGuides(
     staff: pick("staff"),
     eos_viewer: pick("eos_viewer"),
     eos_implementer: pick("eos_implementer"),
+    eos: pick("eos"),
   };
 }
 
@@ -647,5 +680,6 @@ function mergeChecklistOverrides(
     staff: pickRole("staff"),
     eos_viewer: pickRole("eos_viewer"),
     eos_implementer: pickRole("eos_implementer"),
+    eos: pickRole("eos"),
   };
 }

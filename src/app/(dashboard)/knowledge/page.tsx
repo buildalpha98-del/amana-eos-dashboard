@@ -47,7 +47,7 @@ function SourceCitations({ sources }: { sources: KnowledgeSource[] }) {
               {src.documentTitle}
             </p>
             {src.documentCategory && (
-              <p className="text-[10px] text-muted">{src.documentCategory}</p>
+              <p className="text-2xs text-muted">{src.documentCategory}</p>
             )}
           </div>
         </div>
@@ -75,15 +75,15 @@ function TypingIndicator() {
   return (
     <span className="inline-flex items-center gap-1 text-muted">
       <span
-        className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+        className="w-1.5 h-1.5 bg-muted/60 rounded-full animate-bounce"
         style={{ animationDelay: "0ms" }}
       />
       <span
-        className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+        className="w-1.5 h-1.5 bg-muted/60 rounded-full animate-bounce"
         style={{ animationDelay: "150ms" }}
       />
       <span
-        className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+        className="w-1.5 h-1.5 bg-muted/60 rounded-full animate-bounce"
         style={{ animationDelay: "300ms" }}
       />
     </span>
@@ -290,7 +290,7 @@ export default function KnowledgePage() {
               </button>
             )}
           </div>
-          <p className="text-[10px] text-muted mt-1.5 text-center">
+          <p className="text-2xs text-muted mt-1.5 text-center">
             Answers are based on your indexed documents. Always verify critical information against the source.
           </p>
         </div>

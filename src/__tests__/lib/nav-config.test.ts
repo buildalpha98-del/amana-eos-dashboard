@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterNavItems, navItems } from "@/lib/nav-config";
+import { filterNavItems, navItems, partitionNavSection, type NavItem } from "@/lib/nav-config";
 import type { Role } from "@prisma/client";
 
 describe("filterNavItems", () => {
@@ -170,14 +170,16 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
     it.each([
       "/dashboard",
       "/services",          // their primary surface — drill in for everything
-      "/onboarding",
+      // 2026-08-06: /onboarding and /queue moved to leadership only. A
+      // Director of Service does their own training in My Training, and
+      // the automation queue is head office's inbox.
+      "/my-training",
       "/compliance",
       "/policies",
       // 2026-06-29: /leave retired from the sidebar — new leave requests
       // go through My Portal → Employment Hero. The route still resolves
       // for admins draining the historical backlog.
       "/knowledge",
-      "/queue",
       "/my-portal",
       // /profile is reachable but not surfaced in the sidebar nav (avatar menu).
     ])("still includes core nav item %s", (href) => {
@@ -271,5 +273,208 @@ describe("nav consolidation phase 1 (2026-07-05)", () => {
       const hrefs = filterNavItems(navItems, role).map((i) => i.href);
       expect(hrefs).not.toContain("/feedback");
     }
+  });
+});
+
+// ─── Curated sidebar partition (2026-07-12) ─────────────────
+
+describe("partitionNavSection", () => {
+  const mk = (href: string, core?: boolean | Role[]): NavItem => ({
+    href,
+    label: href,
+    icon: (() => null) as unknown as NavItem["icon"],
+    section: "Test",
+    ...(core !== undefined ? { core } : {}),
+  });
+
+  it("puts core: true items in core and unflagged items in overflow, preserving order", () => {
+    const items = [mk("/a", true), mk("/b"), mk("/c", true), mk("/d")];
+    const { core, overflow } = partitionNavSection(items, "admin");
+    expect(core.map((i) => i.href)).toEqual(["/a", "/c"]);
+    expect(overflow.map((i) => i.href)).toEqual(["/b", "/d"]);
+  });
+
+  it("role-list core applies only to listed roles", () => {
+    // 3+ items so the tiny-section rule doesn't force everything visible
+    const items = [mk("/marketing-only", ["marketing"]), mk("/x"), mk("/y")];
+    const hrefs = (r: Role | undefined) =>
+      partitionNavSection(items, r).core.map((i) => i.href);
+    expect(hrefs("marketing")).toContain("/marketing-only");
+    expect(hrefs("admin")).not.toContain("/marketing-only");
+    expect(hrefs(undefined)).not.toContain("/marketing-only");
+  });
+
+  it("owner matches every role-list (superuser sees curated maximum)", () => {
+    const items = [mk("/marketing-only", ["marketing"]), mk("/x"), mk("/y")];
+    expect(partitionNavSection(items, "owner").core.map((i) => i.href)).toContain(
+      "/marketing-only",
+    );
+  });
+
+  it("promotes the active page into core so the current location is always visible", () => {
+    const items = [mk("/hidden"), mk("/x"), mk("/y")];
+    const { core } = partitionNavSection(items, "admin", { activeHref: "/hidden" });
+    expect(core.map((i) => i.href)).toEqual(["/hidden"]);
+    // nested route also counts as active
+    const nested = partitionNavSection(items, "admin", { activeHref: "/hidden/child" });
+    expect(nested.core.map((i) => i.href)).toEqual(["/hidden"]);
+  });
+
+  it("promotes badge-carrying items via forceShowHrefs", () => {
+    const items = [mk("/bookings"), mk("/other"), mk("/third")];
+    const { core, overflow } = partitionNavSection(items, "admin", {
+      forceShowHrefs: ["/bookings"],
+    });
+    expect(core.map((i) => i.href)).toEqual(["/bookings"]);
+    expect(overflow.map((i) => i.href)).toEqual(["/other", "/third"]);
+  });
+
+  it("real config: admin core for Operations is the curated set", () => {
+    const ops = filterNavItems(navItems, "admin").filter((i) => i.section === "Operations");
+    const { core } = partitionNavSection(ops, "admin");
+    expect(core.map((i) => i.href)).toEqual([
+      "/services",
+      "/bookings",
+      "/financials",
+      // billing unfolded + made core 2026-07-31 when it became the real
+      // invoicing system (OWNA replacement); aged-debtors shipped with it.
+      "/billing",
+      "/billing/aged-debtors",
+      "/compliance",
+      // 2026-08-06: moved out of Growth. "Growth" is a marketing framing;
+      // asking for a poster is day-to-day operations for everyone else.
+      "/requests",
+    ]);
+  });
+
+  it("real config: every section keeps at least the Home items reachable for staff", () => {
+    const home = filterNavItems(navItems, "staff").filter((i) => i.section === "Home");
+    const { overflow } = partitionNavSection(home, "staff");
+    expect(overflow).toHaveLength(0); // Home is never hidden behind a toggle
+  });
+});
+
+describe("partitionNavSection — tiny sections", () => {
+  it("sections with two or fewer items show everything (no toggle)", () => {
+    const mk = (href: string): NavItem => ({
+      href,
+      label: href,
+      icon: (() => null) as unknown as NavItem["icon"],
+      section: "Tiny",
+    });
+    const { core, overflow } = partitionNavSection([mk("/a"), mk("/b")], "member");
+    expect(core).toHaveLength(2);
+    expect(overflow).toHaveLength(0);
+  });
+});
+
+describe("stage-1 nav folds (2026-07-12)", () => {
+  const FOLDED = [
+    "/assistant",
+    "/tools/ccs-calculator",
+    "/data-room",
+    "/admin/ai-drafts",
+    "/directory",
+    "/reports/board",
+    // stage-1 batch 2 (2026-07-12). Two items have since been deliberately
+    // unfolded: "/billing" (2026-07-31, became the actual invoicing surface)
+    // and "/children" (cross-service child lookup was being buried).
+    "/scenarios",
+    "/safe-reports",
+    "/policies",
+    "/centre-avatars",
+    "/communication/whatsapp-compliance",
+    "/position-descriptions",
+    "/contracts",
+    "/leave-payroll",
+  ];
+
+  it("folded items are hidden from the sidebar/top-nav", () => {
+    for (const href of FOLDED) {
+      const item = navItems.find((i) => i.href === href);
+      expect(item, href).toBeDefined();
+      expect(item!.hidden, href).toBe(true);
+    }
+  });
+
+  it("folded items stay in filterNavItems so ⌘K and page titles keep working", () => {
+    const hrefs = filterNavItems(navItems, "owner").map((i) => i.href);
+    for (const href of FOLDED) {
+      expect(hrefs, href).toContain(href);
+    }
+  });
+});
+
+/**
+ * 2026-08-06 — "My Portal" grouping.
+ *
+ * An Educator's sidebar used to open with eight flat links, five of them
+ * personal. The personal ones now live under their own heading so the
+ * sidebar reads as "me" then "the work".
+ */
+describe("My Portal grouping (2026-08-06)", () => {
+  const PERSONAL = [
+    "/my-portal",
+    "/my-day",
+    "/my-training",
+    "/surveys",
+    "/roster/me",
+    "/getting-started",
+  ];
+
+  it("keeps every personal page under one section", () => {
+    for (const href of PERSONAL) {
+      const item = navItems.find((i) => i.href === href);
+      expect(item?.section, href).toBe("My Portal");
+    }
+  });
+
+  it("leaves the Dashboard on its own at the top", () => {
+    // It's the landing page, not a personal tool — burying it under a
+    // collapsed group would hide the first thing anyone wants.
+    expect(navItems.find((i) => i.href === "/dashboard")?.section).toBe("Home");
+  });
+
+  it("hides My Queue from both Educators and Directors of Service", () => {
+    // An automation inbox for head office. Work reaches a centre through
+    // the centre, not through a queue.
+    for (const role of ["staff", "member"] as const) {
+      expect(filterNavItems(navItems, role).map((i) => i.href)).not.toContain(
+        "/queue",
+      );
+    }
+    expect(filterNavItems(navItems, "admin").map((i) => i.href)).toContain(
+      "/queue",
+    );
+  });
+
+  it("hides the Accountability Chart from centre roles", () => {
+    // The rest of the EOS section is already hidden from them, so this
+    // was a lone item under an otherwise-empty heading.
+    for (const role of ["staff", "member"] as const) {
+      expect(filterNavItems(navItems, role).map((i) => i.href)).not.toContain(
+        "/accountability-chart",
+      );
+    }
+  });
+
+  it("keeps Staff Lifecycle for leadership only — centre roles use My Training", () => {
+    // Two doors to the same subject with different contents behind them
+    // is worse than one.
+    for (const role of ["staff", "member"] as const) {
+      const hrefs = filterNavItems(navItems, role).map((i) => i.href);
+      expect(hrefs).not.toContain("/onboarding");
+      expect(hrefs).toContain("/my-training");
+    }
+    expect(filterNavItems(navItems, "admin").map((i) => i.href)).toContain(
+      "/onboarding",
+    );
+  });
+
+  it("still shows an Educator their own training and roster", () => {
+    const staffHrefs = filterNavItems(navItems, "staff").map((i) => i.href);
+    expect(staffHrefs).toContain("/my-training");
+    expect(staffHrefs).toContain("/roster/me");
+    expect(staffHrefs).toContain("/my-day");
   });
 });

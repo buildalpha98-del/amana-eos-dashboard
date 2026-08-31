@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, ExternalLink, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
 export type CampaignGateBlocker = {
@@ -69,7 +70,7 @@ export function CampaignGateModal({
         >
           <div className="flex items-start justify-between border-b px-6 py-4">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
+              <div className="mt-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 p-1.5 text-amber-700 dark:text-amber-300">
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div>
@@ -128,24 +129,23 @@ export function CampaignGateModal({
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t px-6 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface"
-            >
+            <Button type="button" variant="secondary" size="sm" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
             <div className="flex items-center gap-2">
               {onRecheck && (
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={handleRecheck}
                   disabled={rechecking}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand/30 bg-brand/5 px-4 py-2 text-sm font-medium text-brand transition-colors hover:bg-brand/10 disabled:opacity-50"
+                  iconLeft={
+                    <RefreshCw className={`h-4 w-4 ${rechecking ? "animate-spin" : ""}`} />
+                  }
                 >
-                  <RefreshCw className={`h-4 w-4 ${rechecking ? "animate-spin" : ""}`} />
                   {rechecking ? "Re-checking..." : "Re-check"}
-                </button>
+                </Button>
               )}
               {isOwner && (
                 <button

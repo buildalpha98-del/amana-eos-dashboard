@@ -1,23 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText, AlertCircle, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, FileText, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useParentStatements, useParentStatementDetail, type StatementRecord } from "@/hooks/useParentPortal";
 import { SectionLabel, StatusBadge, type StatusVariant } from "@/components/parent/ui";
+import { PaymentMethodCard, NextDebitRow } from "@/components/parent/PaymentMethodCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { programmeName } from "@/lib/programme-names";
 
 const STATUS_TO_VARIANT: Record<string, StatusVariant> = {
   issued: "confirmed",
   paid: "in-care",
   unpaid: "requested",
   overdue: "overdue",
-};
-
-const SESSION_LABELS: Record<string, string> = {
-  bsc: "Before School Care",
-  asc: "After School Care",
-  vc: "Vacation Care",
 };
 
 export default function BillingPage() {
@@ -29,13 +25,12 @@ export default function BillingPage() {
   const statements = data?.statements ?? [];
   const summary = data?.summary ?? { currentBalance: 0, overdueCount: 0 };
 
-  const nextDebitDate = getNextDebitDate();
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
           Billing
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] mt-1">
@@ -47,7 +42,7 @@ export default function BillingPage() {
       <div className="warm-card">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+            <p className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
               Current Balance
             </p>
             <p
@@ -68,14 +63,12 @@ export default function BillingPage() {
             </span>
           )}
         </div>
-        <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[color:var(--color-muted)]">Next Direct Debit</span>
-            <span className="text-sm font-medium text-[color:var(--color-foreground)]">
-              {nextDebitDate}
-            </span>
-          </div>
-        </div>
+        {/* Only shown when staff have actually set a debit date. This
+            used to render "the 1st of next month", computed client-side
+            and identical for every family regardless of their real
+            arrangement — the same class of bug as the hardcoded bank
+            details on this page. Silence beats a confident wrong date. */}
+        <NextDebitRow />
       </div>
 
       {/* Statements */}
@@ -83,14 +76,14 @@ export default function BillingPage() {
         <SectionLabel label="Statements" />
 
         {statements.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-            <div className="w-12 h-12 rounded-full bg-[#FECE00]/20 flex items-center justify-center mx-auto mb-3">
-              <FileText className="w-6 h-6 text-[#004E64]" />
+          <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
+            <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3">
+              <FileText className="w-6 h-6 text-brand" />
             </div>
-            <h3 className="text-base font-heading font-semibold text-[#1a1a2e] mb-1">
+            <h3 className="text-base font-heading font-semibold text-foreground mb-1">
               No statements yet
             </h3>
-            <p className="text-sm text-[#7c7c8a]">
+            <p className="text-sm text-muted">
               Statements will appear here once generated.
             </p>
           </div>
@@ -110,30 +103,7 @@ export default function BillingPage() {
         )}
       </section>
 
-      {/* Payment Methods */}
-      <section>
-        <SectionLabel label="Payment Method" />
-        <div className="warm-card">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-[color:var(--color-brand)]" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
-                Direct Debit — BSB 000-000
-              </p>
-              <p className="text-xs text-[color:var(--color-muted)]">
-                Account ending in 1234
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
-            <p className="text-xs text-[color:var(--color-muted)]">
-              To update your payment method, please contact the centre.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PaymentMethodCard />
     </div>
   );
 }
@@ -196,20 +166,20 @@ function StatementCard({
 
         <div className="grid grid-cols-3 gap-2 mt-3 text-center">
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">Fees</p>
-            <p className="text-sm font-semibold text-[#1a1a2e]">
+            <p className="text-2xs text-muted uppercase">Fees</p>
+            <p className="text-sm font-semibold text-foreground">
               ${statement.totalFees.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">CCS</p>
+            <p className="text-2xs text-muted uppercase">CCS</p>
             <p className="text-sm font-semibold text-green-600">
               -${statement.totalCcs.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">Gap</p>
-            <p className="text-sm font-semibold text-[#1a1a2e]">
+            <p className="text-2xs text-muted uppercase">Gap</p>
+            <p className="text-sm font-semibold text-foreground">
               ${statement.gapFee.toFixed(2)}
             </p>
           </div>
@@ -218,13 +188,13 @@ function StatementCard({
         {/* Paid / Balance row */}
         <div className="grid grid-cols-2 gap-2 mt-2 text-center">
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">Paid</p>
-            <p className="text-sm font-semibold text-[#1a1a2e]">
+            <p className="text-2xs text-muted uppercase">Paid</p>
+            <p className="text-sm font-semibold text-foreground">
               ${statement.amountPaid.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-[#7c7c8a] uppercase">Balance</p>
+            <p className="text-2xs text-muted uppercase">Balance</p>
             <p
               className={cn(
                 "text-sm font-semibold",
@@ -245,21 +215,21 @@ function StatementCard({
       </button>
 
       {/* Download PDF */}
-      <div className="px-4 pb-3 pt-0 border-t border-[#e8e4df] mx-4 mt-0">
+      <div className="px-4 pb-3 pt-0 border-t border-border mx-4 mt-0">
         <div className="pt-3">
           {statement.pdfUrl ? (
             <a
               href={statement.pdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] transition-colors min-h-[44px]"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-light transition-colors min-h-[44px]"
               onClick={(e) => e.stopPropagation()}
             >
               <Download className="w-3.5 h-3.5" />
               Download PDF
             </a>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-xs text-[#7c7c8a] min-h-[44px]">
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted min-h-[44px]">
               <Download className="w-3.5 h-3.5" />
               PDF not yet available
             </span>
@@ -293,7 +263,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
   if (!data || data.lineItems.length === 0) {
     return (
       <div className="px-4 pb-4">
-        <p className="text-xs text-[#7c7c8a]">No line items available.</p>
+        <p className="text-xs text-muted">No line items available.</p>
       </div>
     );
   }
@@ -304,15 +274,15 @@ function StatementDetail({ statementId }: { statementId: string }) {
   };
 
   return (
-    <div className="px-4 pb-4 border-t border-[#e8e4df] mx-4">
+    <div className="px-4 pb-4 border-t border-border mx-4">
       <div className="pt-3">
-        <p className="text-xs font-semibold text-[#7c7c8a] uppercase tracking-wider mb-2">
+        <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
           Line Items
         </p>
         <div className="overflow-x-auto -mx-1">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-[#7c7c8a] border-b border-[#e8e4df]">
+              <tr className="text-left text-muted border-b border-border">
                 <th className="pb-1.5 px-1 font-medium">Child</th>
                 <th className="pb-1.5 px-1 font-medium">Date</th>
                 <th className="pb-1.5 px-1 font-medium">Session</th>
@@ -325,24 +295,27 @@ function StatementDetail({ statementId }: { statementId: string }) {
               {data.lineItems.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-[#e8e4df] last:border-0"
+                  className="border-b border-border last:border-0"
                 >
-                  <td className="py-1.5 px-1 text-[#1a1a2e]">
+                  <td className="py-1.5 px-1 text-foreground">
                     {item.child.firstName}
                   </td>
-                  <td className="py-1.5 px-1 text-[#7c7c8a]">
+                  <td className="py-1.5 px-1 text-muted">
                     {formatDate(item.date)}
                   </td>
-                  <td className="py-1.5 px-1 text-[#7c7c8a]">
-                    {SESSION_LABELS[item.sessionType] ?? item.sessionType}
+                  <td className="py-1.5 px-1 text-muted">
+                    {/* The centre's own room name. `programmeName` was
+                        org-wide and knew three codes, so a family in an
+                        extra room saw its slot code. */}
+                    {item.room?.name ?? programmeName(item.sessionType)}
                   </td>
-                  <td className="py-1.5 px-1 text-right text-[#1a1a2e]">
+                  <td className="py-1.5 px-1 text-right text-foreground">
                     ${item.grossFee.toFixed(2)}
                   </td>
                   <td className="py-1.5 px-1 text-right text-green-600">
                     -${item.ccsAmount.toFixed(2)}
                   </td>
-                  <td className="py-1.5 px-1 text-right text-[#1a1a2e]">
+                  <td className="py-1.5 px-1 text-right text-foreground">
                     ${item.gapAmount.toFixed(2)}
                   </td>
                 </tr>
@@ -357,15 +330,6 @@ function StatementDetail({ statementId }: { statementId: string }) {
 
 // ── Helpers ──────────────────────────────────────────────
 
-function getNextDebitDate(): string {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return next.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 // ── Skeleton ────────────────────────────────────────────
 

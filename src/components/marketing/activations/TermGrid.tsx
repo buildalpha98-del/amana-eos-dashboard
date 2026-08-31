@@ -119,7 +119,7 @@ function RowGroup({
         </td>
         <td className="p-3">
           <div className="font-medium text-foreground">{row.serviceName}</div>
-          {row.state && <div className="text-[10px] text-muted">{row.state}</div>}
+          {row.state && <div className="text-2xs text-muted">{row.state}</div>}
         </td>
         <td className="p-3 text-foreground">{row.counts.planned}</td>
         <td className="p-3 text-foreground">{row.counts.delivered}</td>

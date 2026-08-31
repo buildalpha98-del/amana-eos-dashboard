@@ -33,7 +33,7 @@ export function NotificationBell() {
           <span
             data-testid="notification-badge"
             className={cn(
-              "absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white bg-red-500",
+              "absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-2xs font-bold text-white bg-red-500",
             )}
           >
             {badgeLabel}

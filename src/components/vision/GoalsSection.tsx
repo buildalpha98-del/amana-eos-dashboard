@@ -16,10 +16,10 @@ import {
 } from "lucide-react";
 
 const statusColors = {
-  on_track: { label: "On Track", bg: "bg-emerald-100 text-emerald-700" },
-  at_risk: { label: "At Risk", bg: "bg-yellow-100 text-yellow-700" },
-  off_track: { label: "Off Track", bg: "bg-red-100 text-red-700" },
-  complete: { label: "Complete", bg: "bg-blue-100 text-blue-700" },
+  on_track: { label: "On Track", bg: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" },
+  at_risk: { label: "At Risk", bg: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300" },
+  off_track: { label: "Off Track", bg: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" },
+  complete: { label: "Complete", bg: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" },
 };
 
 export function GoalsSection({
@@ -231,12 +231,12 @@ function GoalRow({
           {goal.rocks.length > 0 && (
             <div className="space-y-1">
               {goal.rocks.some((r) => r.status === "off_track") && goal.status === "on_track" && (
-                <div className="flex items-center gap-2 px-2 py-1.5 bg-red-50 border-l-2 border-red-400 rounded text-xs text-red-700">
+                <div className="flex items-center gap-2 px-2 py-1.5 bg-red-50 dark:bg-red-950/40 border-l-2 border-red-400 rounded text-xs text-red-700 dark:text-red-300">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   Linked rocks are off-track — consider updating goal status
                 </div>
               )}
-              <p className="text-[10px] uppercase tracking-wider text-muted font-medium">
+              <p className="text-2xs uppercase tracking-wider text-muted font-medium">
                 Linked Rocks
               </p>
               {goal.rocks.map((rock) => (
@@ -244,7 +244,7 @@ function GoalRow({
                   key={rock.id}
                   className={cn(
                     "flex items-center gap-2 px-2 py-1 rounded",
-                    rock.status === "off_track" ? "bg-red-50" : "bg-brand/5"
+                    rock.status === "off_track" ? "bg-red-50 dark:bg-red-950/40" : "bg-brand/5"
                   )}
                 >
                   <Mountain className={cn("w-3 h-3", rock.status === "off_track" ? "text-red-500" : "text-brand")} />
@@ -252,10 +252,10 @@ function GoalRow({
                     {rock.title}
                   </span>
                   <span className={cn(
-                    "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
-                    rock.status === "on_track" ? "bg-emerald-100 text-emerald-700" :
-                    rock.status === "off_track" ? "bg-red-100 text-red-700" :
-                    rock.status === "complete" ? "bg-blue-100 text-blue-700" :
+                    "text-2xs font-medium px-1.5 py-0.5 rounded-full",
+                    rock.status === "on_track" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" :
+                    rock.status === "off_track" ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" :
+                    rock.status === "complete" ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" :
                     "bg-surface text-muted"
                   )}>
                     {rock.percentComplete}%
@@ -265,7 +265,7 @@ function GoalRow({
             </div>
           )}
           {goal.targetDate && (
-            <p className="text-[10px] text-muted">
+            <p className="text-2xs text-muted">
               Target:{" "}
               {new Date(goal.targetDate).toLocaleDateString("en-AU", {
                 day: "numeric",

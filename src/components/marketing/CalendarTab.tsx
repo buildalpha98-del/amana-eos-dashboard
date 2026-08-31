@@ -18,7 +18,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 const STATUS_DOTS: Record<string, string> = {
-  draft: "bg-gray-400",
+  draft: "bg-muted/60",
   in_review: "bg-yellow-400",
   approved: "bg-blue-400",
   scheduled: "bg-indigo-400",
@@ -242,11 +242,11 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                       <button
                         key={post.id}
                         onClick={(e) => { e.stopPropagation(); onSelectPost(post.id); }}
-                        className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] leading-tight border-l-2 ${
+                        className={`w-full text-left px-1.5 py-0.5 rounded text-2xs leading-tight border-l-2 ${
                           PLATFORM_COLORS[post.platform] || "border-border"
                         } bg-surface/50 hover:bg-surface transition-colors truncate flex items-center gap-1`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOTS[post.status] || "bg-gray-400"}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOTS[post.status] || "bg-muted/60"}`} />
                         <span className="truncate">{post.title}</span>
                       </button>
                     ))}
@@ -254,16 +254,16 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                       <button
                         key={task.id}
                         onClick={(e) => { e.stopPropagation(); onSelectTask?.(task.id); }}
-                        className="w-full text-left px-1.5 py-0.5 rounded text-[10px] leading-tight border-l-2 border-brand bg-brand/5 hover:bg-brand/10 transition-colors truncate flex items-center gap-1"
+                        className="w-full text-left px-1.5 py-0.5 rounded text-2xs leading-tight border-l-2 border-brand bg-brand/5 hover:bg-brand/10 transition-colors truncate flex items-center gap-1"
                       >
                         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                          task.status === "done" ? "bg-green-400" : task.status === "in_progress" ? "bg-blue-400" : "bg-gray-400"
+                          task.status === "done" ? "bg-green-400" : task.status === "in_progress" ? "bg-blue-400" : "bg-muted/60"
                         }`} />
                         <span className="truncate">{task.title}</span>
                       </button>
                     ))}
                     {totalItems > 3 && (
-                      <div className="text-[10px] text-muted px-1">+{totalItems - 3} more</div>
+                      <div className="text-2xs text-muted px-1">+{totalItems - 3} more</div>
                     )}
                   </div>
                 </div>

@@ -126,6 +126,28 @@ describe("rolePageAccess", () => {
     expect(allowed).not.toContain("/team");
   });
 
+  // 2026-08-06: per Daniel — the cross-centre L10 Issues page is for
+  // owner/head_office/admin/marketing only. A Director of Service works
+  // issues for their own centre via the service detail EOS tab instead
+  // (ServiceIssuesTab, serviceId-scoped) — a real, separate surface, not
+  // a removed feature.
+  it("member does NOT get the cross-centre Issues page — they have their own, service-scoped", () => {
+    expect(canAccessPage("member", "/issues")).toBe(false);
+    // Their EOS participation elsewhere is unaffected.
+    expect(canAccessPage("member", "/rocks")).toBe(true);
+    expect(canAccessPage("member", "/todos")).toBe(true);
+    expect(canAccessPage("member", "/meetings")).toBe(true);
+  });
+
+  it("only owner, head_office, admin and marketing reach the cross-centre Issues page", () => {
+    for (const role of ["owner", "head_office", "admin", "marketing"] as const) {
+      expect(canAccessPage(role, "/issues")).toBe(true);
+    }
+    for (const role of ["member", "staff"] as const) {
+      expect(canAccessPage(role, "/issues")).toBe(false);
+    }
+  });
+
   it("staff has very limited access", () => {
     const allowed = rolePageAccess.staff;
     expect(allowed).toContain("/dashboard");

@@ -56,14 +56,14 @@ export function MedicationLogSection({ childId }: { childId: string }) {
                 <Pill className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] text-[color:var(--color-foreground)]">
+                <p className="text-sm text-[color:var(--color-foreground)]">
                   <span className="font-semibold">{d.medicationName}</span>{" "}
                   <span className="text-[color:var(--color-muted)]">— {d.dose}</span>
                   <span className="text-[color:var(--color-muted)] capitalize">
                     {" "}({d.route})
                   </span>
                 </p>
-                <p className="text-[11px] text-[color:var(--color-muted)]">
+                <p className="text-xs text-[color:var(--color-muted)]">
                   {t.toLocaleString(undefined, {
                     day: "numeric",
                     month: "short",

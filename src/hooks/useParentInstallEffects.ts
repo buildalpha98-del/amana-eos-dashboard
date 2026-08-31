@@ -20,7 +20,9 @@ import { incrementVisitCount, isStandalone } from "@/app/parent/utils/platform";
  * we don't leak visit counts across login/logout boundaries.
  */
 export function useParentInstallEffects(enabled: boolean): void {
-  const { data: onboarding } = useParentOnboarding();
+  // Pass `enabled` through — this hook is called on public parent routes
+  // too, where there is no session to query with.
+  const { data: onboarding } = useParentOnboarding(enabled);
   const markStep = useMarkOnboardingStep();
   const visitedRef = useRef(false);
   const markedRef = useRef(false);

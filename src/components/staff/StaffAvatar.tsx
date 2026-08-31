@@ -7,7 +7,7 @@ interface StaffAvatarProps {
 }
 
 const SIZE_CLASSES = {
-  xs: "h-6 w-6 text-[10px]",
+  xs: "h-6 w-6 text-2xs",
   sm: "h-8 w-8 text-xs",
   md: "h-12 w-12 text-sm",
   lg: "h-24 w-24 text-xl",

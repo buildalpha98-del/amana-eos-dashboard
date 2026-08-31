@@ -282,7 +282,7 @@ export function BulkUploadModal({
 
             {/* Validation errors */}
             {validationErrors.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">
                 {validationErrors.map((err, i) => (
                   <p
                     key={i}
@@ -298,7 +298,7 @@ export function BulkUploadModal({
             {/* Selected files list */}
             {selectedFiles.length > 0 && (
               <div className="border border-border rounded-lg overflow-hidden">
-                <div className="bg-surface px-3 py-2 flex items-center justify-between border-b border-gray-200">
+                <div className="bg-surface px-3 py-2 flex items-center justify-between border-b border-border">
                   <span className="text-xs font-medium text-muted">
                     {selectedFiles.length} file
                     {selectedFiles.length !== 1 ? "s" : ""} selected
@@ -382,7 +382,7 @@ export function BulkUploadModal({
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200 mt-2">
+            <div className="flex gap-3 pt-4 border-t border-border mt-2">
               <button
                 type="button"
                 onClick={handleClose}

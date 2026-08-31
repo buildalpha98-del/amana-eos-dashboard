@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Sparkles, X } from "lucide-react";
+import { Sparkles, X, Loader2 } from "lucide-react";
 import { mutateApi } from "@/lib/fetch-api";
+import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import type { ParentAvatar } from "@/lib/centre-avatar/sections";
 import { ParentAvatarReadonlyPreview } from "./SectionReadonlyPreview";
@@ -150,7 +151,7 @@ export function AiGenerateModal({
             )}
 
             {error && !generating && (
-              <div className="rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <div className="rounded-md bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">
                 <p className="font-medium">Generation failed</p>
                 <p className="mt-1">{error}</p>
               </div>
@@ -158,9 +159,9 @@ export function AiGenerateModal({
 
             {proposed && (
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                   {meta?.cached && (
-                    <span className="rounded-md bg-blue-50 px-2 py-0.5 text-blue-700">
+                    <span className="rounded-md bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 text-blue-700 dark:text-blue-300">
                       cached (24h reuse)
                     </span>
                   )}
@@ -184,47 +185,41 @@ export function AiGenerateModal({
 
           {/* Footer */}
           <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-4">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface"
-            >
+            <Button type="button" variant="secondary" size="sm" onClick={handleClose}>
               {proposed ? "Discard" : "Cancel"}
-            </button>
+            </Button>
             <div className="flex items-center gap-2">
               {!proposed ? (
-                <button
+                <Button
                   type="button"
+                  variant="primary"
+                  size="sm"
                   onClick={generate}
-                  disabled={generating}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
+                  loading={generating}
+                  iconLeft={<Sparkles className="h-4 w-4" />}
                 >
-                  {generating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
                   {generating ? "Drafting..." : "Generate"}
-                </button>
+                </Button>
               ) : (
                 <>
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     onClick={generate}
                     disabled={generating}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-surface disabled:opacity-50"
                   >
                     Regenerate
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="primary"
+                    size="sm"
                     onClick={apply}
-                    disabled={isApplying}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
+                    loading={isApplying}
                   >
-                    {isApplying && <Loader2 className="h-4 w-4 animate-spin" />}
                     Apply to Avatar
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

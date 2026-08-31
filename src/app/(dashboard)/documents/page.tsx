@@ -42,25 +42,28 @@ import {
   Pencil,
   Files,
   Download,
+  FolderLock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StickyTable } from "@/components/ui/StickyTable";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BulkUploadModal } from "@/components/documents/BulkUploadModal";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
-  program: { bg: "bg-cyan-50", text: "text-cyan-700", badge: "bg-cyan-100" },
-  policy: { bg: "bg-blue-50", text: "text-blue-700", badge: "bg-blue-100" },
-  procedure: { bg: "bg-purple-50", text: "text-purple-700", badge: "bg-purple-100" },
-  template: { bg: "bg-green-50", text: "text-green-700", badge: "bg-green-100" },
-  guide: { bg: "bg-teal-50", text: "text-teal-700", badge: "bg-teal-100" },
-  compliance: { bg: "bg-red-50", text: "text-red-700", badge: "bg-red-100" },
-  financial: { bg: "bg-amber-50", text: "text-amber-700", badge: "bg-amber-100" },
-  marketing: { bg: "bg-pink-50", text: "text-pink-700", badge: "bg-pink-100" },
-  hr: { bg: "bg-indigo-50", text: "text-indigo-700", badge: "bg-indigo-100" },
+  program: { bg: "bg-cyan-50 dark:bg-cyan-950/40", text: "text-cyan-700", badge: "bg-cyan-100 dark:bg-cyan-950/50" },
+  policy: { bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700", badge: "bg-blue-100 dark:bg-blue-950/50" },
+  procedure: { bg: "bg-purple-50 dark:bg-purple-950/40", text: "text-purple-700", badge: "bg-purple-100 dark:bg-purple-950/50" },
+  template: { bg: "bg-green-50 dark:bg-green-950/40", text: "text-green-700", badge: "bg-green-100 dark:bg-green-950/50" },
+  guide: { bg: "bg-teal-50 dark:bg-teal-950/40", text: "text-teal-700", badge: "bg-teal-100 dark:bg-teal-950/50" },
+  compliance: { bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-700", badge: "bg-red-100 dark:bg-red-950/50" },
+  financial: { bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-700", badge: "bg-amber-100 dark:bg-amber-950/50" },
+  marketing: { bg: "bg-pink-50 dark:bg-pink-950/40", text: "text-pink-700", badge: "bg-pink-100 dark:bg-pink-950/50" },
+  hr: { bg: "bg-indigo-50 dark:bg-indigo-950/40", text: "text-indigo-700", badge: "bg-indigo-100 dark:bg-indigo-950/50" },
   other: { bg: "bg-surface/50", text: "text-foreground/80", badge: "bg-surface" },
 };
 
@@ -86,6 +89,7 @@ function getDownloadUrl(fileUrl: string): string {
 }
 
 export default function DocumentsPage() {
+  const router = useRouter();
   const qc = useQueryClient();
   const dedupeMut = useMutation({
     mutationFn: () =>
@@ -203,15 +207,7 @@ export default function DocumentsPage() {
   const handleFileUpload = async (file: File) => {
     setUploadingFile(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const err = await res.json();
-        toast({ description: err.error || "Upload failed", variant: "destructive" });
-        return;
-      }
-      const result = await res.json();
+      const result = await uploadFileSmart(file);
       setUploadedFile(result);
       setFormData((prev) => ({
         ...prev,
@@ -219,8 +215,16 @@ export default function DocumentsPage() {
         fileUrl: result.fileUrl,
         title: prev.title || result.fileName.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
       }));
-    } catch {
-      toast({ description: "Upload failed. Please try again.", variant: "destructive" });
+    } catch (err) {
+      // uploadFileSmart throws user-safe messages (size, type, verification) —
+      // showing the generic string instead hid why the upload actually failed.
+      toast({
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : "Upload failed. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setUploadingFile(false);
     }
@@ -376,6 +380,8 @@ export default function DocumentsPage() {
           description="Manage and organize your policies, procedures, templates, and more."
           primaryAction={{ label: "Upload Document", icon: Plus, onClick: () => setShowModal(true) }}
           secondaryActions={[
+            // 2026-07-12 (nav fold): Data Room left the sidebar — reachable here.
+            { label: "Data Room", icon: FolderLock, onClick: () => router.push("/data-room") },
             { label: "Export", icon: Download, onClick: handleExport },
             { label: "New Folder", icon: FolderPlus, onClick: () => setShowNewFolder(true) },
             { label: "Bulk Upload", icon: Files, onClick: () => setShowBulkUpload(true) },
@@ -470,7 +476,7 @@ export default function DocumentsPage() {
                   "px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-colors capitalize",
                   selectedCategory === cat
                     ? `${colors.badge} ${colors.text} border-current`
-                    : "bg-card text-muted border-border hover:border-gray-400"
+                    : "bg-card text-muted border-border hover:border-muted/60"
                 )}
               >
                 {cat === "hr" ? "HR" : cat}
@@ -615,7 +621,7 @@ export default function DocumentsPage() {
                     </div>
                   )}
                   {doc.allServices ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium mb-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-medium mb-2">
                       🌐 All services
                     </span>
                   ) : doc.centre ? (
@@ -661,7 +667,7 @@ export default function DocumentsPage() {
                       <button
                         onClick={() => setDeleteDocId(doc.id)}
                         disabled={deleteDocument.isPending}
-                        className="px-3 py-2 rounded-lg text-sm text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 rounded-lg text-sm text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -709,7 +715,7 @@ export default function DocumentsPage() {
                         </td>
                         <td className="px-4 py-3 text-muted">
                           {doc.allServices ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-medium">
                               All services
                             </span>
                           ) : (
@@ -946,7 +952,7 @@ export default function DocumentsPage() {
                   File *
                 </label>
                 {uploadedFile ? (
-                  <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{uploadedFile.fileName}</p>

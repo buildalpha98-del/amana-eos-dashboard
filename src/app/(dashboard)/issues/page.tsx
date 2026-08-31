@@ -454,7 +454,7 @@ export default function IssuesPage() {
 
       {/* AI Prioritization Panel */}
       {aiPrioritization && (
-        <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4">
+        <div className="mb-6 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2">
@@ -552,7 +552,7 @@ export default function IssuesPage() {
               <button
                 onClick={handleBulkResolve}
                 disabled={bulkAction.isPending}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors disabled:opacity-50"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Resolve
@@ -563,7 +563,7 @@ export default function IssuesPage() {
                 <button
                   onClick={() => setShowAssignDropdown(!showAssignDropdown)}
                   disabled={bulkAction.isPending}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 w-full sm:w-auto"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors disabled:opacity-50 w-full sm:w-auto"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Assign To
@@ -590,7 +590,7 @@ export default function IssuesPage() {
               <button
                 onClick={() => handleBulkMove("short_term")}
                 disabled={bulkAction.isPending}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors disabled:opacity-50"
               >
                 <ArrowRightCircle className="w-3.5 h-3.5" />
                 Short-term
@@ -600,7 +600,7 @@ export default function IssuesPage() {
               <button
                 onClick={() => handleBulkMove("long_term")}
                 disabled={bulkAction.isPending}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-colors disabled:opacity-50"
               >
                 <ArrowRightCircle className="w-3.5 h-3.5" />
                 Long-term
@@ -610,7 +610,7 @@ export default function IssuesPage() {
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={bulkAction.isPending}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors disabled:opacity-50"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete

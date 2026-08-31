@@ -23,6 +23,8 @@ import {
   Mail,
   Building2,
   AlertCircle,
+  BellOff,
+  Bell,
 } from "lucide-react";
 import { ROLE_DISPLAY_NAMES, isAdminRole } from "@/lib/role-permissions";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
@@ -39,9 +41,9 @@ import type { EmployeeListItem } from "@/hooks/useEmployeesList";
 import { AssignToServiceDialog } from "./AssignToServiceDialog";
 
 const STATUS_TONE: Record<EmployeeListItem["status"], string> = {
-  active: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  pending: "bg-amber-100 text-amber-800 border-amber-300",
-  deactivated: "bg-gray-100 text-gray-700 border-gray-300",
+  active: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800",
+  pending: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800",
+  deactivated: "bg-surface text-foreground/80 border-border",
 };
 
 const STATUS_LABEL: Record<EmployeeListItem["status"], string> = {
@@ -148,6 +150,24 @@ export function EmployeeRow({
         onSelect: () => setPendingConfirm("toggle_active"),
       });
     }
+    // Admin-only mute for the payroll/contract badges — for accounts
+    // that aren't real employees (shared service-admin logins, system
+    // accounts) so the warnings stop being noise on rows that will
+    // never get a payroll link or a contract.
+    if (isAdmin) {
+      items.push({
+        key: "toggle_hr_warnings_muted",
+        label: employee.hrWarningsMuted
+          ? "Unmute payroll/contract warnings"
+          : "Mute payroll/contract warnings",
+        icon: employee.hrWarningsMuted ? (
+          <Bell className="h-3.5 w-3.5" />
+        ) : (
+          <BellOff className="h-3.5 w-3.5" />
+        ),
+        onSelect: () => quickAction.mutate("toggle_hr_warnings_muted"),
+      });
+    }
   }
 
   const confirmCopy =
@@ -166,13 +186,20 @@ export function EmployeeRow({
   // Payroll employee record yet. Deactivated users don't need a
   // badge — they're not expected to be on payroll. Pending invites
   // do show it so admin remembers to link them as part of onboarding.
+  // 2026-08-18: also suppressed for accounts an admin has explicitly
+  // marked as not real employees (hrWarningsMuted) — e.g. shared
+  // service-admin logins that will never have a payroll ID.
   const needsPayrollLink =
-    !employee.payrollLinked && employee.status !== "deactivated";
+    !employee.payrollLinked &&
+    employee.status !== "deactivated" &&
+    !employee.hrWarningsMuted;
   // Yellow flag for active staff who don't have any contract on file
   // (active or awaiting signature). Same status gating as the red
-  // payroll badge — deactivated users are exempt.
+  // payroll badge — deactivated users and muted accounts are exempt.
   const needsContract =
-    !employee.hasActiveContract && employee.status !== "deactivated";
+    !employee.hasActiveContract &&
+    employee.status !== "deactivated" &&
+    !employee.hrWarningsMuted;
 
   const nameInner = (
     <>
@@ -272,7 +299,7 @@ export function EmployeeRow({
         <td className="px-4 py-3">
           <span
             className={cn(
-              "inline-flex items-center rounded-full border px-2 py-0 text-[10px] font-bold uppercase tracking-wide",
+              "inline-flex items-center rounded-full border px-2 py-0 text-2xs font-bold uppercase tracking-wide",
               STATUS_TONE[employee.status],
             )}
           >

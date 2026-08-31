@@ -33,7 +33,7 @@ export function useEmployeeResendInvite(employeeId: string) {
       }),
     onSuccess: (data) => {
       toast({ description: data.message });
-      qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["employees-list"] });
     },
     onError: (err) => {
       toast({
@@ -70,7 +70,7 @@ export function useBulkResendInvite() {
       } else {
         toast({ description: data.message });
       }
-      qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["employees-list"] });
     },
     onError: (err) => {
       toast({

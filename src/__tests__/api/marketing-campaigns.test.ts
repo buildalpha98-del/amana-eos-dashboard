@@ -230,6 +230,97 @@ describe("POST /api/marketing/campaigns", () => {
   });
 });
 
+describe("GET /api/marketing/campaigns/[id]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    setupActiveUserMock();
+  });
+
+  it("returns 404 for unknown campaign ID", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue(null);
+
+    const req = createRequest("GET", "/api/marketing/campaigns/unknown-id");
+    const context = { params: Promise.resolve({ id: "unknown-id" }) };
+    const res = await GET_ONE(req, context);
+    expect(res.status).toBe(404);
+  });
+
+  it("includes creativeRequests and attaches emailSends from the delivery log", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+
+    const campaign = {
+      id: "camp-1",
+      name: "Book Week",
+      type: "campaign",
+      status: "active",
+      deleted: false,
+      posts: [],
+      comments: [],
+      _count: { posts: 0 },
+      services: [],
+      creativeRequests: [
+        {
+          id: "cr1",
+          requestNumber: "REQ-2026-0001",
+          title: "Book Week poster",
+          status: "in_progress",
+          dueDate: new Date("2026-08-20"),
+          assignee: { name: "Akram" },
+        },
+      ],
+    };
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue(campaign);
+    prismaMock.deliveryLog.findMany.mockResolvedValue([
+      {
+        id: "dl1",
+        subject: "Book Week newsletter",
+        status: "sent",
+        recipientCount: 120,
+        createdAt: new Date("2026-08-01"),
+      },
+    ]);
+
+    const req = createRequest("GET", "/api/marketing/campaigns/camp-1");
+    const context = { params: Promise.resolve({ id: "camp-1" }) };
+    const res = await GET_ONE(req, context);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.creativeRequests).toHaveLength(1);
+    expect(body.creativeRequests[0].requestNumber).toBe("REQ-2026-0001");
+    expect(body.emailSends).toHaveLength(1);
+    expect(body.emailSends[0].subject).toBe("Book Week newsletter");
+    expect(body.emailSends[0].recipientCount).toBe(120);
+
+    const findArgs = prismaMock.marketingCampaign.findUnique.mock.calls[0][0];
+    expect(findArgs.include.creativeRequests.select).toEqual({
+      id: true,
+      requestNumber: true,
+      title: true,
+      status: true,
+      dueDate: true,
+      assignee: { select: { name: true } },
+    });
+
+    const dlArgs = prismaMock.deliveryLog.findMany.mock.calls[0][0];
+    expect(dlArgs.where).toEqual({
+      entityType: "MarketingCampaign",
+      entityId: "camp-1",
+    });
+    expect(dlArgs.select).toEqual({
+      id: true,
+      subject: true,
+      status: true,
+      recipientCount: true,
+      createdAt: true,
+    });
+    expect(dlArgs.orderBy).toEqual({ createdAt: "desc" });
+    expect(dlArgs.take).toBe(20);
+  });
+});
+
 describe("PATCH /api/marketing/campaigns/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();

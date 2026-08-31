@@ -181,7 +181,7 @@ function ReleaseButton({ shiftId, onRelease, pending }: ReleaseButtonProps) {
       className={cn(
         "ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium",
         confirming
-          ? "bg-amber-100 text-amber-900 hover:bg-amber-200"
+          ? "bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 hover:bg-amber-200"
           : "text-muted hover:text-foreground hover:bg-muted/30",
         pending && "opacity-60 cursor-not-allowed",
       )}

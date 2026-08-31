@@ -8,6 +8,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { quarterLabel } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ export async function generateBoardReport({
   const prevFirstOfMonth = new Date(prevYear, prevMonth - 1, 1);
   const prevLastOfMonth = new Date(prevYear, prevMonth, 0, 23, 59, 59, 999);
 
-  const currentQuarter = `Q${Math.ceil(month / 3)}-${year}`;
+  const currentQuarter = quarterLabel(new Date(year, month - 1, 1));
 
   // ── Parallel data fetching ─────────────────────────────────
 

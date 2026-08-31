@@ -55,11 +55,19 @@ export interface EmergencyContact {
   relationship: string;
 }
 
-export interface AttendanceDay {
+/**
+ * One REAL session this child attended — a sign-in row, not a derived
+ * status. The old AttendanceDay shape was built from service-level
+ * totals and reported "present" for children who never came.
+ */
+export interface AttendanceSession {
+  id: string;
   date: string;
-  status: "present" | "absent" | "no_session";
+  sessionType: string;
   signInTime: string | null;
   signOutTime: string | null;
+  signedInByName: string | null;
+  signedOutByName: string | null;
 }
 
 export interface UpdateAccountPayload {
@@ -92,7 +100,7 @@ export interface UpdateAccountPayload {
 export interface BookingRecord {
   id: string;
   date: string;
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: string;
   status: "requested" | "confirmed" | "waitlisted" | "cancelled" | "absent_notified";
   type: "permanent" | "casual" | "vacation_care";
   fee: number | null;
@@ -107,7 +115,7 @@ export interface BookingRecord {
 export interface AbsenceRecord {
   id: string;
   date: string;
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: string;
   isIllness: boolean;
   medicalCertificateUrl: string | null;
   notes: string | null;
@@ -125,7 +133,7 @@ export interface CreateBookingPayload {
   childId: string;
   serviceId: string;
   date: string; // YYYY-MM-DD
-  sessionType: "bsc" | "asc" | "vc";
+  sessionType: string;
 }
 
 export interface MarkAbsentPayload {
@@ -194,15 +202,12 @@ export function useParentChildren() {
 }
 
 export function useChildAttendance(childId: string) {
-  return useQuery<AttendanceDay[]>({
-    queryKey: ["parent", "children", childId, "attendance"],
+  return useQuery<{ records: AttendanceSession[] }>({
+    queryKey: ["parent", "child-attendance", childId],
     queryFn: () =>
-      fetchApi<AttendanceDay[]>(
-        `/api/parent/children/${childId}/attendance`
-      ),
-    retry: 2,
-    staleTime: 30_000,
+      fetchApi(`/api/parent/children/${childId}/attendance?limit=30`),
     enabled: !!childId,
+    retry: 2,
   });
 }
 
@@ -334,6 +339,13 @@ export interface StatementDetailResponse {
     id: string;
     date: string;
     sessionType: string;
+    /**
+     * The room's own name. Stage 2 of docs/rooms-migration-plan.md —
+     * a parent used to see "EXTRA1" here, because the label came from
+     * an org-wide map that only knew three codes and ignored whatever
+     * the centre had actually named its rooms.
+     */
+    room: { id: string; name: string } | null;
     description: string;
     grossFee: number;
     ccsAmount: number;
@@ -509,11 +521,24 @@ export interface OnboardingResponse {
   totalCount: number;
 }
 
-export function useParentOnboarding() {
+/**
+ * 2026-07-30: takes `enabled` because this fired for SIGNED-OUT visitors.
+ * useParentInstallEffects calls it unconditionally (hooks can't be
+ * conditional), so on /parent/signup and /parent/login it hit an
+ * auth-required endpoint, got a 401, and QueryProvider toasted
+ * "Session expired" and reloaded the page — which remounted the hook and
+ * repeated, looping every few seconds on the very pages a parent without
+ * an account has to use.
+ *
+ * `retry: false` as well: retrying a 401 can't succeed and only multiplies
+ * the toasts.
+ */
+export function useParentOnboarding(enabled: boolean = true) {
   return useQuery<OnboardingResponse>({
     queryKey: ["parent", "onboarding"],
     queryFn: () => fetchApi<OnboardingResponse>("/api/parent/onboarding"),
-    retry: 2,
+    enabled,
+    retry: false,
     staleTime: 30_000,
   });
 }
@@ -644,44 +669,6 @@ export function useParentPostLikeToggle() {
   });
 }
 
-interface CommentsResponse {
-  items: PostComment[];
-  nextCursor?: string;
-}
-
-export function useParentPostComments(postId: string | null) {
-  return useQuery<CommentsResponse>({
-    queryKey: ["parent", "post-comments", postId],
-    queryFn: () =>
-      fetchApi<CommentsResponse>(`/api/parent/posts/${postId}/comments?limit=50`),
-    retry: 2,
-    staleTime: 15_000,
-    enabled: !!postId,
-  });
-}
-
-export function useCreateParentPostComment(postId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: string) =>
-      mutateApi<PostComment>(`/api/parent/posts/${postId}/comments`, {
-        method: "POST",
-        body: { body },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["parent", "post-comments", postId] });
-      queryClient.invalidateQueries({ queryKey: ["parent-timeline"] });
-    },
-    onError: (err: Error) => {
-      toast({
-        variant: "destructive",
-        description: err.message || "Couldn't post comment.",
-      });
-    },
-  });
-}
-
-// ── Daily Info (Menu + Program) ─────────────────────────
 
 export interface DailyMenuItem {
   slot: string;
@@ -700,9 +687,17 @@ export interface DailyProgram {
   programmeBrand: string | null;
 }
 
+export interface WeekDayInfo {
+  day: string;
+  menu: DailyMenuItem[];
+  program: DailyProgram[];
+}
+
 export interface DailyInfoResponse {
   todayMenu: { items: DailyMenuItem[] } | null;
   todayProgram: DailyProgram[];
+  /** Monday–Friday of the current week — menu and programme per day. */
+  week?: WeekDayInfo[];
 }
 
 export function useParentDailyInfo() {

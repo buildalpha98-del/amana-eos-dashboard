@@ -7,6 +7,7 @@ import { ImagePlus, Eye, EyeOff, Loader2 } from "lucide-react";
 import { LMS_MARKDOWN_REHYPE_PLUGINS } from "@/lib/lms-sanitize-schema";
 import { toVideoEmbedUrl } from "@/lib/course-player";
 import { toast } from "@/hooks/useToast";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 /**
  * Authoring toolbar for a module's markdown content: an "Insert image" button
@@ -30,14 +31,7 @@ export function MediaToolbar({
     if (!file) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Upload failed");
-      }
-      const { fileUrl } = (await res.json()) as { fileUrl: string };
+      const { fileUrl } = await uploadFileSmart(file);
       const alt = file.name.replace(/\.[^.]+$/, "");
       const snippet = `\n\n![${alt}](${fileUrl})\n\n`;
       onChange((value || "") + snippet);
@@ -73,7 +67,7 @@ export function MediaToolbar({
           {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           {preview ? "Hide preview" : "Preview"}
         </button>
-        <span className="text-[10px] text-muted">Markdown supported</span>
+        <span className="text-2xs text-muted">Markdown supported</span>
         <input
           ref={fileRef}
           type="file"
@@ -112,9 +106,9 @@ export function VideoUrlHint({ url }: { url: string }) {
   if (!url.trim()) return null;
   const embed = toVideoEmbedUrl(url);
   return embed ? (
-    <p className="text-[10px] text-emerald-600">✓ Will embed as a video player.</p>
+    <p className="text-2xs text-emerald-600">✓ Will embed as a video player.</p>
   ) : (
-    <p className="text-[10px] text-amber-600">
+    <p className="text-2xs text-amber-600">
       ⚠ Only YouTube, Loom or Vimeo links embed as a player; other links open as a button.
     </p>
   );

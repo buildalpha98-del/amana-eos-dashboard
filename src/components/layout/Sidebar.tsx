@@ -14,7 +14,7 @@ import {
   Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { navItems, filterNavItems } from "@/lib/nav-config";
+import { navItems, filterNavItems, partitionNavSection } from "@/lib/nav-config";
 import { isInductionLocked, isInductionAllowedPath } from "@/lib/induction-lock";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NavLayoutToggle } from "@/components/layout/NavLayoutToggle";
@@ -31,7 +31,7 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite } = useSidebar();
+  const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite, expandedSections, toggleExpandedSection } = useSidebar();
   const { data: bookingRequestCount } = useBookingRequestCount();
   const { data: unreadMessageCount } = useUnreadMessageCount();
   const { data: pendingPoliciesCount } = useMyPendingPoliciesCount();
@@ -45,7 +45,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // the induction surfaces in the sidebar, mirroring the middleware redirect.
   const inductionLocked = isInductionLocked(
     session?.user?.inductionStatus,
-    session?.user?.inductionGraceUntil
+    session?.user?.inductionGraceUntil,
+    { role: session?.user?.role }
   );
 
   // Group filtered nav items by section.
@@ -57,11 +58,23 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // closes the parity gap where the sidebar was still rendering
   // "ADMIN › Leadership" then another "ADMIN" further down. Order =
   // first-seen section wins.
+  // Badge-carrying items must never be invisible — a live count overrides
+  // both the curated-core overflow AND the stage-1 `hidden` fold.
+  const forceShowHrefs = useMemo(() => {
+    const hrefs: string[] = [];
+    if (bookingRequestCount != null && bookingRequestCount > 0) hrefs.push("/bookings");
+    if (unreadMessageCount != null && unreadMessageCount > 0) hrefs.push("/messaging");
+    if (pendingPoliciesCount?.count != null && pendingPoliciesCount.count > 0) hrefs.push("/policies");
+    return hrefs;
+  }, [bookingRequestCount, unreadMessageCount, pendingPoliciesCount?.count]);
+
   const groupedItems = useMemo(() => {
     const filtered = filterNavItems(
       navItems,
       session?.user?.role as Role | undefined
-    ).filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
+    )
+      .filter((item) => !item.hidden || forceShowHrefs.includes(item.href))
+      .filter((item) => !inductionLocked || isInductionAllowedPath(item.href));
     const byKey = new Map<string, typeof navItems>();
     const order: string[] = [];
     for (const item of filtered) {
@@ -72,7 +85,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       byKey.get(item.section)!.push(item);
     }
     return order.map((key) => ({ key, items: byKey.get(key)! }));
-  }, [session?.user?.role, inductionLocked]);
+  }, [session?.user?.role, inductionLocked, forceShowHrefs]);
 
   // Build favourited items list from the filtered nav items
   const favouriteItems = useMemo(() => {
@@ -101,7 +114,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         className={cn(
           "fixed left-0 top-0 h-screen text-white flex flex-col transition-all duration-300 z-50 backdrop-blur-xl",
           // Rich gradient background
-          "bg-gradient-to-b from-[#002E3D] to-[#001824]",
+          "bg-gradient-to-b from-brand-dark to-[#001824]",
           // Mobile: off-canvas drawer via translate
           "w-64 -translate-x-full md:translate-x-0",
           // Desktop: collapse toggle
@@ -124,7 +137,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               <h1 className="text-sm font-semibold tracking-tight truncate">
                 Amana OSHC
               </h1>
-              <p className="text-[10px] text-white/50 uppercase tracking-wider">
+              <p className="text-2xs text-white/50 uppercase tracking-wider">
                 EOS Dashboard
               </p>
             </div>
@@ -142,7 +155,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               <div className="my-2 px-3">
                 <div className="flex items-center gap-1.5">
                   <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                  <h3 className="text-[11px] font-semibold text-white/30 uppercase tracking-widest">
+                  <h3 className="text-2xs font-semibold text-white/30 uppercase tracking-widest">
                     Favourites
                   </h3>
                 </div>
@@ -160,7 +173,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                         isActive
-                          ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
+                          ? "bg-white/[0.08] text-white border-l-2 border-accent ml-0.5"
                           : "text-white/70 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
                       )}
                       title={item.tooltip ?? undefined}
@@ -201,6 +214,16 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
           {groupedItems.map((group, groupIndex) => {
             const isSectionCollapsed = collapsedSections.has(group.key);
+            // Curated sidebar (2026-07-12): show the role's core items by
+            // default; the rest live behind "+N more". Badge-carrying items
+            // are force-shown so a live count is never invisible.
+            const { core, overflow } = partitionNavSection(
+              group.items,
+              session?.user?.role as Role | undefined,
+              { activeHref: pathname, forceShowHrefs },
+            );
+            const isExpanded = expandedSections.has(group.key);
+            const visibleItems = isExpanded ? [...core, ...overflow] : core;
 
             return (
               <div key={group.key}>
@@ -244,7 +267,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 {/* Nav items: always visible when sidebar is collapsed (icon-only mode),
                     otherwise respect section accordion state */}
                 {(collapsed || !isSectionCollapsed) &&
-                  group.items.map((item) => {
+                  visibleItems.map((item) => {
                     const isActive =
                       pathname === item.href ||
                       pathname.startsWith(item.href + "/");
@@ -258,7 +281,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                           className={cn(
                             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                             isActive
-                              ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
+                              ? "bg-white/[0.08] text-white border-l-2 border-accent ml-0.5"
                               : "text-white/70 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
                           )}
                           title={
@@ -281,19 +304,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                                 {item.label}
                               </span>
                               {item.href === "/bookings" && bookingRequestCount != null && bookingRequestCount > 0 && (
-                                <span className="ml-auto flex-shrink-0 rounded-full bg-[#FECE00] px-1.5 py-0.5 text-[10px] font-bold text-[#004E64] leading-none min-w-[18px] text-center">
+                                <span className="ml-auto flex-shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-2xs font-bold text-brand leading-none min-w-[18px] text-center">
                                   {bookingRequestCount > 99 ? "99+" : bookingRequestCount}
                                 </span>
                               )}
                               {item.href === "/messaging" && unreadMessageCount != null && unreadMessageCount > 0 && (
-                                <span className="ml-auto flex-shrink-0 rounded-full bg-[#FECE00] px-1.5 py-0.5 text-[10px] font-bold text-[#004E64] leading-none min-w-[18px] text-center">
+                                <span className="ml-auto flex-shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-2xs font-bold text-brand leading-none min-w-[18px] text-center">
                                   {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
                                 </span>
                               )}
                               {item.href === "/policies" && pendingPoliciesCount?.count != null && pendingPoliciesCount.count > 0 && (
                                 <span
                                   aria-label={`${pendingPoliciesCount.count} acknowledgements required`}
-                                  className="ml-auto flex-shrink-0 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none min-w-[18px] text-center"
+                                  className="ml-auto flex-shrink-0 rounded-full bg-rose-600 px-1.5 py-0.5 text-2xs font-bold text-white leading-none min-w-[18px] text-center"
                                 >
                                   {pendingPoliciesCount.count > 99 ? "99+" : pendingPoliciesCount.count}
                                 </span>
@@ -332,6 +355,32 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       </div>
                     );
                   })}
+
+                {/* "+N more" — reveals the section's non-core items.
+                    Hidden in icon-only mode (the rail stays short; ⌘K and
+                    favourites reach everything) and when the accordion is
+                    collapsed. */}
+                {!collapsed && !isSectionCollapsed && overflow.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpandedSection(group.key)}
+                    aria-expanded={isExpanded}
+                    aria-label={
+                      isExpanded
+                        ? `Show fewer ${group.key} items`
+                        : `Show ${overflow.length} more ${group.key} items`
+                    }
+                    className="flex items-center gap-2 w-full px-3 py-1.5 ml-0.5 rounded-lg text-2xs font-semibold uppercase tracking-wider text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-colors"
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "w-3 h-3 transition-transform duration-200",
+                        isExpanded && "rotate-180"
+                      )}
+                    />
+                    {isExpanded ? "Show less" : `${overflow.length} more`}
+                  </button>
+                )}
               </div>
             );
           })}
@@ -347,7 +396,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <div className="border-t border-white/[0.06] p-3">
           {session?.user && (
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#002E3D] to-[#004D6D] flex items-center justify-center text-xs font-medium ring-1 ring-white/10">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-brand-dark to-[#004D6D] flex items-center justify-center text-xs font-medium ring-1 ring-white/10">
                 {session.user.name
                   ?.split(" ")
                   .map((n) => n[0])
@@ -360,7 +409,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   <p className="text-sm font-medium truncate">
                     {session.user.name}
                   </p>
-                  <p className="text-[10px] text-white/40 capitalize">
+                  <p className="text-2xs text-white/40 capitalize">
                     {session.user.role}
                   </p>
                 </div>
@@ -381,7 +430,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <button
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute -right-3.5 top-20 w-7 h-5 rounded-full bg-[#002E3D]/90 backdrop-blur-sm border border-white/15 hidden md:flex items-center justify-center text-white/50 hover:text-white hover:bg-[#002E3D] transition-all duration-200"
+          className="absolute -right-3.5 top-20 w-7 h-5 rounded-full bg-brand-dark/90 backdrop-blur-sm border border-white/15 hidden md:flex items-center justify-center text-white/50 hover:text-white hover:bg-brand-dark transition-all duration-200"
         >
           {collapsed ? (
             <ChevronRight className="w-3 h-3" />

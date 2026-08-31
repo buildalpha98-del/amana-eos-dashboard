@@ -31,6 +31,18 @@ export interface EnrolmentSubmission {
     bookingPrefs?: Record<string, unknown>;
     [key: string]: unknown;
   }>;
+  /**
+   * The Child rows this submission created. Only present on the single
+   * -enrolment GET — the list endpoint doesn't join them.
+   */
+  childRecords?: Array<{
+    id: string;
+    firstName: string;
+    surname: string;
+    serviceId: string | null;
+    status: string;
+  }>;
+  service?: { id: string; name: string } | null;
   emergencyContacts: Array<{
     name: string;
     relationship: string;

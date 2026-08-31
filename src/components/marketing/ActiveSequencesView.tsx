@@ -25,10 +25,10 @@ const STATUS_FILTERS = [
 ] as const;
 
 const STATUS_BADGE: Record<string, string> = {
-  active: "bg-green-100 text-green-700",
-  paused: "bg-amber-100 text-amber-700",
-  completed: "bg-blue-100 text-blue-700",
-  cancelled: "bg-red-100 text-red-700",
+  active: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  paused: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  completed: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  cancelled: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
 };
 
 function formatDate(dateStr: string | null | undefined) {
@@ -181,10 +181,10 @@ export function ActiveSequencesView() {
                         </span>
                         <span
                           className={cn(
-                            "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                            "rounded-full px-1.5 py-0.5 text-2xs font-medium",
                             enrolment.sequence?.type === "parent_nurture"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-blue-100 text-blue-700",
+                              ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                              : "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
                           )}
                         >
                           {enrolment.sequence?.type === "parent_nurture"
@@ -236,8 +236,9 @@ export function ActiveSequencesView() {
                               pauseMutation.mutate(enrolment.id)
                             }
                             disabled={pauseMutation.isPending}
-                            className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-amber-50 hover:text-amber-600"
+                            className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600"
                             title="Pause"
+                            aria-label="Pause sequence"
                           >
                             <Pause className="h-4 w-4" />
                           </button>
@@ -248,8 +249,9 @@ export function ActiveSequencesView() {
                               resumeMutation.mutate(enrolment.id)
                             }
                             disabled={resumeMutation.isPending}
-                            className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-green-50 hover:text-green-600"
+                            className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-green-50 dark:hover:bg-green-950/40 hover:text-green-600"
                             title="Resume"
+                            aria-label="Resume sequence"
                           >
                             <Play className="h-4 w-4" />
                           </button>
@@ -261,8 +263,9 @@ export function ActiveSequencesView() {
                               cancelMutation.mutate(enrolment.id)
                             }
                             disabled={cancelMutation.isPending}
-                            className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-red-50 hover:text-danger"
+                            className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-danger"
                             title="Cancel"
+                            aria-label="Cancel sequence"
                           >
                             <XCircle className="h-4 w-4" />
                           </button>

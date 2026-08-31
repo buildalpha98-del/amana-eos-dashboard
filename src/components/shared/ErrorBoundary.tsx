@@ -76,7 +76,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           )}
 
           {isDev && error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-left">
+            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 text-left">
               <p className="text-sm font-medium text-red-800">{error.message}</p>
               {error.stack && (
                 <pre className="mt-2 max-h-40 overflow-auto text-xs text-red-600">{error.stack}</pre>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   Download,
@@ -9,11 +10,14 @@ import {
   User,
   Calendar,
   UserPlus,
+  Users,
+  AlertTriangle,
 } from "lucide-react";
 import { useEnrolments, type EnrolmentSubmission } from "@/hooks/useEnrolments";
 import { useEnrolmentApplications } from "@/hooks/useEnrolmentApplications";
 import { EnrolmentDetailPanel } from "@/components/enrolments/EnrolmentDetailPanel";
 import { SiblingEnrolmentInbox } from "@/components/enrolments/SiblingEnrolmentInbox";
+import { BackfillServiceDialog } from "@/components/enrolments/BackfillServiceDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -29,16 +33,18 @@ const STATUS_TABS = [
 ];
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
-  submitted: { label: "Submitted", color: "bg-blue-50 text-blue-700" },
-  under_review: { label: "Reviewing", color: "bg-amber-50 text-amber-700" },
-  processed: { label: "Confirmed", color: "bg-green-50 text-green-700" },
-  needs_info: { label: "Needs Info", color: "bg-orange-50 text-orange-700" },
-  archived: { label: "Archived", color: "bg-gray-50 text-gray-500" },
+  submitted: { label: "Submitted", color: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300" },
+  under_review: { label: "Reviewing", color: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300" },
+  processed: { label: "Confirmed", color: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300" },
+  needs_info: { label: "Needs Info", color: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300" },
+  archived: { label: "Archived", color: "bg-surface text-muted" },
 };
 
 export default function EnrolmentsPage() {
+  const router = useRouter();
   const [view, setView] = useState<"submissions" | "sibling">("submissions");
   const [activeTab, setActiveTab] = useState("all");
+  const [showBackfill, setShowBackfill] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data, isLoading } = useEnrolments(activeTab);
@@ -66,6 +72,10 @@ export default function EnrolmentsPage() {
     archived: submissions.filter((s) => s.status === "archived").length,
   };
 
+  // Children with no service are on no roll and no invoice, so a backlog
+  // needs to announce itself rather than wait to be searched for.
+  const unplaced = submissions.filter((s) => !s.serviceId).length;
+
   return (
     <div
       data-v2="staff"
@@ -75,6 +85,11 @@ export default function EnrolmentsPage() {
       <PageHeader
         title="Enrolments"
         description="Review and process parent enrolment submissions"
+        secondaryActions={[
+          // 2026-07-12 (nav fold): Children left the sidebar — browsing
+          // enrolled children is the other half of this lifecycle.
+          { label: "Children", icon: Users, onClick: () => router.push("/children") },
+        ]}
       >
         <ExportButton
           onClick={() =>
@@ -122,7 +137,7 @@ export default function EnrolmentsPage() {
           <UserPlus className="h-4 w-4" />
           Sibling Applications
           {(siblingData?.total ?? 0) > 0 && (
-            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">
+            <span className="px-1.5 py-0.5 text-2xs font-bold rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
               {siblingData?.total}
             </span>
           )}
@@ -147,6 +162,25 @@ export default function EnrolmentsPage() {
           </div>
         ))}
       </div>
+
+      {unplaced > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40">
+          <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300 shrink-0" />
+          <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+            <strong>{unplaced}</strong>{" "}
+            {unplaced === 1 ? "enrolment isn't" : "enrolments aren't"} linked to
+            a service — those children don&apos;t appear on any roll or invoice.
+          </p>
+          <button
+            onClick={() => setShowBackfill(true)}
+            className="text-sm font-semibold px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors whitespace-nowrap"
+          >
+            Match to services
+          </button>
+        </div>
+      )}
+
+      <BackfillServiceDialog open={showBackfill} onOpenChange={setShowBackfill} />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -284,10 +318,20 @@ function EnrolmentRow({
       </div>
 
       {/* Status */}
-      <div className="sm:col-span-2 flex items-center">
+      <div className="sm:col-span-2 flex items-center gap-1.5 flex-wrap">
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badge.color}`}>
           {badge.label}
         </span>
+        {/*
+          An enrolment with no service has children on no roll and no
+          invoices. It looks perfectly healthy in this list otherwise, so
+          it needs to say so here — open it and use "Assign to service".
+        */}
+        {!s.serviceId && (
+          <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300">
+            No service
+          </span>
+        )}
       </div>
 
       {/* Actions */}

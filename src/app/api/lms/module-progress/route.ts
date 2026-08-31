@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { onModuleProgressed } from "@/lib/induction";
+import { recalcEnrollmentStatus } from "@/lib/lms-progress";
 
 const bodySchema = z.object({
   enrollmentId: z.string().min(1),
@@ -32,11 +33,34 @@ export const POST = withApiAuth(async (req, session) => {
   // Caller must own the enrollment.
   const enrollment = await prisma.lMSEnrollment.findUnique({
     where: { id: enrollmentId },
-    select: { id: true, userId: true, startedAt: true },
+    select: { id: true, userId: true, courseId: true, startedAt: true },
   });
   if (!enrollment) throw ApiError.notFound("Enrollment not found");
   if (enrollment.userId !== userId) {
     throw ApiError.forbidden("You can only update your own training progress.");
+  }
+
+  // The module must belong to the enrolled course.
+  const progressModule = await prisma.lMSModule.findUnique({
+    where: { id: moduleId },
+    select: { id: true, type: true, courseId: true },
+  });
+  if (!progressModule || progressModule.courseId !== enrollment.courseId) {
+    throw ApiError.notFound("Module not found in this course");
+  }
+  // Quiz modules are completed by PASSING the quiz (the quiz route upserts
+  // progress itself) — never by this endpoint's manual path. Without this,
+  // the dwell-based player path could bypass the quiz gate entirely.
+  if (progressModule.type === "quiz" && completed) {
+    const passedAttempt = await prisma.lMSQuizAttempt.findFirst({
+      where: { enrollmentId, moduleId, passed: true },
+      select: { id: true },
+    });
+    if (!passedAttempt) {
+      throw ApiError.forbidden(
+        "Quiz modules are completed by passing the quiz."
+      );
+    }
   }
 
   await prisma.lMSModuleProgress.upsert({
@@ -55,30 +79,7 @@ export const POST = withApiAuth(async (req, session) => {
     },
   });
 
-  // Recompute enrollment status from required-module completion.
-  const full = await prisma.lMSEnrollment.findUnique({
-    where: { id: enrollmentId },
-    include: {
-      course: { include: { modules: { where: { isRequired: true }, select: { id: true } } } },
-      moduleProgress: true,
-    },
-  });
-  if (full) {
-    const requiredIds = full.course.modules.map((m) => m.id);
-    const completedRequired = full.moduleProgress.filter(
-      (p) => p.completed && requiredIds.includes(p.moduleId),
-    ).length;
-    const anyStarted = full.moduleProgress.some((p) => p.completed);
-    const allDone = requiredIds.length > 0 && completedRequired >= requiredIds.length;
-    await prisma.lMSEnrollment.update({
-      where: { id: enrollmentId },
-      data: {
-        status: allDone ? "completed" : anyStarted ? "in_progress" : "enrolled",
-        startedAt: anyStarted && !full.startedAt ? new Date() : undefined,
-        completedAt: allDone ? new Date() : null,
-      },
-    });
-  }
+  await recalcEnrollmentStatus(enrollmentId);
 
   const inductionStatus = await onModuleProgressed(userId);
   return NextResponse.json({ ok: true, inductionStatus });

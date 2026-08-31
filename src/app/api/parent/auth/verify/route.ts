@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { withApiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
+import {
+  findEnrolmentIdsForEmail,
+  findParentAccountForLogin,
+} from "@/lib/parent-account";
 import { signParentJwt } from "@/lib/parent-auth";
 import { logger } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -52,66 +56,49 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   const emailLower = magicLink.email.toLowerCase().trim();
 
-  // Look up parent data — check ParentEnquiry first to narrow enrolment search
-  let parentName = "Parent";
-  const matchingEnrolmentIds: string[] = [];
+  /**
+   * One shared lookup, not a second copy of it.
+   *
+   * This route and `send-link` each carried their own ~40-line scan with
+   * a hard `take(100)`, unordered. A parent whose enrolment fell outside
+   * that slice got a valid magic link that signed them in with ZERO
+   * enrolments — the session worked, and their own children weren't in
+   * it. `findEnrolmentIdsForEmail` pages the whole table instead.
+   */
+  const { enrolmentIds: matchingEnrolmentIds, parentName: foundName } =
+    await findEnrolmentIdsForEmail(emailLower);
 
-  const enquiry = await prisma.parentEnquiry.findFirst({
-    where: {
-      parentEmail: { equals: emailLower, mode: "insensitive" },
-      deleted: false,
-    },
-    select: { parentName: true, serviceId: true },
-  });
-
-  if (enquiry?.parentName) {
-    parentName = enquiry.parentName;
-  }
-
-  // Narrow enrolment search by serviceId when possible, fallback with .take(100) limit
-  const enrolments = await prisma.enrolmentSubmission.findMany({
-    where: {
-      status: { not: "draft" },
-      ...(enquiry?.serviceId ? { serviceId: enquiry.serviceId } : {}),
-    },
-    select: {
-      id: true,
-      primaryParent: true,
-      secondaryParent: true,
-    },
-    take: 100,
-  });
-
-  for (const enrolment of enrolments) {
-    const primary = enrolment.primaryParent as Record<string, unknown> | null;
-    const secondary = enrolment.secondaryParent as Record<string, unknown> | null;
-
-    if (
-      primary &&
-      typeof primary.email === "string" &&
-      primary.email.toLowerCase().trim() === emailLower
-    ) {
-      matchingEnrolmentIds.push(enrolment.id);
-      if (parentName === "Parent" && primary.firstName) {
-        parentName = `${primary.firstName}${primary.surname ? ` ${primary.surname}` : ""}`;
-      }
-    } else if (
-      secondary &&
-      typeof secondary.email === "string" &&
-      secondary.email.toLowerCase().trim() === emailLower
-    ) {
-      matchingEnrolmentIds.push(enrolment.id);
-      if (parentName === "Parent" && secondary.firstName) {
-        parentName = `${secondary.firstName}${secondary.surname ? ` ${secondary.surname}` : ""}`;
-      }
-    }
+  let parentName = foundName ?? "Parent";
+  if (!foundName) {
+    const enquiry = await prisma.parentEnquiry.findFirst({
+      where: {
+        parentEmail: { equals: emailLower, mode: "insensitive" },
+        deleted: false,
+      },
+      select: { parentName: true },
+    });
+    if (enquiry?.parentName) parentName = enquiry.parentName;
   }
 
   // Sign JWT
+  /**
+   * `accountId` too — the password login has always set it, and this
+   * didn't.
+   *
+   * Without it `requireAccountId` refuses the enrolment draft with
+   * "Please sign in with your Amana OSHC account to continue your
+   * enrolment" — told to a parent who just used the only recovery path
+   * they have, about the password they've forgotten. It also made
+   * fixing the send side hollow: a link that arrives and then can't
+   * reach their half-finished enrolment is barely better than no link.
+   */
+  const account = await findParentAccountForLogin(emailLower);
+
   const jwt = await signParentJwt({
     email: emailLower,
     name: parentName,
     enrolmentIds: matchingEnrolmentIds,
+    ...(account ? { accountId: account.accountId } : {}),
   });
 
   logger.info("Parent session created", {

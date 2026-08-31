@@ -125,9 +125,9 @@ export function ChildDocumentsTab({ childId }: { childId: string }) {
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <span className={cn(
-                        "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                        "inline-flex items-center px-1.5 py-0.5 rounded-full text-2xs font-semibold",
                         doc.uploaderType === "parent"
-                          ? "bg-blue-50 text-blue-600"
+                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
                           : "bg-surface text-muted",
                       )}>
                         {doc.uploaderType === "parent" ? "Parent" : "Staff"}
@@ -155,12 +155,12 @@ export function ChildDocumentsTab({ childId }: { childId: string }) {
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       {doc.isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 text-[10px] font-semibold">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 text-2xs font-semibold">
                           <CheckCircle className="w-3 h-3" />
                           Verified
                         </span>
                       ) : (
-                        <span className="text-[10px] text-muted">Unverified</span>
+                        <span className="text-2xs text-muted">Unverified</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -178,7 +178,7 @@ export function ChildDocumentsTab({ childId }: { childId: string }) {
                           <button
                             onClick={() => verifyMutation.mutate({ childId, documentId: doc.id, isVerified: true })}
                             disabled={verifyMutation.isPending}
-                            className="p-1 rounded-md text-muted hover:text-green-600 hover:bg-green-50 transition-colors"
+                            className="p-1 rounded-md text-muted hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950/40 transition-colors"
                             title="Verify document"
                           >
                             <ShieldCheck className="w-3.5 h-3.5" />
@@ -186,7 +186,7 @@ export function ChildDocumentsTab({ childId }: { childId: string }) {
                         )}
                         <button
                           onClick={() => setDeleteTarget(doc)}
-                          className="p-1 rounded-md text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-1 rounded-md text-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

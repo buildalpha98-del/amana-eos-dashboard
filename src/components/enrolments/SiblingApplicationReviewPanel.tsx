@@ -166,7 +166,7 @@ export function SiblingApplicationReviewPanel({ applicationId, onClose }: Props)
                     <p className="text-xs text-foreground/50 mb-1">Medical Conditions</p>
                     <div className="flex flex-wrap gap-1.5">
                       {app.medicalConditions.map((c) => (
-                        <span key={c} className="px-2 py-0.5 bg-red-50 text-red-700 text-xs font-medium rounded-full">
+                        <span key={c} className="px-2 py-0.5 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-xs font-medium rounded-full">
                           {c}
                         </span>
                       ))}
@@ -181,7 +181,7 @@ export function SiblingApplicationReviewPanel({ applicationId, onClose }: Props)
                     <p className="text-xs text-foreground/50 mb-1">Dietary Requirements</p>
                     <div className="flex flex-wrap gap-1.5">
                       {app.dietaryRequirements.map((d) => (
-                        <span key={d} className="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-full">
+                        <span key={d} className="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-medium rounded-full">
                           {d}
                         </span>
                       ))}
@@ -304,7 +304,7 @@ export function SiblingApplicationReviewPanel({ applicationId, onClose }: Props)
                   <button
                     onClick={handleDecline}
                     disabled={decline.isPending}
-                    className="flex-1 px-4 py-3 text-sm font-semibold text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 min-h-[44px]"
+                    className="flex-1 px-4 py-3 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50 min-h-[44px]"
                   >
                     {decline.isPending ? "Declining..." : "Confirm Decline"}
                   </button>
@@ -314,7 +314,7 @@ export function SiblingApplicationReviewPanel({ applicationId, onClose }: Props)
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowDeclineDialog(true)}
-                  className="flex-1 px-4 py-3 text-sm font-semibold text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors min-h-[44px]"
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors min-h-[44px]"
                 >
                   Decline
                 </button>

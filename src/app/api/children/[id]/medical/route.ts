@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { assertServiceAccess } from "@/lib/authz-scope";
 import { z } from "zod";
 
 const MEDICAL_CONDITIONS = [
@@ -53,6 +54,9 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   if (!child) throw ApiError.notFound("Child not found");
 
+  // Centre-scope: non-admin roles may only read children at their own centre.
+  assertServiceAccess(session, child.serviceId);
+
   return NextResponse.json({
     ...child,
     availableConditions: MEDICAL_CONDITIONS,
@@ -62,19 +66,24 @@ export const GET = withApiAuth(async (req, session, context) => {
 
 export const PUT = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await parseJsonBody(req);
-  const parsed = updateMedicalSchema.safeParse(body);
 
-  if (!parsed.success) {
-    throw ApiError.badRequest("Validation failed", parsed.error.flatten().fieldErrors);
-  }
-
+  // Authorize BEFORE processing input: load the child, confirm it exists,
+  // and enforce centre-scope (non-admin roles edit only their own centre)
+  // before parsing/validating the body.
   const existing = await prisma.child.findUnique({
     where: { id },
     select: { id: true, serviceId: true },
   });
 
   if (!existing) throw ApiError.notFound("Child not found");
+  assertServiceAccess(session, existing.serviceId);
+
+  const body = await parseJsonBody(req);
+  const parsed = updateMedicalSchema.safeParse(body);
+
+  if (!parsed.success) {
+    throw ApiError.badRequest("Validation failed", parsed.error.flatten().fieldErrors);
+  }
 
   // Coerce ISO date string to Date for Prisma
   const { nextImmunisationDue, ...restData } = parsed.data;

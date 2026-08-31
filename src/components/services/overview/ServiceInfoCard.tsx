@@ -12,14 +12,35 @@ import {
 } from "lucide-react";
 
 import { ApprovalsSessionTimesCard } from "./ApprovalsSessionTimesCard";
+import { RoomsAndFeesCard } from "./RoomsAndFeesCard";
+import { FeePolicyCard } from "./FeePolicyCard";
+import { SessionTimesCard } from "./SessionTimesCard";
+import { ParentFormsCard } from "./ParentFormsCard";
+import { ExcursionsCard } from "./ExcursionsCard";
+import { BlockOutDatesCard } from "@/components/services/BlockOutDatesCard";
+import { FeeChangesCard } from "./FeeChangesCard";
+import { AppSettingsCard } from "./AppSettingsCard";
+
+/**
+ * Which slice of Service Information to render.
+ *
+ * 2026-08-06: this was one long scroll of eight cards — contact details
+ * through to excursion forms — and finding anything meant knowing how
+ * far down it lived. The Service Information tab now has its own
+ * sub-navigation (mirroring OWNA's Configure list), and each sub-tab
+ * asks this component for one section.
+ */
+export type ServiceInfoSection = "info" | "settings" | "rooms" | "forms";
 
 export function ServiceInfoCard({
   service,
   canEdit,
+  section = "info",
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   service: any;
   canEdit: boolean;
+  section?: ServiceInfoSection;
 }) {
   const updateService = useUpdateService();
   const [editingDetails, setEditingDetails] = useState(false);
@@ -39,7 +60,7 @@ export function ServiceInfoCard({
   return (
     <>
       {/* Contact Details */}
-      <div className="space-y-2">
+      <div className={section === "info" ? "space-y-2" : "hidden"}>
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-muted uppercase tracking-wider">
             Contact Details
@@ -71,7 +92,7 @@ export function ServiceInfoCard({
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Service Name</label>
+                <label className="text-2xs text-muted block mb-0.5">Service Name</label>
                 <input
                   autoFocus
                   type="text"
@@ -82,7 +103,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Code</label>
+                <label className="text-2xs text-muted block mb-0.5">Code</label>
                 <input
                   type="text"
                   value={detailsForm.code}
@@ -93,7 +114,7 @@ export function ServiceInfoCard({
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-muted block mb-0.5">Address</label>
+              <label className="text-2xs text-muted block mb-0.5">Address</label>
               <input
                 type="text"
                 value={detailsForm.address}
@@ -104,7 +125,7 @@ export function ServiceInfoCard({
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Suburb</label>
+                <label className="text-2xs text-muted block mb-0.5">Suburb</label>
                 <input
                   type="text"
                   value={detailsForm.suburb}
@@ -114,7 +135,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">State</label>
+                <label className="text-2xs text-muted block mb-0.5">State</label>
                 <input
                   type="text"
                   value={detailsForm.state}
@@ -124,7 +145,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Postcode</label>
+                <label className="text-2xs text-muted block mb-0.5">Postcode</label>
                 <input
                   type="text"
                   value={detailsForm.postcode}
@@ -136,7 +157,7 @@ export function ServiceInfoCard({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Phone</label>
+                <label className="text-2xs text-muted block mb-0.5">Phone</label>
                 <input
                   type="text"
                   value={detailsForm.phone}
@@ -146,7 +167,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Email</label>
+                <label className="text-2xs text-muted block mb-0.5">Email</label>
                 <input
                   type="text"
                   value={detailsForm.email}
@@ -158,7 +179,7 @@ export function ServiceInfoCard({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Capacity</label>
+                <label className="text-2xs text-muted block mb-0.5">Capacity</label>
                 <input
                   type="number"
                   min={0}
@@ -169,7 +190,7 @@ export function ServiceInfoCard({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted block mb-0.5">Operating Days</label>
+                <label className="text-2xs text-muted block mb-0.5">Operating Days</label>
                 <input
                   type="text"
                   value={detailsForm.operatingDays}
@@ -271,8 +292,55 @@ export function ServiceInfoCard({
         )}
       </div>
 
-      {/* Service Approvals & Session Times */}
-      <ApprovalsSessionTimesCard service={service} canEdit={canEdit} />
+      {section === "info" && (
+        <>
+          <ApprovalsSessionTimesCard service={service} canEdit={canEdit} />
+          {/* The session-of-care catalogue lives with the service info,
+              matching where OWNA keeps it — it's a property of the
+              centre, not of any one room. */}
+          <SessionTimesCard serviceId={service.id} canEdit={canEdit} />
+        </>
+      )}
+
+      {section === "settings" && (
+        <AppSettingsCard serviceId={service.id} canEdit={canEdit} />
+      )}
+
+      {/* Rooms and everything priced or scheduled against them: the fee
+          changes and the days you're closed are the same subject one
+          step into the future. */}
+      {section === "rooms" && (
+        <>
+          <RoomsAndFeesCard service={service} canEdit={canEdit} />
+          {/* Directly under the room prices, because it answers the
+              questions those prices don't: late pickup, absence,
+              cancellation. */}
+          <FeePolicyCard serviceId={service.id} canEdit={canEdit} />
+          <FeeChangesCard
+            serviceId={service.id}
+            sessionTimes={service.sessionTimes}
+            canEdit={canEdit}
+          />
+          <BlockOutDatesCard
+            serviceId={service.id}
+            sessionTimes={service.sessionTimes}
+            canEdit={canEdit}
+          />
+        </>
+      )}
+
+      {/* Excursions above the general forms card: an outing creates a
+          form of its own, so the order matches how they're made. */}
+      {section === "forms" && (
+        <>
+          <ExcursionsCard
+            serviceId={service.id}
+            sessionTimes={service.sessionTimes}
+            canEdit={canEdit}
+          />
+          <ParentFormsCard serviceId={service.id} canEdit={canEdit} />
+        </>
+      )}
     </>
   );
 }

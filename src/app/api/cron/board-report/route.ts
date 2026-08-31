@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { generateBoardReport } from "@/lib/board-report-generator";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { boardReportDraftNotificationEmail } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * GET /api/cron/board-report
@@ -39,7 +40,7 @@ export const GET = withApiHandler(async (req) => {
     });
 
     const resend = getResend();
-    const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const baseUrl = siteUrl();
     let notificationsSent = 0;
 
     if (resend) {
@@ -51,7 +52,7 @@ export const GET = withApiHandler(async (req) => {
             targetYear,
             `${baseUrl}/reports/board`,
           );
-          await resend.emails.send({ from: FROM_EMAIL, to: admin.email, subject, html });
+          await sendEmail({ to: admin.email, subject, html });
           notificationsSent++;
         } catch (err) {
           logger.error("Board report notification failed", { recipient: admin.email, err });

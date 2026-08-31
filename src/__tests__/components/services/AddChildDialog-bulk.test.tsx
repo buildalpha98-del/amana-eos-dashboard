@@ -56,6 +56,16 @@ const weekDates = [
   "2026-04-24",
 ];
 
+/**
+ * The centre's rooms, passed in by the grid. Stage 2 of
+ * docs/rooms-migration-plan.md — the dialog used to hardcode three.
+ */
+const rooms = [
+  { id: "room-bsc", legacyKey: "bsc" as const, name: "Rise and Shine" },
+  { id: "room-asc", legacyKey: "asc" as const, name: "Amana Afternoons" },
+  { id: "room-vc", legacyKey: "vc" as const, name: "Holiday Quest" },
+];
+
 describe("AddChildDialog — bulk wire-up (4b)", () => {
   beforeEach(() => {
     mutateApiSpy.mockReset();
@@ -72,6 +82,7 @@ describe("AddChildDialog — bulk wire-up (4b)", () => {
         serviceId="svc1"
         weekStart="2026-04-20"
         weekDates={weekDates}
+        rooms={rooms}
       />,
     );
 
@@ -126,6 +137,7 @@ describe("AddChildDialog — bulk wire-up (4b)", () => {
         serviceId="svc1"
         weekStart="2026-04-20"
         weekDates={weekDates}
+        rooms={rooms}
       />,
     );
 

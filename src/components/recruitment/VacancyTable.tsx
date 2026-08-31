@@ -10,10 +10,10 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  open: "bg-blue-100 text-blue-700",
-  interviewing: "bg-amber-100 text-amber-700",
-  offered: "bg-purple-100 text-purple-700",
-  filled: "bg-emerald-100 text-emerald-700",
+  open: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  interviewing: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  offered: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  filled: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
   cancelled: "bg-surface text-muted",
 };
 

@@ -4,9 +4,10 @@ import { Prisma } from "@prisma/client";
 import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { casualBookingSettingsSchema, type CasualBookingSettings } from "@/lib/service-settings";
+import { casualBookingSettingsSchema, type CasualBookingSettings, type SessionTimes } from "@/lib/service-settings";
 import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
 import { parseJsonField } from "@/lib/schemas/json-fields";
+import { requireRoomId } from "@/lib/room-resolver";
 
 const bulkBookingSchema = z.object({
   childId: z.string().min(1),
@@ -51,7 +52,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
 
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { id: true, casualBookingSettings: true },
+    // sessionTimes so refusals name the room the family knows.
+    select: { id: true, casualBookingSettings: true, sessionTimes: true },
   });
   if (!service) {
     throw ApiError.notFound("Service not found");
@@ -95,12 +97,62 @@ export const POST = withParentAuth(async (req, { parent }) => {
           },
         });
 
+        // This day's own capacity, when the centre has set one.
+        const dayConfig = await tx.casualDayConfig.findUnique({
+          where: {
+            serviceId_date_sessionType: {
+              serviceId,
+              date: bookingDate,
+              sessionType: b.sessionType,
+            },
+          },
+          select: { spots: true, closed: true },
+        });
+
+        // A room may carry an age range. Unknown DOB passes the check —
+        // our missing data isn't the family's problem.
+        const childRow = await tx.child.findUnique({
+          where: { id: childId },
+          select: { dob: true },
+        });
+        const childAgeYears = childRow?.dob
+          ? Math.floor(
+              (bookingDate.getTime() - childRow.dob.getTime()) /
+                (365.25 * 86400_000),
+            )
+          : null;
+
+        const blockOut = await tx.serviceBlockOutDate.findFirst({
+          where: {
+            serviceId,
+            date: bookingDate,
+            OR: [{ sessionType: null }, { sessionType: b.sessionType }],
+          },
+          select: { reason: true },
+        });
+
+        const enrolledCount = await tx.booking.count({
+          where: {
+            childId,
+            serviceId,
+            sessionType: b.sessionType,
+            type: "permanent",
+            status: { in: ["requested", "confirmed"] },
+          },
+        });
+
         const check = checkCasualBookingAllowed({
           settings,
           sessionType: b.sessionType,
           bookingDate,
           now,
           currentCasualBookings: currentCount,
+          sessionTimes: service.sessionTimes as SessionTimes | null,
+          blockedOutReason: blockOut ? (blockOut.reason ?? "") : null,
+          childEnrolledInSession: enrolledCount > 0,
+          childAgeYears,
+          spotsOverride: dayConfig?.spots ?? null,
+          closedForBooking: dayConfig?.closed ?? false,
         });
         if (!check.ok) {
           throw ApiError.badRequest(`Booking ${i + 1}: ${check.reason}`);
@@ -111,6 +163,8 @@ export const POST = withParentAuth(async (req, { parent }) => {
             childId,
             serviceId,
             date: bookingDate,
+            // Stage 1 dual key — see room-resolver.ts.
+            roomId: await requireRoomId(serviceId, b.sessionType),
             sessionType: b.sessionType,
             status: "requested",
             type: "casual",

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock } from "@/lib/cron-guard";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
+import { recordMarketingSends } from "@/lib/frequency-cap";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
 import type { PipelineStage } from "@prisma/client";
 import { withApiHandler } from "@/lib/api-handler";
@@ -119,13 +120,23 @@ export const GET = withApiHandler(async (req) => {
 
           if (resend) {
             try {
-              await resend.emails.send({
-                from: FROM_EMAIL,
+              const sendResult = await sendEmail({
                 to: lead.contactEmail,
                 subject,
                 html: `<div style="font-family: sans-serif; line-height: 1.6;">${body.replace(/\n/g, "<br>")}</div>`,
               });
               emailsSent++;
+              // Frequency-cap ledger: CRM drip is 1:1 lifecycle mail —
+              // RECORDED (it counts toward the recipient's weekly
+              // marketing-email volume so bulk sends see it) but NEVER
+              // cap-blocked. Only actually-sent recipients count
+              // (suppressed → sent: []); recordMarketingSends swallows its
+              // own errors, so a ledger hiccup never fails the cron.
+              if (sendResult.sent.length > 0) {
+                await recordMarketingSends(prisma, [{ email: lead.contactEmail }], {
+                  source: "lifecycle",
+                });
+              }
             } catch (emailErr) {
               errors.push(
                 `Email failed for ${lead.schoolName}: ${emailErr instanceof Error ? emailErr.message : "Unknown"}`

@@ -82,12 +82,14 @@ export const allPages = [
   "/scorecard",
   "/meetings",
   "/financials",
+  "/financials/family-balances",
   "/performance",
   "/services",
   "/services/[id]",
   "/projects",
   "/tickets",
   "/marketing",
+  "/requests",
   "/marketing/vendor-briefs",
   "/marketing/activations",
   "/marketing/newsletter-chase",
@@ -98,6 +100,14 @@ export const allPages = [
   "/communication",
   "/communication/whatsapp-compliance",
   "/compliance",
+  // 2026-07-12: was missing entirely — the classic new-page gotcha. The
+  // page itself redirects non-owner/head_office; this only restores nav
+  // visibility + canAccessPage for the roles the nav item already allows.
+  "/safe-reports",
+  // 2026-07-12: also missing (same gotcha) — per-role PD library.
+  "/position-descriptions",
+  // 2026-07-12: third instance of the same gotcha — the EH-live leave page.
+  "/leave-payroll",
   "/compliance/templates",
   "/activity-library",
   "/documents",
@@ -129,6 +139,8 @@ export const allPages = [
   "/contact-centre",
   "/messaging",
   "/enrolments",
+  "/ambassadors",
+  "/families",
   "/children",
   "/children/[id]",
   "/conversions",
@@ -144,6 +156,10 @@ export const allPages = [
   // Owner/head_office/admin only (inherited via allPages — deliberately
   // NOT added to the marketing/member/staff/EOS allowlists).
   "/workforce-reports",
+  // Parent help centre admin (public /support content + article CRUD).
+  // Owner/head_office/admin only — inherited via allPages, deliberately
+  // NOT added to the marketing/member/staff/EOS allowlists.
+  "/help-centre",
   // Tools
   "/tools/ccs-calculator",
   // 2026-07-05 (nav consolidation phase 1): /handbook is the consolidated
@@ -205,6 +221,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   head_office: allPages.filter((p) => !HEAD_OFFICE_EXCLUDED.has(p)),
   admin: allPages.filter((p) => !ADMIN_EXCLUDED.has(p)),
   marketing: [
+    "/position-descriptions", // 2026-07-12: was missing from role access entirely
     "/dashboard",
     "/getting-started",
     "/my-portal",
@@ -213,6 +230,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/surveys",
     "/learn/[enrollmentId]",
     "/marketing",
+    "/requests",
     "/marketing/vendor-briefs",
     "/marketing/activations",
     "/marketing/newsletter-chase",
@@ -270,6 +288,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   // over: the post-training-feedback member allowlist is the canonical
   // service-leader scope going forward.
   member: [
+    "/position-descriptions", // 2026-07-12: was missing from role access entirely
     // ── Personal hub ────────────────────────────────────────────
     "/dashboard",
     "/getting-started",
@@ -283,11 +302,22 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // ── EOS — Directors of Service participate in EOS ─────────
     "/rocks",
     "/todos",
-    "/issues",
+    // 2026-08-06: the org-wide L10 Issues page is NOT here on purpose.
+    // Per Daniel: only owner/head_office/admin/marketing — "the higher
+    // up" — see the cross-centre list. A Director of Service raises and
+    // works issues for their OWN centre via the EOS tab inside
+    // /services/[id] (ServiceIssuesTab, serviceId-scoped), which already
+    // existed and is unaffected by this. Issues raised there still land
+    // in the same table leadership's /issues page reads from, so nothing
+    // a Director raises is hidden from leadership — they just don't get
+    // the cross-centre view themselves.
     "/meetings",
     "/accountability-chart",
     // ── Their centre — primary surface ─────────────────────────
     "/services",
+    // 2026-08-03: Ambassadors pilot — Directors verify records, resolve
+    // attribution conflicts and enter session counts for their centre.
+    "/ambassadors",
     // /services/[id] inherits from /services via prefix match in
     // pathMatches(); same for the Roll Call / Bookings / Children /
     // Billing tabs nested inside service detail.
@@ -301,6 +331,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/roster/me",
     "/roster/swaps",
     "/leave",
+    "/requests",
     // ── Read-only org resources ────────────────────────────────
     "/documents",
     "/knowledge",
@@ -331,6 +362,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // - /holiday-quest is a marketing planner.
   ],
   staff: [
+    "/position-descriptions", // 2026-07-12: was missing from role access entirely
     "/dashboard",
     "/getting-started",
     "/my-portal",
@@ -338,6 +370,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/my-training",
     "/surveys",
     "/learn/[enrollmentId]",
+    // 2026-08-03: Ambassadors pilot — educators see their own credited
+    // enrolments, tier, LMS status and projected payout.
+    "/ambassadors",
     "/activity-library",
     "/documents",
     "/communication",
@@ -353,6 +388,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/roster/swaps",
     "/leave",
     "/contracts",
+    "/requests",
     "/tools/ccs-calculator",
     "/handbook",
     "/tools/the-amana-way",
@@ -431,6 +467,12 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/help",
     "/directory",
   ],
+  // 2026-07-13: broad "EOS Member" tier — full EOS surface plus
+  // Services / Operations / Growth / People. Effectively admin-level
+  // page access, so we mirror admin's page list rather than
+  // hand-maintaining a parallel one. Owner-only stuff (Leadership,
+  // etc.) is inherited via the admin exclusion set.
+  eos: allPages.filter((p) => !ADMIN_EXCLUDED.has(p)),
 };
 
 // ---------------------------------------------------------------------------
@@ -787,6 +829,9 @@ export const roleFeatures: Record<Role, readonly Feature[]> = {
   staff: staffFeatures,
   eos_viewer: eosViewerFeatures,
   eos_implementer: eosImplementerFeatures,
+  // 2026-07-13: EOS Member gets the admin feature set — Services /
+  // Operations / Growth / People, plus everything admin can do.
+  eos: adminFeatures,
 };
 
 // ---------------------------------------------------------------------------
@@ -871,6 +916,10 @@ const rolePriority: Record<Role, number> = {
   // staff level so it never clears a `minRole` gate above plain operational
   // access.
   eos_implementer: 1,
+  // 2026-07-13: EOS Member has admin-equivalent access to Services / Ops /
+  // Growth / People plus full EOS. Ranked at admin so `minRole("admin")`
+  // gates pass; owner-only paths still guarded by explicit role checks.
+  eos: 4,
 };
 
 export function hasMinRole(

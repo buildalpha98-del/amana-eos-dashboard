@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import { sendPushToParentEmail } from "@/lib/push/webPush";
 import { logger } from "@/lib/logger";
+import { createInAppNotification } from "@/lib/parent-notifications";
 
 const BRAND_COLOR = "#004E64";
 
@@ -79,6 +80,16 @@ export async function sendSignInNotification(
     if (!child || !service) return;
 
     const time = formatTimeAEST(signInTime);
+
+    // The portal bell, not just an email. A parent who has the app open
+    // shouldn't have to go to their inbox to learn their child arrived.
+    await createInAppNotification({
+      parentEmail: parent.email,
+      type: "attendance",
+      title: `${child.firstName} has been signed in`,
+      body: `Signed in at ${service.name} at ${time}.`,
+      link: `/parent/children`,
+    });
 
     await sendNotificationEmail({
       to: parent.email,

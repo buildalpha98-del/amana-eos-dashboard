@@ -18,7 +18,7 @@ export default async function PrintLayout({
   await requirePageSession();
 
   return (
-    <div className="min-h-screen bg-white text-black">
+    <div className="min-h-screen bg-card text-foreground">
       <div className="mx-auto max-w-[210mm] px-6 py-8 print:p-0">
         {children}
       </div>

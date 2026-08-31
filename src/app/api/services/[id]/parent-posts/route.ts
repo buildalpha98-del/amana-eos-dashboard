@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifyPostPublished } from "@/lib/notifications/posts";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { createParentPostSchema } from "@/lib/schemas/parent-post";
 import { safeLimit } from "@/lib/pagination";
 import { notifyParentNewPost } from "@/lib/parent-notifications";
 import { logger } from "@/lib/logger";
+import { canPublishPosts, resolveAppSettings } from "@/lib/app-settings";
 
 /** Org-wide roles that can access any service. */
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
@@ -38,14 +40,22 @@ export const GET = withApiAuth(async (req, session, context) => {
           child: { select: { id: true, firstName: true, surname: true } },
         },
       },
-      _count: { select: { likes: true, comments: true } },
+      // The planning cycle, both directions: what this followed up on,
+      // and what came out of it.
+      extendsPost: { select: { id: true, title: true, createdAt: true } },
+      _count: { select: { likes: true, comments: true, extensions: true } },
     },
   });
 
   const hasMore = posts.length > limit;
   const items = (hasMore ? posts.slice(0, limit) : posts).map((p) => {
     const { _count, ...rest } = p;
-    return { ...rest, likeCount: _count.likes, commentCount: _count.comments };
+    return {
+      ...rest,
+      likeCount: _count.likes,
+      commentCount: _count.comments,
+      followUpCount: _count.extensions,
+    };
   });
   const nextCursor = hasMore ? items[items.length - 1]?.id : undefined;
 
@@ -75,15 +85,54 @@ export const POST = withApiAuth(
       );
     }
 
-    const { childIds, ...data } = parsed.data;
+    const { childIds, publishAt, ...rest } = parsed.data;
 
-    // If not a community post, at least one child must be tagged
-    if (!data.isCommunity && childIds.length === 0) {
-      return NextResponse.json(
-        { error: "Non-community posts must tag at least one child" },
-        { status: 400 },
-      );
-    }
+    /**
+     * Educators can WRITE a post but not publish one.
+     *
+     * They're the ones in the room when something worth photographing
+     * happens, and routing every post through the Director is how a feed
+     * goes quiet. But a post is a photo of somebody's child going out to
+     * every family at the centre, and that deserves a second pair of
+     * eyes. Their posts land as drafts for the Director to release.
+     */
+    const educatorOnly = session.user.role === "staff";
+
+    // Per-centre publishing rules. A centre can require everything to
+    // start as a draft, and/or restrict publishing to admins — the
+    // Post Approver shape. Both only ever make a post LESS visible, so
+    // they can't accidentally publish something.
+    const settingsRow = await prisma.service.findUnique({
+      where: { id },
+      select: { appSettings: true },
+    });
+    const appSettings = resolveAppSettings(settingsRow?.appSettings);
+    const mustDraft =
+      educatorOnly ||
+      appSettings.posts.draftByDefault ||
+      !canPublishPosts(session.user.role ?? "", appSettings.posts.onlyApproversPublish);
+    const status = mustDraft ? "draft" : rest.status;
+
+    // A post scheduled for a time already past is just a published post —
+    // treat it as one rather than leaving it in a state that looks
+    // pending forever.
+    const at = publishAt ? new Date(publishAt) : null;
+    const effectiveStatus =
+      status === "scheduled" && (!at || at.getTime() <= Date.now())
+        ? "published"
+        : status;
+
+    const data = {
+      ...rest,
+      status: effectiveStatus,
+      publishAt: effectiveStatus === "scheduled" ? at : null,
+    };
+
+    // 2026-08-04: the "non-community posts must tag a child" check is
+    // gone. Tagging no longer decides who can SEE a post — every family
+    // at the centre sees every published post, and tags decide which
+    // child's page it also appears on. An untagged post is an ordinary
+    // centre-wide update, not an error.
 
     // Atomic: verify service + verify children + create post + log activity
     const post = await prisma.$transaction(async (tx) => {
@@ -108,6 +157,28 @@ export const POST = withApiAuth(
           throw ApiError.badRequest(
             `${invalid.length} child ID(s) do not belong to this service`,
           );
+        }
+      }
+
+      // 2b. A follow-up must extend a post at THIS centre. Otherwise a
+      // guessed id would thread one service's planning cycle onto
+      // another's observation.
+      if (data.extendsPostId) {
+        const original = await tx.parentPost.findUnique({
+          where: { id: data.extendsPostId },
+          select: { id: true, serviceId: true, extendsPostId: true },
+        });
+        if (!original || original.serviceId !== id) {
+          throw ApiError.badRequest(
+            "The post you're following up on isn't at this service",
+          );
+        }
+        // One level. A follow-up to a follow-up threads back to the
+        // original observation, so the chain reads as "here's what we
+        // saw, and here is everything we did about it" rather than a
+        // chain nobody can follow.
+        if (original.extendsPostId) {
+          data.extendsPostId = original.extendsPostId;
         }
       }
 
@@ -156,6 +227,14 @@ export const POST = withApiAuth(
       notifyParentNewPost(post.id, data.title, data.type, childIds).catch((err) =>
         logger.error("Post notification failed", { postId: post.id, err }),
       );
+    }
+
+    // Fan out to the centre's families: every post raises the in-app
+    // bell; only announcements and reminders buzz phones — one push per
+    // observation is how families turn notifications off. Fire-and-
+    // forget: a notification failure must never fail the post.
+    if (effectiveStatus === "published") {
+      notifyPostPublished(post.id).catch(() => {});
     }
 
     return NextResponse.json(post, { status: 201 });

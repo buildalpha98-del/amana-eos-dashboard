@@ -66,7 +66,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
   const { data: users = [] } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
-      const res = await fetch("/api/users");
+      const res = await fetch("/api/users?scope=eos_assignees");
       if (!res.ok) return [];
       return res.json();
     },
@@ -212,7 +212,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
         <div className="flex-1 overflow-y-auto p-6">
           {result ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center mx-auto mb-4">
                 <ListPlus className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -234,7 +234,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
               <div className="border border-purple-200 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setShowAiNotes(!showAiNotes)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 bg-purple-50 hover:bg-purple-100 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-colors"
                 >
                   <span className="flex items-center gap-2 text-sm font-medium text-purple-700">
                     <Sparkles className="w-4 h-4" />
@@ -253,7 +253,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
                       value={meetingNotes}
                       onChange={(e) => setMeetingNotes(e.target.value)}
                       placeholder="Paste your L10 meeting notes here... AI will extract action items with assignees."
-                      className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none resize-none"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none resize-y"
                     />
                     <button
                       onClick={handleAiExtract}
@@ -337,7 +337,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
               </button>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-700 dark:text-red-300">
                   {error}
                 </div>
               )}

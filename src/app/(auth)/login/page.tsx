@@ -142,7 +142,7 @@ function LoginForm() {
           </h2>
 
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200/60 text-red-600 text-sm">
+            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200/60 text-red-600 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -161,7 +161,7 @@ function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-muted focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                 placeholder="you@amanaoshc.com.au"
                 autoComplete="email"
               />
@@ -180,7 +180,7 @@ function LoginForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-muted focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                 placeholder="Enter your password"
                 autoComplete="current-password"
               />
@@ -245,7 +245,7 @@ function LoginForm() {
           </form>
         </div>
 
-        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-[11px] mt-6">
+        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-2xs mt-6">
           Amana OSHC Leadership Team Portal
         </p>
       </div>

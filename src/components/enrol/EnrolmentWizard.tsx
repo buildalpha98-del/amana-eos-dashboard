@@ -1,7 +1,13 @@
 "use client";
 
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
 import { useState, useEffect, useCallback, useRef } from "react";
-import { AlertCircle, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Mail, Phone, RotateCcw } from "lucide-react";
+import { AlertCircle, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, FileText, Globe, Loader2, Mail, Phone, RotateCcw } from "lucide-react";
 import {
   EnrolmentFormData,
   INITIAL_FORM_DATA,
@@ -19,6 +25,9 @@ import { ConsentsStep } from "./steps/ConsentsStep";
 import { BookingStep } from "./steps/BookingStep";
 import { PaymentStep } from "./steps/PaymentStep";
 import { ReviewStep } from "./steps/ReviewStep";
+import { EnrolIntro } from "./EnrolIntro";
+import { SUPPORTED_LOCALES } from "./types";
+import { useT, type EnrolTranslationKey } from "@/lib/enrol-i18n";
 
 const STORAGE_KEY = "amana-enrolment-form";
 
@@ -54,7 +63,37 @@ export function EnrolmentWizard({
   const [submitError, setSubmitError] = useState("");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showResumeBanner, setShowResumeBanner] = useState(false);
+  // True while the parent is back on the intro via the "Change" link, so
+  // the intro can offer Cancel instead of looking like a fresh start.
+  const [reopenedIntro, setReopenedIntro] = useState(false);
   const savedProgressRef = useRef<{ data: EnrolmentFormData; step: number } | null>(null);
+
+  // 2026-07-27: translation hook. MUST stay above every conditional
+  // `return` in this component (intro screen, success screen, resume
+  // banner) — it was originally placed below them, so the intro render
+  // ran one fewer hook than the post-Continue render and React threw
+  // "rendered more hooks than during the previous render", which the
+  // error boundary surfaced as "Something went wrong".
+  const { t } = useT(data.locale ?? "en");
+
+  // Locale-driven translation disclaimer — shown inside the wizard for
+  // any locale that isn't fully translated yet.
+  const activeLocale = SUPPORTED_LOCALES.find((l) => l.code === data.locale);
+  const showTranslationBanner =
+    activeLocale && !activeLocale.ready && !submitted;
+
+  // Maps STEPS indices to translation keys so progress-bar labels
+  // translate. Keep in the same order as STEPS in types.ts.
+  const STEP_KEYS: EnrolTranslationKey[] = [
+    "wizard.step.children",
+    "wizard.step.parents",
+    "wizard.step.medical",
+    "wizard.step.emergency",
+    "wizard.step.consents",
+    "wizard.step.booking",
+    "wizard.step.payment",
+    "wizard.step.review",
+  ];
 
   // Load from localStorage — merge with prefill if both exist
   useEffect(() => {
@@ -251,6 +290,10 @@ export function EnrolmentWizard({
         parentName: result.parentName,
       });
       setSubmitted(true);
+      // Meta Pixel conversion — the event ad campaigns optimise on. The
+      // pixel loads only in production (enrol layout), so this is a no-op
+      // everywhere else.
+      window.fbq?.("track", "CompleteRegistration");
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -303,7 +346,7 @@ export function EnrolmentWizard({
     return (
       <div className="space-y-6">
         <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+          <div className="w-20 h-20 bg-green-100 dark:bg-green-950/50 rounded-full flex items-center justify-center mx-auto mb-5">
             <Check className="h-10 w-10 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -325,7 +368,7 @@ export function EnrolmentWizard({
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                       item.status === "done"
-                        ? "bg-green-100 text-green-600"
+                        ? "bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-400"
                         : item.status === "current"
                         ? "bg-brand/10 text-brand"
                         : "bg-surface text-muted"
@@ -420,8 +463,72 @@ export function EnrolmentWizard({
     }
   };
 
+  // 2026-07-27: intro screen renders before the wizard on the first
+  // visit. Parents pick their preferred language; the wizard then mounts
+  // in that locale. `introCompleted` persists in localStorage so refresh
+  // doesn't send them back to the intro. Skip for portal sibling
+  // enrolments (variant === "portal") — those already have context.
+  if (loaded && !submitted && !data.introCompleted && variant !== "portal") {
+    // `reopenedIntro` distinguishes "first visit" from "came back via the
+    // Change link" — the latter offers Cancel and keeps existing answers.
+    return (
+      <EnrolIntro
+        initialLocale={data.locale ?? "en"}
+        initialSchool={data.children?.[0]?.schoolName ?? ""}
+        variant={variant}
+        isReturning={reopenedIntro}
+        onCancel={
+          reopenedIntro
+            ? () => {
+                setReopenedIntro(false);
+                setData((d) => ({ ...d, introCompleted: true }));
+              }
+            : undefined
+        }
+        onContinue={(locale, school) => {
+          setReopenedIntro(false);
+          setData((d) => {
+            // Seed the first child's school from the intro. Siblings at a
+            // different school are handled per-child on the Child Details
+            // step, so only child 1 is touched here.
+            const children = d.children.length
+              ? d.children.map((c, i) =>
+                  i === 0 ? { ...c, schoolName: school } : c,
+                )
+              : [{ ...EMPTY_CHILD, schoolName: school }];
+            return { ...d, locale, children, introCompleted: true };
+          });
+        }}
+      />
+    );
+  }
+
   return (
     <div>
+      {/* 2026-07-27: lets a parent who picked the wrong language (or the
+          wrong school) get back to the intro without losing what they've
+          already typed — everything lives in `data`, which we don't touch. */}
+      {variant !== "portal" && !submitted && (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setReopenedIntro(true);
+              setData((d) => ({ ...d, introCompleted: false }));
+            }}
+            className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white underline underline-offset-2"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            {activeLocale?.nativeLabel ?? "English"} · Change language or school
+          </button>
+        </div>
+      )}
+      {showTranslationBanner && (
+        <div className="mb-4 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
+          <strong>{activeLocale.label}</strong>{" "}
+          {t("wizard.banner.translationPreview")}
+        </div>
+      )}
       {/* Progress bar */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -438,21 +545,21 @@ export function EnrolmentWizard({
                   i < step
                     ? "bg-green-500 text-white"
                     : i === step
-                    ? "bg-[#FECE00] text-[#002E3D]"
+                    ? "bg-accent text-brand-dark"
                     : "bg-card/20 text-white/60"
                 }`}
               >
                 {i < step ? <Check className="h-4 w-4" /> : i + 1}
               </div>
-              <span className="text-[10px] sm:text-xs text-white/80 hidden sm:block font-medium">
-                {s.label}
+              <span className="text-2xs sm:text-xs text-white/80 hidden sm:block font-medium">
+                {t(STEP_KEYS[i]) ?? s.label}
               </span>
             </button>
           ))}
         </div>
         <div className="h-1.5 bg-card/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#FECE00] rounded-full transition-all duration-500"
+            className="h-full bg-accent rounded-full transition-all duration-500"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>
@@ -460,8 +567,8 @@ export function EnrolmentWizard({
 
       {/* Resume banner */}
       {showResumeBanner && (
-        <div className="mb-4 p-4 bg-[#FECE00]/10 backdrop-blur border border-[#FECE00]/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <RotateCcw className="h-5 w-5 text-[#FECE00] shrink-0 mt-0.5 sm:mt-0" />
+        <div className="mb-4 p-4 bg-accent/10 backdrop-blur border border-accent/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <RotateCcw className="h-5 w-5 text-accent shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex-1">
             <p className="text-white text-sm font-medium">
               You have saved progress from a previous session
@@ -473,7 +580,7 @@ export function EnrolmentWizard({
           <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={handleResumeProgress}
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-[#FECE00] text-[#002E3D] text-sm font-semibold hover:bg-[#e5b900] transition-colors"
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-accent text-brand-dark text-sm font-semibold hover:bg-[#e5b900] transition-colors"
             >
               Resume
             </button>
@@ -519,7 +626,7 @@ export function EnrolmentWizard({
         {renderStep()}
 
         {submitError && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
             {submitError}
           </div>
         )}
@@ -528,9 +635,20 @@ export function EnrolmentWizard({
       {/* Navigation */}
       {step < 7 && (
         <div className="flex justify-between mt-6">
+          {/* 2026-07-27: on the first step Back used to be a dead, greyed-out
+              button. It now returns to the language/school screen, so the
+              bottom-left control is always usable and parents aren't stuck
+              with a wrong language choice. Not offered for portal sibling
+              enrolments, which never see the intro. */}
           <button
             onClick={() => {
               setValidationErrors([]);
+              if (step === 0) {
+                setReopenedIntro(true);
+                setData((d) => ({ ...d, introCompleted: false }));
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                return;
+              }
               let prevStep = step - 1;
               while (prevStep >= 0 && skipSteps.includes(prevStep)) {
                 prevStep--;
@@ -538,15 +656,15 @@ export function EnrolmentWizard({
               setStep(Math.max(0, prevStep));
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            disabled={step === 0}
+            disabled={step === 0 && variant === "portal"}
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-card/10 text-white font-medium hover:bg-card/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="h-4 w-4" />
-            Back
+            {step === 0 ? "Language & school" : "Back"}
           </button>
           <button
             onClick={handleNext}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FECE00] text-[#002E3D] font-semibold hover:bg-[#e5b900] transition-colors"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-brand-dark font-semibold hover:bg-[#e5b900] transition-colors"
           >
             Next
             <ChevronRight className="h-4 w-4" />

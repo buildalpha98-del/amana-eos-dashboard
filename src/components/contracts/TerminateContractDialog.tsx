@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 import {
   useTerminateContract,
   type ContractData,
@@ -47,7 +48,7 @@ export function TerminateContractDialog({ contract, onClose }: Props) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-card rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center flex-shrink-0">
             <Ban className="w-5 h-5 text-red-600" />
           </div>
           <div>
@@ -95,19 +96,17 @@ export function TerminateContractDialog({ contract, onClose }: Props) {
         </div>
 
         <div className="flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface rounded-lg transition-colors"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={handleConfirm}
             disabled={terminate.isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
           >
             {terminate.isPending ? "Terminating..." : "Terminate Contract"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

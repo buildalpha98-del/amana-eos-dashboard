@@ -17,6 +17,7 @@ import Link from "next/link";
 import { ClipboardCheck, ChevronRight, UserCircle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
+import { MyDayNowCard } from "@/components/my-portal/MyDayNowCard";
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
 import { TodayChecklistCard } from "@/components/my-portal/TodayChecklistCard";
 import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
@@ -37,6 +38,12 @@ export default function MyDayPage() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <PageHeader title="My Day" description={today} />
+
+      {/* Right now at the centre, and the four things done with a phone
+          in hand. This is the PHONE surface for floor staff — the
+          service page stays the laptop and iPad one, because nine groups
+          and forty pages don't shrink onto 390px, they just get worse. */}
+      {serviceId && <MyDayNowCard serviceId={serviceId} />}
 
       {/* Morning brief — quiet until the 6am cron has run. */}
       <MorningBriefCard />

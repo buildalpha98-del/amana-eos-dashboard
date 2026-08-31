@@ -90,7 +90,7 @@ export function CoreValuesCard({ values }: { values: string[] }) {
                   }
                 }}
                 placeholder="Add a core value..."
-                className="flex-1 px-3 py-1.5 text-sm border border-dashed border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                className="flex-1 px-3 py-1.5 text-sm border border-dashed border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <button aria-label="Add core value"
                 onClick={addValue}

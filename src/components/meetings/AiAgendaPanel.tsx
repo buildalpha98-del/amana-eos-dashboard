@@ -35,7 +35,7 @@ export function AiAgendaPanel({
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
+    <div className="mb-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h4 className="flex items-center gap-1.5 text-sm font-semibold text-purple-800">
           <Sparkles className="h-4 w-4" />
@@ -49,7 +49,7 @@ export function AiAgendaPanel({
             onClick={onGenerate}
             disabled={generating}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg border border-purple-300 px-2.5 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100",
+              "inline-flex items-center gap-1.5 rounded-lg border border-purple-300 dark:border-purple-800 px-2.5 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 transition-colors hover:bg-purple-100 dark:hover:bg-purple-950/50",
               generating && "opacity-60",
             )}
           >

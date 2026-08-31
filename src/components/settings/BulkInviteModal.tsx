@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { Button } from "@/components/ui/Button";
 import { useQueryClient } from "@tanstack/react-query";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
 import { ROLES } from "@/lib/role-enum";
@@ -464,6 +465,7 @@ export function BulkInviteModal({
           </div>
           <button
             onClick={handleClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
@@ -525,13 +527,14 @@ export function BulkInviteModal({
                     </p>
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={downloadTemplate}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border text-foreground/80 hover:bg-card transition-colors"
+                  iconLeft={<Download className="w-4 h-4" />}
                 >
-                  <Download className="w-4 h-4" />
                   Download Template
-                </button>
+                </Button>
               </div>
 
               {/* Expected format */}
@@ -575,19 +578,19 @@ export function BulkInviteModal({
               {/* Summary badges */}
               <div className="flex items-center gap-3">
                 {validCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {validCount} valid
                   </span>
                 )}
                 {warningCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-300">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     {warningCount} skipped
                   </span>
                 )}
                 {errorCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300">
                     <XCircle className="w-3.5 h-3.5" />
                     {errorCount} invalid
                   </span>
@@ -724,19 +727,19 @@ export function BulkInviteModal({
             <div className="space-y-4">
               {/* Summary */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-4 rounded-lg bg-green-50 text-center">
+                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/40 text-center">
                   <p className="text-2xl font-bold text-green-700">
                     {result.created}
                   </p>
                   <p className="text-xs text-green-600 mt-1">Invited</p>
                 </div>
-                <div className="p-4 rounded-lg bg-yellow-50 text-center">
+                <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/40 text-center">
                   <p className="text-2xl font-bold text-yellow-700">
                     {result.skipped.length}
                   </p>
                   <p className="text-xs text-yellow-600 mt-1">Skipped</p>
                 </div>
-                <div className="p-4 rounded-lg bg-red-50 text-center">
+                <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/40 text-center">
                   <p className="text-2xl font-bold text-red-700">
                     {result.errors.length}
                   </p>
@@ -750,7 +753,7 @@ export function BulkInviteModal({
                   <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                     Skipped
                   </p>
-                  <div className="bg-yellow-50 rounded-lg p-3 space-y-1">
+                  <div className="bg-yellow-50 dark:bg-yellow-950/40 rounded-lg p-3 space-y-1">
                     {result.skipped.map((s, i) => (
                       <p key={i} className="text-xs text-yellow-700">
                         <strong>{s.email}</strong> — {s.reason}
@@ -766,7 +769,7 @@ export function BulkInviteModal({
                   <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                     Errors
                   </p>
-                  <div className="bg-red-50 rounded-lg p-3 space-y-1">
+                  <div className="bg-red-50 dark:bg-red-950/40 rounded-lg p-3 space-y-1">
                     {result.errors.map((e, i) => (
                       <p key={i} className="text-xs text-red-700">
                         <strong>{e.email}</strong> — {e.error}
@@ -784,36 +787,26 @@ export function BulkInviteModal({
           {step === "upload" && (
             <>
               <div />
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors"
-              >
+              <Button variant="secondary" size="sm" onClick={handleClose}>
                 Cancel
-              </button>
+              </Button>
             </>
           )}
 
           {step === "preview" && (
             <>
-              <button
-                onClick={reset}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors"
-              >
+              <Button variant="secondary" size="sm" onClick={reset}>
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleInvite}
                 disabled={validCount === 0}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                  validCount > 0
-                    ? "bg-brand text-white hover:bg-brand-hover"
-                    : "bg-surface text-muted cursor-not-allowed",
-                )}
+                iconLeft={<Users className="w-4 h-4" />}
               >
-                <Users className="w-4 h-4" />
                 Invite {validCount} Valid User{validCount !== 1 ? "s" : ""}
-              </button>
+              </Button>
             </>
           )}
 
@@ -829,12 +822,9 @@ export function BulkInviteModal({
           {step === "result" && (
             <>
               <div />
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-              >
+              <Button variant="primary" size="sm" onClick={handleClose}>
                 Done
-              </button>
+              </Button>
             </>
           )}
         </div>

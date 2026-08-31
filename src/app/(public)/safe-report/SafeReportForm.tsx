@@ -164,7 +164,7 @@ export function SafeReportForm({ services }: SafeReportFormProps) {
         </header>
 
         <div className="bg-card rounded-xl border border-border p-6 space-y-5">
-          <section className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-900">
+          <section className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-4 text-sm text-emerald-900 dark:text-emerald-200">
             <p className="font-semibold mb-1">
               This form is genuinely anonymous
             </p>
@@ -258,7 +258,7 @@ export function SafeReportForm({ services }: SafeReportFormProps) {
           </div>
 
           {result?.kind === "err" && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800 flex items-start gap-2">
+            <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 p-3 text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
               <div>{result.message}</div>
             </div>

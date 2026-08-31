@@ -14,13 +14,14 @@ import { applyNotificationMute } from "@/lib/notification-mute";
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   role: z.enum(
-    ["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer"],
-    { error: "Invalid role. Must be one of: owner, head_office, admin, marketing, member, staff, eos_viewer, eos_implementer" },
+    ["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "eos"],
+    { error: "Invalid role. Must be one of: owner, head_office, admin, marketing, member, staff, eos_viewer, eos_implementer, eos" },
   ).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
   state: z.string().optional().nullable(),
   notificationsMuted: z.boolean().optional(),
+  receivesNudges: z.boolean().optional(),
 });
 
 // PATCH /api/users/:id — update a user (owner + admin)
@@ -89,6 +90,7 @@ const { id } = await context!.params!;
       active: true,
       state: true,
       notificationsMuted: true,
+      receivesNudges: true,
       createdAt: true,
     },
   });

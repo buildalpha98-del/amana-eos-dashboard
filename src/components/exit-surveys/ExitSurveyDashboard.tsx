@@ -118,10 +118,10 @@ function ReasonBar({ reasons }: { reasons: ReasonDistribution[] }) {
 function ServiceCard({ service }: { service: ServiceSurveyData }) {
   const wouldReturnColor =
     service.wouldReturnRate > 70
-      ? "text-emerald-600 bg-emerald-50"
+      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40"
       : service.wouldReturnRate >= 40
-        ? "text-amber-600 bg-amber-50"
-        : "text-red-600 bg-red-50";
+        ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
+        : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40";
 
   return (
     <div className="bg-background rounded-xl border border-border p-5 space-y-4">
@@ -163,11 +163,11 @@ function ServiceCard({ service }: { service: ServiceSurveyData }) {
             {service.recentComments.slice(0, 5).map((c, i) => (
               <div key={i} className="bg-surface rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-medium text-muted">
+                  <span className="text-2xs font-medium text-muted">
                     {new Date(c.date).toLocaleDateString()}
                   </span>
                   <span
-                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
+                    className="text-2xs font-semibold px-1.5 py-0.5 rounded-full text-white"
                     style={{ backgroundColor: getReasonColor(c.reason) }}
                   >
                     {formatReason(c.reason)}
@@ -390,7 +390,7 @@ export function ExitSurveyDashboard() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-950/50 flex items-center justify-center">
             <ClipboardCheck className="w-5 h-5 text-violet-700" />
           </div>
           <div>
@@ -496,7 +496,7 @@ export function ExitSurveyDashboard() {
               >
                 {summary.churn.churnRate.toFixed(1)}%
               </p>
-              <p className="text-[10px] text-muted mt-0.5">
+              <p className="text-2xs text-muted mt-0.5">
                 {summary.churn.withdrawnCount} withdrawn / {summary.churn.activeCount} active
               </p>
             </div>

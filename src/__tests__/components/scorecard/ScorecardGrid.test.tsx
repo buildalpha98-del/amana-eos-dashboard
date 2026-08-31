@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // DataEntryCell's mutation isn't relevant to layout tests, but it imports
@@ -206,5 +206,88 @@ describe("ScorecardGrid — column count integrity", () => {
     const dataRow = container.querySelector("tbody > tr");
     const dataCellCount = dataRow?.querySelectorAll("td").length ?? 0;
     expect(dataCellCount).toBe(headerCellCount);
+  });
+});
+
+/** Monday of the week `n` weeks before the current one. */
+function weekStartAgo(n: number): string {
+  const d = new Date();
+  const day = d.getDay();
+  // getWeekStart() convention: Monday-based.
+  d.setDate(d.getDate() - ((day + 6) % 7) - n * 7);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().split("T")[0];
+}
+
+describe("ScorecardGrid — how many weeks are shown", () => {
+  const scorecard: ScorecardData = {
+    id: "sc-1",
+    title: "Scorecard",
+    measurables: [buildMeasurable({ id: "m-1", title: "M1" })],
+  };
+
+  it("shows four week columns by default", () => {
+    // Thirteen columns are mostly empty most of the time, and squeeze
+    // the weeks that DO have numbers into a third of the width.
+    const { container } = renderGrid(scorecard);
+    // Measurable, Goal, Owner, 13wk Avg, then the weeks.
+    expect(container.querySelectorAll("thead th").length).toBe(4 + 4);
+  });
+
+  it("widens to a full quarter on request", () => {
+    const { container } = renderGrid(scorecard);
+    fireEvent.change(screen.getByLabelText("How many weeks to show"), {
+      target: { value: "13" },
+    });
+    expect(container.querySelectorAll("thead th").length).toBe(4 + 13);
+  });
+
+  it("keeps data rows in step with the header when widened", () => {
+    // The failure this catches is a body row that doesn't grow with the
+    // head, which silently shifts every value one column left.
+    const { container } = renderGrid(scorecard);
+    fireEvent.change(screen.getByLabelText("How many weeks to show"), {
+      target: { value: "8" },
+    });
+    const head = container.querySelectorAll("thead th").length;
+    const body = container.querySelector("tbody > tr")?.querySelectorAll("td").length ?? 0;
+    expect(body).toBe(head);
+  });
+
+  it("narrows again", () => {
+    const { container } = renderGrid(scorecard);
+    const select = screen.getByLabelText("How many weeks to show");
+    fireEvent.change(select, { target: { value: "13" } });
+    fireEvent.change(select, { target: { value: "4" } });
+    expect(container.querySelectorAll("thead th").length).toBe(4 + 4);
+  });
+});
+
+describe("ScorecardGrid — the 13-week average", () => {
+  it("averages over 13 weeks even when four columns are shown", () => {
+    // The average is an EOS quarter measure, not a property of the view.
+    // Recomputing it from the visible columns would quietly change what
+    // the number means.
+    const scorecard: ScorecardData = {
+      id: "sc-1",
+      title: "Scorecard",
+      measurables: [
+        buildMeasurable({
+          id: "m-1",
+          title: "M1",
+          goalValue: 10,
+          entries: [
+            // One recent week, and one from outside the visible four.
+            { id: "e-1", weekOf: weekStartAgo(1), value: 20, onTrack: true, notes: null },
+            { id: "e-2", weekOf: weekStartAgo(9), value: 10, onTrack: true, notes: null },
+          ] as ScorecardData["measurables"][number]["entries"],
+        }),
+      ],
+    };
+
+    renderGrid(scorecard);
+    // Both entries count: (20 + 10) / 2 = 15. Averaging only the visible
+    // four weeks would show 20.
+    expect(screen.getByText("15")).toBeTruthy();
   });
 });

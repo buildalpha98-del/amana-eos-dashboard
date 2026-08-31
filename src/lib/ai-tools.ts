@@ -316,7 +316,10 @@ async function lookupStaffList(role?: string): Promise<string> {
 
 async function lookupRecentTodos(status?: string, limit?: number): Promise<string> {
   const take = Math.min(limit ?? 20, 50);
-  const where: Record<string, unknown> = { deleted: false };
+  // Private todos NEVER surface in AI answers — the assistant chat is
+  // open to all roles, so anything returned here is effectively public.
+  // (2026-08-31, part of the isPrivate enforcement sweep.)
+  const where: Record<string, unknown> = { deleted: false, isPrivate: false };
 
   if (status === "completed") {
     where.status = "completed";

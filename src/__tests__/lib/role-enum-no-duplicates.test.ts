@@ -18,8 +18,9 @@ describe("ROLES (single source of truth) has no duplicates", () => {
     expect(new Set(ROLES).size).toBe(ROLES.length);
   });
 
-  it("contains the 8 expected roles in schema order", () => {
-    // 2026-06-22 added eos_viewer; 2026-06-23 added eos_implementer. Both
+  it("contains the 9 expected roles in schema order", () => {
+    // 2026-06-22 added eos_viewer; 2026-06-23 added eos_implementer;
+    // 2026-07-13 added eos (broad EOS Member — admin-tier org-wide). All
     // must live in ROLES — server-auth's VALID_ROLES sources from here, so
     // a role missing from this list gets 401'd on every API call.
     expect(ROLES).toEqual([
@@ -31,6 +32,7 @@ describe("ROLES (single source of truth) has no duplicates", () => {
       "staff",
       "eos_viewer",
       "eos_implementer",
+      "eos",
     ]);
   });
 });

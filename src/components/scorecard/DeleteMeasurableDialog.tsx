@@ -21,7 +21,7 @@ export function DeleteMeasurableDialog({
       <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center flex-shrink-0">
               <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
             <div>

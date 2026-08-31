@@ -50,8 +50,8 @@ export function QuizQuestionView({
                 className={cn(
                   "flex items-start gap-2.5 p-2.5 rounded-md border cursor-pointer transition-colors",
                   !submitted && "border-border hover:bg-surface",
-                  showCorrect && "border-green-400 bg-green-50",
-                  showWrong && "border-red-400 bg-red-50",
+                  showCorrect && "border-green-400 bg-green-50 dark:bg-green-950/40",
+                  showWrong && "border-red-400 bg-red-50 dark:bg-red-950/40",
                   !submitted && isSelected && "border-brand bg-brand/5",
                   submitted && !showCorrect && !showWrong && "opacity-60",
                 )}

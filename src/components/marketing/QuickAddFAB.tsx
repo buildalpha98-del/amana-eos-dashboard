@@ -75,7 +75,7 @@ export function QuickAddFAB({ onNewPost, onNewTask, onNewCampaign }: Props) {
             }}
           >
             {/* Tooltip */}
-            <span className="rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-medium text-white shadow-lg whitespace-nowrap">
+            <span className="rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg whitespace-nowrap">
               {btn.label}
             </span>
             {/* Button */}

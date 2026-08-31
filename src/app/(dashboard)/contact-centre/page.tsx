@@ -37,8 +37,11 @@ const MessagingInbox = dynamic(
 
 const TABS = [
   { key: "enquiries", label: "Enquiries", icon: UserPlus },
-  { key: "tickets", label: "Tickets", icon: MessageSquare },
-  { key: "messages", label: "Messages", icon: Mail },
+  // adminOnly, and not just cosmetically: parent messages go to head
+  // office, and both APIs are already owner/head_office/admin. Showing
+  // the tabs to a coordinator only ever produced a 403.
+  { key: "tickets", label: "Tickets", icon: MessageSquare, adminOnly: true },
+  { key: "messages", label: "Messages", icon: Mail, adminOnly: true },
   { key: "calls", label: "Calls", icon: Phone },
   { key: "leaderboard", label: "Leaderboard", icon: Trophy, adminOnly: true },
 ] as const;

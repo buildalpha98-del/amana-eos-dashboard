@@ -289,6 +289,47 @@ describe("POST /api/users", () => {
     expect(createArg.data.inductionStatus).toBe("new_starter");
     expect(createArg.data.inductionDueDate).toBeInstanceOf(Date);
   });
+
+  it("invite mode (no password) creates the user + sends the welcome email", async () => {
+    const { welcomeEmail } = await import("@/lib/email-templates");
+    const { checkPasswordBreach } = await import("@/lib/password-breach-check");
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.user.create.mockResolvedValue({
+      id: "n3", name: "Invitee", email: "invitee@test.com", role: "member",
+      active: true, serviceId: "svc-1", state: null, service: null, createdAt: new Date(),
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const res = await POST(
+      createRequest("POST", "/api/users", {
+        // NB: no `password` field — invite mode.
+        body: { name: "Invitee", email: "invitee@test.com", role: "member", serviceId: "svc-1" },
+      }),
+    );
+    expect(res.status).toBe(201);
+    // A password hash was still stored (a generated one) and the welcome email fired.
+    const createArg = prismaMock.user.create.mock.calls[0][0];
+    expect(createArg.data.passwordHash).toBeTruthy();
+    expect(welcomeEmail).toHaveBeenCalledTimes(1);
+    // A generated password is NOT breach-checked (pointless on high-entropy input).
+    expect(checkPasswordBreach).not.toHaveBeenCalled();
+  });
+
+  it("still breach-checks an admin-supplied password", async () => {
+    const { checkPasswordBreach } = await import("@/lib/password-breach-check");
+    vi.mocked(checkPasswordBreach).mockResolvedValueOnce(1234);
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+
+    const res = await POST(
+      createRequest("POST", "/api/users", {
+        // Schema-valid password so we reach the breach check (which is mocked breached).
+        body: { name: "X", email: "x@test.com", password: "StrongPass123!!", role: "admin" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/data breaches/i);
+  });
 });
 
 describe("PATCH /api/users/[id]", () => {
