@@ -52,6 +52,7 @@ import { BulkUploadModal } from "@/components/documents/BulkUploadModal";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
   program: { bg: "bg-cyan-50 dark:bg-cyan-950/40", text: "text-cyan-700", badge: "bg-cyan-100 dark:bg-cyan-950/50" },
@@ -206,15 +207,7 @@ export default function DocumentsPage() {
   const handleFileUpload = async (file: File) => {
     setUploadingFile(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const err = await res.json();
-        toast({ description: err.error || "Upload failed", variant: "destructive" });
-        return;
-      }
-      const result = await res.json();
+      const result = await uploadFileSmart(file);
       setUploadedFile(result);
       setFormData((prev) => ({
         ...prev,
@@ -222,8 +215,16 @@ export default function DocumentsPage() {
         fileUrl: result.fileUrl,
         title: prev.title || result.fileName.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
       }));
-    } catch {
-      toast({ description: "Upload failed. Please try again.", variant: "destructive" });
+    } catch (err) {
+      // uploadFileSmart throws user-safe messages (size, type, verification) —
+      // showing the generic string instead hid why the upload actually failed.
+      toast({
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : "Upload failed. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setUploadingFile(false);
     }

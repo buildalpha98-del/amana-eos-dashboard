@@ -126,6 +126,25 @@ describe("GET /api/issues", () => {
     const callArgs = prismaMock.issue.findMany.mock.calls[0][0];
     expect(callArgs.where.category).toBe("long_term");
   });
+
+  it("marketing sees cross-centre issues, not just ones they raised or own", async () => {
+    // Regression (2026-08-17): getCentreScope() returns `{ serviceIds: [] }`
+    // for marketing with no primary serviceId — read as "unscoped" nowhere
+    // else, it silently dropped the cross-centre clause here, leaving
+    // marketing seeing only issues they personally raised or owned (an
+    // empty list, from Daniel's report). Marketing bypasses getCentreScope
+    // entirely for this route, same carve-out as /api/rocks.
+    const { getCentreScope } = await import("@/lib/centre-scope");
+    (getCentreScope as ReturnType<typeof vi.fn>).mockResolvedValue({ serviceIds: [] });
+    mockSession({ id: "u9", name: "Marketing", role: "marketing" });
+    prismaMock.issue.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/issues");
+    await GET(req);
+
+    const callArgs = prismaMock.issue.findMany.mock.calls[0][0];
+    expect(callArgs.where.OR).toBeUndefined();
+  });
 });
 
 describe("POST /api/issues", () => {

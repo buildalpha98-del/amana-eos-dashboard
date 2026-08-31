@@ -21,6 +21,8 @@ import { ApiError } from "@/lib/api-error";
 // Re-exported here so server code can import everything from "@/lib/induction".
 export {
   INDUCTION_ALLOWED_PREFIXES,
+  INDUCTION_EXEMPT_ROLES,
+  isInductionExemptRole,
   isInductionLocked,
   isInductionAllowedPath,
 } from "@/lib/induction-lock";
@@ -71,7 +73,8 @@ export async function getInductionReadiness(
     select: { id: true },
   });
   if (!wwcc) {
-    blockers.push({ kind: "wwcc", label: "WWCC not uploaded", href: "/profile" });
+    // /compliance, not /profile — that is where StaffCertUploadModal lives.
+    blockers.push({ kind: "wwcc", label: "WWCC not uploaded", href: "/compliance" });
   }
 
   // 3. Required policy acknowledgements (current version of each).

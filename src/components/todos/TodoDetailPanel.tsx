@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
+import { formatDateAU } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { X, Mountain, AlertCircle, Lock, Unlock, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -247,6 +249,22 @@ export function TodoDetailPanel({
               <p className="text-sm text-foreground/80 bg-surface/50 px-3 py-2 rounded-lg">
                 {todo.issue.title}
               </p>
+            </div>
+          )}
+
+          {/* Created in meeting (read-only, 2026-08-31) */}
+          {todo.meeting && (
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">
+                Created in
+              </label>
+              <Link
+                href="/meetings"
+                className="block text-sm text-brand hover:underline bg-surface/50 px-3 py-2 rounded-lg"
+              >
+                {todo.meeting.title} ·{" "}
+                {formatDateAU(new Date(todo.meeting.date))}
+              </Link>
             </div>
           )}
 

@@ -42,6 +42,7 @@ vi.mock("@/lib/storage", () => ({
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession } from "../helpers/auth-mock";
 import { POST } from "@/app/api/upload/route";
+import { SERVERLESS_BODY_LIMIT } from "@/lib/upload-strategy";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
 // --- Helpers -------------------------------------------------------------
@@ -147,13 +148,20 @@ describe("POST /api/upload", () => {
     expect(res.status).toBe(200);
   });
 
-  it("rejects a PDF that exceeds the 10 MB size cap", async () => {
+  /**
+   * 2026-08-25: this route's cap dropped from 10MB to SERVERLESS_BODY_LIMIT
+   * (4MB). The old 10MB limit was fiction — Vercel rejects a serverless
+   * request body over ~4.5MB at the edge, so anything between the two 413'd
+   * before the handler ran and the advertised limit was never reachable.
+   * Files above the cap now go direct to Blob storage via the client helper;
+   * the 10MB product limit is enforced there (see upload-strategy.test.ts).
+   */
+  it("rejects a PDF above the serverless body limit", async () => {
     mockSession({ id: "user-1", name: "Test", role: "admin" });
     const fd = new FormData();
-    // 10 MB + 1 byte
     fd.append(
       "file",
-      new File([pdfBytes(10 * 1024 * 1024 + 1)], "huge.pdf", {
+      new File([pdfBytes(SERVERLESS_BODY_LIMIT + 1)], "huge.pdf", {
         type: "application/pdf",
       }),
     );
@@ -162,7 +170,7 @@ describe("POST /api/upload", () => {
     const res = await POST(req, {});
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/10MB/i);
+    expect(data.error).toMatch(/too large/i);
   });
 
   it("rejects files whose declared MIME type is not allowed", async () => {

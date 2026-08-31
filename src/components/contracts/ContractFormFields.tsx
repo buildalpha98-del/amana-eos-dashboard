@@ -10,6 +10,7 @@ import {
   AWARD_LEVEL_LABELS,
   type UserOption,
 } from "./constants";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 export interface ContractFormValue {
   userId: string;
@@ -101,19 +102,9 @@ export function ContractFormFields({
     setUploadError(null);
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      // Raw fetch (not fetchApi) — FormData uploads are a documented
-      // exception since fetchApi sets JSON content-type.
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(body.error ?? "Upload failed");
-      }
-      const { fileUrl } = (await res.json()) as { fileUrl: string };
+      // uploadFileSmart owns the FormData/direct-to-blob choice; a raw fetch
+      // here 413'd on any contract PDF over ~4.5MB.
+      const { fileUrl } = await uploadFileSmart(file);
       onChange({ ...value, documentUrl: fileUrl, documentId: null });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");

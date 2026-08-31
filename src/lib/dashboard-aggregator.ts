@@ -6,6 +6,7 @@ import {
   applyCentreFilter,
   buildCentreOrPersonalFilter,
 } from "@/lib/centre-scope";
+import { privateTodoWhereFor } from "@/lib/todos/private-filter";
 import {
   computeHealthScore,
   getScoreStatus,
@@ -181,10 +182,10 @@ export async function aggregateDashboard(session: Session): Promise<DashboardDat
   const trends = await buildTrends(now);
 
   // -- Action Items --
-  const actionItems = await buildActionItems(now, serviceIds, session.user.id);
+  const actionItems = await buildActionItems(now, serviceIds, session.user.id, session.user.role as string | undefined);
 
   // -- Project To-Dos --
-  const projectTodos = await buildProjectTodos(now, serviceIds, session.user.id);
+  const projectTodos = await buildProjectTodos(now, serviceIds, session.user.id, session.user.role as string | undefined);
 
   // -- Key Metrics --
   const keyMetrics = await buildKeyMetrics(now, serviceIds, session.user.id);
@@ -379,15 +380,22 @@ async function buildActionItems(
   now: Date,
   serviceIds: string[] | null,
   userId: string,
+  role?: string,
 ) {
   const [overdueTodos, unassignedTickets, idsIssues, overdueRocks, offTrackRockCount] =
     await Promise.all([
       prisma.todo.findMany({
         where: {
-          deleted: false,
-          status: { notIn: ["complete", "cancelled"] },
-          dueDate: { lt: now },
-          ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, userId)! } : {}),
+          AND: [
+            {
+              deleted: false,
+              status: { notIn: ["complete", "cancelled"] },
+              dueDate: { lt: now },
+              ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, userId)! } : {}),
+            },
+            // Private todos stay restricted (spec 1.7.1)
+            privateTodoWhereFor(role, userId),
+          ],
         },
         select: {
           id: true,
@@ -482,13 +490,20 @@ async function buildProjectTodos(
   now: Date,
   serviceIds: string[] | null,
   userId: string,
+  role?: string,
 ): Promise<ProjectTodo[]> {
   const projectTodos = await prisma.todo.findMany({
     where: {
-      deleted: false,
-      status: { notIn: ["complete", "cancelled"] },
-      projectId: { not: null },
-      ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, userId)! } : {}),
+      AND: [
+        {
+          deleted: false,
+          status: { notIn: ["complete", "cancelled"] },
+          projectId: { not: null },
+          ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, userId)! } : {}),
+        },
+        // Private todos stay restricted (spec 1.7.1)
+        privateTodoWhereFor(role, userId),
+      ],
     },
     select: {
       id: true,

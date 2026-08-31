@@ -24,6 +24,7 @@ export function StartMeetingDialog({
     attendeeIds: string[],
     isLeadership: boolean,
     scorecardId: string | null,
+    scheduledFor: string | null,
   ) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -43,6 +44,10 @@ export function StartMeetingDialog({
   // single scorecard, which is also the fallback for older meetings.
   const [scorecardId, setScorecardId] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
+  // 2026-08-31: schedule-for-later. When enabled, the meeting is created
+  // as `scheduled` (dated scheduledFor) instead of starting immediately.
+  const [scheduleLater, setScheduleLater] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState("");
 
   const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
     queryKey: ["users-list-full", isLeadership ? "leadership" : "eos_assignees"],
@@ -190,7 +195,7 @@ export function StartMeetingDialog({
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onStart([], [], false, null)}
+                    onClick={() => onStart([], [], false, null, null)}
                     className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
                   >
                     Company-Wide Meeting
@@ -395,33 +400,65 @@ export function StartMeetingDialog({
                 )}
               </div>
 
-              <div className="px-6 py-4 border-t border-border/50 bg-surface/30 flex items-center justify-between">
-                <span className="text-xs text-muted">
-                  {selectedUserIds.length > 0
-                    ? `${selectedUserIds.length} attendee${selectedUserIds.length > 1 ? "s" : ""} selected`
-                    : "No attendees selected (skip to start)"}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={onCancel}
-                    className="text-xs px-4 py-2 text-muted hover:text-foreground"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() =>
-                      onStart(
-                        selectedServiceIds,
-                        selectedUserIds,
-                        isLeadership,
-                        scorecardId,
-                      )
-                    }
-                    disabled={isPending}
-                    className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
-                  >
-                    {isPending ? "Starting..." : "Start Meeting"}
-                  </button>
+              <div className="px-6 py-4 border-t border-border/50 bg-surface/30 space-y-3">
+                {/* Schedule-for-later toggle (2026-08-31) */}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scheduleLater}
+                      onChange={(e) => setScheduleLater(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    Schedule for later
+                  </label>
+                  {scheduleLater && (
+                    <input
+                      type="datetime-local"
+                      value={scheduledFor}
+                      onChange={(e) => setScheduledFor(e.target.value)}
+                      aria-label="Scheduled date and time"
+                      className="flex-1 px-2 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted">
+                    {selectedUserIds.length > 0
+                      ? `${selectedUserIds.length} attendee${selectedUserIds.length > 1 ? "s" : ""} selected`
+                      : "No attendees selected (skip to start)"}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={onCancel}
+                      className="text-xs px-4 py-2 text-muted hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() =>
+                        onStart(
+                          selectedServiceIds,
+                          selectedUserIds,
+                          isLeadership,
+                          scorecardId,
+                          scheduleLater && scheduledFor
+                            ? new Date(scheduledFor).toISOString()
+                            : null,
+                        )
+                      }
+                      disabled={isPending || (scheduleLater && !scheduledFor)}
+                      className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
+                    >
+                      {isPending
+                        ? scheduleLater
+                          ? "Scheduling..."
+                          : "Starting..."
+                        : scheduleLater
+                          ? "Schedule Meeting"
+                          : "Start Meeting"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </>

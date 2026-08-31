@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 
 /**
  * GET /api/search?q= — global ⌘K search.
@@ -51,13 +52,20 @@ export const GET = withApiAuth(async (req, session) => {
           })
         : [],
       // Staff still find their own to-dos; everyone else searches org-wide.
+      // Private todos stay restricted to assignee/creator/admin tier —
+      // search must not leak what the todos pages hide (spec 1.7.1).
       canSeeEos || isStaff
         ? prisma.todo.findMany({
             where: {
-              deleted: false,
-              title: filter,
-              ...(isStaff ? { assigneeId: userId } : {}),
-              ...(isMember ? memberScope : {}),
+              AND: [
+                {
+                  deleted: false,
+                  title: filter,
+                  ...(isStaff ? { assigneeId: userId } : {}),
+                  ...(isMember ? memberScope : {}),
+                },
+                privateTodoWhere(session),
+              ],
             },
             select: { id: true, title: true, status: true },
             take: 5,

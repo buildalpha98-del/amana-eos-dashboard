@@ -141,6 +141,7 @@ export const GET = withApiAuth(async (req, session) => {
         // /team UI surfaces a red badge for these so we don't quietly
         // ship someone without payslips / leave / expenses access.
         employmentHeroEmployeeId: true,
+        hrWarningsMuted: true,
         service: { select: { id: true, name: true } },
         // 2026-07-08: include active service memberships so /team can
         // show every centre a user is attached to, not just their
@@ -202,6 +203,7 @@ export const GET = withApiAuth(async (req, session) => {
         additionalServices,
         employmentHeroEmployeeId: u.employmentHeroEmployeeId ?? null,
         hasActiveContract: contractedUserIds.has(u.id),
+        hrWarningsMuted: u.hrWarningsMuted,
       },
       role,
     );

@@ -68,6 +68,18 @@ describe("getInductionReadiness", () => {
     expect(r.blockers.map((b) => b.kind)).toContain("wwcc");
   });
 
+  /**
+   * 2026-08-25: the WWCC blocker pointed at /profile, which has no certificate
+   * uploader — the staff cert modal lives on /compliance. Staff who finished
+   * every course still could not clear, and the "Fix" link led nowhere useful.
+   */
+  it("points the WWCC blocker at the page that can actually upload a cert", async () => {
+    prismaMock.complianceCertificate.findFirst.mockResolvedValue(null);
+    const r = await getInductionReadiness("u1");
+    const wwcc = r.blockers.find((b) => b.kind === "wwcc");
+    expect(wwcc?.href).toBe("/compliance");
+  });
+
   it("blocks on unacknowledged required policies", async () => {
     prismaMock.policyDocumentAcknowledgement.findMany.mockResolvedValue([]);
     const r = await getInductionReadiness("u1");
@@ -290,24 +302,24 @@ describe("isInductionLocked", () => {
   const past = new Date("2026-06-01T00:00:00Z");
 
   it("new_starter is locked", () => {
-    expect(isInductionLocked("new_starter", null, now)).toBe(true);
+    expect(isInductionLocked("new_starter", null, { now })).toBe(true);
   });
   it("in_training with no grace is locked", () => {
-    expect(isInductionLocked("in_training", null, now)).toBe(true);
+    expect(isInductionLocked("in_training", null, { now })).toBe(true);
   });
   it("in_training with future grace is NOT locked (backfilled, still working)", () => {
-    expect(isInductionLocked("in_training", future, now)).toBe(false);
+    expect(isInductionLocked("in_training", future, { now })).toBe(false);
   });
   it("in_training with expired grace is locked", () => {
-    expect(isInductionLocked("in_training", past, now)).toBe(true);
+    expect(isInductionLocked("in_training", past, { now })).toBe(true);
   });
   it("awaiting_signoff is NOT locked (training done, just waiting on sign-off)", () => {
-    expect(isInductionLocked("awaiting_signoff", null, now)).toBe(false);
+    expect(isInductionLocked("awaiting_signoff", null, { now })).toBe(false);
   });
   it("cleared is NOT locked", () => {
-    expect(isInductionLocked("cleared", null, now)).toBe(false);
+    expect(isInductionLocked("cleared", null, { now })).toBe(false);
   });
   it("undefined status is NOT locked", () => {
-    expect(isInductionLocked(undefined, null, now)).toBe(false);
+    expect(isInductionLocked(undefined, null, { now })).toBe(false);
   });
 });

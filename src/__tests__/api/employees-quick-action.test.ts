@@ -57,6 +57,7 @@ interface TargetOverrides {
   email?: string;
   role?: string;
   active?: boolean;
+  hrWarningsMuted?: boolean;
 }
 function makeTarget(overrides: TargetOverrides = {}) {
   return {
@@ -65,6 +66,7 @@ function makeTarget(overrides: TargetOverrides = {}) {
     email: overrides.email ?? "target@example.com",
     role: overrides.role ?? "staff",
     active: overrides.active ?? true,
+    hrWarningsMuted: overrides.hrWarningsMuted ?? false,
   };
 }
 
@@ -312,6 +314,62 @@ describe("POST /api/employees/[id]/quick-action", () => {
       const res = await POST(
         createRequest("POST", "/api/employees/u-target/quick-action", {
           body: { action: "toggle_active" },
+        }),
+        ctx("u-target") as never,
+      );
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("toggle_hr_warnings_muted", () => {
+    it("admin can mute the payroll/contract warnings for an account", async () => {
+      mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+      setupFindUnique("admin-1", makeTarget({ hrWarningsMuted: false }));
+      const res = await POST(
+        createRequest("POST", "/api/employees/u-target/quick-action", {
+          body: { action: "toggle_hr_warnings_muted" },
+        }),
+        ctx("u-target") as never,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.newHrWarningsMuted).toBe(true);
+      expect(prismaMock.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "u-target" },
+          data: { hrWarningsMuted: true },
+        }),
+      );
+      expect(prismaMock.activityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            action: "quick_action.mute_hr_warnings",
+            entityId: "u-target",
+          }),
+        }),
+      );
+    });
+
+    it("admin can unmute a previously-muted account", async () => {
+      mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+      setupFindUnique("admin-1", makeTarget({ hrWarningsMuted: true }));
+      const res = await POST(
+        createRequest("POST", "/api/employees/u-target/quick-action", {
+          body: { action: "toggle_hr_warnings_muted" },
+        }),
+        ctx("u-target") as never,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.newHrWarningsMuted).toBe(false);
+    });
+
+    it("member viewer is forbidden", async () => {
+      mockSession({ id: "m-1", name: "Member", role: "member" });
+      setupFindUnique("m-1", makeTarget());
+      const res = await POST(
+        createRequest("POST", "/api/employees/u-target/quick-action", {
+          body: { action: "toggle_hr_warnings_muted" },
         }),
         ctx("u-target") as never,
       );

@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { INDUCTION_EXEMPT_ROLES } from "@/lib/induction-lock";
 
 const GRACE_DAYS = 35; // 5 weeks
 
@@ -29,9 +30,16 @@ export const POST = withApiAuth(
     }
     const essentialIds = essentials.map((c) => c.id);
 
-    // Candidate users: active + currently cleared (skip anyone already in flow).
+    // Candidate users: active + currently cleared (skip anyone already in
+    // flow) + a role the gate applies to. Backfilling an exempt role would
+    // re-create the 2026-08-25 deadlock, where every admin who could sign
+    // people off was themselves locked out.
     const candidates = await prisma.user.findMany({
-      where: { active: true, inductionStatus: "cleared" },
+      where: {
+        active: true,
+        inductionStatus: "cleared",
+        role: { notIn: [...INDUCTION_EXEMPT_ROLES] },
+      },
       select: { id: true },
     });
 

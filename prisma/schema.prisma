@@ -572,6 +572,14 @@ model User {
   // historical accounts). Populated by the daily sync cron based on email
   // match; admins can manually override for unmatched users.
   employmentHeroEmployeeId Int?      @unique
+  // 2026-08-18: some accounts are deliberately not real employees —
+  // shared service-admin logins, system accounts — so the red "needs
+  // payroll link" / yellow "no contract" badges on /team are noise for
+  // them, not a real gap. Admin-toggleable per user; hides BOTH badges
+  // together since they're the same "not a person on payroll" case.
+  // Default false so every existing account keeps showing the badges
+  // (no silent muting on rollout).
+  hrWarningsMuted          Boolean   @default(false)
   // 2026-06-01 (right to disconnect — Fair Work Act s333M, in force
   // Aug 2024). Staff-set preference: "don't message me between these
   // hours." Stored as HH:MM strings to avoid timezone/`@db.Time`
@@ -591,6 +599,7 @@ model User {
   ownedRocks                    Rock[]                         @relation("RockOwner")
   assignedTodos                 Todo[]                         @relation("TodoAssignee")
   createdTodos                  Todo[]                         @relation("TodoCreator")
+  meetingRecordings             MeetingRecording[]             @relation("RecordingCreator")
   raisedIssues                  Issue[]                        @relation("IssueRaiser")
   ownedIssues                   Issue[]                        @relation("IssueOwner")
   ownedMeasurables              Measurable[]                   @relation("MeasurableOwner")
@@ -1124,6 +1133,11 @@ model Todo {
   // by /api/surveys/[id]/publish; null for every other todo.
   surveyId    String?
   survey      Survey?    @relation("SurveyTodos", fields: [surveyId], references: [id], onDelete: SetNull)
+  // 2026-08-31: meeting this todo was created in (IDS create-todo,
+  // To-Do Review quick-add). SetNull so deleting a mis-started meeting
+  // never destroys todos.
+  meetingId   String?
+  meeting     Meeting?   @relation("MeetingTodos", fields: [meetingId], references: [id], onDelete: SetNull)
   dueDate     DateTime
   status      TodoStatus @default(pending)
   weekOf      DateTime
@@ -1151,6 +1165,7 @@ model Todo {
   @@index([weekOf, serviceId])
   @@index([assigneeId, status])
   @@index([dueDate, status])
+  @@index([meetingId])
 }
 
 model TodoAssignee {
@@ -3049,6 +3064,11 @@ model Meeting {
   // same-day meetings. Null until prepared; facilitators can regenerate.
   aiAgendaDraft   Json?
   aiAgendaDraftAt DateTime?
+  // 2026-08-31: completion-time snapshot of meeting outcomes (todos done,
+  // issues solved, rock statuses). Written ONCE when the meeting completes
+  // so past meetings stop mutating as live data changes. Null = legacy
+  // meeting; the UI falls back to live computation.
+  outcomes        Json?
   startedAt       DateTime?
   completedAt     DateTime?
   createdById     String?
@@ -3056,8 +3076,10 @@ model Meeting {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  cascades  CascadeMessage[]  @relation("MeetingCascade")
-  attendees MeetingAttendee[] @relation("MeetingAttendees")
+  cascades   CascadeMessage[]   @relation("MeetingCascade")
+  attendees  MeetingAttendee[]  @relation("MeetingAttendees")
+  todos      Todo[]             @relation("MeetingTodos")
+  recordings MeetingRecording[] @relation("MeetingRecordings")
 
   @@index([date])
   @@index([status])
@@ -3067,6 +3089,48 @@ model Meeting {
 enum AttendeeStatus {
   present
   absent
+}
+
+// ── Meeting recordings (Phase 2, 2026-08-31) ────────────────────────────
+// Audio (browser mic or uploaded Teams/Zoom file) → Deepgram diarized
+// transcription (webhook callback) → Claude structured review. The raw
+// audio blob is DELETED immediately after successful transcription — the
+// transcript is the durable record (privacy decision, see spec).
+
+enum MeetingRecordingStatus {
+  uploaded // blob stored, transcription requested
+  transcribing // Deepgram accepted the request
+  transcribed // transcript stored, audio deleted, summarisation running
+  complete // aiReview stored
+  failed // error recorded; audio deleted if still present
+}
+
+enum MeetingRecordingSource {
+  live_mic
+  upload
+}
+
+model MeetingRecording {
+  id                String                 @id @default(cuid())
+  meetingId         String
+  meeting           Meeting                @relation("MeetingRecordings", fields: [meetingId], references: [id], onDelete: Cascade)
+  source            MeetingRecordingSource
+  status            MeetingRecordingStatus @default(uploaded)
+  audioBlobUrl      String? // nulled after post-transcription deletion
+  durationSeconds   Int?
+  deepgramRequestId String? // request_id echoed in the webhook callback
+  transcript        Json? // utterances: [{ speaker, start, end, text }]
+  transcriptText    String?                @db.Text // "Speaker N: ..." rendering
+  aiReview          Json? // MeetingAiReview (summary, action items, missed items)
+  error             String?
+  createdById       String?
+  createdBy         User?                  @relation("RecordingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([meetingId])
+  @@index([status, createdAt])
+  @@index([deepgramRequestId])
 }
 
 model MeetingAttendee {

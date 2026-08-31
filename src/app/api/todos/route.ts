@@ -7,6 +7,7 @@ import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 
 // GET /api/todos — list todos with optional filters
 export const GET = withApiAuth(async (req, session) => {
@@ -35,8 +36,13 @@ export const GET = withApiAuth(async (req, session) => {
     where.serviceId = serviceId;
   }
 
-  // Centre scoping: scoped roles see only their centre's todos + personally assigned
-  const { serviceIds } = await getCentreScope(session);
+  // Centre scoping: scoped roles see only their centre's todos + personally assigned.
+  // Marketing is org-wide — same carve-out as /api/issues and /api/rocks.
+  // getCentreScope() returns `{ serviceIds: [] }` (not `null`) for marketing
+  // with no primary serviceId, which reads as "unscoped" everywhere else but
+  // would have dropped the cross-centre clause here too, same as the Issues bug.
+  const role = session!.user.role as string;
+  const { serviceIds } = role === "marketing" ? { serviceIds: null } : await getCentreScope(session);
   const stateScope = getStateScope(session);
   const orFilter = buildCentreOrPersonalFilter(serviceIds, session!.user.id);
   if (orFilter) {
@@ -46,10 +52,18 @@ export const GET = withApiAuth(async (req, session) => {
   // State Manager: only see todos for services in their assigned state
   if (stateScope) where.service = { state: stateScope };
 
+  // Private todos: visible only to assignee/co-assignee/creator/admin tier.
+  // AND-composed so it can't clobber the centre-scope OR above.
+  const privateClause = privateTodoWhere(session!);
+  const finalWhere = Object.keys(privateClause).length
+    ? { AND: [where, privateClause] }
+    : where;
+
   const include = {
     assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
     rock: { select: { id: true, title: true } },
     issue: { select: { id: true, title: true } },
+    meeting: { select: { id: true, title: true, date: true } },
     assignees: {
       include: { user: { select: { id: true, name: true } } },
     },
@@ -60,8 +74,8 @@ export const GET = withApiAuth(async (req, session) => {
 
   if (pagination) {
     const [items, total] = await Promise.all([
-      prisma.todo.findMany({ where, include, orderBy, skip: pagination.skip, take: pagination.limit }),
-      prisma.todo.count({ where }),
+      prisma.todo.findMany({ where: finalWhere, include, orderBy, skip: pagination.skip, take: pagination.limit }),
+      prisma.todo.count({ where: finalWhere }),
     ]);
     return NextResponse.json({
       items,
@@ -71,7 +85,7 @@ export const GET = withApiAuth(async (req, session) => {
     });
   }
 
-  const todos = await prisma.todo.findMany({ where, include, orderBy });
+  const todos = await prisma.todo.findMany({ where: finalWhere, include, orderBy });
   return NextResponse.json(todos);
 });
 
@@ -87,6 +101,17 @@ const body = await parseJsonBody(req);
     );
   }
 
+  // Validate meetingId points at a real meeting before linking (2026-08-31)
+  if (parsed.data.meetingId) {
+    const meeting = await prisma.meeting.findUnique({
+      where: { id: parsed.data.meetingId },
+      select: { id: true },
+    });
+    if (!meeting) {
+      return NextResponse.json({ error: "Meeting not found" }, { status: 400 });
+    }
+  }
+
   const todo = await prisma.todo.create({
     data: {
       title: parsed.data.title,
@@ -97,6 +122,7 @@ const body = await parseJsonBody(req);
       issueId: parsed.data.issueId || null,
       serviceId: parsed.data.serviceId || null,
       projectId: parsed.data.projectId || null,
+      meetingId: parsed.data.meetingId || null,
       isPrivate: parsed.data.isPrivate ?? false,
       dueDate: new Date(parsed.data.dueDate),
       weekOf: new Date(parsed.data.weekOf),
@@ -105,6 +131,7 @@ const body = await parseJsonBody(req);
       assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
+      meeting: { select: { id: true, title: true, date: true } },
       assignees: {
         include: { user: { select: { id: true, name: true } } },
       },

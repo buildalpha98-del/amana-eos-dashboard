@@ -8,13 +8,15 @@ export type QuickActionType =
   | "reset_password"
   | "trigger_onboarding"
   | "toggle_admin"
-  | "toggle_active";
+  | "toggle_active"
+  | "toggle_hr_warnings_muted";
 
 interface QuickActionResponse {
   ok: true;
   message: string;
   newRole?: string;
   newActive?: boolean;
+  newHrWarningsMuted?: boolean;
 }
 
 export function useEmployeeQuickAction(employeeId: string) {
@@ -27,7 +29,12 @@ export function useEmployeeQuickAction(employeeId: string) {
       }),
     onSuccess: (data) => {
       toast({ description: data.message });
-      qc.invalidateQueries({ queryKey: ["employees"] });
+      // "employees-list" — the key useEmployeesList actually registers
+      // under. "employees" was a stale key from before the Teams tab
+      // redesign; it never matched anything, so every quick action here
+      // (deactivate, toggle admin, this mute toggle) silently required a
+      // manual page reload to show up in the /team table.
+      qc.invalidateQueries({ queryKey: ["employees-list"] });
       qc.invalidateQueries({ queryKey: ["staff", employeeId] });
     },
     onError: (err) => {

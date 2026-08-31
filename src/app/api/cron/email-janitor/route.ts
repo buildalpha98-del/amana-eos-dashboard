@@ -4,6 +4,8 @@ import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { listBrevoLists, deleteBrevoList } from "@/lib/brevo";
+import { deleteFile } from "@/lib/storage";
+import { generateMeetingReview } from "@/lib/meeting-review";
 
 /**
  * Daily email janitor — four sweeps:
@@ -39,6 +41,10 @@ const LEGACY_MAX_PAGES = 10;
 function payloadOf(row: { payload: unknown }): Record<string, unknown> {
   return (row.payload ?? {}) as Record<string, unknown>;
 }
+
+// Sweep e2 runs inline Sonnet calls (30-90s each) — without this the
+// 55s default timeout could kill the whole janitor on one stuck row.
+export const maxDuration = 300;
 
 export const GET = withApiHandler(async (req) => {
   const authError = verifyCronSecret(req);
@@ -161,17 +167,123 @@ export const GET = withApiHandler(async (req) => {
         where: { sentAt: { lt: new Date(now - 30 * DAY_MS) } },
       });
 
-    await guard.complete({ stranded, trackedCleaned, legacyDeleted, ledgerPruned });
+    // ── (e) Stuck meeting recordings (Phase 2, 2026-08-31) ────────
+    // Daily cadence means a stuck recording can sit up to ~24h past the
+    // 2h threshold before this sweeps it — accepted in the spec; the UI's
+    // status strip shows "still processing" honestly in the meantime.
+    const stuckCutoff = new Date(now - 2 * 60 * 60 * 1000);
+
+    // e1: never transcribed — fail + delete any leftover audio blob.
+    const stuckRecordings = await prisma.meetingRecording.findMany({
+      where: {
+        status: { in: ["uploaded", "transcribing"] },
+        updatedAt: { lt: stuckCutoff },
+      },
+      select: { id: true, audioBlobUrl: true },
+    });
+    let recordingsFailed = 0;
+    for (const rec of stuckRecordings) {
+      await prisma.meetingRecording.update({
+        where: { id: rec.id },
+        data: { status: "failed", error: "Transcription timed out" },
+      });
+      // URL nulled only after a successful delete — a failure leaves the
+      // pointer for sweep e3 to retry next run.
+      if (rec.audioBlobUrl) {
+        try {
+          await deleteFile(rec.audioBlobUrl);
+          await prisma.meetingRecording.update({
+            where: { id: rec.id },
+            data: { audioBlobUrl: null },
+          });
+        } catch (err) {
+          logger.warn("email-janitor: stuck recording blob delete failed", {
+            recordingId: rec.id,
+            err,
+          });
+        }
+      }
+      recordingsFailed++;
+    }
+
+    // e2: transcribed but summarisation never landed — retry once.
+    const stuckTranscribed = await prisma.meetingRecording.findMany({
+      where: { status: "transcribed", updatedAt: { lt: stuckCutoff } },
+      select: { id: true },
+      // Each retry is an inline Sonnet call — bound the run; the rest
+      // are picked up tomorrow.
+      take: 3,
+    });
+    let reviewsRetried = 0;
+    for (const rec of stuckTranscribed) {
+      try {
+        const review = await generateMeetingReview(rec.id);
+        await prisma.meetingRecording.update({
+          where: { id: rec.id },
+          data: { aiReview: review as object, status: "complete" },
+        });
+      } catch (err) {
+        await prisma.meetingRecording.update({
+          where: { id: rec.id },
+          data: {
+            status: "failed",
+            error: err instanceof Error ? err.message : String(err),
+          },
+        });
+      }
+      reviewsRetried++;
+    }
+
+    // e3: terminal rows still carrying an audio URL = a delete that
+    // failed earlier. Audio deletion is a privacy commitment — retry
+    // until it lands, then null the pointer.
+    const orphanedAudio = await prisma.meetingRecording.findMany({
+      where: {
+        status: { in: ["complete", "failed"] },
+        audioBlobUrl: { not: null },
+      },
+      select: { id: true, audioBlobUrl: true },
+      take: 20,
+    });
+    let audioSwept = 0;
+    for (const rec of orphanedAudio) {
+      try {
+        await deleteFile(rec.audioBlobUrl!);
+        await prisma.meetingRecording.update({
+          where: { id: rec.id },
+          data: { audioBlobUrl: null },
+        });
+        audioSwept++;
+      } catch (err) {
+        logger.warn("email-janitor: orphaned audio delete failed", {
+          recordingId: rec.id,
+          err,
+        });
+      }
+    }
+
+    await guard.complete({
+      stranded,
+      trackedCleaned,
+      legacyDeleted,
+      ledgerPruned,
+      recordingsFailed,
+      reviewsRetried,
+      audioSwept,
+    });
     return NextResponse.json({
       ok: true,
       stranded,
       trackedCleaned,
       legacyDeleted,
       ledgerPruned,
+      recordingsFailed,
+      reviewsRetried,
+      audioSwept,
     });
   } catch (err) {
     await guard.fail(err);
     logger.error("email-janitor cron failed", { err });
     return NextResponse.json({ error: "email-janitor failed" }, { status: 500 });
   }
-});
+}, { timeoutMs: 280_000 });
