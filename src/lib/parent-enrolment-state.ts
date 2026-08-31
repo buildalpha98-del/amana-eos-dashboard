@@ -95,3 +95,97 @@ export function enrolmentStateMessage(
       return null;
   }
 }
+
+// ── What a family is told their enrolment is doing ──────────
+
+export interface EnrolmentStatusDisplay {
+  label: string;
+  /** Design-token classes for the badge. */
+  color: string;
+}
+
+/**
+ * The parent-facing label for a raw `EnrolmentSubmission.status`.
+ *
+ * Lives here rather than in the page because the vocabulary had already
+ * drifted apart three ways: `status` is a plain `String` column, the
+ * PATCH route validates one list, this file's gates recognise another,
+ * and the public status page hand-maintained a third.
+ *
+ * That third one mapped `reviewing` and `needs_info` — which no writer
+ * has ever produced — and omitted `under_review` and `archived`, which
+ * the PATCH route does produce. Both fell through its
+ * `|| STATUS_MAP.submitted` fallback, so an ARCHIVED enrolment told the
+ * family it was under review. A wrong answer, not a missing one.
+ */
+const STATUS_DISPLAY: Record<string, EnrolmentStatusDisplay> = {
+  // Received, nobody has looked yet. It used to read "Under Review",
+  // which claimed more than had happened.
+  submitted: {
+    label: "Received",
+    color:
+      "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40",
+  },
+  under_review: {
+    label: "Under Review",
+    color:
+      "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40",
+  },
+  processed: {
+    label: "Confirmed",
+    color:
+      "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40",
+  },
+  rejected: {
+    label: "Not Proceeding",
+    color: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40",
+  },
+  archived: {
+    label: "Closed",
+    color: "text-muted bg-surface",
+  },
+
+  // Tolerated synonyms, same defensive posture as APPROVED_STATUSES
+  // above: no writer produces these today, and if one ever does the
+  // family should still read something true.
+  approved: {
+    label: "Confirmed",
+    color:
+      "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40",
+  },
+  active: {
+    label: "Confirmed",
+    color:
+      "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40",
+  },
+  in_review: {
+    label: "Under Review",
+    color:
+      "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40",
+  },
+  processing: {
+    label: "Under Review",
+    color:
+      "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40",
+  },
+};
+
+/**
+ * A status nobody has mapped falls back to neutral wording.
+ *
+ * The point is that it commits to nothing. Defaulting to a specific
+ * state is how "archived" came to read as "under review" — an unknown
+ * status is unknown, and saying so is better than guessing wrong at a
+ * family's expense.
+ */
+const UNKNOWN_STATUS: EnrolmentStatusDisplay = {
+  label: "Received",
+  color: "text-muted bg-surface",
+};
+
+export function enrolmentStatusDisplay(
+  status: string | null | undefined,
+): EnrolmentStatusDisplay {
+  if (!status) return UNKNOWN_STATUS;
+  return STATUS_DISPLAY[status] ?? UNKNOWN_STATUS;
+}

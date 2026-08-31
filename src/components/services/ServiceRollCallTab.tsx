@@ -40,6 +40,7 @@ import { ServiceWeeklyRollCallGrid } from "./ServiceWeeklyRollCallGrid";
 import { ServiceMonthlyRollCallView } from "./ServiceMonthlyRollCallView";
 import { cn } from "@/lib/utils";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { useServiceRooms } from "@/hooks/useServiceRooms";
 
 type RollCallView = "daily" | "weekly" | "monthly";
 
@@ -50,11 +51,13 @@ interface ServiceRollCallTabProps {
   serviceName?: string;
 }
 
-const SESSION_LABELS: Record<string, string> = {
-  bsc: "BSC",
-  asc: "ASC",
-  vc: "VC",
-};
+/**
+ * Fallback only, for the walk-in dialog heading before the rooms have
+ * loaded. There is no label MAP here any more: the tab row and the
+ * heading both use the room record's own name, which is what staff call
+ * it. See docs/rooms-migration-plan.md, Stage 2.
+ */
+const slotCode = (s: string) => s.toUpperCase();
 
 function formatTime(dt: string | null): string {
   if (!dt) return "";
@@ -112,7 +115,29 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
   const initialDate =
     urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate) ? urlDate : todayDateString();
   const [date, setDateState] = useState(initialDate);
-  const [sessionType, setSessionType] = useState("asc");
+  /**
+   * Which room's roll is showing.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md — the tab row was a literal
+   * `["bsc","asc","vc"]`, so a centre running an extra room had no way
+   * to open its roll even though attendance was already being recorded
+   * against it.
+   *
+   * The selection is DERIVED rather than corrected in an effect: a
+   * stored key that isn't one of this centre's rooms falls back to the
+   * afternoon programme, then to whatever the centre's first room is.
+   * An effect that fixed up the state after the fact would render one
+   * frame asking the API for a room that doesn't exist here.
+   */
+  const { data: roomData } = useServiceRooms(serviceId);
+  const rooms = (roomData?.rooms ?? []).filter((r) => r.legacyKey !== null);
+  const [pickedRoom, setPickedRoom] = useState<string | null>(null);
+  const sessionType =
+    pickedRoom && rooms.some((r) => r.legacyKey === pickedRoom)
+      ? pickedRoom
+      : ((rooms.find((r) => r.legacyKey === "asc") ?? rooms[0])?.legacyKey ??
+        "asc");
+  const currentRoom = rooms.find((r) => r.legacyKey === sessionType);
   const [search, setSearch] = useState("");
   // Walk-in flow: educators + directors should be able to add a child to
   // today's roll call when they show up without a booking. The roll-call
@@ -207,18 +232,20 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
               className="px-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
             />
 
-            <div className="flex rounded-lg border border-border overflow-hidden">
-              {(["bsc", "asc", "vc"] as const).map((st) => (
+            {/* One tab per ROOM this centre has, in the centre's own
+                order — however many that is. */}
+            <div className="flex rounded-lg border border-border overflow-hidden overflow-x-auto">
+              {rooms.map((room) => (
                 <button
-                  key={st}
-                  onClick={() => setSessionType(st)}
-                  className={`px-5 py-2.5 text-sm font-medium transition-colors min-h-[44px] ${
-                    sessionType === st
+                  key={room.id}
+                  onClick={() => setPickedRoom(room.legacyKey)}
+                  className={`px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors min-h-[44px] ${
+                    sessionType === room.legacyKey
                       ? "bg-brand text-white"
                       : "bg-card text-muted hover:bg-surface"
                   }`}
                 >
-                  {SESSION_LABELS[st]}
+                  {room.name}
                 </button>
               ))}
             </div>
@@ -299,6 +326,7 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
           serviceId={serviceId}
           date={date}
           sessionType={sessionType}
+          roomName={currentRoom?.name}
           existingChildIds={new Set(entries.map((e) => e.childId))}
           onClose={() => setShowAddChild(false)}
           onSignIn={(childId) =>
@@ -325,6 +353,7 @@ function AddChildDialog({
   serviceId,
   date,
   sessionType,
+  roomName,
   existingChildIds,
   onClose,
   onSignIn,
@@ -333,6 +362,8 @@ function AddChildDialog({
   serviceId: string;
   date: string;
   sessionType: string;
+  /** The room's own name. Absent only while the rooms are still loading. */
+  roomName?: string;
   existingChildIds: Set<string>;
   onClose: () => void;
   onSignIn: (childId: string) => void;
@@ -368,7 +399,7 @@ function AddChildDialog({
     day: "numeric",
     month: "short",
   });
-  const sessionLabel = SESSION_LABELS[sessionType] ?? sessionType.toUpperCase();
+  const sessionLabel = roomName ?? slotCode(sessionType);
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -578,6 +609,15 @@ function RollCallRow({
                 Casual
               </span>
             )}
+            {/* Their first ever session. Sits beside the name rather than
+                in the detail panel: it's the one thing you want to know
+                BEFORE you greet a child nobody recognises. */}
+            {entry.isFirstSession && (
+              <span className="inline-flex items-center gap-1 text-2xs font-bold px-1.5 py-0.5 rounded-full bg-brand text-white uppercase tracking-wide">
+                <Sparkles className="w-3 h-3" />
+                First day
+              </span>
+            )}
           </div>
           {entry.child.yearLevel && (
             <p className="text-xs text-muted">{entry.child.yearLevel}</p>
@@ -734,7 +774,7 @@ function RollCallRow({
                         ) : (
                           <Camera className="w-3.5 h-3.5" />
                         )}
-                        First-day photo SMS
+                        Send first-day photo
                       </button>
                     )
                   )}

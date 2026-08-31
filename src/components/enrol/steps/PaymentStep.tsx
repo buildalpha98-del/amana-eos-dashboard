@@ -2,6 +2,13 @@
 
 import { CreditCard, Building2 } from "lucide-react";
 import { EnrolmentFormData, PaymentInfo } from "../types";
+import {
+  CREDIT_CARD_FEE,
+  DIRECT_DEBIT_FEE,
+  dishonourDescription,
+  feeDescription,
+  feeExample,
+} from "@/lib/enrol-fees";
 
 interface Props {
   data: EnrolmentFormData;
@@ -188,11 +195,30 @@ export function PaymentStep({ data, updateData }: Props) {
       {payment.method && (
         <>
           <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-            <h4 className="text-sm font-semibold text-amber-800 mb-2">Surcharge Disclosure</h4>
+            {/*
+              Sourced from src/lib/enrol-fees.ts, NOT hardcoded.
+
+              These figures used to be literals here — "1.75% / 2.65% /
+              $0.75 per transaction" — and they CONTRADICTED the canonical
+              module the parent portal's Agreement step reads from
+              ($2.50 flat per card payment, 0.75% per direct debit, $2.50
+              dishonour). Two live enrolment surfaces were quoting
+              different fees to the same family, and the bank figure was
+              wrong by more than 10x on a typical fortnightly fee
+              (a flat 75c vs 0.75% of the amount).
+
+              Fee disclosure is legally sensitive under the ACL, which is
+              exactly why enrol-fees.ts exists and says every surface must
+              read from it.
+            */}
+            <h4 className="text-sm font-semibold text-amber-800 mb-2">Payment fees</h4>
             <ul className="text-sm text-amber-700 space-y-1">
-              <li>Visa / Mastercard: 1.75% surcharge</li>
-              <li>American Express: 2.65% surcharge</li>
-              <li>Bank Account: $0.75 per transaction</li>
+              <li>
+                Direct debit: {feeDescription(DIRECT_DEBIT_FEE)}
+                {feeExample(DIRECT_DEBIT_FEE) ? ` — ${feeExample(DIRECT_DEBIT_FEE)}` : ""}
+              </li>
+              <li>Card: {feeDescription(CREDIT_CARD_FEE)}</li>
+              <li>{dishonourDescription(DIRECT_DEBIT_FEE)}</li>
             </ul>
           </div>
 

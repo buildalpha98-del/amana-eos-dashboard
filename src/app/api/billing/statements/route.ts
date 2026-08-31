@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { $Enums } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { resolveServiceIdFilter } from "@/lib/authz-scope";
+import { requireFromMap, resolveRoomIds } from "@/lib/room-resolver";
 
 /* ------------------------------------------------------------------ */
 /*  GET /api/billing/statements — list with filters + pagination      */
@@ -58,7 +60,15 @@ export const GET = withApiAuth(async (req, session) => {
 const lineItemSchema = z.object({
   childId: z.string().min(1),
   date: z.string().min(1),
-  sessionType: z.enum(["bsc", "asc", "vc"]),
+  /**
+   * Any of the centre's rooms.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md. This was a literal three,
+   * which meant a booking in an extra room could NEVER reach a
+   * statement — not a labelling problem, a family not being billed.
+   * `resolveRoomIds` below still refuses a slot the centre doesn't run.
+   */
+  sessionType: z.nativeEnum($Enums.SessionType),
   description: z.string().min(1),
   grossFee: z.number(),
   ccsHours: z.number(),
@@ -101,6 +111,16 @@ export const POST = withApiAuth(async (req) => {
   }
 
   // Auto-calculate totals
+  /**
+   * Stage 1 dual key. A line item has no serviceId of its own — it
+   * reaches one through the statement it belongs to — so the rooms
+   * resolve against the statement's service.
+   */
+  const lineRoomIds = await resolveRoomIds(
+    serviceId,
+    lineItems.map((li) => li.sessionType),
+  );
+
   const totalFees = lineItems.reduce((sum, li) => sum + li.grossFee, 0);
   const totalCcs = lineItems.reduce((sum, li) => sum + li.ccsAmount, 0);
   const gapFee = totalFees - totalCcs;
@@ -122,6 +142,9 @@ export const POST = withApiAuth(async (req) => {
           create: lineItems.map((li) => ({
             childId: li.childId,
             date: new Date(li.date),
+            // Stage 1 dual key. A line item reaches its service through
+            // the statement, so the room resolves against that.
+            roomId: requireFromMap(lineRoomIds, li.sessionType),
             sessionType: li.sessionType,
             description: li.description,
             grossFee: li.grossFee,

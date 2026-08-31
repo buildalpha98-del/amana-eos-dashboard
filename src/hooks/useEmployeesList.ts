@@ -47,6 +47,10 @@ export interface EmployeeListItem {
    *  False shows a yellow "no contract issued" badge so admins can
    *  spot staff who still need a contract attached. */
   hasActiveContract: boolean;
+  /** True suppresses both the payroll-link and no-contract badges for
+   *  this user — set by an admin for accounts that deliberately aren't
+   *  real employees (shared service-admin logins, system accounts). */
+  hrWarningsMuted: boolean;
 }
 
 export interface EmployeesListResponse {

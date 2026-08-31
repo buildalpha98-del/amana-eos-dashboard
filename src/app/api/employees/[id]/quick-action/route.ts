@@ -6,7 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { seedOnboardingPackage } from "@/lib/onboarding-seed";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
 
@@ -15,6 +15,7 @@ const ACTIONS = [
   "trigger_onboarding",
   "toggle_admin",
   "toggle_active",
+  "toggle_hr_warnings_muted",
 ] as const;
 
 const bodySchema = z.object({
@@ -40,6 +41,7 @@ export const POST = withApiAuth(async (req: NextRequest, session, context) => {
       email: true,
       role: true,
       active: true,
+      hrWarningsMuted: true,
     },
   });
   if (!target) {
@@ -84,6 +86,10 @@ export const POST = withApiAuth(async (req: NextRequest, session, context) => {
         );
       }
       return await handleToggleActive(target, viewerId);
+
+    case "toggle_hr_warnings_muted":
+      if (!isAdmin) throw ApiError.forbidden("Admin required");
+      return await handleToggleHrWarningsMuted(target, viewerId);
   }
 });
 
@@ -113,8 +119,7 @@ async function handleResetPassword(
   );
   const resend = getResend();
   if (resend) {
-    await resend.emails.send({
-      from: FROM_EMAIL,
+    await sendEmail({
       to: target.email,
       subject,
       html,
@@ -218,5 +223,35 @@ async function handleToggleActive(
       ? `${target.name} reactivated`
       : `${target.name} deactivated`,
     newActive,
+  });
+}
+
+async function handleToggleHrWarningsMuted(
+  target: { id: string; name: string; hrWarningsMuted: boolean },
+  viewerId: string,
+) {
+  const newHrWarningsMuted = !target.hrWarningsMuted;
+  await prisma.user.update({
+    where: { id: target.id },
+    data: { hrWarningsMuted: newHrWarningsMuted },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: viewerId,
+      action: newHrWarningsMuted
+        ? "quick_action.mute_hr_warnings"
+        : "quick_action.unmute_hr_warnings",
+      entityType: "User",
+      entityId: target.id,
+    },
+  });
+
+  return NextResponse.json({
+    ok: true,
+    message: newHrWarningsMuted
+      ? `Payroll and contract warnings muted for ${target.name}`
+      : `Payroll and contract warnings unmuted for ${target.name}`,
+    newHrWarningsMuted,
   });
 }

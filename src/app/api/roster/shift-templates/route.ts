@@ -23,6 +23,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
+import { requireRoomId } from "@/lib/room-resolver";
 
 function callerCanManage(
   role: string,
@@ -96,6 +97,8 @@ export const POST = withApiAuth(async (req, session) => {
       data: {
         serviceId: data.serviceId,
         label: data.label,
+        // Stage 1 dual key — see room-resolver.ts.
+        roomId: await requireRoomId(data.serviceId, data.sessionType),
         sessionType: data.sessionType,
         shiftStart: data.shiftStart,
         shiftEnd: data.shiftEnd,

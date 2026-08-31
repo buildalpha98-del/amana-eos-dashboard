@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
@@ -11,6 +11,9 @@ import {
 } from "@/lib/brevo";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { getSuppressedEmails } from "@/lib/email-suppression";
+import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
+import { getOrgSettings } from "@/lib/org-settings";
 
 import { parseJsonBody } from "@/lib/api-error";
 const emailSendSchema = z.object({
@@ -131,13 +134,63 @@ export const POST = withApiHandler(async (req) => {
     }
 
     // 6. Build recipient list
-    const recipients = contacts.map((c) => ({
+    let recipients = contacts.map((c) => ({
       email: c.email,
       name: [c.firstName, c.lastName].filter(Boolean).join(" ") || undefined,
     }));
 
+    // 6b. Suppression + frequency-cap filtering.
+    // DELIBERATE behavior change (Phase 6): the cowork path historically
+    // applied NO suppression at all — bounced/complained/unsubscribed
+    // addresses kept receiving automation sends. It now honours the same
+    // suppression list and weekly frequency cap as dashboard campaign
+    // sends. Both helper sets are LOWERCASED — compare lowercase to
+    // lowercase or the filters silently match nothing.
+    const suppressed = await getSuppressedEmails(recipients.map((r) => r.email));
+    const suppressedCount = recipients.filter((r) =>
+      suppressed.has(r.email.toLowerCase()),
+    ).length;
+    recipients = recipients.filter(
+      (r) => !suppressed.has(r.email.toLowerCase()),
+    );
+
+    // The cap is org-configurable (Settings → Organisation → Outbound email
+    // sender). getOrgSettings() is cached in-process for ~60s, so a saved cap
+    // change can take up to a minute to reach this path — acceptable
+    // staleness for an advisory guardrail.
+    const { marketingWeeklyCap } = (await getOrgSettings()).email;
+    const capped = await getFrequencyCapped(
+      prisma,
+      recipients.map((r) => r.email),
+      { cap: marketingWeeklyCap },
+    );
+    const cappedCount = recipients.filter((r) =>
+      capped.has(r.email.toLowerCase()),
+    ).length;
+    recipients = recipients.filter((r) => !capped.has(r.email.toLowerCase()));
+
+    if (recipients.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "All recipients are suppressed, unsubscribed or at their weekly email limit",
+        },
+        { status: 400 },
+      );
+    }
+
     // 7. Send via Brevo (transactional < 50, campaign >= 50)
     let messageId: string;
+    // externalId/externalIdType feed DeliveryLog for webhook correlation —
+    // kept separate from `messageId` (the API response / activity-log field,
+    // which keeps its existing "campaign-<id>" shape for backwards compat).
+    // The webhook matches campaign events against the RAW campaign id (see
+    // brevo-events.ts `campId` / webhooks/brevo route), so externalId must
+    // NOT carry the "campaign-" prefix.
+    let externalId: string;
+    let externalIdType: string;
+    let brevoListId: number | undefined;
     const status = scheduledAt ? "scheduled" : "sent";
 
     if (recipients.length < 50) {
@@ -150,6 +203,8 @@ export const POST = withApiHandler(async (req) => {
         scheduledAt: scheduledAt || undefined,
       });
       messageId = result.messageId;
+      externalId = result.messageId;
+      externalIdType = "brevo_message";
     } else {
       const result = await sendCampaignEmail({
         recipients,
@@ -159,26 +214,47 @@ export const POST = withApiHandler(async (req) => {
         scheduledAt: scheduledAt || undefined,
       });
       messageId = `campaign-${result.campaignId}`;
+      externalId = String(result.campaignId);
+      externalIdType = "brevo_campaign";
+      // Persist the temp Brevo list id so the email-janitor cron can clean
+      // it up — and, crucially, so its scheduled-list protection can SEE
+      // this send (unprotected scheduled lists older than 7 days get swept).
+      brevoListId = result.listId;
     }
 
     // 8. Create DeliveryLog
-    await prisma.deliveryLog.create({
+    const log = await prisma.deliveryLog.create({
       data: {
         channel: "email",
         serviceCode: serviceCode.toUpperCase() === "ALL" ? null : serviceCode,
         messageType: tags?.[0] || "newsletter",
-        externalId: messageId,
+        externalId,
+        externalIdType,
         recipientCount: recipients.length,
         status,
+        // sentAt = dispatch completion (schema doc contract). Scheduled sends
+        // leave it null — the Brevo webhook stamps it when the first delivery
+        // event flips the row to "sent".
+        sentAt: scheduledAt ? undefined : new Date(),
         payload: {
           subject,
           serviceCode,
           recipientCount: recipients.length,
           templateId: templateId || null,
           tags: tags || [],
+          ...(brevoListId !== undefined ? { _brevoListId: brevoListId } : {}),
         },
       },
     });
+
+    // 8b. Ledger: every dispatched recipient counts toward the weekly
+    // frequency cap (source "cowork"). Recorded via the shared helper ONLY —
+    // see frequency-cap.ts.
+    await recordMarketingSends(
+      prisma,
+      recipients.map((r) => ({ email: r.email })),
+      { deliveryLogId: log.id, source: "cowork" },
+    );
 
     // 9. Activity log
     logCoworkActivity({
@@ -192,6 +268,8 @@ export const POST = withApiHandler(async (req) => {
       success: true,
       messageId,
       recipientCount: recipients.length,
+      suppressedCount,
+      cappedCount,
       serviceCode,
       status,
     });

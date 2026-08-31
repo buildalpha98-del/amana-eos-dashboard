@@ -8,41 +8,47 @@ import { BulkInviteModal } from "@/components/settings/BulkInviteModal";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import {
-  Settings,
-  Users,
-  Database,
-  UserPlus,
-  Shield,
-  ShieldCheck,
-  User,
-  MoreVertical,
-  X,
   Activity,
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  BellOff,
+  Building2,
+  Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  Check,
-  Loader2,
-  Link2,
-  Unlink,
-  RefreshCw,
-  ArrowRight,
-  MapPin,
-  FileSpreadsheet,
-  Lock,
-  BellOff,
-  CheckCircle2,
-  XCircle,
-  Key,
   CloudCog,
-  Save,
   Copy,
-  AlertTriangle,
-  Building2,
-  Sparkles,
-  BarChart3,
-  Zap,
+  Database,
+  DoorOpen,
   DollarSign,
+  FileSpreadsheet,
+  Filter,
+  Key,
+  KeyRound,
+  Link2,
+  Loader2,
+  Lock,
+  LogOut,
+  MapPin,
+  MoreVertical,
+  Receipt,
+  RefreshCw,
+  Save,
+  Search,
+  Settings,
+  Shield,
+  SlidersHorizontal,
+  ShieldCheck,
+  Sparkles,
+  Unlink,
+  User,
+  UserPlus,
+  Users,
+  X,
+  XCircle,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -54,6 +60,11 @@ import {
   type PermissionRow,
 } from "@/lib/role-permissions";
 import { useRoleLabels } from "@/contexts/RoleLabelsContext";
+import {
+  resolveGroup,
+  searchSettings,
+  visibleGroups,
+} from "@/lib/settings-sections";
 import {
   useXeroStatus,
   useXeroConnect,
@@ -402,6 +413,38 @@ function UserRow({
     },
   });
 
+  const revokeSessions = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}/revoke-sessions`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to sign the user out");
+      return res.json();
+    },
+    onSuccess: () =>
+      toast({
+        description: `${user.name ?? "That user"} has been signed out on every device.`,
+      }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
+  });
+
+  const resetKioskPin = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}/reset-kiosk-pin`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to reset the kiosk PIN");
+      return res.json();
+    },
+    onSuccess: () =>
+      toast({
+        description: "Kiosk PIN reset — they'll be prompted to set a new one.",
+      }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
+  });
+
   const toggleMute = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/users/${user.id}`, {
@@ -639,6 +682,29 @@ function UserRow({
                   >
                     <Lock className="w-3.5 h-3.5" />
                     Reset Password
+                  </button>
+                  {/*
+                    Both endpoints existed with no UI (2026-08-01 sweep).
+                    Sign-out-everywhere is the control you reach for when a
+                    phone is lost or someone leaves — having it only as an
+                    API meant it was unusable at exactly the moment it
+                    mattered.
+                  */}
+                  <button
+                    onClick={() => { revokeSessions.mutate(); setShowMenu(false); }}
+                    disabled={revokeSessions.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out everywhere
+                  </button>
+                  <button
+                    onClick={() => { resetKioskPin.mutate(); setShowMenu(false); }}
+                    disabled={resetKioskPin.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    Reset kiosk PIN
                   </button>
                   <button
                     onClick={() => toggleMute.mutate()}
@@ -2904,6 +2970,12 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
   const [showBulkInvite, setShowBulkInvite] = useState(false);
   const [showImportStaff, setShowImportStaff] = useState(false);
+  // Which group is open, and the search box. Deliberately local state
+  // rather than a URL param: nothing here is worth deep-linking to, and
+  // `useSearchParams` would drag the whole page under a Suspense
+  // boundary for a bookmark nobody has asked for.
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const isOwner = userRole === "owner";
   const isHeadOffice = userRole === "head_office";
   const canManageUsers = isOwner || isHeadOffice;
@@ -2919,42 +2991,194 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
     enabled: canManageUsers,
   });
 
+  const groups = visibleGroups(userRole);
+  const active = resolveGroup(activeGroup, userRole);
+  const results = searchSettings(query, userRole);
+  const searching = query.trim().length > 0;
+  /** Which group is on screen — used by every section's render guard. */
+  const showing = active?.key ?? null;
+
   return (
-    <div
-      data-v2="staff"
-      className="max-w-4xl mx-auto space-y-8"
-    >
+    <div data-v2="staff" className="max-w-6xl mx-auto space-y-6">
       <PageHeader title="Settings" description="Organisation settings, integrations, and user management" />
 
+      {/* Search first: for anyone who knows what they want, typing it is
+          faster than learning which of five groups we filed it under. */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search settings…"
+          aria-label="Search settings"
+          className="w-full pl-9 pr-3 py-2.5 border border-border rounded-lg text-base sm:text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30"
+        />
+      </div>
+
+      {searching ? (
+        <div className="space-y-2">
+          {results.length === 0 && (
+            <p className="text-sm text-muted py-8 text-center">
+              Nothing matches “{query.trim()}”.
+            </p>
+          )}
+          {results.map(({ group, item }) => {
+            const body = (
+              <>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {item.label}
+                  </h3>
+                  <p className="text-xs text-muted mt-0.5">{item.description}</p>
+                  <p className="text-2xs text-muted mt-1">in {group.label}</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted ml-auto shrink-0" />
+              </>
+            );
+            const cls =
+              "w-full flex items-center gap-4 bg-card rounded-xl border border-border p-4 hover:border-brand/40 transition-all text-left";
+            // An item with its own page navigates; an inline one jumps to
+            // the group that renders it and clears the search.
+            return item.href ? (
+              <Link key={item.key} href={item.href} className={cls}>
+                {body}
+              </Link>
+            ) : (
+              <button
+                key={item.key}
+                type="button"
+                className={cls}
+                onClick={() => {
+                  setActiveGroup(group.key);
+                  setQuery("");
+                }}
+              >
+                {body}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-6">
+          {/* Group nav. Horizontal scroll on mobile, a rail on desktop. */}
+          <nav
+            aria-label="Settings sections"
+            className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible sm:w-56 sm:shrink-0"
+          >
+            {groups.map((g) => (
+              <button
+                key={g.key}
+                type="button"
+                onClick={() => setActiveGroup(g.key)}
+                aria-current={showing === g.key ? "page" : undefined}
+                className={cn(
+                  "px-3 py-2 rounded-lg text-sm text-left whitespace-nowrap transition-colors",
+                  showing === g.key
+                    ? "bg-brand text-white"
+                    : "text-muted hover:bg-surface",
+                )}
+              >
+                {g.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex-1 min-w-0 space-y-6">
+            {active && (
+              <p className="text-sm text-muted">{active.description}</p>
+            )}
+
       {/* Organisation Settings (owner only) */}
-      {isOwner && <OrgSettingsSection isOwner={isOwner} />}
+      {showing === "organisation" && isOwner && <OrgSettingsSection isOwner={isOwner} />}
+
+      {/* Runtime configuration lives on its own page. */}
+      {showing === "organisation" && (isOwner || userRole === "admin") && (
+        <SettingsLink
+          href="/settings/organisation"
+          icon={SlidersHorizontal}
+          title="Runtime configuration"
+          description="Email sender, default educator ratio, health score weights."
+        />
+      )}
 
       {/* System Banners (owner/head_office) */}
-      {(isOwner || isHeadOffice) && <BannerManagementSection />}
+      {showing === "organisation" && (isOwner || isHeadOffice) && <BannerManagementSection />}
+
+      {/* Budget Tiers (owner/head_office) */}
+      {showing === "organisation" && isOwner && <BudgetTiersSection />}
 
       {/* Xero Integration (owner only) */}
-      {isOwner && (
+      {showing === "integrations" && isOwner && (
         <XeroIntegrationSection isOwner={isOwner} />
       )}
 
       {/* OWNA Integration (owner/admin) */}
-      {(userRole === "owner" || userRole === "admin") && (
+      {showing === "integrations" && (userRole === "owner" || userRole === "admin") && (
         <OwnaIntegrationSection />
       )}
 
+      {showing === "integrations" && (isOwner || isHeadOffice) && (
+        <SettingsLink
+          href="/settings/payroll"
+          icon={Receipt}
+          title="Payroll"
+          description="Employment Hero connection and employee sync."
+        />
+      )}
+
       {/* API Keys (owner only) */}
-      {isOwner && <ApiKeysSection />}
+      {showing === "integrations" && isOwner && <ApiKeysSection />}
 
       {/* Time-clock kiosks (owner/head_office/admin) — 2026-05-04 (timeclock v1) */}
-      {(userRole === "owner" || userRole === "head_office" || userRole === "admin") && (
+      {showing === "people" && (userRole === "owner" || userRole === "head_office" || userRole === "admin") && (
         <KiosksPanel />
       )}
 
-      {/* Budget Tiers (owner/head_office) */}
-      {isOwner && <BudgetTiersSection />}
+      {showing === "people" && (isOwner || userRole === "admin") && (
+        <SettingsLink
+          href="/settings/permissions"
+          icon={Shield}
+          title="Role permissions"
+          description="The page-by-page access matrix."
+        />
+      )}
+
+      {showing === "communications" && (isOwner || userRole === "admin") && (
+        <SettingsLink
+          href="/settings/email-templates"
+          icon={Mail}
+          title="Email templates"
+          description="Subject and body for transactional emails."
+        />
+      )}
+
+      {/* Rooms migration (owner/head office).
+          Registering an item in settings-sections.ts puts it in SEARCH
+          and in the group nav, but the browse view renders each href
+          item as its own tile here — so an entry added only to the
+          config is findable by typing its name and invisible to anyone
+          scrolling. */}
+      {showing === "system" && (isOwner || isHeadOffice) && (
+        <SettingsLink
+          href="/settings/rooms-migration"
+          icon={DoorOpen}
+          title="Rooms migration"
+          description="Progress moving rooms out of fixed slots, and the check that has to pass before the next step."
+        />
+      )}
+
+      {showing === "system" && (isOwner || isHeadOffice || userRole === "admin") && (
+        <SettingsLink
+          href="/settings/ai-knowledge"
+          icon={Sparkles}
+          title="AI knowledge"
+          description="Content the assistant searches when staff ask questions."
+        />
+      )}
 
       {/* Seed Template Data (owner/admin) */}
-      {(userRole === "owner" || userRole === "admin") && (
+      {showing === "system" && (userRole === "owner" || userRole === "admin") && (
         <Link
           href="/settings/seed"
           className="flex items-center gap-4 bg-card rounded-xl border border-border p-6 hover:border-brand/40 hover:shadow-sm transition-all group"
@@ -2975,7 +3199,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       )}
 
       {/* User Management (owner + head_office) */}
-      {canManageUsers && (
+      {showing === "people" && canManageUsers && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -3071,7 +3295,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
         </div>
       )}
 
-      {!canManageUsers && (
+      {showing === "people" && !canManageUsers && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-5 h-5 text-muted" />
@@ -3087,10 +3311,10 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       )}
 
       {/* AI Usage Dashboard (owner/head_office) */}
-      {(isOwner || isHeadOffice) && <AiUsageDashboard />}
+      {showing === "system" && (isOwner || isHeadOffice) && <AiUsageDashboard />}
 
       {/* Adoption Metrics (owner/admin/head_office) */}
-      {(isOwner || isHeadOffice || userRole === "admin") && (
+      {showing === "system" && (isOwner || isHeadOffice || userRole === "admin") && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-5 h-5 text-muted" />
@@ -3103,13 +3327,13 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       )}
 
       {/* Activity Log (owner/head_office/admin) */}
-      {(userRole === "owner" || userRole === "head_office" || userRole === "admin") && <ActivityLogPanel />}
+      {showing === "system" && (userRole === "owner" || userRole === "head_office" || userRole === "admin") && <ActivityLogPanel />}
 
       {/* Permissions overview (owner only) */}
-      {isOwner && <PermissionsPanel />}
+      {showing === "people" && isOwner && <PermissionsPanel />}
 
       {/* Notification Log (coordinator+) */}
-      {(userRole === "owner" || userRole === "head_office" || userRole === "admin" || userRole === "member") && (
+      {showing === "communications" && (userRole === "owner" || userRole === "head_office" || userRole === "admin" || userRole === "member") && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-4">
             <Mail className="w-5 h-5 text-muted" />
@@ -3120,6 +3344,48 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
           <NotificationLogTab />
         </div>
       )}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * A settings area that lives on its own page.
+ *
+ * These used to be reachable only from the sidebar, which meant Settings
+ * showed you eleven cards and silently omitted six more. Rendering them
+ * as rows inside the group they belong to is what makes the area
+ * complete — you can see everything from here, whether or not it opens
+ * in place.
+ */
+function SettingsLink({
+  href,
+  icon: Icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-4 bg-card rounded-xl border border-border p-6 hover:border-brand/40 hover:shadow-sm transition-all group"
+    >
+      <div className="p-2.5 rounded-lg bg-brand/10 text-brand shrink-0">
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold text-foreground group-hover:text-brand transition-colors">
+          {title}
+        </h3>
+        <p className="text-xs text-muted mt-0.5">{description}</p>
+      </div>
+      <ArrowRight className="w-4 h-4 text-muted group-hover:text-brand ml-auto shrink-0 transition-colors" />
+    </Link>
   );
 }

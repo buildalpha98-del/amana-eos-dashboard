@@ -23,6 +23,8 @@ import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import type { ProfileData } from "@/hooks/useMyPortal";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
+import { MyCertificatesSection } from "@/components/profile/MyCertificatesSection";
 
 /* ------------------------------------------------------------------ */
 /* Profile Page                                                        */
@@ -442,6 +444,18 @@ export default function ProfilePage() {
           </FieldRow>
         </div>
       </div>
+
+      {/* Working With Children Check — a gate requirement, so it sits with
+          the other things induction checks rather than buried on /compliance. */}
+      {userId && <MyCertificatesSection userId={userId} />}
+
+      {/* Emergency Contacts — also a gate requirement. */}
+      {userId && (
+        <EmergencyContactsSection
+          userId={userId}
+          contacts={profile?.emergencyContacts ?? []}
+        />
+      )}
 
       {/* Address */}
       <div className="bg-card rounded-xl border border-border p-6">

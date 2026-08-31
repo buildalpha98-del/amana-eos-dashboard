@@ -19,11 +19,10 @@ const formatDate = (dateStr: string) =>
     year: "numeric",
   });
 
-const SESSION_LABELS: Record<string, string> = {
-  bsc: "BSC",
-  asc: "ASC",
-  vc: "VAC",
-};
+/**
+ * No label map: the session cell shows the ROOM's name, which arrives
+ * on the line item. See docs/rooms-migration-plan.md, Stage 2.
+ */
 
 const STATUS_BADGE: Record<string, string> = {
   draft: "bg-surface text-muted",
@@ -199,7 +198,7 @@ export function StatementDetailPanel({
                             {formatDate(li.date)}
                           </td>
                           <td className="py-1.5 pr-2 text-muted">
-                            {SESSION_LABELS[li.sessionType] ?? li.sessionType}
+                            {li.room?.name ?? li.sessionType}
                           </td>
                           <td className="py-1.5 pr-2 text-right text-foreground">
                             {fmt(li.grossFee)}

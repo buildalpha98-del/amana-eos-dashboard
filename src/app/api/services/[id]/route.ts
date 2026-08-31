@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
-import { sessionTimesSchema } from "@/lib/service-settings";
+import { sessionTimesSchema, type SessionTimes } from "@/lib/service-settings";
+import { syncRoomsQuietly } from "@/lib/rooms";
 import { getCentreScope } from "@/lib/centre-scope";
 import { z } from "zod";
 
@@ -17,21 +18,26 @@ const patchSchema = z.object({
   email: z.string().optional(),
   status: z.string().optional(),
   managerId: z.string().optional(),
-  capacity: z.number().optional(),
+  // Nullable, not just optional: the editor sends `capacity: null` when
+  // the box is left blank, which is the normal state for a centre that
+  // hasn't set one. `z.number().optional()` rejected that outright, so
+  // saving contact details on any such service failed validation with
+  // nothing on screen to explain why.
+  capacity: z.number().int().min(0).max(10_000).nullable().optional(),
   operatingDays: z.array(z.string()).optional(),
   notes: z.string().optional(),
-  bscDailyRate: z.number().optional(),
-  ascDailyRate: z.number().optional(),
-  vcDailyRate: z.number().optional(),
-  bscCasualRate: z.number().optional(),
-  ascCasualRate: z.number().optional(),
-  bscGroceryRate: z.number().optional(),
-  ascGroceryRate: z.number().optional(),
-  vcGroceryRate: z.number().optional(),
-  monthlyPurchaseBudget: z.number().optional(),
+  bscDailyRate: z.number().nullable().optional(),
+  ascDailyRate: z.number().nullable().optional(),
+  vcDailyRate: z.number().nullable().optional(),
+  bscCasualRate: z.number().nullable().optional(),
+  ascCasualRate: z.number().nullable().optional(),
+  bscGroceryRate: z.number().nullable().optional(),
+  ascGroceryRate: z.number().nullable().optional(),
+  vcGroceryRate: z.number().nullable().optional(),
+  monthlyPurchaseBudget: z.number().nullable().optional(),
   contractStartDate: z.string().nullable().optional(),
   contractEndDate: z.string().nullable().optional(),
-  licenceFeeAnnual: z.number().optional(),
+  licenceFeeAnnual: z.number().nullable().optional(),
   schoolPrincipalName: z.string().optional(),
   schoolPrincipalEmail: z.string().optional(),
   schoolBusinessManagerName: z.string().optional(),
@@ -137,8 +143,16 @@ export const PATCH = withApiAuth(
     const body = await parseJsonBody(req);
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {
+      // Name the field. A bare "Validation failed" toast leaves someone
+      // staring at a form with eight inputs and no idea which one it
+      // objected to.
+      const issue = parsed.error.issues[0];
+      const field = issue?.path.join(".") || "A field";
       return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        {
+          error: `${field}: ${issue?.message ?? "is invalid"}`,
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 },
       );
     }
@@ -147,15 +161,26 @@ export const PATCH = withApiAuth(
     const dateFields = new Set([
       "contractStartDate", "contractEndDate", "lastPrincipalVisit",
     ]);
+    // Columns that are NOT NULL in the schema. A cleared field means
+    // "leave it alone" here, not "write null" — the write would fail at
+    // the database with an error nobody can act on.
+    const notNullable = new Set([
+      "bscCasualRate", "ascCasualRate",
+      "bscGroceryRate", "ascGroceryRate", "vcGroceryRate",
+    ]);
 
     for (const [f, value] of Object.entries(parsed.data)) {
-      if (value !== undefined) {
-        if (dateFields.has(f)) {
-          data[f] = value ? new Date(value as string) : null;
-        } else {
-          data[f] = value;
-        }
+      if (value === undefined) continue;
+      if (value === null && notNullable.has(f)) continue;
+      if (dateFields.has(f)) {
+        data[f] = value ? new Date(value as string) : null;
+      } else {
+        data[f] = value;
       }
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw ApiError.badRequest("Nothing to update.");
     }
 
     const existing = await prisma.service.findUnique({ where: { id }, select: { id: true } });
@@ -168,6 +193,25 @@ export const PATCH = withApiAuth(
         manager: { select: { id: true, name: true, email: true, avatar: true } },
       },
     });
+
+    /**
+     * Keep the shadow `Room` rows in step with the JSON that still owns
+     * them (Stage 0, docs/rooms-migration-plan.md). A shadow that only
+     * gets written by a backfill drifts the moment anyone edits a room,
+     * and a drifted shadow is worse than an empty one — it looks
+     * populated.
+     *
+     * After the update, not inside a transaction with it: the JSON write
+     * is the truth, and a shadow-sync failure must not roll back a
+     * settings save. `syncRoomsQuietly` logs and swallows for the same
+     * reason. That changes at Stage 2, when reads move.
+     */
+    if ("sessionTimes" in data) {
+      await syncRoomsQuietly(
+        service.id,
+        service.sessionTimes as SessionTimes | null,
+      );
+    }
 
     await prisma.activityLog.create({
       data: {

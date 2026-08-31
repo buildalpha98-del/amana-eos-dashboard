@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Baby,
+  LayoutList,
   Sun,
   LayoutDashboard,
   Eye,
@@ -39,6 +40,7 @@ import {
   Contact,
   Crown,
   Inbox,
+  LifeBuoy,
   Shield,
   Activity,
   CalendarCheck,
@@ -46,6 +48,7 @@ import {
   Mail,
   Network,
   Brain,
+  Palette,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -127,12 +130,28 @@ const EOS_SIDEBAR_ROLES: Role[] = ["head_office", "admin", "marketing", "eos", .
 export const navItems: NavItem[] = [
   // ── Home — personal hub ───────────────────────────────────
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Home", tooltip: "Your command centre overview" , core: true },
-  { href: "/my-portal", label: "My Portal", icon: UserCircle, section: "Home", tooltip: "Your personal HR hub — profile, leave, training & more" , core: true },
-  { href: "/my-day", label: "My Day", icon: Sun, section: "Home", tooltip: "Clock, roll call, and today's checklists in one place" , core: true },
-  { href: "/my-training", label: "My Training", icon: GraduationCap, section: "Home", tooltip: "Your induction and ongoing training courses", core: true },
-  { href: "/surveys", label: "My Surveys", icon: ClipboardList, section: "Home", tooltip: "Surveys sent to you — feedback, check-ins, culture", core: true },
-  { href: "/queue", label: "My Queue", icon: Inbox, section: "Home", tooltip: "Reports and tasks assigned to you from automation" , core: true },
-  { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "Home", tooltip: "Your onboarding checklist — get up to speed quickly" , core: true },
+
+  // ── My Portal — everything that is about YOU ──────────────
+  // 2026-08-06: pulled out of Home into their own collapsible group.
+  // An educator's sidebar previously opened with eight flat links, five
+  // of which were personal; grouping them means the sidebar reads as
+  // "me" then "the work" rather than one undifferentiated list.
+  { href: "/my-portal", label: "My Portal", icon: UserCircle, section: "My Portal", tooltip: "Your personal HR hub — profile, leave, training & more" , core: true },
+  { href: "/my-day", label: "My Day", icon: Sun, section: "My Portal", tooltip: "Clock, roll call, and today's checklists in one place" , core: true },
+  { href: "/my-training", label: "My Training", icon: GraduationCap, section: "My Portal", tooltip: "Your induction and ongoing training courses", core: true },
+  { href: "/surveys", label: "My Surveys", icon: ClipboardList, section: "My Portal", tooltip: "Surveys sent to you — feedback, check-ins, culture", core: true },
+  { href: "/roster/me", label: "My Roster", icon: CalendarDays, section: "My Portal", tooltip: "Your published shifts and swap requests", core: true },
+  { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "My Portal", tooltip: "Your onboarding checklist — get up to speed quickly" , core: true },
+  // Same route as Operations → Compliance, deliberately filed under "me"
+  // for centre roles: to an Educator, compliance means their own WWCC and
+  // first aid certificate, not the network's compliance position.
+  { href: "/compliance", label: "My Compliance", icon: ShieldCheck, section: "My Portal", tooltip: "Your certificates and documents — upload and keep them current", roles: ["member", "staff"], core: ["member", "staff"] },
+  // My Queue is an automation inbox for head office, not a personal one.
+  // Removed for Educators AND Directors of Service (2026-08-06) — work
+  // reaches them through their centre, not through an automation queue.
+  // Still reachable by URL and ⌘K.
+  { href: "/queue", label: "My Queue", icon: Inbox, section: "My Portal", tooltip: "Reports and tasks assigned to you from automation", roles: ["owner", "head_office", "admin", "eos"], core: ["owner", "head_office", "admin", "eos"] },
+  { href: "/queue/all", label: "All Queues", icon: Inbox, section: "My Portal", tooltip: "Pending reports and tasks across the whole team", roles: ["owner", "head_office", "admin"], core: ["owner", "head_office", "admin"] },
 
   // ── EOS — pure EOS methodology ────────────────────────────
   // 2026-04-30: tightened from ALL_NON_MARKETING → EOS_SIDEBAR_ROLES.
@@ -148,10 +167,18 @@ export const navItems: NavItem[] = [
   { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings", roles: EOS_SIDEBAR_ROLES , core: true },
   { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)", roles: EOS_SIDEBAR_ROLES , core: true },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings", roles: EOS_SIDEBAR_ROLES , core: true },
-  // Visible to ALL roles (everyone benefits from seeing org structure).
-  { href: "/accountability-chart", label: "Accountability Chart", icon: Network, section: "EOS", tooltip: "Who's accountable for what — the org structure" },
+  // 2026-08-06: no longer shown to Educators. The rest of the EOS
+  // section is already hidden from them, so a lone org chart under an
+  // otherwise-empty "EOS" heading was the only thing that section did
+  // for floor staff.
+  { href: "/accountability-chart", label: "Accountability Chart", icon: Network, section: "EOS", tooltip: "Who's accountable for what — the org structure", roles: EOS_SIDEBAR_ROLES },
 
   // ── Operations — day-to-day running ───────────────────────
+  // 2026-08-06: for Educators and Directors of Service this lives inside
+  // the service (Program → Activity Library), where programming actually
+  // happens. A second top-level door to the same templates meant leaving
+  // the centre you were programming for to reach them.
+  { href: "/activity-library", label: "Activity Library", icon: LayoutList, section: "Operations", tooltip: "Reusable activity templates for weekly programming", roles: ["head_office", "admin", "eos"] },
   { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING , core: true },
   // /roll-call top-level removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
   // Coordinators / staff drill into their service to access the daily roll call grid.
@@ -173,7 +200,7 @@ export const navItems: NavItem[] = [
   // 2026-07-05 (nav consolidation phase 1): /compliance/templates and
   // /compliance/registers removed from the sidebar — the /compliance page
   // tab bar now links out to both sub-pages instead.
-  { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ALL_NON_MARKETING , core: true },
+  { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ["head_office", "admin", "eos"] , core: true },
   { href: "/safe-reports", label: "Safe Reports", icon: Shield, section: "Operations", tooltip: "Anonymous staff reports — harassment, safety, conduct. Owner & head office only.", roles: ["owner", "head_office"] , hidden: true }, // folded 2026-07-12 — linked from Compliance (owner/head_office tab)
   { href: "/policies", label: "Policies & Procedures", icon: Shield, section: "Operations", tooltip: "Versioned PDF library with per-version acknowledgement", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Compliance; pending-ack badge still force-shows in the sidebar
   // 2026-07-05: /incidents removed from the sidebar entirely (was
@@ -188,6 +215,7 @@ export const navItems: NavItem[] = [
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING , core: true },
   // 2026-07-30: staff view of parent ACCOUNTS (the login side), as opposed
   // to /enrolments which lists submitted forms. Sits beside it in Growth.
+  { href: "/waitlist", label: "Waitlist", icon: Users, section: "Growth", tooltip: "Families waiting for a place, in order", roles: ALL_NON_MARKETING, core: true },
   { href: "/families", label: "Families", icon: Users, section: "Growth", tooltip: "Parent accounts, enrolment progress and children", roles: ALL_NON_MARKETING },
   // Unfolded 2026-07-31: staff need to find a child by name when a parent
   // calls or emails without saying which service they attend. Searching
@@ -195,18 +223,31 @@ export const navItems: NavItem[] = [
   // behind "+N more" was costing that lookup.
   { href: "/children", label: "Children", icon: Baby, section: "Growth", tooltip: "Find any child across all services", roles: ALL_NON_MARKETING, core: true },
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING , core: true },
+  // 2026-08-03: Ambassadors pilot — staff enrolment incentives. Narrower
+  // than ALL_NON_MARKETING on purpose: marketing/eos aren't in
+  // rolePageAccess for /ambassadors, and a nav item they can't open is a
+  // dead link.
+  { href: "/ambassadors", label: "Ambassadors", icon: Trophy, section: "Growth", tooltip: "Educator enrolment incentive pilot — referrals, verification & payouts", roles: ["head_office", "admin", "member", "staff"], core: ["owner", "head_office", "admin", "member", "staff"] },
+  { href: "/crm/templates", label: "CRM Templates", icon: Mail, section: "Growth", tooltip: "Email templates behind automated CRM touchpoints", roles: ["owner", "head_office", "admin", "marketing"] },
+  // 2026-08-08: admin surface for the public parent help centre at /support.
+  { href: "/help-centre", label: "Help Centre", icon: LifeBuoy, section: "Growth", tooltip: "Manage the public parent help centre — FAQ categories, articles and the contact form", roles: ["owner", "head_office", "admin"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" , core: ["marketing"] },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
   // \u2500\u2500 Marketing \u2014 campaigns & brand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" , core: true },
+  { href: "/requests", label: "Design Requests", icon: Palette, section: "Operations", tooltip: "Request design work from the marketing team — posters, flyers, table covers", core: true },
   { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] , core: ["marketing"] , hidden: true }, // folded 2026-07-12 — linked from Marketing; marketing role can favourite it
   { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] , core: ["marketing"] , hidden: true }, // folded 2026-07-12 — linked from Marketing; marketing role can favourite it
 
   // ── People — HR & workforce ───────────────────────────────
   { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING , core: true },
   { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "People", tooltip: "Track vacancies, candidates & staff referrals", roles: ALL_NON_MARKETING },
-  { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ALL_NON_MARKETING },
+  // 2026-08-06: leadership only. Staff Lifecycle is the ADMIN surface for
+  // induction and the LMS — an Educator or Director of Service does their
+  // own onboarding and training in My Training, and having both meant two
+  // doors to the same subject with different contents behind them.
+  { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ["head_office", "admin", "eos"] },
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING , hidden: true }, // folded 2026-07-12 — linked from Staff Lifecycle
   { href: "/position-descriptions", label: "Position Descriptions", icon: FileText, section: "People", tooltip: "Per-role job description library" , hidden: true }, // folded 2026-07-12 — linked from Recruitment
   // 2026-07-05 (nav consolidation phase 1): /diversity-dashboard +
@@ -253,6 +294,7 @@ export const navItems: NavItem[] = [
   // gives users a clear mental model of "where do I change config?"
   // and shrinks Admin closer to a support/tools drawer.
   { href: "/settings", label: "Settings", icon: Settings, section: "Settings" , core: true },
+  { href: "/settings/payroll", label: "Payroll Integration", icon: Receipt, section: "Settings", tooltip: "Employment Hero connection and employee sync", roles: ["owner", "head_office"] },
   { href: "/settings/organisation", label: "Org Settings", icon: Settings, section: "Settings", tooltip: "Runtime configuration — email sender, ratios, health score weights", roles: ["admin"] },
   { href: "/settings/permissions", label: "Role Permissions", icon: Shield, section: "Settings", tooltip: "Page-by-page access matrix — owner-only edit", roles: ["owner", "admin"] },
   { href: "/settings/ai-knowledge", label: "AI Knowledge", icon: Brain, section: "Settings", tooltip: "Content the AI assistant searches when staff ask questions", roles: ["owner", "head_office", "admin"] },

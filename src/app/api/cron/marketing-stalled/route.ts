@@ -3,10 +3,10 @@ import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
 import { withApiHandler } from "@/lib/api-handler";
+import { siteUrl } from "@/lib/site-url";
 
 const BRAND_COLOR = "#004E64";
-const DASHBOARD_URL =
-  process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+const DASHBOARD_URL = siteUrl();
 
 function wrapLayout(bodyHtml: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>

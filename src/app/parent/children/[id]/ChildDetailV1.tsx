@@ -1,11 +1,21 @@
 "use client";
 
+/**
+ * GalleryTab, DocumentsTab and PickupsTab are EXPORTED (2026-08-01) so
+ * ChildDetailV2 can render the same features.
+ *
+ * The v2 redesign only ever consumed attendance, medications and
+ * observations, so gallery, documents and pickups had working APIs and no
+ * v2 surface — turning on NEXT_PUBLIC_PARENT_PORTAL_V2 would have
+ * silently removed three features families already had. Sharing the
+ * implementation means the flag is a visual toggle, not a feature cut,
+ * and the two versions can't drift.
+ */
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
-  CalendarDays,
   Stethoscope,
   Phone,
   Pill,
@@ -13,13 +23,13 @@ import {
   AlertTriangle,
   Pencil,
   Loader2,
-  Upload,
   CheckCircle2,
   FileText,
   UserCheck,
   Plus,
-  Trash2,
   Camera,
+  CalendarDays,
+  User,
   X,
 } from "lucide-react";
 import {
@@ -27,10 +37,8 @@ import {
   useChildAttendance,
   useUpdateChildMedical,
   type ParentChild,
-  type AttendanceDay,
   type UpdateChildMedicalPayload,
 } from "@/hooks/useParentPortal";
-import { useChildAttendanceDetail } from "@/hooks/useChildAttendanceDetail";
 import { useChildGallery, type GalleryImage } from "@/hooks/useChildGallery";
 import {
   Dialog,
@@ -42,25 +50,36 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { ChildInformationTab } from "@/components/parent/ChildInformationTab";
+import { ParentFeed } from "@/components/parent/ParentFeed";
+import { LearningJournalSection } from "./LearningJournalSection";
+import { programmeName } from "@/lib/programme-names";
 
-type Tab = "attendance" | "gallery" | "medical" | "documents" | "pickups" | "contacts";
+type Tab = "info" | "attendance" | "gallery" | "medical" | "documents" | "pickups";
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  // First, and the default: when a parent opens their child it's usually
+  // to check or correct something here, not to read the timetable.
+  { key: "info", label: "Info", icon: User },
+  // Real sign-in records this time. The previous attendance tab derived
+  // "present" from service-level totals and was removed for lying; this
+  // one reads the child's own AttendanceRecord rows.
   { key: "attendance", label: "Attendance", icon: CalendarDays },
-  { key: "gallery", label: "Gallery", icon: Camera },
+  { key: "gallery", label: "Photos", icon: Camera },
   { key: "medical", label: "Medical", icon: Stethoscope },
   { key: "documents", label: "Docs", icon: FileText },
+  // Emergency contacts used to have their own tab. They're the same
+  // people, with the same numbers, as the authorised pickups — and
+  // Pickups is the list staff actually work from at the door, so two
+  // copies just meant one of them going stale.
   { key: "pickups", label: "Pickups", icon: UserCheck },
-  { key: "contacts", label: "Contacts", icon: Phone },
 ];
 
 export default function ChildDetailV1() {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<Tab>("attendance");
+  const [activeTab, setActiveTab] = useState<Tab>("info");
 
   const { data: children, isLoading: childrenLoading } = useParentChildren();
-  const { data: attendance, isLoading: attendanceLoading } =
-    useChildAttendance(id);
 
   const child = children?.find((c) => c.id === id);
 
@@ -131,200 +150,32 @@ export default function ChildDetailV1() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "attendance" && (
-        <AttendanceTab
-          childId={child.id}
-          attendance={attendance ?? []}
-          loading={attendanceLoading}
-        />
+      {activeTab === "info" && <ChildInformationTab childId={child.id} />}
+      {activeTab === "attendance" && <AttendanceTab childId={child.id} />}
+      {activeTab === "gallery" && (
+        <div className="space-y-6">
+          <ParentFeed childId={child.id} childFirstName={child.firstName} />
+          {/* Educator observations shared with the family. Rescued from
+              the deleted V2 variant — the feature was real, the surface
+              wasn't reachable. Silent when there's nothing shared. */}
+          <LearningJournalSection childId={child.id} />
+        </div>
       )}
-      {activeTab === "gallery" && <GalleryTab childId={child.id} />}
       {activeTab === "medical" && <MedicalTab child={child} />}
       {activeTab === "documents" && <DocumentsTab childId={child.id} />}
       {activeTab === "pickups" && <PickupsTab childId={child.id} />}
-      {activeTab === "contacts" && <ContactsTab child={child} />}
     </div>
   );
 }
 
 // ── Attendance Tab ───────────────────────────────────────
 
-const SESSION_LABELS_ATT: Record<string, string> = {
-  bsc: "Before School Care",
-  asc: "After School Care",
-  vc: "Vacation Care",
-};
 
-function formatAttTime(dt: string | null | undefined): string {
-  if (!dt) return "";
-  return new Date(dt).toLocaleTimeString("en-AU", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
 
-function AttendanceTab({
-  childId,
-  attendance,
-  loading,
-}: {
-  childId: string;
-  attendance: AttendanceDay[];
-  loading: boolean;
-}) {
-  const todayStr = new Date().toISOString().split("T")[0];
-  const { data: todayDetail } = useChildAttendanceDetail(childId, todayStr);
-
-  return (
-    <div className="space-y-4">
-      {/* Today's live status card */}
-      {todayDetail && todayDetail.source === "individual" && todayDetail.sessions.length > 0 && (
-        <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Today</h3>
-          <div className="space-y-2.5">
-            {todayDetail.sessions.map((s) => (
-              <div key={s.sessionType} className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted">
-                    {SESSION_LABELS_ATT[s.sessionType ?? ""] ?? s.sessionType}
-                  </p>
-                  {s.status === "present" && (
-                    <p className="text-sm text-foreground mt-0.5">
-                      Signed in {formatAttTime(s.signInTime)}
-                      {s.signedInBy && <span className="text-muted"> by {s.signedInBy}</span>}
-                      {s.signOutTime && (
-                        <span className="text-muted"> · Out {formatAttTime(s.signOutTime)}</span>
-                      )}
-                    </p>
-                  )}
-                  {s.status === "absent" && (
-                    <p className="text-sm text-red-600 mt-0.5">
-                      Absent{s.absenceReason && ` — ${s.absenceReason}`}
-                    </p>
-                  )}
-                  {s.status === "booked" && (
-                    <p className="text-sm text-amber-600 mt-0.5">Not yet arrived</p>
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    "text-2xs font-semibold px-2 py-0.5 rounded-full",
-                    s.status === "present" ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300" :
-                    s.status === "absent" ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400" :
-                    "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
-                  )}
-                >
-                  {s.status === "present" ? "Present" : s.status === "absent" ? "Absent" : "Booked"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 30-day calendar grid */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-10 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : attendance.length === 0 ? (
-        <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
-          <CalendarDays className="w-8 h-8 text-muted mx-auto mb-2" />
-          <p className="text-muted text-sm">
-            No attendance records found for the last 30 days.
-          </p>
-        </div>
-      ) : (
-        <>
-          <p className="text-xs text-muted">Last 30 days</p>
-          <div className="grid grid-cols-5 gap-1 text-center">
-            {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
-              <span key={d} className="text-2xs font-semibold text-muted uppercase">
-                {d}
-              </span>
-            ))}
-          </div>
-          {groupByWeek(attendance).map((week, wi) => (
-            <div key={wi} className="grid grid-cols-5 gap-1">
-              {week.map((day, di) => (
-                <div
-                  key={di}
-                  className={cn(
-                    "aspect-square rounded-lg flex flex-col items-center justify-center text-2xs",
-                    day === null
-                      ? "bg-transparent"
-                      : day.status === "present"
-                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
-                        : day.status === "absent"
-                          ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400"
-                          : "bg-surface text-muted"
-                  )}
-                >
-                  {day && (
-                    <>
-                      <span className="font-medium">{new Date(day.date).getDate()}</span>
-                      <span className="text-[8px]">
-                        {day.status === "present" ? "Present" : day.status === "absent" ? "Absent" : "—"}
-                      </span>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-          <div className="flex items-center gap-4 justify-center pt-2">
-            <LegendDot color="bg-green-500" label="Present" />
-            <LegendDot color="bg-red-500" label="Absent" />
-            <LegendDot color="bg-border" label="No session" />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1 text-2xs text-muted">
-      <span className={cn("w-2 h-2 rounded-full", color)} />
-      {label}
-    </span>
-  );
-}
-
-function groupByWeek(days: AttendanceDay[]): (AttendanceDay | null)[][] {
-  if (days.length === 0) return [];
-  const sorted = [...days].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const weeks: (AttendanceDay | null)[][] = [];
-  let currentWeek: (AttendanceDay | null)[] = [];
-
-  for (const day of sorted) {
-    const date = new Date(day.date);
-    const dow = date.getDay();
-    if (dow === 0 || dow === 6) continue;
-    const slotIndex = dow - 1;
-    if (currentWeek.length > slotIndex) {
-      while (currentWeek.length < 5) currentWeek.push(null);
-      weeks.push(currentWeek);
-      currentWeek = [];
-    }
-    while (currentWeek.length < slotIndex) currentWeek.push(null);
-    currentWeek.push(day);
-  }
-
-  if (currentWeek.length > 0) {
-    while (currentWeek.length < 5) currentWeek.push(null);
-    weeks.push(currentWeek);
-  }
-  return weeks;
-}
 
 // ── Gallery Tab ─────────────────────────────────────────
 
-function GalleryTab({ childId }: { childId: string }) {
+export function GalleryTab({ childId }: { childId: string }) {
   const { data: images, isLoading } = useChildGallery(childId);
   const [lightbox, setLightbox] = useState<GalleryImage | null>(null);
 
@@ -441,8 +292,23 @@ function MedicalTab({ child }: { child: ParentChild }) {
         </div>
       ) : (
         <>
-          {child.medicalConditions.length > 0 && (
+          {/* Stated explicitly when empty. "Nothing here" and "we asked
+              and the answer was none" look identical otherwise, and it's
+              the second one staff need before giving a child anything. */}
+          {child.medicalConditions.length > 0 ? (
             <InfoCard icon={AlertTriangle} iconColor="text-amber-600" title="Medical Conditions" items={child.medicalConditions} />
+          ) : (
+            <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-green-600" />
+                <h3 className="text-sm font-heading font-semibold text-foreground">
+                  No medical conditions recorded
+                </h3>
+              </div>
+              <p className="text-sm text-muted ml-6 mt-0.5">
+                Tap Edit Details if that changes.
+              </p>
+            </div>
           )}
           {child.allergies.length > 0 && (
             <InfoCard icon={AlertTriangle} iconColor="text-red-500" title="Allergies" items={child.allergies} />
@@ -494,7 +360,6 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
   const [medications, setMedications] = useState(child.medications.join(", "));
   const [immunisation, setImmunisation] = useState(child.immunisationStatus ?? "");
   const [dietaryNotes, setDietaryNotes] = useState("");
-  const [actionPlanUploaded, setActionPlanUploaded] = useState(false);
 
   const splitToArray = (s: string) => s.split(",").map((v) => v.trim()).filter(Boolean);
 
@@ -505,7 +370,6 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
       medications: splitToArray(medications),
       immunisationStatus: immunisation || undefined,
       dietary: dietaryNotes ? { notes: dietaryNotes } : undefined,
-      actionPlanUrl: actionPlanUploaded ? `/uploads/action-plan-${child.id}.pdf` : undefined,
     };
     updateMedical.mutate({ childId: child.id, payload }, { onSuccess: () => onOpenChange(false) });
   };
@@ -524,20 +388,15 @@ function EditMedicalDialog({ child, open, onOpenChange }: { child: ParentChild; 
             <label className="block text-xs font-medium text-foreground/70 mb-1">Dietary Notes</label>
             <textarea value={dietaryNotes} onChange={(e) => setDietaryNotes(e.target.value)} placeholder="Any dietary requirements..." maxLength={500} rows={3} className="w-full px-3 py-2.5 border-2 border-border rounded-lg bg-background/50 text-sm text-foreground placeholder-muted/60 focus:outline-none focus:border-brand transition-colors resize-none" />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-foreground/70 mb-1">Action Plan (Asthma/Anaphylaxis)</label>
-            {actionPlanUploaded ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-300">
-                <CheckCircle2 className="w-4 h-4" />
-                Action plan uploaded
-              </div>
-            ) : (
-              <button type="button" onClick={() => { setActionPlanUploaded(true); toast({ description: "Action plan uploaded (simulated)" }); }} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-border hover:border-brand/30 text-sm text-muted hover:text-brand transition-colors w-full justify-center min-h-[44px]">
-                <Upload className="w-4 h-4" />
-                Upload Action Plan
-              </button>
-            )}
-          </div>
+          {/* The button that used to sit here didn't upload anything —
+              it toasted "(simulated)" and wrote a URL to a file that was
+              never stored, so an action plan could read as "on file"
+              when nothing existed. Documents has a real uploader. */}
+          <p className="text-xs text-muted">
+            Asthma and anaphylaxis action plans go on the{" "}
+            <strong className="text-foreground">Documents</strong> tab, where
+            they&apos;re stored properly and your centre can see them.
+          </p>
           <button onClick={handleSave} disabled={updateMedical.isPending} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]">
             {updateMedical.isPending ? (<><Loader2 className="w-4 h-4 animate-spin" />Saving...</>) : "Save Changes"}
           </button>
@@ -592,8 +451,15 @@ const PARENT_DOC_TYPES = [
   { value: "OTHER", label: "Other" },
 ];
 
-function DocumentsTab({ childId }: { childId: string }) {
+export function DocumentsTab({ childId }: { childId: string }) {
   const [docs, setDocs] = useState<ChildDocForParent[]>([]);
+  // Files supplied on the enrolment form. They live on the SUBMISSION as
+  // JSON rather than as document rows, so without this a family who'd
+  // just uploaded a birth certificate saw an empty tab and no way to
+  // tell whether it had arrived.
+  const [enrolmentDocs, setEnrolmentDocs] = useState<
+    { id: string; label: string; fileName: string; fileUrl: string; uploadedAt: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -602,8 +468,16 @@ function DocumentsTab({ childId }: { childId: string }) {
   const [docName, setDocName] = useState("");
 
   useEffect(() => {
-    fetchApi<{ documents: ChildDocForParent[] }>(`/api/parent/children/${childId}/documents`)
-      .then((res) => setDocs(res.documents ?? []))
+    fetchApi<{
+      documents: ChildDocForParent[];
+      enrolmentDocs?: {
+        id: string; label: string; fileName: string; fileUrl: string; uploadedAt: string;
+      }[];
+    }>(`/api/parent/children/${childId}/documents`)
+      .then((res) => {
+        setDocs(res.documents ?? []);
+        setEnrolmentDocs(res.enrolmentDocs ?? []);
+      })
       .catch((err) => {
         if (process.env.NODE_ENV !== "production") console.warn("Fetch child documents failed:", err);
       })
@@ -655,10 +529,44 @@ function DocumentsTab({ childId }: { childId: string }) {
         Documents uploaded by parents are reviewed by your coordinator before being marked as verified.
       </p>
 
+      {enrolmentDocs.length > 0 && (
+        <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
+          <h3 className="text-sm font-heading font-semibold text-foreground mb-2">
+            From your enrolment form
+          </h3>
+          <ul className="space-y-2">
+            {enrolmentDocs.map((d) => (
+              <li key={d.id} className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted shrink-0" />
+                <a
+                  href={d.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-brand underline underline-offset-2 truncate"
+                >
+                  {d.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          {/* Not editable in place on purpose: the original is the record
+              of what was supplied at enrolment. A newer version goes up
+              as its own upload. */}
+          <p className="text-xs text-muted mt-2">
+            Out of date? Upload the new version above — we&apos;ll use the
+            most recent one.
+          </p>
+        </div>
+      )}
+
       {docs.length === 0 ? (
         <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
           <FileText className="w-8 h-8 text-muted mx-auto mb-2" />
-          <p className="text-muted text-sm">No documents uploaded yet.</p>
+          <p className="text-muted text-sm">
+            {enrolmentDocs.length > 0
+              ? "Nothing uploaded since your enrolment."
+              : "No documents uploaded yet."}
+          </p>
         </div>
       ) : (
         docs.map((doc) => (
@@ -743,7 +651,7 @@ interface PickupPerson {
   photoUrl: string | null;
 }
 
-function PickupsTab({ childId }: { childId: string }) {
+export function PickupsTab({ childId }: { childId: string }) {
   const [pickups, setPickups] = useState<PickupPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
@@ -875,36 +783,6 @@ function PickupsTab({ childId }: { childId: string }) {
   );
 }
 
-// ── Contacts Tab ─────────────────────────────────────────
-
-function ContactsTab({ child }: { child: ParentChild }) {
-  if (child.emergencyContacts.length === 0) {
-    return (
-      <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
-        <Phone className="w-8 h-8 text-muted mx-auto mb-2" />
-        <p className="text-muted text-sm">
-          No emergency contacts on file. You can add them in your account settings.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {child.emergencyContacts.map((contact) => (
-        <div key={contact.id} className="bg-card rounded-xl p-4 shadow-sm border border-border">
-          <h3 className="text-sm font-heading font-semibold text-foreground">{contact.name}</h3>
-          <p className="text-xs text-muted mt-0.5">{contact.relationship}</p>
-          <a href={`tel:${contact.phone}`} className="inline-flex items-center gap-1.5 mt-2 text-sm text-brand hover:text-brand-light font-medium transition-colors min-h-[44px]">
-            <Phone className="w-4 h-4" />
-            {contact.phone}
-          </a>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ── Skeleton ─────────────────────────────────────────────
 
 function DetailSkeleton() {
@@ -921,6 +799,79 @@ function DetailSkeleton() {
           <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Attendance Tab ───────────────────────────────────────
+// The child's OWN sign-ins and sign-outs, with who did each — the same
+// rows the roll call writes. Times and names, not derived statuses.
+
+function AttendanceTab({ childId }: { childId: string }) {
+  const { data, isLoading } = useChildAttendance(childId);
+  const records = data?.records ?? [];
+
+  if (isLoading) return <Skeleton className="h-32 w-full rounded-xl" />;
+
+  if (records.length === 0) {
+    return (
+      <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
+        <CalendarDays className="w-8 h-8 text-muted mx-auto mb-2" />
+        <p className="text-muted text-sm">
+          No attendance yet — sessions will appear here after their first
+          sign-in.
+        </p>
+      </div>
+    );
+  }
+
+  const fmtTime = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleTimeString("en-AU", {
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : null;
+
+  return (
+    <div className="space-y-2">
+      {records.map((r) => {
+        const inAt = fmtTime(r.signInTime);
+        const outAt = fmtTime(r.signOutTime);
+        return (
+          <div
+            key={r.id}
+            className="bg-card rounded-xl p-3 shadow-sm border border-border flex items-center gap-3"
+          >
+            <div className="w-11 h-11 rounded-lg bg-brand/10 flex flex-col items-center justify-center shrink-0">
+              <span className="text-2xs font-semibold text-brand uppercase">
+                {new Date(r.date).toLocaleDateString("en-AU", { weekday: "short" })}
+              </span>
+              <span className="text-sm font-bold text-brand leading-none">
+                {new Date(r.date).getDate()}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground">
+                {programmeName(r.sessionType)}
+                <span className="text-xs text-muted font-normal ml-1.5">
+                  {new Date(r.date).toLocaleDateString("en-AU", {
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </p>
+              <p className="text-xs text-muted">
+                In {inAt}
+                {r.signedInByName ? ` by ${r.signedInByName}` : ""}
+                {outAt
+                  ? ` · Out ${outAt}${r.signedOutByName ? ` by ${r.signedOutByName}` : ""}`
+                  : " · Not signed out yet"}
+              </p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

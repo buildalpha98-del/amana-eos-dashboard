@@ -54,34 +54,114 @@ function hashToken(raw: string): string {
 export async function findEnrolmentIdsForEmail(
   emailLower: string,
 ): Promise<{ enrolmentIds: string[]; parentName: string | null }> {
-  const enrolments = await prisma.enrolmentSubmission.findMany({
-    where: { status: { not: "draft" } },
-    select: { id: true, primaryParent: true, secondaryParent: true },
-    orderBy: { createdAt: "desc" },
-    take: 500,
-  });
+  /**
+   * Asks the database the exact question.
+   *
+   * This used to fetch enrolments with a `take` and scan them in memory,
+   * because a parent's address lives inside the `primaryParent` JSON
+   * rather than in a column. Any parent whose row fell outside that
+   * window was reported as unknown — no link sent, while the page said
+   * one had been — and with no `orderBy` the same parent could work
+   * once and fail the next time.
+   *
+   * Postgres can read inside JSON, so it filters there instead.
+   * LOWER() because addresses were captured with whatever case a parent
+   * typed, and TRIM() because some were captured with trailing spaces —
+   * the in-memory scan this replaces normalised both, and dropping that
+   * would swap one silent miss for another.
+   *
+   * The SQL lives here rather than in a route because `send-link` and
+   * `verify` both need it: they each used to carry their own copy, and
+   * the copies had different limits.
+   */
+  const matches = await prisma.$queryRaw<
+    Array<{ id: string; first_name: string | null; surname: string | null }>
+  >`
+    SELECT
+      id,
+      CASE
+        WHEN LOWER(TRIM("primaryParent"->>'email')) = ${emailLower}
+          THEN "primaryParent"->>'firstName'
+        ELSE "secondaryParent"->>'firstName'
+      END AS first_name,
+      CASE
+        WHEN LOWER(TRIM("primaryParent"->>'email')) = ${emailLower}
+          THEN "primaryParent"->>'surname'
+        ELSE "secondaryParent"->>'surname'
+      END AS surname
+    FROM "EnrolmentSubmission"
+    WHERE status <> 'draft'
+      AND (
+        LOWER(TRIM("primaryParent"->>'email')) = ${emailLower}
+        OR LOWER(TRIM("secondaryParent"->>'email')) = ${emailLower}
+      )
+    LIMIT 50
+  `;
 
-  const ids: string[] = [];
-  let parentName: string | null = null;
-
-  const matches = (blob: unknown): Record<string, unknown> | null => {
-    const p = blob as Record<string, unknown> | null;
-    if (!p || typeof p.email !== "string") return null;
-    return p.email.toLowerCase().trim() === emailLower ? p : null;
+  const named = matches.find((m) => m.first_name);
+  return {
+    enrolmentIds: matches.map((m) => m.id),
+    parentName: named?.first_name
+      ? `${named.first_name}${named.surname ? ` ${named.surname}` : ""}`
+      : null,
   };
+}
 
-  for (const e of enrolments) {
-    const hit = matches(e.primaryParent) ?? matches(e.secondaryParent);
-    if (!hit) continue;
-    ids.push(e.id);
-    if (!parentName && typeof hit.firstName === "string") {
-      parentName = `${hit.firstName}${
-        typeof hit.surname === "string" && hit.surname ? ` ${hit.surname}` : ""
-      }`;
-    }
+/**
+ * Enrolments for many parent emails at once, as `email → enrolments`.
+ *
+ * The staff families list needs this: it starts from `ParentAccount`
+ * (correctly — that is where a parent exists) and then has to attach
+ * each account's enrolments, which are linked only by an email buried
+ * in JSON.
+ *
+ * It used to do that by fetching the newest 1000 enrolments and
+ * indexing them in memory. Same shape as the magic-link bug: with more
+ * enrolments than the cap, a family whose enrolment fell outside the
+ * window appeared on the staff screen as having no enrolment and no
+ * children — indistinguishable from one who signed up and never
+ * enrolled, and so liable to be chased for something they had already
+ * done.
+ *
+ * It also indexed `primaryParent` only, so a family whose account email
+ * belonged to the SECOND carer looked equally empty.
+ *
+ * This asks for exactly the emails it has accounts for, so the result
+ * is bounded by the caller's page rather than by a guess.
+ */
+export async function findEnrolmentsForEmails(
+  emailsLower: string[],
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  const emails = [...new Set(emailsLower.filter(Boolean))];
+  if (emails.length === 0) return out;
+
+  const rows = await prisma.$queryRaw<
+    Array<{ id: string; matched_email: string }>
+  >`
+    SELECT
+      id,
+      CASE
+        WHEN LOWER(TRIM("primaryParent"->>'email')) = ANY(${emails})
+          THEN LOWER(TRIM("primaryParent"->>'email'))
+        ELSE LOWER(TRIM("secondaryParent"->>'email'))
+      END AS matched_email
+    FROM "EnrolmentSubmission"
+    WHERE status <> 'draft'
+      AND (
+        LOWER(TRIM("primaryParent"->>'email')) = ANY(${emails})
+        OR LOWER(TRIM("secondaryParent"->>'email')) = ANY(${emails})
+      )
+    ORDER BY "createdAt" DESC
+  `;
+
+  for (const r of rows) {
+    if (!r.matched_email) continue;
+    const list = out.get(r.matched_email) ?? [];
+    list.push(r.id);
+    out.set(r.matched_email, list);
   }
-
-  return { enrolmentIds: ids, parentName };
+  return out;
 }
 
 export interface CreateAccountResult {
@@ -237,10 +317,47 @@ export async function confirmParentEmail(rawToken: string): Promise<{
  * that one is safe to disclose, because the person already proved they know
  * the password, and they need telling why they can't get in.
  */
+/**
+ * The account behind an email, for the magic-link path.
+ *
+ * `send-link` and `verify` used to look only at `ParentEnquiry` and
+ * non-draft `EnrolmentSubmission`. A parent who created an account and
+ * hasn't finished their enrolment appears in NEITHER — their enrolment
+ * is still a draft, and they may never have made an enquiry — so the
+ * magic link, which is their only forgot-password path, silently sent
+ * nothing and told them a link was on its way.
+ *
+ * Deactivated accounts are excluded: a login link is a way back in, and
+ * a closed account shouldn't have one.
+ */
+export async function findParentAccountForLogin(emailLower: string): Promise<{
+  accountId: string;
+  name: string | null;
+} | null> {
+  const account = await prisma.parentAccount.findUnique({
+    where: { email: emailLower },
+    select: {
+      id: true,
+      firstName: true,
+      surname: true,
+      deactivatedAt: true,
+    },
+  });
+  if (!account || account.deactivatedAt) return null;
+
+  const name =
+    [account.firstName, account.surname].filter(Boolean).join(" ") || null;
+  return { accountId: account.id, name };
+}
+
 export async function authenticateParent(
   email: string,
   password: string,
-): Promise<{ accountId: string; email: string; name: string | null } | null> {
+): Promise<
+  | { accountId: string; email: string; name: string | null; deactivated?: false }
+  | { deactivated: true }
+  | null
+> {
   const emailLower = normaliseEmail(email);
   const account = await prisma.parentAccount.findUnique({
     where: { email: emailLower },
@@ -251,11 +368,17 @@ export async function authenticateParent(
       emailVerifiedAt: true,
       firstName: true,
       surname: true,
+      deactivatedAt: true,
     },
   });
 
   if (!account) return null;
   if (!(await compare(password, account.passwordHash))) return null;
+
+  // Reported only AFTER the password checks out — telling an anonymous
+  // caller which addresses are deactivated would be enumeration. Someone
+  // who knows the password has earned a straight answer.
+  if (account.deactivatedAt) return { deactivated: true };
 
   // 2026-07-31: an UNVERIFIED address can now sign in. Verification moved
   // to the enrolment-approval email — making a family verify before they

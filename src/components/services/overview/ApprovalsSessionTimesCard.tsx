@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useUpdateService } from "@/hooks/useServices";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { toast } from "@/hooks/useToast";
-import type { SessionTimes } from "@/lib/service-settings";
+import { formatTime, roomLabel, type SessionTimes } from "@/lib/service-settings";
 import { Edit3, Clock } from "lucide-react";
 
 const SESSION_TYPES = [
@@ -13,18 +13,6 @@ const SESSION_TYPES = [
   { key: "asc", label: "ASC" },
   { key: "vc", label: "VC" },
 ] as const;
-type SessionKey = (typeof SESSION_TYPES)[number]["key"];
-
-type SessionRow = { start: string; end: string };
-type EditableSessionTimes = Record<SessionKey, SessionRow>;
-
-function toEditableSessionTimes(value: SessionTimes | null | undefined): EditableSessionTimes {
-  return {
-    bsc: { start: value?.bsc?.start ?? "", end: value?.bsc?.end ?? "" },
-    asc: { start: value?.asc?.start ?? "", end: value?.asc?.end ?? "" },
-    vc: { start: value?.vc?.start ?? "", end: value?.vc?.end ?? "" },
-  };
-}
 
 export function ApprovalsSessionTimesCard({
   service,
@@ -38,9 +26,6 @@ export function ApprovalsSessionTimesCard({
   const [open, setOpen] = useState(false);
   const [formServiceApproval, setFormServiceApproval] = useState("");
   const [formProviderApproval, setFormProviderApproval] = useState("");
-  const [formSessionTimes, setFormSessionTimes] = useState<EditableSessionTimes>(
-    toEditableSessionTimes(service.sessionTimes as SessionTimes | null | undefined),
-  );
   const saving = updateService.isPending;
 
   const sessionTimes = (service.sessionTimes ?? null) as SessionTimes | null;
@@ -52,19 +37,7 @@ export function ApprovalsSessionTimesCard({
   function openEditor() {
     setFormServiceApproval(service.serviceApprovalNumber ?? "");
     setFormProviderApproval(service.providerApprovalNumber ?? "");
-    setFormSessionTimes(toEditableSessionTimes(service.sessionTimes as SessionTimes | null | undefined));
     setOpen(true);
-  }
-
-  function buildSessionTimesPayload(): SessionTimes | null {
-    const out: SessionTimes = {};
-    for (const s of SESSION_TYPES) {
-      const row = formSessionTimes[s.key];
-      const start = row.start.trim();
-      const end = row.end.trim();
-      if (start && end) out[s.key] = { start, end };
-    }
-    return Object.keys(out).length > 0 ? out : null;
   }
 
   async function handleSave() {
@@ -73,7 +46,6 @@ export function ApprovalsSessionTimesCard({
         id: service.id,
         serviceApprovalNumber: formServiceApproval.trim() || null,
         providerApprovalNumber: formProviderApproval.trim() || null,
-        sessionTimes: buildSessionTimesPayload(),
       });
       toast({ description: "Service info updated" });
       setOpen(false);
@@ -128,9 +100,11 @@ export function ApprovalsSessionTimesCard({
                 const row = sessionTimes![s.key]!;
                 return (
                   <li key={s.key} className="flex items-center gap-2 text-sm text-foreground">
-                    <span className="font-semibold uppercase text-xs w-10">{s.label}</span>
+                    <span className="text-xs text-muted flex-1 truncate">
+                      {roomLabel(sessionTimes, s.key)}
+                    </span>
                     <span>
-                      {row.start} – {row.end}
+                      {formatTime(row.start)} – {formatTime(row.end)}
                     </span>
                   </li>
                 );
@@ -180,44 +154,13 @@ export function ApprovalsSessionTimesCard({
               </div>
             </div>
 
-            <div>
-              <span className="text-2xs text-muted block mb-2 uppercase tracking-wider">
-                Session Times (HH:MM)
-              </span>
-              <div className="space-y-2">
-                {SESSION_TYPES.map((s) => (
-                  <div key={s.key} className="grid grid-cols-[3rem_1fr_1fr] gap-2 items-center">
-                    <span className="text-xs font-semibold text-foreground uppercase">
-                      {s.label}
-                    </span>
-                    <input
-                      type="time"
-                      value={formSessionTimes[s.key].start}
-                      onChange={(e) =>
-                        setFormSessionTimes((f) => ({
-                          ...f,
-                          [s.key]: { ...f[s.key], start: e.target.value },
-                        }))
-                      }
-                      aria-label={`${s.label} start time`}
-                      className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
-                    />
-                    <input
-                      type="time"
-                      value={formSessionTimes[s.key].end}
-                      onChange={(e) =>
-                        setFormSessionTimes((f) => ({
-                          ...f,
-                          [s.key]: { ...f[s.key], end: e.target.value },
-                        }))
-                      }
-                      aria-label={`${s.label} end time`}
-                      className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Room names, hours and fees are edited in Rooms & fees —
+                this dialog only ever knew {start, end}, so saving from
+                here would have dropped a room's name and its prices. */}
+            <p className="text-xs text-muted">
+              Session times, room names and fees are set in{" "}
+              <strong className="text-foreground">Rooms &amp; fees</strong> below.
+            </p>
 
             <div className="flex justify-end gap-2 pt-1">
               <button

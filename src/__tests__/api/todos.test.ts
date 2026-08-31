@@ -42,6 +42,24 @@ describe("GET /api/todos", () => {
     expect(res.status).toBe(401);
   });
 
+  it("marketing sees cross-centre todos, not just ones assigned to them", async () => {
+    // Regression (2026-08-17): the same getCentreScope() bug found on
+    // /api/issues — `{ serviceIds: [] }` instead of `{ serviceIds: null }`
+    // for marketing with no primary serviceId — applies here too, despite
+    // this route's own comment promising marketing "fully open" access.
+    const { getCentreScope, buildCentreOrPersonalFilter } = await import("@/lib/centre-scope");
+    (getCentreScope as ReturnType<typeof vi.fn>).mockResolvedValue({ serviceIds: [] });
+    mockSession({ id: "u9", name: "Marketing", role: "marketing" });
+    prismaMock.todo.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/todos");
+    await GET(req);
+
+    // The route must treat marketing as unscoped (null), not as the
+    // empty array getCentreScope() itself returned.
+    expect(buildCentreOrPersonalFilter).toHaveBeenCalledWith(null, "u9");
+  });
+
   it("returns todos for authenticated user", async () => {
     mockSession({ id: "user-1", name: "Test", role: "owner" });
 
@@ -302,5 +320,70 @@ describe("DELETE /api/todos/[id]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
+  });
+});
+
+describe("POST /api/todos — meetingId linkage (2026-08-31)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  const base = {
+    title: "From the meeting",
+    assigneeId: "u1",
+    dueDate: "2026-09-07",
+    weekOf: "2026-08-31",
+  };
+
+  it("stores meetingId when the meeting exists", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.meeting.findUnique.mockResolvedValue({ id: "m1" });
+    prismaMock.todo.create.mockResolvedValue({
+      id: "t1", title: base.title, assigneeId: "u1",
+      assignee: null, rock: null, issue: null, assignees: [],
+    });
+
+    const req = createRequest("POST", "/api/todos", {
+      body: { ...base, meetingId: "m1" },
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const createArg = prismaMock.todo.create.mock.calls[0][0] as {
+      data: { meetingId: string | null };
+    };
+    expect(createArg.data.meetingId).toBe("m1");
+  });
+
+  it("400s when meetingId points at no meeting", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.meeting.findUnique.mockResolvedValue(null);
+
+    const req = createRequest("POST", "/api/todos", {
+      body: { ...base, meetingId: "nope" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect(prismaMock.todo.create).not.toHaveBeenCalled();
+  });
+
+  it("creates without meetingId exactly as before", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+    prismaMock.todo.create.mockResolvedValue({
+      id: "t1", title: base.title, assigneeId: "u1",
+      assignee: null, rock: null, issue: null, assignees: [],
+    });
+
+    const req = createRequest("POST", "/api/todos", { body: base });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    expect(prismaMock.meeting.findUnique).not.toHaveBeenCalled();
+    const createArg = prismaMock.todo.create.mock.calls[0][0] as {
+      data: { meetingId: string | null };
+    };
+    expect(createArg.data.meetingId).toBeNull();
   });
 });

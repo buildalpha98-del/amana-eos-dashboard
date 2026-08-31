@@ -121,7 +121,7 @@ export default function ThreadV2() {
       toast({
         variant: "destructive",
         description:
-          err instanceof Error ? err.message : "Failed to send message.",
+          err instanceof Error ? err.message : "That message didn\u2019t send — check your connection and try again.",
       });
     }
   };

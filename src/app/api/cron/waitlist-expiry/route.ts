@@ -5,6 +5,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { spotExpiredEmail, spotAvailableEmail } from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * POST /api/cron/waitlist-expiry — expire stale waitlist offers and auto-offer to next family
@@ -73,9 +74,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       const serviceName = enquiry.service?.name ?? "our service";
       if (enquiry.parentEmail) {
         const { subject, html } = await spotExpiredEmail(enquiry.parentName, serviceName);
-        sendEmail({ from: FROM_EMAIL, to: enquiry.parentEmail, subject, html }).catch((err) => {
+        // Awaited: a cron has no response to race, and a bare promise
+        // here could be cut off when the invocation ends.
+        try {
+          await sendEmail({ from: FROM_EMAIL, to: enquiry.parentEmail, subject, html });
+        } catch (err) {
           logger.error("Waitlist expiry: failed to send expired email", { err, enquiryId: enquiry.id });
-        });
+        }
       }
 
       // Auto-offer to next person in line for this service
@@ -106,13 +111,24 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
         // Send spot-available email to next family (fire-and-forget)
         if (next.parentEmail) {
-          const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
-          const enrolUrl = `${baseUrl}/enrol?prefill=${next.id}`;
+          const baseUrl = siteUrl();
+          /**
+           * `/parent/signup?enquiry=`, carrying the enquiry through.
+           *
+           * This was `/enrol?prefill=`, which was broken twice over:
+           * `/enrol` is a bare redirect and a redirect drops the query
+           * string, and signup only read `?ref=` anyway. So every family
+           * offered a spot bounced to a blank form with nothing carried
+           * over — after being told their place was ready.
+           */
+          const enrolUrl = `${baseUrl}/parent/signup?enquiry=${next.id}`;
           const nextServiceName = next.service?.name ?? "our service";
           const { subject, html } = await spotAvailableEmail(next.parentName, nextServiceName, enrolUrl);
-          sendEmail({ from: FROM_EMAIL, to: next.parentEmail, subject, html }).catch((err) => {
+          try {
+            await sendEmail({ from: FROM_EMAIL, to: next.parentEmail, subject, html });
+          } catch (err) {
             logger.error("Waitlist expiry: failed to send offer email", { err, enquiryId: next.id });
-          });
+          }
         }
       }
     }

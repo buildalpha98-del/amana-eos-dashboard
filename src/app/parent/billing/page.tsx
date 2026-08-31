@@ -1,23 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText, AlertCircle, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, FileText, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useParentStatements, useParentStatementDetail, type StatementRecord } from "@/hooks/useParentPortal";
 import { SectionLabel, StatusBadge, type StatusVariant } from "@/components/parent/ui";
+import { PaymentMethodCard, NextDebitRow } from "@/components/parent/PaymentMethodCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { programmeName } from "@/lib/programme-names";
 
 const STATUS_TO_VARIANT: Record<string, StatusVariant> = {
   issued: "confirmed",
   paid: "in-care",
   unpaid: "requested",
   overdue: "overdue",
-};
-
-const SESSION_LABELS: Record<string, string> = {
-  bsc: "Before School Care",
-  asc: "After School Care",
-  vc: "Vacation Care",
 };
 
 export default function BillingPage() {
@@ -29,7 +25,6 @@ export default function BillingPage() {
   const statements = data?.statements ?? [];
   const summary = data?.summary ?? { currentBalance: 0, overdueCount: 0 };
 
-  const nextDebitDate = getNextDebitDate();
 
   return (
     <div className="space-y-6">
@@ -68,14 +63,12 @@ export default function BillingPage() {
             </span>
           )}
         </div>
-        <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[color:var(--color-muted)]">Next Direct Debit</span>
-            <span className="text-sm font-medium text-[color:var(--color-foreground)]">
-              {nextDebitDate}
-            </span>
-          </div>
-        </div>
+        {/* Only shown when staff have actually set a debit date. This
+            used to render "the 1st of next month", computed client-side
+            and identical for every family regardless of their real
+            arrangement — the same class of bug as the hardcoded bank
+            details on this page. Silence beats a confident wrong date. */}
+        <NextDebitRow />
       </div>
 
       {/* Statements */}
@@ -110,30 +103,7 @@ export default function BillingPage() {
         )}
       </section>
 
-      {/* Payment Methods */}
-      <section>
-        <SectionLabel label="Payment Method" />
-        <div className="warm-card">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-[color:var(--color-brand)]" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
-                Direct Debit — BSB 000-000
-              </p>
-              <p className="text-xs text-[color:var(--color-muted)]">
-                Account ending in 1234
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
-            <p className="text-xs text-[color:var(--color-muted)]">
-              To update your payment method, please contact the centre.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PaymentMethodCard />
     </div>
   );
 }
@@ -334,7 +304,10 @@ function StatementDetail({ statementId }: { statementId: string }) {
                     {formatDate(item.date)}
                   </td>
                   <td className="py-1.5 px-1 text-muted">
-                    {SESSION_LABELS[item.sessionType] ?? item.sessionType}
+                    {/* The centre's own room name. `programmeName` was
+                        org-wide and knew three codes, so a family in an
+                        extra room saw its slot code. */}
+                    {item.room?.name ?? programmeName(item.sessionType)}
                   </td>
                   <td className="py-1.5 px-1 text-right text-foreground">
                     ${item.grossFee.toFixed(2)}
@@ -357,15 +330,6 @@ function StatementDetail({ statementId }: { statementId: string }) {
 
 // ── Helpers ──────────────────────────────────────────────
 
-function getNextDebitDate(): string {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return next.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 // ── Skeleton ────────────────────────────────────────────
 

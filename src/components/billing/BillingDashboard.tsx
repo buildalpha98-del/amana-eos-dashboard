@@ -1,8 +1,20 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, DollarSign, FileText, AlertTriangle, Send, CreditCard, Eye, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CreditCard,
+  DollarSign,
+  Eye,
+  FileText,
+  Plus,
+  Send,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { FamilyBillingSection } from "@/components/billing/FamilyBillingSection";
+import { GenerateStatementDialog } from "@/components/billing/GenerateStatementDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -53,10 +65,12 @@ const STATUS_BADGE: Record<string, string> = {
 export function BillingDashboard() {
   // Filters
   const [serviceId, setServiceId] = useState("");
+  const [view, setView] = useState<"statements" | "families">("statements");
   const [status, setStatus] = useState("");
 
   // Dialogs / panels
   const [newOpen, setNewOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<{
     statementId: string;
     contactId: string;
@@ -124,6 +138,20 @@ export function BillingDashboard() {
           icon: Plus,
           onClick: () => setNewOpen(true),
         }}
+        secondaryActions={[
+          {
+            label: "Generate from bookings",
+            icon: Sparkles,
+            onClick: () => setGenerateOpen(true),
+          },
+        ]}
+      />
+
+      {/* Builds a draft from what a child actually attended, instead of
+          requiring every line to be retyped by hand. */}
+      <GenerateStatementDialog
+        open={generateOpen}
+        onOpenChange={setGenerateOpen}
       />
 
       {/* Summary Cards */}
@@ -146,6 +174,30 @@ export function BillingDashboard() {
           value={String(summary.overdue)}
           color={summary.overdue > 0 ? "text-red-600" : "text-green-600"}
         />
+      </div>
+
+      {/* Statements vs the family accounts behind them. Two different
+          jobs — chasing a statement, and setting up who gets debited when
+          — so they get their own view rather than one long page. */}
+      <div className="flex gap-1 bg-surface rounded-xl p-1 mb-4 w-fit">
+        {(
+          [
+            ["statements", "Statements"],
+            ["families", "Family accounts"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              view === key
+                ? "bg-background text-foreground shadow-sm"
+                : "text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
@@ -178,8 +230,15 @@ export function BillingDashboard() {
         </select>
       </div>
 
-      {/* Statements Table */}
-      {statements.length === 0 ? (
+      {view === "families" ? (
+        <FamilyBillingSection
+          serviceId={serviceId || undefined}
+          serviceName={
+            serviceOptions.find((s) => s.id === serviceId)?.name ?? undefined
+          }
+        />
+      ) : /* Statements Table */
+      statements.length === 0 ? (
         <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
           <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3">
             <FileText className="w-6 h-6 text-brand" />

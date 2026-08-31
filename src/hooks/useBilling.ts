@@ -36,6 +36,9 @@ export interface StatementDetail extends Omit<StatementListItem, "_count"> {
     childId: string;
     date: string;
     sessionType: string;
+    /** The room this line is for — Stage 2 of the rooms migration. */
+    roomId: string;
+    room: { id: string; name: string } | null;
     description: string;
     grossFee: number;
     ccsHours: number;

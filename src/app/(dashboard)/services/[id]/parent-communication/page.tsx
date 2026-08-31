@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Bell,
   Users,
+  CornerDownRight,
   Pencil,
   Trash2,
   Heart,
@@ -25,6 +26,7 @@ import {
   type ParentPost,
 } from "@/hooks/useParentPosts";
 import { CreateParentPostForm } from "@/components/services/CreateParentPostForm";
+import { NeedsFollowUpCard } from "@/components/services/NeedsFollowUpCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -54,14 +56,36 @@ const typeBadgeColors: Record<string, string> = {
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
 
-export default function ParentCommunicationPage() {
-  const { id } = useParams<{ id: string }>();
+/**
+ * Renders as BOTH a standalone page and a tab inside the service detail
+ * view.
+ *
+ * This route was an ORPHAN (found 2026-08-01): nothing linked to it — not
+ * the service tabs, not the nav — so staff could only reach the post
+ * composer by typing the URL. The whole parent-posts pipeline existed and
+ * was unreachable from either end: staff couldn't find the composer, and
+ * families had no feed.
+ *
+ * Taking serviceId as an optional prop lets the service page mount this
+ * as a tab without moving 350 lines, and keeps the direct URL working for
+ * anyone who has it bookmarked.
+ */
+export function ParentCommunicationPanel({
+  serviceId,
+  embedded = false,
+}: {
+  serviceId?: string;
+  embedded?: boolean;
+}) {
+  const params = useParams<{ id: string }>();
+  const id = serviceId ?? params?.id;
   const { data: session } = useSession();
   const { data, isLoading, error } = useParentPosts(id);
   const deletePost = useDeleteParentPost(id);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingPost, setEditingPost] = useState<ParentPost | null>(null);
+  const [extendingPost, setExtendingPost] = useState<ParentPost | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
@@ -78,8 +102,8 @@ export default function ParentCommunicationPage() {
   return (
     <div>
       <PageHeader
-        title="Parent Communication"
-        description="Create posts and announcements visible to parents in the portal"
+        title={embedded ? "Posts" : "Parent Communication"}
+        description="Create posts and announcements families see in their portal feed"
         primaryAction={{
           label: "Create Post",
           icon: Plus,
@@ -106,6 +130,11 @@ export default function ParentCommunicationPage() {
         />
       ) : (
         <div className="mt-6 space-y-4">
+          <NeedsFollowUpCard
+            serviceId={id}
+            posts={posts}
+            onFollowUp={setExtendingPost}
+          />
           {posts.map((post) => {
             const TypeIcon = typeIcons[post.type] ?? MessageCircle;
             const editable = canModify(post);
@@ -132,6 +161,15 @@ export default function ParentCommunicationPage() {
                   </div>
                   {editable && (
                     <div className="flex items-center gap-1 shrink-0">
+                      {/* The planning cycle: what did we DO about this. */}
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        iconLeft={<CornerDownRight className="w-3.5 h-3.5" />}
+                        onClick={() => setExtendingPost(post)}
+                        aria-label={`Follow up on ${post.title}`}
+                        title="Follow up on this"
+                      />
                       <Button
                         size="xs"
                         variant="ghost"
@@ -150,6 +188,13 @@ export default function ParentCommunicationPage() {
                   )}
                 </div>
 
+                {post.extendsPost && (
+                  <p className="flex items-center gap-1.5 text-xs text-brand">
+                    <CornerDownRight className="h-3.5 w-3.5 shrink-0" />
+                    Following up on &ldquo;{post.extendsPost.title}&rdquo;
+                  </p>
+                )}
+
                 <p className="text-sm text-muted whitespace-pre-wrap">{post.content}</p>
 
                 {post.tags.length > 0 && (
@@ -163,6 +208,13 @@ export default function ParentCommunicationPage() {
                       </span>
                     ))}
                   </div>
+                )}
+
+                {(post.followUpCount ?? 0) > 0 && (
+                  <p className="text-xs text-muted">
+                    {post.followUpCount} follow-up
+                    {post.followUpCount === 1 ? "" : "s"} came out of this
+                  </p>
                 )}
 
                 <div className="flex items-center gap-2 text-xs text-muted pt-1">
@@ -217,9 +269,14 @@ export default function ParentCommunicationPage() {
 
       <CreateParentPostForm
         serviceId={id}
-        open={showCreate || !!editingPost}
-        onClose={() => { setShowCreate(false); setEditingPost(null); }}
+        open={showCreate || !!editingPost || !!extendingPost}
+        onClose={() => {
+          setShowCreate(false);
+          setEditingPost(null);
+          setExtendingPost(null);
+        }}
         editingPost={editingPost}
+        extendingPost={extendingPost}
       />
 
       <ConfirmDialog
@@ -345,4 +402,9 @@ function CommentThread({ serviceId, postId }: { serviceId: string; postId: strin
       </form>
     </div>
   );
+}
+
+/** Standalone route wrapper — keeps /services/[id]/parent-communication working. */
+export default function ParentCommunicationPage() {
+  return <ParentCommunicationPanel />;
 }

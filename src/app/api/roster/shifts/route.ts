@@ -7,6 +7,7 @@ import { resolveServiceIdFilter } from "@/lib/authz-scope";
 import { z } from "zod";
 import { assertStaffCertsValidForShift } from "../_lib/cert-guard";
 import { assertUserCleared } from "@/lib/induction";
+import { requireRoomId } from "@/lib/room-resolver";
 
 // ---------------------------------------------------------------------------
 // GET /api/roster/shifts?serviceId=...&weekStart=YYYY-MM-DD
@@ -101,6 +102,8 @@ export const POST = withApiAuth(async (req, session) => {
       userId: data.userId ?? null,
       staffName,
       date: new Date(data.date),
+      // Stage 1 dual key — see room-resolver.ts.
+      roomId: await requireRoomId(data.serviceId, data.sessionType),
       sessionType: data.sessionType,
       shiftStart: data.shiftStart,
       shiftEnd: data.shiftEnd,

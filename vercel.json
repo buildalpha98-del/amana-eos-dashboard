@@ -42,6 +42,10 @@
       "schedule": "0 20 * * *"
     },
     {
+      "path": "/api/cron/fee-changes",
+      "schedule": "0 18 * * *"
+    },
+    {
       "path": "/api/cron/training-reminders",
       "schedule": "30 22 * * 0"
     },
@@ -72,6 +76,10 @@
     {
       "path": "/api/cron/auto-measurables",
       "schedule": "30 20 * * 0"
+    },
+    {
+      "path": "/api/cron/marketing-measurables",
+      "schedule": "45 20 * * 0"
     },
     {
       "path": "/api/cron/weekly-report",
@@ -312,6 +320,18 @@
     {
       "path": "/api/cron/morning-briefing",
       "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/card-expiry-reminders",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/email-janitor",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/term-autopilot",
+      "schedule": "0 21 * * 1"
     }
   ]
 }

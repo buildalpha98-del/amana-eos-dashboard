@@ -8,7 +8,7 @@
  * nobody slips through the cracks.
  */
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   DollarSign,
   Phone,
@@ -22,6 +22,7 @@ import {
   Clock,
   Handshake,
   FileWarning,
+  Search,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -149,28 +150,88 @@ export default function FamilyBalancesPage() {
     setModalMode("create");
   };
 
-  const contacts = data?.contacts ?? [];
+  const allContacts = data?.contacts ?? [];
+
+  // ── Filters ─────────────────────────────────────────────
+  //
+  // Client-side, over the list already loaded. The API caps at 500
+  // rows and already sends each contact's centre, so filtering here
+  // costs nothing and keeps the counts on the cards honest — they
+  // describe what's on screen rather than what's in the database.
+  const [search, setSearch] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("");
+  const [whoFilter, setWhoFilter] = useState("");
+  const [outcomeFilter, setOutcomeFilter] = useState("");
+
+  // Plain derivations, not useMemo — the React Compiler handles this,
+  // and it's the convention the aged-debtors list already follows.
+  const centres = [
+    ...new Map(
+      allContacts
+        .filter((c) => c.service)
+        .map((c) => [c.service!.id, c.service!]),
+    ).values(),
+  ].sort((a, b) => a.name.localeCompare(b.name));
+
+  /** Who logged the chase. "They contacted" — one name per person. */
+  const chasers = [
+    ...new Map(
+      allContacts
+        .map((c) => c.createdBy)
+        .filter((u): u is NonNullable<typeof u> => Boolean(u))
+        .map((u) => [u.id, u] as const),
+    ).values(),
+  ].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+
+  const q = search.trim().toLowerCase();
+  const contacts = allContacts.filter((c) => {
+    if (serviceFilter && c.service?.id !== serviceFilter) return false;
+    if (whoFilter && c.createdBy?.id !== whoFilter) return false;
+    if (outcomeFilter && c.outcome !== outcomeFilter) return false;
+    if (!q) return true;
+    return [c.accountName, c.parentName, c.parentEmail, c.mobileNumber]
+      .filter(Boolean)
+      .some((field) => field!.toLowerCase().includes(q));
+  });
+
+  const filtering = Boolean(
+    q || serviceFilter || whoFilter || outcomeFilter,
+  );
+  const clearFilters = () => {
+    setSearch("");
+    setServiceFilter("");
+    setWhoFilter("");
+    setOutcomeFilter("");
+  };
 
   // 2026-07-23: when editing, gather the other contact attempts for
   // the SAME account (case-insensitive match). Passed to the modal so
   // it can render a "thread" view — every attempt for this family
   // lives in one file, clickable to swap focus.
-  const siblingContacts = useMemo(() => {
-    if (!editingContact) return [];
-    const key = editingContact.accountName.trim().toLowerCase();
-    return contacts.filter(
-      (c) =>
-        c.id !== editingContact.id &&
-        c.accountName.trim().toLowerCase() === key,
-    );
-  }, [contacts, editingContact]);
+  // Plain derivation, not useMemo — same convention as the filters
+  // above, and memoising on a fresh `?? []` array each render defeats
+  // the React Compiler's own memoisation of the component anyway.
+  //
+  // Over the UNFILTERED list on purpose. The thread is the family's
+  // whole history; hiding attempts because a centre filter is on would
+  // make it look like fewer chases happened than did.
+  const editKey = editingContact?.accountName.trim().toLowerCase() ?? null;
+  const siblingContacts = editingContact
+    ? allContacts.filter(
+        (c) =>
+          c.id !== editingContact.id &&
+          c.accountName.trim().toLowerCase() === editKey,
+      )
+    : [];
 
-  const summary = useMemo(() => {
-    const totalOwing = contacts.reduce((sum, c) => sum + c.amountOwing, 0);
-    const noAnswerCount = contacts.filter((c) => c.outcome === "no_answer").length;
-    const uniqueAccounts = new Set(contacts.map((c) => c.accountName)).size;
-    return { totalOwing, noAnswerCount, uniqueAccounts };
-  }, [contacts]);
+  // Over the FILTERED list, so the cards answer the question the
+  // filters just asked — "how much is Riverwood owed" rather than the
+  // whole-company number sitting above a one-centre table.
+  const summary = {
+    totalOwing: contacts.reduce((sum, c) => sum + c.amountOwing, 0),
+    noAnswerCount: contacts.filter((c) => c.outcome === "no_answer").length,
+    uniqueAccounts: new Set(contacts.map((c) => c.accountName)).size,
+  };
 
   return (
     <div data-v2="staff" className="max-w-7xl mx-auto space-y-6">
@@ -202,7 +263,10 @@ export default function FamilyBalancesPage() {
                 </span>
                 <DollarSign className="w-4 h-4 text-muted" />
               </div>
-              <p className="mt-2 text-2xl font-heading font-semibold text-foreground">
+              <p
+                data-testid="fb-total-owing"
+                className="mt-2 text-2xl font-heading font-semibold text-foreground"
+              >
                 {formatCurrency(summary.totalOwing)}
               </p>
             </div>
@@ -230,6 +294,107 @@ export default function FamilyBalancesPage() {
             </div>
           </div>
 
+          {/* ── Filters ────────────────────────────────────
+              Only shown once there's something to filter — an empty
+              log doesn't need a search box above it. */}
+          {allContacts.length > 0 && (
+            <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="relative">
+                  <label htmlFor="fb-search" className="sr-only">
+                    Search families
+                  </label>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+                  <input
+                    id="fb-search"
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Name, account, email or phone"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="fb-school" className="sr-only">
+                    School
+                  </label>
+                  <select
+                    id="fb-school"
+                    value={serviceFilter}
+                    onChange={(e) => setServiceFilter(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  >
+                    <option value="">Every school</option>
+                    {centres.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="fb-who" className="sr-only">
+                    Who contacted them
+                  </label>
+                  <select
+                    id="fb-who"
+                    value={whoFilter}
+                    onChange={(e) => setWhoFilter(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  >
+                    <option value="">Anyone who contacted</option>
+                    {chasers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name ?? "Unnamed"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="fb-outcome" className="sr-only">
+                    Outcome
+                  </label>
+                  <select
+                    id="fb-outcome"
+                    value={outcomeFilter}
+                    onChange={(e) => setOutcomeFilter(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  >
+                    <option value="">Any outcome</option>
+                    {(
+                      Object.entries(OUTCOME_META) as [
+                        ContactOutcome,
+                        { label: string },
+                      ][]
+                    ).map(([value, meta]) => (
+                      <option key={value} value={value}>
+                        {meta.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {filtering && (
+                <div className="flex items-center justify-between gap-3 text-xs text-muted">
+                  <span>
+                    {contacts.length} of {allContacts.length} contacts
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {isLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -237,12 +402,25 @@ export default function FamilyBalancesPage() {
               ))}
             </div>
           ) : contacts.length === 0 ? (
-            <EmptyState
-              icon={DollarSign}
-              title="No contacts logged yet"
-              description="Log the first contact attempt to start tracking follow-ups. No-answer outcomes will auto-schedule a next-day todo."
-              action={{ label: "Log contact", onClick: openCreate }}
-            />
+            /* Two different empty states. "Nothing matches" and "nothing
+               logged yet" want opposite actions — clearing a filter
+               versus logging the first chase — and offering the wrong
+               one sends someone to create a duplicate record. */
+            filtering ? (
+              <EmptyState
+                icon={DollarSign}
+                title="No contacts match those filters"
+                description="Try a different school, a different person, or clear the filters to see every logged contact."
+                action={{ label: "Clear filters", onClick: clearFilters }}
+              />
+            ) : (
+              <EmptyState
+                icon={DollarSign}
+                title="No contacts logged yet"
+                description="Log the first contact attempt to start tracking follow-ups. No-answer outcomes will auto-schedule a next-day todo."
+                action={{ label: "Log contact", onClick: openCreate }}
+              />
+            )
           ) : (
             <ContactsTable contacts={contacts} onRowClick={openEdit} />
           )}

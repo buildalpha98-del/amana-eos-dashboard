@@ -34,6 +34,8 @@ import {
 } from "@/lib/parent-account";
 import { parentVerifyEmail } from "@/lib/email-templates/parent-account";
 import { setParentSessionCookie, signParentJwt } from "@/lib/parent-auth";
+import { prisma } from "@/lib/prisma";
+import { resolveRefCode } from "@/lib/ambassadors/ref-codes";
 
 const signupSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -47,6 +49,10 @@ const signupSchema = z.object({
   // A single-word name keeps the whole thing as firstName rather than
   // inventing an empty surname.
   fullName: z.string().trim().min(1, "Enter your full name").max(200),
+  // 2026-08-03 (Ambassadors): educator referral code carried in from
+  // /parent/signup?ref=. Optional; unknown/inactive codes are silently
+  // dropped — a mistyped flyer must never block a family signing up.
+  refCode: z.string().trim().max(12).optional(),
 });
 
 export const POST = withApiHandler(async (req) => {
@@ -100,6 +106,23 @@ export const POST = withApiHandler(async (req) => {
   }
 
   // ── Brand new: sign them in and send them to the form ────────────────
+
+  // Ambassadors: persist a VALID educator ref code on the account so the
+  // enrolment submission can resolve attribution later. Never fails signup.
+  if (parsed.data.refCode) {
+    try {
+      const ref = await resolveRefCode(parsed.data.refCode);
+      if (ref) {
+        await prisma.parentAccount.update({
+          where: { id: result.accountId },
+          data: { ambassadorRefCode: ref.code },
+        });
+      }
+    } catch (err) {
+      logger.warn("Parent signup: ref code persist failed", { err });
+    }
+  }
+
   const { enrolmentIds, parentName } = await findEnrolmentIdsForEmail(email);
 
   const jwt = await signParentJwt({

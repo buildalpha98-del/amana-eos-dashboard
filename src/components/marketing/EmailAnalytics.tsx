@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, Send, AlertCircle, Clock, Users } from "lucide-react";
+import { Mail, Send, AlertCircle, Clock, Users, MailOpen, MousePointerClick, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SendReportPanel } from "./SendReportPanel";
 
 interface EmailStats {
   totalSends: number;
@@ -12,6 +13,9 @@ interface EmailStats {
   sent: number;
   failed: number;
   scheduled: number;
+  cancelled: number;
+  uniqueOpens: number;
+  uniqueClicks: number;
 }
 
 interface RecentSend {
@@ -51,6 +55,8 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   sent: { bg: "bg-green-100 dark:bg-green-950/50", text: "text-green-700" },
   failed: { bg: "bg-red-100 dark:bg-red-950/50", text: "text-red-700" },
   scheduled: { bg: "bg-blue-100 dark:bg-blue-950/50", text: "text-blue-700" },
+  // Deliberately neutral — a cancelled send is a non-event, not an error.
+  cancelled: { bg: "bg-foreground/10", text: "text-muted" },
 };
 
 const channelLabels: Record<string, string> = {
@@ -61,6 +67,7 @@ const channelLabels: Record<string, string> = {
 
 export function EmailAnalytics() {
   const [days, setDays] = useState(30);
+  const [reportLogId, setReportLogId] = useState<string | null>(null);
   const { data, isLoading } = useEmailAnalytics(days);
 
   if (isLoading) {
@@ -114,7 +121,13 @@ export function EmailAnalytics() {
         <StatCard icon={Users} label="Recipients" value={stats.totalRecipients} />
         <StatCard icon={AlertCircle} label="Failed" value={stats.failed} color={stats.failed > 0 ? "text-red-500" : undefined} />
         <StatCard icon={Clock} label="Scheduled" value={stats.scheduled} />
+        <StatCard icon={Ban} label="Cancelled" value={stats.cancelled} />
+        <StatCard icon={MailOpen} label={`Unique opens (${days}d)`} value={stats.uniqueOpens} />
+        <StatCard icon={MousePointerClick} label={`Unique clicks (${days}d)`} value={stats.uniqueClicks} />
       </div>
+      <p className="text-2xs text-muted">
+        Tracking starts from the Phase 3 deploy — earlier sends have no events.
+      </p>
 
       {/* Daily Volume Chart */}
       {dailyVolume.length > 0 && (
@@ -152,11 +165,18 @@ export function EmailAnalytics() {
           ) : (
             recentSends.slice(0, 20).map((send) => {
               const sc = statusColors[send.status] ?? { bg: "bg-surface", text: "text-muted" };
+              const title = send.subject ?? send.messageType?.replace(/_/g, " ") ?? "Untitled";
               return (
-                <div key={send.id} className="px-4 py-2.5 flex items-center gap-3 text-xs">
+                <button
+                  key={send.id}
+                  type="button"
+                  onClick={() => setReportLogId(send.id)}
+                  aria-label={`Open send report for ${title}`}
+                  className="w-full text-left px-4 py-2.5 flex items-center gap-3 text-xs hover:bg-card focus-visible:bg-card transition-colors cursor-pointer"
+                >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">
-                      {send.subject ?? send.messageType?.replace(/_/g, " ") ?? "Untitled"}
+                      {title}
                     </p>
                     <p className="text-foreground/40 mt-0.5">
                       {channelLabels[send.channel] ?? send.channel}
@@ -170,12 +190,19 @@ export function EmailAnalytics() {
                   <span className="text-foreground/30 whitespace-nowrap">
                     {new Date(send.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                   </span>
-                </div>
+                </button>
               );
             })
           )}
         </div>
       </div>
+
+      {reportLogId && (
+        <SendReportPanel
+          deliveryLogId={reportLogId}
+          onClose={() => setReportLogId(null)}
+        />
+      )}
     </div>
   );
 }

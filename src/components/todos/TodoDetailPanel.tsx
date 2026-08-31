@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
+import { formatDateAU } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { X, Mountain, AlertCircle, Lock, Unlock, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
 import type { TodoStatus } from "@prisma/client";
+import { AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 
 interface UserOption {
   id: string;
@@ -137,15 +140,15 @@ export function TodoDetailPanel({
             <label className="block text-xs font-medium text-muted mb-1">
               Description
             </label>
-            <textarea
+            <AutoGrowTextarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onBlur={() => {
                 if (description !== (todo.description || ""))
                   saveField("description", description || null);
               }}
-              rows={3}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              minHeight={160}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Add details..."
             />
           </div>
@@ -246,6 +249,22 @@ export function TodoDetailPanel({
               <p className="text-sm text-foreground/80 bg-surface/50 px-3 py-2 rounded-lg">
                 {todo.issue.title}
               </p>
+            </div>
+          )}
+
+          {/* Created in meeting (read-only, 2026-08-31) */}
+          {todo.meeting && (
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">
+                Created in
+              </label>
+              <Link
+                href="/meetings"
+                className="block text-sm text-brand hover:underline bg-surface/50 px-3 py-2 rounded-lg"
+              >
+                {todo.meeting.title} ·{" "}
+                {formatDateAU(new Date(todo.meeting.date))}
+              </Link>
             </div>
           )}
 

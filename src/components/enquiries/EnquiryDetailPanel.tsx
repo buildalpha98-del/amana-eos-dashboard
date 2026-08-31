@@ -793,7 +793,17 @@ export function EnquiryDetailPanel({
             </button>
             {showCCS && (
               <div className="mt-4">
-                <CCSCalculator compact />
+                <CCSCalculator
+                compact
+                // Real rates for THIS centre. Without these the calculator
+                // fell back to hardcoded defaults, so staff quoted the same
+                // out-of-pocket figure to every family regardless of which
+                // service they were enquiring about.
+                bscRegularRate={enquiry.service?.bscDailyRate ?? undefined}
+                ascRegularRate={enquiry.service?.ascDailyRate ?? undefined}
+                bscCasualRate={enquiry.service?.bscCasualRate ?? undefined}
+                ascCasualRate={enquiry.service?.ascCasualRate ?? undefined}
+              />
               </div>
             )}
           </div>

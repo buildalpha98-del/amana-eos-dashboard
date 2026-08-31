@@ -85,8 +85,12 @@ describe("GET /api/parent/daily-info", () => {
         {
           id: "mw-1",
           items: [
-            { slot: "morning_tea", description: "Fruit platter", allergens: ["nuts"] },
-            { slot: "lunch", description: "Pasta", allergens: [] },
+            // `day` is carried since the route began returning the whole
+            // week (2026-08-05) — today's slice is filtered from it.
+            { day: "wednesday", slot: "morning_tea", description: "Fruit platter", allergens: ["nuts"] },
+            { day: "wednesday", slot: "lunch", description: "Pasta", allergens: [] },
+            // A different day's item must land in `week` but NOT in today.
+            { day: "friday", slot: "lunch", description: "Pizza", allergens: [] },
           ],
         },
       ]);
@@ -94,6 +98,7 @@ describe("GET /api/parent/daily-info", () => {
       prismaMock.programActivity.findMany.mockResolvedValue([
         {
           id: "pa-1",
+          day: "wednesday",
           title: "Art class",
           description: "Painting",
           startTime: "15:30",
@@ -118,6 +123,75 @@ describe("GET /api/parent/daily-info", () => {
       // Program should have activities
       expect(body.todayProgram).toHaveLength(1);
       expect(body.todayProgram[0].title).toBe("Art class");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("GET /api/parent/daily-info — the week", () => {
+  it("returns every weekday's menu and programme, not just today's", async () => {
+    // Parents plan around the week — "what's for lunch Thursday" is a
+    // week question, and answering one day at a time meant it couldn't
+    // be answered at all.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-22T02:00:00.000Z")); // Wednesday
+
+    try {
+      prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
+        { serviceId: "svc-1" },
+      ]);
+      prismaMock.menuWeek.findMany.mockResolvedValue([
+        {
+          id: "mw-1",
+          items: [
+            { day: "wednesday", slot: "lunch", description: "Pasta", allergens: [] },
+            { day: "friday", slot: "lunch", description: "Pizza", allergens: [] },
+          ],
+        },
+      ]);
+      prismaMock.programActivity.findMany.mockResolvedValue([]);
+
+      const req = createRequest("GET", "/api/parent/daily-info");
+      const res = await GET(req, undefined as never);
+      const body = await res.json();
+
+      const friday = body.week.find((d: { day: string }) => d.day === "friday");
+      expect(friday.menu).toHaveLength(1);
+      expect(friday.menu[0].description).toBe("Pizza");
+      // ...while today's slice stays today's.
+      expect(body.todayMenu.items).toHaveLength(1);
+      expect(body.todayMenu.items[0].description).toBe("Pasta");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("still answers on a weekend — today empty, the week intact", async () => {
+    // Sunday-evening planning is exactly when the week view matters.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-19T02:00:00.000Z")); // Sunday
+
+    try {
+      prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
+        { serviceId: "svc-1" },
+      ]);
+      prismaMock.menuWeek.findMany.mockResolvedValue([
+        {
+          id: "mw-1",
+          items: [
+            { day: "monday", slot: "lunch", description: "Wraps", allergens: [] },
+          ],
+        },
+      ]);
+      prismaMock.programActivity.findMany.mockResolvedValue([]);
+
+      const req = createRequest("GET", "/api/parent/daily-info");
+      const body = await (await GET(req, undefined as never)).json();
+
+      expect(body.todayMenu).toBeNull();
+      const monday = body.week.find((d: { day: string }) => d.day === "monday");
+      expect(monday.menu).toHaveLength(1);
     } finally {
       vi.useRealTimers();
     }

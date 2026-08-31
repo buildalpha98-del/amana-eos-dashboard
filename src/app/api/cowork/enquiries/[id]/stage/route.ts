@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
@@ -50,6 +51,7 @@ export const PATCH = withApiHandler(async (req, context) => {
         service: { select: { id: true, name: true, code: true } },
       },
     });
+    await logEnquiryStageEvent(id, existing.stage, data.stage);
 
     return NextResponse.json({
       success: true,

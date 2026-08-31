@@ -89,6 +89,7 @@ export const allPages = [
   "/projects",
   "/tickets",
   "/marketing",
+  "/requests",
   "/marketing/vendor-briefs",
   "/marketing/activations",
   "/marketing/newsletter-chase",
@@ -138,6 +139,7 @@ export const allPages = [
   "/contact-centre",
   "/messaging",
   "/enrolments",
+  "/ambassadors",
   "/families",
   "/children",
   "/children/[id]",
@@ -154,6 +156,10 @@ export const allPages = [
   // Owner/head_office/admin only (inherited via allPages — deliberately
   // NOT added to the marketing/member/staff/EOS allowlists).
   "/workforce-reports",
+  // Parent help centre admin (public /support content + article CRUD).
+  // Owner/head_office/admin only — inherited via allPages, deliberately
+  // NOT added to the marketing/member/staff/EOS allowlists.
+  "/help-centre",
   // Tools
   "/tools/ccs-calculator",
   // 2026-07-05 (nav consolidation phase 1): /handbook is the consolidated
@@ -224,6 +230,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/surveys",
     "/learn/[enrollmentId]",
     "/marketing",
+    "/requests",
     "/marketing/vendor-briefs",
     "/marketing/activations",
     "/marketing/newsletter-chase",
@@ -295,11 +302,22 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // ── EOS — Directors of Service participate in EOS ─────────
     "/rocks",
     "/todos",
-    "/issues",
+    // 2026-08-06: the org-wide L10 Issues page is NOT here on purpose.
+    // Per Daniel: only owner/head_office/admin/marketing — "the higher
+    // up" — see the cross-centre list. A Director of Service raises and
+    // works issues for their OWN centre via the EOS tab inside
+    // /services/[id] (ServiceIssuesTab, serviceId-scoped), which already
+    // existed and is unaffected by this. Issues raised there still land
+    // in the same table leadership's /issues page reads from, so nothing
+    // a Director raises is hidden from leadership — they just don't get
+    // the cross-centre view themselves.
     "/meetings",
     "/accountability-chart",
     // ── Their centre — primary surface ─────────────────────────
     "/services",
+    // 2026-08-03: Ambassadors pilot — Directors verify records, resolve
+    // attribution conflicts and enter session counts for their centre.
+    "/ambassadors",
     // /services/[id] inherits from /services via prefix match in
     // pathMatches(); same for the Roll Call / Bookings / Children /
     // Billing tabs nested inside service detail.
@@ -313,6 +331,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/roster/me",
     "/roster/swaps",
     "/leave",
+    "/requests",
     // ── Read-only org resources ────────────────────────────────
     "/documents",
     "/knowledge",
@@ -351,6 +370,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/my-training",
     "/surveys",
     "/learn/[enrollmentId]",
+    // 2026-08-03: Ambassadors pilot — educators see their own credited
+    // enrolments, tier, LMS status and projected payout.
+    "/ambassadors",
     "/activity-library",
     "/documents",
     "/communication",
@@ -366,6 +388,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/roster/swaps",
     "/leave",
     "/contracts",
+    "/requests",
     "/tools/ccs-calculator",
     "/handbook",
     "/tools/the-amana-way",

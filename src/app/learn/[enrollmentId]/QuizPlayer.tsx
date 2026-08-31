@@ -8,19 +8,24 @@ import {
   type ShuffledQuizQuestion,
   type SubmitQuizResponse,
 } from "@/hooks/useQuiz";
+import { ApiResponseError } from "@/lib/fetch-api";
 
 /**
  * Interactive quiz for a module. Fetches a shuffled attempt, collects answers,
  * submits for server-side scoring, then shows per-question feedback with
  * explanations. On a pass it calls onPassed so the player unlocks "Next".
+ *
+ * `alreadyCompleted` is the module's progress state — normally that means a
+ * passed attempt (the server only completes quiz modules on a pass), but an
+ * admin override can also complete one, so it is NOT strictly "passed".
  */
 export function QuizPlayer({
   moduleId,
-  alreadyPassed,
+  alreadyCompleted,
   onPassed,
 }: {
   moduleId: string;
-  alreadyPassed: boolean;
+  alreadyCompleted: boolean;
   onPassed: () => void;
 }) {
   const start = useStartQuiz();
@@ -44,16 +49,28 @@ export function QuizPlayer({
       questionId: q.id,
       selectedIndex: answers[q.id] ?? -1,
     }));
-    const res = await submit.mutateAsync({ moduleId, attemptId, answers: payload });
-    setResult(res);
-    if (res.passed) onPassed();
+    try {
+      const res = await submit.mutateAsync({ moduleId, attemptId, answers: payload });
+      setResult(res);
+      if (res.passed) onPassed();
+    } catch (err) {
+      // 409 = this attempt can't be scored (quiz edited mid-attempt, or already
+      // submitted elsewhere). The toast has fired; return to the start screen
+      // so the learner isn't stuck on a dead Submit button.
+      if (err instanceof ApiResponseError && err.status === 409) {
+        setAttemptId(null);
+        setQuestions([]);
+        setAnswers({});
+        setResult(null);
+      }
+    }
   }
 
-  if (alreadyPassed && !result) {
+  if (alreadyCompleted && !result) {
     return (
       <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
         <CheckCircle2 className="h-5 w-5" />
-        You&apos;ve already passed this quiz.
+        You&apos;ve already completed this quiz.
       </div>
     );
   }

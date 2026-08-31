@@ -153,6 +153,31 @@ export function withParentAuth(
       });
       parent.enrolmentIds = validEnrolments.map(e => e.id);
 
+      /**
+       * Backfill `accountId` onto a session that predates it.
+       *
+       * The magic-link route only started signing `accountId` on
+       * 2026-08-13; `login` always did. Those JWTs last 30 days, so
+       * without this every parent holding an older magic-link session
+       * stays locked out of their own enrolment draft until it expires
+       * — and the portal REDIRECTS them into that form, where they type
+       * the whole thing against a status line reading "Not saved" and
+       * are refused on submit.
+       *
+       * Resolving it here rather than in each route means one lookup
+       * fixes every caller, and a parent who is already signed in never
+       * finds out there was a problem.
+       */
+      if (!parent.accountId) {
+        const account = await prisma.parentAccount.findUnique({
+          where: { email: parent.email.toLowerCase().trim() },
+          select: { id: true, deactivatedAt: true },
+        });
+        if (account && !account.deactivatedAt) {
+          parent.accountId = account.id;
+        }
+      }
+
       // Rate limit: 60 req/min per parent per endpoint
       const endpoint = new URL(req.url).pathname;
       const rl = await checkRateLimit(`parent:${parent.email}:${endpoint}`, 60, 60_000);

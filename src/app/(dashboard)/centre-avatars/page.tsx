@@ -144,7 +144,7 @@ export default function CentreAvatarsPage() {
         <EmptyState
           icon={Target}
           title="No Centre Avatars yet"
-          description="One Avatar per service should appear here. Ask Jayden to seed the database — then refresh."
+          description="No centre avatars have been created yet. One is generated per service — contact your administrator if you expected to see them here."
           variant="inline"
         />
       )}

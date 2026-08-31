@@ -4,9 +4,10 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { assertServiceAccess } from "@/lib/authz-scope";
 import { z } from "zod";
-import type { SessionType } from "@prisma/client";
+import { $Enums, type SessionType } from "@prisma/client";
 import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
 import { logger } from "@/lib/logger";
+import { requireRoomId } from "@/lib/room-resolver";
 
 // YYYY-MM-DD regex used by both handlers for DST-safe parsing.
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -43,8 +44,27 @@ export const GET = withApiAuth(async (req, session) => {
     throw ApiError.badRequest("date must be YYYY-MM-DD");
   }
 
-  if (!["bsc", "asc", "vc"].includes(sessionType)) {
-    throw ApiError.badRequest("sessionType must be bsc, asc, or vc");
+  /**
+   * Any room this centre has, not just the three core programmes.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md. This used to be a literal
+   * `["bsc","asc","vc"]` whitelist, which meant a centre could have
+   * attendance recorded against an extra room — the write paths resolve
+   * and store its `roomId` correctly — and then be refused when it tried
+   * to open the roll for it. The room, not the slot, is what decides.
+   */
+  if (!Object.values($Enums.SessionType).includes(sessionType)) {
+    throw ApiError.badRequest(`"${sessionType}" is not a session type`);
+  }
+
+  const room = await prisma.room.findUnique({
+    where: {
+      serviceId_legacyKey: { serviceId, legacyKey: sessionType },
+    },
+    select: { id: true, name: true, archivedAt: true },
+  });
+  if (!room) {
+    throw ApiError.notFound("That isn't a room at this centre");
   }
 
   const date = parseDateUTC(dateStr);
@@ -105,6 +125,38 @@ export const GET = withApiAuth(async (req, session) => {
   // 3. Build a map of childId -> attendance record
   const recordMap = new Map(records.map((r) => [r.childId, r]));
 
+  // 3b. Who has never been signed in before, anywhere.
+  //
+  // A child's first ever session is the one where nobody knows them: not
+  // their face, not the allergy, not who's allowed to collect them. Staff
+  // need that surfaced at the door, not discovered later. Computed rather
+  // than stored so it can't go stale, and scoped to a single grouped
+  // query over just the children on today's list.
+  const candidateIds = [
+    ...new Set([
+      ...bookings.map((b) => b.childId),
+      ...records.map((r) => r.childId),
+    ]),
+  ];
+  const priorAttendance =
+    candidateIds.length > 0
+      ? await prisma.attendanceRecord.groupBy({
+          by: ["childId"],
+          where: {
+            childId: { in: candidateIds },
+            // Only an actual sign-in counts. A booking they were marked
+            // absent for isn't a session they attended.
+            signInTime: { not: null },
+            // Earlier days only — being signed in this morning must not
+            // stop the badge showing for the rest of today.
+            date: { lt: date },
+          },
+          _count: { _all: true },
+        })
+      : [];
+  const hasAttendedBefore = new Set(priorAttendance.map((r) => r.childId));
+  const isFirstSession = (childId: string) => !hasAttendedBefore.has(childId);
+
   // 4. Build the unified roll call list — one row per booked child
   const bookedChildIds = new Set<string>();
   const rollCall = bookings.map((b) => {
@@ -124,6 +176,7 @@ export const GET = withApiAuth(async (req, session) => {
       notes: record?.notes ?? null,
       firstDayPhotoSentAt: record?.firstDayPhotoSentAt ?? null,
       firstDayPhotoUrl: record?.firstDayPhotoUrl ?? null,
+      isFirstSession: isFirstSession(b.childId),
     };
   });
 
@@ -169,6 +222,7 @@ export const GET = withApiAuth(async (req, session) => {
           notes: record.notes,
           firstDayPhotoSentAt: record.firstDayPhotoSentAt,
           firstDayPhotoUrl: record.firstDayPhotoUrl,
+          isFirstSession: isFirstSession(record.childId),
         });
       }
     }
@@ -191,6 +245,13 @@ export const GET = withApiAuth(async (req, session) => {
   return NextResponse.json({
     records: rollCall,
     summary: { total, present, absent, notMarked },
+    /**
+     * The room this roll is for. Returned so a caller can say WHOSE roll
+     * it is showing without going back to the JSON for a label — and so
+     * the read path finally hands back the `roomId` the write path has
+     * been storing since Stage 1.
+     */
+    room: { id: room.id, name: room.name, retired: room.archivedAt !== null },
   });
 });
 
@@ -200,7 +261,12 @@ const actionSchema = z.object({
   childId: z.string().min(1),
   serviceId: z.string().min(1),
   date: z.string().regex(DATE_RE, "date must be YYYY-MM-DD"),
-  sessionType: z.enum(["bsc", "asc", "vc"]),
+  /**
+   * Any room, not just the three core programmes — see the GET above.
+   * `requireRoomId` below is what actually checks the room exists at
+   * this centre, so a slot the centre doesn't run still gets refused.
+   */
+  sessionType: z.nativeEnum($Enums.SessionType),
   action: z.enum(["sign_in", "sign_out", "mark_absent", "undo"]),
   absenceReason: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),
@@ -220,6 +286,18 @@ const actionSchema = z.object({
    * upsert semantics for the AttendanceRecord row itself.
    */
   clientMutationId: z.string().uuid().optional(),
+  /**
+   * Who physically dropped off or collected the child.
+   *
+   * Regulation 158 wants a record of that person, not only the staff
+   * member who tapped the screen — and `signedInById` references a User,
+   * so a parent or grandparent could never be represented. Optional so
+   * existing callers (offline queue, bulk roll-call) keep working
+   * unchanged.
+   */
+  signedByName: z.string().trim().max(120).optional(),
+  signMethod: z.enum(["staff", "parent_kiosk", "parent_app"]).optional(),
+  signature: z.string().max(200_000).optional(),
 });
 
 /**
@@ -249,7 +327,7 @@ export const POST = withApiAuth(async (req, session) => {
     throw ApiError.badRequest("Validation failed", parsed.error.flatten().fieldErrors);
   }
 
-  const { childId, serviceId, date, sessionType, action, absenceReason, notes, occurredAt } = parsed.data;
+  const { childId, serviceId, date, sessionType, action, absenceReason, notes, occurredAt, signedByName, signMethod, signature } = parsed.data;
   const dateObj = parseDateUTC(date);
   const uniqueKey = {
     childId_serviceId_date_sessionType: {
@@ -259,6 +337,12 @@ export const POST = withApiAuth(async (req, session) => {
       sessionType,
     },
   };
+
+  /**
+   * Stage 1 dual key, resolved once for every branch below — the whole
+   * handler works on one (service, slot) pair. See room-resolver.ts.
+   */
+  const roomId = await requireRoomId(serviceId, sessionType);
 
   // Honour client-supplied timestamp (offline replay) or fall back to now.
   const actionTime = resolveActionTime(occurredAt);
@@ -273,16 +357,23 @@ export const POST = withApiAuth(async (req, session) => {
           status: "present",
           signInTime,
           signedInById: session.user.id,
+          ...(signedByName ? { signedInByName: signedByName } : {}),
+          ...(signMethod ? { signedInMethod: signMethod } : {}),
+          ...(signature ? { signedInSignature: signature } : {}),
           notes,
         },
         create: {
           childId,
           serviceId,
           date: dateObj,
+          roomId,
           sessionType,
           status: "present",
           signInTime,
           signedInById: session.user.id,
+          ...(signedByName ? { signedInByName: signedByName } : {}),
+          ...(signMethod ? { signedInMethod: signMethod } : {}),
+          ...(signature ? { signedInSignature: signature } : {}),
           notes,
         },
       });
@@ -298,11 +389,15 @@ export const POST = withApiAuth(async (req, session) => {
         update: {
           signOutTime,
           signedOutById: session.user.id,
+          ...(signedByName ? { signedOutByName: signedByName } : {}),
+          ...(signMethod ? { signedOutMethod: signMethod } : {}),
+          ...(signature ? { signedOutSignature: signature } : {}),
         },
         create: {
           childId,
           serviceId,
           date: dateObj,
+          roomId,
           sessionType,
           status: "present",
           signInTime: signOutTime, // auto sign-in if missing
@@ -332,6 +427,7 @@ export const POST = withApiAuth(async (req, session) => {
           childId,
           serviceId,
           date: dateObj,
+          roomId,
           sessionType,
           status: "absent",
           absenceReason: absenceReason ?? null,
@@ -355,6 +451,7 @@ export const POST = withApiAuth(async (req, session) => {
           childId,
           serviceId,
           date: dateObj,
+          roomId,
           sessionType,
           status: "booked",
         },
@@ -391,6 +488,7 @@ export const POST = withApiAuth(async (req, session) => {
     create: {
       serviceId,
       date: dateObj,
+      roomId,
       sessionType,
       attended,
       absent,

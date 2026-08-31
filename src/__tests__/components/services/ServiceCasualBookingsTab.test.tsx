@@ -47,10 +47,44 @@ function makeWrapper(qc: QueryClient) {
   };
 }
 
-function makeClient() {
-  return new QueryClient({
+/**
+ * The rooms a centre with no customisation has.
+ *
+ * Stage 2 of docs/rooms-migration-plan.md: this tab takes its cards
+ * from room RECORDS now rather than enumerating the seven enum slots,
+ * so the rooms have to come from somewhere. Seeding the query cache
+ * rather than mocking `fetchApi` keeps every assertion below synchronous
+ * — the alternative was making fifteen tests await a resolved query to
+ * assert something that has nothing to do with loading.
+ */
+const DEFAULT_ROOM_RECORDS = [
+  { legacyKey: "bsc", name: "Rise and Shine", startTime: "06:30", endTime: "09:00" },
+  { legacyKey: "asc", name: "Amana Afternoons", startTime: "15:00", endTime: "18:30" },
+  { legacyKey: "vc", name: "Holiday Quest", startTime: "07:00", endTime: "18:00" },
+].map((r, i) => ({
+  id: `room-${r.legacyKey}`,
+  capacity: null,
+  ratio: null,
+  description: null,
+  minAgeYears: null,
+  maxAgeYears: null,
+  photoUrl: null,
+  staffOnly: false,
+  archivedAt: null,
+  fees: [],
+  archivedFees: [],
+  sortOrder: i,
+  ...r,
+}));
+
+function makeClient(
+  rooms: Array<Record<string, unknown>> = DEFAULT_ROOM_RECORDS,
+) {
+  const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnMount: false } },
   });
+  qc.setQueryData(["service-rooms", "svc-1", "active"], { rooms });
+  return qc;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,18 +107,20 @@ describe("ServiceCasualBookingsTab", () => {
     sessionRef.serviceId = null;
   });
 
-  it("renders the info banner explaining settings-only scope", () => {
+  it("tells the coordinator these settings are actually enforced", () => {
+    // 2026-08-06: this used to assert a banner reading "not yet
+    // enforced … ships in a follow-up sub-project". That follow-up had
+    // already shipped — checkCasualBookingAllowed is wired into the
+    // parent create, bulk and cancellation routes — and the stale
+    // warning was telling coordinators their policy was decorative.
     const qc = makeClient();
     render(<ServiceCasualBookingsTab service={makeService()} />, {
       wrapper: makeWrapper(qc),
     });
 
-    // Headline ("Settings stored — not yet enforced") + the body copy below
-    // both mention "not yet enforced" — use getAllByText and assert ≥1.
-    expect(screen.getAllByText(/not yet enforced/i).length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/follow-up sub-project/i),
-    ).toBeDefined();
+    expect(screen.getByText(/these settings are enforced/i)).toBeDefined();
+    expect(screen.queryByText(/not yet enforced/i)).toBeNull();
+    expect(screen.queryByText(/follow-up sub-project/i)).toBeNull();
   });
 
   it("renders the preview card with the empty-state message when no sessions are enabled", () => {
@@ -124,12 +160,12 @@ describe("ServiceCasualBookingsTab", () => {
 
     expect(
       screen.getByText(
-        /Parents can book casual BSC up to 24 hours before the session at \$36\.00 \(10 spots available\)\./i,
+        /Parents can book casual Rise and Shine up to 24 hours before the session at \$36\.00 \(10 spots available\)\./i,
       ),
     ).toBeDefined();
     expect(
       screen.getByText(
-        /Parents can book casual ASC up to 12 hours before the session at \$42\.00 \(8 spots available\)\./i,
+        /Parents can book casual Amana Afternoons up to 12 hours before the session at \$42\.00 \(8 spots available\)\./i,
       ),
     ).toBeDefined();
   });
@@ -344,5 +380,120 @@ describe("ServiceCasualBookingsTab", () => {
       return !arg?.variant || arg.variant !== "destructive";
     });
     expect(okCall).toBeDefined();
+  });
+});
+
+/**
+ * Stage 2 of docs/rooms-migration-plan.md — the cards come from room
+ * records, not from the seven enum slots. What's worth pinning is the
+ * behaviour that used to be impossible: a centre's eighth room getting
+ * a settings card without anyone editing this file.
+ */
+describe("ServiceCasualBookingsTab — rooms as records", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    toastSpy.mockReset();
+    mutateApiMock.mockReset();
+    sessionRef.role = "admin";
+    sessionRef.serviceId = null;
+  });
+
+  const room = (over: Record<string, unknown>) => ({
+    ...DEFAULT_ROOM_RECORDS[0],
+    ...over,
+  });
+
+  it("gives a room the enum never enumerated its own card", () => {
+    // The point of the whole stage. Previously this list was
+    // activeSessionKeys(sessionTimes), so a room only appeared if its
+    // slot was one of the seven and had a label in the JSON.
+    const qc = makeClient([
+      room({ id: "room-x", legacyKey: "extra1", name: "Homework Club" }),
+    ]);
+    render(<ServiceCasualBookingsTab service={makeService()} />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(screen.getByTestId("casual-card-extra1")).toBeDefined();
+    expect(screen.getByText("Homework Club")).toBeDefined();
+  });
+
+  it("shows the room's own name, not the slot code", () => {
+    const qc = makeClient([room({ name: "Sunrise Crew" })]);
+    render(<ServiceCasualBookingsTab service={makeService()} />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(screen.getByText("Sunrise Crew")).toBeDefined();
+    expect(screen.queryByText("Rise and Shine")).toBeNull();
+  });
+
+  it("leaves out a room with no legacy key rather than showing settings that can't save", () => {
+    // The settings blob and the booking record are both keyed by slot
+    // until Stage 4, so such a room has nowhere to store its settings.
+    // A card that silently discards what's typed into it is worse than
+    // no card.
+    const qc = makeClient([
+      room({ id: "room-new", legacyKey: null, name: "Sensory Room" }),
+    ]);
+    render(<ServiceCasualBookingsTab service={makeService()} />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(screen.queryByText("Sensory Room")).toBeNull();
+  });
+
+  it("says when a room is staff-only, since families never see it", () => {
+    // The room record knows this; the settings blob doesn't. Ticking
+    // "enabled" on a staff-only room does nothing, and the coordinator
+    // deserves to know that before waiting for bookings.
+    const qc = makeClient([room({ staffOnly: true })]);
+    render(<ServiceCasualBookingsTab service={makeService()} />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(screen.getByText(/families won't see this/i)).toBeDefined();
+  });
+
+  it("names an archived tier the room is still linked to", () => {
+    // Dropping it from the picker blanks the select, and the next save
+    // silently unlinks a live price.
+    const qc = makeClient([
+      room({
+        fees: [{ id: "f-new", name: "Full session", amountCents: 4500 }],
+        archivedFees: [{ id: "f-old", name: "2025 rate", amountCents: 4000 }],
+      }),
+    ]);
+    render(
+      <ServiceCasualBookingsTab
+        service={makeService({
+          casualBookingSettings: {
+            bsc: {
+              enabled: true,
+              fee: 40,
+              spots: 5,
+              cutOffHours: 24,
+              days: ["mon"],
+              feeTierId: "f-old",
+            },
+          },
+        })}
+      />,
+      { wrapper: makeWrapper(qc) },
+    );
+
+    expect(screen.getByText(/2025 rate — archived/i)).toBeDefined();
+  });
+
+  it("renders nothing rather than guessing while the rooms are still loading", () => {
+    // An empty cache, not an empty centre. Inventing the three core
+    // programmes here would show a coordinator cards that may not match
+    // their rooms, and they'd start typing into them.
+    const qc = makeClient([]);
+    render(<ServiceCasualBookingsTab service={makeService()} />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(screen.queryByTestId("casual-card-bsc")).toBeNull();
   });
 });

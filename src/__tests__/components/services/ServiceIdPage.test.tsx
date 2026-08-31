@@ -209,7 +209,9 @@ describe("ServiceDetailPage — Today tab + default landing", () => {
     // Desktop nav: the mobile dropdown also exists but is hidden by
     // `sm:hidden`. Use button role queries to enumerate tab buttons.
     const todayButtons = screen.getAllByText("Today");
-    const overviewButtons = screen.getAllByText("Overview");
+    // One tab now — "Service Overview" and "About" were an editing seam,
+    // not a distinction anyone reasons about.
+    const overviewButtons = screen.getAllByText("Service Information");
     expect(todayButtons.length).toBeGreaterThan(0);
     expect(overviewButtons.length).toBeGreaterThan(0);
   });

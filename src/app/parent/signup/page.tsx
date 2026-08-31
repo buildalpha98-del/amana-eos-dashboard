@@ -9,11 +9,16 @@
  * owned by that account.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { mutateApi } from "@/lib/fetch-api";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+
+// Ambassadors: educator QR codes land here as /parent/signup?ref=CODE.
+// window.location (not useSearchParams) so the page needs no Suspense
+// boundary; sessionStorage keeps the code if they wander off and return.
+const REF_STORAGE_KEY = "amana_ref";
 
 export default function ParentSignupPage() {
   const [fullName, setFullName] = useState("");
@@ -22,7 +27,68 @@ export default function ParentSignupPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [refCode, setRefCode] = useState("");
   const router = useRouter();
+
+  /**
+   * `?enquiry=<id>` — a family arriving from a nurture or waitlist link.
+   *
+   * Those links used to open the old anonymous wizard, which is gone
+   * because everything submitted through it was an incomplete record.
+   * They land here instead, and this is what stops that being a
+   * downgrade: the name and email they already gave us are filled in,
+   * rather than asked for a second time.
+   *
+   * Prefill only — the email is editable and the account is still
+   * created from what's typed. Anyone can put any id in the URL, so
+   * this must never be treated as proof of who they are.
+   */
+  useEffect(() => {
+    const enquiryId = new URLSearchParams(window.location.search).get("enquiry");
+    if (!enquiryId) return;
+    let cancelled = false;
+
+    fetchApi<{ prefill: { firstName: string; surname: string; email: string } }>(
+      `/api/enrol/${encodeURIComponent(enquiryId)}`,
+    )
+      .then(({ prefill }) => {
+        if (cancelled) return;
+        const name = [prefill.firstName, prefill.surname]
+          .filter(Boolean)
+          .join(" ");
+        // Never clobber something the family has already typed — the
+        // fetch resolves after the field is interactive.
+        if (name) setFullName((prev) => prev || name);
+        if (prefill.email) setEmail((prev) => prev || prefill.email);
+      })
+      .catch(() => {
+        // An expired or unknown link is not an error worth showing:
+        // the form works perfectly well unfilled.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("ref");
+    if (fromUrl) {
+      setRefCode(fromUrl);
+      try {
+        sessionStorage.setItem(REF_STORAGE_KEY, fromUrl);
+      } catch {
+        // storage unavailable (private mode) — the URL value still applies
+      }
+      return;
+    }
+    try {
+      const stored = sessionStorage.getItem(REF_STORAGE_KEY);
+      if (stored) setRefCode(stored);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const passwordsMatch = password === confirm;
   const longEnough = password.length >= 10;
@@ -40,7 +106,12 @@ export default function ParentSignupPage() {
         "/api/parent/auth/signup",
         {
           method: "POST",
-          body: { email, password, fullName: fullName.trim() },
+          body: {
+            email,
+            password,
+            fullName: fullName.trim(),
+            ...(refCode ? { refCode } : {}),
+          },
         },
       );
       // Signed in already — go straight to the form. router.push would

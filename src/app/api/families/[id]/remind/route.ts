@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { sendEmail } from "@/lib/email";
+import { recordMarketingSends } from "@/lib/frequency-cap";
 import { logger } from "@/lib/logger";
 import { parentEnrolmentReminderEmail } from "@/lib/email-templates/parent-account";
 import { findEnrolmentIdsForEmail } from "@/lib/parent-account";
@@ -68,12 +69,24 @@ export const POST = withApiAuth(
       hasDraft: (account.enrolmentDraft?.currentStep ?? 0) > 0,
     });
 
+    let sendResult: Awaited<ReturnType<typeof sendEmail>>;
     try {
-      await sendEmail({ to: account.email, subject, html });
+      sendResult = await sendEmail({ to: account.email, subject, html });
     } catch (err) {
       logger.error("Family reminder email failed", { err, accountId: id });
       // Surfaced here, unlike signup — staff need to know it didn't go.
       throw new ApiError(502, "Couldn't send the reminder email. Please try again.");
+    }
+
+    // Frequency-cap ledger: lifecycle mail is 1:1 — RECORDED (it counts
+    // toward the parent's weekly marketing-email volume so bulk sends see
+    // it) but NEVER cap-blocked. Only actually-sent recipients count
+    // (suppressed → sent: []); recordMarketingSends swallows its own errors,
+    // so a ledger hiccup never fails a send that already went out.
+    if (sendResult.sent.length > 0) {
+      await recordMarketingSends(prisma, [{ email: account.email }], {
+        source: "lifecycle",
+      });
     }
 
     await prisma.parentAccount.update({

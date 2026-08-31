@@ -19,10 +19,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { findEnrolmentsForEmails } from "@/lib/parent-account";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { getParentEnrolmentState } from "@/lib/parent-enrolment-state";
 import { anchorDayValid, isBillingFrequency } from "@/lib/family-billing";
+import { normaliseEmail } from "@/lib/parent-account";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -31,8 +33,25 @@ type Ctx = { params: Promise<{ id: string }> };
  * column, not a foreign key. Shared by GET and PATCH so the two can't
  * disagree about which submissions belong to a family.
  */
+/**
+ * Every submission this parent's email appears on.
+ *
+ * This used to fetch the newest 500 submissions and filter them in
+ * memory on `primaryParent` alone. Two ways to be wrong, both silent:
+ * a family whose enrolment fell outside the window showed as having no
+ * enrolment and no children, and so did a family whose account email
+ * belonged to the SECOND carer.
+ *
+ * `findEnrolmentsForEmails` asks the database for this one email —
+ * both carers, no window — and the ids come back to be hydrated.
+ */
 async function submissionsForEmail(email: string) {
-  const all = await prisma.enrolmentSubmission.findMany({
+  const idsByEmail = await findEnrolmentsForEmails([email]);
+  const ids = idsByEmail.get(email) ?? [];
+  if (ids.length === 0) return [];
+
+  return prisma.enrolmentSubmission.findMany({
+    where: { id: { in: ids } },
     select: {
       id: true,
       status: true,
@@ -52,19 +71,12 @@ async function submissionsForEmail(email: string) {
           schoolName: true,
           yearLevel: true,
           ccsStatus: true,
+          placementReason: true,
           service: { select: { id: true, name: true } },
         },
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 500,
-  });
-
-  return all.filter((s) => {
-    const p = s.primaryParent as Record<string, unknown> | null;
-    return (
-      p && typeof p.email === "string" && p.email.toLowerCase().trim() === email
-    );
   });
 }
 
@@ -83,6 +95,8 @@ export const GET = withApiAuth(
         emailVerifiedAt: true,
         lastLoginAt: true,
         createdAt: true,
+        deactivatedAt: true,
+        deactivatedReason: true,
         billingFrequency: true,
         billingAnchorDay: true,
         billingLimitCents: true,
@@ -132,6 +146,10 @@ export const GET = withApiAuth(
       contactName:
         [account.firstName, account.surname].filter(Boolean).join(" ") || null,
       emailVerified: Boolean(account.emailVerifiedAt),
+      firstName: account.firstName,
+      surname: account.surname,
+      deactivatedAt: account.deactivatedAt,
+      deactivatedReason: account.deactivatedReason,
       lastLoginAt: account.lastLoginAt,
       createdAt: account.createdAt,
       enrolmentState: getParentEnrolmentState(subs),
@@ -176,6 +194,7 @@ export const GET = withApiAuth(
           ccsStatus: c.ccsStatus,
           serviceName: c.service?.name ?? null,
           serviceId: c.service?.id ?? null,
+          placementReason: c.placementReason,
         })),
       ),
     });
@@ -185,6 +204,17 @@ export const GET = withApiAuth(
 
 const patchSchema = z.object({
   familyName: z.string().trim().max(120).nullable().optional(),
+  // The account's own identity. `email` is the LOGIN, so changing it
+  // changes how the family signs in — handled explicitly below rather
+  // than passed straight through.
+  // Trimmed BEFORE the email check: a pasted address with a stray space
+  // is a typo to absorb, not a validation error to bounce back.
+  email: z.string().trim().email().max(200).optional(),
+  firstName: z.string().trim().max(100).nullable().optional(),
+  surname: z.string().trim().max(100).nullable().optional(),
+  /** Switch portal access off (or back on) without deleting the family. */
+  deactivated: z.boolean().optional(),
+  deactivatedReason: z.string().trim().max(300).nullable().optional(),
   billingFrequency: z.string().nullable().optional(),
   billingAnchorDay: z.number().int().nullable().optional(),
   billingLimitCents: z.number().int().min(0).max(100_000_00).nullable().optional(),
@@ -218,7 +248,7 @@ function parseDate(v: string | null | undefined): Date | null | undefined {
 }
 
 export const PATCH = withApiAuth(
-  async (req, _session, context) => {
+  async (req, session, context) => {
     const { id } = await (context as unknown as Ctx).params;
     const parsed = patchSchema.safeParse(await parseJsonBody(req));
     if (!parsed.success) {
@@ -238,9 +268,29 @@ export const PATCH = withApiAuth(
 
     const existing = await prisma.parentAccount.findUnique({
       where: { id },
-      select: { billingFrequency: true },
+      select: { billingFrequency: true, email: true, deactivatedAt: true },
     });
     if (!existing) throw ApiError.notFound("Family not found");
+
+    // Changing the email changes the LOGIN. Normalise it the same way
+    // sign-up does, or the family types the address they were given and
+    // the lookup misses.
+    let emailUpdate: string | undefined;
+    if (d.email !== undefined) {
+      const next = normaliseEmail(d.email);
+      if (next !== existing.email) {
+        const clash = await prisma.parentAccount.findUnique({
+          where: { email: next },
+          select: { id: true },
+        });
+        if (clash) {
+          throw ApiError.badRequest(
+            "Another family already uses that email address.",
+          );
+        }
+        emailUpdate = next;
+      }
+    }
 
     // Validate the day against the frequency being SAVED, not the stored
     // one — otherwise switching monthly→weekly leaves day 28 in place and
@@ -281,6 +331,22 @@ export const PATCH = withApiAuth(
       where: { id },
       data: {
         ...(d.familyName !== undefined ? { familyName: d.familyName || null } : {}),
+        ...(emailUpdate !== undefined ? { email: emailUpdate } : {}),
+        ...(d.firstName !== undefined ? { firstName: d.firstName || null } : {}),
+        ...(d.surname !== undefined ? { surname: d.surname || null } : {}),
+        // Deactivation is a timestamp, not a boolean, so "when" survives
+        // for the next person who asks why a family can't log in.
+        ...(d.deactivated !== undefined
+          ? {
+              deactivatedAt: d.deactivated
+                ? (existing.deactivatedAt ?? new Date())
+                : null,
+              deactivatedById: d.deactivated ? session!.user.id : null,
+              deactivatedReason: d.deactivated
+                ? (d.deactivatedReason ?? null)
+                : null,
+            }
+          : {}),
         ...(d.billingFrequency !== undefined
           ? { billingFrequency: d.billingFrequency || null }
           : {}),
@@ -305,6 +371,11 @@ export const PATCH = withApiAuth(
       },
       select: {
         familyName: true,
+        email: true,
+        firstName: true,
+        surname: true,
+        deactivatedAt: true,
+        deactivatedReason: true,
         billingFrequency: true,
         billingAnchorDay: true,
         billingLimitCents: true,

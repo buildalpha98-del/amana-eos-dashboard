@@ -58,7 +58,7 @@ export function ConcludeSection({
           value={notes}
           onChange={(e) => onUpdate(e.target.value)}
           placeholder="Summary of action items, decisions made, and key takeaways..."
-          className="w-full h-32 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="w-full min-h-32 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 
@@ -74,7 +74,7 @@ export function ConcludeSection({
           value={cascadeMessages}
           onChange={(e) => onUpdateCascade(e.target.value)}
           placeholder="Messages to cascade to the team...&#10;&#10;Example:&#10;- New enrolment policy starts next Monday&#10;- Holiday program bookings open this Friday&#10;- Staff training day confirmed for March 15"
-          className="w-full h-32 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="w-full min-h-32 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 

@@ -12,6 +12,7 @@ import {
   permutationFor,
   buildShuffledQuestions,
   displayCorrectIndex,
+  questionsFingerprint,
   scoreAttempt,
   PASS_MARK,
 } from "@/lib/quiz";
@@ -142,13 +143,45 @@ describe("scoreAttempt", () => {
     expect(r.passed).toBe(true);
   });
 
-  it("returns per-question results with the correct original index", () => {
+  it("returns per-question results WITHOUT any answer index (canonical must never leak)", () => {
     const answers = QUESTIONS.map((q) => ({
       questionId: q.id,
       selectedIndex: correctDisplayPos(q),
     }));
     const r = scoreAttempt({ ...CTX, questions: QUESTIONS, answers });
     expect(r.results).toHaveLength(5);
-    expect(r.results[0]).toMatchObject({ questionId: "q1", correct: true, correctIndex: 1 });
+    expect(r.results[0]).toEqual({ questionId: "q1", correct: true });
+    expect(r.results[0]).not.toHaveProperty("correctIndex");
+  });
+});
+
+describe("questionsFingerprint", () => {
+  it("is stable for the same question set", () => {
+    expect(questionsFingerprint(QUESTIONS)).toBe(questionsFingerprint(QUESTIONS));
+  });
+
+  it("changes when an option is edited, added, removed, or reordered", () => {
+    const base = questionsFingerprint(QUESTIONS);
+    const edited = QUESTIONS.map((q, i) =>
+      i === 0 ? { ...q, options: ["1", "TWO", "3", "4"] } : q,
+    );
+    const added = QUESTIONS.map((q, i) =>
+      i === 0 ? { ...q, options: [...q.options, "5"] } : q,
+    );
+    const removed = QUESTIONS.map((q, i) =>
+      i === 0 ? { ...q, options: q.options.slice(0, 3) } : q,
+    );
+    const reordered = QUESTIONS.map((q, i) =>
+      i === 0 ? { ...q, options: [...q.options].reverse() } : q,
+    );
+    expect(questionsFingerprint(edited)).not.toBe(base);
+    expect(questionsFingerprint(added)).not.toBe(base);
+    expect(questionsFingerprint(removed)).not.toBe(base);
+    expect(questionsFingerprint(reordered)).not.toBe(base);
+  });
+
+  it("ignores fields that don't affect the display mapping (correctIndex, explanation)", () => {
+    const tweaked = QUESTIONS.map((q) => ({ ...q, correctIndex: 0, explanation: "new" }));
+    expect(questionsFingerprint(tweaked)).toBe(questionsFingerprint(QUESTIONS));
   });
 });

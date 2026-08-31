@@ -88,6 +88,59 @@ export async function enrolmentReceivedEmail(params: {
 
 
 /**
+ * Warns a family their card is about to expire — or just has.
+ *
+ * Written to be actionable rather than alarming: a lapsed card isn't the
+ * family's fault and the fix takes a minute in the portal. No amount is
+ * mentioned, because the point is the card, not the debt.
+ */
+export async function cardExpiryEmail(params: {
+  name: string;
+  /** Days until expiry. Zero or negative means it has already lapsed. */
+  days: number;
+  lastFour: string | null;
+  cardType: string | null;
+}): Promise<{ subject: string; html: string }> {
+  const base = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
+  const expired = params.days <= 0;
+  const card = `${params.cardType ?? "card"} ending ${params.lastFour ?? "••••"}`;
+
+  const when = expired
+    ? "has expired"
+    : params.days === 1
+      ? "expires tomorrow"
+      : params.days <= 10
+        ? `expires in ${params.days} days`
+        : "expires next month";
+
+  return {
+    subject: expired
+      ? "Your card has expired — Amana OSHC"
+      : "Your card is about to expire — Amana OSHC",
+    html: await baseLayout(
+      `
+      <p>Hi ${params.name},</p>
+      <p>The ${card} we have on file for your fees ${when}.</p>
+      ${
+        expired
+          ? `<p>That means your next payment won't go through. Updating it now
+             avoids a missed payment and any dishonour fee.</p>`
+          : `<p>Updating it now means your next payment goes through as
+             normal.</p>`
+      }
+      ${buttonHtml("Update my card", `${base}/parent/billing`)}
+      <p style="font-size:13px;color:#6b7280;">It takes a minute in the
+      Family Portal. If you've already updated it, please ignore this —
+      and if anything looks wrong, contact us at
+      enrolments@amanaoshc.com.au.</p>
+    `,
+      "family",
+    ),
+  };
+}
+
+
+/**
  * Sent when STAFF confirm an enrolment.
  *
  * This is where email verification now lives. Families sign up and go

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendTeamsNotification } from "@/lib/teams-notify";
@@ -6,9 +6,11 @@ import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { enrolmentConfirmationEmail, schoolEnrolmentNotificationEmail } from "@/lib/email-templates";
 import { encryptField } from "@/lib/field-encryption";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { withApiHandler } from "@/lib/api-handler";
+import { withParentAuth } from "@/lib/parent-auth";
+import { runAfter } from "@/lib/run-after";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
+import { logEnquiryStageEvent } from "@/lib/enquiry-stage-events";
 
 // ---------------------------------------------------------------------------
 // Zod schemas — mirrors src/components/enrol/types.ts
@@ -180,7 +182,33 @@ const enrolmentBodySchema = z.object({
 // Route handler
 // ---------------------------------------------------------------------------
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+/**
+ * POST /api/enrol — enrolment submission for the wizard.
+ *
+ * 2026-08-13 — now requires a parent session.
+ *
+ * This was unauthenticated, because it was built for the anonymous
+ * enrolment form at `/enrol`. That form was retired on 2026-07-30 and
+ * its last prefilled links now redirect to signup, so no anonymous
+ * caller remains — but the endpoint stayed open to the internet for
+ * months after the page that fed it was gone, creating
+ * `EnrolmentSubmission` and `Child` rows for anyone who found it.
+ *
+ * It is NOT closed, because it is still live: `/parent/children/new`
+ * renders the same wizard for a signed-in parent enrolling a sibling.
+ * That flow keeps working — those parents already hold a session, so
+ * the gate is invisible to them and shut to everyone else.
+ *
+ * Worth knowing, and deliberately not fixed here: this route's schema
+ * never gained the National Regulations fields the account flow
+ * enforces (doctor's address, immunisation status, the emergency
+ * contact's address, who a court order restricts), so a sibling
+ * enrolled through it is a thinner record than one enrolled through
+ * `/parent/enrol`. Closing the gap means moving sibling enrolment onto
+ * the account flow, which is a change to that feature rather than to
+ * this endpoint's access control.
+ */
+export const POST = withParentAuth(async (req) => {
   // Rate limit: 5 submissions per IP per 15 minutes
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -298,15 +326,17 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   // Find linked enquiry
   let enquiryId: string | null = null;
+  let priorStage: string | null = null;
   let serviceId: string | null = null;
   if (prefillToken) {
     const enquiry = await prisma.parentEnquiry.findFirst({
       where: { id: prefillToken },
-      select: { id: true, serviceId: true },
+      select: { id: true, serviceId: true, stage: true },
     });
     if (enquiry) {
       enquiryId = enquiry.id;
       serviceId = enquiry.serviceId;
+      priorStage = enquiry.stage;
     }
   }
   if (!serviceId && bookingPrefs[0]?.serviceId) {
@@ -392,12 +422,31 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     return sub;
   });
 
-  // Teams notification (fire and forget)
+  // Log the stage event AFTER the transaction commits — the helper does
+  // its own prisma call, so it can't run inside the tx. Skip when the
+  // enquiry was already "enrolled" (no-op move, e.g. a resubmission).
+  if (enquiryId && priorStage !== "enrolled") {
+    await logEnquiryStageEvent(enquiryId, priorStage, "enrolled");
+  }
+
+  /**
+   * The three notifications below run AFTER the response.
+   *
+   * They used to be bare promises with a `.catch()`. On serverless a
+   * bare promise is killed the moment the response returns, so the
+   * confirmation email — the one thing that tells a family their
+   * enrolment arrived — was a race against the runtime freezing, and
+   * losing it left no trace: the `.catch()` never ran either.
+   *
+   * `runAfter` is the same fix `/api/public/enquiries` already made for
+   * its nurture scheduling.
+   */
   const childNames = children
     .map((c) => `${c.firstName} ${c.surname}`)
     .join(", ");
-  sendTeamsNotification({
-    title: "New Enrolment Submitted",
+  runAfter(async () => {
+    await sendTeamsNotification({
+      title: "New Enrolment Submitted",
     body: `${primaryParent.firstName} ${primaryParent.surname} has submitted an enrolment for ${childNames}.`,
     facts: [
       { title: "Parent Email", value: primaryParent.email },
@@ -411,60 +460,100 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         url: `${process.env.NEXTAUTH_URL}/enrolments`,
       },
     ],
-  }).catch((err) => logger.error("Failed to send Teams notification for new enrolment", { err, enrolmentId: submission.id }));
-
-  // Send confirmation email to parent (fire and forget)
-  if (primaryParent.email) {
-    const { subject, html } = await enrolmentConfirmationEmail(
-      primaryParent.firstName,
-      childNames,
+    }).catch((err) =>
+      logger.error("Failed to send Teams notification for new enrolment", {
+        err,
+        enrolmentId: submission.id,
+      }),
     );
-    sendEmail({
-      from: FROM_EMAIL,
-      to: primaryParent.email,
-      subject,
-      html,
-    }).catch((err) => logger.error("Failed to send enrolment confirmation email to parent", { err, enrolmentId: submission.id }));
+  });
+
+  // Confirmation email to the parent — the single most important mail
+  // in this flow, and the one most exposed to the bare-promise bug.
+  if (primaryParent.email) {
+    const parentEmail = primaryParent.email;
+    const parentFirstName = primaryParent.firstName;
+    runAfter(async () => {
+      try {
+        const { subject, html } = await enrolmentConfirmationEmail(
+          parentFirstName,
+          childNames,
+        );
+        const result = await sendEmail({
+          from: FROM_EMAIL,
+          to: parentEmail,
+          subject,
+          html,
+        });
+        if (result.failed) {
+          logger.error("Enrolment confirmation rejected by provider", {
+            enrolmentId: submission.id,
+            error: result.failed.message,
+          });
+        }
+      } catch (err) {
+        logger.error("Failed to send enrolment confirmation email to parent", {
+          err,
+          enrolmentId: submission.id,
+        });
+      }
+    });
   }
 
-  // Send notification to school (fire and forget)
+  // Notification to the school. Also after the response — it does a
+  // query of its own, and the family shouldn't wait on it.
   if (serviceId) {
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
-      select: { name: true, email: true },
-    });
-    if (service?.email) {
-      // Build per-child details with medical info and action plan filenames
-      const schoolChildren = enrichedChildren.map((child, i) => {
-        const actionPlans: string[] = [];
-        const medFiles = medicalFiles.filter((f) => f.childIndex === i);
-        for (const f of medFiles) {
-          actionPlans.push(f.filename);
-        }
-        return {
+    const notifyServiceId = serviceId;
+    runAfter(async () => {
+      try {
+        const service = await prisma.service.findUnique({
+          where: { id: notifyServiceId },
+          select: { name: true, email: true },
+        });
+        if (!service?.email) return;
+
+        // Per-child details with medical info and action plan filenames
+        const schoolChildren = enrichedChildren.map((child, i) => ({
           firstName: child.firstName,
           surname: child.surname,
           yearLevel: child.yearLevel,
           schoolName: child.schoolName,
           medical: child.medical,
-          actionPlans,
-        };
-      });
+          actionPlans: medicalFiles
+            .filter((f) => f.childIndex === i)
+            .map((f) => f.filename),
+        }));
 
-      const { subject: schoolSubject, html: schoolHtml } = schoolEnrolmentNotificationEmail({
-        serviceName: service.name,
-        parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
-        parentEmail: primaryParent.email,
-        parentPhone: primaryParent.mobile,
-        children: schoolChildren,
-      });
-      sendEmail({
-        from: FROM_EMAIL,
-        to: service.email,
-        subject: schoolSubject,
-        html: schoolHtml,
-      }).catch((err) => logger.error("Failed to send school enrolment notification email", { err, enrolmentId: submission.id, serviceId }));
-    }
+        const { subject: schoolSubject, html: schoolHtml } =
+          schoolEnrolmentNotificationEmail({
+            serviceName: service.name,
+            parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
+            parentEmail: primaryParent.email,
+            parentPhone: primaryParent.mobile,
+            children: schoolChildren,
+          });
+
+        const result = await sendEmail({
+          from: FROM_EMAIL,
+          to: service.email,
+          subject: schoolSubject,
+          html: schoolHtml,
+        });
+        if (result.failed) {
+          logger.error("School enrolment notification rejected by provider", {
+            enrolmentId: submission.id,
+            serviceId: notifyServiceId,
+            error: result.failed.message,
+          });
+        }
+      } catch (err) {
+        logger.error("Failed to send school enrolment notification email", {
+          err,
+          enrolmentId: submission.id,
+          serviceId: notifyServiceId,
+        });
+      }
+    });
   }
 
   return NextResponse.json({

@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
+import { programmeName } from "@/lib/programme-names";
 import {
   Calendar,
   CalendarDays,
@@ -9,6 +14,8 @@ import {
   AlertTriangle,
   XCircle,
   Clock,
+  Info,
+  RotateCcw,
 } from "lucide-react";
 import {
   useParentBookings,
@@ -44,6 +51,25 @@ export default function BookingsV1() {
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
   const { data, isLoading } = useParentBookings(activeTab);
   const cancelBooking = useCancelBooking();
+  const qc = useQueryClient();
+
+  /**
+   * Undo an absence. Same endpoint as marking absent, opposite action —
+   * the server owns the 24-hour rule, this just asks.
+   */
+  const markAttending = useMutation({
+    mutationFn: (bookingId: string) =>
+      mutateApi(`/api/parent/bookings/${bookingId}`, {
+        method: "PATCH",
+        body: { action: "attending" },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["parent", "bookings"] });
+      toast({ description: "Marked as attending again." });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", description: err.message }),
+  });
 
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [absentBooking, setAbsentBooking] = useState<BookingRecord | null>(null);
@@ -88,8 +114,27 @@ export default function BookingsV1() {
         className="sm:hidden w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] min-h-[48px]"
       >
         <Plus className="w-4 h-4" />
-        Request Casual Booking
+        Book a casual session
       </button>
+
+      {/* Recurring bookings aren't self-serve — changing a permanent
+          pattern moves ratios, rosters and invoices, so it goes through
+          the office. Said here rather than leaving parents to hunt for
+          a button that doesn't exist. */}
+      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-surface">
+        <Info className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+        <p className="text-sm text-foreground">
+          Need to change your <strong>regular weekly days</strong>? Head to{" "}
+          <Link
+            href="/parent/messages"
+            className="text-brand font-semibold underline underline-offset-2"
+          >
+            Messages
+          </Link>{" "}
+          and message head office — we&apos;ll update them for you. Casual
+          one-off sessions can be booked here.
+        </p>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface rounded-xl p-1">
@@ -186,6 +231,7 @@ export default function BookingsV1() {
                     booking={booking}
                     isUpcoming={activeTab === "upcoming"}
                     onMarkAbsent={() => setAbsentBooking(booking)}
+                    onMarkAttending={() => markAttending.mutate(booking.id)}
                     onCancel={() => setCancelTarget(booking)}
                   />
                 ))}
@@ -213,7 +259,7 @@ export default function BookingsV1() {
           open={!!cancelTarget}
           onOpenChange={(open) => !open && setCancelTarget(null)}
           title="Cancel Booking"
-          description={`Are you sure you want to cancel ${cancelTarget.child.firstName}'s ${cancelTarget.sessionType.toUpperCase()} session?`}
+          description={`Are you sure you want to cancel ${cancelTarget.child.firstName}'s ${programmeName(cancelTarget.sessionType)} session?`}
           confirmLabel="Yes, Cancel"
           onConfirm={handleCancel}
           variant="danger"
@@ -230,11 +276,13 @@ function BookingCard({
   booking,
   isUpcoming,
   onMarkAbsent,
+  onMarkAttending,
   onCancel,
 }: {
   booking: BookingRecord;
   isUpcoming: boolean;
   onMarkAbsent: () => void;
+  onMarkAttending: () => void;
   onCancel: () => void;
 }) {
   const status = STATUS_STYLES[booking.status] ?? STATUS_STYLES.requested;
@@ -245,10 +293,29 @@ function BookingCard({
     booking.status === "confirmed" &&
     isTodayOrFutureInServiceTz(booking.date);
 
+  // Changing their mind. Same 24-hour window as cancelling: after that
+  // the centre has staffed and catered to the number.
+  const canUndoAbsence =
+    isUpcoming &&
+    booking.status === "absent_notified" &&
+    isMoreThanHoursAway(booking.date, 24);
+
+  /**
+   * Cancel is a CASUAL-only action (2026-08-06).
+   *
+   * A regular weekly booking isn't cancellable online at all: "not this
+   * Tuesday" is marking the child not attending, which keeps the place,
+   * and "change our days" is an enrolment change with fee and CCS
+   * consequences. Offering Cancel invited the first and silently did
+   * the second.
+   *
+   * The centre can also switch casual cancellation off entirely, which
+   * this can't see; that path is refused server-side.
+   */
   const canCancel =
     isUpcoming &&
-    booking.type === "casual" &&
     (booking.status === "requested" || booking.status === "confirmed") &&
+    booking.type === "casual" &&
     isMoreThanHoursAway(booking.date, 24);
 
   return (
@@ -272,12 +339,12 @@ function BookingCard({
         <div className="flex items-center gap-2 shrink-0">
           <span
             className={cn(
-              "inline-flex px-2 py-0.5 rounded-full text-2xs font-semibold uppercase",
+              "inline-flex px-2 py-0.5 rounded-full text-2xs font-semibold",
               session.bg,
               session.text
             )}
           >
-            {booking.sessionType.toUpperCase()}
+            {programmeName(booking.sessionType)}
           </span>
           <span
             className={cn(
@@ -299,8 +366,17 @@ function BookingCard({
       )}
 
       {/* Actions */}
-      {(canMarkAbsent || canCancel) && (
+      {(canMarkAbsent || canUndoAbsence || canCancel) && (
         <div className="flex items-center gap-4 mt-3 ml-12">
+          {canUndoAbsence && (
+            <button
+              onClick={onMarkAttending}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-light transition-colors min-h-[44px]"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              They&apos;re coming after all
+            </button>
+          )}
           {canMarkAbsent && (
             <button
               onClick={onMarkAbsent}

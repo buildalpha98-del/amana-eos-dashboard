@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
 import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { withApiAuth } from "@/lib/server-auth";
+import { siteUrl } from "@/lib/site-url";
 
 const COLUMN_MAP: Record<string, string[]> = {
   name: ["name", "full name", "staff name", "employee name", "first name", "employee"],
@@ -169,7 +170,7 @@ const formData = await req.formData();
   let skipped = 0;
   const execErrors: string[] = [];
   const resend = getResend();
-  const loginUrl = `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/login`;
+  const loginUrl = `${siteUrl()}/login`;
 
   for (const user of toCreate) {
     try {
@@ -190,7 +191,7 @@ const formData = await req.formData();
       if (resend) {
         try {
           const { subject, html } = await welcomeEmail(user.name, user.tempPassword, loginUrl);
-          await resend.emails.send({ from: FROM_EMAIL, to: user.email, subject, html });
+          await sendEmail({ to: user.email, subject, html });
         } catch {
           warnings.push(`Welcome email failed for ${user.email}`);
         }

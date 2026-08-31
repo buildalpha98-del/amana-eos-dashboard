@@ -30,6 +30,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
 import { sendSms } from "@/lib/sms";
+import { recordMarketingSends } from "@/lib/frequency-cap";
 
 /**
  * POST /api/cron/nurture-send — send due nurture / outreach emails.
@@ -233,7 +234,7 @@ async function processSequenceExecutions(now: Date) {
         contactName: name,
         schoolName: lead?.schoolName || "",
         centreName,
-      });
+      }, layoutOpts);
       subject = exec.step.emailTemplate.subject || exec.step.name;
     } else if (exec.step.emailTemplate?.htmlContent) {
       html = marketingLayout(exec.step.emailTemplate.htmlContent, layoutOpts);
@@ -303,6 +304,18 @@ async function processSequenceExecutions(now: Date) {
       where: { id: exec.enrolmentId },
       data: { currentStepNumber: exec.step.stepNumber },
     });
+
+    // Frequency-cap ledger: every nurture email counts toward the
+    // recipient's weekly marketing-email volume (bulk campaign/cowork sends
+    // skip capped addresses; nurture itself is 1:1 lifecycle mail and is
+    // NEVER cap-blocked). Deliberately UNGATED by the `isParent && svc?.code`
+    // condition below — CRM outreach and code-less services land in real
+    // inboxes too.
+    await recordMarketingSends(
+      prisma,
+      [{ email, contactId: exec.enrolment.contactId ?? undefined }],
+      { source: "nurture" },
+    );
 
     if (isParent && svc?.code) {
       await prisma.deliveryLog.create({

@@ -33,14 +33,13 @@ export const GET = withParentAuth(async (_req, { parent }) => {
   const local = getLocalDateParts(now, SERVICE_TZ);
   const todayWeekDay = WEEKDAY_MAP[local.dayOfWeek];
 
-  // If weekend, no menu/program
-  if (!todayWeekDay) {
-    return NextResponse.json({ todayMenu: null, todayProgram: [] });
-  }
-
   const monday = getMondayUtc(now, SERVICE_TZ);
 
-  // Fetch menu and programs in parallel
+  // The WHOLE week, not just today. Parents plan lunches and pick-ups
+  // around what's on — "what's for lunch Thursday" and "when is the
+  // excursion" are week questions, and answering them one day at a time
+  // meant they couldn't be answered at all. Today is derived from the
+  // same fetch below rather than queried twice.
   const [menuWeeks, programs] = await Promise.all([
     prisma.menuWeek.findMany({
       where: {
@@ -49,7 +48,6 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       },
       include: {
         items: {
-          where: { day: todayWeekDay },
           orderBy: { slot: "asc" },
         },
       },
@@ -58,13 +56,13 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       where: {
         serviceId: { in: serviceIds },
         weekStart: monday,
-        day: todayWeekDay,
       },
-      orderBy: { startTime: "asc" },
+      orderBy: [{ day: "asc" }, { startTime: "asc" }],
       select: {
         id: true,
         title: true,
         description: true,
+        day: true,
         startTime: true,
         endTime: true,
         location: true,
@@ -74,21 +72,40 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     }),
   ]);
 
-  // Flatten menu items from all services
-  const todayMenu = menuWeeks.length > 0
-    ? {
-        items: menuWeeks.flatMap((mw) =>
-          mw.items.map((item) => ({
-            slot: item.slot,
-            description: item.description,
-            allergens: item.allergens,
-          })),
-        ),
-      }
-    : null;
+  const allItems = menuWeeks.flatMap((mw) =>
+    mw.items.map((item) => ({
+      day: item.day,
+      slot: item.slot,
+      description: item.description,
+      allergens: item.allergens,
+    })),
+  );
+
+  const WEEKDAYS: WeekDay[] = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+  ];
+
+  const week = WEEKDAYS.map((day) => ({
+    day,
+    menu: allItems.filter((i) => i.day === day),
+    program: programs.filter((p) => p.day === day),
+  }));
+
+  // Today's slice, kept in the old shape so the Home card needs no
+  // change to keep working. Weekend = null, as before.
+  const todayItems = todayWeekDay
+    ? allItems.filter((i) => i.day === todayWeekDay)
+    : [];
 
   return NextResponse.json({
-    todayMenu,
-    todayProgram: programs,
+    todayMenu: todayItems.length > 0 ? { items: todayItems } : null,
+    todayProgram: todayWeekDay
+      ? programs.filter((p) => p.day === todayWeekDay)
+      : [],
+    week,
   });
 });

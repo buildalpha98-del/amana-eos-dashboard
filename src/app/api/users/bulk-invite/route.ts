@@ -10,6 +10,7 @@ import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { siteUrl } from "@/lib/site-url";
 const bulkUserSchema = z.object({
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   name: z.string().min(1, "Name is required"),
@@ -72,7 +73,7 @@ export const POST = withApiAuth(async (req, session) => {
   const skipped: Array<{ email: string; reason: string }> = [];
   const errors: Array<{ email: string; error: string }> = [];
 
-  const loginUrl = `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/login`;
+  const loginUrl = `${siteUrl()}/login`;
 
   // Process users in batches
   for (let i = 0; i < users.length; i += BATCH_SIZE) {

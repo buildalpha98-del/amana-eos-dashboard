@@ -51,7 +51,20 @@ const DEFAULT_LAYOUT: Required<EmailLayoutOptions> = {
 // ── Layout ────────────────────────────────────────────────────
 
 export function marketingLayout(content: string, opts?: EmailLayoutOptions): string {
-  const o = { ...DEFAULT_LAYOUT, ...opts };
+  // Escape EVERY option interpolation (same helper renderBlock uses) — layout
+  // options come from OrgSettings and, as of Phase 7, request bodies. The
+  // `content` argument is deliberately NOT escaped: it is pre-rendered HTML
+  // (renderBlock output or the raw-HTML composer mode).
+  const merged = { ...DEFAULT_LAYOUT, ...opts };
+  const o = {
+    headerColor: escapeHtml(merged.headerColor),
+    headerText: escapeHtml(merged.headerText),
+    headerLogoUrl: escapeHtml(merged.headerLogoUrl),
+    footerText: escapeHtml(merged.footerText),
+    footerUrl: escapeHtml(merged.footerUrl),
+    footerUrlLabel: escapeHtml(merged.footerUrlLabel),
+    showUnsubscribe: merged.showUnsubscribe,
+  };
   const headerContent = o.headerLogoUrl
     ? `<img src="${o.headerLogoUrl}" alt="${o.headerText}" style="max-height:48px;display:block;margin:0 auto;" />`
     : `<h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">${o.headerText}</h1>`;

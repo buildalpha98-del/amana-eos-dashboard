@@ -30,7 +30,7 @@
 import { useState, useMemo } from "react";
 import { AlertCircle, LayoutGrid, Rows3 } from "lucide-react";
 import type { ScorecardData, MeasurableData } from "@/hooks/useScorecard";
-import { cn } from "@/lib/utils";
+import { cn, getWeekStart } from "@/lib/utils";
 
 type ScorecardView = "grid" | "week";
 const VIEW_STORAGE_KEY = "amana.scorecardView";
@@ -109,7 +109,12 @@ export function ScorecardSection({
 }: {
   scorecard: ScorecardData | undefined;
   onDropToIDS?: (title: string) => void;
-  onEntrySubmit?: (measurableId: string, value: number) => void;
+  /**
+   * `weekOf` is the ISO week the value belongs to, NOT always this week.
+   * A number often lands after the fact — an activation nobody had
+   * counted, a correction — and the meeting is when someone notices.
+   */
+  onEntrySubmit?: (measurableId: string, value: number, weekOf: string) => void;
   isCompleted?: boolean;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -310,12 +315,16 @@ export function ScorecardSection({
                   {weeks.map((w, i) => {
                     const entry = byWeek.get(w);
                     const isCurrent = i === 0;
-                    const editable = isCurrent && !isCompleted && !!onEntrySubmit;
+                    // Any week, not just this one. A figure often arrives
+                    // late — an activation nobody had counted, a
+                    // correction — and the L10 is where it surfaces.
+                    const editable = !isCompleted && !!onEntrySubmit;
+                    const cellKey = `${m.id}::${w}`;
 
-                    if (isCurrent && editingId === m.id) {
+                    if (editable && editingId === cellKey) {
                       const commit = () => {
                         if (editValue !== "" && onEntrySubmit) {
-                          onEntrySubmit(m.id, parseFloat(editValue));
+                          onEntrySubmit(m.id, parseFloat(editValue), w);
                         }
                         setEditingId(null);
                       };
@@ -343,11 +352,13 @@ export function ScorecardSection({
                         key={w}
                         onClick={() => {
                           if (!editable) return;
-                          setEditingId(m.id);
+                          setEditingId(cellKey);
                           setEditValue(entry ? String(entry.value) : "");
                         }}
                         title={
-                          editable ? "Click to update this week" : undefined
+                          editable
+                            ? `Click to update ${weekLabel(w)}`
+                            : undefined
                         }
                         className={cn(
                           "px-3 py-3 text-center font-semibold tabular-nums",
@@ -420,9 +431,14 @@ function WeekView({
   editValue: string;
   setEditValue: (v: string) => void;
   onDropToIDS?: (title: string) => void;
-  onEntrySubmit?: (measurableId: string, value: number) => void;
+  onEntrySubmit?: (measurableId: string, value: number, weekOf: string) => void;
   isCompleted?: boolean;
 }) {
+  /** This week — the only one the compact list edits. */
+  // The shared helper, not a second copy of the same date maths —
+  // a Sunday off-by-one here would file an entry a week out.
+  const currentWeek = getWeekStart().toISOString();
+
   const onTrackCount = measurables.filter((m) => m.entries[0]?.onTrack).length;
   const offTrackCount = measurables.filter(
     (m) => m.entries[0] && !m.entries[0].onTrack,
@@ -489,7 +505,7 @@ function WeekView({
                       onChange={(e) => setEditValue(e.target.value)}
                       onBlur={() => {
                         if (editValue && !isNaN(parseFloat(editValue)) && onEntrySubmit) {
-                          onEntrySubmit(m.id, parseFloat(editValue));
+                          onEntrySubmit(m.id, parseFloat(editValue), currentWeek);
                         }
                         setEditingId(null);
                         setEditValue("");
@@ -501,7 +517,7 @@ function WeekView({
                           !isNaN(parseFloat(editValue)) &&
                           onEntrySubmit
                         ) {
-                          onEntrySubmit(m.id, parseFloat(editValue));
+                          onEntrySubmit(m.id, parseFloat(editValue), currentWeek);
                           setEditingId(null);
                           setEditValue("");
                         }
@@ -518,7 +534,9 @@ function WeekView({
                       onClick={() => {
                         if (!isCompleted && onEntrySubmit) {
                           setEditingId(m.id);
-                          setEditValue(latestEntry ? String(latestEntry.value) : "");
+                          setEditValue(
+                            latestEntry ? String(latestEntry.value) : "",
+                          );
                         }
                       }}
                       disabled={isCompleted || !onEntrySubmit}

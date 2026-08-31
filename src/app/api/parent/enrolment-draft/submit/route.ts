@@ -24,11 +24,14 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { encryptField } from "@/lib/field-encryption";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { logAmbassadorEnrolments } from "@/lib/ambassadors/log-enrolment";
 import { normaliseEmail } from "@/lib/parent-account";
 import {
   enrolmentReceivedEmail,
   secondaryCarerInviteEmail,
 } from "@/lib/email-templates/parent-account";
+import { matchSchoolToService } from "@/lib/school-service-match";
+import { cancelPreEnrolmentNurture } from "@/lib/nurture-scheduler";
 import {
   draftSubmittable,
   firstIncompleteStep,
@@ -106,6 +109,10 @@ export const POST = withParentAuth(async (req, ctx) => {
     maskedPayment = {
       lastFour: payment.cardNumber.replace(/\D/g, "").slice(-4),
       cardType: detectCardType(payment.cardNumber),
+      // Readable expiry so the card-expiry reminder job can find cards
+      // about to lapse without decrypting anyone's number.
+      expiryMonth: payment.cardExpiryMonth ?? null,
+      expiryYear: payment.cardExpiryYear ?? null,
     };
   } else if (payment?.method === "bank_account" && payment.bankAccountNumber) {
     maskedPayment = {
@@ -248,9 +255,47 @@ export const POST = withParentAuth(async (req, ctx) => {
     url: u.url,
   }));
 
+  /**
+   * Attach the enrolment to a SERVICE.
+   *
+   * The form records a school; every operational view is keyed to a
+   * service. Nothing joined them, so submitted children were created with
+   * serviceId null — present in the database but absent from their
+   * centre's children list, roll, ratios and billing.
+   *
+   * Resolved per child, because siblings can attend different campuses.
+   * An unmatched or ambiguous school leaves serviceId null on purpose:
+   * staff assign it when they approve, which is visible and fixable.
+   * Guessing would put a child on the wrong centre's roll and invoice.
+   */
+  const activeServices = await prisma.service.findMany({
+    where: { status: "active" },
+    select: { id: true, name: true },
+  });
+
+  const serviceIdForChild = new Map<number, string | null>();
+  enrichedChildren.forEach((c, i) => {
+    const match = matchSchoolToService(c.schoolName, activeServices);
+    serviceIdForChild.set(i, match.serviceId);
+    if (!match.serviceId) {
+      logger.warn("Enrolment: could not match school to a service", {
+        school: c.schoolName,
+        ambiguous: match.ambiguous,
+        score: match.score,
+      });
+    }
+  });
+
+  // The submission's own service: the first child's, when they agree.
+  const distinct = new Set(
+    Array.from(serviceIdForChild.values()).filter(Boolean),
+  );
+  const submissionServiceId = distinct.size === 1 ? [...distinct][0]! : null;
+
   const submission = await prisma.$transaction(async (tx) => {
     const sub = await tx.enrolmentSubmission.create({
       data: {
+        serviceId: submissionServiceId,
         primaryParent,
         secondaryParent: contacts.secondaryParent?.firstName
           ? (contacts.secondaryParent as unknown as object)
@@ -267,6 +312,7 @@ export const POST = withParentAuth(async (req, ctx) => {
             ? { ...(maskedPayment ?? {}), ...(encryptedRaw ? { raw: encryptedRaw } : {}) }
             : undefined,
         referralSource: agreement.referralSource ?? null,
+        referralEducatorName: agreement.referralEducatorName?.trim() || null,
         signature: agreement.signature ?? null,
         termsAccepted: agreement.termsAccepted === true,
         privacyAccepted: agreement.privacyAccepted === true,
@@ -279,7 +325,7 @@ export const POST = withParentAuth(async (req, ctx) => {
       },
     });
 
-    for (const child of enrichedChildren) {
+    for (const [childIndex, child] of enrichedChildren.entries()) {
       const conditions: string[] = [];
       if (child.anaphylaxis) conditions.push("Anaphylaxis");
       if (child.allergies) conditions.push("Allergies");
@@ -291,6 +337,9 @@ export const POST = withParentAuth(async (req, ctx) => {
       await tx.child.create({
         data: {
           enrolmentId: sub.id,
+          // Null when the school didn't resolve — staff assign on
+          // approval rather than the child silently joining a centre.
+          serviceId: serviceIdForChild.get(childIndex) ?? null,
           firstName: child.firstName ?? "",
           surname: child.surname ?? "",
           dob: child.dob ? new Date(child.dob) : null,
@@ -342,6 +391,59 @@ export const POST = withParentAuth(async (req, ctx) => {
       });
     }
 
+    /**
+     * Authorised pickup list.
+     *
+     * Nothing used to create these on a fresh enrolment — only the
+     * sibling-copy path did — so a new family ended up with an EMPTY
+     * pickup list despite having just named a second carer and emergency
+     * contacts with pickup permission. Educators at the door then had
+     * nothing to check against.
+     *
+     * The SECOND CARER is always added (Daniel, 2026-08-01: they should
+     * automatically be an authorised pickup), with their full name and
+     * mobile so staff can identify and reach them.
+     */
+    const pickupRows: {
+      name: string;
+      relationship: string;
+      phone: string;
+      isEmergencyContact: boolean;
+    }[] = [];
+
+    const sp = contacts.secondaryParent;
+    if (sp?.firstName?.trim() && sp?.mobile?.trim()) {
+      pickupRows.push({
+        name: [sp.firstName, sp.surname].filter(Boolean).join(" ").trim(),
+        relationship: sp.relationship?.trim() || "Parent / carer",
+        phone: sp.mobile.trim(),
+        isEmergencyContact: false,
+      });
+    }
+
+    for (const c of emergencyContacts) {
+      if (c.consentPickup !== true) continue;
+      if (!c.name?.trim() || !c.phone?.trim()) continue;
+      pickupRows.push({
+        name: c.name.trim(),
+        relationship: c.relationship?.trim() || "Emergency contact",
+        phone: c.phone.trim(),
+        isEmergencyContact: true,
+      });
+    }
+
+    if (pickupRows.length > 0) {
+      const childIds = await tx.child.findMany({
+        where: { enrolmentId: sub.id },
+        select: { id: true },
+      });
+      await tx.authorisedPickup.createMany({
+        data: childIds.flatMap((child) =>
+          pickupRows.map((r) => ({ ...r, childId: child.id, active: true })),
+        ),
+      });
+    }
+
     await tx.enrolmentDraft.update({
       where: { id: draftRow.id },
       data: { submittedAt: new Date() },
@@ -366,6 +468,20 @@ export const POST = withParentAuth(async (req, ctx) => {
     accountId,
     submissionId: submission.id,
     children: enrichedChildren.length,
+  });
+
+  // ── Ambassadors pilot ─────────────────────────────────────────────────
+  // Creates incentive-tracking records for pilot-centre children. Reads
+  // the account's captured ref code directly (no email join needed here).
+  // logAmbassadorEnrolments never throws — an ambassador failure must not
+  // break an enrolment that has already committed.
+  const account = await prisma.parentAccount.findUnique({
+    where: { id: accountId },
+    select: { ambassadorRefCode: true },
+  });
+  await logAmbassadorEnrolments({
+    submissionId: submission.id,
+    refCode: account?.ambassadorRefCode ?? null,
   });
 
   // ── Invite the second carer to the Family Portal ──────────────────────
@@ -415,6 +531,24 @@ export const POST = withParentAuth(async (req, ctx) => {
       submissionId: submission.id,
       error: err instanceof Error ? err.message : String(err),
     });
+  }
+
+  // ── Stop the pre-enrolment chase ─────────────────────────────────────
+  // They've just finished the form; "need a hand with the form?" arriving
+  // the next morning is the kind of thing families remember. The stage
+  // stays where it is — staff still have to confirm the placement — so
+  // this cancels the nudges without pretending they're enrolled.
+  for (const serviceId of new Set(
+    [...serviceIdForChild.values()].filter(Boolean) as string[],
+  )) {
+    try {
+      await cancelPreEnrolmentNurture(ctx.parent.email, serviceId);
+    } catch (err) {
+      logger.warn("Could not cancel pre-enrolment nurture", {
+        submissionId: submission.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   const res = NextResponse.json({ ok: true, submissionId: submission.id });

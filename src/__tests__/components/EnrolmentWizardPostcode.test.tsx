@@ -19,6 +19,7 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ParentDetailsStep } from "@/components/enrol/steps/ParentDetailsStep";
 import { ChildDetailsStep } from "@/components/enrol/steps/ChildDetailsStep";
 import { INITIAL_FORM_DATA, EnrolmentFormData } from "@/components/enrol/types";
@@ -51,6 +52,20 @@ function makeHarness(initial: EnrolmentFormData) {
       };
     },
   };
+}
+
+/**
+ * ChildDetailsStep calls useT() → useEnrolTranslations() → useQuery, so the
+ * tree needs a QueryClient. locale defaults to "en" (query disabled), so no
+ * fetch actually fires — the provider just satisfies the hook.
+ */
+function renderWithQueryClient(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+  );
 }
 
 function Wrapper({
@@ -102,7 +117,7 @@ describe("Bug #11: postcode preserves all four digits", () => {
       );
     }
 
-    render(<Harnessed />);
+    renderWithQueryClient(<Harnessed />);
 
     // Grab the primary-parent postcode input. There are two (primary +
     // secondary) — we want the first one.
@@ -153,7 +168,7 @@ describe("Bug #11: postcode preserves all four digits", () => {
       );
     }
 
-    render(<Harnessed />);
+    renderWithQueryClient(<Harnessed />);
 
     const postcodeInputs = screen.getAllByDisplayValue("") as HTMLInputElement[];
     const postcodeInput = postcodeInputs.find(

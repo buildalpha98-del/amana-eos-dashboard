@@ -18,13 +18,19 @@ import {
 } from "@/lib/enrol-fees";
 
 /**
- * Public policy documents. These pages must EXIST and be current — a
- * checkbox saying "I have read and accept" a document the family was never
- * shown is not an enforceable acceptance, and for the privacy policy it
- * doesn't meet APP 1/5 either.
+ * Public policy documents.
+ *
+ * PRIVACY points at a page in THIS app, not the marketing site.
+ * amanaoshc.com.au/privacy returned 404 while the form asked families to
+ * tick "I have read and accept the privacy policy" — accepting a document
+ * you cannot open is not an acceptance, and APP 1 requires the policy to
+ * actually be available. Hosting it here means the link can't rot
+ * independently of the form that depends on it.
+ *
+ * TERMS still points at the marketing site, which serves a live page.
  */
 const TERMS_URL = "https://amanaoshc.com.au/terms";
-const PRIVACY_URL = "https://amanaoshc.com.au/privacy";
+const PRIVACY_URL = "/privacy";
 
 const CONSENTS: {
   key: keyof DraftAgreement;
@@ -75,14 +81,19 @@ const CONSENTS: {
   },
 ];
 
+// 2026-08-03 (Ambassadors): option set replaced network-wide — "One of our
+// educators" drives educator attribution and reveals a follow-up question.
+// The first option's text must match REFERRAL_EDUCATOR_OPTION in
+// src/lib/ambassadors/constants.ts.
 const REFERRAL_SOURCES = [
+  "One of our educators",
   "School newsletter",
-  "Word of mouth",
+  "Friend or family",
   "Social media",
-  "Google search",
-  "Flyer at school",
   "Other",
 ];
+
+const EDUCATOR_OPTION = REFERRAL_SOURCES[0];
 
 export function AgreementStep({
   data,
@@ -244,12 +255,19 @@ export function AgreementStep({
             autoComplete="off"
           />
         </Field>
-        <Field id="a-ref" label="How did you hear about us?">
+        <Field id="a-ref" label="How did you hear about us?" required>
           <select
             id="a-ref"
             className={field}
             value={data.referralSource ?? ""}
-            onChange={(e) => onChange({ referralSource: e.target.value })}
+            onChange={(e) => {
+              const referralSource = e.target.value;
+              onChange(
+                referralSource === EDUCATOR_OPTION
+                  ? { referralSource }
+                  : { referralSource, referralEducatorName: "" },
+              );
+            }}
           >
             <option value="">Select…</option>
             {REFERRAL_SOURCES.map((r) => (
@@ -259,6 +277,23 @@ export function AgreementStep({
             ))}
           </select>
         </Field>
+        {data.referralSource === EDUCATOR_OPTION && (
+          <Field
+            id="a-ref-educator"
+            label="Which educator spoke with you?"
+            required
+            hint="Their first name is fine — it helps us thank the right person."
+          >
+            <input
+              id="a-ref-educator"
+              className={field}
+              value={data.referralEducatorName ?? ""}
+              onChange={(e) => onChange({ referralEducatorName: e.target.value })}
+              placeholder="Educator's name"
+              autoComplete="off"
+            />
+          </Field>
+        )}
       </div>
     </div>
   );

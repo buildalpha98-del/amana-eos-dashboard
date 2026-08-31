@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { getEmailBranding, type EmailBranding } from "@/lib/email-branding";
 import { escapeHtml } from "@/lib/email-templates/base";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Training compliance — the "who's behind on required training" engine.
@@ -19,8 +20,7 @@ import { escapeHtml } from "@/lib/email-templates/base";
  * completed, for an active user. Mirrors the policy-compliance pattern.
  */
 
-const DASHBOARD_URL =
-  process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+const DASHBOARD_URL = siteUrl();
 
 // Days-out threshold under which an outstanding (not-yet-overdue) course is
 // flagged "due soon" in reminders + the admin view.

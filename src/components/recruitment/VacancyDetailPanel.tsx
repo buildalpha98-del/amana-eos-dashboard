@@ -8,6 +8,7 @@ import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
 import { CandidateDetailPanel } from "@/components/recruitment/CandidateDetailPanel";
 import { useAiScreenCandidate } from "@/hooks/useRecruitment";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
@@ -132,20 +133,15 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File must be under 10 MB");
-      return;
-    }
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      setCandidateForm((prev) => ({ ...prev, resumeFileUrl: data.url }));
-    } catch {
-      alert("Failed to upload file");
+      // Was reading `data.url`, but the upload route returns `fileUrl` — the
+      // resume URL was silently stored as undefined. uploadFileSmart also
+      // enforces the size cap, so the old pre-check is gone.
+      const { fileUrl } = await uploadFileSmart(file);
+      setCandidateForm((prev) => ({ ...prev, resumeFileUrl: fileUrl }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
       setUploading(false);
     }

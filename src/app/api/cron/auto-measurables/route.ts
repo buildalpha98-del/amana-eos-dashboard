@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
-import { acquireCronLock } from "@/lib/cron-guard";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
+import { evaluateOnTrack } from "@/lib/measurable-eval";
 
 /**
  * GET /api/cron/auto-measurables
@@ -19,12 +20,8 @@ import { logger } from "@/lib/logger";
  * Auth: Bearer CRON_SECRET
  */
 export const GET = withApiHandler(async (req) => {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyCronSecret(req);
+  if (authError) return authError.error;
 
   // Idempotency guard — prevent double population on retry
   const guard = await acquireCronLock("auto-measurables", "weekly");
@@ -70,6 +67,7 @@ export const GET = withApiHandler(async (req) => {
     });
 
     if (measurables.length === 0) {
+      await guard.complete({ measurablesFound: 0, populated: 0 });
       return NextResponse.json({
         message: "No attendance-related measurables found",
         populated: 0,
@@ -187,6 +185,11 @@ export const GET = withApiHandler(async (req) => {
       }
     }
 
+    await guard.complete({
+      measurablesFound: measurables.length,
+      populated,
+      errors: errors.length,
+    });
     return NextResponse.json({
       message: "Auto-measurables complete",
       measurablesFound: measurables.length,
@@ -195,6 +198,7 @@ export const GET = withApiHandler(async (req) => {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
+    await guard.fail(err);
     logger.error("Auto-measurables cron failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
@@ -217,17 +221,4 @@ function aggregateAll(
     result.totalAttended += d.totalAttended;
   }
   return result;
-}
-
-function evaluateOnTrack(value: number, goalValue: number, goalDirection: string): boolean {
-  switch (goalDirection) {
-    case "above":
-      return value >= goalValue;
-    case "below":
-      return value <= goalValue;
-    case "exact":
-      return Math.abs(value - goalValue) <= goalValue * 0.05; // 5% tolerance
-    default:
-      return value >= goalValue;
-  }
 }

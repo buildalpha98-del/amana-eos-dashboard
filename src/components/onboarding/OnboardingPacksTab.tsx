@@ -54,6 +54,11 @@ type DeletePackMutation = ReturnType<typeof useDeleteOnboardingPack>;
 export interface OnboardingPacksTabProps {
   isStaff: boolean;
   isAdmin: boolean;
+  /**
+   * Jump to the Assignments tab, which lists training AND packs. Optional
+   * so the component can still be rendered without a tab controller.
+   */
+  onViewAllAssignments?: () => void;
   assignments: StaffOnboardingData[];
   packs: PackSummary[];
   expandedAssignment: string | null;
@@ -82,6 +87,7 @@ export interface OnboardingPacksTabProps {
 export function OnboardingPacksTab({
   isStaff,
   isAdmin,
+  onViewAllAssignments,
   assignments,
   packs,
   expandedAssignment,
@@ -111,9 +117,40 @@ export function OnboardingPacksTab({
       {/* My Assignments (for staff) or All Assignments (for admin) */}
       {assignments.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-3">
-            {isStaff ? "My Onboarding" : "Active Assignments"}
+          {/* This list is onboarding PACKS only — `StaffOnboarding` rows.
+              Course enrolments live in a different table and never
+              appeared here, so a pack-only heading read as "everything
+              assigned" and made training look missing. Name what this is
+              and say where the rest is. */}
+          <h3 className="text-lg font-semibold text-foreground mb-1">
+            {isStaff ? "My onboarding packs" : "Active onboarding packs"}
           </h3>
+          <p className="text-sm text-muted mb-3">
+            Onboarding packs only.{" "}
+            {isStaff ? (
+              <>
+                Training courses are in{" "}
+                <a href="/my-training" className="text-brand hover:underline">
+                  My Training
+                </a>
+                .
+              </>
+            ) : onViewAllAssignments ? (
+              <>
+                For training courses as well, see{" "}
+                <button
+                  type="button"
+                  onClick={onViewAllAssignments}
+                  className="text-brand hover:underline"
+                >
+                  Assignments
+                </button>
+                .
+              </>
+            ) : (
+              <>Training courses are on the Assignments tab.</>
+            )}
+          </p>
           <div className="space-y-3">
             {assignments.map((assignment) => {
               const status = STATUS_COLORS[assignment.status] || STATUS_COLORS.not_started;
