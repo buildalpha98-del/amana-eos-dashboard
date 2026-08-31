@@ -6,7 +6,7 @@
  * not a room), "in care" means signed in and not signed out, and a staff
  * member is only "not checked in" once their shift has actually started.
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
@@ -38,9 +38,21 @@ import { GET } from "@/app/api/services/[id]/dashboard/route";
 const ctx = (id = "svc-1") => ({ params: Promise.resolve({ id }) });
 const req = () => createRequest("GET", "/api/services/svc-1/dashboard");
 
-/** A shift window that always contains "now", and one that never has. */
+/**
+ * A shift window that always contains "now", and one that has not started yet.
+ *
+ * These are only meaningful against a known clock. The suite used to run at
+ * whatever the wall time happened to be, so between 23:58 and 23:59 the
+ * "LATER" shift had in fact started and the endpoint correctly reported its
+ * staff member as not-checked-in — failing the test for two minutes every day.
+ * Every test here pins the clock to FIXED_NOW instead; a case that cares about
+ * a different hour sets its own time explicitly.
+ */
 const ALL_DAY = { shiftStart: "00:00", shiftEnd: "23:59" };
 const LATER = { shiftStart: "23:58", shiftEnd: "23:59" };
+
+/** Midday, far from any shift boundary in these fixtures. */
+const FIXED_NOW = new Date("2026-08-31T12:00:00");
 
 function setup(overrides: Record<string, unknown> = {}) {
   prismaMock.user.findUnique.mockResolvedValue({ active: true });
@@ -77,8 +89,15 @@ function setup(overrides: Record<string, unknown> = {}) {
 
 describe("GET /api/services/[id]/dashboard", () => {
   beforeEach(() => {
+    // shouldAdvanceTime keeps async/await working while Date is frozen.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(FIXED_NOW);
     _clearUserActiveCache();
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("an educator at another centre is refused", async () => {
@@ -198,6 +217,34 @@ describe("GET /api/services/[id]/dashboard", () => {
       "Mirna K",
     ]);
     expect(body.staff.rosteredToday).toBe(3);
+  });
+
+  /**
+   * The 23:58-23:59 window that used to break this file. Once that shift HAS
+   * started, its staff member genuinely is not-checked-in — the endpoint was
+   * always right here; only the test's dependence on wall time was wrong.
+   */
+  it("flags a late shift as not-checked-in once the clock passes its start", async () => {
+    vi.setSystemTime(new Date("2026-08-31T23:58:30"));
+    mockSession({ id: "u-1", name: "Ed", role: "staff", serviceId: "svc-1" });
+    setup({
+      shifts: [
+        {
+          id: "s-tonight",
+          staffName: "Yusuf",
+          role: "educator",
+          sessionType: "asc",
+          ...LATER,
+          actualStart: null,
+          actualEnd: null,
+          user: null,
+        },
+      ],
+    });
+    const body = await (await GET(req(), ctx())).json();
+    expect(body.staff.notCheckedIn.map((s: { name: string }) => s.name)).toEqual([
+      "Yusuf",
+    ]);
   });
 
   it("surfaces the responsible person per programme", async () => {

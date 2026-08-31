@@ -15,8 +15,15 @@ import AxeBuilder from "@axe-core/playwright";
 
 const SMOKE_PAGES = ["/dashboard", "/services", "/compliance", "/team"];
 
-const EMAIL = process.env.E2E_EMAIL || process.env.ADMIN_EMAIL || "admin@amanaoshc.com.au";
-const PASSWORD = process.env.E2E_PASSWORD || process.env.ADMIN_PASSWORD || "ChangeMe123!";
+// Defaults must be the users seed-test-data actually creates. These previously
+// fell back to a real production admin address and "ChangeMe123!", which exist
+// in no test database — so login timed out at waitForURL and this smoke test
+// never reached a single console or axe assertion in CI. (That password no
+// longer works in production either, but a live prod address plus a guessable
+// password does not belong in the repo: point PLAYWRIGHT_BASE_URL at
+// production and this spec would have driven a real owner account.)
+const EMAIL = process.env.E2E_EMAIL || "test-admin@amana-test.local";
+const PASSWORD = process.env.E2E_PASSWORD || "TestPassword123!";
 
 // Console noise that isn't a product defect.
 const IGNORED_CONSOLE = [
