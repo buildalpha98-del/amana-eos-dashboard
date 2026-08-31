@@ -339,10 +339,12 @@ function ActionItemRow({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [assigneeId, setAssigneeId] = useState(item.suggestedAssigneeUserId ?? "");
-  const [dueDate, setDueDate] = useState(
-    item.suggestedDueDate ??
-      new Date(Date.now() + 7 * 86_400_000).toISOString().split("T")[0],
-  );
+  const [dueDate, setDueDate] = useState(() => {
+    if (item.suggestedDueDate) return item.suggestedDueDate;
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  });
 
   const options = (() => {
     const seen = new Set<string>();
