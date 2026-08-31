@@ -5,7 +5,10 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { validateFileContent } from "@/lib/file-validation";
 import { deleteFile } from "@/lib/storage";
 import { logger } from "@/lib/logger";
-import { UPLOAD_ALLOWED_MIMES } from "@/lib/upload-strategy";
+import {
+  RECORDING_ALLOWED_MIMES,
+  UPLOAD_ALLOWED_MIMES,
+} from "@/lib/upload-strategy";
 
 /**
  * POST /api/upload/verify
@@ -24,9 +27,9 @@ const HEAD_BYTES = 4096;
 
 const verifySchema = z.object({
   url: z.string().url(),
-  mimeType: z.enum(
-    UPLOAD_ALLOWED_MIMES as unknown as [string, ...string[]],
-  ),
+  mimeType: z.string(),
+  // 2026-08-31: the recording lane validates against its own allow-list.
+  context: z.enum(["default", "recording"]).optional(),
 });
 
 export const POST = withApiAuth(async (req, session) => {
@@ -35,6 +38,13 @@ export const POST = withApiAuth(async (req, session) => {
     throw ApiError.badRequest(parsed.error.issues[0].message);
   }
   const { url, mimeType } = parsed.data;
+  const allowed: readonly string[] =
+    parsed.data.context === "recording"
+      ? RECORDING_ALLOWED_MIMES
+      : UPLOAD_ALLOWED_MIMES;
+  if (!allowed.includes(mimeType)) {
+    throw ApiError.badRequest(`Unsupported file type: ${mimeType}`);
+  }
 
   // Only ever verify objects in our own blob store — never let a caller point
   // this at an arbitrary host and use the server as a fetch proxy.

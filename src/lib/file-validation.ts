@@ -39,6 +39,40 @@ export function detectFileType(buffer: ArrayBuffer): string | null {
     return "image/webp";
   }
 
+  // WAV: RIFF....WAVE (same RIFF wrapper as WebP, different form type)
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x41 &&
+    bytes[10] === 0x56 &&
+    bytes[11] === 0x45
+  ) {
+    return "audio/wav";
+  }
+
+  // WebM/Matroska: EBML header 1A 45 DF A3. One container covers BOTH the
+  // audio (MediaRecorder opus) and video variants — validateFileContent
+  // maps it to audio/webm and video/webm; don't split this in a refactor.
+  if (
+    bytes[0] === 0x1a &&
+    bytes[1] === 0x45 &&
+    bytes[2] === 0xdf &&
+    bytes[3] === 0xa3
+  ) {
+    return "video/webm";
+  }
+
+  // MP3: ID3v2 tag, or a bare MPEG audio frame sync (FF Fx).
+  if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) {
+    return "audio/mpeg";
+  }
+  if (bytes[0] === 0xff && (bytes[1] & 0xf0) === 0xf0 && bytes[1] !== 0xff) {
+    return "audio/mpeg";
+  }
+
   // TIFF: II*\0 (little-endian) or MM\0* (big-endian)
   if (
     (bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2a && bytes[3] === 0x00) ||
@@ -100,6 +134,10 @@ export function detectFileType(buffer: ArrayBuffer): string | null {
   ) {
     const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
     if (HEIC_BRANDS.has(brand)) return "image/heic";
+    // Any other ftyp brand is the ISO-BMFF/MP4 family (mp4, m4a, mov,
+    // Teams/Zoom exports). One container covers audio AND video variants —
+    // validateFileContent maps it; don't split this in a refactor.
+    return "video/mp4";
   }
 
   // Plain text / CSV carry no magic bytes, so they are inferred last — only
@@ -178,5 +216,16 @@ export function validateFileContent(buffer: ArrayBuffer, declaredMime: string): 
   // CSV is text; so is anything else we accept as text.
   if (detected === "text/plain" && TEXT_BASED_MIMES.has(declaredMime)) return true;
 
+  // Recording containers (2026-08-31): one sniffed container type covers
+  // the audio and video MIME variants a recording upload may declare.
+  if (detected === "video/webm" && WEBM_CONTAINER_MIMES.has(declaredMime)) return true;
+  if (detected === "video/mp4" && MP4_CONTAINER_MIMES.has(declaredMime)) return true;
+
   return false;
 }
+
+/** MIME declarations satisfied by an EBML/WebM container. */
+const WEBM_CONTAINER_MIMES = new Set(["audio/webm", "video/webm"]);
+
+/** MIME declarations satisfied by an ISO-BMFF (ftyp) container. */
+const MP4_CONTAINER_MIMES = new Set(["audio/mp4", "video/mp4", "audio/x-m4a"]);

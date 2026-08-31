@@ -278,3 +278,70 @@ describe("allow-list / sniffer parity", () => {
     expect(validateFileContent(png.buffer, "application/pdf")).toBe(false);
   });
 });
+
+// ── Recording-lane signatures (Phase 2, 2026-08-31) ─────────────────────
+
+import { detectFileType as detect2, validateFileContent as validate2 } from "@/lib/file-validation";
+
+function bufFrom(bytes: number[], pad = 16): ArrayBuffer {
+  const arr = new Uint8Array(Math.max(bytes.length, pad));
+  arr.set(bytes);
+  return arr.buffer;
+}
+
+describe("detectFileType — audio/video containers (2026-08-31)", () => {
+  it("detects EBML/WebM (1A 45 DF A3)", () => {
+    expect(detect2(bufFrom([0x1a, 0x45, 0xdf, 0xa3]))).toBe("video/webm");
+  });
+
+  it("detects MP4 ftyp brands as the mp4 container", () => {
+    for (const brand of ["isom", "mp42", "M4A "]) {
+      const bytes = [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
+        ...[...brand].map((c) => c.charCodeAt(0))];
+      expect(detect2(bufFrom(bytes))).toBe("video/mp4");
+    }
+  });
+
+  it("still detects HEIC brands as heic, not mp4", () => {
+    const bytes = [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
+      ...[..."heic"].map((c) => c.charCodeAt(0))];
+    expect(detect2(bufFrom(bytes))).toBe("image/heic");
+  });
+
+  it("detects MP3 via ID3 tag and frame sync", () => {
+    expect(detect2(bufFrom([0x49, 0x44, 0x33, 0x04, 0x00]))).toBe("audio/mpeg");
+    for (const second of [0xfb, 0xf3, 0xf2, 0xfa]) {
+      expect(detect2(bufFrom([0xff, second, 0x90, 0x00]))).toBe("audio/mpeg");
+    }
+  });
+
+  it("detects WAV (RIFF....WAVE) without breaking WebP (RIFF....WEBP)", () => {
+    const wav = [0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00,
+      0x57, 0x41, 0x56, 0x45];
+    expect(detect2(bufFrom(wav))).toBe("audio/wav");
+    const webp = [0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00,
+      0x57, 0x45, 0x42, 0x50];
+    expect(detect2(bufFrom(webp))).toBe("image/webp");
+  });
+});
+
+describe("validateFileContent — container↔declared mappings (2026-08-31)", () => {
+  const webm = bufFrom([0x1a, 0x45, 0xdf, 0xa3]);
+  const mp4 = bufFrom([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
+    ...[..."isom"].map((c) => c.charCodeAt(0))]);
+
+  it("webm container satisfies audio/webm and video/webm", () => {
+    expect(validate2(webm, "audio/webm")).toBe(true);
+    expect(validate2(webm, "video/webm")).toBe(true);
+  });
+
+  it("mp4 container satisfies audio/mp4, video/mp4 and x-m4a", () => {
+    expect(validate2(mp4, "audio/mp4")).toBe(true);
+    expect(validate2(mp4, "video/mp4")).toBe(true);
+    expect(validate2(mp4, "audio/x-m4a")).toBe(true);
+  });
+
+  it("a webm container does NOT satisfy an mp4 declaration", () => {
+    expect(validate2(webm, "audio/mp4")).toBe(false);
+  });
+});

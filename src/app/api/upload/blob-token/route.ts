@@ -4,6 +4,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import {
   ABSOLUTE_MAX_UPLOAD,
+  RECORDING_ALLOWED_MIMES,
+  RECORDING_MAX_UPLOAD,
   UPLOAD_ALLOWED_MIMES,
 } from "@/lib/upload-strategy";
 
@@ -29,13 +31,31 @@ export const POST = withApiAuth(async (req, session) => {
     const jsonResponse = await handleUpload({
       body,
       request: req,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: [...UPLOAD_ALLOWED_MIMES],
-        maximumSizeInBytes: ABSOLUTE_MAX_UPLOAD,
-        addRandomSuffix: true,
-        // Carried through to onUploadCompleted for the audit trail.
-        tokenPayload: JSON.stringify({ userId: session!.user.id }),
-      }),
+      onBeforeGenerateToken: async (_pathname, clientPayload) => {
+        // 2026-08-31: the recording lane (meeting audio/video) has its own
+        // allow-list and a 500 MB ceiling. Default lane byte-identical.
+        let isRecording = false;
+        if (clientPayload) {
+          try {
+            isRecording =
+              (JSON.parse(clientPayload) as { context?: string }).context ===
+              "recording";
+          } catch {
+            // Malformed payload — treat as default lane.
+          }
+        }
+        return {
+          allowedContentTypes: isRecording
+            ? [...RECORDING_ALLOWED_MIMES]
+            : [...UPLOAD_ALLOWED_MIMES],
+          maximumSizeInBytes: isRecording
+            ? RECORDING_MAX_UPLOAD
+            : ABSOLUTE_MAX_UPLOAD,
+          addRandomSuffix: true,
+          // Carried through to onUploadCompleted for the audit trail.
+          tokenPayload: JSON.stringify({ userId: session!.user.id }),
+        };
+      },
       onUploadCompleted: async ({ blob }) => {
         logger.info("Direct blob upload completed", {
           url: blob.url,
