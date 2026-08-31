@@ -53,7 +53,10 @@ export interface GenerateStructuredResult<T> {
 /** Approximate USD cost per 1k input + 1k output tokens. */
 export const COST_PER_1K: Record<string, { input: number; output: number }> = {
   // Anthropic
-  "claude-sonnet-4-5-20250514": { input: 0.003, output: 0.015 },
+  // 2026-09-01: "claude-sonnet-4-5-20250514" was never a valid model id
+  // (Anthropic 404'd it) — the structured path had been silently broken
+  // since it shipped. Current-generation ids are DATE-LESS.
+  "claude-sonnet-5": { input: 0.002, output: 0.01 },
   "claude-haiku-4-5-20251001": { input: 0.0008, output: 0.004 },
   "claude-haiku-3-5-20241022": { input: 0.0008, output: 0.004 },
   // Groq (open-source models served on Groq's fast inference hardware)
@@ -63,8 +66,9 @@ export const COST_PER_1K: Record<string, { input: number; output: number }> = {
 };
 
 export const DEFAULT_PROVIDER_MODEL: Record<string, ProviderModel> = {
-  // Showcase copy (parent avatar, reports) → Sonnet 4.5
-  showcase: { provider: "anthropic", modelId: "claude-sonnet-4-5-20250514" },
+  // Showcase copy (parent avatar, reports, L10 prep, meeting review)
+  // → Sonnet 5 (newer AND cheaper than the Sonnet 4.5 it replaces)
+  showcase: { provider: "anthropic", modelId: "claude-sonnet-5" },
   // Bulk drafts (future Task Agent) → Llama 3.3 on Groq
   bulk: { provider: "groq", modelId: "llama-3.3-70b-versatile" },
 };
