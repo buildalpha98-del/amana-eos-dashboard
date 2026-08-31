@@ -1,4 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+vi.mock("@/lib/meeting-digest", () => ({
+  sendMeetingDigestSafe: vi.fn(),
+  sendMeetingDigest: vi.fn(),
+}));
 import { prismaMock } from "../helpers/prisma-mock";
 import { createRequest } from "../helpers/request";
 

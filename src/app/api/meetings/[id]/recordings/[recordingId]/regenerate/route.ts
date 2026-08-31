@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { generateMeetingReview } from "@/lib/meeting-review";
+import { sendMeetingDigestSafe } from "@/lib/meeting-digest";
 
 // Inline Sonnet call — give the platform enough runway.
 export const maxDuration = 120;
@@ -52,6 +53,8 @@ export const POST = withApiAuth(
         where: { id: recordingId },
         data: { aiReview: review as object, status: "complete" },
       });
+      // No-op if the digest already went out for this recording.
+      sendMeetingDigestSafe(recordingId);
       return NextResponse.json(updated);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

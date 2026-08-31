@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { listBrevoLists, deleteBrevoList } from "@/lib/brevo";
 import { deleteFile } from "@/lib/storage";
 import { generateMeetingReview } from "@/lib/meeting-review";
+import { sendMeetingDigestSafe } from "@/lib/meeting-digest";
 
 /**
  * Daily email janitor — four sweeps:
@@ -222,6 +223,7 @@ export const GET = withApiHandler(async (req) => {
           where: { id: rec.id },
           data: { aiReview: review as object, status: "complete" },
         });
+        sendMeetingDigestSafe(rec.id);
       } catch (err) {
         await prisma.meetingRecording.update({
           where: { id: rec.id },
