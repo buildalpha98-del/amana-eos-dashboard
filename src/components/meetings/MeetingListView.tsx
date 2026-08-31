@@ -20,7 +20,11 @@ import { useRocks } from "@/hooks/useRocks";
 import { useScorecard } from "@/hooks/useScorecard";
 import { useIssues } from "@/hooks/useIssues";
 import type { MeetingData } from "@/hooks/useMeetings";
-import { useDeleteMeeting } from "@/hooks/useMeetings";
+import {
+  useDeleteMeeting,
+  useStartMeeting,
+  useUpdateMeeting,
+} from "@/hooks/useMeetings";
 import { useSession } from "next-auth/react";
 import { Trash2 } from "lucide-react";
 import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
@@ -54,6 +58,23 @@ export function MeetingListView({
   const [aiPrep, setAiPrep] = useState("");
 
   const activeMeeting = meetings.find((m) => m.status === "in_progress");
+  const startMeeting = useStartMeeting();
+  const updateMeeting = useUpdateMeeting();
+
+  // Upcoming scheduled meetings, soonest first (2026-08-31)
+  const upcomingMeetings = useMemo(
+    () =>
+      meetings
+        .filter((m) => m.status === "scheduled")
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [meetings],
+  );
+
+  const handleStartScheduled = (meeting: MeetingData) => {
+    startMeeting.mutate(meeting.id, {
+      onSuccess: (started) => onSelect(started as MeetingData),
+    });
+  };
 
   // Data hooks for AI Prep variables
   const weekStart = getWeekStart();
@@ -135,9 +156,11 @@ export function MeetingListView({
     return { total: completed.length, avgRating, streak };
   }, [meetings]);
 
-  // Filtered meetings (exclude in_progress from history list)
+  // Filtered meetings (exclude in_progress + scheduled from history list)
   const pastMeetings = useMemo(() => {
-    let filtered = meetings.filter((m) => m.status !== "in_progress");
+    let filtered = meetings.filter(
+      (m) => m.status !== "in_progress" && m.status !== "scheduled",
+    );
     if (statusFilter !== "all") {
       filtered = filtered.filter((m) => m.status === statusFilter);
     }
@@ -214,6 +237,64 @@ export function MeetingListView({
             <ArrowRight className="w-4 h-4" />
           </div>
         </button>
+      )}
+
+      {/* Upcoming scheduled meetings (2026-08-31) */}
+      {upcomingMeetings.length > 0 && (
+        <div className="mb-6 bg-card rounded-xl border border-border overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/50 bg-surface/30 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted" />
+            <h3 className="text-sm font-medium text-foreground/80">Upcoming</h3>
+            <span className="text-xs text-muted">({upcomingMeetings.length})</span>
+          </div>
+          <div className="divide-y divide-border/50">
+            {upcomingMeetings.map((meeting) => (
+              <div key={meeting.id} className="px-4 py-3 flex items-center gap-4">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface">
+                  <Calendar className="w-4 h-4 text-muted" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {meeting.title}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {new Date(meeting.date).toLocaleString("en-AU", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}{" "}
+                    &middot; {meeting.createdBy?.name ?? "Unknown"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (
+                      confirm(
+                        `Cancel "${meeting.title}"? It will move to history as cancelled.`,
+                      )
+                    ) {
+                      updateMeeting.mutate({ id: meeting.id, status: "cancelled" });
+                    }
+                  }}
+                  disabled={updateMeeting.isPending}
+                  className="text-xs px-3 py-1.5 text-muted hover:text-red-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleStartScheduled(meeting)}
+                  disabled={startMeeting.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  Start
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Stats Cards */}

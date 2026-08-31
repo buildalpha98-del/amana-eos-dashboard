@@ -34,12 +34,15 @@ export default function MeetingsPage() {
     attendeeIds: string[],
     isLeadership: boolean,
     scorecardId: string | null,
+    scheduledFor: string | null,
   ) => {
     const now = new Date();
     // 2026-07-28: title reflects the meeting type so the list is scannable.
+    // Scheduled meetings are titled by their scheduled date, not today.
+    const titleDate = scheduledFor ? new Date(scheduledFor) : now;
     const title = isLeadership
-      ? `Leadership L10 — ${formatDateAU(now)}`
-      : `L10 Meeting — ${formatDateAU(now)}`;
+      ? `Leadership L10 — ${formatDateAU(titleDate)}`
+      : `L10 Meeting — ${formatDateAU(titleDate)}`;
     try {
       const newMeeting = await createMeeting.mutateAsync({
         title,
@@ -48,9 +51,14 @@ export default function MeetingsPage() {
         attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
         isLeadership,
         scorecardId,
+        ...(scheduledFor ? { scheduledFor } : {}),
       });
       setShowStartDialog(false);
-      setActiveMeetingId(newMeeting.id);
+      // Scheduled meetings stay on the list (nothing to run yet);
+      // start-now opens the meeting runner immediately.
+      if (!scheduledFor) {
+        setActiveMeetingId(newMeeting.id);
+      }
     } catch {
       // Error handled by mutation
     }

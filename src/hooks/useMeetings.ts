@@ -103,11 +103,35 @@ export function useCreateMeeting() {
       attendeeIds?: string[];
       isLeadership?: boolean;
       scorecardId?: string | null;
+      /** ISO datetime — creates the meeting as `scheduled` instead of starting now. */
+      scheduledFor?: string;
     }) => {
       return mutateApi<MeetingData>("/api/meetings", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meetings"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+/**
+ * Start a scheduled meeting. Status-guarded server-side — a lost race
+ * (someone else already hit Start) comes back as a 409 toast.
+ */
+export function useStartMeeting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      mutateApi<MeetingData>(`/api/meetings/${id}`, {
+        method: "PATCH",
+        body: { action: "start" },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+      toast({ description: "Meeting started." });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });

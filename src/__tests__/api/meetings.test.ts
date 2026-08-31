@@ -207,9 +207,10 @@ describe("PATCH /api/meetings/[id]", () => {
     ["head_office", 200],
     ["admin", 200],
     ["member", 403],
-    ["member", 403],
     ["staff", 403],
-    ["marketing", 403],
+    // 2026-08-31: marketing can PATCH now — they've been able to CREATE
+    // meetings since 2026-06-03 but couldn't save progress on them.
+    ["marketing", 200],
   ])("role %s → %i", async (role, expected) => {
     mockSession({ id: "u1", name: "U", role: role as MockUserRole });
     prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role });
@@ -316,5 +317,121 @@ describe("PATCH /api/meetings/[id]", () => {
 
     const call = prismaMock.meeting.update.mock.calls[0][0];
     expect(call.data.rating).toBe(8.5);
+  });
+});
+
+describe("POST /api/meetings — scheduling (2026-08-31)", () => {
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "owner" });
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  it("scheduledFor creates a scheduled meeting with date = scheduledFor and no startedAt", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const future = new Date(Date.now() + 3 * 86400000).toISOString();
+    prismaMock.meeting.create.mockResolvedValue({
+      id: "m-9", title: "Next L10", status: "scheduled", attendees: [],
+    });
+
+    const req = createRequest("POST", "/api/meetings", {
+      body: { title: "Next L10", date: new Date().toISOString(), scheduledFor: future },
+    });
+    const res = await CREATE(req);
+    expect(res.status).toBe(201);
+
+    const arg = prismaMock.meeting.create.mock.calls[0][0] as {
+      data: { status: string; startedAt: Date | null; date: Date };
+    };
+    expect(arg.data.status).toBe("scheduled");
+    expect(arg.data.startedAt).toBeNull();
+    expect(arg.data.date.toISOString()).toBe(future);
+  });
+
+  it("rejects a past scheduledFor", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const req = createRequest("POST", "/api/meetings", {
+      body: {
+        title: "Old",
+        date: new Date().toISOString(),
+        scheduledFor: new Date(Date.now() - 2 * 86400000).toISOString(),
+      },
+    });
+    const res = await CREATE(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("without scheduledFor keeps the start-now behaviour", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.meeting.create.mockResolvedValue({
+      id: "m-10", title: "Now", status: "in_progress", attendees: [],
+    });
+
+    const req = createRequest("POST", "/api/meetings", {
+      body: { title: "Now", date: new Date().toISOString() },
+    });
+    const res = await CREATE(req);
+    expect(res.status).toBe(201);
+
+    const arg = prismaMock.meeting.create.mock.calls[0][0] as {
+      data: { status: string; startedAt: Date | null };
+    };
+    expect(arg.data.status).toBe("in_progress");
+    expect(arg.data.startedAt).toBeInstanceOf(Date);
+  });
+});
+
+describe("PATCH /api/meetings/[id] — action: start (2026-08-31)", () => {
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "admin" });
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  it("starts a scheduled meeting via a status-guarded updateMany", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin" });
+    prismaMock.meeting.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      id: "m-1", title: "L10", status: "in_progress", attendees: [], cascades: [],
+    });
+
+    const req = createRequest("PATCH", "/api/meetings/m-1", {
+      body: { action: "start" },
+    });
+    const res = await PATCH(req, params);
+    expect(res.status).toBe(200);
+
+    expect(prismaMock.meeting.updateMany).toHaveBeenCalledWith({
+      where: { id: "m-1", status: "scheduled" },
+      data: { status: "in_progress", startedAt: expect.any(Date) },
+    });
+  });
+
+  it("409s when the meeting is already started", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin" });
+    prismaMock.meeting.updateMany.mockResolvedValue({ count: 0 });
+
+    const req = createRequest("PATCH", "/api/meetings/m-1", {
+      body: { action: "start" },
+    });
+    const res = await PATCH(req, params);
+    expect(res.status).toBe(409);
+  });
+
+  it("allows marketing to start (they can create meetings)", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u5", active: true, role: "marketing" });
+    mockSession({ id: "u5", name: "Marketer", role: "marketing" });
+    prismaMock.meeting.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      id: "m-1", title: "Marketing L10", status: "in_progress", attendees: [], cascades: [],
+    });
+
+    const req = createRequest("PATCH", "/api/meetings/m-1", {
+      body: { action: "start" },
+    });
+    const res = await PATCH(req, params);
+    expect(res.status).toBe(200);
   });
 });

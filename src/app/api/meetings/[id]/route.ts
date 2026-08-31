@@ -5,6 +5,9 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 
 const updateMeetingSchema = z.object({
+  // 2026-08-31: "start" flips a scheduled meeting to in_progress via a
+  // status-guarded updateMany (409 on a lost race / double click).
+  action: z.literal("start").optional(),
   title: z.string().min(1).optional(),
   status: z.enum(["scheduled", "in_progress", "completed", "cancelled"]).optional(),
   currentSection: z.number().min(0).max(6).optional(),
@@ -62,6 +65,41 @@ const { id } = await context!.params!;
     );
   }
 
+  // Start a scheduled meeting. Handled first and returned early — the
+  // guarded updateMany is the race protection (two devices, double click).
+  if (parsed.data.action === "start") {
+    const claimed = await prisma.meeting.updateMany({
+      where: { id, status: "scheduled" },
+      data: { status: "in_progress", startedAt: new Date() },
+    });
+    if (claimed.count === 0) {
+      return NextResponse.json(
+        { error: "Meeting already started or not scheduled" },
+        { status: 409 },
+      );
+    }
+    const started = await prisma.meeting.findUnique({
+      where: { id },
+      include: {
+        createdBy: { select: { id: true, name: true, email: true, avatar: true } },
+        cascades: { where: { deleted: false }, orderBy: { createdAt: "desc" } },
+        attendees: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+          orderBy: { createdAt: "asc" as const },
+        },
+      },
+    });
+    await prisma.activityLog.create({
+      data: {
+        userId: session!.user.id,
+        action: "start",
+        entityType: "Meeting",
+        entityId: id,
+      },
+    });
+    return NextResponse.json(started);
+  }
+
   const existing = await prisma.meeting.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
@@ -69,7 +107,7 @@ const { id } = await context!.params!;
 
   // Auto-set completedAt when status changes to completed
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { attendeeUpdates: _attendeeUpdates, ...restData } = parsed.data;
+  const { attendeeUpdates: _attendeeUpdates, action: _action, ...restData } = parsed.data;
   const updateData: Record<string, unknown> = { ...restData };
   if (parsed.data.status === "completed" && !existing.completedAt) {
     updateData.completedAt = new Date();
@@ -153,7 +191,11 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(meeting);
-}, { roles: ["owner", "head_office", "admin", "eos_implementer"] });
+  // 2026-08-31: marketing added — POST has allowed marketing since
+  // 2026-06-03 (the marketing pod runs its own L10), but PATCH never did,
+  // so they could create a meeting they couldn't save progress on, and
+  // with scheduling they'd create meetings they could never start.
+}, { roles: ["owner", "head_office", "admin", "marketing", "eos_implementer"] });
 
 // DELETE /api/meetings/:id — remove a meeting outright.
 //
