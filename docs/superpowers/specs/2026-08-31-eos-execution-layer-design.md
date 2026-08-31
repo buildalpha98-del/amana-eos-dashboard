@@ -87,9 +87,12 @@ Standard cron shape (CRON_SECRET + `acquireCronLock("meeting-series",
 
 1. `occ = nextOccurrence(series, now)`; skip unless `occ − now ≤ 7 days`
    (one-week materialisation window).
-2. Idempotency: skip if a meeting with `seriesId = series.id` AND
-   `date = occ` already exists (any status — a cancelled occurrence stays
-   cancelled; someone deliberately killed that week's meeting).
+2. Idempotency: skip if a meeting with `seriesId = series.id` AND `date`
+   within the SAME LOCAL DAY as `occ` (Sydney midnight-to-midnight window)
+   already exists — any status: a cancelled occurrence stays cancelled.
+   Day-window, NOT exact-timestamp, matching — an edited occurrence time or
+   a millisecond drift between `scheduledFor` and `nextOccurrence()` must
+   never spawn a duplicate meeting.
 3. Create the Meeting exactly as `POST /api/meetings` does for `scheduledFor`
    (status `scheduled`, `startedAt: null`, `date: occ`,
    title `"<series.name> — DD/MM/YYYY"` via the en-AU/Sydney format the page
@@ -141,16 +144,19 @@ model Issue {
 
 ### Config
 
-`orgSettingsConfigSchema` gains an `eos` block:
-`eos.measurableOffTrackWeeks: z.number().int().min(2).max(6).default(3)` —
-defaults + hand-rolled merge branch + Settings → Organisation field ("Weeks
-off-track before a measurable auto-raises an Issue") + shared-schema tests,
-exactly per the `marketingWeeklyCap` precedent.
+`orgSettingsConfigSchema` gains a NEW top-level `eos` block:
+`eos: z.object({ measurableOffTrackWeeks: z.number().int().min(2).max(6).default(3) }).default({})`
+— the OBJECT-level `.default({})` is mandatory (PATCH is a strict
+full-replace; every legacy stored config lacks the block and must still
+parse). Plus `ORG_SETTINGS_DEFAULTS.eos`, a hand-rolled merge branch for the
+new field, a Settings → Organisation field ("Weeks off-track before a
+measurable auto-raises an Issue"), and shared-schema tests — per the
+`marketingWeeklyCap` precedent.
 
 ### Cron — `/api/cron/scorecard-watchdog` (weekly, `"30 21 * * 0"` — Sunday
 21:30 UTC, after auto-measurables 20:30 and marketing-measurables 20:45)
 
-For each non-deleted `weekly`-frequency Measurable (all scorecards):
+For each `weekly`-frequency Measurable (hard-deleted model — no `deleted` filter exists):
 
 1. Load its most recent N entries by `weekOf desc` (N = configured weeks).
    Trigger only when there are ≥N entries AND all N have `onTrack === false`.
@@ -190,10 +196,12 @@ New lib `src/lib/meeting-digest.ts` — `sendMeetingDigest(recordingId)`:
   same migration); status-guarded `updateMany({ where: { id, digestSentAt:
   null }, data: { digestSentAt: now } })` claims it BEFORE sending — count 0
   ⇒ already sent, return.
-- Recipients: the meeting's attendees, `active: true`,
+- Email recipients: the meeting's attendees, `active: true`,
   `notificationsMuted: false` (this is work output for people who were in the
   room — the `receivesNudges` gate does NOT apply; suppression is enforced
-  inside `sendEmail` as always).
+  inside `sendEmail` as always). The IN-APP fan-out goes to all active
+  attendees INCLUDING muted users — `notificationsMuted` means "no external
+  pings; in-app kept" per its schema comment.
 - Email (Resend via `sendEmail`, `baseLayout` + `buttonHtml`, every dynamic
   string through `escapeHtml`): meeting title/date, AI summary, decisions,
   counts of proposed/accepted action items ("X proposed action items are
@@ -261,6 +269,22 @@ New lib `src/lib/meeting-digest.ts` — `sendMeetingDigest(recordingId)`:
    human, post-completion).
 
 ---
+
+## Cross-cutting conventions
+
+- All four new notification types (`scorecard_watchdog`,
+  `meeting_review_ready`, `cascade_published`, `cascade_reminder`) are
+  registered in `NOTIFICATION_TYPES` (`src/lib/notification-types.ts`) per
+  that file's header mandate.
+- `/communication`'s `?tab=` uses `useSearchParams` — wrap in the usual
+  Suspense boundary (copy the services/[id] `?tab=&sub=` precedent) so the
+  build doesn't bail.
+- Series-create is two sequential client POSTs (series, then meeting); if
+  the meeting POST fails, the orphan series is harmless (the cron creates
+  next week's occurrence) but the dialog surfaces the meeting error as
+  usual.
+- The projects `GET` change also removes the now-redundant `_count.todos`
+  include.
 
 ## Error handling & edge cases
 
