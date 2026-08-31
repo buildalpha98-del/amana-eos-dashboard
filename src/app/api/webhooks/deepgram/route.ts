@@ -102,7 +102,7 @@ export const POST = withApiHandler(
       where: { id: recording.id, status: "transcribing" },
       data: {
         status: "transcribed",
-        transcript: utterances,
+        transcript: utterances as unknown as object[],
         transcriptText: buildTranscriptText(utterances),
         ...(recording.durationSeconds == null && payload.metadata?.duration
           ? { durationSeconds: Math.round(payload.metadata.duration) }

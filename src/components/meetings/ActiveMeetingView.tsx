@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Mic,
   Pause,
   Play,
+  Square,
   UserCheck,
   UserX,
 } from "lucide-react";
@@ -40,6 +43,10 @@ import { IDSSection } from "./IDSSection";
 import { ConcludeSection } from "./ConcludeSection";
 import { MeetingOutcomesPanel } from "./MeetingOutcomesPanel";
 import { AiAgendaPanel } from "./AiAgendaPanel";
+import { MeetingAiReviewPanel } from "./MeetingAiReviewPanel";
+import { useMeetingRecorder } from "@/hooks/useMeetingRecorder";
+import { useCreateRecording } from "@/hooks/useMeetingRecordings";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 export function ActiveMeetingView({
   meeting,
@@ -80,6 +87,36 @@ export function ActiveMeetingView({
   const createIssue = useCreateIssue();
   const createTodo = useCreateTodo();
   const createEntry = useCreateEntry();
+
+  // ── Recording (Phase 2, 2026-08-31) ─────────────────────────────
+  // Mirrors the server's meeting-role gate; the API enforces it too.
+  const { data: sessionData } = useSession();
+  const canRecord = [
+    "owner",
+    "head_office",
+    "admin",
+    "marketing",
+    "eos_implementer",
+  ].includes(sessionData?.user?.role ?? "");
+  const createRecording = useCreateRecording(meeting.id);
+  const recorder = useMeetingRecorder({
+    onRecorded: async (file, durationSeconds) => {
+      try {
+        const result = await uploadFileSmart(file, { context: "recording" });
+        createRecording.mutate({
+          url: result.fileUrl,
+          source: "live_mic",
+          durationSeconds,
+        });
+      } catch (err) {
+        toast({
+          variant: "destructive",
+          description:
+            err instanceof Error ? err.message : "Recording upload failed",
+        });
+      }
+    },
+  });
 
   // Data hooks
   // 2026-07-28: a meeting can target a specific Scorecard. Meetings created
@@ -454,6 +491,14 @@ export function ActiveMeetingView({
   const isCompleted = meeting.status === "completed";
   const SectionIcon = section.icon;
 
+  // Surface mic-permission / unsupported-browser errors as toasts.
+  const recorderError = recorder.error;
+  useEffect(() => {
+    if (recorderError) {
+      toast({ variant: "destructive", description: recorderError });
+    }
+  }, [recorderError]);
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Top Bar */}
@@ -491,6 +536,35 @@ export function ActiveMeetingView({
             )}
           </p>
         </div>
+        {/* Recording controls — the on-screen indicator is the consent
+            surface; the runner also announces recording verbally. */}
+        {!isCompleted && canRecord && (
+          recorder.isRecording ? (
+            <button
+              onClick={recorder.stop}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600" />
+              </span>
+              REC {String(Math.floor(recorder.elapsedSeconds / 60)).padStart(2, "0")}:
+              {String(recorder.elapsedSeconds % 60).padStart(2, "0")}
+              <Square className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                recorder.start();
+              }}
+              title="Record this meeting — audio is transcribed then deleted; the AI review lands on the meeting afterwards"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-border text-muted hover:text-foreground hover:border-red-300 transition-colors"
+            >
+              <Mic className="w-4 h-4" />
+              Record
+            </button>
+          )
+        )}
         {isCompleted ? (
           <span className="text-xs px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
             Completed
@@ -948,6 +1022,15 @@ export function ActiveMeetingView({
               </div>
             </div>
           )}
+
+          {/* AI meeting review — recordings, transcripts, proposed action
+              items (Phase 2, 2026-08-31) */}
+          <MeetingAiReviewPanel
+            meetingId={meeting.id}
+            attendees={meeting.attendees}
+            users={users}
+            canManage={canRecord}
+          />
         </div>
       </div>
 
