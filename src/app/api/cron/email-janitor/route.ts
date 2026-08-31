@@ -4,6 +4,8 @@ import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { listBrevoLists, deleteBrevoList } from "@/lib/brevo";
+import { deleteFile } from "@/lib/storage";
+import { generateMeetingReview } from "@/lib/meeting-review";
 
 /**
  * Daily email janitor — four sweeps:
@@ -161,13 +163,84 @@ export const GET = withApiHandler(async (req) => {
         where: { sentAt: { lt: new Date(now - 30 * DAY_MS) } },
       });
 
-    await guard.complete({ stranded, trackedCleaned, legacyDeleted, ledgerPruned });
+    // ── (e) Stuck meeting recordings (Phase 2, 2026-08-31) ────────
+    // Daily cadence means a stuck recording can sit up to ~24h past the
+    // 2h threshold before this sweeps it — accepted in the spec; the UI's
+    // status strip shows "still processing" honestly in the meantime.
+    const stuckCutoff = new Date(now - 2 * 60 * 60 * 1000);
+
+    // e1: never transcribed — fail + delete any leftover audio blob.
+    const stuckRecordings = await prisma.meetingRecording.findMany({
+      where: {
+        status: { in: ["uploaded", "transcribing"] },
+        updatedAt: { lt: stuckCutoff },
+      },
+      select: { id: true, audioBlobUrl: true },
+    });
+    let recordingsFailed = 0;
+    for (const rec of stuckRecordings) {
+      await prisma.meetingRecording.update({
+        where: { id: rec.id },
+        data: {
+          status: "failed",
+          error: "Transcription timed out",
+          audioBlobUrl: null,
+        },
+      });
+      if (rec.audioBlobUrl) {
+        try {
+          await deleteFile(rec.audioBlobUrl);
+        } catch (err) {
+          logger.warn("email-janitor: stuck recording blob delete failed", {
+            recordingId: rec.id,
+            err,
+          });
+        }
+      }
+      recordingsFailed++;
+    }
+
+    // e2: transcribed but summarisation never landed — retry once.
+    const stuckTranscribed = await prisma.meetingRecording.findMany({
+      where: { status: "transcribed", updatedAt: { lt: stuckCutoff } },
+      select: { id: true },
+    });
+    let reviewsRetried = 0;
+    for (const rec of stuckTranscribed) {
+      try {
+        const review = await generateMeetingReview(rec.id);
+        await prisma.meetingRecording.update({
+          where: { id: rec.id },
+          data: { aiReview: review as object, status: "complete" },
+        });
+      } catch (err) {
+        await prisma.meetingRecording.update({
+          where: { id: rec.id },
+          data: {
+            status: "failed",
+            error: err instanceof Error ? err.message : String(err),
+          },
+        });
+      }
+      reviewsRetried++;
+    }
+
+    await guard.complete({
+      stranded,
+      trackedCleaned,
+      legacyDeleted,
+      ledgerPruned,
+      recordingsFailed,
+      reviewsRetried,
+    });
     return NextResponse.json({
       ok: true,
       stranded,
       trackedCleaned,
       legacyDeleted,
       ledgerPruned,
+      recordingsFailed,
+      reviewsRetried,
     });
   } catch (err) {
     await guard.fail(err);

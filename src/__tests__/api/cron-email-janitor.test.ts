@@ -73,6 +73,9 @@ beforeEach(() => {
   mockDeliveryRows();
   mockedListBrevoLists.mockResolvedValue({ lists: [], count: 0 });
   mockedDeleteBrevoList.mockResolvedValue(undefined);
+  // Phase 2 (2026-08-31): stuck-recording sweep defaults
+  prismaMock.meetingRecording.findMany.mockResolvedValue([]);
+  prismaMock.meetingRecording.update.mockResolvedValue({});
 });
 
 afterAll(() => {
@@ -291,5 +294,69 @@ describe("GET /api/cron/email-janitor", () => {
     expect(res.status).toBe(500);
     expect(guardFail).toHaveBeenCalledTimes(1);
     expect(guardComplete).not.toHaveBeenCalled();
+  });
+});
+
+// ── Stuck meeting recordings (Phase 2, 2026-08-31) ──────────────────────
+
+const deleteFileMock = vi.fn();
+vi.mock("@/lib/storage", () => ({
+  deleteFile: (url: string) => deleteFileMock(url),
+}));
+
+const generateMeetingReviewMock = vi.fn();
+vi.mock("@/lib/meeting-review", () => ({
+  generateMeetingReview: (id: string) => generateMeetingReviewMock(id),
+}));
+
+describe("email-janitor — stuck recording sweep", () => {
+  it("fails stuck uploaded/transcribing rows and deletes leftover blobs", async () => {
+    prismaMock.meetingRecording.findMany.mockImplementation(
+      (args: { where?: { status?: { in?: string[] } | string } }) => {
+        const status = args?.where?.status;
+        if (typeof status === "object" && status?.in) {
+          return Promise.resolve([
+            { id: "rec-stuck", audioBlobUrl: "https://x.blob.vercel-storage.com/a.webm" },
+          ]);
+        }
+        return Promise.resolve([]);
+      },
+    );
+    deleteFileMock.mockResolvedValue(undefined);
+
+    const res = await GET(authed());
+    const body = await res.json();
+
+    expect(body.recordingsFailed).toBe(1);
+    expect(prismaMock.meetingRecording.update).toHaveBeenCalledWith({
+      where: { id: "rec-stuck" },
+      data: {
+        status: "failed",
+        error: "Transcription timed out",
+        audioBlobUrl: null,
+      },
+    });
+    expect(deleteFileMock).toHaveBeenCalledWith(
+      "https://x.blob.vercel-storage.com/a.webm",
+    );
+  });
+
+  it("retries summarisation once for stuck transcribed rows", async () => {
+    prismaMock.meetingRecording.findMany.mockImplementation(
+      (args: { where?: { status?: { in?: string[] } | string } }) =>
+        Promise.resolve(
+          args?.where?.status === "transcribed" ? [{ id: "rec-t" }] : [],
+        ),
+    );
+    generateMeetingReviewMock.mockResolvedValue({ summary: "s" });
+
+    const res = await GET(authed());
+    const body = await res.json();
+
+    expect(body.reviewsRetried).toBe(1);
+    expect(prismaMock.meetingRecording.update).toHaveBeenCalledWith({
+      where: { id: "rec-t" },
+      data: { aiReview: { summary: "s" }, status: "complete" },
+    });
   });
 });
