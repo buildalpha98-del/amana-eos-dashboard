@@ -5,6 +5,7 @@ import {
   useMeetings,
   useCreateMeeting,
 } from "@/hooks/useMeetings";
+import { useCreateMeetingSeries } from "@/hooks/useMeetingSeries";
 import type { MeetingData } from "@/hooks/useMeetings";
 import { formatDateAU } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -22,6 +23,7 @@ export default function MeetingsPage() {
 
   const { data: meetings, isLoading, error, refetch } = useMeetings({ limit: 100 });
   const createMeeting = useCreateMeeting();
+  const createSeries = useCreateMeetingSeries();
 
   const activeMeeting = meetings?.find((m) => m.id === activeMeetingId);
 
@@ -35,6 +37,7 @@ export default function MeetingsPage() {
     isLeadership: boolean,
     scorecardId: string | null,
     scheduledFor: string | null,
+    repeatWeekly: boolean,
   ) => {
     const now = new Date();
     // 2026-07-28: title reflects the meeting type so the list is scannable.
@@ -44,6 +47,27 @@ export default function MeetingsPage() {
       ? `Leadership L10 — ${formatDateAU(titleDate)}`
       : `L10 Meeting — ${formatDateAU(titleDate)}`;
     try {
+      // Repeat-weekly: create the series first (from the picked LOCAL
+      // wall-clock time — the series is timezone-anchored so DST never
+      // shifts it), then this week's meeting stamped with its id. If the
+      // meeting create fails, the orphan series is harmless — the daily
+      // cron simply materialises next week's occurrence.
+      let seriesId: string | undefined;
+      if (repeatWeekly && scheduledFor) {
+        const local = new Date(scheduledFor);
+        const series = await createSeries.mutateAsync({
+          name: isLeadership ? "Leadership L10" : "L10 Meeting",
+          dayOfWeek: local.getDay(),
+          minuteOfDay: local.getHours() * 60 + local.getMinutes(),
+          timezone: "Australia/Sydney",
+          isLeadership,
+          serviceIds,
+          scorecardId,
+          attendeeUserIds: attendeeIds,
+        });
+        seriesId = series.id;
+      }
+
       const newMeeting = await createMeeting.mutateAsync({
         title,
         date: now.toISOString(),
@@ -52,6 +76,7 @@ export default function MeetingsPage() {
         isLeadership,
         scorecardId,
         ...(scheduledFor ? { scheduledFor } : {}),
+        ...(seriesId ? { seriesId } : {}),
       });
       setShowStartDialog(false);
       // Scheduled meetings stay on the list (nothing to run yet);

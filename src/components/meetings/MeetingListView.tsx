@@ -13,6 +13,7 @@ import {
   Calendar,
   Search,
   History,
+  RefreshCw,
 } from "lucide-react";
 import type { MeetingData } from "@/hooks/useMeetings";
 import {
@@ -21,6 +22,11 @@ import {
   useStartMeeting,
   useUpdateMeeting,
 } from "@/hooks/useMeetings";
+import {
+  useDeleteMeetingSeries,
+  useMeetingSeries,
+  useUpdateMeetingSeries,
+} from "@/hooks/useMeetingSeries";
 import { toast } from "@/hooks/useToast";
 import { useSession } from "next-auth/react";
 import { Trash2 } from "lucide-react";
@@ -45,6 +51,17 @@ export function MeetingListView({
 }) {
   const { data: session } = useSession();
   const deleteMeeting = useDeleteMeeting();
+  // Recurring series (2026-08-31): visible to meeting-role users only.
+  const canManageSeries = [
+    "owner",
+    "head_office",
+    "admin",
+    "marketing",
+    "eos_implementer",
+  ].includes(session?.user?.role ?? "");
+  const { data: seriesList } = useMeetingSeries();
+  const updateSeries = useUpdateMeetingSeries();
+  const deleteSeries = useDeleteMeetingSeries();
   // Mirrors the DELETE route's role gate — the server enforces it too.
   const canDeleteMeetings =
     session?.user?.role === "owner" || session?.user?.role === "admin";
@@ -204,6 +221,64 @@ export function MeetingListView({
         </button>
       )}
 
+      {/* Recurring series strip (2026-08-31) */}
+      {canManageSeries && (seriesList?.length ?? 0) > 0 && (
+        <div className="mb-6 bg-card rounded-xl border border-border overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border/50 bg-surface/30 flex items-center gap-2">
+            <RefreshCw className="w-3.5 h-3.5 text-muted" />
+            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">
+              Recurring
+            </h3>
+          </div>
+          <div className="divide-y divide-border/40">
+            {seriesList!.map((series) => {
+              const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][series.dayOfWeek];
+              const hh = String(Math.floor(series.minuteOfDay / 60)).padStart(2, "0");
+              const mm = String(series.minuteOfDay % 60).padStart(2, "0");
+              return (
+                <div key={series.id} className="px-4 py-2.5 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className={cn("text-sm truncate", series.active ? "text-foreground" : "text-muted line-through")}>
+                      {series.name}
+                    </p>
+                    <p className="text-xs text-muted">
+                      Every {day} at {hh}:{mm}
+                      {!series.active && " · paused"}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() =>
+                      updateSeries.mutate({ id: series.id, active: !series.active })
+                    }
+                    disabled={updateSeries.isPending}
+                  >
+                    {series.active ? "Pause" : "Resume"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Delete the recurring "${series.name}" series? Past meetings are kept; no future ones will be created.`,
+                        )
+                      ) {
+                        deleteSeries.mutate(series.id);
+                      }
+                    }}
+                    disabled={deleteSeries.isPending}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Upcoming scheduled meetings (2026-08-31) */}
       {upcomingMeetings.length > 0 && (
         <div className="mb-6 bg-card rounded-xl border border-border overflow-hidden">
@@ -219,8 +294,11 @@ export function MeetingListView({
                   <Calendar className="w-4 h-4 text-muted" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
+                  <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
                     {meeting.title}
+                    {meeting.seriesId && (
+                      <RefreshCw className="w-3 h-3 text-muted flex-shrink-0" aria-label="Recurring meeting" />
+                    )}
                   </p>
                   <p className="text-xs text-muted">
                     {new Date(meeting.date).toLocaleString("en-AU", {

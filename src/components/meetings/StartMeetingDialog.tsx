@@ -25,6 +25,7 @@ export function StartMeetingDialog({
     isLeadership: boolean,
     scorecardId: string | null,
     scheduledFor: string | null,
+    repeatWeekly: boolean,
   ) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -48,6 +49,8 @@ export function StartMeetingDialog({
   // as `scheduled` (dated scheduledFor) instead of starting immediately.
   const [scheduleLater, setScheduleLater] = useState(false);
   const [scheduledFor, setScheduledFor] = useState("");
+  // 2026-08-31: creates a MeetingSeries so this meeting repeats weekly.
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
 
   const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
     queryKey: ["users-list-full", isLeadership ? "leadership" : "eos_assignees"],
@@ -195,7 +198,7 @@ export function StartMeetingDialog({
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onStart([], [], false, null, null)}
+                    onClick={() => onStart([], [], false, null, null, false)}
                     className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
                   >
                     Company-Wide Meeting
@@ -421,6 +424,17 @@ export function StartMeetingDialog({
                       className="flex-1 px-2 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     />
                   )}
+                  {scheduleLater && (
+                    <label className="flex items-center gap-2 text-xs text-muted cursor-pointer whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={repeatWeekly}
+                        onChange={(e) => setRepeatWeekly(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      Repeat weekly
+                    </label>
+                  )}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted">
@@ -445,6 +459,7 @@ export function StartMeetingDialog({
                           scheduleLater && scheduledFor
                             ? new Date(scheduledFor).toISOString()
                             : null,
+                          scheduleLater && repeatWeekly,
                         )
                       }
                       disabled={isPending || (scheduleLater && !scheduledFor)}
