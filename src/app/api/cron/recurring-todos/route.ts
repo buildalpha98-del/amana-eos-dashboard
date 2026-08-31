@@ -17,6 +17,36 @@ import { logger } from "@/lib/logger";
  *
  * Auth: Bearer CRON_SECRET
  */
+/**
+ * Advance a date by one recurrence period. Used for BOTH the created
+ * todo's dueDate and the template's nextRunAt so they can't diverge —
+ * before 2026-08-31 dueDate was hardcoded to +7d, so a daily template
+ * minted todos due a week out.
+ */
+function addRecurrencePeriod(from: Date, rule: string): Date {
+  const d = new Date(from);
+  switch (rule) {
+    case "daily":
+      d.setDate(d.getDate() + 1);
+      break;
+    case "weekly":
+      d.setDate(d.getDate() + 7);
+      break;
+    case "fortnightly":
+      d.setDate(d.getDate() + 14);
+      break;
+    case "monthly":
+      d.setMonth(d.getMonth() + 1);
+      break;
+    case "quarterly":
+      d.setMonth(d.getMonth() + 3);
+      break;
+    default:
+      d.setDate(d.getDate() + 7);
+  }
+  return d;
+}
+
 export const GET = withApiHandler(async (req) => {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "");
   if (secret !== process.env.CRON_SECRET) {
@@ -53,8 +83,7 @@ export const GET = withApiHandler(async (req) => {
     await prisma.$transaction(async (tx) => {
       for (const template of dueTemplates) {
         const weekOf = getWeekStart(template.nextRunAt);
-        const dueDate = new Date(template.nextRunAt);
-        dueDate.setDate(dueDate.getDate() + 7);
+        const dueDate = addRecurrencePeriod(template.nextRunAt, template.recurrence);
 
         // Create the todo
         await tx.todo.create({
@@ -70,25 +99,7 @@ export const GET = withApiHandler(async (req) => {
         });
 
         // Advance nextRunAt based on recurrence
-        const nextRun = new Date(template.nextRunAt);
-
-        switch (template.recurrence) {
-          case "daily":
-            nextRun.setDate(nextRun.getDate() + 1);
-            break;
-          case "weekly":
-            nextRun.setDate(nextRun.getDate() + 7);
-            break;
-          case "fortnightly":
-            nextRun.setDate(nextRun.getDate() + 14);
-            break;
-          case "monthly":
-            nextRun.setMonth(nextRun.getMonth() + 1);
-            break;
-          case "quarterly":
-            nextRun.setMonth(nextRun.getMonth() + 3);
-            break;
-        }
+        const nextRun = addRecurrencePeriod(template.nextRunAt, template.recurrence);
 
         await tx.todoTemplate.update({
           where: { id: template.id },

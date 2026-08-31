@@ -17,13 +17,23 @@ export function MeetingOutcomesPanel({
   todos: TodoData[] | undefined;
   issues: IssueData[] | undefined;
 }) {
-  const todosDone = todos?.filter((t) => t.status === "complete").length ?? 0;
-  const todosTotal = todos?.length ?? 0;
-  const rocksOnTrack = rocks?.filter(
-    (r) => r.status === "on_track" || r.status === "complete"
-  ).length ?? 0;
-  const rocksTotal = rocks?.length ?? 0;
-  const solvedIssues = issues?.filter((i) => i.status === "solved" || i.status === "closed").length ?? 0;
+  // 2026-08-31: prefer the completion-time snapshot — past meetings
+  // shouldn't recompute their outcomes from today's live data. Legacy
+  // meetings (no snapshot) keep the live fallback.
+  const snap = meeting.outcomes ?? null;
+  const todosDone =
+    snap?.todosCompleted ??
+    (todos?.filter((t) => t.status === "complete").length ?? 0);
+  const todosTotal = snap?.todosTotal ?? (todos?.length ?? 0);
+  const rocksOnTrack =
+    snap?.rocksOnTrack ??
+    (rocks?.filter((r) => r.status === "on_track" || r.status === "complete")
+      .length ?? 0);
+  const rocksTotal = snap?.rocksTotal ?? (rocks?.length ?? 0);
+  const solvedIssues =
+    snap?.issuesSolvedIds?.length ??
+    (issues?.filter((i) => i.status === "solved" || i.status === "closed")
+      .length ?? 0);
   const cascadeLines = meeting.cascadeMessages
     ? meeting.cascadeMessages.split("\n").filter((l) => l.trim())
     : [];

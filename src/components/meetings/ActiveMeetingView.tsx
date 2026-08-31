@@ -44,9 +44,13 @@ import { AiAgendaPanel } from "./AiAgendaPanel";
 export function ActiveMeetingView({
   meeting,
   onBack,
+  lastMeetingId,
 }: {
   meeting: MeetingData;
   onBack: () => void;
+  /** Previous completed meeting of the same kind — drives the To-Do
+   *  Review "from last meeting" carry-over badge. */
+  lastMeetingId?: string | null;
 }) {
   const [currentSection, setCurrentSection] = useState(meeting.currentSection);
   const [segueNotes, setSegueNotes] = useState(meeting.segueNotes || "");
@@ -293,6 +297,37 @@ export function ActiveMeetingView({
     [updateTodo]
   );
 
+  // 2026-08-31: To-Do Review is a capture surface — new commitments made
+  // in the room land here, stamped with this meeting's id.
+  const handleQuickAddTodo = useCallback(
+    (data: { title: string; assigneeId: string; dueDate: string }) => {
+      createTodo.mutate({
+        title: data.title,
+        assigneeId: data.assigneeId,
+        dueDate: data.dueDate,
+        weekOf: getWeekStart().toISOString(),
+        meetingId: meeting.id,
+        serviceId:
+          meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
+      });
+    },
+    [createTodo, meeting.id, meetingServiceIds]
+  );
+
+  const handleReassignTodo = useCallback(
+    (id: string, assigneeId: string) => {
+      updateTodo.mutate({ id, assigneeId });
+    },
+    [updateTodo]
+  );
+
+  const handleRedateTodo = useCallback(
+    (id: string, dueDate: string) => {
+      updateTodo.mutate({ id, dueDate });
+    },
+    [updateTodo]
+  );
+
   const handleIssueStatus = useCallback(
     (id: string, status: string) => {
       updateIssue.mutate({
@@ -332,11 +367,12 @@ export function ActiveMeetingView({
         assigneeIds: data.assigneeIds.length > 1 ? data.assigneeIds : undefined,
         issueId: data.issueId,
         serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
+        meetingId: meeting.id,
         dueDate: new Date(ws.getTime() + 6 * 86400000).toISOString().split("T")[0],
         weekOf: ws.toISOString(),
       });
     },
-    [createTodo, meetingServiceIds]
+    [createTodo, meetingServiceIds, meeting.id]
   );
 
   const handleDropToIDS = useCallback(
@@ -638,6 +674,13 @@ export function ActiveMeetingView({
               <TodoReviewSection
                 todos={todos}
                 onToggle={handleTodoToggle}
+                attendees={meeting.attendees}
+                users={users}
+                onQuickAdd={handleQuickAddTodo}
+                onReassign={handleReassignTodo}
+                onRedate={handleRedateTodo}
+                isCompleted={isCompleted}
+                lastMeetingId={lastMeetingId}
               />
             )}
             {currentSection === 5 && (
