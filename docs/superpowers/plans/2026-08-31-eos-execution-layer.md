@@ -10,6 +10,13 @@
 
 ---
 
+## Review amendments (binding)
+
+1. **Task 8** Suspense precedent = `src/app/(dashboard)/todos/page.tsx` (Suspense-wrapped inner component + Skeleton fallback) — NOT services/[id] (that one has no boundary and only builds because it's a dynamic route). Add tests for the remind rate limit (3/hr) and `?tab=` behaviour. Cascade coverage is NET-NEW (communication.test.ts covers announcements only); the meeting-completion fan-out asserts in meetings.test.ts.
+2. **Task 5** the existing-issue skip query MUST filter `deleted: false` (Issue soft-deletes leave status untouched — a deleted open policing issue would suppress re-raising forever). Test it.
+3. **Task 9** `api/projects.test.ts` is net-new (full auth/validation/happy-path per house standards). Drop `_count` from `ProjectSummary` in the same commit as the route change; add `rockId` to `useUpdateProject`'s body type.
+4. **Task 6** the page fetches `useMeetings({ limit: 100 })` — sufficient for 12 snapshot-bearing completed meetings; keep the strip's two visibility conditions (series exist AND meeting-role user) in Task 4.
+
 ## Task 1: Schema + migration
 
 Modify `prisma/schema.prisma`: `MeetingSeries` model + `User.meetingSeries` back-relation (`"SeriesCreator"`); `Meeting.seriesId` (+index, `"SeriesMeetings"`); `MeetingRecording.digestSentAt DateTime?`; `Issue.measurableId` (+index, SetNull) + `Measurable.issues`; `Project.rockId` (+index, SetNull) + `Rock.projects`; `Todo.completionNote String? @db.Text`.
