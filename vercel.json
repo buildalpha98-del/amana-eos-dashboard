@@ -332,6 +332,10 @@
     {
       "path": "/api/cron/term-autopilot",
       "schedule": "0 21 * * 1"
+    },
+    {
+      "path": "/api/cron/meeting-series",
+      "schedule": "0 18 * * *"
     }
   ]
 }

@@ -20,6 +20,8 @@ const createMeetingSchema = z.object({
   // carries the scheduled moment — no separate column). The morning
   // briefing cron auto-preps scheduled meetings dated today.
   scheduledFor: z.string().datetime().optional(),
+  // 2026-08-31: recurring series this occurrence belongs to.
+  seriesId: z.string().optional(),
 });
 
 // GET /api/meetings — list meetings ordered by date desc
@@ -74,6 +76,16 @@ const body = await parseJsonBody(req);
     );
   }
 
+  if (parsed.data.seriesId) {
+    const series = await prisma.meetingSeries.findUnique({
+      where: { id: parsed.data.seriesId },
+      select: { id: true },
+    });
+    if (!series) {
+      return NextResponse.json({ error: "Series not found" }, { status: 400 });
+    }
+  }
+
   const scheduledFor = parsed.data.scheduledFor
     ? new Date(parsed.data.scheduledFor)
     : null;
@@ -98,6 +110,7 @@ const body = await parseJsonBody(req);
       serviceIds: parsed.data.serviceIds || [],
       isLeadership: parsed.data.isLeadership ?? false,
       scorecardId: parsed.data.scorecardId ?? null,
+      seriesId: parsed.data.seriesId ?? null,
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },
