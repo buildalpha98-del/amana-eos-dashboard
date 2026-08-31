@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Bell, MessageCircle, HeartPulse } from "lucide-react";
 import { AnnouncementsTab } from "@/components/communication/AnnouncementsTab";
@@ -16,8 +17,23 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]["key"];
 
-export default function CommunicationPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>("announcements");
+// 2026-08-31: tab state moved to ?tab= so notification links (e.g.
+// /communication?tab=cascade from a cascade publish) land on the right
+// board. useSearchParams needs a Suspense boundary at build (same
+// pattern as /todos).
+function CommunicationPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const activeTab: TabKey = tabs.some((t) => t.key === rawTab)
+    ? (rawTab as TabKey)
+    : "announcements";
+  const setActiveTab = useCallback(
+    (key: TabKey) => {
+      router.replace(`/communication?tab=${key}`, { scroll: false });
+    },
+    [router],
+  );
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -58,5 +74,19 @@ export default function CommunicationPage() {
         {activeTab === "pulse" && <WeeklyPulseTab />}
       </div>
     </div>
+  );
+}
+
+export default function CommunicationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-24">
+          <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
+        </div>
+      }
+    >
+      <CommunicationPageInner />
+    </Suspense>
   );
 }

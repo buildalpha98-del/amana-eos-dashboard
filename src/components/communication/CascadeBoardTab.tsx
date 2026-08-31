@@ -5,11 +5,14 @@ import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import {
   useCascadeMessages,
+  useCascadeMessage,
   usePublishCascade,
   useAcknowledgeCascade,
   useDeleteCascade,
+  useRemindCascade,
 } from "@/hooks/useCommunication";
 import { useTeam } from "@/hooks/useTeam";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
@@ -219,11 +222,15 @@ function CascadeCard({
   msg,
   teamCount,
   isAdmin,
+  team,
 }: {
   msg: any;
   teamCount: number;
   isAdmin: boolean;
+  team: Array<{ id: string; name: string }> | undefined;
 }) {
+  const [showAcks, setShowAcks] = useState(false);
+  const remind = useRemindCascade();
   const acknowledgeCascade = useAcknowledgeCascade();
   const deleteCascade = useDeleteCascade();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -295,10 +302,20 @@ function CascadeCard({
             {/* Acknowledgment count */}
             <div className="flex items-center gap-1.5 text-xs text-muted">
               <Users className="w-3.5 h-3.5" />
-              <span>
-                {ackCount} of {teamCount} team member{teamCount !== 1 ? "s" : ""}{" "}
-                acknowledged
-              </span>
+              {isAdmin ? (
+                <button
+                  onClick={() => setShowAcks((v) => !v)}
+                  className="hover:text-foreground underline-offset-2 hover:underline"
+                >
+                  {ackCount} of {teamCount} team member{teamCount !== 1 ? "s" : ""}{" "}
+                  acknowledged
+                </button>
+              ) : (
+                <span>
+                  {ackCount} of {teamCount} team member{teamCount !== 1 ? "s" : ""}{" "}
+                  acknowledged
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -366,7 +383,10 @@ export function CascadeBoardTab() {
   const [showPublishModal, setShowPublishModal] = useState(false);
 
   const userRole = (session?.user as any)?.role;
-  const isAdmin = userRole === "owner" || userRole === "admin";
+  // 2026-08-31: head_office added — the API always allowed it; the
+  // client gate had drifted narrower.
+  const isAdmin =
+    userRole === "owner" || userRole === "head_office" || userRole === "admin";
   const teamCount = team?.length ?? 0;
 
   return (
@@ -451,6 +471,7 @@ export function CascadeBoardTab() {
               msg={msg}
               teamCount={teamCount}
               isAdmin={isAdmin}
+              team={team}
             />
           ))}
         </div>

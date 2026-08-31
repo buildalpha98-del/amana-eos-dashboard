@@ -400,3 +400,25 @@ export function usePulseAdminSummary(weekOf: string, enabled: boolean) {
     retry: 2,
   });
 }
+
+/** Nudge everyone who hasn't acknowledged a cascade yet (admin-tier). */
+export function useRemindCascade() {
+  return useMutation({
+    mutationFn: async (id: string) =>
+      mutateApi<{ reminded: number }>(
+        `/api/communication/cascade/${id}/remind`,
+        { method: "POST" },
+      ),
+    onSuccess: (data) => {
+      toast({
+        description:
+          data.reminded > 0
+            ? `Reminded ${data.reminded} team member${data.reminded === 1 ? "" : "s"}.`
+            : "Everyone has already acknowledged.",
+      });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
