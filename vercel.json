@@ -336,6 +336,10 @@
     {
       "path": "/api/cron/meeting-series",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/scorecard-watchdog",
+      "schedule": "30 21 * * 0"
     }
   ]
 }
