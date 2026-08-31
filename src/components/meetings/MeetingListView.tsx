@@ -34,6 +34,7 @@ import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { L10_SECTIONS } from "./sections";
+import { MeetingInsightsCard } from "./MeetingInsightsCard";
 
 /**
  * 2026-07-28: owner/admin can delete a meeting from the list — for
@@ -363,6 +364,9 @@ export function MeetingListView({
           </div>
         </div>
       )}
+
+      {/* Snapshot-driven trend view (2026-08-31) */}
+      <MeetingInsightsCard meetings={meetings} />
 
       {/* Past Meetings */}
       {meetings.length > 0 ? (
