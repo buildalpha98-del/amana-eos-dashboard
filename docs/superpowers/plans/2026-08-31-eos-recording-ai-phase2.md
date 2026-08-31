@@ -12,6 +12,14 @@
 
 ---
 
+## Review amendments (2026-08-31 plan review — binding)
+
+1. **Task 5** context must also gather the meeting's **candidate todos** (spec §2.5) so proposed action items don't duplicate captured work.
+2. **Task 7**: `Todo.dueDate` is required — server defaults to +7d when neither suggestion nor override supplies one (never 500).
+3. **Task 6**: fold `transcript`/`transcriptText`/`durationSeconds` INTO the guarded `updateMany` (no crash window leaving a transcript-less `transcribed` row); detect a Deepgram **failure callback** (known request_id, no utterances AND no channel transcript) → `failed` + error, never summarise emptiness.
+4. **Ordering**: implement `meeting-review.ts` (Task 5) BEFORE the regenerate route; regenerate claims via guarded `updateMany` (`complete|failed` → `transcribed`, 409 on count 0).
+5. Deepgram utterance text lives in `u.transcript` (map → `text`); `export const maxDuration = 120` on webhook + regenerate; log `inputTokens/outputTokens/costUsd` in meeting-review; MP3/ID3 signatures go BEFORE the `looksLikeText` fallback; janitor test file is `src/__tests__/api/cron-email-janitor.test.ts`; PR body notes the `{decision}`-body endpoint shape and always-visible status strip as deliberate spec deviations.
+
 ## Chunk 1: Schema + upload lane
 
 ### Task 1: `MeetingRecording` schema + migration

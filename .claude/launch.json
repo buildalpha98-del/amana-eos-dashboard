@@ -4,14 +4,34 @@
     {
       "name": "nextjs-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "nextjs-prod",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "start", "-p", "3001"],
+      "runtimeArgs": [
+        "next",
+        "start",
+        "-p",
+        "3001"
+      ],
       "port": 3001
+    },
+    {
+      "name": "nextjs-dev-worktree",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3010"
+      ],
+      "port": 3010
     }
   ]
 }
