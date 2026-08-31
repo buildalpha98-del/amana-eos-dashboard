@@ -28,7 +28,11 @@ describe("/api/cron/l10-prep-digest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.CRON_SECRET = "test-cron-secret";
-    acquireCronLock.mockResolvedValue({ acquired: true });
+    acquireCronLock.mockResolvedValue({
+      acquired: true,
+      complete: vi.fn().mockResolvedValue(undefined),
+      fail: vi.fn().mockResolvedValue(undefined),
+    });
     prismaMock.user.findMany.mockResolvedValue([]);
   });
 
