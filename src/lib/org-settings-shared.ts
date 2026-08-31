@@ -197,7 +197,9 @@ export const orgSettingsConfigSchema = z.object({
       // auto-raises an Issue for a measurable.
       measurableOffTrackWeeks: z.number().int().min(2).max(6).default(3),
     })
-    .default({}),
+    // Full object, not {} — zod v4 .default() short-circuits without
+    // running inner-field defaults.
+    .default({ measurableOffTrackWeeks: 3 }),
   ratios: z.object({
     federalDefaultMinRatio: ratioStringSchema,
   }),
