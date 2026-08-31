@@ -62,7 +62,7 @@ describe("recomputeRocksProgress", () => {
 
     expect(prismaMock.rock.update).toHaveBeenCalledTimes(2);
     const updatedIds = prismaMock.rock.update.mock.calls.map(
-      (c) => (c[0] as { where: { id: string } }).where.id,
+      (c: unknown[]) => (c[0] as { where: { id: string } }).where.id,
     );
     expect(updatedIds.sort()).toEqual(["rock-a", "rock-b"]);
   });
