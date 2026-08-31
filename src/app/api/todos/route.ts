@@ -7,6 +7,7 @@ import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { privateTodoWhere } from "@/lib/todos/private-filter";
 
 // GET /api/todos — list todos with optional filters
 export const GET = withApiAuth(async (req, session) => {
@@ -51,6 +52,13 @@ export const GET = withApiAuth(async (req, session) => {
   // State Manager: only see todos for services in their assigned state
   if (stateScope) where.service = { state: stateScope };
 
+  // Private todos: visible only to assignee/co-assignee/creator/admin tier.
+  // AND-composed so it can't clobber the centre-scope OR above.
+  const privateClause = privateTodoWhere(session!);
+  const finalWhere = Object.keys(privateClause).length
+    ? { AND: [where, privateClause] }
+    : where;
+
   const include = {
     assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
     rock: { select: { id: true, title: true } },
@@ -65,8 +73,8 @@ export const GET = withApiAuth(async (req, session) => {
 
   if (pagination) {
     const [items, total] = await Promise.all([
-      prisma.todo.findMany({ where, include, orderBy, skip: pagination.skip, take: pagination.limit }),
-      prisma.todo.count({ where }),
+      prisma.todo.findMany({ where: finalWhere, include, orderBy, skip: pagination.skip, take: pagination.limit }),
+      prisma.todo.count({ where: finalWhere }),
     ]);
     return NextResponse.json({
       items,
@@ -76,7 +84,7 @@ export const GET = withApiAuth(async (req, session) => {
     });
   }
 
-  const todos = await prisma.todo.findMany({ where, include, orderBy });
+  const todos = await prisma.todo.findMany({ where: finalWhere, include, orderBy });
   return NextResponse.json(todos);
 });
 

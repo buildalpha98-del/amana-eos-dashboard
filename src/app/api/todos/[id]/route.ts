@@ -5,6 +5,7 @@ import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { recomputeRockProgress } from "@/lib/todos/recompute-rock-progress";
+import { canViewTodo } from "@/lib/todos/private-filter";
 
 const updateTodoSchema = z.object({
   title: z.string().min(1).optional(),
@@ -28,10 +29,13 @@ export const GET = withApiAuth(async (req, session, context) => {
       assignee: { select: { id: true, name: true, email: true, avatar: true, role: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
+      assignees: { select: { userId: true } },
     },
   });
 
-  if (!todo) {
+  // 404 (not 403) for a private todo the caller may not see — same
+  // no-existence-leak convention as creative requests.
+  if (!todo || !canViewTodo(session!, todo)) {
     return NextResponse.json({ error: "Todo not found" }, { status: 404 });
   }
 
