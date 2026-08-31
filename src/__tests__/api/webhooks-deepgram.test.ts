@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+const sendMeetingDigestSafe = vi.fn();
 vi.mock("@/lib/meeting-digest", () => ({
-  sendMeetingDigestSafe: vi.fn(),
+  sendMeetingDigestSafe: (id: string) => sendMeetingDigestSafe(id),
   sendMeetingDigest: vi.fn(),
 }));
 import { prismaMock } from "../helpers/prisma-mock";
@@ -100,6 +101,7 @@ describe("POST /api/webhooks/deepgram", () => {
     };
     expect(finalUpdate.data.status).toBe("complete");
     expect(finalUpdate.data.aiReview).toEqual({ summary: "s" });
+    expect(sendMeetingDigestSafe).toHaveBeenCalledWith("rec-1");
   });
 
   it("duplicate delivery no-ops after the guarded claim", async () => {
@@ -135,6 +137,7 @@ describe("POST /api/webhooks/deepgram", () => {
     expect(finalUpdate.data.error).toBe("model down");
     // transcript was written during the claim and is never cleared
     expect(finalUpdate.data.transcript).toBeUndefined();
+    expect(sendMeetingDigestSafe).not.toHaveBeenCalled();
   });
 
   it("blob-delete failure does not stop summarisation", async () => {

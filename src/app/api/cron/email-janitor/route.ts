@@ -223,7 +223,7 @@ export const GET = withApiHandler(async (req) => {
           where: { id: rec.id },
           data: { aiReview: review as object, status: "complete" },
         });
-        sendMeetingDigestSafe(rec.id);
+        await sendMeetingDigestSafe(rec.id);
       } catch (err) {
         await prisma.meetingRecording.update({
           where: { id: rec.id },

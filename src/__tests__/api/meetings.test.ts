@@ -287,6 +287,8 @@ describe("PATCH /api/meetings/[id]", () => {
 
   it("writes cascade messages when completing with cascadeMessages text", async () => {
     mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.user.findMany.mockResolvedValue([{ id: "u2" }]);
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
     prismaMock.meeting.findUnique.mockResolvedValue({
       id: "m-1", status: "in_progress", completedAt: null,
       outcomes: null, rating: null, serviceIds: [],
@@ -317,6 +319,14 @@ describe("PATCH /api/meetings/[id]", () => {
     expect(call.data).toHaveLength(2);
     expect(call.data[0].message).toBe("Next week we ship");
     expect(call.data[1].message).toBe("Also fix bug");
+
+    // 2026-08-31: ONE cascade_published notification batch per publish,
+    // to every active user except the completer.
+    const notif = prismaMock.userNotification.createMany.mock.calls[0][0] as {
+      data: Array<{ userId: string; type: string }>;
+    };
+    expect(notif.data.map((n) => n.userId)).toEqual(["u2"]);
+    expect(notif.data[0].type).toBe("cascade_published");
   });
 
   it("computes average rating from attendee ratings on completion", async () => {

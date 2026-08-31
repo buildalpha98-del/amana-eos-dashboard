@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+const sendMeetingDigestSafe = vi.fn();
 vi.mock("@/lib/meeting-digest", () => ({
-  sendMeetingDigestSafe: vi.fn(),
+  sendMeetingDigestSafe: (id: string) => sendMeetingDigestSafe(id),
   sendMeetingDigest: vi.fn(),
 }));
 import { prismaMock } from "../helpers/prisma-mock";
@@ -238,6 +239,8 @@ describe("POST .../regenerate", () => {
       where: { id: "rec-1" },
       data: { aiReview: { summary: "s", actionItems: [] }, status: "complete" },
     });
+    // Digest is a no-op if already sent; the caller always invokes it.
+    expect(sendMeetingDigestSafe).toHaveBeenCalledWith("rec-1");
   });
 
   it("marks failed (transcript retained) when summarisation throws", async () => {

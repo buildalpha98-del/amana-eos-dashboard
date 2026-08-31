@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
+const sendMeetingDigestSafeMock = vi.fn();
 vi.mock("@/lib/meeting-digest", () => ({
-  sendMeetingDigestSafe: vi.fn(),
+  sendMeetingDigestSafe: (id: string) => sendMeetingDigestSafeMock(id),
   sendMeetingDigest: vi.fn(),
 }));
 import { prismaMock } from "../helpers/prisma-mock";
@@ -363,5 +364,6 @@ describe("email-janitor — stuck recording sweep", () => {
       where: { id: "rec-t" },
       data: { aiReview: { summary: "s" }, status: "complete" },
     });
+    expect(sendMeetingDigestSafeMock).toHaveBeenCalledWith("rec-t");
   });
 });

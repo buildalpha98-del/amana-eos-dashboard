@@ -3,6 +3,7 @@
 import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { resolveCommunicationTab } from "@/lib/communication-tabs";
 import { Bell, MessageCircle, HeartPulse } from "lucide-react";
 import { AnnouncementsTab } from "@/components/communication/AnnouncementsTab";
 import { CascadeBoardTab } from "@/components/communication/CascadeBoardTab";
@@ -24,10 +25,7 @@ type TabKey = (typeof tabs)[number]["key"];
 function CommunicationPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rawTab = searchParams.get("tab");
-  const activeTab: TabKey = tabs.some((t) => t.key === rawTab)
-    ? (rawTab as TabKey)
-    : "announcements";
+  const activeTab: TabKey = resolveCommunicationTab(searchParams.get("tab"));
   const setActiveTab = useCallback(
     (key: TabKey) => {
       router.replace(`/communication?tab=${key}`, { scroll: false });

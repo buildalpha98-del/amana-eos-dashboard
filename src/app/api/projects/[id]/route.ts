@@ -23,6 +23,7 @@ export const GET = withApiAuth(async (req, session, context) => {
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       service: { select: { id: true, name: true, code: true } },
+      rock: { select: { id: true, title: true } },
       template: { select: { id: true, name: true } },
       todos: {
         where: { deleted: false },

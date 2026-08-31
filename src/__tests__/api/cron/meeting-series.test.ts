@@ -112,7 +112,7 @@ describe("/api/cron/meeting-series", () => {
     expect(where.date.lt.toISOString()).toBe("2026-09-08T14:00:00.000Z");
   });
 
-  it("skips occurrences outside the 7-day window", async () => {
+  it("boundary: an occurrence exactly 7 days out is still created (weekly gap never exceeds the window)", async () => {
     // Wednesday: next Tuesday is ~6.8 days out — inside. Move to a time
     // where the next occurrence is beyond 7 days: just after this week's
     // meeting, next one is exactly 7 days minus nothing — use a series on

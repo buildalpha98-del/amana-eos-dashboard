@@ -99,7 +99,9 @@ export function MeetingInsightsCard({ meetings }: { meetings: MeetingData[] }) {
 
   if (points.length < 3) return null;
 
-  const ratings = points.map((p) => p.rating ?? 0);
+  // Unrated meetings are excluded from the polyline rather than plotted
+  // as zero (the headline already shows "—" honestly).
+  const ratings = points.filter((p) => p.rating !== null).map((p) => p.rating!);
   const completion = points.map((p) => p.completionPct);
   const solved = points.map((p) => p.issuesSolved);
   const last = points[points.length - 1];
@@ -112,7 +114,7 @@ export function MeetingInsightsCard({ meetings }: { meetings: MeetingData[] }) {
       </h3>
       <div className="flex flex-col sm:flex-row gap-3">
         <Sparkline
-          values={ratings}
+          values={ratings.length > 0 ? ratings : [0]}
           label="Rating"
           latestLabel={last.rating !== null ? `${last.rating}/10` : "—"}
           delta={

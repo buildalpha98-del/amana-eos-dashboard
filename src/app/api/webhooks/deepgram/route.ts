@@ -147,7 +147,7 @@ export const POST = withApiHandler(
       });
       // Attendee digest (email + in-app). Fire-and-forget — the
       // digestSentAt claim makes multi-caller double-sends impossible.
-      sendMeetingDigestSafe(recording.id);
+      await sendMeetingDigestSafe(recording.id);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await prisma.meetingRecording.update({

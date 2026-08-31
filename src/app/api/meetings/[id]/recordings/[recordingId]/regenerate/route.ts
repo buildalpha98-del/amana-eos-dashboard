@@ -54,7 +54,7 @@ export const POST = withApiAuth(
         data: { aiReview: review as object, status: "complete" },
       });
       // No-op if the digest already went out for this recording.
-      sendMeetingDigestSafe(recordingId);
+      await sendMeetingDigestSafe(recordingId);
       return NextResponse.json(updated);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

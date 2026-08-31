@@ -136,8 +136,17 @@ describe("POST /api/communication/cascade/[id]/remind", () => {
     expect(prismaMock.userNotification.createMany).not.toHaveBeenCalled();
   });
 
-  it("is rate-limited (3/hour) at the route options level", async () => {
+  it("is rate-limited at 3/hour (config pinned)", async () => {
     const { checkRateLimit } = await import("@/lib/rate-limit");
+    await remindCascade(
+      createRequest("POST", "/api/communication/cascade/c-1/remind"),
+      ctx,
+    );
+    // withApiAuth calls checkRateLimit(key, max, windowMs)
+    const call = (checkRateLimit as ReturnType<typeof vi.fn>).mock.calls.at(-1)!;
+    expect(call[1]).toBe(3);
+    expect(call[2]).toBe(60 * 60 * 1000);
+
     (checkRateLimit as ReturnType<typeof vi.fn>).mockReturnValueOnce({
       limited: true,
       resetIn: 1000,

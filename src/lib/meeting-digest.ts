@@ -75,7 +75,14 @@ export async function sendMeetingDigest(recordingId: string): Promise<{
     return { sent: false, emailed: 0, notified: 0 };
   }
 
-  const review = recording.aiReview as unknown as MeetingAiReview;
+  const raw = recording.aiReview as unknown as Partial<MeetingAiReview>;
+  // Guard the Json shape — a malformed/legacy review must not throw
+  // AFTER the digestSentAt claim is burned.
+  const review: Pick<MeetingAiReview, "summary" | "decisions" | "actionItems"> = {
+    summary: typeof raw.summary === "string" ? raw.summary : "",
+    decisions: Array.isArray(raw.decisions) ? raw.decisions : [],
+    actionItems: Array.isArray(raw.actionItems) ? raw.actionItems : [],
+  };
   const meeting = recording.meeting;
   const attendees = meeting.attendees.map((a) => a.user).filter((u) => u.active);
 
@@ -161,9 +168,15 @@ export async function sendMeetingDigest(recordingId: string): Promise<{
   return { sent: true, emailed, notified };
 }
 
-/** Fire-and-forget wrapper for pipeline callers — never throws. */
-export function sendMeetingDigestSafe(recordingId: string): void {
-  sendMeetingDigest(recordingId).catch((err) =>
-    logger.error("meeting-digest failed", { recordingId, err }),
-  );
+/**
+ * Never-throws wrapper for pipeline callers. AWAIT it — on Vercel the
+ * function freezes after the response, so a floating promise can be
+ * truncated mid-send with the digestSentAt claim already burned.
+ */
+export async function sendMeetingDigestSafe(recordingId: string): Promise<void> {
+  try {
+    await sendMeetingDigest(recordingId);
+  } catch (err) {
+    logger.error("meeting-digest failed", { recordingId, err });
+  }
 }

@@ -8,6 +8,7 @@ import {
 import { useCreateMeetingSeries } from "@/hooks/useMeetingSeries";
 import type { MeetingData } from "@/hooks/useMeetings";
 import { formatDateAU } from "@/lib/utils";
+import { wallClockIn } from "@/lib/meeting-series";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { MeetingListView } from "@/components/meetings/MeetingListView";
 import { ActiveMeetingView } from "@/components/meetings/ActiveMeetingView";
@@ -54,11 +55,14 @@ export default function MeetingsPage() {
       // cron simply materialises next week's occurrence.
       let seriesId: string | undefined;
       if (repeatWeekly && scheduledFor) {
-        const local = new Date(scheduledFor);
+        // Derive the wall clock in SYDNEY, not the browser's zone — a
+        // series created from Perth/on the road must still recur at the
+        // time the meeting was scheduled for.
+        const local = wallClockIn(new Date(scheduledFor), "Australia/Sydney");
         const series = await createSeries.mutateAsync({
           name: isLeadership ? "Leadership L10" : "L10 Meeting",
-          dayOfWeek: local.getDay(),
-          minuteOfDay: local.getHours() * 60 + local.getMinutes(),
+          dayOfWeek: local.dayOfWeek,
+          minuteOfDay: local.hour * 60 + local.minute,
           timezone: "Australia/Sydney",
           isLeadership,
           serviceIds,
