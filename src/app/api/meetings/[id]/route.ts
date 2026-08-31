@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { getCurrentQuarter } from "@/lib/utils";
 
 const updateMeetingSchema = z.object({
   // 2026-08-31: "start" flips a scheduled meeting to in_progress via a
@@ -140,6 +141,72 @@ const { id } = await context!.params!;
     if (attendeeRatings.length > 0) {
       const avg = attendeeRatings.reduce((sum, a) => sum + (a.rating || 0), 0) / attendeeRatings.length;
       updateData.rating = Math.round(avg * 10) / 10;
+    }
+
+    // 2026-08-31: write-once outcome snapshot, so past meetings stop
+    // recomputing "issues solved" etc. from live data. Guarded on
+    // !existing.outcomes — the status transition alone isn't write-once
+    // (a meeting PATCHed back to in_progress and re-completed would
+    // otherwise overwrite the original snapshot).
+    if (!existing.outcomes) {
+      const windowStart = existing.startedAt ?? existing.createdAt;
+      const windowEnd = new Date();
+      const scope =
+        existing.serviceIds.length > 0
+          ? { serviceId: { in: existing.serviceIds } }
+          : {};
+      // Candidate todos deliberately mirror the in-meeting To-Do Review
+      // list: attendee filter when attendees exist, service scope as the
+      // fallback (see ActiveMeetingView's todos memo).
+      const attendeeRows = await prisma.meetingAttendee.findMany({
+        where: { meetingId: id },
+        select: { userId: true },
+      });
+      const attendeeIds = attendeeRows.map((a) => a.userId);
+      const todoWhere =
+        attendeeIds.length > 0
+          ? { deleted: false, assigneeId: { in: attendeeIds } }
+          : { deleted: false, ...scope };
+      const [todosCompleted, todosOpen, solvedIssues, rocks] = await Promise.all([
+        prisma.todo.count({
+          where: {
+            ...todoWhere,
+            status: "complete",
+            completedAt: { gte: windowStart, lte: windowEnd },
+          },
+        }),
+        prisma.todo.count({
+          where: { ...todoWhere, status: { in: ["pending", "in_progress"] } },
+        }),
+        prisma.issue.findMany({
+          where: {
+            deleted: false,
+            status: "solved",
+            solvedAt: { gte: windowStart, lte: windowEnd },
+            ...scope,
+          },
+          select: { id: true },
+        }),
+        prisma.rock.findMany({
+          where: { deleted: false, quarter: getCurrentQuarter(), ...scope },
+          select: { status: true },
+        }),
+      ]);
+      const todosTotal = todosCompleted + todosOpen;
+      updateData.outcomes = {
+        todosCompleted,
+        todosTotal,
+        completionPct:
+          todosTotal > 0 ? Math.round((todosCompleted / todosTotal) * 100) : 0,
+        issuesSolvedIds: solvedIssues.map((i) => i.id),
+        rocksOnTrack: rocks.filter(
+          (r) => r.status === "on_track" || r.status === "complete",
+        ).length,
+        rocksTotal: rocks.length,
+        avgRating:
+          (updateData.rating as number | undefined) ?? existing.rating ?? null,
+        capturedAt: windowEnd.toISOString(),
+      };
     }
   }
 

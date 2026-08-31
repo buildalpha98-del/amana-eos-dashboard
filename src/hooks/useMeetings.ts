@@ -30,6 +30,22 @@ export interface MeetingAttendee {
   updatedAt: string;
 }
 
+/**
+ * Completion-time outcome snapshot (2026-08-31). Written once when the
+ * meeting completes; null for legacy meetings (UI falls back to live
+ * computation).
+ */
+export interface MeetingOutcomes {
+  todosCompleted: number;
+  todosTotal: number;
+  completionPct: number;
+  issuesSolvedIds: string[];
+  rocksOnTrack: number;
+  rocksTotal: number;
+  avgRating: number | null;
+  capturedAt: string;
+}
+
 /** AI-prepared L10 agenda draft (2026-07-05, draft-first meetings). */
 export interface MeetingAgendaDraft {
   summary: string;
@@ -64,6 +80,7 @@ export interface MeetingData {
   attendees?: MeetingAttendee[];
   aiAgendaDraft?: MeetingAgendaDraft | null;
   aiAgendaDraftAt?: string | null;
+  outcomes?: MeetingOutcomes | null;
   createdAt: string;
   updatedAt: string;
 }
