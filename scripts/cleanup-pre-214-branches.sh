@@ -18,8 +18,11 @@ while read -r b; do
     echo "gone already: $b"; continue
   fi
   if git merge-base --is-ancestor "refs/remotes/origin/$b" origin/main; then
-    git push origin ":refs/heads/$b" >/dev/null 2>&1 && { echo "deleted: $b"; deleted=$((deleted+1)); } \
-      || echo "FAILED to delete: $b"
+    if err=$(git push origin ":refs/heads/$b" 2>&1 >/dev/null); then
+      echo "deleted: $b"; deleted=$((deleted+1))
+    else
+      echo "FAILED to delete: $b — $err"
+    fi
   else
     echo "SKIPPED (has commits not in main): $b"; skipped=$((skipped+1))
   fi
