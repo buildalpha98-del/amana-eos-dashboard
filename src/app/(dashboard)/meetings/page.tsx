@@ -89,10 +89,26 @@ export default function MeetingsPage() {
   }
 
   if (activeMeeting) {
+    // Previous completed meeting of the same kind (leadership flag +
+    // overlapping service scope; both empty counts as overlap) — feeds
+    // the To-Do Review "from last meeting" carry-over badge.
+    const lastMeeting = (meetings ?? [])
+      .filter(
+        (m) =>
+          m.status === "completed" &&
+          m.id !== activeMeeting.id &&
+          m.isLeadership === activeMeeting.isLeadership &&
+          (activeMeeting.serviceIds.length === 0
+            ? m.serviceIds.length === 0
+            : m.serviceIds.some((s) => activeMeeting.serviceIds.includes(s))),
+      )
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
     return (
       <ActiveMeetingView
         meeting={activeMeeting}
         onBack={() => setActiveMeetingId(null)}
+        lastMeetingId={lastMeeting?.id ?? null}
       />
     );
   }
