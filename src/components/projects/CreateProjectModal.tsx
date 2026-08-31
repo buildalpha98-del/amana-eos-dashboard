@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useProjectTemplates, type ProjectTemplate } from "@/hooks/useProjectTemplates";
+import { useRocks } from "@/hooks/useRocks";
+import { getCurrentQuarter } from "@/lib/utils";
 import { useServices } from "@/hooks/useServices";
 import { useQuery } from "@tanstack/react-query";
 import { X, FileText, Rocket, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
@@ -118,12 +120,15 @@ export function CreateProjectModal({
   useEscapeClose(onClose, open);
   const createProject = useCreateProject();
   const { data: templates } = useProjectTemplates();
+  const { data: rocks } = useRocks(getCurrentQuarter());
   const { data: services } = useServices();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [serviceId, setServiceId] = useState(defaultServiceId || "");
   const [templateId, setTemplateId] = useState(preselectedTemplateId || "");
   const [ownerId, setOwnerId] = useState("");
+  // 2026-08-31: optional link to the quarterly Rock this project executes.
+  const [rockId, setRockId] = useState("");
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -212,6 +217,7 @@ export function CreateProjectModal({
         description: description || selectedTemplate?.description || undefined,
         serviceId: serviceId || null,
         templateId: templateId || null,
+        rockId: rockId || null,
         ownerId,
         startDate: startDate || null,
         targetDate: targetDate || null,
@@ -220,6 +226,7 @@ export function CreateProjectModal({
         onSuccess: () => {
           setName("");
           setDescription("");
+          setRockId("");
           setServiceId("");
           setTemplateId("");
           setOwnerId("");
@@ -391,6 +398,24 @@ export function CreateProjectModal({
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
+              Linked Rock <span className="text-muted font-normal">(optional)</span>
+            </label>
+            <select
+              value={rockId}
+              onChange={(e) => setRockId(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            >
+              <option value="">None — standalone project</option>
+              {rocks?.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.title}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

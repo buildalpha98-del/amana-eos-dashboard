@@ -9,6 +9,7 @@ const updateProjectSchema = z.object({
   status: z.enum(["not_started", "in_progress", "complete", "on_hold", "cancelled"]).optional(),
   ownerId: z.string().nullable().optional(),
   serviceId: z.string().nullable().optional(),
+  rockId: z.string().nullable().optional(),
   startDate: z.string().nullable().optional(),
   targetDate: z.string().nullable().optional(),
 });
@@ -55,6 +56,18 @@ const { id } = await context!.params!;
   if (parsed.data.status !== undefined) data.status = parsed.data.status;
   if (parsed.data.ownerId !== undefined) data.ownerId = parsed.data.ownerId;
   if (parsed.data.serviceId !== undefined) data.serviceId = parsed.data.serviceId;
+  if (parsed.data.rockId !== undefined) {
+    if (parsed.data.rockId) {
+      const rock = await prisma.rock.findFirst({
+        where: { id: parsed.data.rockId, deleted: false },
+        select: { id: true },
+      });
+      if (!rock) {
+        return NextResponse.json({ error: "Rock not found" }, { status: 400 });
+      }
+    }
+    data.rockId = parsed.data.rockId || null;
+  }
   if (parsed.data.startDate !== undefined) data.startDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null;
   if (parsed.data.targetDate !== undefined) data.targetDate = parsed.data.targetDate ? new Date(parsed.data.targetDate) : null;
 
@@ -71,6 +84,7 @@ const { id } = await context!.params!;
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       service: { select: { id: true, name: true, code: true } },
+      rock: { select: { id: true, title: true } },
     },
   });
 
