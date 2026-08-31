@@ -39,6 +39,9 @@ export function useMeetingRecorder({
   const [error, setError] = useState<string | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
+  // Set on unmount: track-stop fires onstop asynchronously, which would
+  // otherwise upload a partial recording after in-app navigation.
+  const disposedRef = useRef(false);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef<number>(0);
@@ -78,6 +81,10 @@ export function useMeetingRecorder({
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
     recorder.onstop = () => {
+      if (disposedRef.current) {
+        cleanup();
+        return;
+      }
       const durationSeconds = Math.round(
         (Date.now() - startedAtRef.current) / 1000,
       );
@@ -120,7 +127,13 @@ export function useMeetingRecorder({
     return () => window.removeEventListener("beforeunload", warn);
   }, [isRecording]);
 
-  useEffect(() => cleanup, [cleanup]);
+  useEffect(
+    () => () => {
+      disposedRef.current = true;
+      cleanup();
+    },
+    [cleanup],
+  );
 
   return { isRecording, elapsedSeconds, error, start, stop };
 }

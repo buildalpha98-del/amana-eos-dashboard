@@ -88,10 +88,16 @@ export const POST = withApiAuth(
       const message = err instanceof Error ? err.message : String(err);
       await prisma.meetingRecording.update({
         where: { id: recording.id },
-        data: { status: "failed", error: message, audioBlobUrl: null },
+        data: { status: "failed", error: message },
       });
+      // Null the URL only after a successful delete — janitor sweep e3
+      // retries terminal rows that still carry one.
       try {
         await deleteFile(parsed.data.url);
+        await prisma.meetingRecording.update({
+          where: { id: recording.id },
+          data: { audioBlobUrl: null },
+        });
       } catch (delErr) {
         logger.warn("recordings: could not delete blob after Deepgram failure", {
           recordingId: recording.id,

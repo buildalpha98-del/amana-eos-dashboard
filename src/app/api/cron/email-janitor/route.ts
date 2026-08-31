@@ -42,6 +42,10 @@ function payloadOf(row: { payload: unknown }): Record<string, unknown> {
   return (row.payload ?? {}) as Record<string, unknown>;
 }
 
+// Sweep e2 runs inline Sonnet calls (30-90s each) — without this the
+// 55s default timeout could kill the whole janitor on one stuck row.
+export const maxDuration = 300;
+
 export const GET = withApiHandler(async (req) => {
   const authError = verifyCronSecret(req);
   if (authError) return authError.error;
@@ -181,15 +185,17 @@ export const GET = withApiHandler(async (req) => {
     for (const rec of stuckRecordings) {
       await prisma.meetingRecording.update({
         where: { id: rec.id },
-        data: {
-          status: "failed",
-          error: "Transcription timed out",
-          audioBlobUrl: null,
-        },
+        data: { status: "failed", error: "Transcription timed out" },
       });
+      // URL nulled only after a successful delete — a failure leaves the
+      // pointer for sweep e3 to retry next run.
       if (rec.audioBlobUrl) {
         try {
           await deleteFile(rec.audioBlobUrl);
+          await prisma.meetingRecording.update({
+            where: { id: rec.id },
+            data: { audioBlobUrl: null },
+          });
         } catch (err) {
           logger.warn("email-janitor: stuck recording blob delete failed", {
             recordingId: rec.id,
@@ -204,6 +210,9 @@ export const GET = withApiHandler(async (req) => {
     const stuckTranscribed = await prisma.meetingRecording.findMany({
       where: { status: "transcribed", updatedAt: { lt: stuckCutoff } },
       select: { id: true },
+      // Each retry is an inline Sonnet call — bound the run; the rest
+      // are picked up tomorrow.
+      take: 3,
     });
     let reviewsRetried = 0;
     for (const rec of stuckTranscribed) {
@@ -225,6 +234,34 @@ export const GET = withApiHandler(async (req) => {
       reviewsRetried++;
     }
 
+    // e3: terminal rows still carrying an audio URL = a delete that
+    // failed earlier. Audio deletion is a privacy commitment — retry
+    // until it lands, then null the pointer.
+    const orphanedAudio = await prisma.meetingRecording.findMany({
+      where: {
+        status: { in: ["complete", "failed"] },
+        audioBlobUrl: { not: null },
+      },
+      select: { id: true, audioBlobUrl: true },
+      take: 20,
+    });
+    let audioSwept = 0;
+    for (const rec of orphanedAudio) {
+      try {
+        await deleteFile(rec.audioBlobUrl!);
+        await prisma.meetingRecording.update({
+          where: { id: rec.id },
+          data: { audioBlobUrl: null },
+        });
+        audioSwept++;
+      } catch (err) {
+        logger.warn("email-janitor: orphaned audio delete failed", {
+          recordingId: rec.id,
+          err,
+        });
+      }
+    }
+
     await guard.complete({
       stranded,
       trackedCleaned,
@@ -232,6 +269,7 @@ export const GET = withApiHandler(async (req) => {
       ledgerPruned,
       recordingsFailed,
       reviewsRetried,
+      audioSwept,
     });
     return NextResponse.json({
       ok: true,
@@ -241,10 +279,11 @@ export const GET = withApiHandler(async (req) => {
       ledgerPruned,
       recordingsFailed,
       reviewsRetried,
+      audioSwept,
     });
   } catch (err) {
     await guard.fail(err);
     logger.error("email-janitor cron failed", { err });
     return NextResponse.json({ error: "email-janitor failed" }, { status: 500 });
   }
-});
+}, { timeoutMs: 280_000 });

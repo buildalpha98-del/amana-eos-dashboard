@@ -43,6 +43,10 @@ export const POST = withApiAuth(
 
     try {
       const updated = await prisma.$transaction(async (tx) => {
+        // Row lock: two concurrent decisions (or a concurrent regenerate)
+        // would otherwise BOTH read the item as "proposed" under READ
+        // COMMITTED and the second aiReview write would clobber the first.
+        await tx.$queryRaw`SELECT id FROM "MeetingRecording" WHERE id = ${recordingId} FOR UPDATE`;
         const recording = await tx.meetingRecording.findUnique({
           where: { id: recordingId },
           select: { id: true, meetingId: true, aiReview: true },
@@ -68,12 +72,28 @@ export const POST = withApiAuth(
               "An assignee is required — the AI couldn't match one, pick a person",
             );
           }
+          const assignee = await tx.user.findFirst({
+            where: { id: assigneeId, active: true },
+            select: { id: true },
+          });
+          if (!assignee) {
+            throw new HttpishError(400, "Invalid assignee");
+          }
           // Todo.dueDate is required — default +7d when neither the
-          // suggestion nor the override supplies one.
-          const dueDate = parsed.data.dueDate ?? item.suggestedDueDate ?? null;
-          const due = dueDate
-            ? new Date(dueDate)
-            : new Date(Date.now() + 7 * 86_400_000);
+          // suggestion nor the override supplies a PARSEABLE date. An
+          // explicit override that doesn't parse is the caller's bug → 400;
+          // an unparseable AI suggestion silently falls back.
+          const fallback = new Date(Date.now() + 7 * 86_400_000);
+          let due = fallback;
+          if (parsed.data.dueDate) {
+            due = new Date(parsed.data.dueDate);
+            if (Number.isNaN(due.getTime())) {
+              throw new HttpishError(400, "Invalid due date");
+            }
+          } else if (item.suggestedDueDate) {
+            const suggested = new Date(item.suggestedDueDate);
+            due = Number.isNaN(suggested.getTime()) ? fallback : suggested;
+          }
 
           const todo = await tx.todo.create({
             data: {

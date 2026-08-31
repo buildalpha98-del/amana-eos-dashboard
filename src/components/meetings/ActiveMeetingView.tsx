@@ -31,6 +31,7 @@ import {
 } from "@/lib/utils";
 import { fetchApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { L10_SECTIONS } from "./sections";
 import { useTimer } from "./useTimer";
@@ -540,29 +541,31 @@ export function ActiveMeetingView({
             surface; the runner also announces recording verbally. */}
         {!isCompleted && canRecord && (
           recorder.isRecording ? (
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={recorder.stop}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
+              iconLeft={
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+                </span>
+              }
+              iconRight={<Square className="w-3.5 h-3.5" />}
             >
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600" />
-              </span>
               REC {String(Math.floor(recorder.elapsedSeconds / 60)).padStart(2, "0")}:
               {String(recorder.elapsedSeconds % 60).padStart(2, "0")}
-              <Square className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           ) : (
-            <button
-              onClick={() => {
-                recorder.start();
-              }}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => recorder.start()}
               title="Record this meeting — audio is transcribed then deleted; the AI review lands on the meeting afterwards"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-border text-muted hover:text-foreground hover:border-red-300 transition-colors"
+              iconLeft={<Mic className="w-4 h-4" />}
             >
-              <Mic className="w-4 h-4" />
               Record
-            </button>
+            </Button>
           )
         )}
         {isCompleted ? (

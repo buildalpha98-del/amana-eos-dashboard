@@ -80,16 +80,24 @@ export const POST = withApiHandler(
         data: {
           status: "failed",
           error: "Transcription returned no speech",
-          audioBlobUrl: null,
         },
       });
+      // Null the URL only AFTER a successful delete — otherwise the blob
+      // is orphaned with no pointer left to retry from (janitor sweep e3
+      // retries any terminal row that still carries a URL).
       if (recording.audioBlobUrl) {
-        await deleteFile(recording.audioBlobUrl).catch((err) =>
+        try {
+          await deleteFile(recording.audioBlobUrl);
+          await prisma.meetingRecording.update({
+            where: { id: recording.id },
+            data: { audioBlobUrl: null },
+          });
+        } catch (err) {
           logger.warn("deepgram webhook: blob delete failed (empty result)", {
             recordingId: recording.id,
             err: err instanceof Error ? err.message : String(err),
-          }),
-        );
+          });
+        }
       }
       return NextResponse.json({ received: true });
     }

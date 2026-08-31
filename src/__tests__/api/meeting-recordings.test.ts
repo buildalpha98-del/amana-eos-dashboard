@@ -143,11 +143,17 @@ describe("POST /api/meetings/[id]/recordings", () => {
       ctx,
     );
     expect(res.status).toBe(502);
-    expect(prismaMock.meetingRecording.update).toHaveBeenCalledWith({
+    // Delete-then-null ordering: the URL is only cleared AFTER a
+    // successful delete (janitor sweep e3 retries rows still carrying one).
+    expect(prismaMock.meetingRecording.update).toHaveBeenNthCalledWith(1, {
       where: { id: "rec-1" },
-      data: { status: "failed", error: "dg down", audioBlobUrl: null },
+      data: { status: "failed", error: "dg down" },
     });
     expect(deleteFile).toHaveBeenCalledWith(BLOB_URL);
+    expect(prismaMock.meetingRecording.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "rec-1" },
+      data: { audioBlobUrl: null },
+    });
   });
 });
 

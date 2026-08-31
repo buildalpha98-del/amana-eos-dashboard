@@ -35,6 +35,8 @@ export const POST = withApiAuth(
 
     try {
       const updated = await prisma.$transaction(async (tx) => {
+        // Row lock — same double-decision guard as action items.
+        await tx.$queryRaw`SELECT id FROM "MeetingRecording" WHERE id = ${recordingId} FOR UPDATE`;
         const recording = await tx.meetingRecording.findUnique({
           where: { id: recordingId },
           select: {

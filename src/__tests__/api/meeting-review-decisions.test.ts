@@ -88,6 +88,7 @@ describe("POST .../action-items/[itemId]", () => {
       aiReview: reviewFixture(),
     });
     prismaMock.todo.create.mockResolvedValue({ id: "t-new" });
+    prismaMock.user.findFirst.mockResolvedValue({ id: "u2" });
     prismaMock.meetingRecording.update.mockImplementation(
       (args: { data: unknown }) => Promise.resolve({ id: "rec-1", ...(args.data as object) }),
     );

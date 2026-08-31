@@ -136,7 +136,7 @@ export function MeetingAiReviewPanel({
               users={users}
               canManage={canManage}
               onRegenerate={() => regenerate.mutate(rec.id)}
-              regenerating={regenerate.isPending}
+              regenerating={regenerate.isPending && regenerate.variables === rec.id}
             />
           ))}
         </div>

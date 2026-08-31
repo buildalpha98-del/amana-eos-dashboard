@@ -328,17 +328,18 @@ describe("email-janitor — stuck recording sweep", () => {
     const body = await res.json();
 
     expect(body.recordingsFailed).toBe(1);
-    expect(prismaMock.meetingRecording.update).toHaveBeenCalledWith({
+    // Delete-then-null ordering (sweep e3 retries rows still carrying a URL).
+    expect(prismaMock.meetingRecording.update).toHaveBeenNthCalledWith(1, {
       where: { id: "rec-stuck" },
-      data: {
-        status: "failed",
-        error: "Transcription timed out",
-        audioBlobUrl: null,
-      },
+      data: { status: "failed", error: "Transcription timed out" },
     });
     expect(deleteFileMock).toHaveBeenCalledWith(
       "https://x.blob.vercel-storage.com/a.webm",
     );
+    expect(prismaMock.meetingRecording.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "rec-stuck" },
+      data: { audioBlobUrl: null },
+    });
   });
 
   it("retries summarisation once for stuck transcribed rows", async () => {
