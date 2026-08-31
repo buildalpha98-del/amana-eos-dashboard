@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 import type {
+  CreativeRequestStatus,
   MarketingPlatform,
   MarketingPostStatus,
   MarketingCampaignType,
@@ -35,9 +36,28 @@ export interface CampaignData {
   services?: { service: { id: string; name: string; code: string } }[];
 }
 
+export interface CampaignLinkedRequest {
+  id: string;
+  requestNumber: string;
+  title: string;
+  status: CreativeRequestStatus;
+  dueDate: string;
+  assignee: { name: string | null } | null;
+}
+
+export interface CampaignEmailSend {
+  id: string;
+  subject: string | null;
+  status: string;
+  recipientCount: number;
+  createdAt: string;
+}
+
 export interface CampaignDetail extends CampaignData {
   posts: PostData[];
   comments: CommentData[];
+  creativeRequests: CampaignLinkedRequest[];
+  emailSends: CampaignEmailSend[];
 }
 
 export interface PostData {
@@ -126,6 +146,39 @@ export function useCampaign(id: string) {
     queryKey: ["campaign", id],
     queryFn: async () => {
       return fetchApi<CampaignDetail>(`/api/marketing/campaigns/${id}`);
+    },
+    enabled: !!id,
+    retry: 2,
+  });
+}
+
+export interface CampaignPerformance {
+  window: { start: string; end: string };
+  reach: { sends: number; recipients: number };
+  engagement: { uniqueOpens: number; uniqueClicks: number };
+  qr: { scans: number; uniqueScanners: number };
+  enquiries: { attributed: number; contextual: number };
+  enrolments: { attributed: number; contextual: number };
+  occupancy: {
+    services: {
+      serviceId: string;
+      startPct: number | null;
+      endPct: number | null;
+    }[];
+    overallStartPct: number | null;
+    overallEndPct: number | null;
+  };
+  hasData: boolean;
+}
+
+export function useCampaignPerformance(id: string) {
+  return useQuery<CampaignPerformance>({
+    staleTime: 30_000,
+    queryKey: ["campaign-performance", id],
+    queryFn: async () => {
+      return fetchApi<CampaignPerformance>(
+        `/api/marketing/campaigns/${id}/performance`
+      );
     },
     enabled: !!id,
     retry: 2,

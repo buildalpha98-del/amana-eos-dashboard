@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render as rtlRender,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const mutateApi = vi.fn();
 const toastMock = vi.fn();
@@ -23,6 +29,20 @@ vi.mock("next/navigation", () => ({
 
 import { RoomDaysTab } from "@/components/child/tabs/RoomDaysTab";
 import type { ChildProfileRecord } from "@/components/child/types";
+
+/**
+ * 2026-08-06: the tab now carries the child's discount card, which
+ * fetches. Every render here goes through a provider so the tab can be
+ * tested as it actually ships.
+ */
+function render(ui: React.ReactElement) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false, refetchOnMount: false } },
+  });
+  return rtlRender(
+    <QueryClientProvider client={qc}>{ui}</QueryClientProvider>,
+  );
+}
 
 function makeChild(
   bookingPrefs: Record<string, unknown> | null = null,

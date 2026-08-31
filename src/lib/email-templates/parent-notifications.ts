@@ -25,15 +25,15 @@ const BOOKING_CONFIRMED_DEFAULT_BODY = `
     <p>{{childName}}'s booking has been confirmed:</p>
     <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
       <tr>
-        <td style="padding: 8px 0; color: #7c7c8a; font-size: 14px;">Date</td>
+        <td style="padding: 8px 0; color: #6b6b78; font-size: 14px;">Date</td>
         <td style="padding: 8px 0; font-weight: 600;">{{formattedDate}}</td>
       </tr>
       <tr>
-        <td style="padding: 8px 0; color: #7c7c8a; font-size: 14px;">Session</td>
+        <td style="padding: 8px 0; color: #6b6b78; font-size: 14px;">Session</td>
         <td style="padding: 8px 0; font-weight: 600;">{{sessionLabel}}</td>
       </tr>
       <tr>
-        <td style="padding: 8px 0; color: #7c7c8a; font-size: 14px;">Centre</td>
+        <td style="padding: 8px 0; color: #6b6b78; font-size: 14px;">Centre</td>
         <td style="padding: 8px 0; font-weight: 600;">{{serviceName}}</td>
       </tr>
     </table>
@@ -86,7 +86,7 @@ const BOOKING_CANCELLED_DEFAULT_BODY = `
     <h2 style="color: #004E64; margin: 0 0 16px;">Booking Cancelled</h2>
     <p>Hi {{parentName}},</p>
     <p>{{childName}}'s {{sessionShort}} session on <strong>{{formattedDate}}</strong> at {{serviceName}} has been cancelled by the centre.</p>
-    <p style="color: #7c7c8a; font-size: 14px;">If you have questions, please contact the centre or send a message through the parent portal.</p>
+    <p style="color: #6b6b78; font-size: 14px;">If you have questions, please contact the centre or send a message through the parent portal.</p>
     {{viewBookingsButton}}
   `;
 
@@ -132,11 +132,11 @@ const NEW_STATEMENT_DEFAULT_BODY = `
     <p>Your statement for <strong>{{period}}</strong> is now available.</p>
     <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
       <tr>
-        <td style="padding: 8px 0; color: #7c7c8a; font-size: 14px;">Total Fees</td>
+        <td style="padding: 8px 0; color: #6b6b78; font-size: 14px;">Total Fees</td>
         <td style="padding: 8px 0; font-weight: 600;">{{totalFeesFormatted}}</td>
       </tr>
       <tr>
-        <td style="padding: 8px 0; color: #7c7c8a; font-size: 14px;">CCS Applied</td>
+        <td style="padding: 8px 0; color: #6b6b78; font-size: 14px;">CCS Applied</td>
         <td style="padding: 8px 0; font-weight: 600; color: #16a34a;">-{{totalCcsFormatted}}</td>
       </tr>
       <tr style="border-top: 1px solid #e8e4df;">
@@ -185,7 +185,7 @@ const NEW_MESSAGE_REPLY_DEFAULT_BODY = `
     <p>Hi {{parentName}},</p>
     <p><strong>{{staffName}}</strong> replied to your conversation:</p>
     <div style="background: #f8f5f2; border-radius: 8px; padding: 16px; margin: 16px 0; border-left: 3px solid #004E64;">
-      <p style="color: #7c7c8a; font-size: 12px; margin: 0 0 4px;">Re: {{conversationSubject}}</p>
+      <p style="color: #6b6b78; font-size: 12px; margin: 0 0 4px;">Re: {{conversationSubject}}</p>
       <p style="margin: 0; color: #1a1a2e;">{{previewText}}</p>
     </div>
     {{viewConversationButton}}

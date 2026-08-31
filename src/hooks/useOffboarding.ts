@@ -117,9 +117,13 @@ export function useOffboardingAssignments(userId?: string) {
 export function useInitiateOffboarding() {
   const qc = useQueryClient();
   return useMutation({
+    // 2026-07-08: packId is now optional. When omitted, the server auto-
+    // picks the pack whose applicableEmploymentTypes matches the user's
+    // employmentType (Casual pack for casuals, Permanent pack for FT/PT).
+    // Callers who want to override still pass packId explicitly.
     mutationFn: async (data: {
       userId: string;
-      packId: string;
+      packId?: string;
       lastDay?: string;
       reason?: string;
     }) => {

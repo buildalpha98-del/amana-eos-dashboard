@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
 import { passwordSchema } from "@/lib/schemas/auth";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
@@ -11,17 +11,31 @@ import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
-import { parseRoleParam } from "@/lib/role-enum";
+import {
+  parseRoleParam,
+  EOS_ASSIGNEE_ROLES,
+  LEADERSHIP_MEETING_ROLES,
+} from "@/lib/role-enum";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
+import { generateTempPassword } from "@/lib/temp-password";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
-  password: passwordSchema,
+  // Optional — "invite mode". When omitted the API mints a strong random
+  // temp password and emails it (welcome email below). When supplied, the
+  // admin's password is breach-checked as before.
+  password: passwordSchema.optional(),
   role: z
-    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer"])
+    .enum(["owner", "head_office", "admin", "marketing", "member", "staff", "eos_viewer", "eos_implementer", "eos"])
     .default("member"),
   serviceId: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
+  // When true, the account starts locked in the induction flow (new_starter)
+  // and cannot be rostered / clock in until it clears. Omit for admin accounts
+  // and corrections — those default to `cleared` (unchanged behaviour).
+  newStarter: z.boolean().optional(),
+  startDate: z.string().datetime().optional().nullable(),
 });
 
 // GET /api/users — list all users (any authenticated user)
@@ -31,6 +45,12 @@ export const GET = withApiAuth(async (req, session) => {
   const serviceId = searchParams.get("serviceId");
   const role = searchParams.get("role");
   const active = searchParams.get("active");
+  // 2026-07-13: `?scope=eos_assignees` narrows the list to the roles
+  // eligible to own/be-assigned on EOS surfaces (todos, rocks,
+  // scorecard, issues, meetings). Excludes staff (Educator) and member
+  // (OSHC Coordinator) so those dropdowns aren't cluttered with a full
+  // staff roster. Unknown scope values are silently ignored.
+  const scope = searchParams.get("scope");
 
   // 2026-05-01: validate `?role=` against the actual Role enum before
   // letting it reach Prisma's where clause. Previously `role as any`
@@ -39,12 +59,25 @@ export const GET = withApiAuth(async (req, session) => {
   // is silently dropped — matches the /api/team route's contract.
   const validatedRole = parseRoleParam(role);
 
+  // Centre-scope: a `member` can't enumerate other centres' users by passing
+  // any ?serviceId= — non-admins always resolve to their own service.
+  const scopedServiceId = resolveServiceIdFilter(session, serviceId);
+
   const users = await prisma.user.findMany({
     where: {
-      ...(serviceId ? { serviceId } : {}),
+      ...(scopedServiceId ? { serviceId: scopedServiceId } : {}),
       ...(validatedRole ? { role: validatedRole } : {}),
       ...(active !== null && active !== undefined
         ? { active: active === "true" }
+        : {}),
+      ...(scope === "eos_assignees"
+        ? { role: { in: [...EOS_ASSIGNEE_ROLES] } }
+        : {}),
+      // 2026-07-28: leadership-meeting roster — narrower than
+      // eos_assignees (no head_office). Used by the Start Meeting
+      // dialog's attendee picker for Leadership (L10) meetings.
+      ...(scope === "leadership"
+        ? { role: { in: [...LEADERSHIP_MEETING_ROLES] } }
         : {}),
     },
     select: {
@@ -54,6 +87,7 @@ export const GET = withApiAuth(async (req, session) => {
       role: true,
       active: true,
       notificationsMuted: true,
+      receivesNudges: true,
       avatar: true,
       serviceId: true,
       state: true,
@@ -78,7 +112,10 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
-  const { name, email, password, role, serviceId, state } = parsed.data;
+  const { name, email, role, serviceId, state, newStarter, startDate } = parsed.data;
+  // Invite mode: no password supplied → mint a strong random one to email.
+  const providedPassword = parsed.data.password;
+  const password = providedPassword ?? generateTempPassword();
 
   // Guard: admins cannot create owner-level users
   if (session!.user.role !== "owner" && role === "owner") {
@@ -104,13 +141,16 @@ export const POST = withApiAuth(async (req, session) => {
     );
   }
 
-  // Check if password has appeared in known data breaches
-  const breachCount = await checkPasswordBreach(password);
-  if (breachCount > 0) {
-    return NextResponse.json(
-      { error: `This password has appeared in ${breachCount.toLocaleString()} data breaches. Please choose a different password.` },
-      { status: 400 },
-    );
+  // Breach-check only an admin-supplied password. A freshly minted random
+  // temp password needs no HIBP lookup (it's high-entropy and unguessable).
+  if (providedPassword) {
+    const breachCount = await checkPasswordBreach(providedPassword);
+    if (breachCount > 0) {
+      return NextResponse.json(
+        { error: `This password has appeared in ${breachCount.toLocaleString()} data breaches. Please choose a different password.` },
+        { status: 400 },
+      );
+    }
   }
 
   const passwordHash = await hash(password, 12);
@@ -122,8 +162,20 @@ export const POST = withApiAuth(async (req, session) => {
       passwordHash,
       role,
       serviceId: (role === "staff" || role === "member") ? (serviceId || null) : null,
-      state: role === "admin" ? (state || null) : null,
+      // 2026-07-13: state is a region hint for both admin (state-scoped
+      // per getStateScope) and head_office (State Manager tier). Null =
+      // "all states / all regions" — no region restriction. Other roles
+      // don't carry a state.
+      state: (role === "admin" || role === "head_office") ? (state || null) : null,
       notificationPrefs: getDefaultNotificationPrefs(role),
+      // New starters begin locked in induction; everyone else stays `cleared`.
+      ...(newStarter
+        ? {
+            inductionStatus: "new_starter" as const,
+            inductionDueDate: startDate ? new Date(startDate) : null,
+            ...(startDate ? { startDate: new Date(startDate) } : {}),
+          }
+        : {}),
     },
     select: {
       id: true,
@@ -170,7 +222,7 @@ export const POST = withApiAuth(async (req, session) => {
   const resend = getResend();
   if (resend) {
     try {
-      await resend.emails.send({ from: FROM_EMAIL, to: email, subject, html });
+      await sendEmail({ to: email, subject, html });
     } catch (emailErr) {
       logger.error("Failed to send welcome email", { err: emailErr });
       // Don't fail user creation if email fails

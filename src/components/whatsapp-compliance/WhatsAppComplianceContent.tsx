@@ -75,7 +75,7 @@ export default function WhatsAppComplianceContent() {
           {grid && (
             <>
               {showCoverageBanner && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-200">
                   Your check-in coverage is {grid.summary.coverage}% this week — daily checks are more useful when consistent.
                 </div>
               )}

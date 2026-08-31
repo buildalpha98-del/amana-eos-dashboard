@@ -17,13 +17,13 @@ const SECTIONS = [
     type: "parent_nurture",
     label: "Parent Nurture",
     icon: Mail,
-    badgeColor: "bg-amber-100 text-amber-700",
+    badgeColor: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
   },
   {
     type: "crm_outreach",
     label: "CRM Outreach",
     icon: Megaphone,
-    badgeColor: "bg-blue-100 text-blue-700",
+    badgeColor: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
   },
 ] as const;
 

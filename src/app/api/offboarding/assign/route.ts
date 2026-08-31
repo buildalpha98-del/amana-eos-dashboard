@@ -3,9 +3,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+// 2026-07-08: packId is now optional. When omitted, we look up the
+// departing user's active contract and pick the pack whose
+// `applicableEmploymentTypes` includes their type — casual gets the
+// Casual pack, part_time/permanent get the Permanent pack. Manual
+// selection still wins.
 const initiateSchema = z.object({
   userId: z.string().min(1),
-  packId: z.string().min(1),
+  packId: z.string().min(1).optional(),
   lastDay: z.string().optional(),
   reason: z.string().optional(),
 });
@@ -179,12 +184,51 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
     );
   }
 
+  // 2026-07-08: Auto-select a pack when packId is omitted. Read the
+  // departing user's `employmentType`, then find the pack whose
+  // applicableEmploymentTypes includes that type. Falls back to the
+  // isDefault=true pack if no employment-type-specific match exists.
+  let packId = parsed.data.packId;
+  if (!packId) {
+    const user = await prisma.user.findUnique({
+      where: { id: parsed.data.userId },
+      select: { employmentType: true },
+    });
+    const empType = user?.employmentType;
+    if (empType) {
+      const typedPack = await prisma.offboardingPack.findFirst({
+        where: {
+          deleted: false,
+          applicableEmploymentTypes: { has: empType },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      packId = typedPack?.id;
+    }
+    if (!packId) {
+      const defaultPack = await prisma.offboardingPack.findFirst({
+        where: { deleted: false, isDefault: true },
+        orderBy: { createdAt: "desc" },
+      });
+      packId = defaultPack?.id;
+    }
+    if (!packId) {
+      return NextResponse.json(
+        {
+          error:
+            "No offboarding pack matches this employee's employment type, and no default pack is available. Seed packs first at /api/offboarding/seed.",
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   // Check if already assigned
   const existing = await prisma.staffOffboarding.findUnique({
     where: {
       userId_packId: {
         userId: parsed.data.userId,
-        packId: parsed.data.packId,
+        packId,
       },
     },
   });
@@ -197,7 +241,7 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
 
   // Get pack with tasks
   const pack = await prisma.offboardingPack.findUnique({
-    where: { id: parsed.data.packId },
+    where: { id: packId },
     include: { tasks: true },
   });
 
@@ -208,7 +252,7 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
   const assignment = await prisma.staffOffboarding.create({
     data: {
       userId: parsed.data.userId,
-      packId: parsed.data.packId,
+      packId,
       lastDay: parsed.data.lastDay ? new Date(parsed.data.lastDay) : null,
       reason: parsed.data.reason,
       initiatedById: session!.user.id,

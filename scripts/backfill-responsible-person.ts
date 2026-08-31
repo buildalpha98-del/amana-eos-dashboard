@@ -31,7 +31,7 @@
  */
 
 import { readFileSync } from "node:fs";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type SessionType } from "@prisma/client";
 import {
   DEFAULT_SESSION_TIMES,
   isHhMm,
@@ -53,6 +53,26 @@ try {
 }
 
 const prisma = new PrismaClient();
+
+/**
+ * The room for a session slot, created if the shadow sync hasn't run.
+ * `roomId` is required from the end of Stage 1; this script runs with
+ * its own Prisma client and no path aliases, so it derives the row
+ * itself. Idempotent on the same unique the app uses.
+ */
+async function roomIdFor(serviceId: string, sessionType: SessionType): Promise<string> {
+  const existing = await prisma.room.findUnique({
+    where: { serviceId_legacyKey: { serviceId, legacyKey: sessionType } },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+  const created = await prisma.room.create({
+    data: { serviceId, legacyKey: sessionType, name: sessionType },
+    select: { id: true },
+  });
+  return created.id;
+}
+
 
 interface BackfillEntry {
   service: string;
@@ -174,6 +194,7 @@ async function main() {
       create: {
         serviceId: svc.id,
         date,
+        roomId: await roomIdFor(svc.id, session),
         sessionType: session,
         personName: e.name.trim(),
         personRole: e.role?.trim() || null,

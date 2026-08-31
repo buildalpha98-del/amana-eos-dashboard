@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, Loader2 } from "lucide-react";
+import { X } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useAuditTemplates,
@@ -102,7 +103,7 @@ export function AuditEditModal({ open, onClose, year, month, editing }: Props) {
           <h2 className="text-lg font-semibold text-foreground">
             {isEditing ? "Edit audit" : "Schedule audit"}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-surface">
             <X className="w-4 h-4 text-muted" />
           </button>
         </div>
@@ -170,22 +171,19 @@ export function AuditEditModal({ open, onClose, year, month, editing }: Props) {
         </div>
 
         <div className="flex justify-end gap-2 px-6 py-3 border-t bg-surface/30">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-surface"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            disabled={!canSubmit || isPending}
+            variant="primary"
+            size="sm"
+            disabled={!canSubmit}
+            loading={isPending}
             onClick={handleSubmit}
-            className="px-3 py-1.5 text-sm rounded-lg bg-brand text-white hover:bg-brand/90 disabled:opacity-60 flex items-center gap-1.5"
           >
-            {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {isEditing ? "Save changes" : "Schedule"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

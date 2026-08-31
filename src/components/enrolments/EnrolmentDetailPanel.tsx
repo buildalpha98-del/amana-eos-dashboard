@@ -24,12 +24,14 @@ import {
   Paperclip,
   ExternalLink,
   Send,
+  Building2,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEnrolment, useUpdateEnrolment, type EnrolmentSubmission } from "@/hooks/useEnrolments";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
+import { AssignServiceDialog } from "@/components/enrolments/AssignServiceDialog";
 
 interface Props {
   enrolmentId: string;
@@ -37,11 +39,11 @@ interface Props {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  submitted: { label: "Submitted", color: "text-blue-700", bg: "bg-blue-50" },
-  under_review: { label: "Reviewing", color: "text-amber-700", bg: "bg-amber-50" },
-  processed: { label: "Confirmed", color: "text-green-700", bg: "bg-green-50" },
-  needs_info: { label: "Needs Info", color: "text-orange-700", bg: "bg-orange-50" },
-  archived: { label: "Archived", color: "text-gray-500", bg: "bg-gray-50" },
+  submitted: { label: "Submitted", color: "text-blue-700", bg: "bg-blue-50 dark:bg-blue-950/40" },
+  under_review: { label: "Reviewing", color: "text-amber-700", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  processed: { label: "Confirmed", color: "text-green-700", bg: "bg-green-50 dark:bg-green-950/40" },
+  needs_info: { label: "Needs Info", color: "text-orange-700", bg: "bg-orange-50 dark:bg-orange-950/40" },
+  archived: { label: "Archived", color: "text-muted", bg: "bg-surface" },
 };
 
 function Section({
@@ -160,7 +162,7 @@ function PaymentReveal({ enrolmentId }: { enrolmentId: string }) {
       <button
         onClick={handleReveal}
         disabled={loading}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors disabled:opacity-50"
       >
         {loading ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -173,8 +175,8 @@ function PaymentReveal({ enrolmentId }: { enrolmentId: string }) {
       </button>
 
       {revealed && payment && (
-        <div className="mt-2 space-y-1.5 bg-amber-50/50 border border-amber-200 rounded-lg p-3">
-          <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide">
+        <div className="mt-2 space-y-1.5 bg-amber-50/50 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+          <p className="text-2xs font-semibold text-amber-600 uppercase tracking-wide">
             Decrypted — auto-hides in 30s
           </p>
           {payment.method === "credit_card" ? (
@@ -211,7 +213,13 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
   const [notes, setNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [resending, setResending] = useState(false);
-  const canViewPayment = session?.user?.role === "owner" || session?.user?.role === "head_office";
+  const [serviceDialog, setServiceDialog] = useState<
+    "assign" | "duplicate" | null
+  >(null);
+  const canViewPayment =
+    session?.user?.role === "owner" ||
+    session?.user?.role === "head_office" ||
+    session?.user?.role === "admin";
 
   const handleResendInvite = async () => {
     if (!enrolment) return;
@@ -323,7 +331,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
             <button
               onClick={() => handleStatusChange("under_review")}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors disabled:opacity-50"
             >
               <Clock className="h-3.5 w-3.5" />
               Mark Reviewing
@@ -333,12 +341,29 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
             <button
               onClick={() => handleStatusChange("processed")}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors disabled:opacity-50"
             >
               <CheckCircle className="h-3.5 w-3.5" />
               Confirm
             </button>
           )}
+          {/*
+            An enrolment with no service has children on no roll at all.
+            Surfaced as a distinct, warning-coloured action so it reads as
+            "this needs doing", not as another optional tool.
+          */}
+          <button
+            onClick={() => setServiceDialog(e.serviceId ? "duplicate" : "assign")}
+            className={
+              "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors " +
+              (e.serviceId
+                ? "bg-surface text-foreground/70 hover:bg-surface/80"
+                : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50")
+            }
+          >
+            <Building2 className="h-3.5 w-3.5" />
+            {e.serviceId ? "Another service" : "Assign to service"}
+          </button>
           <button
             onClick={() => {
               setNotes(e.notes || "");
@@ -355,7 +380,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
                 onClick={handleResendInvite}
                 disabled={resending}
                 title="Resend the parent portal log-in email to the primary parent"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors disabled:opacity-50"
               >
                 <Send className="h-3.5 w-3.5" />
                 {resending ? "Sending..." : "Resend Invite"}
@@ -363,7 +388,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
               <button
                 onClick={() => handleStatusChange("archived")}
                 disabled={updateMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-surface text-muted rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
               >
                 <Archive className="h-3.5 w-3.5" />
                 Archive
@@ -371,6 +396,18 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
             </>
           )}
         </div>
+
+        {serviceDialog && (
+          <AssignServiceDialog
+            enrolmentId={e.id}
+            childRecords={e.childRecords ?? []}
+            currentServiceId={e.serviceId}
+            currentServiceName={e.service?.name ?? null}
+            mode={serviceDialog}
+            open
+            onOpenChange={(v) => !v && setServiceDialog(null)}
+          />
+        )}
 
         {/* Notes editor */}
         {showNotes && (

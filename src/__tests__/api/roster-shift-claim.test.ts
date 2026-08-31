@@ -57,8 +57,14 @@ function resetCommon() {
   prismaMock.user.findUnique.mockImplementation((args: unknown) => {
     const { select } = args as { select?: Record<string, boolean> };
     if (select && "active" in select) return Promise.resolve({ active: true });
+    if (select && "inductionStatus" in select)
+      return Promise.resolve({
+        inductionStatus: "cleared",
+        inductionGraceUntil: null,
+        inductionOverrideUntil: null,
+      });
     if (select && "name" in select) return Promise.resolve({ name: "Lookup User" });
-    return Promise.resolve({ active: true, name: "Lookup User" });
+    return Promise.resolve({ active: true, name: "Lookup User", inductionStatus: "cleared" });
   });
   // Default: no expired certs (cert-guard passes).
   prismaMock.complianceCertificate.findMany.mockResolvedValue([]);
@@ -142,6 +148,12 @@ describe("POST /api/roster/shifts/[id]/claim", () => {
         select?: Record<string, boolean>;
       };
       if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "cleared",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
       if (where?.id === "u-1") return Promise.resolve({ name: "Alice" });
       return Promise.resolve(null);
     });
@@ -173,6 +185,12 @@ describe("POST /api/roster/shifts/[id]/claim", () => {
         select?: Record<string, boolean>;
       };
       if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "cleared",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
       if (where?.id === "u-1") return Promise.resolve({ name: "Alice" });
       return Promise.resolve(null);
     });
@@ -198,6 +216,12 @@ describe("POST /api/roster/shifts/[id]/claim", () => {
         select?: Record<string, boolean>;
       };
       if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "cleared",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
       if (where?.id === "admin-1") return Promise.resolve({ name: "Admin" });
       return Promise.resolve(null);
     });
@@ -208,5 +232,32 @@ describe("POST /api/roster/shifts/[id]/claim", () => {
       paramsOf("sh-open-1"),
     );
     expect(res.status).toBe(200);
+  });
+
+  it("returns 403 when an un-cleared new starter tries to claim", async () => {
+    mockSession({ id: "u-1", name: "Alice", role: "staff", serviceId: "svc-1" });
+    prismaMock.rosterShift.findUnique.mockResolvedValue(makeOpenShift());
+    prismaMock.user.findUnique.mockImplementation((args: unknown) => {
+      const { select } = args as { select?: Record<string, boolean> };
+      if (select && "active" in select) return Promise.resolve({ active: true });
+      if (select && "inductionStatus" in select)
+        return Promise.resolve({
+          inductionStatus: "in_training",
+          inductionGraceUntil: null,
+          inductionOverrideUntil: null,
+        });
+      return Promise.resolve({ avatar: null, phone: null, _count: { emergencyContacts: 0 } });
+    });
+    prismaMock.lMSCourse.findMany.mockResolvedValue([]);
+    prismaMock.lMSEnrollment.findMany.mockResolvedValue([]);
+    prismaMock.complianceCertificate.findFirst.mockResolvedValue(null);
+    prismaMock.policyDocument.findMany.mockResolvedValue([]);
+
+    const res = await POST(
+      createRequest("POST", "/api/roster/shifts/sh-open-1/claim"),
+      paramsOf("sh-open-1"),
+    );
+    expect(res.status).toBe(403);
+    expect(prismaMock.rosterShift.updateMany).not.toHaveBeenCalled();
   });
 });

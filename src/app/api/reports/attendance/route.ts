@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { roomNamesForIds } from "@/lib/room-names";
 
 async function handler(req: NextRequest) {
   const url = new URL(req.url);
@@ -34,7 +35,7 @@ async function handler(req: NextRequest) {
       select: {
         signInTime: true,
         signOutTime: true,
-        sessionType: true,
+        roomId: true,
       },
     }),
     prisma.booking.groupBy({
@@ -72,17 +73,59 @@ async function handler(req: NextRequest) {
     return { date: key, expected: b._count, signedIn: att.signedIn, signedOut: att.signedOut };
   });
 
-  // bySessionType
-  const sessionTypes = ["bsc", "asc", "vc"];
-  const bySessionType = await Promise.all(
-    sessionTypes.map(async (st) => {
-      const expected = await prisma.booking.count({
-        where: { ...bookingWhere, sessionType: st as "bsc" | "asc" | "vc" },
-      });
-      const signedIn = records.filter((r) => r.sessionType === st).length;
-      return { sessionType: st.toUpperCase(), expected, signedIn };
-    }),
-  );
+  /**
+   * Per-ROOM expected-vs-signed-in.
+   *
+   * Stage 2 of docs/rooms-migration-plan.md. This ran a literal
+   * ["bsc","asc","vc"] and shipped `st.toUpperCase()` as the label, so
+   * a centre's fourth room was absent from the report entirely, and the
+   * three that did show were named by their filing code rather than by
+   * whatever the centre calls them.
+   *
+   * One grouped query rather than a count per room — the old shape
+   * issued a query per session, and would have issued one per room.
+   */
+  const expectedByRoom = await prisma.booking.groupBy({
+    by: ["roomId"],
+    where: bookingWhere,
+    _count: true,
+  });
+
+  const signedInByRoom = new Map<string, number>();
+  for (const r of records) {
+    if (!r.roomId) continue;
+    signedInByRoom.set(r.roomId, (signedInByRoom.get(r.roomId) ?? 0) + 1);
+  }
+
+  const roomNames = await roomNamesForIds([
+    ...expectedByRoom.map((g) => g.roomId),
+    ...signedInByRoom.keys(),
+  ]);
+
+  /*
+   * Rooms sharing a name are summed. Within one centre that can't
+   * happen; across the group it's exactly the question being asked —
+   * twelve identically-named bars would answer nothing.
+   */
+  const perRoom = new Map<string, { expected: number; signedIn: number }>();
+  const bump = (
+    roomId: string | null,
+    field: "expected" | "signedIn",
+    n: number,
+  ) => {
+    const name = (roomId && roomNames.get(roomId)) || "Unknown room";
+    const row = perRoom.get(name) ?? { expected: 0, signedIn: 0 };
+    row[field] += n;
+    perRoom.set(name, row);
+  };
+  for (const g of expectedByRoom) bump(g.roomId, "expected", g._count);
+  for (const [roomId, n] of signedInByRoom) bump(roomId, "signedIn", n);
+
+  /** The field keeps its name on the wire — the chart's axis reads it. */
+  const bySessionType = [...perRoom.entries()].map(([name, counts]) => ({
+    sessionType: name,
+    ...counts,
+  }));
 
   return NextResponse.json({
     totalExpected,

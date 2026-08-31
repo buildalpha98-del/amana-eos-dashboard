@@ -79,7 +79,7 @@ export function LeaderboardContent({ embedded = false }: Props) {
                       {r.avatar ? (
                         <img src={r.avatar} alt={r.name} className="h-7 w-7 rounded-full object-cover" />
                       ) : (
-                        <div className="h-7 w-7 rounded-full bg-brand text-white text-[10px] flex items-center justify-center font-medium">
+                        <div className="h-7 w-7 rounded-full bg-brand text-white text-2xs flex items-center justify-center font-medium">
                           {r.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}
                         </div>
                       )}

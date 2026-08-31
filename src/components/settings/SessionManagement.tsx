@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface SessionEntry {
@@ -173,7 +174,7 @@ export function SessionManagement() {
                       {parseUserAgent(entry.userAgent)}
                     </p>
                     {index === 0 && (
-                      <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                      <span className="inline-flex items-center rounded-full bg-green-50 dark:bg-green-950/40 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-300 ring-1 ring-inset ring-green-600/20">
                         Current
                       </span>
                     )}
@@ -199,13 +200,14 @@ export function SessionManagement() {
 
         <div className="px-6 py-4">
           {!showPasswordForm ? (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={() => setShowPasswordForm(true)}
-              className="bg-brand text-white hover:bg-brand-hover rounded-lg px-4 py-2 text-sm font-medium transition-colors"
             >
               Change Password
-            </button>
+            </Button>
           ) : (
             <form onSubmit={handlePasswordSubmit} className="max-w-md space-y-4">
               <div>
@@ -285,27 +287,29 @@ export function SessionManagement() {
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                <button
+                <Button
                   type="submit"
-                  disabled={changePasswordMutation.isPending}
-                  className="bg-brand text-white hover:bg-brand-hover rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                  variant="primary"
+                  size="sm"
+                  loading={changePasswordMutation.isPending}
                 >
                   {changePasswordMutation.isPending
                     ? "Updating..."
                     : "Update Password"}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setShowPasswordForm(false);
                     setCurrentPassword("");
                     setNewPassword("");
                     setConfirmPassword("");
                   }}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-muted hover:bg-surface transition-colors"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           )}

@@ -46,7 +46,7 @@ export function PreviewModal({
         </header>
 
         {missingTags.length > 0 && (
-          <div className="bg-amber-50 border-b border-amber-200 p-3 text-sm text-amber-800 shrink-0">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200 shrink-0">
             ⚠ Template references {missingTags.length} unknown tag
             {missingTags.length === 1 ? "" : "s"}: {missingTags.join(", ")}
           </div>
@@ -54,7 +54,7 @@ export function PreviewModal({
 
         <div className="flex-1 overflow-hidden">
           {preview.isPending ? (
-            <div className="p-8 text-center text-muted-foreground">
+            <div className="p-8 text-center text-muted">
               Rendering preview…
             </div>
           ) : (
@@ -62,7 +62,7 @@ export function PreviewModal({
               title="Contract preview"
               sandbox="allow-same-origin"
               srcDoc={html}
-              className="w-full h-full bg-white"
+              className="w-full h-full bg-card"
             />
           )}
         </div>

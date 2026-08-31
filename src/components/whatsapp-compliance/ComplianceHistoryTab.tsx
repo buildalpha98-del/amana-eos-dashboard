@@ -11,9 +11,9 @@ type SortField = "name" | "rate";
 type SortDir = "asc" | "desc";
 
 const STATUS_BG: Record<"green" | "amber" | "red", string> = {
-  green: "bg-green-100 text-green-800",
-  amber: "bg-amber-100 text-amber-800",
-  red: "bg-red-100 text-red-800",
+  green: "bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200",
+  amber: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200",
+  red: "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-200",
 };
 
 export function ComplianceHistoryTab() {
@@ -61,7 +61,7 @@ export function ComplianceHistoryTab() {
             Last {data.weeks.length} weeks · target {data.target}/5 · floor {data.floor}/5
           </p>
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-muted">
+        <div className="flex items-center gap-3 text-2xs text-muted">
           <span className="inline-flex items-center gap-1">
             <span className="inline-block w-2 h-2 rounded-full bg-green-500" /> Met target
           </span>
@@ -88,7 +88,7 @@ export function ComplianceHistoryTab() {
                 {data.weeks.map((w) => (
                   <th key={w.weekStart} className="p-2 text-center font-medium text-muted text-xs">
                     <div>W{w.weekNumber}</div>
-                    <div className="text-[10px] font-normal">{w.weekStart.slice(5)}</div>
+                    <div className="text-2xs font-normal">{w.weekStart.slice(5)}</div>
                   </th>
                 ))}
                 <th className="p-3 text-right font-medium text-muted">
@@ -109,7 +109,7 @@ export function ComplianceHistoryTab() {
                     >
                       <div className="font-medium text-foreground text-xs">{svc.serviceName}</div>
                       {svc.coordinatorName && (
-                        <div className="text-[10px] text-muted">{svc.coordinatorName}</div>
+                        <div className="text-2xs text-muted">{svc.coordinatorName}</div>
                       )}
                     </button>
                   </td>

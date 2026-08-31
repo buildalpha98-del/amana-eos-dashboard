@@ -112,7 +112,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             the TopNav already carries breadcrumb-like signposting via
             the open section + the page header. */}
         {!useTopBar && <TopBar />}
-        <main id="main-content" className="p-4 md:p-8 pb-20 md:pb-8 animate-slide-up">
+        {/* Bottom padding clears the fixed overlays (Ask-AI pill bottom-left,
+            feedback bubble bottom-right; mobile tab bar) so end-of-page
+            content is never covered. */}
+        <main id="main-content" className="p-4 md:p-8 pb-24 md:pb-24 animate-slide-up">
           <SystemBannerBar />
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>

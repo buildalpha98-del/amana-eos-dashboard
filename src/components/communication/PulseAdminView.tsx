@@ -43,21 +43,21 @@ export function PulseAdminView({ weekOf }: Props) {
             {data.org.submitted} <span className="text-sm text-muted">/ {data.org.totalUsers}</span>
           </p>
         </div>
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+        <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3">
           <div className="flex items-center gap-2">
             <Smile className="h-4 w-4 text-emerald-600" />
             <span className="text-xs text-emerald-700">Positive</span>
           </div>
           <p className="text-2xl font-bold text-emerald-700 mt-1">{data.org.positive}</p>
         </div>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
           <div className="flex items-center gap-2">
             <Meh className="h-4 w-4 text-amber-600" />
             <span className="text-xs text-amber-700">Neutral</span>
           </div>
           <p className="text-2xl font-bold text-amber-700 mt-1">{data.org.neutral}</p>
         </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3">
           <div className="flex items-center gap-2">
             <Frown className="h-4 w-4 text-red-600" />
             <span className="text-xs text-red-700">Concerning</span>
@@ -67,7 +67,7 @@ export function PulseAdminView({ weekOf }: Props) {
       </div>
 
       {data.org.blockerCount > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start gap-2">
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 flex items-start gap-2">
           <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-amber-800">

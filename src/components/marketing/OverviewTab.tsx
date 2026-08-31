@@ -34,28 +34,28 @@ const statCards: {
     key: "totalPosts",
     label: "Total Posts",
     icon: FileText,
-    iconBg: "bg-blue-100",
+    iconBg: "bg-blue-100 dark:bg-blue-950/50",
     iconColor: "text-blue-600",
   },
   {
     key: "activeCampaigns",
     label: "Active Campaigns",
     icon: Megaphone,
-    iconBg: "bg-green-100",
+    iconBg: "bg-green-100 dark:bg-green-950/50",
     iconColor: "text-green-600",
   },
   {
     key: "publishedThisMonth",
     label: "Published This Month",
     icon: CheckCircle2,
-    iconBg: "bg-purple-100",
+    iconBg: "bg-purple-100 dark:bg-purple-950/50",
     iconColor: "text-purple-600",
   },
   {
     key: "totalCampaigns",
     label: "Total Campaigns",
     icon: FolderOpen,
-    iconBg: "bg-amber-100",
+    iconBg: "bg-amber-100 dark:bg-amber-950/50",
     iconColor: "text-amber-600",
   },
 ];
@@ -127,7 +127,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
     <div className="space-y-6">
       {/* ---- ACTION ZONE: Overdue + Due Soon (top priority) ---- */}
       {data.overdueTasks && data.overdueTasks.length > 0 && (
-        <div className="rounded-xl border-2 border-red-200 bg-red-50">
+        <div className="rounded-xl border-2 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40">
           <div className="px-5 py-3 border-b border-red-200 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-600" />
             <h3 className="text-sm font-semibold text-red-800">
@@ -143,7 +143,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
                 key={task.id}
                 type="button"
                 onClick={() => onSelectTask?.(task.id)}
-                className="w-full px-5 py-2.5 flex items-center justify-between hover:bg-red-100 transition-colors text-left"
+                className="w-full px-5 py-2.5 flex items-center justify-between hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors text-left"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
@@ -163,9 +163,9 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
                 <span
                   className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                     task.priority === "high"
-                      ? "bg-red-100 text-red-700"
+                      ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                       : task.priority === "medium"
-                        ? "bg-amber-100 text-amber-700"
+                        ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                         : "bg-surface text-foreground/80"
                   }`}
                 >
@@ -178,7 +178,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
       )}
 
       {data.dueSoonTasks && data.dueSoonTasks.length > 0 && (
-        <div className="rounded-xl border-2 border-amber-200 bg-amber-50">
+        <div className="rounded-xl border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40">
           <div className="px-5 py-3 border-b border-amber-200 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
             <h3 className="text-sm font-semibold text-amber-800">
@@ -194,7 +194,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
                 key={task.id}
                 type="button"
                 onClick={() => onSelectTask?.(task.id)}
-                className="w-full px-5 py-2.5 flex items-center justify-between hover:bg-amber-100 transition-colors text-left"
+                className="w-full px-5 py-2.5 flex items-center justify-between hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors text-left"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
@@ -213,9 +213,9 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
                 <span
                   className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                     task.priority === "high"
-                      ? "bg-red-100 text-red-700"
+                      ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                       : task.priority === "medium"
-                        ? "bg-amber-100 text-amber-700"
+                        ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                         : "bg-surface text-foreground/80"
                   }`}
                 >
@@ -259,7 +259,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-card rounded-xl p-5 border border-border">
             <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-950/50">
                 <Building2 className="w-5 h-5 text-green-600" />
               </div>
               <div>
@@ -272,7 +272,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
           </div>
           <div className="bg-card rounded-xl p-5 border border-border">
             <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
               <div>
@@ -294,9 +294,9 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
           {(
             [
               { status: "todo", label: "To Do", bg: "bg-surface/50", text: "text-foreground/80", icon: ListTodo, iconColor: "text-muted" },
-              { status: "in_progress", label: "In Progress", bg: "bg-blue-50", text: "text-blue-700", icon: Loader2, iconColor: "text-blue-500" },
-              { status: "in_review", label: "In Review", bg: "bg-amber-50", text: "text-amber-700", icon: Eye, iconColor: "text-amber-500" },
-              { status: "done", label: "Done", bg: "bg-emerald-50", text: "text-emerald-700", icon: CircleCheck, iconColor: "text-emerald-500" },
+              { status: "in_progress", label: "In Progress", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700", icon: Loader2, iconColor: "text-blue-500" },
+              { status: "in_review", label: "In Review", bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-700", icon: Eye, iconColor: "text-amber-500" },
+              { status: "done", label: "Done", bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-700", icon: CircleCheck, iconColor: "text-emerald-500" },
             ] as const
           ).map((item) => {
             const count =

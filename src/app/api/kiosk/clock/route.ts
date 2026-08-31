@@ -26,6 +26,7 @@ import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { authenticateKiosk } from "@/lib/kiosk-auth";
+import { assertUserCleared } from "@/lib/induction";
 import { pickEligibleShift } from "@/lib/timeclock-pick";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
@@ -99,6 +100,19 @@ export async function POST(req: Request) {
   if (user.serviceId !== kiosk.serviceId) return fail;
   const pinOk = await compare(pin, user.kioskPinHash);
   if (!pinOk) return fail;
+
+  // ── 3b. Induction gate ───────────────────────────────────
+  // An un-cleared new starter cannot clock in at the kiosk. Return a
+  // coordinator-readable reason (this route hand-rolls JSON, so catch).
+  try {
+    await assertUserCleared(userId);
+  } catch (e) {
+    const msg = e instanceof ApiError ? e.message : "Induction incomplete.";
+    return NextResponse.json(
+      { error: `Cannot clock in — ${msg}` },
+      { status: 403 },
+    );
+  }
 
   // ── 4. Pick the eligible shift via the shared helper ─────
   const now = new Date();

@@ -46,7 +46,7 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
 
   if (activation.lifecycleStage === "cancelled") {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm">
+      <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm">
         <div className="flex items-center gap-2 font-medium text-red-700">
           <X className="w-4 h-4" />
           Cancelled {fmt(activation.timestamps.cancelledAt)}
@@ -118,7 +118,7 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
               title={STAGE_LABEL[stage]}
               className={`rounded-md border px-1.5 py-2 text-center ${
                 completed
-                  ? "border-green-200 bg-green-50 text-green-900"
+                  ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-900 dark:text-green-200"
                   : active
                     ? "border-brand bg-card text-foreground font-semibold"
                     : "border-border bg-surface text-muted"
@@ -131,8 +131,8 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
                   <Circle className="w-3.5 h-3.5" aria-hidden />
                 )}
               </div>
-              <div className="text-[10px] leading-tight truncate">{STAGE_LABEL_SHORT[stage]}</div>
-              {ts && <div className="text-[9px] text-muted mt-0.5 truncate">{fmt(ts)}</div>}
+              <div className="text-2xs leading-tight truncate">{STAGE_LABEL_SHORT[stage]}</div>
+              {ts && <div className="text-2xs text-muted mt-0.5 truncate">{fmt(ts)}</div>}
             </li>
           );
         })}
@@ -220,7 +220,7 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
               placeholder="cmnk..."
               className="w-full rounded-md border border-border bg-card p-1.5 text-sm font-mono"
             />
-            <p className="text-[10px] text-muted mt-1">
+            <p className="text-2xs text-muted mt-1">
               The post must already exist in MarketingPost. Sprint 6&apos;s recap cron drafts one automatically 48h after delivery.
             </p>
           </div>
@@ -234,7 +234,7 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
       )}
 
       {pendingStage === "cancelled" && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm space-y-2">
+        <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm space-y-2">
           <label className="block text-xs text-red-900">Cancellation reason *</label>
           <textarea
             value={cancelReason}

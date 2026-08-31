@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { requireRoomId } from "@/lib/room-resolver";
 const schema = z.object({
   serviceId: z.string().min(1),
   weeksAhead: z.number().min(1).max(52).default(8),
@@ -80,6 +81,8 @@ export async function propagateEnrolledCounts(
         create: {
           serviceId,
           date: targetDate,
+          // Stage 1 dual key — see room-resolver.ts.
+          roomId: await requireRoomId(serviceId, record.sessionType),
           sessionType: record.sessionType,
           enrolled: record.enrolled,
           attended: 0,

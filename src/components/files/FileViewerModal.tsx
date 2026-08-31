@@ -156,7 +156,7 @@ export function FileViewerModal({
             <iframe
               title={title}
               src={viewerUrl}
-              className="w-full h-full bg-white border-0"
+              className="w-full h-full bg-card border-0"
               data-testid="file-viewer-iframe"
             />
           )}
@@ -165,7 +165,7 @@ export function FileViewerModal({
             <img
               src={viewerUrl}
               alt={title}
-              className="max-w-full max-h-full object-contain bg-white"
+              className="max-w-full max-h-full object-contain bg-card"
               data-testid="file-viewer-image"
             />
           )}

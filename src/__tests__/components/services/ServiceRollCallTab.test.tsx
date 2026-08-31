@@ -72,10 +72,42 @@ function makeWrapper(qc: QueryClient) {
   };
 }
 
-function makeClient() {
-  return new QueryClient({
+/**
+ * The centre's rooms.
+ *
+ * Stage 2 of docs/rooms-migration-plan.md: the session tab row is built
+ * from room RECORDS now, not a literal ["bsc","asc","vc"]. Seeded into
+ * the query cache rather than mocked through fetchApi so the assertions
+ * below stay synchronous.
+ */
+const ROOM_RECORDS = [
+  { legacyKey: "bsc", name: "Rise and Shine" },
+  { legacyKey: "asc", name: "Amana Afternoons" },
+  { legacyKey: "vc", name: "Holiday Quest" },
+].map((r, i) => ({
+  id: `room-${r.legacyKey}`,
+  startTime: null,
+  endTime: null,
+  capacity: null,
+  ratio: null,
+  description: null,
+  minAgeYears: null,
+  maxAgeYears: null,
+  photoUrl: null,
+  staffOnly: false,
+  archivedAt: null,
+  fees: [],
+  archivedFees: [],
+  sortOrder: i,
+  ...r,
+}));
+
+function makeClient(rooms: Array<Record<string, unknown>> = ROOM_RECORDS) {
+  const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnMount: false } },
   });
+  qc.setQueryData(["service-rooms", "svc-1", "active"], { rooms });
+  return qc;
 }
 
 // ─── Tests ───────────────────────────────────────────────────────
@@ -229,5 +261,80 @@ describe("ServiceRollCallTab — view toggle", () => {
     // Preserves other URL params.
     expect(url).toContain("tab=roll-call");
     expect(url).toContain("sub=today");
+  });
+});
+
+/**
+ * Stage 2 of docs/rooms-migration-plan.md. The tab row was a literal
+ * `["bsc","asc","vc"]` with a local `{bsc:"BSC"}` label map, so a centre
+ * running a fourth room had no way to open its roll — even though the
+ * write paths had been recording attendance against it since Stage 1.
+ */
+describe("ServiceRollCallTab — rooms as records", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    searchParamsRef.value = new URLSearchParams();
+    routerReplace.mockClear();
+  });
+
+  it("gives a room the enum called an extra its own tab", () => {
+    const qc = makeClient([
+      ...ROOM_RECORDS,
+      { ...ROOM_RECORDS[0], id: "room-x", legacyKey: "extra1", name: "Homework Club" },
+    ]);
+    render(<ServiceRollCallTab serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(screen.getByRole("button", { name: "Homework Club" })).toBeDefined();
+  });
+
+  it("shows the room's own name, not the slot code", () => {
+    // Staff say "Amana Afternoons". "ASC" is the filing code.
+    const qc = makeClient();
+    render(<ServiceRollCallTab serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(screen.getByRole("button", { name: "Amana Afternoons" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "ASC" })).toBeNull();
+  });
+
+  it("opens on the afternoon programme, the session most centres run", () => {
+    const qc = makeClient();
+    render(<ServiceRollCallTab serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Amana Afternoons" }).className,
+    ).toMatch(/bg-brand/);
+  });
+
+  it("falls back to the centre's first room when it has no afternoon session", () => {
+    // Derived, not corrected in an effect — an effect would render one
+    // frame asking the API for a room this centre doesn't have.
+    const qc = makeClient([
+      { ...ROOM_RECORDS[0], id: "room-only", legacyKey: "extra1", name: "Homework Club" },
+    ]);
+    render(<ServiceRollCallTab serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Homework Club" }).className,
+    ).toMatch(/bg-brand/);
+  });
+
+  it("switches rooms when a tab is pressed", () => {
+    const qc = makeClient();
+    render(<ServiceRollCallTab serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Rise and Shine" }));
+    expect(
+      screen.getByRole("button", { name: "Rise and Shine" }).className,
+    ).toMatch(/bg-brand/);
   });
 });

@@ -5,12 +5,14 @@ import {
   useLMSCourses,
   useMyEnrollments,
   useSelfEnrol,
+  useUpdateLMSCourse,
   useUpdateModuleProgress,
   type LMSCourseData,
   type LMSModuleData,
   type LMSModuleProgressData,
   type useUnenrollStaff,
 } from "@/hooks/useLMS";
+import { Button } from "@/components/ui/Button";
 import { ModuleEditor } from "@/components/lms/ModuleEditor";
 import { StaffModuleRow } from "@/components/lms/StaffModuleRow";
 import { QuizQuestionView } from "@/components/onboarding/QuizQuestionView";
@@ -36,9 +38,97 @@ import {
   ListChecks,
   Play,
   Trash2,
+  Award,
   UserPlus,
+  Send,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
+import { fetchApi } from "@/lib/fetch-api";
+
+/**
+ * Certificate (for completed enrolments) + full training-transcript download
+ * buttons on an admin staff row. PDFs are generated client-side (jsPDF) via
+ * dynamic import so the library only loads when actually used.
+ */
+function StaffRecordButtons({
+  enrollment,
+  courseTitle,
+}: {
+  enrollment: {
+    id: string;
+    status: string;
+    completedAt?: string | null;
+    score?: number | null;
+    user: { id: string; name: string };
+  };
+  courseTitle: string;
+}) {
+  const [busy, setBusy] = useState<null | "cert" | "transcript">(null);
+
+  async function certificate(ev: React.MouseEvent) {
+    ev.stopPropagation();
+    setBusy("cert");
+    try {
+      const { downloadCertificateSafe } = await import("@/lib/certificate-pdf");
+      await downloadCertificateSafe({
+        learnerName: enrollment.user.name,
+        courseTitle,
+        completedAt: enrollment.completedAt ?? null,
+        score: enrollment.score ?? null,
+        reference: enrollment.id,
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transcript(ev: React.MouseEvent) {
+    ev.stopPropagation();
+    setBusy("transcript");
+    try {
+      const data = await fetchApi<{
+        learnerName: string;
+        learnerEmail: string | null;
+        generatedAt: string;
+        rows: import("@/lib/transcript-pdf").TranscriptRow[];
+      }>(`/api/lms/transcript?userId=${enrollment.user.id}`);
+      const { downloadTranscript } = await import("@/lib/transcript-pdf");
+      await downloadTranscript(data);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Couldn't generate the transcript.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <>
+      {enrollment.status === "completed" && (
+        <button
+          onClick={certificate}
+          disabled={busy !== null}
+          title="Download certificate"
+          className="p-1 text-muted hover:text-brand transition-colors disabled:opacity-50"
+        >
+          {busy === "cert" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Award className="w-3.5 h-3.5" />}
+        </button>
+      )}
+      <button
+        onClick={transcript}
+        disabled={busy !== null}
+        title="Download full training transcript"
+        className="p-1 text-muted hover:text-brand transition-colors disabled:opacity-50"
+      >
+        {busy === "transcript" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+      </button>
+    </>
+  );
+}
 
 const MODULE_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   document: FileText,
@@ -127,7 +217,7 @@ function StaffLMSView() {
                   </button>
 
                   {isExpanded && course.modules && (
-                    <div className="border-t border-border/50 divide-y divide-gray-50">
+                    <div className="border-t border-border/50 divide-y divide-border/50">
                       {course.modules.map((mod) => {
                         const moduleProgress = enrollment.moduleProgress?.find((p) => p.moduleId === mod.id);
                         const isComplete = moduleProgress?.completed || false;
@@ -220,8 +310,6 @@ interface StaffCourseViewerProps {
   userId: string | undefined;
   expandedModuleId: string | null;
   setExpandedModuleId: (id: string | null) => void;
-  revealedAnswers: Set<string>;
-  setRevealedAnswers: React.Dispatch<React.SetStateAction<Set<string>>>;
   onModuleProgress: (enrollmentId: string, moduleId: string, completed: boolean) => void;
   isUpdating: boolean;
 }
@@ -231,8 +319,6 @@ function StaffCourseViewer({
   userId,
   expandedModuleId,
   setExpandedModuleId,
-  revealedAnswers,
-  setRevealedAnswers,
   onModuleProgress,
   isUpdating,
 }: StaffCourseViewerProps) {
@@ -272,7 +358,7 @@ function StaffCourseViewer({
       )}
 
       {!myEnrollment && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-center gap-2">
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           You are not enrolled in this course. Content is view-only. Ask your admin to enrol you.
         </div>
@@ -293,7 +379,7 @@ function StaffCourseViewer({
             const isCompleted = progress?.completed ?? false;
 
             return (
-              <div key={mod.id} className={cn("border rounded-lg overflow-hidden transition-colors", isCompleted ? "border-emerald-200 bg-emerald-50/30" : "border-border")}>
+              <div key={mod.id} className={cn("border rounded-lg overflow-hidden transition-colors", isCompleted ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/30" : "border-border")}>
                 {/* Module header */}
                 <button
                   onClick={() => setExpandedModuleId(isExpanded ? null : mod.id)}
@@ -315,17 +401,17 @@ function StaffCourseViewer({
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] font-medium bg-border text-muted px-2 py-0.5 rounded-full capitalize">
+                    <span className="text-2xs font-medium bg-border text-muted px-2 py-0.5 rounded-full capitalize">
                       {mod.type.replace("_", " ")}
                     </span>
                     {mod.duration && (
-                      <span className="text-[10px] text-muted flex items-center gap-0.5">
+                      <span className="text-2xs text-muted flex items-center gap-0.5">
                         <Clock className="w-3 h-3" />
                         {mod.duration}m
                       </span>
                     )}
                     {mod.isRequired && (
-                      <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+                      <span className="text-2xs font-medium text-red-500 uppercase">Required</span>
                     )}
                     {isExpanded ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
                   </div>
@@ -351,7 +437,7 @@ function StaffCourseViewer({
                         {mod.content.split("\n").filter(line => line.trim()).map((line, i) => (
                           <div key={i} className="flex items-start gap-2.5 text-sm text-foreground">
                             <div className="w-4 h-4 mt-0.5 rounded border border-border flex-shrink-0 flex items-center justify-center">
-                              <span className="text-[10px] text-muted">{i + 1}</span>
+                              <span className="text-2xs text-muted">{i + 1}</span>
                             </div>
                             <span>{line.replace(/^[☐☑✓✔•\-\*]\s*/, "").trim()}</span>
                           </div>
@@ -369,6 +455,11 @@ function StaffCourseViewer({
                             question={q}
                           />
                         ))}
+                        <p className="text-xs text-muted italic">
+                          This quiz is scored in the course player — open the
+                          course from My Training to take it and complete this
+                          module.
+                        </p>
                       </div>
                     )}
 
@@ -405,8 +496,8 @@ function StaffCourseViewer({
                       <p className="text-sm text-muted italic">No content available for this module yet.</p>
                     )}
 
-                    {/* Mark as Complete button */}
-                    {myEnrollment && (
+                    {/* Mark as Complete button — quizzes complete only by passing in the player */}
+                    {myEnrollment && mod.type !== "quiz" && (
                       <div className="mt-4 pt-3 border-t border-border">
                         <button
                           onClick={() => onModuleProgress(myEnrollment.id, mod.id, !isCompleted)}
@@ -414,7 +505,7 @@ function StaffCourseViewer({
                           className={cn(
                             "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                             isCompleted
-                              ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                              ? "bg-surface text-muted hover:bg-border"
                               : "bg-emerald-600 text-white hover:bg-emerald-700"
                           )}
                         >
@@ -453,12 +544,15 @@ interface SelectedCourseData {
   category: string | null;
   isRequired: boolean;
   status: string;
+  track?: "essential" | "monthly" | "library";
   modules?: LMSModuleData[];
   enrollments?: {
     id: string;
     userId: string;
     status: string;
     dueDate?: string | null;
+    completedAt?: string | null;
+    score?: number | null;
     user: { id: string; name: string; email: string };
     moduleProgress: LMSModuleProgressData[];
   }[];
@@ -481,8 +575,6 @@ export interface LmsCoursesTabProps {
   selectedCourseLoading: boolean;
   setEnrollForm: (form: { userIds: string[]; dueDate: string }) => void;
   setShowEnroll: (show: boolean) => void;
-  revealedAnswers: Set<string>;
-  setRevealedAnswers: React.Dispatch<React.SetStateAction<Set<string>>>;
   userId: string | undefined;
   unenrollStaff: UnenrollMutation;
   updateModuleProgress: UpdateModuleProgressMutation;
@@ -504,14 +596,14 @@ export function LmsCoursesTab({
   selectedCourseLoading,
   setEnrollForm,
   setShowEnroll,
-  revealedAnswers,
-  setRevealedAnswers,
   userId,
   unenrollStaff,
   updateModuleProgress,
   handleUnenroll,
   handleModuleProgress,
 }: LmsCoursesTabProps) {
+  const updateCourse = useUpdateLMSCourse();
+
   if (isServiceScoped) {
     return <StaffLMSView />;
   }
@@ -530,18 +622,18 @@ export function LmsCoursesTab({
           {courses.map((course) => (
             <div key={course.id} onClick={() => { setSelectedCourseId(selectedCourseId === course.id ? null : course.id); setExpandedModuleId(null); setExpandedEnrollmentId(null); }} className={cn("bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-brand border-brand")}>
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center">
                   <BookOpen className="w-5 h-5 text-purple-700" />
                 </div>
                 <div className="flex items-center gap-2">
                   {course.isRequired && (
-                    <span className="text-[10px] font-bold uppercase bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Required</span>
+                    <span className="text-2xs font-bold uppercase bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full">Required</span>
                   )}
                   <span className={cn(
-                    "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
-                    course.status === "published" ? "bg-emerald-100 text-emerald-700"
-                      : course.status === "draft" ? "bg-gray-100 text-gray-500"
-                      : "bg-amber-100 text-amber-700"
+                    "text-2xs font-bold uppercase px-2 py-0.5 rounded-full",
+                    course.status === "published" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                      : course.status === "draft" ? "bg-surface text-muted"
+                      : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                   )}>
                     {course.status}
                   </span>
@@ -552,7 +644,7 @@ export function LmsCoursesTab({
                 <p className="text-sm text-muted line-clamp-2 mb-2">{course.description}</p>
               )}
               {course.category && (
-                <span className="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full mb-2">{course.category}</span>
+                <span className="inline-block text-xs bg-surface text-muted px-2 py-0.5 rounded-full mb-2">{course.category}</span>
               )}
               <div className="flex items-center gap-4 text-xs text-muted mt-3">
                 <span>{course._count.modules} modules</span>
@@ -569,7 +661,7 @@ export function LmsCoursesTab({
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-purple-700" />
               </div>
               <div>
@@ -579,21 +671,66 @@ export function LmsCoursesTab({
                 <div className="flex items-center gap-2 mt-0.5">
                   {selectedCourseData?.status && (
                     <span className={cn(
-                      "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
-                      selectedCourseData.status === "published" ? "bg-emerald-100 text-emerald-700"
-                        : selectedCourseData.status === "draft" ? "bg-gray-100 text-gray-500"
-                        : "bg-amber-100 text-amber-700"
+                      "text-2xs font-bold uppercase px-2 py-0.5 rounded-full",
+                      selectedCourseData.status === "published" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                        : selectedCourseData.status === "draft" ? "bg-surface text-muted"
+                        : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                     )}>
                       {selectedCourseData.status}
                     </span>
                   )}
                   {selectedCourseData?.isRequired && (
-                    <span className="text-[10px] font-bold uppercase bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Required</span>
+                    <span className="text-2xs font-bold uppercase bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full">Required</span>
+                  )}
+                  {selectedCourseData?.track && selectedCourseData.track !== "library" && (
+                    <span className="text-2xs font-bold uppercase bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                      {selectedCourseData.track === "essential" ? "Essential induction" : "Monthly"}
+                    </span>
                   )}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isAdmin && selectedCourseData && (
+                selectedCourseData.status === "published" ? (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    loading={updateCourse.isPending}
+                    iconLeft={<Undo2 className="w-4 h-4" />}
+                    onClick={() => {
+                      const gateNote = selectedCourseData.track === "essential"
+                        ? " Essential courses stop counting toward the new-starter induction gate while in draft."
+                        : "";
+                      if (!confirm(`Unpublish "${selectedCourseData.title}"? It moves back to draft and is hidden from staff.${gateNote}`)) return;
+                      updateCourse.mutate(
+                        { id: selectedCourseData.id, status: "draft" },
+                        { onSuccess: () => toast({ description: "Course moved back to draft." }) }
+                      );
+                    }}
+                  >
+                    Unpublish
+                  </Button>
+                ) : (
+                  <Button
+                    size="xs"
+                    loading={updateCourse.isPending}
+                    iconLeft={<Send className="w-4 h-4" />}
+                    onClick={() => {
+                      const gateNote = selectedCourseData.track === "essential"
+                        ? " As an Essential induction course, it will start counting toward the new-starter induction gate."
+                        : "";
+                      if (!confirm(`Publish "${selectedCourseData.title}"? Staff will be able to see and complete it.${gateNote}`)) return;
+                      updateCourse.mutate(
+                        { id: selectedCourseData.id, status: "published" },
+                        { onSuccess: () => toast({ description: "Course published — staff can now see it." }) }
+                      );
+                    }}
+                  >
+                    Publish
+                  </Button>
+                )
+              )}
               {isAdmin && selectedCourseData && (
                 <button
                   onClick={() => { setEnrollForm({ userIds: [], dueDate: "" }); setShowEnroll(true); }}
@@ -622,7 +759,7 @@ export function LmsCoursesTab({
 
               <div className="flex items-center gap-4 text-sm text-muted">
                 {selectedCourseData.category && (
-                  <span className="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{selectedCourseData.category}</span>
+                  <span className="inline-block text-xs bg-surface text-muted px-2 py-0.5 rounded-full">{selectedCourseData.category}</span>
                 )}
                 <span className="flex items-center gap-1">
                   <Users className="w-3.5 h-3.5" />
@@ -663,16 +800,16 @@ export function LmsCoursesTab({
                                   <p className="text-xs text-muted">{enrollment.user.email}</p>
                                 </div>
                                 <span className={cn(
-                                  "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
-                                  enrollment.status === "completed" ? "bg-emerald-100 text-emerald-700"
-                                    : enrollment.status === "in_progress" ? "bg-blue-100 text-blue-700"
-                                    : enrollment.status === "expired" ? "bg-red-100 text-red-700"
-                                    : "bg-gray-100 text-gray-500"
+                                  "text-2xs font-bold uppercase px-2 py-0.5 rounded-full",
+                                  enrollment.status === "completed" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                                    : enrollment.status === "in_progress" ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
+                                    : enrollment.status === "expired" ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
+                                    : "bg-surface text-muted"
                                 )}>
                                   {enrollment.status.replace("_", " ")}
                                 </span>
                                 <div className="w-24">
-                                  <div className="flex items-center justify-between text-[10px] text-muted mb-0.5">
+                                  <div className="flex items-center justify-between text-2xs text-muted mb-0.5">
                                     <span>{completedModules}/{totalModules}</span>
                                     <span>{pct}%</span>
                                   </div>
@@ -681,11 +818,15 @@ export function LmsCoursesTab({
                                   </div>
                                 </div>
                                 {enrollment.dueDate && (
-                                  <span className="text-[10px] text-muted flex items-center gap-0.5">
+                                  <span className="text-2xs text-muted flex items-center gap-0.5">
                                     <Clock className="w-3 h-3" />
                                     {new Date(enrollment.dueDate).toLocaleDateString("en-AU", { month: "short", day: "numeric" })}
                                   </span>
                                 )}
+                                <StaffRecordButtons
+                                  enrollment={enrollment}
+                                  courseTitle={selectedCourseData.title}
+                                />
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -764,8 +905,6 @@ export function LmsCoursesTab({
                   userId={userId}
                   expandedModuleId={expandedModuleId}
                   setExpandedModuleId={setExpandedModuleId}
-                  revealedAnswers={revealedAnswers}
-                  setRevealedAnswers={setRevealedAnswers}
                   onModuleProgress={handleModuleProgress}
                   isUpdating={updateModuleProgress.isPending}
                 />

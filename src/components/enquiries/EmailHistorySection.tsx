@@ -13,9 +13,9 @@ interface Props {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  sent: "bg-green-100 text-green-700",
-  scheduled: "bg-amber-100 text-amber-700",
-  failed: "bg-red-100 text-red-700",
+  sent: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  scheduled: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  failed: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
 };
 
 export function EmailHistorySection({
@@ -79,7 +79,7 @@ export function EmailHistorySection({
                   })}
                 </span>
                 <span
-                  className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${
+                  className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
                     STATUS_STYLES[entry.status] ?? "bg-surface text-muted"
                   }`}
                 >

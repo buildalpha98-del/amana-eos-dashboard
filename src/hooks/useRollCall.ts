@@ -63,6 +63,13 @@ export interface RollCallEntry {
   notes: string | null;
   firstDayPhotoSentAt: string | null;
   firstDayPhotoUrl: string | null;
+  /**
+   * True when this child has never been signed in on an earlier day.
+   * Computed server-side per request so it can't go stale, and stays
+   * true for the whole of their first day rather than flipping the
+   * moment they're signed in.
+   */
+  isFirstSession?: boolean;
 }
 
 export interface RollCallSummary {
@@ -238,7 +245,10 @@ export function useSendFirstDayPhoto() {
       });
     },
     onSuccess: (_data, variables) => {
-      toast({ description: "First-day photo SMS sent to parent" });
+      toast({
+        description:
+          "Photo sent to the family's portal — they'll get a notification.",
+      });
       queryClient.invalidateQueries({
         queryKey: ["roll-call", variables.serviceId, variables.date, variables.sessionType],
       });

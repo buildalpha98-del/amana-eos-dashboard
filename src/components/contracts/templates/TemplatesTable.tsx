@@ -40,7 +40,7 @@ const inputCls =
 function TemplateBadge({ status }: { status: "active" | "disabled" }) {
   if (status === "active") {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
         Active
       </span>
     );
@@ -239,7 +239,7 @@ function RowActions({
                 role="menuitem"
                 onClick={handleDelete}
                 disabled={del.isPending}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-2"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete

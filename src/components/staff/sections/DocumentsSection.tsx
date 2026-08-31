@@ -51,7 +51,7 @@ export function DocumentsSection({
       sectionKey="documents"
       title="Documents"
       accentDotClass="bg-yellow-500"
-      accentActiveClass="bg-yellow-100 text-yellow-900 border-yellow-300"
+      accentActiveClass="bg-yellow-100 dark:bg-yellow-950/50 text-yellow-900 dark:text-yellow-200 border-yellow-300 dark:border-yellow-800"
       subTabs={isAdmin ? ADMIN_SUB_TABS : PUBLIC_SUB_TABS}
     >
       {(active) => {

@@ -12,7 +12,7 @@ import {
 
 const statusConfig = {
   understaffed: {
-    bg: "bg-red-50",
+    bg: "bg-red-50 dark:bg-red-950/40",
     border: "border-red-200",
     text: "text-red-700",
     dot: "bg-red-500",
@@ -20,7 +20,7 @@ const statusConfig = {
     label: "Understaffed",
   },
   overstaffed: {
-    bg: "bg-amber-50",
+    bg: "bg-amber-50 dark:bg-amber-950/40",
     border: "border-amber-200",
     text: "text-amber-700",
     dot: "bg-amber-500",
@@ -28,7 +28,7 @@ const statusConfig = {
     label: "Overstaffed",
   },
   optimal: {
-    bg: "bg-emerald-50",
+    bg: "bg-emerald-50 dark:bg-emerald-950/40",
     border: "border-emerald-200",
     text: "text-emerald-700",
     dot: "bg-emerald-500",
@@ -39,7 +39,7 @@ const statusConfig = {
     bg: "bg-surface/50",
     border: "border-border",
     text: "text-muted",
-    dot: "bg-gray-400",
+    dot: "bg-muted/60",
     icon: Users,
     label: "No Data",
   },
@@ -86,7 +86,7 @@ export function StaffingAlerts() {
           </h3>
         </div>
         {hasAlerts && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-2xs font-semibold">
             <AlertTriangle className="w-3 h-3" />
             {alerts.length} alert{alerts.length !== 1 ? "s" : ""}
           </span>
@@ -97,21 +97,21 @@ export function StaffingAlerts() {
       {(summary.totalWaste > 0 || summary.totalRisk > 0) && (
         <div className="grid grid-cols-2 gap-2 mb-3">
           {summary.totalWaste > 0 && (
-            <div className="px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+            <div className="px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800">
               <p className="text-lg font-bold text-amber-700">
                 ${summary.totalWaste.toFixed(0)}
               </p>
-              <p className="text-[10px] text-amber-600 uppercase tracking-wider">
+              <p className="text-2xs text-amber-600 uppercase tracking-wider">
                 Overstaffing Waste
               </p>
             </div>
           )}
           {summary.totalRisk > 0 && (
-            <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-100">
+            <div className="px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800">
               <p className="text-lg font-bold text-red-700">
                 ${summary.totalRisk.toFixed(0)}
               </p>
-              <p className="text-[10px] text-red-600 uppercase tracking-wider">
+              <p className="text-2xs text-red-600 uppercase tracking-wider">
                 Revenue at Risk
               </p>
             </div>
@@ -127,7 +127,7 @@ export function StaffingAlerts() {
             analysis.
           </p>
         ) : !hasAlerts ? (
-          <div className="flex items-center gap-2 px-3 py-3 bg-emerald-50 rounded-lg">
+          <div className="flex items-center gap-2 px-3 py-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <p className="text-sm text-emerald-700 font-medium">
               All {summary.services.length} centres optimally staffed
@@ -147,7 +147,7 @@ export function StaffingAlerts() {
                   <p className={`text-sm font-medium ${config.text} truncate`}>
                     {svc.serviceName}
                   </p>
-                  <p className="text-[10px] text-muted">
+                  <p className="text-2xs text-muted">
                     {svc.sessions
                       .filter((s) => s.variance !== 0)
                       .map(

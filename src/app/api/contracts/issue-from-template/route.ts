@@ -6,6 +6,7 @@ import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 import { uploadFile } from "@/lib/storage";
 import { resolveTemplateData } from "@/lib/contract-templates/resolve-data";
+import { extractMergeTagKeys } from "@/lib/contract-templates/extract-merge-tags";
 import { renderTemplateHtml, type TipTapDoc } from "@/lib/contract-templates/render-html";
 import { renderContractPdf } from "@/lib/pdf/render-contract";
 import { sendEmail } from "@/lib/email";
@@ -39,6 +40,13 @@ const issueSchema = z.object({
     .startsWith("data:image/", "Must be a PNG data URL")
     .max(500_000, "Signature image too large")
     .optional(),
+  // 2026-07-13: opt-in supersede toggle from the Issue-Contract wizard.
+  // When true AND the staff member has an active/draft contract, that
+  // contract flips to superseded and the rendered PDF gets a boilerplate
+  // "this supersedes any prior agreement" notice paragraph up top. When
+  // false (or when there's no existing contract), the new contract is
+  // issued alongside any others and no notice is added.
+  supersedeExisting: z.boolean().optional().default(false),
 });
 
 export const POST = withApiAuth(
@@ -55,7 +63,12 @@ export const POST = withApiAuth(
     const startDate = new Date(data.contractMeta.startDate);
     const endDate = data.contractMeta.endDate ? new Date(data.contractMeta.endDate) : null;
 
-    // Step 4: resolve auto tags — blocks on missing required staff fields
+    // Step 4: resolve auto tags — blocks on missing required staff
+    // fields. 2026-07-23: only enforce blocking on tags the template
+    // actually REFERENCES. resolveTemplateData is generic and reports
+    // every catalog blocking tag it couldn't fill (e.g. service.name
+    // when the staff member has no serviceId), but a template that
+    // doesn't mention service.name shouldn't fail on it.
     const { resolved, missingBlocking } = await resolveTemplateData({
       userId: data.userId,
       contractMeta: {
@@ -65,8 +78,16 @@ export const POST = withApiAuth(
         position: data.contractMeta.position,
       },
     });
-    if (missingBlocking.length) {
-      throw ApiError.badRequest(`Missing required staff fields: ${missingBlocking.join(", ")}`);
+    const referencedTagKeys = new Set(
+      extractMergeTagKeys(template.contentJson as TipTapDoc),
+    );
+    const relevantMissing = missingBlocking.filter((k) =>
+      referencedTagKeys.has(k),
+    );
+    if (relevantMissing.length) {
+      throw ApiError.badRequest(
+        `Missing required staff fields: ${relevantMissing.join(", ")}`,
+      );
     }
 
     // Step 5: render HTML — merge auto + manual; unknown tags fail here.
@@ -87,7 +108,27 @@ export const POST = withApiAuth(
       "signature.adminDate": data.adminSignatureDataUrl ? adminDateFriendly : "",
       "signature.staffDate": "",
     };
-    const { html, missingTags } = renderTemplateHtml({
+    // 2026-07-13: opt-in supersede. Looked up BEFORE HTML render so the
+    // rendered PDF can include the supersede notice. Only actually
+    // touches the existing row when the wizard's "Replace previous
+    // contract" checkbox is ticked. Rationale for opt-in: an admin
+    // sometimes wants to issue an additional contract (e.g. a second
+    // casual engagement running in parallel) without wiping the
+    // previous. The wizard defaults the checkbox to true when it
+    // detects an existing active contract, so Daniel's FT→Casual flow
+    // stays one-click.
+    const existingActive = data.supersedeExisting
+      ? await prisma.employmentContract.findFirst({
+          where: {
+            userId: data.userId,
+            status: { in: ["active", "contract_draft"] },
+          },
+          select: { id: true },
+          orderBy: { startDate: "desc" },
+        })
+      : null;
+
+    const { html: bodyHtml, missingTags } = renderTemplateHtml({
       doc: template.contentJson as TipTapDoc,
       data: allData,
     });
@@ -95,13 +136,68 @@ export const POST = withApiAuth(
       throw ApiError.badRequest(`Template references unknown tags: ${missingTags.join(", ")}`);
     }
 
-    // Steps 6-7: render PDF + upload.
-    // Failure here means no DB row (clean abort — no orphan storage).
-    const pdf = await renderContractPdf(html);
-    const { url } = await uploadFile(pdf, `contract-${data.userId}-${Date.now()}.pdf`, {
-      contentType: "application/pdf",
-      folder: "contracts/issued",
+    // When superseding, prepend a plain-language notice to the rendered
+    // HTML so the printed contract makes the transition explicit.
+    const supersedeNoticeHtml = existingActive
+      ? `<p style="padding:12px 14px;margin:0 0 16px 0;border:1px solid #d1d5db;background:#f9fafb;font-size:11pt;line-height:1.5;"><strong>Notice:</strong> This contract, effective from ${new Date(startDate).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}, supersedes and replaces any prior employment agreement between you and AMANA OSHC PTY LTD. The prior agreement ceases on the date this contract takes effect.</p>`
+      : "";
+    const html = supersedeNoticeHtml + bodyHtml;
+
+    // Step 6 (2026-08-07 hardening): create the contract row FIRST, as a
+    // draft, BEFORE the slow PDF render + blob upload. Previously the row
+    // was only created after those steps succeeded, so a timeout or crash
+    // mid-request left no trace at all — the admin believed the contract
+    // was issued when nothing existed (this happened with a real staff
+    // contract, reported 2026-08-07: "sent" but never in the DB). A
+    // failed issue now leaves a visible contract_draft row in /contracts
+    // instead of silently vanishing; the admin can see it, and re-issue.
+    const draft = await prisma.employmentContract.create({
+      data: {
+        userId: data.userId,
+        contractType: data.contractMeta.contractType,
+        awardLevel: data.contractMeta.awardLevel ?? null,
+        awardLevelCustom: data.contractMeta.awardLevelCustom ?? null,
+        payRate: data.contractMeta.payRate,
+        hoursPerWeek: data.contractMeta.hoursPerWeek ?? null,
+        startDate,
+        endDate,
+        status: "contract_draft",
+        documentUrl: null,
+        documentId: null,
+        templateId: template.id,
+        templateValues: { auto: resolved, manual: data.manualValues },
+        previousContractId: existingActive?.id ?? null,
+        // Persist admin signature alongside the contract so re-renders
+        // (after staff signs) can replay it without the admin needing
+        // to re-draw. signedById/At are an audit trail of WHO signed
+        // and WHEN — useful for Fair Work disputes about whether the
+        // contract was properly issued.
+        adminSignatureDataUrl: data.adminSignatureDataUrl ?? null,
+        adminSignedById: data.adminSignatureDataUrl ? session!.user.id : null,
+        adminSignedAt: data.adminSignatureDataUrl ? new Date() : null,
+      },
     });
+
+    // Steps 7-8: render PDF + upload. On failure the draft row remains
+    // as evidence — the error message points the admin straight at it.
+    let url: string;
+    try {
+      const pdf = await renderContractPdf(html);
+      ({ url } = await uploadFile(pdf, `contract-${data.userId}-${Date.now()}.pdf`, {
+        contentType: "application/pdf",
+        folder: "contracts/issued",
+      }));
+    } catch (err) {
+      logger.error("issue-from-template: PDF render/upload failed after draft create", {
+        contractId: draft.id,
+        err,
+      });
+      throw new ApiError(
+        502,
+        "Contract document generation failed — the contract was saved as a draft (visible in Contracts) but has NOT been issued or emailed. Re-issue when the problem is resolved.",
+        { contractId: draft.id },
+      );
+    }
 
     // NOTE on documentId: we do NOT create a `Document` row for issued
     // contracts. The Document model is for the dashboard's general
@@ -109,42 +205,39 @@ export const POST = withApiAuth(
     // a row per issued contract would pollute that library. The blob URL
     // is the source of truth and is fetched directly. EmploymentContract
     // .documentId remains null in v1.
+
     const contract = await prisma.$transaction(async (tx) => {
-      const created = await tx.employmentContract.create({
+      if (existingActive) {
+        await tx.employmentContract.update({
+          where: { id: existingActive.id },
+          data: {
+            status: "superseded",
+            endDate: startDate,
+          },
+        });
+      }
+
+      const finalized = await tx.employmentContract.update({
+        where: { id: draft.id },
         data: {
-          userId: data.userId,
-          contractType: data.contractMeta.contractType,
-          awardLevel: data.contractMeta.awardLevel ?? null,
-          awardLevelCustom: data.contractMeta.awardLevelCustom ?? null,
-          payRate: data.contractMeta.payRate,
-          hoursPerWeek: data.contractMeta.hoursPerWeek ?? null,
-          startDate,
-          endDate,
           status: "active",
           documentUrl: url,
-          documentId: null,
-          templateId: template.id,
-          templateValues: { auto: resolved, manual: data.manualValues },
-          // Persist admin signature alongside the contract so re-renders
-          // (after staff signs) can replay it without the admin needing
-          // to re-draw. signedById/At are an audit trail of WHO signed
-          // and WHEN — useful for Fair Work disputes about whether the
-          // contract was properly issued.
-          adminSignatureDataUrl: data.adminSignatureDataUrl ?? null,
-          adminSignedById: data.adminSignatureDataUrl ? session!.user.id : null,
-          adminSignedAt: data.adminSignatureDataUrl ? new Date() : null,
         },
       });
       await tx.activityLog.create({
         data: {
           userId: session!.user.id,
-          action: "issue_from_template",
+          action: existingActive ? "issue_from_template_supersede" : "issue_from_template",
           entityType: "EmploymentContract",
-          entityId: created.id,
-          details: { templateId: template.id, templateName: template.name },
+          entityId: finalized.id,
+          details: {
+            templateId: template.id,
+            templateName: template.name,
+            ...(existingActive ? { supersededId: existingActive.id } : {}),
+          },
         },
       });
-      return created;
+      return finalized;
     });
 
     // Step 9: send email — OUTSIDE the transaction.

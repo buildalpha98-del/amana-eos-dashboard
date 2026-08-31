@@ -16,8 +16,10 @@ function makeInput(overrides: Partial<EmployeeRowInput> = {}): EmployeeRowInput 
     lastLoginAt: new Date("2026-04-01"),
     tags: [],
     service: { id: "svc-1", name: "Mawson Lakes" },
+    additionalServices: [],
     employmentHeroEmployeeId: 12345,
     hasActiveContract: true,
+    hrWarningsMuted: false,
     ...overrides,
   };
 }
@@ -127,6 +129,25 @@ describe("formatEmployeeRow", () => {
         "admin",
       );
       expect(out.hasActiveContract).toBe(false);
+    });
+  });
+
+  // 2026-08-18: admin-set mute for non-employee accounts (shared
+  // service-admin logins) — suppresses both badges on /team.
+  describe("hrWarningsMuted", () => {
+    it("passes through true verbatim", () => {
+      const out = formatEmployeeRow(makeInput({ hrWarningsMuted: true }), "admin");
+      expect(out.hrWarningsMuted).toBe(true);
+    });
+
+    it("passes through false verbatim", () => {
+      const out = formatEmployeeRow(makeInput({ hrWarningsMuted: false }), "admin");
+      expect(out.hrWarningsMuted).toBe(false);
+    });
+
+    it("is preserved across viewer roles (marketing doesn't strip it)", () => {
+      const out = formatEmployeeRow(makeInput({ hrWarningsMuted: true }), "marketing");
+      expect(out.hrWarningsMuted).toBe(true);
     });
   });
 });

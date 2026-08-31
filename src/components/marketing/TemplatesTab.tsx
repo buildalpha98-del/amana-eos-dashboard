@@ -152,7 +152,7 @@ export function TemplatesTab() {
                     if (confirm("Delete this template?"))
                       deleteTemplate.mutate(tpl.id);
                   }}
-                  className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
+                  className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

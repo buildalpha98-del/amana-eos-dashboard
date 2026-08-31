@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hasFeature, parseRole } from "@/lib/role-permissions";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
 import { withApiAuth } from "@/lib/server-auth";
 
@@ -104,8 +104,7 @@ export const POST = withApiAuth(async (req, session, context) => {
     // Dev mode: log instead of sending
     if (process.env.NODE_ENV !== "production") console.log("[CRM Email] To:", lead.contactEmail, "Subject:", subject);
   } else {
-    await resend.emails.send({
-      from: FROM_EMAIL,
+    await sendEmail({
       to: lead.contactEmail,
       subject,
       html: `

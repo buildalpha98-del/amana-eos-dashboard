@@ -285,18 +285,18 @@ export function BulkEditorClient({ category, rows }: Props) {
                       {row.label}
                     </span>
                     {d.hasOverride && (
-                      <span className="text-[10px] uppercase tracking-wider font-semibold bg-brand/15 text-brand px-1.5 py-0.5 rounded">
+                      <span className="text-2xs uppercase tracking-wider font-semibold bg-brand/15 text-brand px-1.5 py-0.5 rounded">
                         Overridden
                       </span>
                     )}
                     {dirty && (
-                      <span className="text-[10px] uppercase tracking-wider font-semibold bg-amber-500/20 text-amber-700 px-1.5 py-0.5 rounded">
+                      <span className="text-2xs uppercase tracking-wider font-semibold bg-amber-500/20 text-amber-700 px-1.5 py-0.5 rounded">
                         Unsaved
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-muted mt-0.5">{row.description}</div>
-                  <code className="text-[10px] font-mono text-muted/70 mt-1 block">
+                  <code className="text-2xs font-mono text-muted/70 mt-1 block">
                     {row.key}
                   </code>
                 </div>
@@ -315,8 +315,8 @@ export function BulkEditorClient({ category, rows }: Props) {
                             key={v.name}
                             className="rounded-md border border-border bg-surface/40 px-2 py-1"
                           >
-                            <code className="text-[11px] font-mono text-foreground">{`{{${v.name}}}`}</code>
-                            <div className="text-[10px] text-muted">{v.description}</div>
+                            <code className="text-xs font-mono text-foreground">{`{{${v.name}}}`}</code>
+                            <div className="text-2xs text-muted">{v.description}</div>
                           </div>
                         ))}
                       </div>
@@ -404,7 +404,7 @@ export function BulkEditorClient({ category, rows }: Props) {
                         {interpolateTemplate(effectiveSubject, previewVars)}
                       </div>
                       <div
-                        className="mt-2 rounded-md border border-border bg-white p-4 max-w-2xl text-sm"
+                        className="mt-2 rounded-md border border-border bg-card p-4 max-w-2xl text-sm"
                         dangerouslySetInnerHTML={{
                           __html: interpolateTemplate(effectiveBody, previewVars),
                         }}

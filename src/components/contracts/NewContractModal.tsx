@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useCreateContract } from "@/hooks/useContracts";
 import {
   ContractFormFields,
@@ -112,19 +113,17 @@ export function NewContractModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border/50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface rounded-lg transition-colors"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {createContract.isPending ? "Saving..." : "Create Contract"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

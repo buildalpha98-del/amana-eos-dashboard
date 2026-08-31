@@ -110,7 +110,7 @@ export function CashFlowChart() {
         <button
           onClick={() => generateForecast.mutate()}
           disabled={generateForecast.isPending}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#004E64] hover:bg-[#003D52] rounded-lg transition disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand hover:bg-brand-hover rounded-lg transition disabled:opacity-50"
         >
           <RefreshCw
             className={`w-3.5 h-3.5 ${generateForecast.isPending ? "animate-spin" : ""}`}

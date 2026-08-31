@@ -10,7 +10,7 @@ interface SectionLabelProps {
 export function SectionLabel({ label, action }: SectionLabelProps) {
   return (
     <div className="flex items-baseline justify-between mb-3">
-      <h2 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+      <h2 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
         {label}
       </h2>
       {action && (

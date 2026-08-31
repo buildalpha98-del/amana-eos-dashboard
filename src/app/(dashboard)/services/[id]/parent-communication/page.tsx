@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Bell,
   Users,
+  CornerDownRight,
   Pencil,
   Trash2,
   Heart,
@@ -25,6 +26,7 @@ import {
   type ParentPost,
 } from "@/hooks/useParentPosts";
 import { CreateParentPostForm } from "@/components/services/CreateParentPostForm";
+import { NeedsFollowUpCard } from "@/components/services/NeedsFollowUpCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -47,21 +49,43 @@ const typeLabels: Record<string, string> = {
 };
 
 const typeBadgeColors: Record<string, string> = {
-  observation: "bg-blue-100 text-blue-700",
-  announcement: "bg-amber-100 text-amber-700",
-  reminder: "bg-purple-100 text-purple-700",
+  observation: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  announcement: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  reminder: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
 };
 
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
 
-export default function ParentCommunicationPage() {
-  const { id } = useParams<{ id: string }>();
+/**
+ * Renders as BOTH a standalone page and a tab inside the service detail
+ * view.
+ *
+ * This route was an ORPHAN (found 2026-08-01): nothing linked to it — not
+ * the service tabs, not the nav — so staff could only reach the post
+ * composer by typing the URL. The whole parent-posts pipeline existed and
+ * was unreachable from either end: staff couldn't find the composer, and
+ * families had no feed.
+ *
+ * Taking serviceId as an optional prop lets the service page mount this
+ * as a tab without moving 350 lines, and keeps the direct URL working for
+ * anyone who has it bookmarked.
+ */
+export function ParentCommunicationPanel({
+  serviceId,
+  embedded = false,
+}: {
+  serviceId?: string;
+  embedded?: boolean;
+}) {
+  const params = useParams<{ id: string }>();
+  const id = serviceId ?? params?.id;
   const { data: session } = useSession();
   const { data, isLoading, error } = useParentPosts(id);
   const deletePost = useDeleteParentPost(id);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingPost, setEditingPost] = useState<ParentPost | null>(null);
+  const [extendingPost, setExtendingPost] = useState<ParentPost | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
@@ -78,8 +102,8 @@ export default function ParentCommunicationPage() {
   return (
     <div>
       <PageHeader
-        title="Parent Communication"
-        description="Create posts and announcements visible to parents in the portal"
+        title={embedded ? "Posts" : "Parent Communication"}
+        description="Create posts and announcements families see in their portal feed"
         primaryAction={{
           label: "Create Post",
           icon: Plus,
@@ -106,6 +130,11 @@ export default function ParentCommunicationPage() {
         />
       ) : (
         <div className="mt-6 space-y-4">
+          <NeedsFollowUpCard
+            serviceId={id}
+            posts={posts}
+            onFollowUp={setExtendingPost}
+          />
           {posts.map((post) => {
             const TypeIcon = typeIcons[post.type] ?? MessageCircle;
             const editable = canModify(post);
@@ -119,12 +148,12 @@ export default function ParentCommunicationPage() {
                     <TypeIcon className="w-4 h-4 text-muted shrink-0" />
                     <h3 className="font-semibold text-foreground">{post.title}</h3>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeBadgeColors[post.type] ?? "bg-gray-100 text-gray-700"}`}
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeBadgeColors[post.type] ?? "bg-surface text-foreground/80"}`}
                     >
                       {typeLabels[post.type] ?? post.type}
                     </span>
                     {post.isCommunity && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium flex items-center gap-1">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-medium flex items-center gap-1">
                         <Users className="w-3 h-3" />
                         Community
                       </span>
@@ -132,6 +161,15 @@ export default function ParentCommunicationPage() {
                   </div>
                   {editable && (
                     <div className="flex items-center gap-1 shrink-0">
+                      {/* The planning cycle: what did we DO about this. */}
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        iconLeft={<CornerDownRight className="w-3.5 h-3.5" />}
+                        onClick={() => setExtendingPost(post)}
+                        aria-label={`Follow up on ${post.title}`}
+                        title="Follow up on this"
+                      />
                       <Button
                         size="xs"
                         variant="ghost"
@@ -150,6 +188,13 @@ export default function ParentCommunicationPage() {
                   )}
                 </div>
 
+                {post.extendsPost && (
+                  <p className="flex items-center gap-1.5 text-xs text-brand">
+                    <CornerDownRight className="h-3.5 w-3.5 shrink-0" />
+                    Following up on &ldquo;{post.extendsPost.title}&rdquo;
+                  </p>
+                )}
+
                 <p className="text-sm text-muted whitespace-pre-wrap">{post.content}</p>
 
                 {post.tags.length > 0 && (
@@ -163,6 +208,13 @@ export default function ParentCommunicationPage() {
                       </span>
                     ))}
                   </div>
+                )}
+
+                {(post.followUpCount ?? 0) > 0 && (
+                  <p className="text-xs text-muted">
+                    {post.followUpCount} follow-up
+                    {post.followUpCount === 1 ? "" : "s"} came out of this
+                  </p>
                 )}
 
                 <div className="flex items-center gap-2 text-xs text-muted pt-1">
@@ -217,9 +269,14 @@ export default function ParentCommunicationPage() {
 
       <CreateParentPostForm
         serviceId={id}
-        open={showCreate || !!editingPost}
-        onClose={() => { setShowCreate(false); setEditingPost(null); }}
+        open={showCreate || !!editingPost || !!extendingPost}
+        onClose={() => {
+          setShowCreate(false);
+          setEditingPost(null);
+          setExtendingPost(null);
+        }}
         editingPost={editingPost}
+        extendingPost={extendingPost}
       />
 
       <ConfirmDialog
@@ -288,11 +345,11 @@ function CommentThread({ serviceId, postId }: { serviceId: string; postId: strin
                 <div className="flex items-baseline gap-2">
                   <span className="text-xs font-semibold">{c.authorName}</span>
                   {c.authorType === "staff" && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-semibold">
+                    <span className="text-2xs px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-semibold">
                       Staff
                     </span>
                   )}
-                  <span className="text-[11px] text-muted">
+                  <span className="text-xs text-muted">
                     {new Date(c.createdAt).toLocaleString("en-AU", {
                       day: "numeric",
                       month: "short",
@@ -307,7 +364,7 @@ function CommentThread({ serviceId, postId }: { serviceId: string; postId: strin
                         del.mutate(c.id);
                       }
                     }}
-                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-[11px] text-red-600 hover:text-red-700"
+                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-xs text-red-600 hover:text-red-700"
                     aria-label="Remove comment"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -345,4 +402,9 @@ function CommentThread({ serviceId, postId }: { serviceId: string; postId: strin
       </form>
     </div>
   );
+}
+
+/** Standalone route wrapper — keeps /services/[id]/parent-communication working. */
+export default function ParentCommunicationPage() {
+  return <ParentCommunicationPanel />;
 }

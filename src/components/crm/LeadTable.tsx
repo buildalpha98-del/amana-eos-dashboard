@@ -19,18 +19,18 @@ const stageLabels: Record<string, string> = {
 };
 
 const stageColors: Record<string, string> = {
-  new_lead: "bg-indigo-100 text-indigo-700",
-  reviewing: "bg-purple-100 text-purple-700",
-  contact_made: "bg-blue-100 text-blue-700",
-  follow_up_1: "bg-sky-100 text-sky-700",
-  follow_up_2: "bg-cyan-100 text-cyan-700",
-  meeting_booked: "bg-teal-100 text-teal-700",
-  proposal_sent: "bg-amber-100 text-amber-700",
-  submitted: "bg-orange-100 text-orange-700",
-  negotiating: "bg-red-100 text-red-700",
-  won: "bg-emerald-100 text-emerald-700",
-  lost: "bg-gray-100 text-gray-600",
-  on_hold: "bg-gray-100 text-gray-500",
+  new_lead: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300",
+  reviewing: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  contact_made: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  follow_up_1: "bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300",
+  follow_up_2: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300",
+  meeting_booked: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
+  proposal_sent: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  submitted: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  negotiating: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+  won: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  lost: "bg-surface text-muted",
+  on_hold: "bg-surface text-muted",
 };
 
 export function LeadTable({
@@ -81,8 +81,8 @@ export function LeadTable({
                   <span
                     className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                       lead.source === "tender"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-emerald-100 text-emerald-700"
+                        ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
+                        : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                     }`}
                   >
                     {lead.source}
@@ -105,10 +105,10 @@ export function LeadTable({
                     <span
                       className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         lead.aiScore >= 70
-                          ? "bg-emerald-100 text-emerald-700"
+                          ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                           : lead.aiScore >= 40
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-red-100 text-red-700"
+                            ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                            : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                       }`}
                     >
                       {lead.aiScore}

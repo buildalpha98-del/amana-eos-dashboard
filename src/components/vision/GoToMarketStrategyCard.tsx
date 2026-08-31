@@ -152,15 +152,15 @@ export function GoToMarketStrategyCard({ vto }: Props) {
       </div>
 
       {vto.marketingStrategy && vto.marketingStrategy.trim().length > 0 && (
-        <div className="border-t border-amber-200 bg-amber-50/40 px-5 py-4 space-y-2">
+        <div className="border-t border-amber-200 dark:border-amber-800 bg-amber-50/40 px-5 py-4 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-800">
+            <p className="text-2xs font-semibold uppercase tracking-wider text-amber-800">
               Legacy Marketing Strategy text
             </p>
             <button
               onClick={handleClearLegacy}
               disabled={updateVTO.isPending}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 hover:text-amber-900 disabled:opacity-50"
+              className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 hover:text-amber-900 disabled:opacity-50"
               title="Once you've moved everything into the four sub-fields above, dismiss this block"
             >
               <Trash2 className="w-3 h-3" /> Dismiss
@@ -169,7 +169,7 @@ export function GoToMarketStrategyCard({ vto }: Props) {
           <p className="text-xs text-amber-900 leading-relaxed whitespace-pre-wrap">
             {vto.marketingStrategy}
           </p>
-          <p className="text-[11px] text-amber-700/80 italic">
+          <p className="text-xs text-amber-700/80 italic">
             Copy what you need into the sub-sections above, then dismiss.
           </p>
         </div>

@@ -51,7 +51,7 @@ describe("getServiceScope — full role matrix (4b widening)", () => {
   });
 });
 
-describe("getStateScope — unchanged by 4b widening", () => {
+describe("getStateScope — retired; always null", () => {
   function sessWithState(role: string, state: string | null): Session {
     return {
       user: {
@@ -66,8 +66,12 @@ describe("getStateScope — unchanged by 4b widening", () => {
     } as unknown as Session;
   }
 
-  it("admin with state → state string", () => {
-    expect(getStateScope(sessWithState("admin", "VIC"))).toBe("VIC");
+  it("admin with a state → still null: admins see every centre", () => {
+    // Changed 2026-08-04. State scoping and centre-membership scoping
+    // were two systems, and this one silently overrode the other: an
+    // admin assigned to every centre saw one state's, while the access
+    // screen showed assignments that did nothing.
+    expect(getStateScope(sessWithState("admin", "VIC"))).toBeNull();
   });
 
   it("admin without state → null", () => {

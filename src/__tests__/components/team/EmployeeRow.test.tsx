@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -26,10 +26,12 @@ const ALICE = {
   phone: "0400000001",
   role: "staff",
   service: { id: "svc-1", name: "Mawson Lakes" },
+  additionalServices: [] as Array<{ id: string; name: string }>,
   status: "active" as const,
   tags: [] as string[],
   payrollLinked: true,
   hasActiveContract: true,
+  hrWarningsMuted: false,
 };
 
 function renderRow(props: React.ComponentProps<typeof EmployeeRow>) {
@@ -215,6 +217,63 @@ describe("EmployeeRow", () => {
       });
       expect(screen.getByTestId("payroll-warning-u-1")).toBeInTheDocument();
       expect(screen.getByTestId("contract-warning-u-1")).toBeInTheDocument();
+    });
+  });
+
+  // 2026-08-18: admin-set mute for accounts that aren't real employees
+  // (shared service-admin logins) — both badges should disappear
+  // together even though the underlying payroll/contract state is
+  // still "missing", and the action menu should offer the toggle.
+  describe("hrWarningsMuted", () => {
+    it("hides both badges when muted, even with no payroll link or contract", () => {
+      renderRow({
+        employee: {
+          ...ALICE,
+          payrollLinked: false,
+          hasActiveContract: false,
+          hrWarningsMuted: true,
+        },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      expect(screen.queryByTestId("payroll-warning-u-1")).toBeNull();
+      expect(screen.queryByTestId("contract-warning-u-1")).toBeNull();
+    });
+
+    it("offers 'Mute payroll/contract warnings' in the action menu for an admin viewer", () => {
+      renderRow({
+        employee: { ...ALICE, payrollLinked: false, hasActiveContract: false },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      fireEvent.click(screen.getByTestId("row-action-trigger"));
+      expect(screen.getByText("Mute payroll/contract warnings")).toBeInTheDocument();
+    });
+
+    it("offers 'Unmute payroll/contract warnings' once already muted", () => {
+      renderRow({
+        employee: { ...ALICE, hrWarningsMuted: true },
+        viewerRole: "admin",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      fireEvent.click(screen.getByTestId("row-action-trigger"));
+      expect(screen.getByText("Unmute payroll/contract warnings")).toBeInTheDocument();
+    });
+
+    it("does not offer the mute toggle to a non-admin viewer", () => {
+      renderRow({
+        employee: ALICE,
+        viewerRole: "member",
+        viewerId: "viewer-1",
+        listSearchString: "",
+      });
+      const trigger = screen.queryByTestId("row-action-trigger");
+      // member has no items at all besides possibly "edit" for self;
+      // this row is not self, so the whole menu should be absent.
+      expect(trigger).toBeNull();
     });
   });
 });

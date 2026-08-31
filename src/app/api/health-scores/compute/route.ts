@@ -9,6 +9,7 @@ import {
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { getOrgSettings } from "@/lib/org-settings";
+import { quarterLabel } from "@/lib/utils";
 
 export const POST = withApiHandler(async (request) => {
   // ── Auth: cron secret ──────────────────────────
@@ -25,7 +26,7 @@ export const POST = withApiHandler(async (request) => {
 
   try {
     const now = new Date();
-    const currentQuarter = `Q${Math.ceil((now.getMonth() + 1) / 3)} ${now.getFullYear()}`;
+    const currentQuarter = quarterLabel(now);
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 

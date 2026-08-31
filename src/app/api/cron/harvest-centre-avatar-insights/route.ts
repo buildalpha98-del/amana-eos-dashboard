@@ -244,3 +244,7 @@ function isUniqueViolation(err: unknown): boolean {
     (err as Prisma.PrismaClientKnownRequestError).code === "P2002"
   );
 }
+
+// Vercel Cron invokes endpoints with GET; alias so the scheduled job runs
+// (verifyCronSecret still gates it). Previously POST-only → every run 405ed.
+export const GET = POST;

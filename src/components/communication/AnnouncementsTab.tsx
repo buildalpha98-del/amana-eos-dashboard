@@ -57,7 +57,7 @@ function getPriorityConfig(priority: string) {
   switch (priority) {
     case "urgent":
       return {
-        bg: "bg-red-100",
+        bg: "bg-red-100 dark:bg-red-950/50",
         text: "text-red-700",
         border: "border-red-200",
         icon: AlertTriangle,
@@ -65,7 +65,7 @@ function getPriorityConfig(priority: string) {
       };
     case "important":
       return {
-        bg: "bg-amber-100",
+        bg: "bg-amber-100 dark:bg-amber-950/50",
         text: "text-amber-700",
         border: "border-amber-200",
         icon: AlertCircle,
@@ -299,7 +299,7 @@ export function AnnouncementsTab() {
                   )}
 
                   {/* Audience badge */}
-                  <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                  <span className="rounded-full bg-blue-50 dark:bg-blue-950/40 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
                     {getAudienceLabel(announcement.audience)}
                   </span>
 
@@ -338,7 +338,7 @@ export function AnnouncementsTab() {
                         className="h-5 w-5 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-[10px] font-medium text-white">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-2xs font-medium text-white">
                         {announcement.author?.name?.charAt(0) || "?"}
                       </div>
                     )}
@@ -389,7 +389,7 @@ export function AnnouncementsTab() {
                       <button
                         onClick={() => handleDelete(announcement.id)}
                         disabled={deleteAnnouncement.isPending}
-                        className="rounded-lg p-1.5 text-muted transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        className="rounded-lg p-1.5 text-muted transition-colors hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 disabled:opacity-50"
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -574,7 +574,7 @@ export function AnnouncementsTab() {
 
                   {/* Error */}
                   {formError && (
-                    <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                    <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-600 dark:text-red-400">
                       {formError}
                     </p>
                   )}

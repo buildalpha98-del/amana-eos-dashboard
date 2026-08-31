@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Generate a unique service code from a school name.
@@ -149,12 +150,9 @@ export async function handleLeadWon(
   // 5. Fire-and-forget notification email
   const resend = getResend();
   if (resend && lead.assignedTo?.email) {
-    const baseUrl =
-      process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const baseUrl = siteUrl();
 
-    resend.emails
-      .send({
-        from: FROM_EMAIL,
+    sendEmail({
         to: lead.assignedTo.email,
         subject: `🎉 Deal Won — ${lead.schoolName}`,
         html: `

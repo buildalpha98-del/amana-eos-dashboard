@@ -8,11 +8,13 @@ import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
 import { CandidateDetailPanel } from "@/components/recruitment/CandidateDetailPanel";
 import { useAiScreenCandidate } from "@/hooks/useRecruitment";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
   senior_educator: "Senior Educator",
   coordinator: "Coordinator",
+  member: "Coordinator",
   director: "Director",
 };
 
@@ -28,11 +30,11 @@ const STAGE_LABELS: Record<string, string> = {
 
 const STAGE_STYLES: Record<string, string> = {
   applied: "bg-surface text-foreground/80",
-  screened: "bg-blue-100 text-blue-700",
-  interviewed: "bg-amber-100 text-amber-700",
-  offered: "bg-purple-100 text-purple-700",
-  accepted: "bg-emerald-100 text-emerald-700",
-  rejected: "bg-red-100 text-red-700",
+  screened: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  interviewed: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  offered: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  accepted: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  rejected: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
   withdrawn: "bg-surface text-muted",
 };
 
@@ -82,6 +84,22 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
     onUpdated();
   };
 
+  // Toggle whether this role appears on the public careers page by adding /
+  // removing "website" from postedChannels (the PATCH API already supports it).
+  const handleWebsiteToggle = async (show: boolean) => {
+    const current: string[] = vacancy?.postedChannels ?? [];
+    const next = show
+      ? Array.from(new Set([...current, "website"]))
+      : current.filter((c: string) => c !== "website");
+    await fetch(`/api/recruitment/${vacancyId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postedChannels: next }),
+    });
+    queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
+    onUpdated();
+  };
+
   const handleAddCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!candidateForm.name) return;
@@ -115,20 +133,15 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File must be under 10 MB");
-      return;
-    }
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      setCandidateForm((prev) => ({ ...prev, resumeFileUrl: data.url }));
-    } catch {
-      alert("Failed to upload file");
+      // Was reading `data.url`, but the upload route returns `fileUrl` — the
+      // resume URL was silently stored as undefined. uploadFileSmart also
+      // enforces the size cap, so the old pre-check is gone.
+      const { fileUrl } = await uploadFileSmart(file);
+      setCandidateForm((prev) => ({ ...prev, resumeFileUrl: fileUrl }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
       setUploading(false);
     }
@@ -187,6 +200,23 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
             </div>
           </div>
 
+          {/* Website publishing */}
+          <label className="flex items-start gap-3 rounded-lg border border-border bg-surface/40 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={(vacancy.postedChannels ?? []).includes("website")}
+              onChange={(e) => handleWebsiteToggle(e.target.checked)}
+              className="mt-0.5 h-4 w-4"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-foreground/90">Show on public careers page</span>
+              <span className="block text-xs text-muted mt-0.5">
+                Lists this role at amanaoshc.com.au/careers with an apply link, while
+                status is &ldquo;open&rdquo;. The Notes below become the public job ad.
+              </span>
+            </span>
+          </label>
+
           {/* Details */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -228,7 +258,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
               criteria to the interview panel. Linked at vacancy
               creation; null for legacy vacancies. */}
           {vacancy.positionDescription && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4 space-y-3">
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-blue-900 flex items-center gap-1.5">
                   Position Description ·{" "}
@@ -391,7 +421,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
 
             {/* AI Screening Results */}
             {screenResults && (
-              <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 mb-4">
+              <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-purple-700 flex items-center gap-1">
                     <Sparkles className="h-3.5 w-3.5" /> AI Screening Results

@@ -25,19 +25,19 @@ import { cn } from "@/lib/utils";
 const roleBadge: Record<string, { label: string; className: string }> = {
   owner: {
     label: ROLE_DISPLAY_NAMES.owner,
-    className: "bg-amber-100 text-amber-800",
+    className: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200",
   },
   head_office: {
     label: ROLE_DISPLAY_NAMES.head_office,
-    className: "bg-teal-100 text-teal-800",
+    className: "bg-teal-100 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200",
   },
   admin: {
     label: ROLE_DISPLAY_NAMES.admin,
-    className: "bg-indigo-100 text-indigo-800",
+    className: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-200",
   },
   marketing: {
     label: ROLE_DISPLAY_NAMES.marketing,
-    className: "bg-pink-100 text-pink-800",
+    className: "bg-pink-100 dark:bg-pink-950/50 text-pink-800 dark:text-pink-200",
   },
   member: {
     label: ROLE_DISPLAY_NAMES.member,
@@ -45,7 +45,7 @@ const roleBadge: Record<string, { label: string; className: string }> = {
   },
   staff: {
     label: ROLE_DISPLAY_NAMES.staff,
-    className: "bg-blue-100 text-blue-800",
+    className: "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200",
   },
 };
 
@@ -185,7 +185,7 @@ function PerformanceRow({ member }: { member: TeamMember }) {
       </td>
       <td className="hidden md:table-cell px-4 py-3 text-center">
         {member.openIssues > 0 ? (
-          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300">
             {member.openIssues}
           </span>
         ) : (

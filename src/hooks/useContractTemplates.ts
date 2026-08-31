@@ -62,7 +62,10 @@ export function useContractTemplate(id: string | null) {
     queryFn: () => fetchApi<ContractTemplateData>(`/api/contract-templates/${id}`),
     enabled: !!id,
     retry: 2,
-    staleTime: 30_000,
+    // 2026-07-27: always refetch when the Issue-Contract wizard reads a
+    // template so a just-saved edit (or "Seed defaults" overwrite) shows
+    // up immediately rather than after 30s.
+    staleTime: 0,
   });
 }
 
@@ -218,6 +221,10 @@ export type IssueFromTemplatePayload = {
    *  adminSignedById on the contract row. Optional during the rollout
    *  but the UI requires it. */
   adminSignatureDataUrl?: string;
+  /** 2026-07-13: when true, the endpoint supersedes any active contract
+   *  the staff member already holds AND prepends a plain-language
+   *  supersede notice to the rendered PDF. */
+  supersedeExisting?: boolean;
 };
 
 export function useIssueFromTemplate() {
@@ -231,10 +238,13 @@ export function useIssueFromTemplate() {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["contracts"] });
       if (data.emailFailed === true) {
+        // Destructive on purpose (2026-08-07): this half-success is easy
+        // to miss with a neutral toast, and a missed email reads later as
+        // "the contract was never sent".
         toast({
-          variant: "default",
+          variant: "destructive",
           description:
-            "Contract created but email to staff failed. Use the resend button.",
+            "Contract created but the email to staff FAILED — it has not been sent. Use the resend button on the contract.",
         });
       } else {
         toast({ description: "Contract issued and emailed." });

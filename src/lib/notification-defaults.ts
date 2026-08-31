@@ -48,7 +48,6 @@ export function getDefaultNotificationPrefs(role: string): NotificationPrefs {
       return { ...ALL_ON };
 
     case "member":
-    case "member":
       return {
         overdueTodos: true,
         newAssignments: true,

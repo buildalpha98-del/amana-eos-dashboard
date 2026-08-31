@@ -402,7 +402,7 @@ function BulletListRow({
             placeholder={`One per line:\n${placeholder}`}
             className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none font-mono"
           />
-          <p className="text-[11px] text-muted">
+          <p className="text-xs text-muted">
             One bullet per line. Blank lines are ignored.
           </p>
           <div className="flex items-center gap-2">
@@ -478,7 +478,7 @@ function GoalsList({ goals, vtoId }: { goals: OneYearGoal[]; vtoId: string }) {
         </div>
         <div className="flex items-center gap-3">
           <span
-            className="text-[11px] uppercase tracking-wider text-muted font-semibold"
+            className="text-2xs uppercase tracking-wider text-muted font-semibold"
             title="Specific · Measurable · Achievable · Relevant · Time-bound"
           >
             S.M.A.R.T.

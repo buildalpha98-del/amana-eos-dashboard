@@ -22,29 +22,29 @@ const priorityConfig = {
     label: "Critical",
     icon: AlertCircle,
     color: "text-red-600",
-    bg: "bg-red-50 border-red-200",
-    badge: "bg-red-100 text-red-700",
+    bg: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800",
+    badge: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
   },
   high: {
     label: "High",
     icon: ArrowUp,
     color: "text-orange-600",
-    bg: "bg-orange-50 border-orange-200",
-    badge: "bg-orange-100 text-orange-700",
+    bg: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800",
+    badge: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
   },
   medium: {
     label: "Medium",
     icon: Minus,
     color: "text-yellow-600",
     bg: "bg-card border-border",
-    badge: "bg-yellow-100 text-yellow-700",
+    badge: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300",
   },
   low: {
     label: "Low",
     icon: ArrowDown,
     color: "text-blue-600",
     bg: "bg-card border-border",
-    badge: "bg-blue-100 text-blue-700",
+    badge: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
   },
 };
 
@@ -53,19 +53,19 @@ const statusConfig = {
     label: "Identify",
     icon: AlertTriangle,
     color: "text-amber-600",
-    bg: "bg-amber-50",
+    bg: "bg-amber-50 dark:bg-amber-950/40",
   },
   in_discussion: {
     label: "Discuss",
     icon: MessageSquare,
     color: "text-blue-600",
-    bg: "bg-blue-50",
+    bg: "bg-blue-50 dark:bg-blue-950/40",
   },
   solved: {
     label: "Solve",
     icon: CheckCircle2,
     color: "text-emerald-600",
-    bg: "bg-emerald-50",
+    bg: "bg-emerald-50 dark:bg-emerald-950/40",
   },
   closed: {
     label: "Closed",
@@ -184,9 +184,9 @@ export function IssueCard({
                 className={cn(
                   "inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full",
                   daysOpen >= 14
-                    ? "bg-red-100 text-red-700"
+                    ? "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                     : daysOpen >= 7
-                    ? "bg-amber-100 text-amber-700"
+                    ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                     : "bg-surface text-muted"
                 )}
               >

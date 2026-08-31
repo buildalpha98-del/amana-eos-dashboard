@@ -24,6 +24,8 @@ export interface LMSCourseData {
   category: string | null;
   thumbnail: string | null;
   status: "draft" | "published" | "archived";
+  /** Optional: some payloads (e.g. nested course on enrollments) may omit it */
+  track?: "essential" | "monthly" | "library";
   isRequired: boolean;
   serviceId: string | null;
   service: { id: string; name: string; code: string } | null;
@@ -54,6 +56,28 @@ export interface LMSEnrollmentData {
   score: number | null;
   user: { id: string; name: string; email: string; avatar: string | null };
   moduleProgress: LMSModuleProgressData[];
+}
+
+// Server types are the single source of truth — `import type` is erased at
+// compile time, so no server code reaches the client bundle (same idiom as
+// useCockpit / useBoardReports).
+import type { TrainingComplianceReport } from "@/lib/training-compliance";
+
+export type {
+  ComplianceCourseRow,
+  ComplianceUserRow,
+  TrainingComplianceReport,
+} from "@/lib/training-compliance";
+
+/** Admin "who's behind on required training" report. Admin roles only. */
+export function useTrainingCompliance(enabled = true) {
+  return useQuery<TrainingComplianceReport>({
+    staleTime: 60_000,
+    queryKey: ["lms-compliance"],
+    queryFn: () => fetchApi<TrainingComplianceReport>("/api/lms/compliance"),
+    retry: 2,
+    enabled,
+  });
 }
 
 export function useLMSCourses(status?: string, serviceId?: string) {

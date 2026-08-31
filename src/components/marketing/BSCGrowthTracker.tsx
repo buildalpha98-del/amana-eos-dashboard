@@ -99,7 +99,7 @@ export function BSCGrowthTracker({ serviceId }: { serviceId?: string }) {
 
       {/* Zero BSC alert */}
       {zeroCentres.length > 0 && (
-        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
           <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="text-xs text-amber-700">
             <span className="font-medium">{zeroCentres.length} centres</span> have zero BSC

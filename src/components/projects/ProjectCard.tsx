@@ -11,10 +11,10 @@ import type { ProjectSummary } from "@/hooks/useProjects";
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   not_started: { label: "Not Started", color: "text-muted", bg: "bg-surface" },
-  in_progress: { label: "In Progress", color: "text-blue-700", bg: "bg-blue-100" },
-  complete: { label: "Complete", color: "text-emerald-700", bg: "bg-emerald-100" },
-  on_hold: { label: "On Hold", color: "text-amber-700", bg: "bg-amber-100" },
-  cancelled: { label: "Cancelled", color: "text-red-700", bg: "bg-red-100" },
+  in_progress: { label: "In Progress", color: "text-blue-700", bg: "bg-blue-100 dark:bg-blue-950/50" },
+  complete: { label: "Complete", color: "text-emerald-700", bg: "bg-emerald-100 dark:bg-emerald-950/50" },
+  on_hold: { label: "On Hold", color: "text-amber-700", bg: "bg-amber-100 dark:bg-amber-950/50" },
+  cancelled: { label: "Cancelled", color: "text-red-700", bg: "bg-red-100 dark:bg-red-950/50" },
 };
 
 export function ProjectCard({
@@ -39,7 +39,7 @@ export function ProjectCard({
             </h3>
             <span
               className={cn(
-                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium",
+                "inline-flex px-2 py-0.5 rounded-full text-2xs font-medium",
                 status.bg,
                 status.color
               )}
@@ -110,7 +110,7 @@ export function ProjectCard({
       </div>
 
       {project.template && (
-        <p className="text-[10px] text-muted mt-2">
+        <p className="text-2xs text-muted mt-2">
           Template: {project.template.name}
         </p>
       )}

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { complianceAlertEmail } from "@/lib/email-templates";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { resolveNudgeRecipients } from "@/lib/notification-recipients";
 
 /**
  * GET /api/cron/compliance-alerts
@@ -97,24 +98,23 @@ export const GET = withApiHandler(async (req) => {
       // personal certs have a null serviceId — there are no service
       // coordinators to CC in that case, so the CC list is just empty.
       let coordinatorEmails: string[];
+      // 2026-07-24: nudge policy — no direct email to the cert owner or
+      // service coordinator role. Recipients are the service's shared
+      // inbox + leadership + opted-in users. In-app notification for the
+      // cert.user is still created below so they see it in the bell.
       if (cert.serviceId) {
         const cached = coordinatorCache.get(cert.serviceId);
         if (cached) {
           coordinatorEmails = cached;
         } else {
-          const coordinators = await prisma.user.findMany({
-            where: {
-              role: "member",
-              serviceId: cert.serviceId,
-              active: true,
-            },
-            select: { email: true },
-          });
-          coordinatorEmails = coordinators.map((c) => c.email);
+          const r = await resolveNudgeRecipients(cert.serviceId);
+          coordinatorEmails = r.emails;
           coordinatorCache.set(cert.serviceId, coordinatorEmails);
         }
       } else {
-        coordinatorEmails = [];
+        // Personal cert (no service) — go to leadership + opted-in only.
+        const r = await resolveNudgeRecipients(null);
+        coordinatorEmails = r.emails;
       }
 
       const expiryDateStr = cert.expiryDate.toLocaleDateString("en-AU", {
@@ -133,7 +133,27 @@ export const GET = withApiHandler(async (req) => {
       // dedup row so the cron is usable in dev without email.
       if (resend) {
         try {
-          const toList = [cert.user.email, ...coordinatorEmails.filter((e) => e !== cert.user!.email)];
+          // 2026-07-24: individual cert owner NO LONGER receives this
+          // email directly — recipients are service inbox + leadership +
+          // opted-in (already merged into coordinatorEmails above).
+          const toList = coordinatorEmails;
+          if (toList.length === 0) {
+            // Nothing to send to — still create the in-app notif so the
+            // bell surfaces it, but skip the email + dedup insert.
+            try {
+              await prisma.userNotification.create({
+                data: {
+                  userId: cert.user.id,
+                  type: notifType,
+                  title,
+                  body,
+                  link: `/staff/${cert.user.id}?tab=compliance`,
+                },
+              });
+              notificationsCreated++;
+            } catch {}
+            continue;
+          }
           const { subject, html } = complianceAlertEmail(cert.user.name, [
             {
               type: typeLabel,
@@ -145,8 +165,7 @@ export const GET = withApiHandler(async (req) => {
               urgency,
             },
           ]);
-          await resend.emails.send({
-            from: FROM_EMAIL,
+          await sendEmail({
             to: toList,
             subject,
             html,
@@ -267,27 +286,22 @@ export const GET = withApiHandler(async (req) => {
           expiryStr,
         );
 
-        // Coordinator CC list — reuse cert cache scoped by service.
+        // 2026-07-24: recipients under the new nudge policy — service inbox
+        // + leadership + opted-in. The visa holder does NOT receive the
+        // email directly; the in-app notification below still fires.
         const svcKey = u.service?.id ?? "_no_service";
         let coordinatorEmails = coordinatorCache.get(svcKey);
-        if (!coordinatorEmails && u.service?.id) {
-          const coordinators = await prisma.user.findMany({
-            where: { role: "member", serviceId: u.service.id, active: true },
-            select: { email: true },
-          });
-          coordinatorEmails = coordinators.map((c) => c.email);
+        if (!coordinatorEmails) {
+          const r = await resolveNudgeRecipients(u.service?.id ?? null);
+          coordinatorEmails = r.emails;
           coordinatorCache.set(svcKey, coordinatorEmails);
         }
 
         // Send email (in-app notification regardless, like cert flow).
-        if (resend) {
+        if (resend && coordinatorEmails.length > 0) {
           try {
-            const toList = [
-              u.email,
-              ...(coordinatorEmails ?? []).filter((e) => e !== u.email),
-            ];
-            await resend.emails.send({
-              from: FROM_EMAIL,
+            const toList = coordinatorEmails;
+            await sendEmail({
               to: toList,
               subject: title,
               html: `<p>${body}</p><p>Update or renew the visa record in the staff profile under the Personal tab. If the visa has expired, the staff member <strong>must not be rostered</strong> until renewed.</p>`,

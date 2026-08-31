@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import type { SessionType } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
+import { requireRoomId } from "@/lib/room-resolver";
 
 const COLUMN_MAP: Record<string, string[]> = {
   centre: ["centre", "center", "service", "site", "location", "service name", "centre name"],
@@ -208,6 +209,10 @@ const formData = await req.formData();
         },
         create: {
           ...row,
+          // Stage 1 dual key. `row` is spread wholesale, so this has to
+          // come after it — otherwise a future column named roomId on
+          // the row would silently win.
+          roomId: await requireRoomId(row.serviceId, row.sessionType),
           recordedById: session!.user.id,
         },
       });

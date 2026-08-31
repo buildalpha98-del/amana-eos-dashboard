@@ -29,18 +29,36 @@ export default function MeetingsPage() {
     setShowStartDialog(true);
   };
 
-  const handleConfirmStart = async (serviceIds: string[], attendeeIds: string[]) => {
+  const handleConfirmStart = async (
+    serviceIds: string[],
+    attendeeIds: string[],
+    isLeadership: boolean,
+    scorecardId: string | null,
+    scheduledFor: string | null,
+  ) => {
     const now = new Date();
-    const title = `L10 Meeting — ${formatDateAU(now)}`;
+    // 2026-07-28: title reflects the meeting type so the list is scannable.
+    // Scheduled meetings are titled by their scheduled date, not today.
+    const titleDate = scheduledFor ? new Date(scheduledFor) : now;
+    const title = isLeadership
+      ? `Leadership L10 — ${formatDateAU(titleDate)}`
+      : `L10 Meeting — ${formatDateAU(titleDate)}`;
     try {
       const newMeeting = await createMeeting.mutateAsync({
         title,
         date: now.toISOString(),
         serviceIds,
         attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
+        isLeadership,
+        scorecardId,
+        ...(scheduledFor ? { scheduledFor } : {}),
       });
       setShowStartDialog(false);
-      setActiveMeetingId(newMeeting.id);
+      // Scheduled meetings stay on the list (nothing to run yet);
+      // start-now opens the meeting runner immediately.
+      if (!scheduledFor) {
+        setActiveMeetingId(newMeeting.id);
+      }
     } catch {
       // Error handled by mutation
     }
@@ -71,10 +89,26 @@ export default function MeetingsPage() {
   }
 
   if (activeMeeting) {
+    // Previous completed meeting of the same kind (leadership flag +
+    // overlapping service scope; both empty counts as overlap) — feeds
+    // the To-Do Review "from last meeting" carry-over badge.
+    const lastMeeting = (meetings ?? [])
+      .filter(
+        (m) =>
+          m.status === "completed" &&
+          m.id !== activeMeeting.id &&
+          m.isLeadership === activeMeeting.isLeadership &&
+          (activeMeeting.serviceIds.length === 0
+            ? m.serviceIds.length === 0
+            : m.serviceIds.some((s) => activeMeeting.serviceIds.includes(s))),
+      )
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
     return (
       <ActiveMeetingView
         meeting={activeMeeting}
         onBack={() => setActiveMeetingId(null)}
+        lastMeetingId={lastMeeting?.id ?? null}
       />
     );
   }

@@ -79,12 +79,12 @@ export default async function ChildProfileLayout({ children, params }: LayoutPro
                   </h1>
                   {child.status && (
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium ${
                         child.status === "active"
-                          ? "bg-green-50 text-green-700"
+                          ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300"
                           : child.status === "withdrawn"
-                            ? "bg-red-50 text-red-700"
-                            : "bg-amber-50 text-amber-700"
+                            ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300"
+                            : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
                       }`}
                     >
                       {child.status}

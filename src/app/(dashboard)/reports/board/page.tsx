@@ -38,8 +38,8 @@ const MONTHS = [
 function StatusBadge({ status }: { status: "draft" | "final" | "sent" }) {
   const config = {
     draft: { label: "Draft", bg: "bg-surface", text: "text-muted" },
-    final: { label: "Final", bg: "bg-blue-50", text: "text-blue-700" },
-    sent: { label: "Sent", bg: "bg-green-50", text: "text-green-700" },
+    final: { label: "Final", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700" },
+    sent: { label: "Sent", bg: "bg-green-50 dark:bg-green-950/40", text: "text-green-700" },
   }[status];
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
@@ -198,7 +198,7 @@ export default function BoardReportsPage() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="text-xl font-bold text-foreground">{monthLabel} Board Report</h2>
+              <h2 className="text-xl font-heading font-semibold tracking-tight text-foreground">{monthLabel} Board Report</h2>
               <div className="flex items-center gap-2 mt-1">
                 <StatusBadge status={report.status as "draft" | "final" | "sent"} />
                 <span className="text-xs text-muted">
@@ -211,7 +211,7 @@ export default function BoardReportsPage() {
             <button
               onClick={handleAiGenerateAll}
               disabled={aiGeneratingAll}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/50 disabled:opacity-50"
             >
               {aiGeneratingAll ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -395,11 +395,11 @@ export default function BoardReportsPage() {
               <p className="text-lg font-bold text-foreground/80 tabular-nums">{d.compliance.totalCerts}</p>
               <p className="text-xs text-muted">Total</p>
             </div>
-            <div className="text-center p-3 bg-amber-50 rounded-lg">
+            <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/40 rounded-lg">
               <p className="text-lg font-bold text-amber-600 tabular-nums">{d.compliance.expiringSoon}</p>
               <p className="text-xs text-muted">Expiring Soon</p>
             </div>
-            <div className="text-center p-3 bg-red-50 rounded-lg">
+            <div className="text-center p-3 bg-red-50 dark:bg-red-950/40 rounded-lg">
               <p className="text-lg font-bold text-red-600 tabular-nums">{d.compliance.expired}</p>
               <p className="text-xs text-muted">Expired</p>
             </div>
@@ -420,15 +420,15 @@ export default function BoardReportsPage() {
               <p className="text-lg font-bold text-foreground/80 tabular-nums">{d.growth.totalLeads}</p>
               <p className="text-xs text-muted">Total Leads</p>
             </div>
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
+            <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/40 rounded-lg">
               <p className="text-lg font-bold text-blue-600 tabular-nums">{d.growth.newThisMonth}</p>
               <p className="text-xs text-muted">New</p>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="text-center p-3 bg-green-50 dark:bg-green-950/40 rounded-lg">
               <p className="text-lg font-bold text-green-600 tabular-nums">{d.growth.wonThisMonth}</p>
               <p className="text-xs text-muted">Won</p>
             </div>
-            <div className="text-center p-3 bg-red-50 rounded-lg">
+            <div className="text-center p-3 bg-red-50 dark:bg-red-950/40 rounded-lg">
               <p className="text-lg font-bold text-red-600 tabular-nums">{d.growth.lostThisMonth}</p>
               <p className="text-xs text-muted">Lost</p>
             </div>
@@ -479,15 +479,15 @@ export default function BoardReportsPage() {
           {d.rocks.rockList.length > 0 ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                <div className="text-center p-2 bg-green-50 rounded-lg">
+                <div className="text-center p-2 bg-green-50 dark:bg-green-950/40 rounded-lg">
                   <p className="text-lg font-bold text-green-600 tabular-nums">{d.rocks.onTrack}</p>
                   <p className="text-xs text-muted">On Track</p>
                 </div>
-                <div className="text-center p-2 bg-red-50 rounded-lg">
+                <div className="text-center p-2 bg-red-50 dark:bg-red-950/40 rounded-lg">
                   <p className="text-lg font-bold text-red-600 tabular-nums">{d.rocks.offTrack}</p>
                   <p className="text-xs text-muted">Off Track</p>
                 </div>
-                <div className="text-center p-2 bg-blue-50 rounded-lg">
+                <div className="text-center p-2 bg-blue-50 dark:bg-blue-950/40 rounded-lg">
                   <p className="text-lg font-bold text-blue-600 tabular-nums">{d.rocks.complete}</p>
                   <p className="text-xs text-muted">Complete</p>
                 </div>
@@ -545,7 +545,7 @@ export default function BoardReportsPage() {
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Board Reports</h2>
+              <h2 className="text-xl font-heading font-semibold tracking-tight text-foreground">Board Reports</h2>
               <p className="text-sm text-muted mt-0.5">
                 Monthly board & investor report generator
               </p>
@@ -573,7 +573,7 @@ export default function BoardReportsPage() {
             <FileSpreadsheet className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Board Reports</h2>
+            <h2 className="text-xl font-heading font-semibold tracking-tight text-foreground">Board Reports</h2>
             <p className="text-sm text-muted mt-0.5">
               Monthly board & investor report generator
             </p>

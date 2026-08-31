@@ -3,9 +3,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, ArrowRight, ArrowLeft, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useQuery } from "@tanstack/react-query";
 import {
   useContractTemplates,
+  useContractTemplate,
   usePreviewContractTemplate,
   useIssueFromTemplate,
 } from "@/hooks/useContractTemplates";
@@ -26,7 +28,24 @@ import {
   AWARD_LEVEL_LABELS,
 } from "./constants";
 
-type Step = 1 | 2 | 3 | 4 | 5;
+/**
+ * 2026-07-27: wizard reordered so contract details are captured BEFORE
+ * any document preview is rendered.
+ *
+ * The old order was: pick → preview → custom fields → contract details →
+ * final preview. That meant the first preview had no contract.* values to
+ * work with, so the API fell back to SAMPLE_RESOLVED_AUTO and rendered
+ * placeholder figures (38 hours, sample pay rate). Daniel repeatedly read
+ * that as "the wrong template is loading", and separately couldn't find
+ * the hours-per-week field because it sat two steps later.
+ *
+ * New order — every preview the admin sees now uses real data:
+ *   1. Choose template & staff
+ *   2. Contract details (type, pay rate, min hours, dates, position)
+ *   3. Custom fields (auto-skipped when the template has no custom.* tags)
+ *   4. Review & sign (tag checks + document preview + signature + issue)
+ */
+type Step = 1 | 2 | 3 | 4;
 
 type ContractMetaState = {
   contractType: "ct_casual" | "ct_part_time" | "ct_permanent" | "ct_fixed_term";
@@ -77,6 +96,13 @@ export function IssueFromTemplateModal({
   const [adminSignatureDataUrl, setAdminSignatureDataUrl] = useState<
     string | null
   >(null);
+  /** 2026-07-13: "Replace previous contract" checkbox on Step 4. When
+   *  true AND the selected staff member has an active/draft contract,
+   *  the endpoint supersedes it and adds a "this supersedes any prior
+   *  agreement" notice to the rendered PDF. Defaults to true whenever
+   *  we detect an existing active contract (Daniel's FT→Casual flow),
+   *  and stays false when the user has none. */
+  const [supersedeExisting, setSupersedeExisting] = useState<boolean>(false);
 
   const { data: templates = [] } = useContractTemplates({ status: "active" });
   const { data: users = [] } = useQuery<UserOption[]>({
@@ -86,12 +112,34 @@ export function IssueFromTemplateModal({
     staleTime: 60_000,
   });
 
+  // Query the selected staff member's existing contracts so we can
+  // conditionally show the "Replace previous contract" checkbox. Only
+  // active/draft contracts count as "replaceable" — superseded/terminated
+  // ones are historical and irrelevant.
+  const { data: existingActiveContracts = [] } = useQuery<
+    Array<{ id: string; contractType: string; startDate: string }>
+  >({
+    queryKey: ["contracts", "active-for-user", userId],
+    queryFn: () =>
+      fetchApi<Array<{ id: string; contractType: string; startDate: string }>>(
+        `/api/contracts?userId=${userId}&status=active`,
+      ),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+  const hasExistingActive = existingActiveContracts.length > 0;
+
   const previewMut = usePreviewContractTemplate();
   const issueMut = useIssueFromTemplate();
 
+  // 2026-07-27: fetch the selected template FRESH from the DB rather than
+  // reading it out of the (30s-cached) list. Ensures a template edit in
+  // the Templates tab or a "Seed defaults" overwrite shows up immediately
+  // in the Issue-Contract preview instead of after the cache expires.
+  const { data: freshTemplate } = useContractTemplate(templateId || null);
   const selectedTemplate = useMemo(
-    () => templates.find((t) => t.id === templateId),
-    [templates, templateId],
+    () => freshTemplate ?? templates.find((t) => t.id === templateId),
+    [freshTemplate, templates, templateId],
   );
 
   /**
@@ -127,50 +175,35 @@ export function IssueFromTemplateModal({
 
   // Reset downstream state when the template changes so values from a previously
   // selected template (award level, manual fields, etc.) don't leak across.
+  // Seed manualValues from any built-in defaults on the derived custom fields
+  // so common values (probation months, pay frequency, etc.) are pre-filled
+  // and the author only edits what's non-standard.
   useEffect(() => {
     setContractMeta(INITIAL_CONTRACT_META);
-    setManualValues({});
+    setManualValues(
+      Object.fromEntries(
+        customFields.map((f) => [f.key, f.default ?? ""]),
+      ),
+    );
     setPreviewData(null);
+    // customFields is derived from templateId — safe to depend on templateId
+    // alone; including customFields would loop on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
 
-  // Step 2: auto-resolve preview (no manualValues yet, with userId)
+  // 2026-07-13: default the "Replace previous contract" checkbox on/off
+  // based on whether the selected staff member has an active contract.
+  // Runs whenever userId (or the query result) changes — the admin can
+  // still override by clicking the checkbox before submitting.
   useEffect(() => {
-    if (step !== 2 || !templateId || !userId) return;
-    let cancelled = false;
-    previewMut
-      .mutateAsync({
-        id: templateId,
-        userId,
-        contractMeta: contractMeta.startDate
-          ? {
-              contractType: contractMeta.contractType,
-              awardLevel: contractMeta.awardLevel,
-              awardLevelCustom: contractMeta.awardLevelCustom,
-              payRate: contractMeta.payRate ? Number(contractMeta.payRate) : undefined,
-              hoursPerWeek: contractMeta.hoursPerWeek
-                ? Number(contractMeta.hoursPerWeek)
-                : null,
-              startDate: contractMeta.startDate,
-              endDate: contractMeta.endDate || null,
-              position: contractMeta.position || undefined,
-            }
-          : undefined,
-      })
-      .then((res) => {
-        if (!cancelled) setPreviewData(res);
-      })
-      .catch(() => {
-        if (!cancelled) setPreviewData(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, templateId, userId]);
+    setSupersedeExisting(hasExistingActive);
+  }, [hasExistingActive]);
 
-  // Step 5: final preview with all merged data
+  // Step 4: the single preview, rendered from fully-entered data —
+  // contract meta (step 2) and custom fields (step 3) are both populated
+  // by the time we get here, so no sample-value fallback is ever used.
   useEffect(() => {
-    if (step !== 5 || !templateId || !userId) return;
+    if (step !== 4 || !templateId || !userId) return;
     let cancelled = false;
     previewMut
       .mutateAsync({
@@ -270,6 +303,7 @@ export function IssueFromTemplateModal({
         },
         manualValues,
         adminSignatureDataUrl,
+        supersedeExisting,
       });
       onClose();
     } catch {
@@ -277,22 +311,31 @@ export function IssueFromTemplateModal({
     }
   };
 
-  // Step 2 next-button disabled logic: block if staff.* tags are still missing.
+  // Blocks the final Issue button when the staff profile is missing fields
+  // the template references (e.g. staff.address). Surfaced with a
+  // "Fix on staff profile" link inside the review step.
   const hasBlockingMissingTags = Boolean(
     previewData?.missingTags.some((t) => t.startsWith("staff.")),
   );
 
+  // Step 2 (contract details) gate — these three are what the issue API
+  // requires: a positive pay rate, a start date, and a position title.
+  const contractDetailsComplete = Boolean(
+    contractMeta.payRate &&
+      Number(contractMeta.payRate) > 0 &&
+      contractMeta.startDate &&
+      contractMeta.position.trim(),
+  );
+
   const getStepLabel = (s: Step): string => {
     const hasCustom = customFields.length > 0;
-    const total = hasCustom ? 5 : 4;
+    const total = hasCustom ? 4 : 3;
     const labels = hasCustom
-      ? ["Choose template & staff", "Review resolved tags", "Fill custom fields", "Contract details", "Final preview"]
-      : ["Choose template & staff", "Review resolved tags", "Contract details", "Final preview"];
-    // Internal step is 1,2,3,4,5 when custom fields exist; 1,2,_,4,5 when they don't.
-    // Remap to displayed step number so users see a contiguous "Step X of N".
-    const displayIdx = hasCustom
-      ? s - 1
-      : s === 1 ? 0 : s === 2 ? 1 : s === 4 ? 2 : 3;
+      ? ["Choose template & staff", "Contract details", "Fill custom fields", "Review & sign"]
+      : ["Choose template & staff", "Contract details", "Review & sign"];
+    // Internal step is 1,2,3,4 when custom fields exist; 1,2,_,4 when they
+    // don't. Remap so users always see a contiguous "Step X of N".
+    const displayIdx = hasCustom ? s - 1 : s === 1 ? 0 : s === 2 ? 1 : 2;
     return `Step ${displayIdx + 1} of ${total} — ${labels[displayIdx] ?? ""}`;
   };
 
@@ -347,12 +390,55 @@ export function IssueFromTemplateModal({
             />
           )}
           {step === 2 && (
-            <Step2
-              previewData={previewData}
-              loading={previewMut.isPending}
-              userId={userId}
-              customFieldKeys={customFieldKeys}
-            />
+            <>
+              <TemplateBanner template={selectedTemplate} />
+              <Step4 meta={contractMeta} setMeta={setContractMeta} />
+              {hasExistingActive && (
+                <div className="mt-5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={supersedeExisting}
+                      onChange={(e) => setSupersedeExisting(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="flex-1 text-sm">
+                      <span className="font-medium text-amber-900 dark:text-amber-100">
+                        Replace previous contract
+                      </span>
+                      <span className="block mt-1 text-xs text-amber-800 dark:text-amber-200">
+                        {contractMeta.startDate ? (
+                          <>
+                            From{" "}
+                            <strong>
+                              {new Date(contractMeta.startDate).toLocaleDateString(
+                                "en-AU",
+                                { day: "numeric", month: "long", year: "numeric" },
+                              )}
+                            </strong>
+                            , this contract will supersede and replace any
+                            prior employment agreement between the staff
+                            member and Amana OSHC. A notice will be added to
+                            the top of the printed contract explaining this.
+                          </>
+                        ) : (
+                          <>
+                            This will supersede any prior employment
+                            agreement effective from the contract start
+                            date. A notice will be added to the top of the
+                            printed contract explaining this.
+                          </>
+                        )}
+                      </span>
+                      <span className="block mt-1 text-xs text-amber-700/80 dark:text-amber-300/80">
+                        Leave unchecked to keep the existing contract active
+                        alongside this one.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              )}
+            </>
           )}
           {step === 3 && (
             <Step3
@@ -362,17 +448,30 @@ export function IssueFromTemplateModal({
             />
           )}
           {step === 4 && (
-            <Step4 meta={contractMeta} setMeta={setContractMeta} />
-          )}
-          {step === 5 && (
-            <Step5
-              previewData={previewData}
-              loading={previewMut.isPending}
-              submissionError={submissionError}
-              adminSignatureDataUrl={adminSignatureDataUrl}
-              onAdminSignatureChange={setAdminSignatureDataUrl}
-              disabled={issueMut.isPending}
-            />
+            <>
+              <TemplateBanner template={selectedTemplate} />
+              {/* Tag-resolution checks (missing staff.* fields, orphan
+                  tags, resolved-profile summary). Its own document
+                  preview is suppressed — Step5 below renders the single
+                  authoritative preview from the same data. */}
+              <Step2
+                previewData={previewData}
+                loading={previewMut.isPending}
+                userId={userId}
+                customFieldKeys={customFieldKeys}
+                hidePreview
+              />
+              <div className="mt-4">
+                <Step5
+                  previewData={previewData}
+                  loading={previewMut.isPending}
+                  submissionError={submissionError}
+                  adminSignatureDataUrl={adminSignatureDataUrl}
+                  onAdminSignatureChange={setAdminSignatureDataUrl}
+                  disabled={issueMut.isPending}
+                />
+              </div>
+            </>
           )}
         </div>
 
@@ -387,39 +486,83 @@ export function IssueFromTemplateModal({
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
 
-          {step < 5 ? (
-            <button
+          {step < 4 ? (
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={handleNext}
               disabled={
                 (step === 1 && (!templateId || !userId)) ||
-                (step === 2 && (!previewData || hasBlockingMissingTags)) ||
+                (step === 2 && !contractDetailsComplete) ||
                 (step === 3 && !allCustomFieldsFilled)
               }
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              iconRight={<ArrowRight className="w-4 h-4" />}
             >
-              Next <ArrowRight className="w-4 h-4" />
-            </button>
+              Next
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={handleIssue}
-              disabled={issueMut.isPending || !adminSignatureDataUrl}
+              // 2026-07-27: the missing-staff-fields gate moved here from
+              // the old step 2 now that tag resolution and signing share
+              // one step.
+              disabled={!adminSignatureDataUrl || hasBlockingMissingTags}
+              loading={issueMut.isPending}
               title={
-                !adminSignatureDataUrl
-                  ? "Sign the contract first using the signature pad below."
-                  : undefined
+                hasBlockingMissingTags
+                  ? "Fix the missing staff profile fields listed above before issuing."
+                  : !adminSignatureDataUrl
+                    ? "Sign the contract first using the signature pad below."
+                    : undefined
               }
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {issueMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {issueMut.isPending ? "Issuing…" : "Sign & Issue"}
-            </button>
+            </Button>
           )}
         </footer>
       </div>
     </div>,
     document.body,
+  );
+}
+
+/**
+ * Shows which template is loaded, with a click-through to its editor.
+ * Rendered on both the contract-details and review steps so it's never
+ * ambiguous which template the wizard is working from.
+ */
+function TemplateBanner({
+  template,
+}: {
+  template?: { id: string; name: string } | null;
+}) {
+  if (!template) return null;
+  return (
+    <div className="mb-4 rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="text-muted">Using template</div>
+        <div className="text-sm font-medium text-foreground truncate">
+          {template.name}
+        </div>
+        <div className="text-2xs text-muted mt-0.5 font-mono truncate">
+          id: {template.id}
+        </div>
+      </div>
+      <a
+        href={`/contracts/templates/${template.id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="shrink-0 inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-brand hover:bg-brand/5 rounded-md whitespace-nowrap"
+        title="Open this template in the editor in a new tab"
+      >
+        Open in editor
+        <ExternalLink className="w-3 h-3" />
+      </a>
+    </div>
   );
 }
 
@@ -487,12 +630,16 @@ function Step2({
   loading,
   userId,
   customFieldKeys,
+  hidePreview = false,
 }: {
   previewData: { html: string; missingTags: string[]; resolved?: Record<string, string> } | null;
   loading: boolean;
   userId: string;
-  /** Keys that will be collected as custom inputs in Step 3 — don't surface them as "unresolved" here. */
+  /** Keys collected as custom inputs on the custom-fields step — don't surface them as "unresolved" here. */
   customFieldKeys: Set<string>;
+  /** Suppress this component's own document preview. Set when it renders
+   *  above Step5, which shows the single authoritative preview. */
+  hidePreview?: boolean;
 }) {
   if (loading) {
     return (
@@ -534,7 +681,7 @@ function Step2({
       </p>
 
       {staffMissingTags.length > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
           <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-red-800">
@@ -556,7 +703,7 @@ function Step2({
       )}
 
       {orphanMissingTags.length > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
           <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-amber-800">
@@ -571,7 +718,7 @@ function Step2({
       )}
 
       {staffMissingTags.length === 0 && orphanMissingTags.length === 0 && (
-        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+        <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm text-emerald-700 dark:text-emerald-300">
           <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
           All automatic tags resolved successfully.
         </div>
@@ -596,17 +743,19 @@ function Step2({
         </div>
       )}
 
-      <div className="bg-surface rounded-lg border border-border p-3">
-        <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
-          Document preview
-        </p>
-        <iframe
-          title="Tag resolution preview"
-          sandbox="allow-same-origin"
-          srcDoc={previewData.html}
-          className="w-full h-64 bg-white rounded border border-border/50"
-        />
-      </div>
+      {!hidePreview && (
+        <div className="bg-surface rounded-lg border border-border p-3">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
+            Document preview
+          </p>
+          <iframe
+            title="Tag resolution preview"
+            sandbox="allow-same-origin"
+            srcDoc={previewData.html}
+            className="w-full h-64 bg-card rounded border border-border/50"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -640,7 +789,7 @@ function Step3({
           <label className="block text-sm font-medium text-foreground mb-1.5">
             {field.label}
             <span className="text-red-500 ml-1">*</span>
-            <code className="ml-2 text-[10px] font-normal text-muted bg-surface px-1 py-0.5 rounded">
+            <code className="ml-2 text-2xs font-normal text-muted bg-surface px-1 py-0.5 rounded">
               {`{{${field.key}}}`}
             </code>
           </label>
@@ -739,7 +888,9 @@ function Step4({
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">
-            Hours per Week
+            {meta.contractType === "ct_part_time"
+              ? "Minimum Hours per Week"
+              : "Hours per Week"}
           </label>
           <input
             type="number"
@@ -747,9 +898,17 @@ function Step4({
             step="0.5"
             value={meta.hoursPerWeek}
             onChange={(e) => setMeta({ ...meta, hoursPerWeek: e.target.value })}
-            placeholder="e.g. 38"
+            placeholder={
+              meta.contractType === "ct_part_time" ? "e.g. 20" : "e.g. 38"
+            }
             className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           />
+          {meta.contractType === "ct_part_time" && (
+            <p className="mt-1 text-xs text-muted">
+              Staff will be rostered at least this many hours per week; more
+              may be assigned per operational need.
+            </p>
+          )}
         </div>
       </div>
 
@@ -858,14 +1017,14 @@ function Step5({
   return (
     <div className="space-y-4">
       {submissionError && (
-        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+        <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
           <div className="font-medium">{submissionError}</div>
         </div>
       )}
 
       {!submissionError && previewData.missingTags.length > 0 && (
-        <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+        <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-200">
           <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
           <div>
             <span className="font-medium">
@@ -883,7 +1042,7 @@ function Step5({
           title="Final contract preview"
           sandbox="allow-same-origin"
           srcDoc={previewData.html}
-          className="w-full h-full bg-white"
+          className="w-full h-full bg-card"
         />
       </div>
 

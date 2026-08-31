@@ -28,42 +28,42 @@ const ONBOARDING_TODOS = [
   {
     title: "Complete your profile",
     description:
-      "Add your photo, phone number, and emergency contact details to your profile. This helps the team put a face to a name and ensures we can reach you when needed.\n\nGo to: Profile (sidebar) → Edit Profile",
+      "Add your photo, phone number, and emergency contact details to your profile. This helps the team put a face to a name and ensures we can reach you when needed.\n\nGo to: My Portal (sidebar) → Edit Profile — or click your name in the top bar",
   },
   {
     title: "Upload your Working With Children Check",
     description:
-      "Upload a copy of your current WWCC to keep your compliance records up to date.\n\nGo to: My Portal → Qualifications → Upload",
+      "Upload a copy of your current WWCC to keep your compliance records up to date.\n\nGo to: Compliance (sidebar) → WWCC → Upload",
   },
   {
     title: "Complete Mandatory Reporter Training (annual)",
     description:
-      "OSHC educators are mandatory reporters under state child-protection law. Complete the annual refresher training and upload the certificate to your compliance record. This must be renewed every 12 months.\n\nGo to: My Portal → Compliance → Mandatory Reporter Training → Upload",
+      "OSHC educators are mandatory reporters under state child-protection law. Complete the annual refresher training and upload the certificate to your compliance record. This must be renewed every 12 months.\n\nGo to: Compliance (sidebar) → Mandatory Reporter Training → Upload",
   },
   {
     title: "Acknowledge the Child Safe Code of Conduct",
     description:
-      "Read and sign the Amana OSHC Child Safe Code of Conduct. Re-acknowledged annually under the National Principles for Child Safe Organisations. Upload the signed copy to your compliance record.\n\nGo to: My Portal → Compliance → Child Safe Code of Conduct → Upload",
+      "Read and acknowledge the Amana OSHC Child Safe Code of Conduct. Re-acknowledged annually under the National Principles for Child Safe Organisations. If you have a signed copy, also upload it to your compliance record.\n\nGo to: Policies & Procedures (sidebar) → Child Safe Code of Conduct → Acknowledge. Signed copy: Compliance (sidebar) → Child Safe Code of Conduct → Upload",
   },
   {
     title: "Review & acknowledge the Privacy Policy",
     description:
-      "Read through the Amana OSHC Privacy Policy and mark it as acknowledged.\n\nGo to: Policies (sidebar) → Privacy Policy → Acknowledge",
+      "Read through the Amana OSHC Privacy Policy and mark it as acknowledged.\n\nGo to: Policies & Procedures (sidebar) → Privacy Policy → Acknowledge",
   },
   {
     title: "Review & acknowledge The Amana Way",
     description:
-      "The Amana Way outlines how we work as a team — our values, expectations, and culture.\n\nGo to: Tools → The Amana Way",
+      "The Amana Way outlines how we work as a team — our values, expectations, and culture.\n\nGo to: Handbook & Help (sidebar) → The Amana Way",
   },
   {
     title: "Set up your notification preferences",
     description:
-      "Choose which notifications you want to receive so you stay informed without being overwhelmed.\n\nGo to: Profile → Notification Preferences",
+      "Choose which notifications you want to receive so you stay informed without being overwhelmed.\n\nGo to: My Portal (sidebar) → Notification Preferences",
   },
   {
     title: "Review your centre's compliance status",
     description:
-      "Check your centre's current compliance dashboard to see what's up to date and what needs attention.\n\nGo to: Compliance (sidebar)",
+      "Check the Compliance page to see what's up to date and what needs attention — your own certificates, and (for coordinators) your centre's compliance dashboard.\n\nGo to: Compliance (sidebar)",
   },
   {
     title: "Explore the Getting Started guide",

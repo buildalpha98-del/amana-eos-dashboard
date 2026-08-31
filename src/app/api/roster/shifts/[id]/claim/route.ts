@@ -25,6 +25,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { assertStaffCertsValidForShift } from "../../../_lib/cert-guard";
+import { assertUserCleared } from "@/lib/induction";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -73,6 +74,8 @@ export const POST = withApiAuth(async (_req, session, context) => {
     userId: session.user.id,
     shiftDate: shift.date,
   });
+  // Induction gate: an un-cleared new starter cannot claim an open shift.
+  await assertUserCleared(session.user.id);
 
   // Look up the claimer's name once for the staffName denormalisation
   // the grid uses.

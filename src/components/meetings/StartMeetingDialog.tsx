@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { useServices } from "@/hooks/useServices";
+import { useScorecardsList } from "@/hooks/useScorecards";
 import { cn } from "@/lib/utils";
 import { fetchApi } from "@/lib/fetch-api";
 
@@ -18,19 +19,44 @@ export function StartMeetingDialog({
   onCancel,
   isPending,
 }: {
-  onStart: (serviceIds: string[], attendeeIds: string[]) => void;
+  onStart: (
+    serviceIds: string[],
+    attendeeIds: string[],
+    isLeadership: boolean,
+    scorecardId: string | null,
+    scheduledFor: string | null,
+  ) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
   const { data: services } = useServices("active");
+  const { data: scorecardsData } = useScorecardsList();
+  const scorecards = scorecardsData?.scorecards ?? [];
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [step, setStep] = useState<"services" | "attendees">("services");
+  // 2026-07-28: meetings now start with a type choice. "Leadership" is an
+  // org-wide L10 for the leadership team — it skips service selection and
+  // narrows the attendee picker to LEADERSHIP_MEETING_ROLES. "Service"
+  // keeps the original centre-scoped flow.
+  const [step, setStep] = useState<"type" | "services" | "attendees">("type");
+  const [isLeadership, setIsLeadership] = useState(false);
+  // 2026-07-28: which Scorecard the meeting reviews. null = the legacy
+  // single scorecard, which is also the fallback for older meetings.
+  const [scorecardId, setScorecardId] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
+  // 2026-08-31: schedule-for-later. When enabled, the meeting is created
+  // as `scheduled` (dated scheduledFor) instead of starting immediately.
+  const [scheduleLater, setScheduleLater] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState("");
 
   const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
-    queryKey: ["users-list-full"],
-    queryFn: () => fetchApi<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>("/api/users"),
+    queryKey: ["users-list-full", isLeadership ? "leadership" : "eos_assignees"],
+    queryFn: () =>
+      fetchApi<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>(
+        isLeadership
+          ? "/api/users?scope=leadership"
+          : "/api/users?scope=eos_assignees",
+      ),
     retry: 2,
     staleTime: 60_000,
   });
@@ -104,9 +130,13 @@ export function StartMeetingDialog({
                 Start L10 Meeting
               </h3>
               <p className="text-xs text-muted mt-0.5">
-                {step === "services"
-                  ? "Select which services to include in this meeting"
-                  : "Select attendees for this meeting"}
+                {step === "type"
+                  ? "What kind of meeting is this?"
+                  : step === "services"
+                    ? "Select which services to include in this meeting"
+                    : isLeadership
+                      ? "Select the leadership team members present"
+                      : "Select attendees for this meeting"}
               </p>
             </div>
             <button
@@ -117,13 +147,55 @@ export function StartMeetingDialog({
             </button>
           </div>
 
-          {step === "services" ? (
+          {step === "type" ? (
+            <div className="p-6 space-y-3">
+              <button
+                onClick={() => {
+                  setIsLeadership(true);
+                  setSelectedServiceIds([]);
+                  setSelectedUserIds([]);
+                  setStep("attendees");
+                }}
+                className="w-full text-left rounded-lg border border-border p-4 hover:border-brand hover:bg-brand/5 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-brand" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Leadership Meeting (L10)
+                  </span>
+                </div>
+                <p className="text-xs text-muted">
+                  Organisation-wide. Only the leadership team can be added,
+                  and the To-Do review shows just their items.
+                </p>
+              </button>
+              <button
+                onClick={() => {
+                  setIsLeadership(false);
+                  setSelectedUserIds([]);
+                  setStep("services");
+                }}
+                className="w-full text-left rounded-lg border border-border p-4 hover:border-brand hover:bg-brand/5 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="w-4 h-4 text-brand" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Service / Team Meeting
+                  </span>
+                </div>
+                <p className="text-xs text-muted">
+                  Scoped to one or more centres, with the wider team
+                  available as attendees.
+                </p>
+              </button>
+            </div>
+          ) : step === "services" ? (
             <>
               <div className="p-6 space-y-4">
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onStart([], [])}
+                    onClick={() => onStart([], [], false, null, null)}
                     className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
                   >
                     Company-Wide Meeting
@@ -219,10 +291,10 @@ export function StartMeetingDialog({
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setStep("services")}
+                    onClick={() => setStep(isLeadership ? "type" : "services")}
                     className="text-xs px-3 py-1.5 text-muted hover:text-foreground transition-colors"
                   >
-                    ← Back to Services
+                    {isLeadership ? "← Back" : "← Back to Services"}
                   </button>
                   <button
                     onClick={() => {
@@ -299,28 +371,94 @@ export function StartMeetingDialog({
                     </p>
                   )}
                 </div>
+
+                {/* 2026-07-28: pick which scorecard this meeting reviews.
+                    Only shown when there's more than one to choose from —
+                    a single-scorecard org shouldn't be asked. */}
+                {scorecards.length > 1 && (
+                  <div className="pt-2 border-t border-border/50">
+                    <label
+                      htmlFor="meeting-scorecard"
+                      className="block text-xs font-medium text-foreground mb-1.5"
+                    >
+                      Scorecard to review
+                    </label>
+                    <select
+                      id="meeting-scorecard"
+                      value={scorecardId ?? ""}
+                      onChange={(e) => setScorecardId(e.target.value || null)}
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    >
+                      <option value="">Default scorecard</option>
+                      {scorecards.map((sc) => (
+                        <option key={sc.id} value={sc.id}>
+                          {sc.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div className="px-6 py-4 border-t border-border/50 bg-surface/30 flex items-center justify-between">
-                <span className="text-xs text-muted">
-                  {selectedUserIds.length > 0
-                    ? `${selectedUserIds.length} attendee${selectedUserIds.length > 1 ? "s" : ""} selected`
-                    : "No attendees selected (skip to start)"}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={onCancel}
-                    className="text-xs px-4 py-2 text-muted hover:text-foreground"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => onStart(selectedServiceIds, selectedUserIds)}
-                    disabled={isPending}
-                    className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
-                  >
-                    {isPending ? "Starting..." : "Start Meeting"}
-                  </button>
+              <div className="px-6 py-4 border-t border-border/50 bg-surface/30 space-y-3">
+                {/* Schedule-for-later toggle (2026-08-31) */}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scheduleLater}
+                      onChange={(e) => setScheduleLater(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    Schedule for later
+                  </label>
+                  {scheduleLater && (
+                    <input
+                      type="datetime-local"
+                      value={scheduledFor}
+                      onChange={(e) => setScheduledFor(e.target.value)}
+                      aria-label="Scheduled date and time"
+                      className="flex-1 px-2 py-1.5 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted">
+                    {selectedUserIds.length > 0
+                      ? `${selectedUserIds.length} attendee${selectedUserIds.length > 1 ? "s" : ""} selected`
+                      : "No attendees selected (skip to start)"}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={onCancel}
+                      className="text-xs px-4 py-2 text-muted hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() =>
+                        onStart(
+                          selectedServiceIds,
+                          selectedUserIds,
+                          isLeadership,
+                          scorecardId,
+                          scheduleLater && scheduledFor
+                            ? new Date(scheduledFor).toISOString()
+                            : null,
+                        )
+                      }
+                      disabled={isPending || (scheduleLater && !scheduledFor)}
+                      className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
+                    >
+                      {isPending
+                        ? scheduleLater
+                          ? "Scheduling..."
+                          : "Starting..."
+                        : scheduleLater
+                          ? "Schedule Meeting"
+                          : "Start Meeting"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </>

@@ -95,7 +95,7 @@ export function HelpTooltip({ content, id, className }: HelpTooltipProps) {
         onMouseEnter={() => setVisible(true)}
         onMouseLeave={() => setVisible(false)}
         className={cn(
-          "inline-flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-brand transition-colors focus:outline-none",
+          "inline-flex items-center justify-center w-4 h-4 text-muted hover:text-brand transition-colors focus:outline-none",
           !dismissed && "animate-pulse",
         )}
         aria-label="Help"

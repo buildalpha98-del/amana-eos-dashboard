@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X, Trash2, Send, Pencil, Plus, CheckSquare, Sparkles } from "lucide-react";
+import { STATUS_LABELS } from "@/lib/creative-request/constants";
 import { AiButton } from "@/components/ui/AiButton";
 import {
   useCampaign,
+  useCampaignPerformance,
   useUpdateCampaign,
   useDeleteCampaign,
   useAddCampaignComment,
@@ -54,6 +57,7 @@ export function CampaignDetailPanel({
   campaignId: string;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const { data: campaign, isLoading } = useCampaign(campaignId);
   const updateCampaign = useUpdateCampaign();
   const deleteCampaign = useDeleteCampaign();
@@ -214,7 +218,7 @@ export function CampaignDetailPanel({
                 {campaign.services.map((s) => (
                   <span
                     key={s.service.id}
-                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
+                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-2xs font-medium text-brand"
                   >
                     {s.service.code}
                   </span>
@@ -227,7 +231,7 @@ export function CampaignDetailPanel({
           </div>
           <div className="ml-3 flex items-center gap-2">
             {hasUnsavedTextChanges && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700" title="Click outside the field or press Tab to save.">
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-1 text-2xs font-medium text-amber-700 dark:text-amber-300" title="Click outside the field or press Tab to save.">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                 Unsaved
               </span>
@@ -236,15 +240,17 @@ export function CampaignDetailPanel({
               onClick={handleDelete}
               className={`rounded-lg p-2 transition-colors ${
                 confirmDelete
-                  ? "bg-red-100 text-red-600 hover:bg-red-200"
+                  ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-red-200"
                   : "text-muted hover:bg-surface hover:text-danger"
               }`}
               title={confirmDelete ? "Click again to confirm delete" : "Delete campaign"}
+              aria-label="Delete campaign"
             >
               <Trash2 className="h-4 w-4" />
             </button>
             <button
               onClick={onClose}
+              aria-label="Close"
               className="rounded-lg p-2 text-muted transition-colors hover:bg-surface hover:text-foreground"
             >
               <X className="h-5 w-5" />
@@ -276,12 +282,12 @@ export function CampaignDetailPanel({
         )}
 
         {aiBrief && (
-          <div className="mx-6 mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+          <div className="mx-6 mt-4 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-purple-700 flex items-center gap-1">
                 <Sparkles className="h-3.5 w-3.5" /> AI Campaign Brief
               </span>
-              <button onClick={() => setAiBrief(null)} className="text-purple-400 hover:text-purple-600">
+              <button onClick={() => setAiBrief(null)} aria-label="Dismiss AI brief" className="text-purple-400 hover:text-purple-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -604,9 +610,9 @@ export function CampaignDetailPanel({
                   {campaignTasks.map((task) => {
                     const statusColors: Record<string, string> = {
                       todo: "bg-surface text-muted",
-                      in_progress: "bg-blue-100 text-blue-700",
-                      in_review: "bg-amber-100 text-amber-700",
-                      done: "bg-emerald-100 text-emerald-700",
+                      in_progress: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+                      in_review: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+                      done: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
                     };
                     return (
                       <div
@@ -624,12 +630,12 @@ export function CampaignDetailPanel({
                         </span>
                         <div className="flex items-center gap-2">
                           {task.assignee && (
-                            <span className="text-[10px] text-muted">
+                            <span className="text-2xs text-muted">
                               {task.assignee?.name ?? "Unassigned"}
                             </span>
                           )}
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            className={`rounded-full px-2 py-0.5 text-2xs font-medium ${
                               statusColors[task.status] ?? "bg-surface text-muted"
                             }`}
                           >
@@ -666,6 +672,65 @@ export function CampaignDetailPanel({
                         <PlatformBadge platform={post.platform} />
                         <StatusBadge type="post" status={post.status} />
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Performance — attribution funnel (Phase 5) */}
+            <CampaignPerformanceSection
+              campaignId={campaignId}
+              services={campaign?.services ?? []}
+            />
+
+            {/* Assets — linked creative requests + email sends */}
+            {((campaign?.creativeRequests?.length ?? 0) > 0 ||
+              (campaign?.emailSends?.length ?? 0) > 0) && (
+              <div>
+                <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+                  Assets (
+                  {(campaign?.creativeRequests?.length ?? 0) +
+                    (campaign?.emailSends?.length ?? 0)}
+                  )
+                </h3>
+                <div className="space-y-2">
+                  {campaign?.creativeRequests?.map((req) => (
+                    <button
+                      key={req.id}
+                      type="button"
+                      onClick={() => router.push(`/requests?open=${req.id}`)}
+                      className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-surface/50 px-3 py-2 text-left transition-colors hover:border-brand/50"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                        <span className="mr-2 font-mono text-2xs text-muted">
+                          {req.requestNumber}
+                        </span>
+                        {req.title}
+                      </span>
+                      <span className="ml-2 shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-2xs font-medium text-brand">
+                        {STATUS_LABELS[req.status]}
+                      </span>
+                    </button>
+                  ))}
+                  {campaign?.emailSends?.map((send) => (
+                    <div
+                      key={send.id}
+                      className="flex items-center justify-between rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                        {send.subject || "(no subject)"}
+                        <span className="ml-2 text-2xs text-muted">
+                          {send.recipientCount} recipient(s) ·{" "}
+                          {new Date(send.createdAt).toLocaleDateString("en-AU", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </span>
+                      </span>
+                      <span className="ml-2 shrink-0 rounded-full bg-surface px-2 py-0.5 text-2xs font-medium text-muted">
+                        {send.status}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -735,6 +800,130 @@ export function CampaignDetailPanel({
         defaultCampaignId={campaignId}
       />
     </>
+  );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function CampaignPerformanceSection({
+  campaignId,
+  services,
+}: {
+  campaignId: string;
+  services: { service: { id: string; name: string; code: string } }[];
+}) {
+  const { data: perf, isLoading } = useCampaignPerformance(campaignId);
+
+  if (isLoading) {
+    return (
+      <div>
+        <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+          Performance
+        </h3>
+        <div className="h-20 animate-pulse rounded-lg border border-border/50 bg-surface/50" />
+      </div>
+    );
+  }
+  if (!perf) return null;
+
+  const nameOf = (serviceId: string) =>
+    services.find((s) => s.service.id === serviceId)?.service.name ?? serviceId;
+  const fmtPct = (p: number | null) => (p == null ? "—" : `${p}%`);
+  const windowDays =
+    (new Date(perf.window.end).getTime() -
+      new Date(perf.window.start).getTime()) /
+    DAY_MS;
+
+  const stats: {
+    label: string;
+    value: number;
+    sub?: string;
+    contextual?: number;
+  }[] = [
+    {
+      label: "Reached",
+      value: perf.reach.recipients,
+      sub: `${perf.reach.sends} email send${perf.reach.sends === 1 ? "" : "s"} · ${perf.engagement.uniqueOpens} unique opens`,
+    },
+    {
+      // Unique units only: deduped email clickers + deduped QR scanners
+      // (raw scan counts would mix units with the email numbers).
+      label: "Clicks + scans",
+      value: perf.engagement.uniqueClicks + perf.qr.uniqueScanners,
+      sub: `${perf.engagement.uniqueClicks} email clicks · ${perf.qr.uniqueScanners} unique scanners`,
+    },
+    {
+      label: "Enquiries",
+      value: perf.enquiries.attributed,
+      contextual: perf.enquiries.contextual,
+    },
+    {
+      label: "Enrolments",
+      value: perf.enrolments.attributed,
+      contextual: perf.enrolments.contextual,
+    },
+  ];
+
+  return (
+    <div>
+      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+        Performance
+      </h3>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
+          >
+            <p className="text-2xs font-medium uppercase tracking-wider text-muted">
+              {s.label}
+            </p>
+            <p className="text-lg font-semibold text-foreground">{s.value}</p>
+            {s.sub && <p className="text-2xs text-muted">{s.sub}</p>}
+            {s.contextual != null && (
+              <p className="text-2xs text-muted">
+                (+{s.contextual} at linked centres in window)
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {perf.occupancy.services.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {perf.occupancy.services.map((o) => (
+            <span
+              key={o.serviceId}
+              className="rounded-full bg-surface px-2 py-0.5 text-2xs font-medium text-muted"
+            >
+              {nameOf(o.serviceId)} {fmtPct(o.startPct)} → {fmtPct(o.endPct)}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {!perf.hasData && (
+        <p className="mt-2 text-2xs text-muted">
+          No tracked email, QR or enquiry activity in this window yet.
+        </p>
+      )}
+
+      <div className="mt-2 space-y-0.5">
+        {windowDays < 14 && (
+          <p className="text-2xs text-muted">
+            Short window &mdash; occupancy averages overlap
+          </p>
+        )}
+        <p className="text-2xs text-muted">
+          Attributed = traced via QR/activation links and tracked email &mdash;
+          phone and walk-in enquiries aren&apos;t captured
+        </p>
+        <p className="text-2xs text-muted">
+          Enrolment tracking via the parent portal begins with this deploy
+        </p>
+      </div>
+    </div>
   );
 }
 

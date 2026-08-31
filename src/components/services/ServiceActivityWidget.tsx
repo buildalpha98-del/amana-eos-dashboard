@@ -78,7 +78,7 @@ export function ServiceActivityWidget({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
+      <h3 className="text-2xs font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
         Recent activity
       </h3>
 
@@ -109,13 +109,13 @@ export function ServiceActivityWidget({ serviceId }: { serviceId: string }) {
                   <Icon className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] text-[color:var(--color-foreground)]">
+                  <p className="text-sm text-[color:var(--color-foreground)]">
                     <span className="font-semibold">
                       {item.user?.name ?? "Someone"}
                     </span>{" "}
                     {item.actionLabel}
                   </p>
-                  <p className="text-[11px] text-[color:var(--color-muted)]">
+                  <p className="text-xs text-[color:var(--color-muted)]">
                     {formatRelative(item.createdAt)}
                   </p>
                 </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
@@ -48,6 +49,7 @@ export function DuplicateToCentresModal({
             </h2>
             <button
               onClick={onClose}
+              aria-label="Close"
               className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
@@ -72,21 +74,18 @@ export function DuplicateToCentresModal({
 
             {/* Footer */}
             <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
-              >
+              <Button type="button" variant="secondary" size="sm" onClick={onClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                disabled={selectedServiceIds.length === 0 || isLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
+                variant="primary"
+                size="sm"
+                disabled={selectedServiceIds.length === 0}
+                loading={isLoading}
               >
-                {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isLoading ? "Duplicating..." : "Duplicate"}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

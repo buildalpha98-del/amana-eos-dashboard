@@ -3,10 +3,6 @@
 import Link from "next/link";
 import {
   Rocket,
-  User,
-  Stethoscope,
-  FileText,
-  UserCheck,
   Smartphone,
   CheckCircle2,
   ChevronRight,
@@ -14,7 +10,6 @@ import {
 } from "lucide-react";
 import {
   useParentOnboarding,
-  useParentChildren,
   useMarkOnboardingStep,
   type OnboardingProgress,
 } from "@/hooks/useParentPortal";
@@ -34,7 +29,6 @@ interface ChecklistItem {
 
 export default function GettingStartedPage() {
   const { data: onboarding, isLoading } = useParentOnboarding();
-  const { data: children } = useParentChildren();
   const markStep = useMarkOnboardingStep();
 
   if (isLoading) return <OnboardingSkeleton />;
@@ -47,52 +41,31 @@ export default function GettingStartedPage() {
     installed: false,
   };
 
-  const completedCount = onboarding?.completedCount ?? 0;
-  const totalCount = onboarding?.totalCount ?? 5;
+  // Single-item checklist now, so progress is simply "is it installed?".
+  // Reading totalCount from the API would still say 5 and show a parent
+  // "1 of 5" against a list of one.
+  const totalCount = 1;
+  const completedCount = onboarding?.progress?.installed ? 1 : 0;
   const allDone = completedCount === totalCount;
 
-  // Use first child for linking to child-specific pages
-  const firstChild = children?.[0];
-
+  /**
+   * ONE step, deliberately.
+   *
+   * Daniel, 2026-07-30: adding the app to the home screen is the only
+   * thing we actually need parents to do. The other four — complete your
+   * profile, review medical details, upload immunisation, add a pickup
+   * person — are all captured during enrolment now, so presenting them
+   * again was asking families to redo work they'd already done, and a
+   * checklist that can't be finished is worse than no checklist.
+   */
   const items: ChecklistItem[] = [
-    {
-      key: "profile",
-      title: "Complete your profile",
-      description: "Add your phone number and address so we can reach you.",
-      icon: User,
-      iconColor: "text-blue-500",
-      href: "/parent/account",
-    },
-    {
-      key: "medical",
-      title: "Review medical details",
-      description: "Check your child's allergies, conditions, and medications are up to date.",
-      icon: Stethoscope,
-      iconColor: "text-amber-500",
-      href: firstChild ? `/parent/children/${firstChild.id}` : "/parent/children",
-    },
-    {
-      key: "documents",
-      title: "Upload immunisation record",
-      description: "Upload your child's immunisation history or medical action plan.",
-      icon: FileText,
-      iconColor: "text-purple-500",
-      href: firstChild ? `/parent/children/${firstChild.id}` : "/parent/children",
-    },
-    {
-      key: "pickups",
-      title: "Add an authorised pickup person",
-      description: "Add someone who can collect your child from the centre.",
-      icon: UserCheck,
-      iconColor: "text-green-500",
-      href: firstChild ? `/parent/children/${firstChild.id}` : "/parent/children",
-    },
     {
       key: "installed",
       title: "Add the app to your phone",
-      description: "Install the Amana Parents app for quick access from your home screen.",
+      description:
+        "Install the Amana Parents app so it's one tap from your home screen — no login to remember.",
       icon: Smartphone,
-      iconColor: "text-[#004E64]",
+      iconColor: "text-brand",
       isInstallStep: true,
     },
   ];
@@ -108,7 +81,7 @@ export default function GettingStartedPage() {
           <ArrowLeft className="w-4 h-4" />
           Home
         </Link>
-        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] mt-2 leading-tight">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] mt-2 leading-tight">
           Get Set Up
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] mt-1">
@@ -169,8 +142,8 @@ export default function GettingStartedPage() {
             return (
               <div key={item.key} className="space-y-2">
                 <div className="flex items-center gap-3 px-1">
-                  <div className={cn("w-5 h-5 rounded-full border-2 shrink-0", "border-[#e8e4df]")} />
-                  <p className="text-sm font-semibold text-[#1a1a2e]">{item.title}</p>
+                  <div className={cn("w-5 h-5 rounded-full border-2 shrink-0", "border-border")} />
+                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
                 </div>
                 <InstallPrompt
                   onInstalled={() => markStep.mutate({ installed: true })}
@@ -207,14 +180,14 @@ export default function GettingStartedPage() {
           return (
             <div
               key={item.key}
-              className="flex items-center gap-3 bg-white/50 rounded-xl p-4 border border-[#e8e4df]/50"
+              className="flex items-center gap-3 bg-white/50 rounded-xl p-4 border border-border/50"
             >
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-950/40 flex items-center justify-center shrink-0">
                 <item.icon className="w-5 h-5 text-green-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#7c7c8a] line-through">{item.title}</p>
+                <p className="text-sm font-medium text-muted line-through">{item.title}</p>
               </div>
             </div>
           );

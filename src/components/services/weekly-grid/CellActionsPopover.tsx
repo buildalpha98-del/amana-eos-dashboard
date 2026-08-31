@@ -63,7 +63,7 @@ export function CellActionsPopover({
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent size="sm">
         <DialogTitle className="text-base font-semibold text-foreground">
-          {childName} — {shift.sessionType.toUpperCase()}
+          {childName} — {shift.roomName ?? shift.sessionType.toUpperCase()}
         </DialogTitle>
         <p className="text-xs text-muted mt-1">{prettyDate}</p>
 

@@ -12,12 +12,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Download, Users, Mail } from "lucide-react";
+import { Plus, Download, Users, Mail, Contact, Upload } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BulkInviteModal } from "@/components/settings/BulkInviteModal";
+import { AddStaffModal } from "@/components/team/AddStaffModal";
 import { useBulkResendInvite } from "@/hooks/useEmployeeResendInvite";
 import { exportToCsv } from "@/lib/csv-export";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -99,7 +100,8 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
     router.replace(qs ? `/team?${qs}` : "/team", { scroll: false });
   }
 
-  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showAddStaff, setShowAddStaff] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   const isAdmin = isAdminRole(viewerRole);
 
@@ -125,7 +127,16 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
         { header: "Email", accessor: (e) => e.email ?? "" },
         { header: "Phone", accessor: (e) => e.phone ?? "" },
         { header: "Role", accessor: (e) => e.role },
-        { header: "Service", accessor: (e) => e.service?.name ?? "" },
+        {
+          header: "Service",
+          // 2026-07-08: CSV now includes additional-service memberships.
+          // Primary first, then extras joined with " · " so downstream
+          // consumers see the same set the UI shows.
+          accessor: (e) =>
+            [e.service?.name, ...e.additionalServices.map((s) => s.name)]
+              .filter(Boolean)
+              .join(" · "),
+        },
         { header: "Status", accessor: (e) => e.status },
         { header: "Tags", accessor: (e) => e.tags.join(", ") },
       ],
@@ -147,13 +158,28 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
         primaryAction={
           isAdmin
             ? {
-                label: "Invite Employees",
+                label: "Add staff member",
                 icon: Plus,
-                onClick: () => setShowInviteModal(true),
+                onClick: () => setShowAddStaff(true),
               }
             : undefined
         }
         secondaryActions={[
+          // Bulk CSV import moved to a secondary action; the single "Add staff
+          // member" above is the common one-off / new-starter path.
+          {
+            label: "Bulk import",
+            icon: Upload,
+            onClick: () => setShowBulkImport(true),
+            hidden: !isAdmin,
+          },
+          // 2026-07-12 (nav fold): Staff Directory left the sidebar — the
+          // people-finder view is reachable from here.
+          {
+            label: "Directory",
+            icon: Contact,
+            onClick: () => router.push("/directory"),
+          },
           {
             label: `Resend all pending (${pendingCount})`,
             icon: Mail,
@@ -226,7 +252,7 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
                     label: "Add Employee",
                     icon: Plus,
                     onClick: () => {
-                      setShowInviteModal(true);
+                      setShowAddStaff(true);
                     },
                   }
                 : undefined
@@ -273,10 +299,19 @@ export function EmployeeListView({ viewerRole, viewerId, services }: EmployeeLis
         </div>
       )}
 
-      {showInviteModal ? (
+      {showAddStaff ? (
+        <AddStaffModal
+          open={showAddStaff}
+          onClose={() => setShowAddStaff(false)}
+          services={services}
+          currentUserRole={viewerRole as Role}
+        />
+      ) : null}
+
+      {showBulkImport ? (
         <BulkInviteModal
-          open={showInviteModal}
-          onClose={() => setShowInviteModal(false)}
+          open={showBulkImport}
+          onClose={() => setShowBulkImport(false)}
           currentUserRole={viewerRole as Role}
         />
       ) : null}

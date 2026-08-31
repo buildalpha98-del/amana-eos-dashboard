@@ -6,6 +6,7 @@ import {
   applyCentreFilter,
   buildCentreOrPersonalFilter,
 } from "@/lib/centre-scope";
+import { privateTodoWhereFor } from "@/lib/todos/private-filter";
 import {
   computeHealthScore,
   getScoreStatus,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/health-score";
 import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
 import { getOrgSettings } from "@/lib/org-settings";
+import { quarterLabel } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,7 +54,10 @@ interface ActionItems {
   overdueTodos: { id: string; title: string; assigneeName: string; dueDate: string }[];
   unassignedTickets: { id: string; ticketNumber: number; subject: string }[];
   idsIssues: { id: string; title: string; priority: string }[];
+  /** Incomplete rocks carried over from PAST quarters (date-overdue). */
   overdueRocks: { id: string; title: string; ownerName: string; quarter: string }[];
+  /** Current-quarter rocks whose status is off_track — matches /rocks?status=off-track. */
+  offTrackRockCount: number;
 }
 
 interface ProjectTodo {
@@ -177,10 +182,10 @@ export async function aggregateDashboard(session: Session): Promise<DashboardDat
   const trends = await buildTrends(now);
 
   // -- Action Items --
-  const actionItems = await buildActionItems(now, serviceIds, session.user.id);
+  const actionItems = await buildActionItems(now, serviceIds, session.user.id, session.user.role as string | undefined);
 
   // -- Project To-Dos --
-  const projectTodos = await buildProjectTodos(now, serviceIds, session.user.id);
+  const projectTodos = await buildProjectTodos(now, serviceIds, session.user.id, session.user.role as string | undefined);
 
   // -- Key Metrics --
   const keyMetrics = await buildKeyMetrics(now, serviceIds, session.user.id);
@@ -203,7 +208,7 @@ export async function aggregateDashboard(session: Session): Promise<DashboardDat
     networkAvgScore,
     trends: isServiceScoped ? { ...trends, revenue: [] } : trends,
     actionItems: isServiceScoped
-      ? { ...actionItems, unassignedTickets: [], overdueRocks: [] }
+      ? { ...actionItems, unassignedTickets: [], overdueRocks: [], offTrackRockCount: 0 }
       : actionItems,
     keyMetrics: isServiceScoped
       ? { ...keyMetrics, totalRevenue: 0, openTickets: 0 }
@@ -375,15 +380,22 @@ async function buildActionItems(
   now: Date,
   serviceIds: string[] | null,
   userId: string,
+  role?: string,
 ) {
-  const [overdueTodos, unassignedTickets, idsIssues, overdueRocks] =
+  const [overdueTodos, unassignedTickets, idsIssues, overdueRocks, offTrackRockCount] =
     await Promise.all([
       prisma.todo.findMany({
         where: {
-          deleted: false,
-          status: { notIn: ["complete", "cancelled"] },
-          dueDate: { lt: now },
-          ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, userId)! } : {}),
+          AND: [
+            {
+              deleted: false,
+              status: { notIn: ["complete", "cancelled"] },
+              dueDate: { lt: now },
+              ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, userId)! } : {}),
+            },
+            // Private todos stay restricted (spec 1.7.1)
+            privateTodoWhereFor(role, userId),
+          ],
         },
         select: {
           id: true,
@@ -426,7 +438,7 @@ async function buildActionItems(
           deleted: false,
           status: { in: ["on_track", "off_track"] },
           quarter: {
-            not: `Q${Math.ceil((now.getMonth() + 1) / 3)} ${now.getFullYear()}`,
+            not: quarterLabel(now),
           },
         },
         select: {
@@ -437,6 +449,13 @@ async function buildActionItems(
         },
         orderBy: { createdAt: "asc" },
         take: 10,
+      }),
+      prisma.rock.count({
+        where: {
+          deleted: false,
+          status: "off_track",
+          quarter: quarterLabel(now),
+        },
       }),
     ]);
 
@@ -463,6 +482,7 @@ async function buildActionItems(
       ownerName: r.owner?.name ?? "Unknown",
       quarter: r.quarter,
     })),
+    offTrackRockCount,
   };
 }
 
@@ -470,13 +490,20 @@ async function buildProjectTodos(
   now: Date,
   serviceIds: string[] | null,
   userId: string,
+  role?: string,
 ): Promise<ProjectTodo[]> {
   const projectTodos = await prisma.todo.findMany({
     where: {
-      deleted: false,
-      status: { notIn: ["complete", "cancelled"] },
-      projectId: { not: null },
-      ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, userId)! } : {}),
+      AND: [
+        {
+          deleted: false,
+          status: { notIn: ["complete", "cancelled"] },
+          projectId: { not: null },
+          ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, userId)! } : {}),
+        },
+        // Private todos stay restricted (spec 1.7.1)
+        privateTodoWhereFor(role, userId),
+      ],
     },
     select: {
       id: true,
@@ -552,7 +579,7 @@ async function buildKeyMetrics(
       where: {
         deleted: false,
         status: "on_track",
-        quarter: `Q${Math.ceil((now.getMonth() + 1) / 3)} ${now.getFullYear()}`,
+        quarter: quarterLabel(now),
       },
     }),
     prisma.todo.count({

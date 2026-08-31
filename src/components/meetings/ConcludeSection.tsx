@@ -58,7 +58,7 @@ export function ConcludeSection({
           value={notes}
           onChange={(e) => onUpdate(e.target.value)}
           placeholder="Summary of action items, decisions made, and key takeaways..."
-          className="w-full h-32 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="w-full min-h-32 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 
@@ -74,7 +74,7 @@ export function ConcludeSection({
           value={cascadeMessages}
           onChange={(e) => onUpdateCascade(e.target.value)}
           placeholder="Messages to cascade to the team...&#10;&#10;Example:&#10;- New enrolment policy starts next Monday&#10;- Holiday program bookings open this Friday&#10;- Staff training day confirmed for March 15"
-          className="w-full h-32 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="w-full min-h-32 p-3 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 
@@ -112,10 +112,10 @@ export function ConcludeSection({
                         <span className={cn(
                           "text-xs font-semibold px-2 py-0.5 rounded-full",
                           userRating >= 8
-                            ? "bg-emerald-100 text-emerald-700"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                             : userRating >= 5
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-red-100 text-red-700"
+                            ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                            : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300"
                         )}>
                           {userRating}/10
                         </span>

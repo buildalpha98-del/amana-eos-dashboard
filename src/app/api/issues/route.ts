@@ -12,7 +12,15 @@ import { logger } from "@/lib/logger";
 
 // GET /api/issues — list issues with optional filters
 export const GET = withApiAuth(async (req, session) => {
-const { serviceIds } = await getCentreScope(session);
+// Marketing is org-wide, not tied to one centre — same carve-out as
+// /api/rocks. getCentreScope() falls back to `{ serviceIds: [] }` (not
+// `null`) for a marketing user with no primary serviceId, which reads
+// as "unscoped" everywhere else but here made the OR-filter below drop
+// the cross-centre clause entirely, leaving marketing seeing only
+// issues they personally raised or own (reported 2026-08-17: "it's
+// showing that there's no issues, it's empty").
+const role = session!.user.role as string;
+const { serviceIds } = role === "marketing" ? { serviceIds: null } : await getCentreScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");

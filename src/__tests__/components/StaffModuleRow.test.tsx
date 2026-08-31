@@ -153,12 +153,36 @@ describe("StaffModuleRow — training module opens when clicked (bug-6)", () => 
     expect(screen.getByText("Here is the policy body.")).toBeInTheDocument();
   });
 
+  it("quiz modules show the course-player note and no manual complete toggle", () => {
+    const mod = makeModule({
+      id: "m-quiz",
+      title: "Quick Check",
+      type: "quiz",
+      content: null,
+      resourceUrl: null,
+    });
+
+    render(
+      <StaffModuleRow
+        mod={mod}
+        isComplete={false}
+        isExpanded
+        onToggleComplete={() => {}}
+        onToggleExpand={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/taken in the course player/i)).toBeInTheDocument();
+    // No manual complete toggle for quizzes — completion requires passing.
+    expect(screen.queryByRole("button", { name: /mark complete/i })).not.toBeInTheDocument();
+  });
+
   it("shows an explicit empty state when a module has no content and no resourceUrl", () => {
     // Still better than the old behaviour of rendering nothing.
     const mod = makeModule({
       id: "m-empty",
       title: "WIP module",
-      type: "quiz",
+      type: "document",
       content: null,
       resourceUrl: null,
     });

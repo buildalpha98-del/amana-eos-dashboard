@@ -21,7 +21,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       onClick={cycle}
       className={cn(
         "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
-        "text-muted hover:text-foreground hover:bg-surface dark:text-muted dark:hover:text-muted/50 dark:hover:bg-gray-800",
+        "text-muted hover:text-foreground hover:bg-surface dark:text-muted dark:hover:text-muted/50 dark:hover:bg-surface",
         className
       )}
       title={`Theme: ${label}`}

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { parseJsonBody } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { logger } from "@/lib/logger";
 const updateLeaveSchema = z.object({
@@ -41,6 +42,12 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   if (!leaveRequest) {
     return NextResponse.json({ error: "Leave request not found" }, { status: 404 });
+  }
+
+  // Leave is per-USER, not per-service: only admins (owner/admin/head_office)
+  // or the request's own owner may read it. Everyone else → 403.
+  if (!isAdminRole(session.user.role) && leaveRequest.userId !== session.user.id) {
+    throw ApiError.forbidden();
   }
 
   return NextResponse.json(leaveRequest);

@@ -207,13 +207,21 @@ describe("PATCH /api/meetings/[id]", () => {
     ["head_office", 200],
     ["admin", 200],
     ["member", 403],
-    ["member", 403],
     ["staff", 403],
-    ["marketing", 403],
+    // 2026-08-31: marketing can PATCH now — they've been able to CREATE
+    // meetings since 2026-06-03 but couldn't save progress on them.
+    ["marketing", 200],
   ])("role %s → %i", async (role, expected) => {
     mockSession({ id: "u1", name: "U", role: role as MockUserRole });
     prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role });
-    prismaMock.meeting.findUnique.mockResolvedValue({ id: "m-1", status: "in_progress", completedAt: null });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      id: "m-1", status: "in_progress", completedAt: null,
+      outcomes: null, rating: null, serviceIds: [],
+      startedAt: new Date(), createdAt: new Date(),
+    });
+    prismaMock.todo.count.mockResolvedValue(0);
+    prismaMock.issue.findMany.mockResolvedValue([]);
+    prismaMock.rock.findMany.mockResolvedValue([]);
     prismaMock.meeting.update.mockResolvedValue({
       id: "m-1",
       title: "Updated",
@@ -252,7 +260,14 @@ describe("PATCH /api/meetings/[id]", () => {
 
   it("sets completedAt when status becomes completed", async () => {
     mockSession({ id: "u1", name: "Owner", role: "owner" });
-    prismaMock.meeting.findUnique.mockResolvedValue({ id: "m-1", status: "in_progress", completedAt: null });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      id: "m-1", status: "in_progress", completedAt: null,
+      outcomes: null, rating: null, serviceIds: [],
+      startedAt: new Date(), createdAt: new Date(),
+    });
+    prismaMock.todo.count.mockResolvedValue(0);
+    prismaMock.issue.findMany.mockResolvedValue([]);
+    prismaMock.rock.findMany.mockResolvedValue([]);
     prismaMock.meetingAttendee.findMany.mockResolvedValue([]);
     prismaMock.meeting.update.mockResolvedValue({
       id: "m-1",
@@ -272,7 +287,14 @@ describe("PATCH /api/meetings/[id]", () => {
 
   it("writes cascade messages when completing with cascadeMessages text", async () => {
     mockSession({ id: "u1", name: "Owner", role: "owner" });
-    prismaMock.meeting.findUnique.mockResolvedValue({ id: "m-1", status: "in_progress", completedAt: null });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      id: "m-1", status: "in_progress", completedAt: null,
+      outcomes: null, rating: null, serviceIds: [],
+      startedAt: new Date(), createdAt: new Date(),
+    });
+    prismaMock.todo.count.mockResolvedValue(0);
+    prismaMock.issue.findMany.mockResolvedValue([]);
+    prismaMock.rock.findMany.mockResolvedValue([]);
     prismaMock.meetingAttendee.findMany.mockResolvedValue([]);
     prismaMock.meeting.update.mockResolvedValue({
       id: "m-1",
@@ -299,7 +321,14 @@ describe("PATCH /api/meetings/[id]", () => {
 
   it("computes average rating from attendee ratings on completion", async () => {
     mockSession({ id: "u1", name: "Owner", role: "owner" });
-    prismaMock.meeting.findUnique.mockResolvedValue({ id: "m-1", status: "in_progress", completedAt: null });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      id: "m-1", status: "in_progress", completedAt: null,
+      outcomes: null, rating: null, serviceIds: [],
+      startedAt: new Date(), createdAt: new Date(),
+    });
+    prismaMock.todo.count.mockResolvedValue(0);
+    prismaMock.issue.findMany.mockResolvedValue([]);
+    prismaMock.rock.findMany.mockResolvedValue([]);
     prismaMock.meetingAttendee.findMany.mockResolvedValue([
       { rating: 8 },
       { rating: 9 },
@@ -316,5 +345,208 @@ describe("PATCH /api/meetings/[id]", () => {
 
     const call = prismaMock.meeting.update.mock.calls[0][0];
     expect(call.data.rating).toBe(8.5);
+  });
+});
+
+describe("POST /api/meetings — scheduling (2026-08-31)", () => {
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "owner" });
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  it("scheduledFor creates a scheduled meeting with date = scheduledFor and no startedAt", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const future = new Date(Date.now() + 3 * 86400000).toISOString();
+    prismaMock.meeting.create.mockResolvedValue({
+      id: "m-9", title: "Next L10", status: "scheduled", attendees: [],
+    });
+
+    const req = createRequest("POST", "/api/meetings", {
+      body: { title: "Next L10", date: new Date().toISOString(), scheduledFor: future },
+    });
+    const res = await CREATE(req);
+    expect(res.status).toBe(201);
+
+    const arg = prismaMock.meeting.create.mock.calls[0][0] as {
+      data: { status: string; startedAt: Date | null; date: Date };
+    };
+    expect(arg.data.status).toBe("scheduled");
+    expect(arg.data.startedAt).toBeNull();
+    expect(arg.data.date.toISOString()).toBe(future);
+  });
+
+  it("rejects a past scheduledFor", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    const req = createRequest("POST", "/api/meetings", {
+      body: {
+        title: "Old",
+        date: new Date().toISOString(),
+        scheduledFor: new Date(Date.now() - 2 * 86400000).toISOString(),
+      },
+    });
+    const res = await CREATE(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("without scheduledFor keeps the start-now behaviour", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.meeting.create.mockResolvedValue({
+      id: "m-10", title: "Now", status: "in_progress", attendees: [],
+    });
+
+    const req = createRequest("POST", "/api/meetings", {
+      body: { title: "Now", date: new Date().toISOString() },
+    });
+    const res = await CREATE(req);
+    expect(res.status).toBe(201);
+
+    const arg = prismaMock.meeting.create.mock.calls[0][0] as {
+      data: { status: string; startedAt: Date | null };
+    };
+    expect(arg.data.status).toBe("in_progress");
+    expect(arg.data.startedAt).toBeInstanceOf(Date);
+  });
+});
+
+describe("PATCH /api/meetings/[id] — action: start (2026-08-31)", () => {
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "admin" });
+    prismaMock.activityLog.create.mockResolvedValue({});
+  });
+
+  it("starts a scheduled meeting via a status-guarded updateMany", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin" });
+    prismaMock.meeting.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      id: "m-1", title: "L10", status: "in_progress", attendees: [], cascades: [],
+    });
+
+    const req = createRequest("PATCH", "/api/meetings/m-1", {
+      body: { action: "start" },
+    });
+    const res = await PATCH(req, params);
+    expect(res.status).toBe(200);
+
+    expect(prismaMock.meeting.updateMany).toHaveBeenCalledWith({
+      where: { id: "m-1", status: "scheduled" },
+      data: { status: "in_progress", startedAt: expect.any(Date) },
+    });
+  });
+
+  it("409s when the meeting is already started", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin" });
+    prismaMock.meeting.updateMany.mockResolvedValue({ count: 0 });
+
+    const req = createRequest("PATCH", "/api/meetings/m-1", {
+      body: { action: "start" },
+    });
+    const res = await PATCH(req, params);
+    expect(res.status).toBe(409);
+  });
+
+  it("allows marketing to start (they can create meetings)", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u5", active: true, role: "marketing" });
+    mockSession({ id: "u5", name: "Marketer", role: "marketing" });
+    prismaMock.meeting.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      id: "m-1", title: "Marketing L10", status: "in_progress", attendees: [], cascades: [],
+    });
+
+    const req = createRequest("PATCH", "/api/meetings/m-1", {
+      body: { action: "start" },
+    });
+    const res = await PATCH(req, params);
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("PATCH /api/meetings/[id] — outcome snapshot (2026-08-31)", () => {
+  const baseMeeting = {
+    id: "m-1",
+    status: "in_progress",
+    completedAt: null,
+    outcomes: null,
+    rating: null,
+    startedAt: new Date("2026-08-31T09:00:00Z"),
+    createdAt: new Date("2026-08-31T08:55:00Z"),
+    serviceIds: [] as string[],
+  };
+
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "owner" });
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.meetingAttendee.findMany.mockImplementation(
+      (args: { where?: { rating?: unknown } }) =>
+        Promise.resolve(
+          args?.where && "rating" in (args.where ?? {})
+            ? [{ userId: "u1", rating: 8 }, { userId: "u2", rating: 6 }]
+            : [{ userId: "u1" }, { userId: "u2" }],
+        ),
+    );
+    // Input-based routing: completed-in-window vs still-open counts.
+    prismaMock.todo.count.mockImplementation(
+      (args: { where?: { status?: unknown } }) =>
+        Promise.resolve(args?.where?.status === "complete" ? 3 : 1),
+    );
+    prismaMock.issue.findMany.mockResolvedValue([{ id: "i-1" }, { id: "i-2" }]);
+    prismaMock.rock.findMany.mockResolvedValue([
+      { status: "on_track" },
+      { status: "off_track" },
+      { status: "complete" },
+    ]);
+    prismaMock.meeting.update.mockResolvedValue({
+      id: "m-1", status: "completed", attendees: [], cascades: [],
+    });
+  });
+
+  it("writes the snapshot once on completion", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.meeting.findUnique.mockResolvedValue({ ...baseMeeting });
+
+    const req = createRequest("PATCH", "/api/meetings/m-1", {
+      body: { status: "completed" },
+    });
+    const res = await PATCH(req, params);
+    expect(res.status).toBe(200);
+
+    const updateArg = prismaMock.meeting.update.mock.calls[0][0] as {
+      data: { outcomes?: Record<string, unknown> };
+    };
+    const outcomes = updateArg.data.outcomes!;
+    expect(outcomes).toBeDefined();
+    expect(outcomes.todosCompleted).toBe(3);
+    expect(outcomes.todosTotal).toBe(4);
+    expect(outcomes.completionPct).toBe(75);
+    expect(outcomes.issuesSolvedIds).toEqual(["i-1", "i-2"]);
+    expect(outcomes.rocksOnTrack).toBe(2);
+    expect(outcomes.rocksTotal).toBe(3);
+    expect(outcomes.avgRating).toBe(7);
+    expect(typeof outcomes.capturedAt).toBe("string");
+  });
+
+  it("does not overwrite an existing snapshot on re-completion", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.meeting.findUnique.mockResolvedValue({
+      ...baseMeeting,
+      status: "in_progress", // re-opened then re-completed
+      outcomes: { todosCompleted: 99, capturedAt: "2026-08-24T00:00:00Z" },
+    });
+
+    const req = createRequest("PATCH", "/api/meetings/m-1", {
+      body: { status: "completed" },
+    });
+    const res = await PATCH(req, params);
+    expect(res.status).toBe(200);
+
+    const updateArg = prismaMock.meeting.update.mock.calls[0][0] as {
+      data: { outcomes?: unknown };
+    };
+    expect(updateArg.data.outcomes).toBeUndefined();
   });
 });

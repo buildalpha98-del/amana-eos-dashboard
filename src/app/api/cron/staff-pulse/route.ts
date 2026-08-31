@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { pulseSurveyEmail } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { siteUrl } from "@/lib/site-url";
 
 export const GET = withApiHandler(async (req) => {
   // 1. Auth
@@ -42,8 +43,7 @@ export const GET = withApiHandler(async (req) => {
     const errors: string[] = [];
 
     const resend = getResend();
-    const dashboardUrl =
-      process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const dashboardUrl = siteUrl();
 
     for (const staff of activeStaff) {
       // Check if survey already exists for this period
@@ -81,8 +81,7 @@ export const GET = withApiHandler(async (req) => {
             `${dashboardUrl}/my-portal`,
           );
 
-          await resend.emails.send({
-            from: FROM_EMAIL,
+          await sendEmail({
             to: staff.email,
             subject,
             html,

@@ -32,7 +32,7 @@ export function AttachmentThumbnails({
       {attachments.map((att) => (
         <div
           key={att.id}
-          className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-[#e8e4df] bg-[#f8f5f2]"
+          className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-border bg-[#f8f5f2]"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

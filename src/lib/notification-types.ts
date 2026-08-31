@@ -41,6 +41,24 @@ export const NOTIFICATION_TYPES = {
   // 2026-07-05: AI morning briefing — fired only on mornings where at
   // least one signal needs the reader (quiet days get no ping).
   MORNING_BRIEF_READY: "morning_brief_ready",
+  // 2026-07-08: fires for every user in a survey's audience when the
+  // admin hits Publish. Links to /surveys where they take it. Paired
+  // with an auto-created Todo so the survey also shows up in their
+  // regular task list.
+  SURVEY_ASSIGNED: "survey_assigned",
+  // 2026-08-05: creative-request ticketing (Marketing Hub Phase 1).
+  CREATIVE_REQUEST_SUBMITTED: "creative_request_submitted",
+  CREATIVE_REQUEST_ASSIGNED: "creative_request_assigned",
+  CREATIVE_REQUEST_STATUS: "creative_request_status",
+  CREATIVE_REQUEST_MESSAGE: "creative_request_message",
+  // 2026-08-05: creative-request proofing loop (Marketing Hub Phase 2).
+  CREATIVE_REQUEST_PROOF_READY: "creative_request_proof_ready",
+  CREATIVE_REQUEST_PROOF_DECISION: "creative_request_proof_decision",
+  // 2026-08-08: term autopilot (Marketing Hub Phase 5) — the weekly cron
+  // creates a pre-briefed creative-request pack per active service ahead of
+  // each school term. ONE digest per active marketing user per run (never
+  // per-request notifyRequestSubmitted — 20 services x 4 requests = spam).
+  TERM_PACK_CREATED: "term_pack_created",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

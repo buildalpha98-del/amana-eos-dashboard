@@ -9,6 +9,7 @@ import {
 } from "@/hooks/useAudits";
 import { cn } from "@/lib/utils";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { Button } from "@/components/ui/Button";
 
 const monthNames = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -247,22 +248,19 @@ function EditTemplateModalInner({
         </div>
 
         <div className="flex items-center justify-end gap-2 px-6 py-3 border-t bg-surface/30">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-surface"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             disabled={!canSubmit}
+            loading={updateMut.isPending}
             onClick={handleSubmit}
-            className="px-3 py-1.5 text-sm rounded-lg bg-brand text-white hover:bg-brand/90 disabled:opacity-60 flex items-center gap-1.5"
           >
-            {updateMut.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Save changes
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -286,33 +284,36 @@ function EditTemplateModalInner({
               </p>
             </div>
             <div className="flex items-center justify-end gap-2 px-6 py-3 border-t bg-surface/30">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => setShowRespreadConfirm(false)}
-                className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   setShowRespreadConfirm(false);
                   void doUpdate(true);
                 }}
-                className="px-3 py-1.5 text-sm rounded-lg border border-brand text-brand hover:bg-brand/5"
               >
                 Respread future
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="primary"
+                size="sm"
                 onClick={() => {
                   setShowRespreadConfirm(false);
                   void doUpdate(false);
                 }}
-                className="px-3 py-1.5 text-sm rounded-lg bg-brand text-white hover:bg-brand/90"
               >
                 Leave alone
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ import {
   Phone,
   AlertCircle,
 } from "lucide-react";
+import { enrolmentStatusDisplay } from "@/lib/parent-enrolment-state";
 
 interface SubmissionStatus {
   status: string;
@@ -20,13 +21,6 @@ interface SubmissionStatus {
   processedAt: string | null;
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  submitted: { label: "Under Review", color: "text-blue-600 bg-blue-50" },
-  reviewing: { label: "Being Reviewed", color: "text-amber-600 bg-amber-50" },
-  processed: { label: "Confirmed", color: "text-green-600 bg-green-50" },
-  needs_info: { label: "More Info Needed", color: "text-orange-600 bg-orange-50" },
-  rejected: { label: "Not Proceeding", color: "text-red-600 bg-red-50" },
-};
 
 export default function EnrolmentStatusPage() {
   const params = useParams();
@@ -64,7 +58,14 @@ export default function EnrolmentStatusPage() {
     );
   }
 
-  const statusInfo = STATUS_MAP[data.status] || STATUS_MAP.submitted;
+  /*
+   * One shared mapping — see parent-enrolment-state.ts. The local map
+   * this replaces had drifted: it named two statuses no writer produces
+   * and missed two that the PATCH route does, and its
+   * `|| STATUS_MAP.submitted` fallback meant an archived enrolment told
+   * the family it was under review.
+   */
+  const statusInfo = enrolmentStatusDisplay(data.status);
   const isConfirmed = data.status === "processed";
   const isSubmitted = data.status === "submitted" || data.status === "reviewing";
 
@@ -146,7 +147,7 @@ export default function EnrolmentStatusPage() {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                     item.done
-                      ? "bg-green-100 text-green-600"
+                      ? "bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-400"
                       : item.current
                       ? "bg-brand/10 text-brand animate-pulse"
                       : "bg-surface text-muted"

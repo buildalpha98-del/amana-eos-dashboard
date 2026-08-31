@@ -94,7 +94,7 @@ export default function EmailBlockEditor({ blocks, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="rounded p-1 text-red-500 hover:bg-red-50"
+                className="rounded p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

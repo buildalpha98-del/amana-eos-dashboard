@@ -54,7 +54,7 @@ export function DashboardStateKPI({ stateName, stateCode, centres, opsMetrics }:
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Avg Health */}
         <div className="rounded-lg bg-surface/50 px-3 py-2.5">
-          <p className="text-[10px] font-medium text-muted uppercase tracking-wider mb-0.5">Avg Health</p>
+          <p className="text-2xs font-medium text-muted uppercase tracking-wider mb-0.5">Avg Health</p>
           <p className={cn("text-xl font-bold", avgHealth >= 70 ? "text-emerald-600" : avgHealth >= 40 ? "text-amber-600" : "text-red-600")}>
             {avgHealth}
           </p>
@@ -62,13 +62,13 @@ export function DashboardStateKPI({ stateName, stateCode, centres, opsMetrics }:
 
         {/* Avg Occupancy */}
         <div className="rounded-lg bg-surface/50 px-3 py-2.5">
-          <p className="text-[10px] font-medium text-muted uppercase tracking-wider mb-0.5">Occupancy</p>
+          <p className="text-2xs font-medium text-muted uppercase tracking-wider mb-0.5">Occupancy</p>
           <p className="text-xl font-bold text-foreground">{avgOccupancy}%</p>
         </div>
 
         {/* Avg Compliance */}
         <div className="rounded-lg bg-surface/50 px-3 py-2.5">
-          <p className="text-[10px] font-medium text-muted uppercase tracking-wider mb-0.5">Compliance</p>
+          <p className="text-2xs font-medium text-muted uppercase tracking-wider mb-0.5">Compliance</p>
           <p className={cn("text-xl font-bold", avgCompliance >= 90 ? "text-emerald-600" : avgCompliance >= 70 ? "text-amber-600" : "text-red-600")}>
             {avgCompliance}%
           </p>
@@ -76,7 +76,7 @@ export function DashboardStateKPI({ stateName, stateCode, centres, opsMetrics }:
 
         {/* Avg NPS */}
         <div className="rounded-lg bg-surface/50 px-3 py-2.5">
-          <p className="text-[10px] font-medium text-muted uppercase tracking-wider mb-0.5">NPS</p>
+          <p className="text-2xs font-medium text-muted uppercase tracking-wider mb-0.5">NPS</p>
           <p className={cn("text-xl font-bold", avgNps >= 50 ? "text-emerald-600" : avgNps >= 0 ? "text-amber-600" : "text-red-600")}>
             {avgNps}
           </p>
@@ -85,18 +85,18 @@ export function DashboardStateKPI({ stateName, stateCode, centres, opsMetrics }:
 
       {/* Centre status strip */}
       <div className="flex flex-wrap items-center gap-3 mt-4">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-xs font-medium text-emerald-700">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-xs font-medium text-emerald-700 dark:text-emerald-300">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
           {green} healthy
         </div>
         {amber > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-xs font-medium text-amber-700">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-xs font-medium text-amber-700 dark:text-amber-300">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
             {amber} attention
           </div>
         )}
         {red > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-xs font-medium text-red-700">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-950/40 text-xs font-medium text-red-700 dark:text-red-300">
             <span className="w-2 h-2 rounded-full bg-red-500" />
             {red} critical
           </div>

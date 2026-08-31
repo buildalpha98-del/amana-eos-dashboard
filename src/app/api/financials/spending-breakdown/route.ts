@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { getMonthlyBudget } from "@/lib/budget-helpers";
+import { getOrgSettings } from "@/lib/org-settings";
 
 /**
  * Aggregate spending breakdown across all active centres for the
@@ -47,6 +48,9 @@ export const GET = withApiAuth(async (req) => {
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
+  // 2026-07-08: grocery rates now live on OrgSettings — one set of
+  // rates shared by all centres, editable from /settings/organisation.
+  const { groceryRates } = await getOrgSettings();
   const services = await prisma.service.findMany({
     where: { status: "active" },
     select: {
@@ -54,9 +58,6 @@ export const GET = withApiAuth(async (req) => {
       code: true,
       name: true,
       state: true,
-      bscGroceryRate: true,
-      ascGroceryRate: true,
-      vcGroceryRate: true,
     },
     orderBy: { name: "asc" },
   });
@@ -82,13 +83,13 @@ export const GET = withApiAuth(async (req) => {
         weekBookings += total;
         if (a.sessionType === "bsc") {
           perSession.bsc = total;
-          groceryForecast += total * service.bscGroceryRate;
+          groceryForecast += total * groceryRates.bsc;
         } else if (a.sessionType === "asc") {
           perSession.asc = total;
-          groceryForecast += total * service.ascGroceryRate;
+          groceryForecast += total * groceryRates.asc;
         } else if (a.sessionType === "vc") {
           perSession.vc = total;
-          groceryForecast += total * service.vcGroceryRate;
+          groceryForecast += total * groceryRates.vc;
         }
       }
 

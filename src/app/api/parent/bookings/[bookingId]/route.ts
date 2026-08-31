@@ -1,27 +1,45 @@
 import { NextResponse } from "next/server";
+import { requireRoomId } from "@/lib/room-resolver";
 import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { ENROLMENTS_EMAIL } from "@/lib/enrol-draft";
 import { isTodayOrFutureInServiceTz } from "@/lib/timezone";
 import { isTrustedBlobUrl } from "@/lib/trusted-urls";
 import { getParentChildIds } from "../route";
+import { parseJsonField } from "@/lib/schemas/json-fields";
+import {
+  casualBookingSettingsSchema,
+  type CasualBookingSettings,
+} from "@/lib/service-settings";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
 // ---------------------------------------------------------------------------
 
-const markAbsentSchema = z.object({
+/**
+ * PATCH does two opposite things, chosen by `action`.
+ *
+ * A plain object rather than a discriminated union: the discriminator
+ * has to DEFAULT to "absent" so the app's existing calls — a bare
+ * { isIllness, notes } body — keep working, and a union can't have an
+ * optional discriminator.
+ */
+const patchSchema = z.object({
+  action: z.enum(["absent", "attending"]).optional().default("absent"),
   isIllness: z.boolean().optional().default(false),
   medicalCertificateUrl: z
     .string()
     .url()
     .refine(isTrustedBlobUrl, {
-      message: "medicalCertificateUrl must be a URL issued by our upload endpoint",
+      message:
+        "medicalCertificateUrl must be a URL issued by our upload endpoint",
     })
     .optional(),
   notes: z.string().max(500).optional(),
 });
+
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -51,12 +69,60 @@ export const PATCH = withParentAuth(async (req, ctx) => {
   if (!bookingId) throw ApiError.badRequest("bookingId is required");
 
   const body = await parseJsonBody(req);
-  const parsed = markAbsentSchema.safeParse(body);
+  const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     throw ApiError.badRequest("Invalid absence data", parsed.error.flatten().fieldErrors);
   }
 
   const booking = await getBookingForParent(bookingId, ctx.parent.enrolmentIds);
+
+  // ── Changing their mind ────────────────────────────────────────────
+  // A family who marks a child absent and then finds their plans
+  // changed had no way back — they had to ring the centre to undo a
+  // tap. Allowed up to 24 hours before the session, the same window
+  // that governs cancelling a casual booking, because after that the
+  // centre has already staffed and catered to the number.
+  if (parsed.data.action === "attending") {
+    if (booking.status !== "absent_notified") {
+      throw ApiError.badRequest(
+        booking.status === "confirmed" || booking.status === "requested"
+          ? "This session is already marked as attending."
+          : `Cannot change a ${booking.status} booking back to attending.`,
+      );
+    }
+
+    const hoursUntil =
+      (new Date(booking.date).getTime() - Date.now()) / (1000 * 60 * 60);
+    if (hoursUntil < 24) {
+      throw ApiError.badRequest(
+        "It's less than 24 hours before this session — please message head office and we'll sort it out.",
+      );
+    }
+
+    // Booking back to confirmed AND the absence removed, together. A
+    // lingering absence row would keep the child off the roll while the
+    // booking said they were coming.
+    const [restored] = await prisma.$transaction([
+      prisma.booking.update({
+        where: { id: bookingId },
+        data: { status: "confirmed" },
+        include: {
+          child: { select: { id: true, firstName: true, surname: true } },
+          service: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.absence.deleteMany({
+        where: {
+          childId: booking.childId,
+          serviceId: booking.serviceId,
+          date: booking.date,
+          sessionType: booking.sessionType,
+        },
+      }),
+    ]);
+
+    return NextResponse.json({ booking: restored, absence: null });
+  }
 
   // Can only mark confirmed or requested bookings as absent
   if (booking.status !== "confirmed" && booking.status !== "requested") {
@@ -74,6 +140,11 @@ export const PATCH = withParentAuth(async (req, ctx) => {
 
   const { isIllness, medicalCertificateUrl, notes } = parsed.data;
 
+  const absenceRoomId = await requireRoomId(
+    booking.serviceId,
+    booking.sessionType,
+  );
+
   // Atomic: update booking status + create absence record
   const [updatedBooking, absence] = await prisma.$transaction([
     prisma.booking.update({
@@ -89,6 +160,9 @@ export const PATCH = withParentAuth(async (req, ctx) => {
         childId: booking.childId,
         serviceId: booking.serviceId,
         date: booking.date,
+        // Stage 1 dual key. Resolved before the transaction is built —
+        // the array form takes prepared arguments, not promises.
+        roomId: absenceRoomId,
         sessionType: booking.sessionType,
         isIllness,
         medicalCertificateUrl,
@@ -111,21 +185,50 @@ export const DELETE = withParentAuth(async (_req, ctx) => {
 
   const booking = await getBookingForParent(bookingId, ctx.parent.enrolmentIds);
 
-  // Only casual bookings can be cancelled by parent
-  if (booking.type !== "casual") {
-    throw ApiError.badRequest(
-      "Only casual bookings can be cancelled. Contact your centre for permanent booking changes.",
-    );
-  }
+  const service = await prisma.service.findUnique({
+    where: { id: booking.serviceId },
+    select: { casualBookingSettings: true },
+  });
+  const settings = parseJsonField<CasualBookingSettings | null>(
+    service?.casualBookingSettings,
+    casualBookingSettingsSchema.nullable(),
+    null,
+  );
 
-  // Must be at least 24 hours in the future
-  const bookingDate = new Date(booking.date);
-  const now = new Date();
-  const hoursUntil = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-  if (hoursUntil < 24) {
-    throw ApiError.badRequest(
-      "Bookings can only be cancelled at least 24 hours in advance.",
-    );
+  const daysUntil =
+    (new Date(booking.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+
+  if (booking.type === "casual") {
+    // Some centres cost a casual place the moment it's taken, so a late
+    // cancellation is a fee argument rather than a freed spot. Off by
+    // default — the standard cut-off rule below still applies.
+    if (settings?.policy?.blockCasualCancellation) {
+      throw ApiError.badRequest(
+        `Casual bookings can't be cancelled online at this centre. Email ${ENROLMENTS_EMAIL} if something's changed.`,
+      );
+    }
+    if (daysUntil * 24 < 24) {
+      throw ApiError.badRequest(
+        "Bookings can only be cancelled at least 24 hours in advance.",
+      );
+    }
+  } else {
+    /**
+     * Recurring bookings can't be cancelled online at all (2026-08-06).
+     *
+     * Cancelling a day out of a pattern is nearly always the wrong
+     * instrument: the family means either "not this Tuesday" — which is
+     * marking the child not attending, and keeps the place — or "change
+     * our days", which is an enrolment change with fee and CCS
+     * consequences that a cancel button can't handle. Both used to hide
+     * behind a seven-day window that let the first case silently drop a
+     * permanent place.
+     */
+    {
+      throw ApiError.badRequest(
+        `Regular weekly bookings can't be changed online. To skip just this day, mark your child as not attending — that keeps the pattern. To change the pattern itself, email ${ENROLMENTS_EMAIL}.`,
+      );
+    }
   }
 
   // Can only cancel requested or confirmed bookings

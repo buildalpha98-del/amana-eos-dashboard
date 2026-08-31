@@ -82,14 +82,14 @@ export function DashboardTodayStrip({ counts }: { counts: TodayStripCounts }) {
               className={cn(
                 "w-9 h-9 rounded-full shrink-0 flex items-center justify-center",
                 it.urgent
-                  ? "bg-rose-100 text-rose-700"
+                  ? "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300"
                   : "bg-[color:var(--color-brand-soft)] text-[color:var(--color-brand)]",
               )}
             >
               <Icon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] text-[color:var(--color-muted)] uppercase tracking-wide">
+              <p className="text-2xs text-[color:var(--color-muted)] uppercase tracking-wide">
                 {it.label}
               </p>
               <p

@@ -40,8 +40,23 @@ vi.mock("@/lib/email", () => ({
 const sendSmsMock = vi.fn();
 vi.mock("@/lib/sms", () => ({ sendSms: (...args: unknown[]) => sendSmsMock(...args) }));
 
+vi.mock("@/lib/frequency-cap", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/frequency-cap")>("@/lib/frequency-cap");
+  return {
+    ...actual,
+    getFrequencyCapped: vi.fn(),
+    recordMarketingSends: vi.fn(async () => {}),
+  };
+});
+
+const renderBlocksToHtmlMock = vi.fn(
+  (_b: unknown, vars?: Record<string, string>, _layoutOpts?: Record<string, unknown>) =>
+    `<blocks>${vars?.centreName ?? ""}</blocks>`,
+);
 vi.mock("@/lib/email-marketing-layout", () => ({
-  renderBlocksToHtml: (_b: unknown, vars: Record<string, string>) => `<blocks>${vars?.centreName ?? ""}</blocks>`,
+  renderBlocksToHtml: (
+    ...args: [unknown, Record<string, string>?, Record<string, unknown>?]
+  ) => renderBlocksToHtmlMock(...args),
   marketingLayout: (html: string) => `<ml>${html}</ml>`,
 }));
 vi.mock("@/lib/email-branding", () => ({
@@ -75,6 +90,7 @@ vi.mock("@/lib/email-templates", () => {
     nurtureSessionReminderEmail: (firstName: string, centreName: string) => ({
       subject: "reminder", html: `<p>reminder ${centreName}</p>`,
     }),
+    centreWebsiteUrl: () => undefined,
     retentionCasualReengageEmail: echo("casual"),
     retentionDayChangeReminderEmail: echo("day-change"),
     retentionWithdrawalInterceptEmail: echo("withdrawal"),
@@ -83,6 +99,10 @@ vi.mock("@/lib/email-templates", () => {
 });
 
 import { POST } from "@/app/api/cron/nurture-send/route";
+import { getFrequencyCapped, recordMarketingSends } from "@/lib/frequency-cap";
+
+const mockedGetFrequencyCapped = vi.mocked(getFrequencyCapped);
+const mockedRecordMarketingSends = vi.mocked(recordMarketingSends);
 
 type ContactOverride = Partial<{
   email: string; firstName: string; subscribed: boolean; mobile: string | null; smsOptIn: boolean;
@@ -285,5 +305,97 @@ describe("POST /api/cron/nurture-send — sequence sender (post-cutover)", () =>
       data: { status: string };
     };
     expect(call.data.status).toBe("failed");
+  });
+
+  // ── Send ledger (Phase 6 frequency cap) ──
+  it("records the send in the marketing ledger (source nurture, contactId included) on success", async () => {
+    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([makeExec({ templateKey: "welcome" })]);
+
+    await run();
+
+    expect(mockedRecordMarketingSends).toHaveBeenCalledTimes(1);
+    const [, entries, meta] = mockedRecordMarketingSends.mock.calls[0];
+    expect(entries).toEqual([{ email: "aysha@example.com", contactId: "c-1" }]);
+    expect(meta).toEqual({ source: "nurture" });
+  });
+
+  it("NEVER consults the frequency cap — nurture is recorded but not cap-blocked", async () => {
+    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([makeExec({ templateKey: "welcome" })]);
+
+    await run();
+
+    expect(mockedGetFrequencyCapped).not.toHaveBeenCalled();
+  });
+
+  it("does not record a ledger row when the address is suppressed (nothing was sent)", async () => {
+    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([makeExec({ templateKey: "welcome" })]);
+    sendEmailMock.mockResolvedValue({ sent: [], suppressed: ["aysha@example.com"], messageId: undefined });
+
+    await run();
+
+    expect(mockedRecordMarketingSends).not.toHaveBeenCalled();
+  });
+
+  it("ledger write is UNGATED by the service-code condition (recorded even when svc.code is missing)", async () => {
+    const exec = makeExec({ templateKey: "welcome" });
+    // No service on the contact → the email DeliveryLog create is skipped,
+    // but the ledger write must still happen.
+    (exec.enrolment.contact as { service: unknown }).service = null;
+    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([exec]);
+
+    await run();
+
+    const emailLogs = prismaMock.deliveryLog.create.mock.calls.filter(
+      (c: unknown[]) => (c[0] as { data: { channel: string } }).data.channel === "email",
+    );
+    expect(emailLogs).toHaveLength(0);
+    expect(mockedRecordMarketingSends).toHaveBeenCalledTimes(1);
+    const [, entries] = mockedRecordMarketingSends.mock.calls[0];
+    expect(entries).toEqual([{ email: "aysha@example.com", contactId: "c-1" }]);
+  });
+
+  // ── Layout parity (Phase 7) ──
+  it("passes the branding-derived layoutOpts to renderBlocksToHtml on the blocks branch", async () => {
+    const exec = makeExec({ templateKey: "welcome" });
+    (exec.step as { emailTemplate: unknown }).emailTemplate = {
+      subject: "Blocks subject",
+      blocks: [{ type: "text", content: "Block body" }],
+      htmlContent: null,
+    };
+    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([exec]);
+
+    await run();
+
+    expect(renderBlocksToHtmlMock).toHaveBeenCalledTimes(1);
+    // 3rd arg must be the layoutOpts the route already builds from
+    // getEmailBranding() — previously dropped on this branch only.
+    const layoutOpts = renderBlocksToHtmlMock.mock.calls[0][2];
+    expect(layoutOpts).toEqual({
+      headerText: "Amana OSHC",
+      footerText: "Amana OSHC",
+      headerColor: "#004E64",
+      footerUrl: "https://x.test",
+      footerUrlLabel: "x",
+    });
+  });
+
+  it("records CRM outreach sends too (lead email, no contactId)", async () => {
+    const exec = makeExec({ templateKey: "welcome", sequenceType: "crm_outreach" });
+    (exec.enrolment as { contactId: string | null }).contactId = null;
+    (exec.enrolment as { leadId: string | null }).leadId = "lead-1";
+    (exec.enrolment as { contact: unknown }).contact = null;
+    (exec.enrolment as { lead: unknown }).lead = {
+      contactEmail: "Principal@School.edu.au",
+      contactName: "Principal",
+      schoolName: "Test School",
+    };
+    prismaMock.sequenceStepExecution.findMany.mockResolvedValue([exec]);
+
+    await run();
+
+    expect(mockedRecordMarketingSends).toHaveBeenCalledTimes(1);
+    const [, entries, meta] = mockedRecordMarketingSends.mock.calls[0];
+    expect(entries).toEqual([{ email: "Principal@School.edu.au", contactId: undefined }]);
+    expect(meta).toEqual({ source: "nurture" });
   });
 });

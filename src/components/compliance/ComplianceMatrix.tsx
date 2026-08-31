@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Loader2, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
 import { CertStatusBadge } from "@/components/staff/CertStatusBadge";
@@ -74,13 +75,14 @@ export function ComplianceMatrix({ serviceId, initialSelected = null }: Complian
       <div className="bg-card border border-red-200 rounded-xl p-6 text-sm text-red-700">
         <p className="font-medium mb-2">Failed to load compliance matrix</p>
         <p className="mb-3">{(error as Error).message}</p>
-        <button
+        <Button
           type="button"
+          variant="destructive"
+          size="sm"
           onClick={() => refetch()}
-          className="px-3 py-1.5 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
         >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }

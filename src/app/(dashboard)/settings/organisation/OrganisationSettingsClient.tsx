@@ -42,6 +42,7 @@ const ROLE_KEYS: (keyof RoleLabels)[] = [
   "staff",
   "eos_viewer",
   "eos_implementer",
+  "eos",
 ];
 
 const ROLE_HINTS: Record<keyof RoleLabels, string> = {
@@ -53,6 +54,7 @@ const ROLE_HINTS: Record<keyof RoleLabels, string> = {
   staff: "On-shift educator",
   eos_viewer: "View-only access to the EOS surface — coaches / advisors",
   eos_implementer: "Full write access to the EOS surface (org-wide) — the EOS implementer",
+  eos: "Broad EOS Member — full EOS surface plus Services / Operations / Growth / People",
 };
 
 interface Props {
@@ -88,6 +90,10 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
   const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(
     config.email.senderEmail,
   );
+  const capValid =
+    Number.isInteger(config.email.marketingWeeklyCap) &&
+    config.email.marketingWeeklyCap >= 1 &&
+    config.email.marketingWeeklyCap <= 20;
   const labelsValid = ROLE_KEYS.every(
     (k) => config.roleLabels[k].trim().length > 0,
   );
@@ -107,6 +113,7 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
     thresholdsValid &&
     ratioValid &&
     emailValid &&
+    capValid &&
     labelsValid &&
     onboardingValid &&
     welcomePackValid;
@@ -419,6 +426,7 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
               staff: { welcomeMessage: "" },
               eos_viewer: { welcomeMessage: "" },
               eos_implementer: { welcomeMessage: "" },
+              eos: { welcomeMessage: "" },
             },
           }))
         }
@@ -510,6 +518,30 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
             className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
           />
         </Field>
+        <Field
+          label="Weekly marketing email cap per parent"
+          valid={capValid}
+          error="Must be a whole number between 1 and 20"
+          hint="Bulk campaign & automation sends only — 1:1 enquiry replies and lifecycle emails are never blocked"
+        >
+          <input
+            type="number"
+            min={1}
+            max={20}
+            step={1}
+            value={config.email.marketingWeeklyCap}
+            onChange={(e) =>
+              setConfig((c) => ({
+                ...c,
+                email: {
+                  ...c.email,
+                  marketingWeeklyCap: Number(e.target.value),
+                },
+              }))
+            }
+            className="w-24 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </Field>
       </Section>
 
       {/* Ratios */}
@@ -532,6 +564,97 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
             className="w-32 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
           />
         </Field>
+      </Section>
+
+      {/* Grocery rates */}
+      <Section
+        title="Grocery rates per head"
+        description="Per-child grocery cost used by the Financial Dashboard and each centre's Budget tab to forecast weekly grocery spend. One set applies to every centre. Attendance × rate = forecast."
+        onReset={() => resetSection("groceryRates")}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field
+            label="Rise & Shine (before school care)"
+            valid={config.groceryRates.bsc > 0}
+            error="Must be > $0"
+          >
+            <div className="relative">
+              <span className="absolute inset-y-0 left-2 flex items-center text-sm text-muted pointer-events-none">
+                $
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.05}
+                value={config.groceryRates.bsc}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    groceryRates: {
+                      ...c.groceryRates,
+                      bsc: Number(e.target.value),
+                    },
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-card pl-6 pr-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+          </Field>
+          <Field
+            label="Minor Afternoons (after school care)"
+            valid={config.groceryRates.asc > 0}
+            error="Must be > $0"
+          >
+            <div className="relative">
+              <span className="absolute inset-y-0 left-2 flex items-center text-sm text-muted pointer-events-none">
+                $
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.05}
+                value={config.groceryRates.asc}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    groceryRates: {
+                      ...c.groceryRates,
+                      asc: Number(e.target.value),
+                    },
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-card pl-6 pr-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+          </Field>
+          <Field
+            label="Holiday Quest (vacation care)"
+            valid={config.groceryRates.vc > 0}
+            error="Must be > $0"
+          >
+            <div className="relative">
+              <span className="absolute inset-y-0 left-2 flex items-center text-sm text-muted pointer-events-none">
+                $
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.05}
+                value={config.groceryRates.vc}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    groceryRates: {
+                      ...c.groceryRates,
+                      vc: Number(e.target.value),
+                    },
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-card pl-6 pr-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+          </Field>
+        </div>
       </Section>
 
       {/* Health Score */}
@@ -784,7 +907,7 @@ function ChecklistOverridesSection({
             >
               {label}
               {count > 0 && (
-                <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full bg-brand text-white text-[10px] font-semibold">
+                <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full bg-brand text-white text-2xs font-semibold">
                   {count}
                 </span>
               )}
@@ -815,7 +938,7 @@ function ChecklistOverridesSection({
             >
               <div className="flex items-center justify-between gap-2">
                 <code className="text-xs text-muted font-mono">{item.key}</code>
-                <span className="text-[10px] uppercase tracking-wider text-muted">
+                <span className="text-2xs uppercase tracking-wider text-muted">
                   {item.category}
                 </span>
               </div>

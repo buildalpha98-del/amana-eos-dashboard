@@ -26,38 +26,38 @@ interface QuickAction {
 }
 
 const educatorActions: QuickAction[] = [
-  { href: "/leave", label: "Request Leave", icon: Plane, color: "text-blue-600", bgColor: "bg-blue-50" },
-  { href: "/compliance", label: "My Certificates", icon: ShieldCheck, color: "text-emerald-600", bgColor: "bg-emerald-50" },
-  { href: "/my-portal", label: "My Training", icon: GraduationCap, color: "text-purple-600", bgColor: "bg-purple-50" },
-  { href: "/todos", label: "My To-Dos", icon: CheckSquare, color: "text-amber-600", bgColor: "bg-amber-50" },
+  { href: "/leave", label: "Request Leave", icon: Plane, color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-950/40" },
+  { href: "/compliance", label: "My Certificates", icon: ShieldCheck, color: "text-emerald-600", bgColor: "bg-emerald-50 dark:bg-emerald-950/40" },
+  { href: "/my-portal", label: "My Training", icon: GraduationCap, color: "text-purple-600", bgColor: "bg-purple-50 dark:bg-purple-950/40" },
+  { href: "/todos", label: "My To-Dos", icon: CheckSquare, color: "text-amber-600", bgColor: "bg-amber-50 dark:bg-amber-950/40" },
 ];
 
 const directorActions: QuickAction[] = [
   { href: "/rocks", label: "My Rocks", icon: Mountain, color: "text-brand", bgColor: "bg-brand/10" },
-  { href: "/todos", label: "To-Dos", icon: CheckSquare, color: "text-amber-600", bgColor: "bg-amber-50" },
-  { href: "/compliance", label: "Compliance", icon: ShieldCheck, color: "text-emerald-600", bgColor: "bg-emerald-50" },
-  { href: "/enquiries", label: "Enquiries", icon: UserPlus, color: "text-blue-600", bgColor: "bg-blue-50" },
+  { href: "/todos", label: "To-Dos", icon: CheckSquare, color: "text-amber-600", bgColor: "bg-amber-50 dark:bg-amber-950/40" },
+  { href: "/compliance", label: "Compliance", icon: ShieldCheck, color: "text-emerald-600", bgColor: "bg-emerald-50 dark:bg-emerald-950/40" },
+  { href: "/enquiries", label: "Enquiries", icon: UserPlus, color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-950/40" },
 ];
 
 const coordinatorActions: QuickAction[] = [
-  { href: "/compliance", label: "Compliance", icon: ShieldCheck, color: "text-emerald-600", bgColor: "bg-emerald-50" },
-  { href: "/leave", label: "Leave Requests", icon: CalendarDays, color: "text-blue-600", bgColor: "bg-blue-50" },
-  { href: "/timesheets", label: "Timesheets", icon: ClipboardCheck, color: "text-purple-600", bgColor: "bg-purple-50" },
-  { href: "/todos", label: "To-Dos", icon: CheckSquare, color: "text-amber-600", bgColor: "bg-amber-50" },
+  { href: "/compliance", label: "Compliance", icon: ShieldCheck, color: "text-emerald-600", bgColor: "bg-emerald-50 dark:bg-emerald-950/40" },
+  { href: "/leave", label: "Leave Requests", icon: CalendarDays, color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-950/40" },
+  { href: "/timesheets", label: "Timesheets", icon: ClipboardCheck, color: "text-purple-600", bgColor: "bg-purple-50 dark:bg-purple-950/40" },
+  { href: "/todos", label: "To-Dos", icon: CheckSquare, color: "text-amber-600", bgColor: "bg-amber-50 dark:bg-amber-950/40" },
 ];
 
 const leaderActions: QuickAction[] = [
   { href: "/scorecard", label: "Scorecard", icon: BarChart3, color: "text-brand", bgColor: "bg-brand/10" },
-  { href: "/rocks", label: "Rocks", icon: Mountain, color: "text-emerald-600", bgColor: "bg-emerald-50" },
-  { href: "/team", label: "Team", icon: Users, color: "text-purple-600", bgColor: "bg-purple-50" },
-  { href: "/todos", label: "To-Dos", icon: CheckSquare, color: "text-amber-600", bgColor: "bg-amber-50" },
+  { href: "/rocks", label: "Rocks", icon: Mountain, color: "text-emerald-600", bgColor: "bg-emerald-50 dark:bg-emerald-950/40" },
+  { href: "/team", label: "Team", icon: Users, color: "text-purple-600", bgColor: "bg-purple-50 dark:bg-purple-950/40" },
+  { href: "/todos", label: "To-Dos", icon: CheckSquare, color: "text-amber-600", bgColor: "bg-amber-50 dark:bg-amber-950/40" },
 ];
 
 const marketingActions: QuickAction[] = [
-  { href: "/marketing", label: "Campaigns", icon: Megaphone, color: "text-pink-600", bgColor: "bg-pink-50" },
-  { href: "/crm", label: "CRM", icon: UserPlus, color: "text-blue-600", bgColor: "bg-blue-50" },
-  { href: "/enquiries", label: "Enquiries", icon: MessageSquare, color: "text-emerald-600", bgColor: "bg-emerald-50" },
-  { href: "/communication", label: "Comms", icon: MessageSquare, color: "text-amber-600", bgColor: "bg-amber-50" },
+  { href: "/marketing", label: "Campaigns", icon: Megaphone, color: "text-pink-600", bgColor: "bg-pink-50 dark:bg-pink-950/40" },
+  { href: "/crm", label: "CRM", icon: UserPlus, color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-950/40" },
+  { href: "/enquiries", label: "Enquiries", icon: MessageSquare, color: "text-emerald-600", bgColor: "bg-emerald-50 dark:bg-emerald-950/40" },
+  { href: "/communication", label: "Comms", icon: MessageSquare, color: "text-amber-600", bgColor: "bg-amber-50 dark:bg-amber-950/40" },
 ];
 
 function getActionsForRole(role: string): QuickAction[] {
@@ -104,7 +104,7 @@ export function MobileQuickActions({ role }: MobileQuickActionsProps) {
               <div className={cn("w-10 h-10 rounded-full flex items-center justify-center bg-card shadow-sm")}>
                 <Icon className={cn("w-5 h-5", action.color)} />
               </div>
-              <span className="text-[11px] font-medium text-foreground/80 text-center leading-tight">
+              <span className="text-xs font-medium text-foreground/80 text-center leading-tight">
                 {action.label}
               </span>
             </Link>

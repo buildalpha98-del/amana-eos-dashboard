@@ -30,6 +30,22 @@ export interface MeetingAttendee {
   updatedAt: string;
 }
 
+/**
+ * Completion-time outcome snapshot (2026-08-31). Written once when the
+ * meeting completes; null for legacy meetings (UI falls back to live
+ * computation).
+ */
+export interface MeetingOutcomes {
+  todosCompleted: number;
+  todosTotal: number;
+  completionPct: number;
+  issuesSolvedIds: string[];
+  rocksOnTrack: number;
+  rocksTotal: number;
+  avgRating: number | null;
+  capturedAt: string;
+}
+
 /** AI-prepared L10 agenda draft (2026-07-05, draft-first meetings). */
 export interface MeetingAgendaDraft {
   summary: string;
@@ -52,6 +68,10 @@ export interface MeetingData {
   cascadeMessages: string | null;
   serviceIds: string[];
   rockIds: string[];
+  /** Leadership (L10) meeting — restricts To-Do Review to leadership roles. */
+  isLeadership: boolean;
+  /** Scorecard this meeting reviews. Null = legacy single scorecard. */
+  scorecardId: string | null;
   startedAt: string | null;
   completedAt: string | null;
   createdById: string;
@@ -60,6 +80,7 @@ export interface MeetingData {
   attendees?: MeetingAttendee[];
   aiAgendaDraft?: MeetingAgendaDraft | null;
   aiAgendaDraftAt?: string | null;
+  outcomes?: MeetingOutcomes | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -97,11 +118,37 @@ export function useCreateMeeting() {
       date: string;
       serviceIds?: string[];
       attendeeIds?: string[];
+      isLeadership?: boolean;
+      scorecardId?: string | null;
+      /** ISO datetime — creates the meeting as `scheduled` instead of starting now. */
+      scheduledFor?: string;
     }) => {
       return mutateApi<MeetingData>("/api/meetings", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meetings"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+/**
+ * Start a scheduled meeting. Status-guarded server-side — a lost race
+ * (someone else already hit Start) comes back as a 409 toast.
+ */
+export function useStartMeeting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      mutateApi<MeetingData>(`/api/meetings/${id}`, {
+        method: "PATCH",
+        body: { action: "start" },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+      toast({ description: "Meeting started." });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -160,6 +207,25 @@ export function useUpdateMeeting() {
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+/**
+ * Delete a meeting outright (owner/admin only). Used to clean up a
+ * mis-started meeting. Destructive — the caller must confirm first.
+ */
+export function useDeleteMeeting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      mutateApi<{ ok: true }>(`/api/meetings/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+      toast({ description: "Meeting deleted." });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message });
     },
   });
 }

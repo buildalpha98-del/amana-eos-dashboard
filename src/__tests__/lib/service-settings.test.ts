@@ -4,6 +4,12 @@ import {
   casualBookingSettingsSchema,
   fortnightPatternSchema,
   bookingPrefsSchema,
+  roomLabel,
+  roomLabelWithTimes,
+  roomFees,
+  archivedRoomFees,
+  formatTime,
+  resolveCasualFee,
 } from "@/lib/service-settings";
 
 // ---------------------------------------------------------------------------
@@ -270,5 +276,292 @@ describe("bookingPrefsSchema", () => {
         },
       }),
     ).toThrow();
+  });
+});
+
+describe("rooms — labels, times and fees", () => {
+  it("falls back to Amana's own room names when a service hasn't set one", () => {
+    // Nobody here says "BSC". An unconfigured centre should still read
+    // the way staff and parents speak.
+    expect(roomLabel(null, "bsc")).toBe("Rise and Shine");
+    expect(roomLabel(null, "asc")).toBe("Amana Afternoons");
+    expect(roomLabel({ bsc: { start: "06:30", end: "09:00" } }, "bsc")).toBe(
+      "Rise and Shine",
+    );
+  });
+
+  it("uses the service's own name when set", () => {
+    expect(
+      roomLabel(
+        { bsc: { label: "Sunrise Club", start: "06:30", end: "09:00" } },
+        "bsc",
+      ),
+    ).toBe("Sunrise Club");
+  });
+
+  it("formats times the way a parent reads them", () => {
+    expect(formatTime("06:30")).toBe("6:30am");
+    expect(formatTime("15:00")).toBe("3:00pm");
+    expect(formatTime("00:15")).toBe("12:15am");
+    expect(formatTime("12:00")).toBe("12:00pm");
+    // Blank input must not become "NaN:NaNam" on a booking form.
+    expect(formatTime(null)).toBe("");
+    expect(formatTime("nonsense")).toBe("");
+  });
+
+  it("renders the label parents see on the booking form", () => {
+    expect(
+      roomLabelWithTimes(
+        { asc: { start: "15:00", end: "18:30" } },
+        "asc",
+      ),
+    ).toBe("Amana Afternoons (3:00pm – 6:30pm)");
+    // Unconfigured still reads properly, using the defaults.
+    expect(roomLabelWithTimes(null, "bsc")).toBe(
+      "Rise and Shine (6:30am – 9:00am)",
+    );
+  });
+
+  it("accepts several fees on one room, each with its own window", () => {
+    // A full session and a short session are the same room at different
+    // hours — that's why a fee carries times, not just a number.
+    const parsed = sessionTimesSchema.safeParse({
+      bsc: {
+        label: "Rise and Shine",
+        start: "06:30",
+        end: "09:00",
+        fees: [
+          { id: "fee-1", name: "Full session", amountCents: 2800 },
+          {
+            id: "fee-2",
+            name: "Short session",
+            start: "07:30",
+            end: "09:00",
+            amountCents: 2000,
+          },
+        ],
+      },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("returns fees cheapest first", () => {
+    const fees = roomFees(
+      {
+        asc: {
+          start: "15:00",
+          end: "18:30",
+          fees: [
+            { id: "a", name: "Full", amountCents: 3400 },
+            { id: "b", name: "Short", amountCents: 2200 },
+          ],
+        },
+      },
+      "asc",
+    );
+    expect(fees.map((f) => f.name)).toEqual(["Short", "Full"]);
+  });
+
+  it("rejects a fee in dollars rather than cents", () => {
+    // 28.5 as a float here would round its way into an invoice.
+    const parsed = sessionTimesSchema.safeParse({
+      bsc: {
+        start: "06:30",
+        end: "09:00",
+        fees: [{ id: "f", name: "Full", amountCents: 28.5 }],
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("still accepts the old shape, which had no label or fees", () => {
+    const parsed = sessionTimesSchema.safeParse({
+      bsc: { start: "06:30", end: "08:45" },
+      asc: { start: "15:00", end: "18:00" },
+    });
+    expect(parsed.success).toBe(true);
+  });
+});
+
+describe("resolveCasualFee — casual price follows Rooms & fees", () => {
+  const rooms = {
+    asc: {
+      start: "15:00",
+      end: "18:30",
+      fees: [
+        { id: "full", name: "Full session", amountCents: 3400 },
+        { id: "short", name: "Short session", amountCents: 2200 },
+      ],
+    },
+  };
+
+  it("charges the linked room fee, not the typed-in one", () => {
+    // The point of linking: a fee rise happens once, in Rooms & fees.
+    const fee = resolveCasualFee(
+      { asc: { fee: 25, feeTierId: "full" } },
+      rooms,
+      "asc",
+    );
+    expect(fee).toBe(34);
+  });
+
+  it("falls back to the typed amount when nothing is linked", () => {
+    expect(resolveCasualFee({ asc: { fee: 25 } }, rooms, "asc")).toBe(25);
+  });
+
+  it("falls back when the linked tier has been deleted", () => {
+    // Not silent: the caller still gets a number, but this is the case
+    // worth knowing about — a deleted tier must not charge nothing.
+    const fee = resolveCasualFee(
+      { asc: { fee: 25, feeTierId: "deleted" } },
+      rooms,
+      "asc",
+    );
+    expect(fee).toBe(25);
+  });
+
+  it("is 0 for a session with no configuration at all", () => {
+    expect(resolveCasualFee(null, rooms, "bsc")).toBe(0);
+    expect(resolveCasualFee({}, rooms, "bsc")).toBe(0);
+  });
+
+  it("accepts a policy blob alongside the session settings", () => {
+    const parsed = casualBookingSettingsSchema.safeParse({
+      asc: {
+        enabled: true,
+        fee: 0,
+        feeTierId: "full",
+        spots: 5,
+        cutOffHours: 24,
+        days: ["mon"],
+      },
+      policy: { allowRecurringCancellation: true },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("still accepts settings saved before the policy existed", () => {
+    const parsed = casualBookingSettingsSchema.safeParse({
+      bsc: { enabled: true, fee: 20, spots: 4, cutOffHours: 12, days: ["tue"] },
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.policy).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Archived fee tiers (2026-08-09)
+// ---------------------------------------------------------------------------
+
+describe("roomFees / archivedRoomFees", () => {
+  const sessionTimes = {
+    asc: {
+      start: "15:00",
+      end: "18:30",
+      fees: [
+        { id: "f1", name: "Recurring", amountCents: 3860 },
+        { id: "f2", name: "Casual", amountCents: 4410 },
+        { id: "f3", name: "Old rate", amountCents: 3000, archived: true },
+      ],
+    },
+  };
+
+  it("hides archived tiers from the pickable list", () => {
+    const fees = roomFees(sessionTimes, "asc");
+    expect(fees.map((f) => f.id)).toEqual(["f1", "f2"]);
+  });
+
+  it("still sorts the live tiers cheapest first", () => {
+    expect(roomFees(sessionTimes, "asc").map((f) => f.amountCents)).toEqual([
+      3860, 4410,
+    ]);
+  });
+
+  it("returns only archived tiers from archivedRoomFees", () => {
+    expect(archivedRoomFees(sessionTimes, "asc").map((f) => f.id)).toEqual([
+      "f3",
+    ]);
+  });
+
+  it("treats a tier with no archived flag as live", () => {
+    // Every fee that predates the field must keep working.
+    const legacy = { asc: { start: "15:00", end: "18:30", fees: [{ id: "a", name: "X", amountCents: 100 }] } };
+    expect(roomFees(legacy, "asc")).toHaveLength(1);
+    expect(archivedRoomFees(legacy, "asc")).toHaveLength(0);
+  });
+
+  it("returns empty lists for a room with no fees", () => {
+    expect(roomFees({}, "asc")).toEqual([]);
+    expect(archivedRoomFees({}, "asc")).toEqual([]);
+  });
+});
+
+describe("feeTierSchema archive/audit fields", () => {
+  it("accepts a tier carrying the new metadata", () => {
+    const parsed = sessionTimesSchema.parse({
+      asc: {
+        start: "15:00",
+        end: "18:30",
+        fees: [
+          {
+            id: "f1",
+            name: "Recurring",
+            amountCents: 3860,
+            archived: true,
+            addedAt: "2026-08-09T00:00:00.000Z",
+            updatedAt: "2026-08-09T01:00:00.000Z",
+            updatedByName: "Jayden Kowaider",
+          },
+        ],
+      },
+    });
+    expect(parsed.asc?.fees?.[0].archived).toBe(true);
+    expect(parsed.asc?.fees?.[0].updatedByName).toBe("Jayden Kowaider");
+  });
+
+  it("still accepts a tier without any of them", () => {
+    const parsed = sessionTimesSchema.parse({
+      asc: {
+        start: "15:00",
+        end: "18:30",
+        fees: [{ id: "f1", name: "Recurring", amountCents: 3860 }],
+      },
+    });
+    expect(parsed.asc?.fees?.[0].archived).toBeUndefined();
+  });
+});
+
+describe("sessionTimesSchema — the room photo", () => {
+  const room = { start: "15:00", end: "18:30" };
+
+  it("accepts a photo from our own storage", () => {
+    const r = sessionTimesSchema.safeParse({
+      asc: {
+        ...room,
+        photoUrl: "https://abc123.public.blob.vercel-storage.com/room.jpg",
+      },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("refuses a photo hosted anywhere else", () => {
+    // This renders in the dashboard. Accepting any URL would let whoever
+    // can edit a service point it at a host of their choosing, and every
+    // load of the page would then call out to it.
+    const r = sessionTimesSchema.safeParse({
+      asc: { ...room, photoUrl: "https://example.com/room.jpg" },
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("refuses something that isn't a URL at all", () => {
+    const r = sessionTimesSchema.safeParse({
+      asc: { ...room, photoUrl: "room.jpg" },
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("is optional — a room without one still parses", () => {
+    expect(sessionTimesSchema.safeParse({ asc: room }).success).toBe(true);
   });
 });

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { isAdminRole } from "@/lib/role-permissions";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 
 // GET /api/leave/requests — list leave requests
 export const GET = withApiAuth(async (req, session) => {
@@ -14,15 +16,23 @@ const { searchParams } = new URL(req.url);
 
   const where: Record<string, unknown> = {};
 
-  // Staff can only see their own requests
-  if (session!.user.role === "staff") {
-    where.userId = session!.user.id;
-  } else {
-    if (userId) where.userId = userId;
+  // Every non-admin is locked to their OWN requests (previously only `staff`
+  // was — member/marketing/eos could omit ?userId= and dump everyone's leave
+  // PII). Admins see all, optionally narrowed by ?userId=.
+  const isAdmin = isAdminRole(session.user.role);
+  if (!isAdmin) {
+    where.userId = session.user.id;
+  } else if (userId) {
+    where.userId = userId;
   }
 
   if (status) where.status = status;
-  if (serviceId) where.serviceId = serviceId;
+  // serviceId is an admin-only centre narrowing filter. Non-admins are
+  // already locked to their own userId above; applying a serviceId filter to
+  // them would wrongly hide their own leave with a null serviceId (the cowork
+  // sync leaves it null when no serviceCode is provided).
+  const scopedServiceId = resolveServiceIdFilter(session, serviceId);
+  if (isAdmin && scopedServiceId) where.serviceId = scopedServiceId;
   if (leaveType) where.leaveType = leaveType;
 
   if (startAfter || startBefore) {

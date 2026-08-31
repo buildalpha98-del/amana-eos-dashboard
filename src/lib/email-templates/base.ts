@@ -5,7 +5,37 @@
 export const BRAND_COLOR = "#004E64";
 export const ACCENT_COLOR = "#FECE00";
 
-export function baseLayout(content: string) {
+/**
+ * Which portal an email belongs to. Drives the header sub-label and the
+ * footer line.
+ *
+ * 2026-07-30: parents were receiving mail branded "EOS Dashboard" with a
+ * "Leadership Team Portal" footer — internal staff wording, on a
+ * family-facing confirmation email. Callers now say who the audience is.
+ * Defaults to "staff" so every existing caller keeps its current
+ * behaviour unchanged.
+ */
+export type EmailAudience = "staff" | "family";
+
+const AUDIENCE_COPY: Record<
+  EmailAudience,
+  { subLabel: string; footer: string }
+> = {
+  staff: {
+    subLabel: "Staff Portal",
+    footer: "Amana OSHC Staff Portal",
+  },
+  family: {
+    subLabel: "Family Portal",
+    footer: "Amana OSHC Family Portal",
+  },
+};
+
+export function baseLayout(
+  content: string,
+  audience: EmailAudience = "staff",
+) {
+  const { subLabel, footer } = AUDIENCE_COPY[audience];
   return `
 <!DOCTYPE html>
 <html>
@@ -25,7 +55,7 @@ export function baseLayout(content: string) {
                 Amana OSHC
               </h1>
               <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;">
-                EOS Dashboard
+                ${subLabel}
               </p>
             </td>
           </tr>
@@ -39,7 +69,7 @@ export function baseLayout(content: string) {
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                Amana OSHC Leadership Team Portal<br/>
+                ${footer}<br/>
                 This is an automated email — please do not reply directly.
               </p>
             </td>
@@ -77,8 +107,14 @@ export const UNSUBSCRIBE_URL_TOKEN = "{{UNSUBSCRIBE_URL}}";
  * Midnight Green header with the yellow sun-ray logo, warm Cosmic Latte
  * canvas, and a compliant footer: call button, reply-welcome note,
  * physical address, and an unsubscribe/preferences link (via token).
+ *
+ * `opts.preheader` sets the hidden inbox preview line — the text mail
+ * clients show after the subject in the message list.
  */
-export function parentEmailLayout(content: string) {
+export function parentEmailLayout(content: string, opts?: { preheader?: string }) {
+  const preheaderHtml = opts?.preheader
+    ? `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${opts.preheader}${"&nbsp;&zwnj;".repeat(30)}</div>`
+    : "";
   return `
 <!DOCTYPE html>
 <html>
@@ -87,6 +123,7 @@ export function parentEmailLayout(content: string) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body style="margin:0;padding:0;background-color:${COSMIC_LATTE};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  ${preheaderHtml}
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${COSMIC_LATTE};padding:32px 16px;">
     <tr>
       <td align="center">

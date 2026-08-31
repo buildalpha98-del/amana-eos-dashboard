@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Receipt, X, AlertTriangle, Paperclip } from "lucide-react";
 import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
@@ -57,11 +58,11 @@ interface ExpenseCategory {
 
 function statusBadgeClass(status: string): string {
   const s = status.toLowerCase();
-  if (s.startsWith("approv")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (s.startsWith("approv")) return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
   if (s.startsWith("reject") || s.startsWith("declin"))
-    return "bg-red-50 text-red-700 border-red-200";
-  if (s.startsWith("cancel")) return "bg-gray-100 text-gray-700 border-gray-200";
-  return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
+  if (s.startsWith("cancel")) return "bg-surface text-foreground/80 border-border";
+  return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
 }
 
 function todayIso(): string {
@@ -119,7 +120,10 @@ export function MyExpensesCard() {
 
   return (
     <div className="bg-card rounded-xl border border-border p-6" data-testid="my-expenses-card">
-      <div className="flex items-center justify-between mb-4 gap-2">
+      {/* 2026-07-24: stack on mobile so the Submit button gets full width
+          and can't be squeezed off-screen next to the title. Staff on
+          phones were reporting they couldn't find the button. */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <Receipt className="w-5 h-5 text-brand" />
           My Expenses
@@ -128,7 +132,7 @@ export function MyExpensesCard() {
           <button
             type="button"
             onClick={() => setSubmitOpen(true)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90 transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90 transition-colors w-full sm:w-auto"
             data-testid="expense-submit-button"
           >
             <Plus className="w-4 h-4" />
@@ -153,9 +157,19 @@ export function MyExpensesCard() {
           Unable to load expenses. Please refresh the page.
         </p>
       ) : requests.length === 0 ? (
-        <p className="text-sm text-muted">
-          No expenses yet. Click <em>Submit expense</em> to claim a reimbursement.
-        </p>
+        <div className="py-4 text-center">
+          <p className="text-sm text-muted mb-3">
+            No expenses yet — claim a reimbursement any time.
+          </p>
+          <button
+            type="button"
+            onClick={() => setSubmitOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand/90"
+          >
+            <Plus className="w-4 h-4" />
+            Submit expense
+          </button>
+        </div>
       ) : (
         <ul className="divide-y divide-border">
           {requests.map((r) => {
@@ -309,16 +323,26 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
     !!dateIncurred &&
     !submitMutation.isPending;
 
-  return (
+  // 2026-07-27: portal to document.body so ancestor `transform`/`filter`/
+  // `will-change` in the my-portal layout can't clip the modal. Also
+  // switch height to `dvh` (dynamic viewport height) so the footer with
+  // the Submit button stays reachable behind iOS Safari's URL bar —
+  // reports of "the submit button isn't clickable" on iPhone.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  const modal = (
     <div
       className="fixed inset-0 z-[60] bg-black/60 flex items-stretch sm:items-center justify-center sm:p-4"
+      style={{ height: "100dvh" }}
       data-testid="expense-submit-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget && !submitMutation.isPending) onClose();
       }}
     >
       <div
-        className="bg-card w-full h-full sm:h-auto sm:max-h-[90vh] sm:w-full sm:max-w-lg flex flex-col shadow-2xl sm:rounded-xl"
+        className="bg-card w-full h-[100dvh] sm:h-auto sm:max-h-[90dvh] sm:w-full sm:max-w-lg flex flex-col shadow-2xl sm:rounded-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="expense-submit-title"
@@ -458,7 +482,7 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
           </div>
 
           {submitError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+            <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
               {submitError}
             </div>
           )}
@@ -493,4 +517,6 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

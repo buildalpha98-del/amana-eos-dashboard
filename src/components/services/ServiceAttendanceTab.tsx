@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState, useMemo, useCallback, useEffect } from "react";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   Users,
@@ -69,6 +70,23 @@ const attendanceImportColumns: ColumnConfig[] = [
 ];
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"] as const;
+
+/**
+ * How far the week picker can travel.
+ *
+ * Forward navigation was `disabled={weekOffset >= 0}` — true at the
+ * default offset of 0, so the → button was dead on arrival and staff
+ * could never reach next week. Which is the week they most need: the
+ * whole point of "Propagate to future weeks" is filling weeks that
+ * haven't happened yet.
+ *
+ * Bounded rather than unbounded so nobody scrolls to 2031 by holding
+ * the arrow, and every disabled state now LOOKS disabled — the old
+ * button gave no visual cue, which is why it read as broken rather
+ * than blocked.
+ */
+const MAX_WEEKS_AHEAD = 52;
+const MAX_WEEKS_BACK = 52;
 
 function getWeekDates(weekOffset: number): Date[] {
   const now = new Date();
@@ -552,7 +570,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
 
       {/* Attendance Anomaly Alerts */}
       {anomalies && anomalies.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <span className="text-sm font-semibold text-amber-800">
@@ -635,8 +653,8 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 className={cn(
                   "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors",
                   forecastLoading
-                    ? "border-amber-300 text-amber-700 bg-amber-50"
-                    : "border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100",
+                    ? "border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40"
+                    : "border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/50",
                   "disabled:cursor-not-allowed"
                 )}
               >
@@ -685,7 +703,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
 
       {/* Demand Forecast Panel */}
       {forecast && (
-        <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden">
+        <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
           {/* role-button div, not <button>: the dismiss X inside is a
               real <button> (invalid to nest). */}
           <div
@@ -738,7 +756,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
 
       {/* Roster Suggestions Panel */}
       {rosterSuggestion && (
-        <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden">
+        <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
           {/* role-button div, not <button>: the dismiss X inside is a
               real <button> (invalid to nest). */}
           <div
@@ -826,28 +844,25 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
             </h3>
             <div className="flex items-center gap-1 sm:gap-2">
               <button
-                onClick={() => {
-                  setWeekOffset((w) => w - 1);
-                }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
+                onClick={() => setWeekOffset((w) => Math.max(-MAX_WEEKS_BACK, w - 1))}
+                disabled={weekOffset <= -MAX_WEEKS_BACK}
+                aria-label="Previous week"
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 ←
               </button>
               <button
-                onClick={() => {
-                  setWeekOffset(0);
-                }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
+                onClick={() => setWeekOffset(0)}
                 disabled={weekOffset === 0}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 Today
               </button>
               <button
-                onClick={() => {
-                  setWeekOffset((w) => w + 1);
-                }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
-                disabled={weekOffset >= 0}
+                onClick={() => setWeekOffset((w) => Math.min(MAX_WEEKS_AHEAD, w + 1))}
+                disabled={weekOffset >= MAX_WEEKS_AHEAD}
+                aria-label="Next week"
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 →
               </button>
@@ -948,7 +963,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                           <div className="grid grid-cols-2 gap-2">
                             {(["permanent", "casual"] as const).map((field) => (
                               <div key={field}>
-                                <label className="text-[10px] text-muted uppercase">
+                                <label className="text-2xs text-muted uppercase">
                                   {BOOKING_TYPE_LABELS[field]}
                                 </label>
                                 <BookingInput
@@ -965,7 +980,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                         </div>
                       );
                     })}
-                    <div className="text-[10px] text-muted">
+                    <div className="text-2xs text-muted">
                       Approved places:{" "}
                       <span className="font-medium text-foreground">
                         {approvedPlaces ?? "—"}
@@ -992,7 +1007,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                         <div className="font-semibold text-foreground">
                           {formatDayLabel(d)}
                         </div>
-                        <div className="text-[10px] text-muted font-normal">
+                        <div className="text-2xs text-muted font-normal">
                           {formatDateLabel(d)}
                         </div>
                       </th>
@@ -1094,18 +1109,14 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                   )}
                   Propagate to Future Weeks
                 </button>
-                <button
+                <Button
+                  size="sm"
                   onClick={handleSave}
-                  disabled={batchUpdate.isPending}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  loading={batchUpdate.isPending}
+                  iconLeft={<Save className="w-4 h-4" />}
                 >
-                  {batchUpdate.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
                   Save Week
-                </button>
+                </Button>
               </div>
             </div>
           </>

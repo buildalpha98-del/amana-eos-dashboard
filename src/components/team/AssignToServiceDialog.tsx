@@ -12,7 +12,8 @@
  */
 
 import { useMemo, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   Dialog,
   DialogContent,
@@ -198,23 +199,25 @@ export function AssignToServiceDialog({
         ) : null}
 
         <div className="mt-6 flex justify-end gap-2">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={onClose}
             disabled={bulk.isPending}
-            className="px-4 py-2 text-sm font-medium text-foreground/80 bg-surface rounded-[var(--radius-sm)] hover:bg-border transition-colors"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={handleSubmit}
-            disabled={!canSubmit || bulk.isPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[color:var(--color-brand)] rounded-[var(--radius-sm)] hover:bg-[color:var(--color-brand-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!canSubmit}
+            loading={bulk.isPending}
           >
-            {bulk.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Save assignments
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -258,10 +261,10 @@ function ServiceRow({
       {assignedLabel ? (
         <span
           className={cn(
-            "inline-flex items-center rounded-full border px-2 py-0 text-[10px] font-bold uppercase tracking-wide",
+            "inline-flex items-center rounded-full border px-2 py-0 text-2xs font-bold uppercase tracking-wide",
             assignedLabel === "Primary"
-              ? "border-emerald-300 bg-emerald-100 text-emerald-800"
-              : "border-blue-300 bg-blue-100 text-blue-800",
+              ? "border-emerald-300 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200"
+              : "border-blue-300 dark:border-blue-800 bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200",
           )}
         >
           Already assigned · {assignedLabel}
@@ -283,7 +286,7 @@ function DraftFields({
   return (
     <div className="mt-2 ml-7 grid grid-cols-1 sm:grid-cols-2 gap-2">
       <label className="block">
-        <span className="block text-[11px] font-medium text-muted uppercase tracking-wide mb-1">
+        <span className="block text-2xs font-medium text-muted uppercase tracking-wide mb-1">
           Role at service
         </span>
         <input
@@ -296,7 +299,7 @@ function DraftFields({
         />
       </label>
       <label className="block">
-        <span className="block text-[11px] font-medium text-muted uppercase tracking-wide mb-1">
+        <span className="block text-2xs font-medium text-muted uppercase tracking-wide mb-1">
           Access level
         </span>
         <select

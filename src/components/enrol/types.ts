@@ -132,7 +132,29 @@ export interface EnrolmentFormData {
   privacyAccepted: boolean;
   debitAgreement: boolean;
   signature: string;
+  // 2026-07-27: preferred language for the enrolment form. Selected on
+  // the intro screen; drives the (Phase 2) translation lookups. Default
+  // "en"; other locales currently fall back to English content with an
+  // in-progress banner shown at the top of the form.
+  locale: SupportedLocale;
+  /** True once the parent has finished the intro screen; suppresses
+   *  re-showing it on refresh. */
+  introCompleted: boolean;
 }
+
+// 2026-07-27: locales supported by the enrolment form. Add codes here as
+// translations are seeded. Order drives display order on the intro
+// language picker.
+export const SUPPORTED_LOCALES = [
+  { code: "en", label: "English", nativeLabel: "English", ready: true, dir: "ltr" as const },
+  { code: "ar", label: "Arabic", nativeLabel: "العربية", ready: false, dir: "rtl" as const },
+  { code: "ur", label: "Urdu", nativeLabel: "اُردُو", ready: false, dir: "rtl" as const },
+  { code: "so", label: "Somali", nativeLabel: "Soomaali", ready: false, dir: "ltr" as const },
+  { code: "ps", label: "Pashto", nativeLabel: "پښتو", ready: false, dir: "rtl" as const },
+  { code: "tr", label: "Turkish", nativeLabel: "Türkçe", ready: false, dir: "ltr" as const },
+] as const;
+
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]["code"];
 
 export const EMPTY_CHILD: ChildDetails = {
   firstName: "",
@@ -244,6 +266,8 @@ export const INITIAL_FORM_DATA: EnrolmentFormData = {
   privacyAccepted: false,
   debitAgreement: false,
   signature: "",
+  locale: "en",
+  introCompleted: false,
 };
 
 export const STEPS = [
@@ -283,6 +307,42 @@ export const AUSTRALIAN_STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT",
  *  "Other" reveals a free-text input — whatever the parent types is
  *  what gets stored. */
 export const COUNTRY_OF_BIRTH_QUICK_PICKS = ["Australia", "New Zealand"] as const;
+
+/**
+ * Multi-campus schools we service. The picker on the enrolment form
+ * shows these as a grouped dropdown so parents pick the exact campus
+ * (Malek Fahd Greenacre, not just "Malek Fahd") — otherwise coordinators
+ * downstream have to disambiguate manually.
+ *
+ * Single-campus schools are entered via the "Other school" text input.
+ * Keep this list in sync with the schools we actually serve — adding a
+ * new campus here immediately surfaces it as an option.
+ */
+export const KNOWN_SCHOOLS: { name: string; campuses: string[] }[] = [
+  {
+    name: "Malek Fahd",
+    campuses: ["Greenacre", "Hoxton Park", "Beaumont Hills"],
+  },
+  {
+    name: "Minaret College",
+    campuses: ["Springvale", "Officer", "Doveton"],
+  },
+  // 2026-07-27: single-campus schools we service. Empty `campuses` = the
+  // school itself is the value (no sub-picker), rendered as a bare option
+  // in the enrolment form rather than inside an optgroup.
+  { name: "Unity Grammar", campuses: [] },
+  { name: "Arkana College", campuses: [] },
+  { name: "Minarah College", campuses: [] },
+  { name: "AIA KKCC", campuses: [] },
+  { name: "Al-Taqwa College", campuses: [] },
+];
+
+/** Flat list of "School Campus" strings the picker offers. Derived so
+ *  adding a campus above automatically shows up in the dropdown.
+ *  Single-campus schools (empty `campuses`) surface as their bare name. */
+export const KNOWN_SCHOOL_OPTIONS: string[] = KNOWN_SCHOOLS.flatMap((s) =>
+  s.campuses.length === 0 ? [s.name] : s.campuses.map((c) => `${s.name} ${c}`),
+);
 
 export const RELATIONSHIP_OPTIONS = [
   "Mum",

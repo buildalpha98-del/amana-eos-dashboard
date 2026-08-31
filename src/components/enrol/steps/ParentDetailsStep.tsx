@@ -290,8 +290,8 @@ export function ParentDetailsStep({ data, updateData }: Props) {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
                     data.courtOrders === opt
                       ? opt
-                        ? "bg-red-50 border-red-300 text-red-700"
-                        : "bg-green-50 border-green-300 text-green-700"
+                        ? "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
+                        : "bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800 text-green-700 dark:text-green-300"
                       : "bg-surface/50 border-border text-muted hover:bg-surface"
                   }`}
                 >
@@ -302,13 +302,13 @@ export function ParentDetailsStep({ data, updateData }: Props) {
           </div>
 
           {data.courtOrders && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
               <p className="text-sm text-amber-800 mb-3 font-medium">
                 Please upload any relevant court orders or parenting plans.
               </p>
 
               {data.courtOrderFiles.map((f, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded-lg mb-2">
+                <div key={i} className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 px-3 py-1.5 rounded-lg mb-2">
                   <span>{f.filename}</span>
                   <button
                     type="button"
@@ -383,8 +383,8 @@ export function ParentDetailsStep({ data, updateData }: Props) {
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
                         data.primaryParent.soleCustody === opt
                           ? opt
-                            ? "bg-green-50 border-green-300 text-green-700"
-                            : "bg-red-50 border-red-300 text-red-700"
+                            ? "bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800 text-green-700 dark:text-green-300"
+                            : "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
                           : "bg-surface/50 border-border text-muted hover:bg-surface"
                       }`}
                     >

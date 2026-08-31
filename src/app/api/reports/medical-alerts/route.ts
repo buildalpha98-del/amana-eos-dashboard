@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Session } from "next-auth";
 import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 
-async function handler(req: NextRequest) {
+async function handler(req: NextRequest, session: Session) {
   const url = new URL(req.url);
-  const serviceId = url.searchParams.get("serviceId") || undefined;
+  const requestedServiceId = url.searchParams.get("serviceId") || undefined;
+
+  // Centre-scope: a member without ?serviceId would otherwise get EVERY
+  // centre's child medical alerts. Pin non-admins to their own centre;
+  // admins may filter by any centre or see all (undefined = no filter).
+  const serviceId = resolveServiceIdFilter(session, requestedServiceId);
 
   const children = await prisma.child.findMany({
     where: {

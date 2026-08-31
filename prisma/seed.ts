@@ -1,17 +1,40 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { randomBytes } from "crypto";
 import { CENTRE_AVATAR_STARTER_DATA } from "../src/lib/seed/centre-avatar-starter-data";
 import { SEED_SEQUENCES } from "../src/lib/sequence-seed-data";
+import { seedInduction } from "./seed-induction";
+import { seedAmbassadors } from "./seed-ambassadors";
+import { seedAmbassadorsPilot } from "./seed-ambassadors-pilot";
+import { seedHelpCentre } from "./seed-help-centre";
+import { seedRooms } from "./seed-rooms";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("Seeding database...");
 
-  // Create admin/owner user
+  // Create admin/owner user.
+  //
+  // 2026-07-12 security: no hardcoded default password. When ADMIN_PASSWORD
+  // is unset we mint a STRONG RANDOM secret for any account this run has to
+  // CREATE — never the old "ChangeMe123!". Existing accounts are untouched
+  // (every upsert below omits passwordHash from its `update`), so a
+  // production deploy where the accounts already exist is unaffected whether
+  // or not the env var is present. A fresh install without the env var gets
+  // unknown random passwords that must be set via the forgot-password flow.
   const adminEmail = process.env.ADMIN_EMAIL || "admin@amanaoshc.com.au";
-  const adminPassword = process.env.ADMIN_PASSWORD || "ChangeMe123!";
-  const passwordHash = await hash(adminPassword, 12);
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    console.warn(
+      "⚠ ADMIN_PASSWORD not set — any newly-created seed accounts get a random " +
+        "password; reset via the forgot-password flow. (Existing accounts are unchanged.)",
+    );
+  }
+  const passwordHash = await hash(
+    adminPassword || randomBytes(24).toString("base64url"),
+    12,
+  );
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
@@ -26,18 +49,27 @@ async function main() {
   console.log(`Owner ready: ${admin.email}`);
 
   // ── Core Staff Users ──────────────────────────────────────────
+  //
+  // 2026-08-07: CREATE-ONLY, like the admin upsert above. This block
+  // previously did `update: { role, state }` on every run — and because
+  // the seed runs on EVERY Vercel deploy (including branch previews,
+  // which share the prod DB), each deploy silently reverted role changes
+  // made in the dashboard. Tracie and Mirna were demoted from
+  // head_office back to member on every push for weeks. Exact same bug
+  // pattern as the V/TO wipe (see the comment below) and the Scorecard
+  // wipe (PR #91): the seed must never overwrite user-managed data.
   const staffUsers = [
     { name: "Jayden Kowaider", email: "jayden@amanaoshc.com.au", role: "owner" as const, state: null },
     { name: "Daniel", email: "daniel@amanaoshc.com.au", role: "admin" as const, state: null },
     { name: "Akram", email: "akram@amanaoshc.com.au", role: "marketing" as const, state: null },
-    { name: "Mirna", email: "mirna@amanaoshc.com.au", role: "member" as const, state: "NSW" },
-    { name: "Tracie", email: "tracie@amanaoshc.com.au", role: "member" as const, state: "VIC" },
+    { name: "Mirna", email: "mirna@amanaoshc.com.au", role: "head_office" as const, state: "NSW" },
+    { name: "Tracie", email: "tracie@amanaoshc.com.au", role: "head_office" as const, state: "VIC" },
   ];
 
   for (const staff of staffUsers) {
     const user = await prisma.user.upsert({
       where: { email: staff.email },
-      update: { role: staff.role, state: staff.state },
+      update: {},
       create: {
         name: staff.name,
         email: staff.email,
@@ -2320,6 +2352,11 @@ Provide:
 Make it exciting and age-appropriate. Avoid repeating activities from other planned days.`,
     },
     {
+      // 2026-08-31: superseded by the persisted aiAgendaDraft path
+      // (POST /api/meetings/[id]/prepare + lib/l10-prep.ts). Deactivated,
+      // not deleted — the generate route 410s inactive slugs, so any
+      // stale client caching the old AiButton fails loudly, not silently.
+      active: false,
       slug: "meetings/l10-prep",
       name: "L10 Meeting Prep Agent",
       model: "claude-sonnet-5",
@@ -2862,6 +2899,11 @@ Don't list every child by name. Don't invent events or meals — use only what's
   ];
 
   for (const tpl of aiTemplates) {
+    // Templates default to active; a template can opt out (e.g. the
+    // superseded meetings/l10-prep) and the seed deactivates existing rows.
+    // NOTE: this stamps `active` on every deploy — if an admin surface for
+    // toggling AiPromptTemplate.active is ever added, make this create-only.
+    const active = (tpl as { active?: boolean }).active ?? true;
     await prisma.aiPromptTemplate.upsert({
       where: { slug: tpl.slug },
       update: {
@@ -2870,6 +2912,7 @@ Don't list every child by name. Don't invent events or meals — use only what's
         maxTokens: tpl.maxTokens,
         promptTemplate: tpl.promptTemplate,
         variables: JSON.parse(tpl.variables),
+        active,
       },
       create: {
         slug: tpl.slug,
@@ -2878,6 +2921,7 @@ Don't list every child by name. Don't invent events or meals — use only what's
         maxTokens: tpl.maxTokens,
         promptTemplate: tpl.promptTemplate,
         variables: JSON.parse(tpl.variables),
+        active,
       },
     });
   }
@@ -2936,6 +2980,34 @@ Don't list every child by name. Don't invent events or meals — use only what's
     sequencesCreated += 1;
   }
   console.log(`Seeded ${sequencesCreated} new email sequences (preserved ${SEED_SEQUENCES.length - sequencesCreated} existing)`);
+
+  // ── Staff-induction curriculum (LMS) ──────────────────────────
+  // Idempotent: courses/modules/quiz questions/practical items/calendar
+  // slots are all guarded by existence checks in seedInduction, so this
+  // is safe to re-run on every Vercel build without duplicating rows.
+  await seedInduction(prisma);
+
+  // ── Amana Ambassadors course (LMS, library track) ─────────────
+  // Idempotent: course found by (title + track); modules only seeded when the
+  // course has none, so dashboard edits survive redeploys.
+  await seedAmbassadors(prisma);
+
+  // ── Amana Ambassadors PILOT (incentive tracker) ───────────────
+  // Idempotent: pilot matched by name (status/dates never touched after
+  // creation); centres create-if-missing so admin-edited targets survive.
+  await seedAmbassadorsPilot(prisma);
+
+  // ── Parent Help Centre (/support) ─────────────────────────────
+  // Idempotent: categories found by slug; articles only seeded when the
+  // category has none, so admin edits survive redeploys.
+  await seedHelpCentre(prisma);
+
+  // ── Rooms shadow table (Stage 0) ──────────────────────────────
+  // Derived entirely from Service.sessionTimes and idempotent, so it is
+  // safe on every deploy: it re-derives what the JSON already says
+  // rather than holding any state of its own. Nothing reads these rows
+  // yet — see docs/rooms-migration-plan.md.
+  await seedRooms(prisma);
 
   console.log("\nSeed complete!");
 }

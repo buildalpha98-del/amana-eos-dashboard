@@ -5,6 +5,8 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
 import { assertStaffCertsValidForShift } from "../../_lib/cert-guard";
+import { assertUserCleared } from "@/lib/induction";
+import { requireRoomId } from "@/lib/room-resolver";
 
 // ---------------------------------------------------------------------------
 // Partial-update schema mirrors the create schema but every field optional.
@@ -86,10 +88,36 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   if (newUserId && userOrDateChanged) {
     await assertStaffCertsValidForShift({ userId: newUserId, shiftDate: newDate });
   }
+  // Induction gate: reassigning a shift to an un-cleared user is blocked.
+  if (data.userId) {
+    await assertUserCleared(data.userId);
+  }
+
+  /**
+   * Stage 1 dual key on the one update path that can MOVE a shift.
+   *
+   * Either half of the pair can change here — a shift can be reassigned
+   * to a different slot, or to a different centre — so the room has to
+   * be re-resolved against whichever values will be in force after the
+   * write, not the ones sent. Recomputing only when `sessionType` is in
+   * the payload would leave a shift moved between centres pointing at
+   * the old centre's room.
+   */
+  const movesRoom =
+    data.sessionType !== undefined || data.serviceId !== undefined;
+  const roomUpdate = movesRoom
+    ? {
+        roomId: await requireRoomId(
+          data.serviceId ?? existing.serviceId,
+          data.sessionType ?? existing.sessionType,
+        ),
+      }
+    : {};
 
   const shift = await prisma.rosterShift.update({
     where: { id },
     data: {
+      ...roomUpdate,
       ...(data.serviceId !== undefined && { serviceId: data.serviceId }),
       ...(data.userId !== undefined && { userId: data.userId }),
       ...(staffNameUpdate !== undefined && { staffName: staffNameUpdate }),

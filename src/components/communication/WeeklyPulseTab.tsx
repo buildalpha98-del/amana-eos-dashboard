@@ -165,7 +165,7 @@ export function WeeklyPulseTab() {
     return (
       <div className="space-y-6">
         {isSubmitted && (
-          <div className="flex items-center gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 px-4 py-3">
             <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
             <p className="text-sm font-medium text-green-800">
               Pulse submitted for this week
@@ -233,7 +233,7 @@ export function WeeklyPulseTab() {
                   title={m.label}
                 >
                   <span className="text-2xl">{m.emoji}</span>
-                  <span className="text-[10px] text-muted">{m.label}</span>
+                  <span className="text-2xs text-muted">{m.label}</span>
                 </button>
               );
             })}
@@ -271,7 +271,7 @@ export function WeeklyPulseTab() {
               "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors",
               canSubmit && !submitPulse.isPending
                 ? "bg-brand hover:bg-brand/90"
-                : "bg-gray-300 cursor-not-allowed"
+                : "bg-muted/30 cursor-not-allowed"
             )}
           >
             <Send className="h-4 w-4" />
@@ -303,7 +303,7 @@ export function WeeklyPulseTab() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-blue-100 p-2">
+              <div className="rounded-full bg-blue-100 dark:bg-blue-950/50 p-2">
                 <Users className="h-5 w-5 text-blue-600" />
               </div>
               <div>
@@ -336,7 +336,7 @@ export function WeeklyPulseTab() {
 
           <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-red-100 p-2">
+              <div className="rounded-full bg-red-100 dark:bg-red-950/50 p-2">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
               <div>
@@ -407,13 +407,13 @@ export function WeeklyPulseTab() {
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pulse.wins && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Wins</p>
+                      <p className="text-2xs uppercase tracking-wider font-semibold text-muted mb-0.5">Wins</p>
                       <p className="text-sm text-foreground/80 line-clamp-2">{pulse.wins}</p>
                     </div>
                   )}
                   {pulse.priorities && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Priorities</p>
+                      <p className="text-2xs uppercase tracking-wider font-semibold text-muted mb-0.5">Priorities</p>
                       <p className="text-sm text-foreground/80 line-clamp-2">{pulse.priorities}</p>
                     </div>
                   )}
@@ -421,14 +421,14 @@ export function WeeklyPulseTab() {
 
                 {pulse.blockers && pulse.blockers.trim() && (
                   <div className="mt-2">
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Blockers</p>
-                    <p className="text-sm text-red-700 bg-red-50 rounded px-2 py-1 line-clamp-2">{pulse.blockers}</p>
+                    <p className="text-2xs uppercase tracking-wider font-semibold text-muted mb-0.5">Blockers</p>
+                    <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 rounded px-2 py-1 line-clamp-2">{pulse.blockers}</p>
                   </div>
                 )}
 
                 {pulse.notes && (
                   <div className="mt-2">
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Notes</p>
+                    <p className="text-2xs uppercase tracking-wider font-semibold text-muted mb-0.5">Notes</p>
                     <p className="text-sm text-muted line-clamp-2">{pulse.notes}</p>
                   </div>
                 )}

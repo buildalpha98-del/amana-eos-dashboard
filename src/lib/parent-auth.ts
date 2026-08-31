@@ -21,6 +21,15 @@ export interface ParentJwtPayload {
   email: string;
   name: string;
   enrolmentIds: string[];
+  /**
+   * 2026-07-30: id of the parent's own ParentAccount.
+   *
+   * OPTIONAL on purpose — sessions issued before parent accounts existed
+   * are still valid 30-day JWTs in people's browsers and simply lack this
+   * claim. Treat "no accountId" as "magic-link session": still
+   * authenticated, but not yet account-backed.
+   */
+  accountId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,9 +67,14 @@ export async function verifyParentJwt(
 ): Promise<ParentJwtPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    const { email, name, enrolmentIds } = payload as unknown as ParentJwtPayload;
+    const { email, name, enrolmentIds, accountId } =
+      payload as unknown as ParentJwtPayload;
     if (!email || !name || !Array.isArray(enrolmentIds)) return null;
-    return { email, name, enrolmentIds };
+    // accountId is carried through when present. Sessions minted before
+    // parent accounts existed simply omit it — still valid, just not
+    // account-backed. Dropping it here (as this did) meant the id never
+    // survived verification.
+    return { email, name, enrolmentIds, ...(accountId ? { accountId } : {}) };
   } catch {
     return null;
   }
@@ -139,6 +153,31 @@ export function withParentAuth(
       });
       parent.enrolmentIds = validEnrolments.map(e => e.id);
 
+      /**
+       * Backfill `accountId` onto a session that predates it.
+       *
+       * The magic-link route only started signing `accountId` on
+       * 2026-08-13; `login` always did. Those JWTs last 30 days, so
+       * without this every parent holding an older magic-link session
+       * stays locked out of their own enrolment draft until it expires
+       * — and the portal REDIRECTS them into that form, where they type
+       * the whole thing against a status line reading "Not saved" and
+       * are refused on submit.
+       *
+       * Resolving it here rather than in each route means one lookup
+       * fixes every caller, and a parent who is already signed in never
+       * finds out there was a problem.
+       */
+      if (!parent.accountId) {
+        const account = await prisma.parentAccount.findUnique({
+          where: { email: parent.email.toLowerCase().trim() },
+          select: { id: true, deactivatedAt: true },
+        });
+        if (account && !account.deactivatedAt) {
+          parent.accountId = account.id;
+        }
+      }
+
       // Rate limit: 60 req/min per parent per endpoint
       const endpoint = new URL(req.url).pathname;
       const rl = await checkRateLimit(`parent:${parent.email}:${endpoint}`, 60, 60_000);
@@ -175,4 +214,45 @@ export function withParentAuth(
       if (timeoutId) clearTimeout(timeoutId);
     }
   };
+}
+
+
+// ---------------------------------------------------------------------------
+// Session cookies
+// ---------------------------------------------------------------------------
+
+/** 30 days — matches the parent JWT expiry. */
+const PARENT_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
+
+/**
+ * Attach the parent session cookies to a response.
+ *
+ * Extracted 2026-07-30 so signup/confirm/login and the original magic-link
+ * verify route can't drift apart on cookie flags — getting `httpOnly` or
+ * `secure` wrong on one path only would be a silent security hole.
+ *
+ * Two cookies by design: `parent-session` holds the JWT and is httpOnly so
+ * JS can't read it; `parent-active` is a readable flag the client uses to
+ * decide whether to show a logged-in shell. The flag carries no authority.
+ */
+export function setParentSessionCookie(
+  response: NextResponse,
+  jwt: string,
+): NextResponse {
+  const secure = process.env.NODE_ENV === "production";
+  response.cookies.set("parent-session", jwt, {
+    httpOnly: true,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: PARENT_COOKIE_MAX_AGE,
+  });
+  response.cookies.set("parent-active", "1", {
+    httpOnly: false,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: PARENT_COOKIE_MAX_AGE,
+  });
+  return response;
 }

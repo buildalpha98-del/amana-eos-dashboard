@@ -150,12 +150,12 @@ export function QualificationRatiosTab() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     {centre.fiftyPercentCompliant ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-full">
                         <CheckCircle2 className="w-3 h-3" />
                         Compliant
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 px-2 py-1 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-full">
                         <AlertTriangle className="w-3 h-3" />
                         Non-Compliant
                       </span>

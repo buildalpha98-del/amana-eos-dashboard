@@ -49,7 +49,7 @@ const HEALTH_CONFIG = {
     label: "Healthy",
     icon: CheckCircle2,
     textColor: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    bgColor: "bg-emerald-50 dark:bg-emerald-950/40",
     borderColor: "border-emerald-200",
     dotColor: "bg-emerald-500",
   },
@@ -57,7 +57,7 @@ const HEALTH_CONFIG = {
     label: "Attention",
     icon: AlertTriangle,
     textColor: "text-amber-600",
-    bgColor: "bg-amber-50",
+    bgColor: "bg-amber-50 dark:bg-amber-950/40",
     borderColor: "border-amber-200",
     dotColor: "bg-amber-500",
   },
@@ -65,7 +65,7 @@ const HEALTH_CONFIG = {
     label: "Critical",
     icon: XCircle,
     textColor: "text-red-600",
-    bgColor: "bg-red-50",
+    bgColor: "bg-red-50 dark:bg-red-950/40",
     borderColor: "border-red-200",
     dotColor: "bg-red-500",
   },
@@ -75,7 +75,7 @@ const HEALTH_CONFIG = {
     textColor: "text-muted",
     bgColor: "bg-surface",
     borderColor: "border-border",
-    dotColor: "bg-gray-400",
+    dotColor: "bg-muted/60",
   },
 } as const;
 
@@ -135,7 +135,7 @@ function HealthBar({ seat }: { seat: AutomationSeat }) {
     { count: seat.green, color: "bg-emerald-500" },
     { count: seat.amber, color: "bg-amber-500" },
     { count: seat.red, color: "bg-red-500" },
-    { count: seat.neverRun, color: "bg-gray-300" },
+    { count: seat.neverRun, color: "bg-muted/30" },
   ];
   return (
     <div className="flex w-full h-2 rounded-full overflow-hidden bg-surface">
@@ -382,7 +382,7 @@ export default function AutomationsPage() {
 
       {/* Alert banner for critical tasks */}
       {criticalCount > 0 && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3">
           <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
           <p className="text-sm text-red-700 font-medium">
             {criticalCount} automation{criticalCount !== 1 ? "s" : ""} need
@@ -415,7 +415,7 @@ export default function AutomationsPage() {
       {isLoading ? (
         <SummarySkeleton />
       ) : isError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-6 text-center">
           <p className="text-sm text-red-600">
             Failed to load automation status. Please try again.
           </p>
@@ -435,21 +435,21 @@ export default function AutomationsPage() {
               value={data.summary.green}
               icon={CheckCircle2}
               textColor="text-emerald-600"
-              bgColor="bg-emerald-50"
+              bgColor="bg-emerald-50 dark:bg-emerald-950/40"
             />
             <SummaryCard
               label="Attention"
               value={data.summary.amber}
               icon={AlertTriangle}
               textColor="text-amber-600"
-              bgColor="bg-amber-50"
+              bgColor="bg-amber-50 dark:bg-amber-950/40"
             />
             <SummaryCard
               label="Critical"
               value={data.summary.red}
               icon={XCircle}
               textColor="text-red-600"
-              bgColor="bg-red-50"
+              bgColor="bg-red-50 dark:bg-red-950/40"
             />
           </div>
 

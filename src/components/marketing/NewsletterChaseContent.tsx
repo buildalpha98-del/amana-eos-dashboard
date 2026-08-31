@@ -125,7 +125,7 @@ export default function NewsletterChaseContent() {
               return (
                 <li
                   key={entry.serviceId}
-                  className={`rounded-md border p-3 text-sm ${sent ? "border-green-200 bg-green-50" : "border-border bg-surface"}`}
+                  className={`rounded-md border p-3 text-sm ${sent ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40" : "border-border bg-surface"}`}
                 >
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div>
@@ -145,7 +145,7 @@ export default function NewsletterChaseContent() {
                         {open ? "Hide email" : "View email"}
                       </Button>
                       {sent ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-green-50 text-green-700 border-green-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800">
                           Sent
                         </span>
                       ) : (

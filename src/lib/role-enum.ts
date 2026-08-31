@@ -29,6 +29,7 @@ export const ROLES: readonly Role[] = [
   "staff",
   "eos_viewer",
   "eos_implementer",
+  "eos",
 ] as const;
 
 const ROLE_SET: Set<string> = new Set(ROLES);
@@ -45,6 +46,66 @@ export const EOS_ROLES: readonly Role[] = ["eos_viewer", "eos_implementer"] as c
 /** Is this an EOS-only role (viewer or implementer)? */
 export function isEosRole(role: string | null | undefined): boolean {
   return role === "eos_viewer" || role === "eos_implementer";
+}
+
+/**
+ * Roles eligible to be assigned/owned on EOS surfaces (todos, rocks,
+ * scorecard measurables, issues, meeting attendees). Deliberately
+ * excludes staff (Educator), member (OSHC Coordinator), and eos_viewer
+ * — Daniel doesn't want the whole staff list appearing in EOS dropdowns.
+ *
+ * 2026-07-13 (initial): included marketing + eos_implementer.
+ * 2026-07-13 (tightened): reduced to owner/head_office/admin/eos.
+ * 2026-07-13 (marketing re-added by Daniel): "for to-dos, rocks,
+ * scorecard, issues, meetings — should also be able to be viewed by
+ * marketing, and we should be able to assign to marketing." Marketing
+ * already had EOS page-level view/edit access since 2026-06-03; this
+ * just re-exposes them in the assignee dropdowns. eos_implementer
+ * stays out (Daniel didn't list it).
+ */
+export const EOS_ASSIGNEE_ROLES: readonly Role[] = [
+  "owner",
+  "head_office",
+  "admin",
+  "marketing",
+  "eos",
+] as const;
+
+const EOS_ASSIGNEE_SET: Set<string> = new Set(EOS_ASSIGNEE_ROLES);
+
+/** True if this role is eligible to own/assignee on EOS surfaces. */
+export function isEosAssigneeRole(role: string | null | undefined): boolean {
+  return typeof role === "string" && EOS_ASSIGNEE_SET.has(role);
+}
+
+/**
+ * Roles that make up the leadership team for a Leadership (L10) meeting.
+ *
+ * 2026-07-28, per Daniel: "let me select the staff members that will be
+ * present. The to-do list should only show those that have been added to
+ * the meeting and also those that have the roles admin, marketing, EOS,
+ * owner. No other staff member should show."
+ *
+ * 2026-08-31, per Jayden: `head_office` (State Manager) added — Tracie
+ * and Mirna attend the weekly Leadership L10 and their todos belong in
+ * its To-Do Review. (The original list deliberately omitted them per
+ * Daniel; this is the "flip that" case the old comment anticipated.)
+ */
+export const LEADERSHIP_MEETING_ROLES: readonly Role[] = [
+  "owner",
+  "head_office",
+  "admin",
+  "marketing",
+  "eos",
+] as const;
+
+const LEADERSHIP_MEETING_SET: Set<string> = new Set(LEADERSHIP_MEETING_ROLES);
+
+/** True if this role belongs to the leadership-meeting roster. */
+export function isLeadershipMeetingRole(
+  role: string | null | undefined,
+): boolean {
+  return typeof role === "string" && LEADERSHIP_MEETING_SET.has(role);
 }
 
 /** Type guard. Narrows `value` to `Role` when it's a known enum value. */

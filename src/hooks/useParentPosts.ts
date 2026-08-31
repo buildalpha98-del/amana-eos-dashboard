@@ -38,6 +38,10 @@ export interface ParentPost {
   tags: ParentPostTag[];
   likeCount?: number;
   commentCount?: number;
+  /** The observation this post follows up on, if it is a follow-up. */
+  extendsPost?: { id: string; title: string; createdAt: string } | null;
+  /** How many follow-ups came out of THIS post. */
+  followUpCount?: number;
 }
 
 export interface StaffParentPostComment {

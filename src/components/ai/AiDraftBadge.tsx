@@ -18,9 +18,9 @@ export function AiDraftBadge({ onClick, className }: AiDraftBadgeProps) {
       }}
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5",
-        "bg-amber-50 border border-amber-200 text-amber-600",
-        "text-[11px] font-medium leading-none",
-        "hover:bg-amber-100 transition-colors",
+        "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400",
+        "text-xs font-medium leading-none",
+        "hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors",
         "focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-1",
         className,
       )}

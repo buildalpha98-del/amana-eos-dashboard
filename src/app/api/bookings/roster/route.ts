@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
+import { resolveServiceIdFilter } from "@/lib/authz-scope";
 
 /**
  * GET /api/bookings/roster?serviceId=xxx&weekStart=2026-04-06
@@ -9,7 +10,7 @@ import { ApiError } from "@/lib/api-error";
  * Returns confirmed/requested bookings for Mon-Fri of the given week,
  * grouped by date string and session type for the weekly roster UI.
  */
-export const GET = withApiAuth(async (req) => {
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const weekStartStr = searchParams.get("weekStart");
@@ -17,6 +18,11 @@ export const GET = withApiAuth(async (req) => {
   if (!serviceId || !weekStartStr) {
     throw ApiError.badRequest("serviceId and weekStart are required");
   }
+
+  // Centre-scope: pin non-admins to their own centre. A non-admin who
+  // requests another centre's id gets NO_SERVICE_MATCH (empty result);
+  // admins keep the requested serviceId. Fails closed.
+  const scopedServiceId = resolveServiceIdFilter(session, serviceId);
 
   // Compute Mon-Fri date range
   const monday = new Date(weekStartStr);
@@ -26,7 +32,7 @@ export const GET = withApiAuth(async (req) => {
 
   const bookings = await prisma.booking.findMany({
     where: {
-      serviceId,
+      serviceId: scopedServiceId,
       date: { gte: monday, lte: friday },
       status: { in: ["confirmed", "requested"] },
     },

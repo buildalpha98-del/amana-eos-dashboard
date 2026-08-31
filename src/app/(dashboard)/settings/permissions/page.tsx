@@ -103,6 +103,7 @@ export default function RolePermissionsPage() {
       staff: new Set(),
       eos_viewer: new Set(),
       eos_implementer: new Set(),
+      eos: new Set(),
     };
     for (const r of ROLES_ORDER) {
       const list = data.overrides[r] ?? data.defaults[r];
@@ -163,6 +164,7 @@ export default function RolePermissionsPage() {
       staff: new Set(),
       eos_viewer: new Set(),
       eos_implementer: new Set(),
+      eos: new Set(),
     };
     for (const r of ROLES_ORDER) {
       next[r] = new Set(data.defaults[r]);
@@ -182,6 +184,7 @@ export default function RolePermissionsPage() {
       staff: null,
       eos_viewer: null,
       eos_implementer: null,
+      eos: null,
     };
     for (const r of ROLES_ORDER) {
       const list = [...working[r]].sort();
@@ -224,7 +227,7 @@ export default function RolePermissionsPage() {
         </p>
       </PageHeader>
 
-      <div className="rounded-md border border-blue-200 bg-blue-50/40 p-4 text-sm text-blue-900 flex items-start gap-2">
+      <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-4 text-sm text-blue-900 dark:text-blue-200 flex items-start gap-2">
         <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="font-semibold">Guardrails</p>
@@ -328,7 +331,7 @@ export default function RolePermissionsPage() {
       </div>
 
       {!isOwner && (
-        <div className="rounded-md border border-amber-200 bg-amber-50/40 p-3 text-sm text-amber-900 flex items-start gap-2">
+        <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/40 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <p>
             You can view this page but only the owner role can save changes.
@@ -357,7 +360,7 @@ function RoleHeader({
           <button
             type="button"
             onClick={() => onReset(role)}
-            className="text-[10px] font-normal text-muted hover:text-foreground normal-case"
+            className="text-2xs font-normal text-muted hover:text-foreground normal-case"
             title="Reset this column to defaults"
           >
             <RotateCcw className="w-3 h-3 inline" /> Reset

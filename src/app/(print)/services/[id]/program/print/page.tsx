@@ -101,12 +101,12 @@ export default async function ProgramPrintPage({
   return (
     <div className="font-sans">
       {/* Screen-only toolbar */}
-      <div className="no-print mb-6 flex items-center justify-between border-b border-gray-200 pb-4">
+      <div className="no-print mb-6 flex items-center justify-between border-b border-border pb-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-gray-500">
+          <p className="text-xs uppercase tracking-wide text-muted">
             Print preview
           </p>
-          <h1 className="text-base font-semibold text-gray-800">
+          <h1 className="text-base font-semibold text-foreground">
             Weekly program — {service.name}
           </h1>
         </div>
@@ -114,14 +114,14 @@ export default async function ProgramPrintPage({
       </div>
 
       {/* Print header */}
-      <header className="print-header mb-6 border-b-2 border-[#004E64] pb-3 text-center">
-        <div className="text-2xl font-bold tracking-tight text-[#004E64]">
+      <header className="print-header mb-6 border-b-2 border-brand pb-3 text-center">
+        <div className="text-2xl font-bold tracking-tight text-brand">
           {service.name}
         </div>
-        <div className="mt-1 text-sm text-gray-700">
+        <div className="mt-1 text-sm text-foreground/80">
           Weekly Program · {formatWeekLabel(weekStart)}
         </div>
-        <div className="mt-1 text-xs text-gray-500">
+        <div className="mt-1 text-xs text-muted">
           {totalCount} {totalCount === 1 ? "activity" : "activities"} ·
           Generated {new Date().toLocaleDateString("en-AU", {
             day: "numeric",
@@ -132,7 +132,7 @@ export default async function ProgramPrintPage({
       </header>
 
       {totalCount === 0 ? (
-        <p className="text-center text-sm text-gray-500 py-8">
+        <p className="text-center text-sm text-muted py-8">
           No activities planned for this week yet.
         </p>
       ) : (
@@ -148,15 +148,15 @@ export default async function ProgramPrintPage({
                 className="print-page-avoid-break"
                 style={{ pageBreakInside: "avoid" }}
               >
-                <h2 className="mb-3 border-b border-gray-300 pb-1 text-base font-semibold text-[#004E64]">
+                <h2 className="mb-3 border-b border-border pb-1 text-base font-semibold text-brand">
                   {SESSION_LABELS[session]}{" "}
-                  <span className="text-xs font-normal text-gray-500">
+                  <span className="text-xs font-normal text-muted">
                     · {SESSION_HINTS[session]} · {sessionTotal}{" "}
                     {sessionTotal === 1 ? "activity" : "activities"}
                   </span>
                 </h2>
                 {sessionTotal === 0 ? (
-                  <p className="py-4 text-center text-xs italic text-gray-400">
+                  <p className="py-4 text-center text-xs italic text-muted/70">
                     No {SESSION_LABELS[session]} activities planned this week.
                   </p>
                 ) : (
@@ -164,13 +164,13 @@ export default async function ProgramPrintPage({
                     {DAYS.map((day) => (
                       <div
                         key={day}
-                        className="rounded border border-gray-300 p-2"
+                        className="rounded border border-border p-2"
                       >
-                        <div className="mb-2 border-b border-gray-200 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-700">
+                        <div className="mb-2 border-b border-border pb-1 text-xs font-semibold uppercase tracking-wide text-foreground/80">
                           {DAY_LABELS[day]}
                         </div>
                         {split[session][day].length === 0 ? (
-                          <div className="py-3 text-center text-[10px] italic text-gray-400">
+                          <div className="py-3 text-center text-2xs italic text-muted/70">
                             —
                           </div>
                         ) : (
@@ -178,21 +178,21 @@ export default async function ProgramPrintPage({
                             {split[session][day].map((a) => (
                               <li
                                 key={a.id}
-                                className="border-l-2 border-[#004E64] pl-2 text-[11px] leading-snug"
+                                className="border-l-2 border-brand pl-2 text-xs leading-snug"
                               >
-                                <div className="font-mono text-[10px] text-gray-600">
+                                <div className="font-mono text-2xs text-muted">
                                   {a.startTime}–{a.endTime}
                                 </div>
-                                <div className="font-semibold text-gray-900">
+                                <div className="font-semibold text-foreground">
                                   {a.title}
                                 </div>
                                 {a.staffName && (
-                                  <div className="text-[10px] text-gray-600">
+                                  <div className="text-2xs text-muted">
                                     {a.staffName}
                                   </div>
                                 )}
                                 {a.location && (
-                                  <div className="text-[10px] italic text-gray-500">
+                                  <div className="text-2xs italic text-muted">
                                     {a.location}
                                   </div>
                                 )}
@@ -210,7 +210,7 @@ export default async function ProgramPrintPage({
         </div>
       )}
 
-      <footer className="mt-10 border-t border-gray-200 pt-3 text-center text-[10px] text-gray-500">
+      <footer className="mt-10 border-t border-border pt-3 text-center text-2xs text-muted">
         Amana OSHC · Weekly program for {service.name} ·{" "}
         {formatWeekLabel(weekStart)}
       </footer>

@@ -33,6 +33,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { Button } from "@/components/ui/Button";
 import { AuditEditModal } from "@/components/audits/AuditEditModal";
 import { UploadCalendarDialog } from "@/components/audits/UploadCalendarDialog";
 import { UploadAuditDocumentsDialog } from "@/components/audits/UploadAuditDocumentsDialog";
@@ -58,10 +59,10 @@ const qaLabels: Record<number, string> = {
 };
 
 const statusConfig: Record<string, { color: string; bg: string; border: string; icon: typeof Clock }> = {
-  scheduled: { color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", icon: Clock },
-  in_progress: { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: Play },
-  completed: { color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", icon: CheckCircle2 },
-  overdue: { color: "text-red-700", bg: "bg-red-50", border: "border-red-200", icon: AlertTriangle },
+  scheduled: { color: "text-blue-700", bg: "bg-blue-50 dark:bg-blue-950/40", border: "border-blue-200", icon: Clock },
+  in_progress: { color: "text-amber-700", bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200", icon: Play },
+  completed: { color: "text-emerald-700", bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-emerald-200", icon: CheckCircle2 },
+  overdue: { color: "text-red-700", bg: "bg-red-50 dark:bg-red-950/40", border: "border-red-200", icon: AlertTriangle },
   skipped: { color: "text-muted", bg: "bg-surface/50", border: "border-border", icon: SkipForward },
 };
 
@@ -110,7 +111,7 @@ function DraggableAudit({
           <p className={cn("text-xs font-medium truncate", cfg.color)}>
             {audit.template.name}
           </p>
-          <p className="text-[10px] text-muted truncate">
+          <p className="text-2xs text-muted truncate">
             {audit.service.code} · QA{audit.template.qualityArea}
             {audit.complianceScore != null && ` · ${audit.complianceScore}%`}
           </p>
@@ -233,10 +234,10 @@ export function AuditCalendarTab() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { label: "Scheduled", value: stats.scheduled, color: "text-blue-700 bg-blue-50" },
-            { label: "In Progress", value: stats.in_progress, color: "text-amber-700 bg-amber-50" },
-            { label: "Completed", value: stats.completed, color: "text-emerald-700 bg-emerald-50" },
-            { label: "Overdue", value: stats.overdue, color: "text-red-700 bg-red-50" },
+            { label: "Scheduled", value: stats.scheduled, color: "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40" },
+            { label: "In Progress", value: stats.in_progress, color: "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40" },
+            { label: "Overdue", value: stats.overdue, color: "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40" },
             {
               label: "Avg Score",
               value: stats.avgScore != null ? `${stats.avgScore}%` : "—",
@@ -256,6 +257,7 @@ export function AuditCalendarTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYear((y) => y - 1)}
+            aria-label="Previous year"
             className="p-1.5 rounded-lg border border-border hover:bg-surface transition-colors"
           >
             <ChevronLeft className="w-4 h-4 text-muted" />
@@ -263,6 +265,7 @@ export function AuditCalendarTab() {
           <span className="text-sm font-semibold text-foreground min-w-[4rem] text-center">{year}</span>
           <button
             onClick={() => setYear((y) => y + 1)}
+            aria-label="Next year"
             className="p-1.5 rounded-lg border border-border hover:bg-surface transition-colors"
           >
             <ChevronRight className="w-4 h-4 text-muted" />
@@ -296,31 +299,34 @@ export function AuditCalendarTab() {
         </select>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setEditingAudit(null);
               setEditModalMonth(undefined);
               setEditModalOpen(true);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground border border-border rounded-lg hover:bg-surface transition-colors"
+            iconLeft={<PlusCircle className="w-4 h-4" />}
           >
-            <PlusCircle className="w-4 h-4" />
             Add Audit
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setShowUploadDocuments(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground border border-border rounded-lg hover:bg-surface transition-colors"
+            iconLeft={<FileUp className="w-4 h-4" />}
           >
-            <FileUp className="w-4 h-4" />
             Upload Audit Documents
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setShowUploadCalendar(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 transition-colors"
+            iconLeft={<Upload className="w-4 h-4" />}
           >
-            <Upload className="w-4 h-4" />
             Upload Calendar
-          </button>
+          </Button>
         </div>
       </div>
 

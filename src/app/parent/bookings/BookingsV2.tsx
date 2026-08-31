@@ -21,6 +21,7 @@ import { MarkAbsentSheet } from "@/components/parent/MarkAbsentSheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { isTodayOrFutureInServiceTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
+import { programmeName } from "@/lib/programme-names";
 
 type Tab = "upcoming" | "past" | "requests";
 
@@ -60,7 +61,7 @@ export default function BookingsV2() {
     <div className="pb-24">
       {/* Header */}
       <header className="mb-5">
-        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
+        <h1 className="text-2xl font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
           Bookings
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] mt-1">
@@ -185,12 +186,6 @@ function weekStartKey(d: Date): string {
 
 // ─── Booking row with swipe actions ──────────────────────
 
-const SESSION_LABELS: Record<"bsc" | "asc" | "vc", string> = {
-  bsc: "BSC",
-  asc: "ASC",
-  vc: "VC",
-};
-
 function BookingRow({
   booking,
   allowModify,
@@ -215,7 +210,7 @@ function BookingRow({
   const card = (
     <SessionCard
       date={new Date(booking.date)}
-      label={`${booking.child.firstName} — ${SESSION_LABELS[booking.sessionType]}`}
+      label={`${booking.child.firstName} — ${programmeName(booking.sessionType)}`}
       sublabel={booking.service.name}
       status={statusVariant}
     />
@@ -465,7 +460,7 @@ function Step2PickDates({
                   : "bg-[color:var(--color-cream-soft)] border-[color:var(--color-border)] text-[color:var(--color-foreground)]/70",
               )}
             >
-              {SESSION_LABELS[t]}
+              {programmeName(t)}
             </button>
           ))}
         </div>
@@ -490,7 +485,7 @@ function Step2PickDates({
                     : "bg-[color:var(--color-cream-soft)] border-[color:var(--color-border)] text-[color:var(--color-foreground)]/80",
                 )}
               >
-                <div className="text-[10px] font-bold tracking-wider">{d.weekday.toUpperCase()}</div>
+                <div className="text-2xs font-bold tracking-wider">{d.weekday.toUpperCase()}</div>
                 <div className="text-base font-bold leading-none mt-0.5">{d.day}</div>
               </button>
             );

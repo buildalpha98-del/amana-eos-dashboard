@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import { staffingAlertEmail } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
+import { siteUrl } from "@/lib/site-url";
 
 export const GET = withApiHandler(async (req) => {
   // 1. Auth
@@ -78,8 +79,7 @@ export const GET = withApiHandler(async (req) => {
       select: { name: true, email: true },
     });
 
-    const dashboardUrl =
-      process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+    const dashboardUrl = siteUrl();
 
     for (const admin of admins) {
       try {
@@ -91,8 +91,7 @@ export const GET = withApiHandler(async (req) => {
           qualificationRisks,
         );
 
-        await resend.emails.send({
-          from: FROM_EMAIL,
+        await sendEmail({
           to: admin.email,
           subject,
           html,

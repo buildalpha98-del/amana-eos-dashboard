@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getResend, sendEmail } from "@/lib/email";
 import {
   todoReminderEmail,
   ticketNotificationEmail,
@@ -85,12 +85,18 @@ export const POST = withApiAuth(async (req, session) => {
       );
   }
 
-  const result = await resend.emails.send({
-    from: FROM_EMAIL,
+  const result = await sendEmail({
     to,
     subject: emailContent.subject,
     html: emailContent.html,
   });
 
-  return NextResponse.json({ message: "Email sent", id: result.data?.id });
+  if (result.sent.length === 0) {
+    return NextResponse.json({
+      message: "Recipient is on the suppression list — email not sent",
+      suppressed: result.suppressed,
+    });
+  }
+
+  return NextResponse.json({ message: "Email sent", id: result.messageId });
 });

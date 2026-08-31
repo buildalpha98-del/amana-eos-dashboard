@@ -275,7 +275,7 @@ export function ContractsTable({
                       </span>
                       <span className="text-sm text-muted">
                         {contract.hoursPerWeek
-                          ? `${contract.hoursPerWeek}h`
+                          ? `${contract.contractType === "ct_part_time" ? "≥ " : ""}${contract.hoursPerWeek}h`
                           : "Var."}
                       </span>
                       <StatusBadge status={contract.status} />

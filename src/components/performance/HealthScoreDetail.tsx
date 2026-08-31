@@ -84,21 +84,21 @@ function getSeverityConfig(severity: "critical" | "warning" | "info") {
     case "critical":
       return {
         borderColor: "border-l-red-500",
-        bgColor: "bg-red-50",
+        bgColor: "bg-red-50 dark:bg-red-950/40",
         icon: <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />,
         textColor: "text-red-700",
       };
     case "warning":
       return {
         borderColor: "border-l-amber-500",
-        bgColor: "bg-amber-50",
+        bgColor: "bg-amber-50 dark:bg-amber-950/40",
         icon: <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />,
         textColor: "text-amber-700",
       };
     case "info":
       return {
         borderColor: "border-l-blue-500",
-        bgColor: "bg-blue-50",
+        bgColor: "bg-blue-50 dark:bg-blue-950/40",
         icon: <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />,
         textColor: "text-blue-700",
       };
@@ -156,7 +156,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                 <X className="w-5 h-5 text-muted" />
               </button>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
               <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
               <p className="text-sm text-red-600">Failed to load health score data.</p>
             </div>
@@ -327,7 +327,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                       <span className="text-xs text-muted">Centre</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-sm bg-gray-300" />
+                      <div className="w-3 h-3 rounded-sm bg-muted/30" />
                       <span className="text-xs text-muted">Network Avg</span>
                     </div>
                   </div>
@@ -338,7 +338,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                       <div className="flex gap-2 items-center">
                         <div className="flex-1 h-3 bg-surface rounded-full relative overflow-hidden">
                           <div
-                            className="absolute h-full bg-gray-300 rounded-full"
+                            className="absolute h-full bg-muted/30 rounded-full"
                             style={{ width: `${vals.networkAvg}%` }}
                           />
                           <div

@@ -52,7 +52,7 @@ export function EnquiryStatsBar({
       label: "Active Enquiries",
       value: stats.totalActive,
       icon: Users,
-      colour: "text-blue-600 bg-blue-50",
+      colour: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40",
     },
     {
       label: "Stuck (>48hrs)",
@@ -60,14 +60,14 @@ export function EnquiryStatsBar({
       icon: AlertTriangle,
       colour:
         stats.stuckCount > 0
-          ? "text-red-600 bg-red-50"
+          ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40"
           : "text-muted bg-surface/50",
     },
     {
       label: "New Enquiries",
       value: stats.newThisWeek,
       icon: UserPlus,
-      colour: "text-emerald-600 bg-emerald-50",
+      colour: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40",
     },
     {
       label: "Waitlisted",
@@ -75,14 +75,14 @@ export function EnquiryStatsBar({
       icon: Clock,
       colour:
         stats.waitlistedCount > 0
-          ? "text-amber-600 bg-amber-50"
+          ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
           : "text-muted bg-surface/50",
     },
     {
       label: "Enrolled / Retained",
       value: stats.enrolledThisMonth,
       icon: CheckCircle,
-      colour: "text-purple-600 bg-purple-50",
+      colour: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40",
     },
   ];
 

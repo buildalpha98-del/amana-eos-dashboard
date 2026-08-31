@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
-import { getCurrentQuarter } from "@/lib/utils";
+import { getCurrentQuarter, shiftQuarter, formatQuarter } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -51,6 +51,7 @@ import { L10PrepWidget } from "@/components/dashboard/L10PrepWidget";
 import { ComplianceOverviewWidget } from "@/components/dashboard/ComplianceOverviewWidget";
 import { StaffOnboardingWidget } from "@/components/dashboard/StaffOnboardingWidget";
 import { MarketingDashboard } from "@/components/dashboard/MarketingDashboard";
+import { CentreDashboard } from "@/components/dashboard/CentreDashboard";
 
 // ─── Section Divider ──────────────────────────────────────────
 
@@ -99,7 +100,7 @@ function QuickActionButtons() {
           <Link
             key={a.href}
             href={a.href}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted-foreground hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
           >
             <Icon className="w-3.5 h-3.5" />
             {a.label}
@@ -189,14 +190,20 @@ function EosDashboard({ canWrite }: { canWrite: boolean }) {
 
 // ─── Main Dashboard Content ─────────────────────────────────
 
+// 2026-07-28: EOS quarters follow the AU financial year, so the picker
+// lists the four quarters of the CURRENT FY (derived by walking back from
+// today's quarter) rather than Q1-Q4 of the calendar year.
 function getPeriodOptions(): { value: string; label: string }[] {
-  const now = new Date();
-  const year = now.getFullYear();
+  const current = getCurrentQuarter();
+  const currentQn = Number(/^Q([1-4])/.exec(current)?.[1] ?? "1");
+  const fyStart = shiftQuarter(current, -(currentQn - 1)); // back to Q1 of this FY
+  const fyLabel = /-FY(\d{2})$/.exec(fyStart)?.[1] ?? "";
   const options = [];
-  for (let q = 1; q <= 4; q++) {
-    options.push({ value: `Q${q}-${year}`, label: `Q${q} ${year}` });
+  for (let i = 0; i < 4; i++) {
+    const q = shiftQuarter(fyStart, i);
+    options.push({ value: q, label: formatQuarter(q) });
   }
-  options.push({ value: `yearly-${year}`, label: `Full Year ${year}` });
+  options.push({ value: `yearly-FY${fyLabel}`, label: `Full Year FY${fyLabel}` });
   return options;
 }
 
@@ -209,19 +216,30 @@ export function DashboardContent() {
 
   const role = getDashboardRole((session?.user?.role as string) || "");
 
-  // Staff (educator) and Marketing get their own dedicated dashboards
-  if (role === "staff") {
-    return <StaffDashboard />;
-  }
-
   if (role === "marketing") {
     return <MarketingDashboard />;
   }
 
-  // member (Director of Service) gets the StaffDashboard which already
-  // includes DirectorAnalyticsWidget — keep existing behavior
-  if (role === "member") {
-    return <StaffDashboard />;
+  // Educators (staff) and Directors of Service (member) run a centre, not
+  // a network. They land on the centre view — today at THIS service —
+  // with their personal hub kept underneath it rather than replaced.
+  // State Managers and above continue to the command centre below.
+  if (role === "staff" || role === "member") {
+    const serviceId = (
+      session?.user as { serviceId?: string | null } | undefined
+    )?.serviceId;
+    return (
+      <div className="space-y-8">
+        <CentreDashboard
+          serviceId={serviceId}
+          userName={session?.user?.name}
+        />
+        <div>
+          <SectionDivider label="Your work" />
+          <StaffDashboard />
+        </div>
+      </div>
+    );
   }
 
   // EOS roles (viewer / implementer) are EOS-only and org-wide. They land
@@ -291,7 +309,7 @@ function CommandCentreDashboard({
           <DashboardTodayStrip
             counts={{
               overdueTodos: data.actionItems.overdueTodos.length,
-              offTrackRocks: data.actionItems.overdueRocks.length,
+              offTrackRocks: data.actionItems.offTrackRockCount,
               openIssues: data.actionItems.idsIssues.length,
               pendingQueue: pendingQueueCount,
             }}
@@ -527,27 +545,27 @@ function CommandCentreDashboard({
                     >
                       {data.npsSurvey.score !== null ? data.npsSurvey.score : "N/A"}
                     </div>
-                    <div className="text-[10px] sm:text-xs text-muted mt-0.5">Score</div>
+                    <div className="text-2xs sm:text-xs text-muted mt-0.5">Score</div>
                   </div>
 
                   <div className="flex-1 grid grid-cols-3 gap-2 sm:gap-4">
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-success">{data.npsSurvey.promoters}</div>
-                      <div className="text-[10px] sm:text-xs text-muted">Promoters</div>
+                      <div className="text-2xs sm:text-xs text-muted">Promoters</div>
                     </div>
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-warning">{data.npsSurvey.passives}</div>
-                      <div className="text-[10px] sm:text-xs text-muted">Passives</div>
+                      <div className="text-2xs sm:text-xs text-muted">Passives</div>
                     </div>
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-danger">{data.npsSurvey.detractors}</div>
-                      <div className="text-[10px] sm:text-xs text-muted">Detractors</div>
+                      <div className="text-2xs sm:text-xs text-muted">Detractors</div>
                     </div>
                   </div>
 
                   <div className="text-center shrink-0">
                     <div className="text-base sm:text-lg font-semibold text-foreground">{data.npsSurvey.totalResponses}</div>
-                    <div className="text-[10px] sm:text-xs text-muted">Total</div>
+                    <div className="text-2xs sm:text-xs text-muted">Total</div>
                   </div>
                 </div>
 

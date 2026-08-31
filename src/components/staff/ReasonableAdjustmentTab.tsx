@@ -63,32 +63,32 @@ const STATUS_META: Record<
 > = {
   under_assessment: {
     label: "Under assessment",
-    pill: "bg-amber-50 text-amber-800 border-amber-200",
+    pill: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
     icon: Clock,
   },
   provided: {
     label: "Provided",
-    pill: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    pill: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800",
     icon: CheckCircle2,
   },
   modified: {
     label: "Modified alternative",
-    pill: "bg-blue-50 text-blue-800 border-blue-200",
+    pill: "bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800",
     icon: CheckCircle2,
   },
   declined: {
     label: "Declined",
-    pill: "bg-red-50 text-red-800 border-red-200",
+    pill: "bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
     icon: XCircle,
   },
   withdrawn: {
     label: "Withdrawn",
-    pill: "bg-gray-50 text-gray-800 border-gray-200",
+    pill: "bg-surface text-foreground border-border",
     icon: XCircle,
   },
   no_longer_needed: {
     label: "No longer needed",
-    pill: "bg-gray-100 text-gray-700 border-gray-200",
+    pill: "bg-surface text-foreground/80 border-border",
     icon: CheckCircle2,
   },
 };
@@ -162,7 +162,7 @@ export function ReasonableAdjustmentTab({
       </div>
 
       {overdueReview && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-2">
+        <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2">
           <CalendarClock className="w-4 h-4 mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold">Review due</p>

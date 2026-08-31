@@ -7,8 +7,8 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
-  Loader2,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 
 interface Snippet {
@@ -99,14 +99,14 @@ export function InfoSnippets() {
             New Information
           </h3>
           {unacknowledgedCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-[10px] font-bold">
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-2xs font-bold">
               {unacknowledgedCount}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {unacknowledgedCount === 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-2xs font-semibold">
               <CheckCircle2 className="w-3 h-3" />
               All caught up
             </span>
@@ -162,32 +162,30 @@ function SnippetCard({
         </p>
         <div className="flex items-center gap-2 mt-1.5">
           {snippet.category && (
-            <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
+            <span className="text-2xs font-medium text-muted uppercase tracking-wider">
               {snippet.category}
             </span>
           )}
-          <span className="text-[10px] text-muted/50">
+          <span className="text-2xs text-muted/50">
             {snippet.totalAcks}/{snippet.totalUsers} acknowledged
           </span>
         </div>
       </div>
       <div className="flex-shrink-0">
         {snippet.acknowledged ? (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium">
             <CheckCircle2 className="w-3.5 h-3.5" />
             Done
           </span>
         ) : (
-          <button
+          <Button
+            variant="primary"
+            size="xs"
             onClick={onAcknowledge}
-            disabled={isAcknowledging}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-brand text-white text-xs font-medium hover:bg-brand/90 transition-colors disabled:opacity-50"
+            loading={isAcknowledging}
           >
-            {isAcknowledging ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : null}
             Acknowledge
-          </button>
+          </Button>
         )}
       </div>
     </div>

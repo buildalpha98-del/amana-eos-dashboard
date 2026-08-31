@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { z } from "zod";
+import { requireRoomId } from "@/lib/room-resolver";
 
 // ---------------------------------------------------------------------------
 // POST /api/roster/copy-week
@@ -98,6 +99,8 @@ export const POST = withApiAuth(async (req, session) => {
             userId: src.userId,
             staffName: src.staffName,
             date: targetDate,
+            // Stage 1 dual key — see room-resolver.ts.
+            roomId: await requireRoomId(serviceId, src.sessionType),
             sessionType: src.sessionType,
             shiftStart: src.shiftStart,
             shiftEnd: src.shiftEnd,
@@ -117,6 +120,8 @@ export const POST = withApiAuth(async (req, session) => {
           userId: src.userId,
           staffName: src.staffName,
           date: targetDate,
+          // Stage 1 dual key — see room-resolver.ts.
+          roomId: await requireRoomId(serviceId, src.sessionType),
           sessionType: src.sessionType,
           shiftStart: src.shiftStart,
           shiftEnd: src.shiftEnd,

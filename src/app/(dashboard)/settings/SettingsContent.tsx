@@ -8,41 +8,47 @@ import { BulkInviteModal } from "@/components/settings/BulkInviteModal";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import {
-  Settings,
-  Users,
-  Database,
-  UserPlus,
-  Shield,
-  ShieldCheck,
-  User,
-  MoreVertical,
-  X,
   Activity,
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  BellOff,
+  Building2,
+  Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  Check,
-  Loader2,
-  Link2,
-  Unlink,
-  RefreshCw,
-  ArrowRight,
-  MapPin,
-  FileSpreadsheet,
-  Lock,
-  BellOff,
-  CheckCircle2,
-  XCircle,
-  Key,
   CloudCog,
-  Save,
   Copy,
-  AlertTriangle,
-  Building2,
-  Sparkles,
-  BarChart3,
-  Zap,
+  Database,
+  DoorOpen,
   DollarSign,
+  FileSpreadsheet,
+  Filter,
+  Key,
+  KeyRound,
+  Link2,
+  Loader2,
+  Lock,
+  LogOut,
+  MapPin,
+  MoreVertical,
+  Receipt,
+  RefreshCw,
+  Save,
+  Search,
+  Settings,
+  Shield,
+  SlidersHorizontal,
+  ShieldCheck,
+  Sparkles,
+  Unlink,
+  User,
+  UserPlus,
+  Users,
+  X,
+  XCircle,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -54,6 +60,11 @@ import {
   type PermissionRow,
 } from "@/lib/role-permissions";
 import { useRoleLabels } from "@/contexts/RoleLabelsContext";
+import {
+  resolveGroup,
+  searchSettings,
+  visibleGroups,
+} from "@/lib/settings-sections";
 import {
   useXeroStatus,
   useXeroConnect,
@@ -78,6 +89,7 @@ import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 import { AdoptionDashboard } from "@/components/admin/AdoptionDashboard";
 import { BannerManagementSection } from "@/components/settings/BannerManagementSection";
 import { NotificationLogTab } from "@/components/settings/NotificationLogTab";
+import { AssignToServiceDialog } from "@/components/team/AssignToServiceDialog";
 import { KiosksPanel } from "@/components/settings/KiosksPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Mail } from "lucide-react";
@@ -89,6 +101,7 @@ interface UserData {
   role: Role;
   active: boolean;
   notificationsMuted: boolean;
+  receivesNudges: boolean;
   createdAt: string;
 }
 
@@ -125,7 +138,11 @@ function InviteUserModal({
   });
 
   const needsService = role === "staff" || role === "member";
-  const needsState = role === "admin";
+  // 2026-07-13: State picker now shown for both Admin and State Manager
+  // (head_office). Owner + other roles skip the picker — no region concept
+  // for them. Both default to "All states" so the leadership tiers see
+  // every region unless explicitly narrowed.
+  const needsState = role === "admin" || role === "head_office";
 
   const createUser = useMutation({
     mutationFn: async (data: {
@@ -181,7 +198,7 @@ function InviteUserModal({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -249,8 +266,12 @@ function InviteUserModal({
               <option value="member">{roleLabels.member}</option>
               <option value="marketing">{roleLabels.marketing}</option>
               <option value="admin">{roleLabels.admin}</option>
-              <option value="eos_viewer">{roleLabels.eos_viewer}</option>
-              <option value="eos_implementer">{roleLabels.eos_implementer}</option>
+              <option value="eos">{roleLabels.eos}</option>
+              {/* 2026-07-13: EOS Viewer + EOS Implementer removed from
+                  the picker per Daniel — only the broad "EOS Member"
+                  is offered going forward. Enum values stay in the DB
+                  for any existing rows; new assignments go through
+                  EOS Member. */}
               {currentUserRole === "owner" && <option value="head_office">{roleLabels.head_office}</option>}
               {currentUserRole === "owner" && <option value="owner">{roleLabels.owner}</option>}
             </select>
@@ -283,15 +304,14 @@ function InviteUserModal({
           {needsState && (
             <div>
               <label className="block text-sm font-medium text-foreground/80 mb-1">
-                State <span className="text-red-500">*</span>
+                State
               </label>
               <select
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                required
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
-                <option value="">Select a state...</option>
+                <option value="">All states (all regions)</option>
                 {AUSTRALIAN_STATES.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label} ({s.value})
@@ -299,7 +319,7 @@ function InviteUserModal({
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted">
-                {roleLabels.admin}s are scoped to services within their assigned state
+                Leave as &ldquo;All states&rdquo; for org-wide access across every region. Pick a specific state to scope them to just that region.
               </p>
             </div>
           )}
@@ -353,6 +373,7 @@ function UserRow({
   const [showMenu, setShowMenu] = useState(false);
   const [showResetPw, setShowResetPw] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showServiceAccess, setShowServiceAccess] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
 
@@ -392,6 +413,38 @@ function UserRow({
     },
   });
 
+  const revokeSessions = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}/revoke-sessions`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to sign the user out");
+      return res.json();
+    },
+    onSuccess: () =>
+      toast({
+        description: `${user.name ?? "That user"} has been signed out on every device.`,
+      }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
+  });
+
+  const resetKioskPin = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}/reset-kiosk-pin`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to reset the kiosk PIN");
+      return res.json();
+    },
+    onSuccess: () =>
+      toast({
+        description: "Kiosk PIN reset — they'll be prompted to set a new one.",
+      }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", description: e.message }),
+  });
+
   const toggleMute = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/users/${user.id}`, {
@@ -406,6 +459,30 @@ function UserRow({
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowMenu(false);
       toast({ description: user.notificationsMuted ? "Notifications unmuted" : "Notifications muted — no emails or push" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+
+  const toggleReceivesNudges = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receivesNudges: !user.receivesNudges }),
+      });
+      if (!res.ok) throw new Error("Failed to update nudge preference");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setShowMenu(false);
+      toast({
+        description: user.receivesNudges
+          ? "System nudges disabled for this user"
+          : "System nudges enabled — this user will now receive overdue/compliance alerts",
+      });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -480,7 +557,7 @@ function UserRow({
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-medium text-foreground">{user.name}</p>
               {user.email === "admin@amanaoshc.com.au" && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface text-muted border border-border">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-surface text-muted border border-border">
                   System
                 </span>
               )}
@@ -499,7 +576,7 @@ function UserRow({
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
             user.active
-              ? "bg-green-50 text-green-700"
+              ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300"
               : "bg-surface text-muted"
           }`}
         >
@@ -556,6 +633,16 @@ function UserRow({
                   >
                     Set as {roleLabels.admin}
                   </button>
+                  <button
+                    onClick={() => updateRole.mutate("eos")}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
+                  >
+                    Set as {roleLabels.eos}
+                  </button>
+                  {/* 2026-07-13: Set-as-EOS-Viewer + Set-as-EOS-Implementer
+                      removed per Daniel — the single "EOS Member" role is
+                      the only EOS option now. Enum values stay in the
+                      schema for any legacy rows. */}
                   {isOwner && (
                     <button
                       onClick={() => updateRole.mutate("head_office")}
@@ -574,9 +661,17 @@ function UserRow({
                   )}
                   <hr className="my-1" />
                   <button
+                    onClick={() => { setShowServiceAccess(true); setShowMenu(false); }}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    Manage centre access
+                  </button>
+                  <hr className="my-1" />
+                  <button
                     onClick={() => toggleActive.mutate()}
                     disabled={toggleActive.isPending}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
                   >
                     {user.active ? "Deactivate" : "Reactivate"}
                   </button>
@@ -588,6 +683,29 @@ function UserRow({
                     <Lock className="w-3.5 h-3.5" />
                     Reset Password
                   </button>
+                  {/*
+                    Both endpoints existed with no UI (2026-08-01 sweep).
+                    Sign-out-everywhere is the control you reach for when a
+                    phone is lost or someone leaves — having it only as an
+                    API meant it was unusable at exactly the moment it
+                    mattered.
+                  */}
+                  <button
+                    onClick={() => { revokeSessions.mutate(); setShowMenu(false); }}
+                    disabled={revokeSessions.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out everywhere
+                  </button>
+                  <button
+                    onClick={() => { resetKioskPin.mutate(); setShowMenu(false); }}
+                    disabled={resetKioskPin.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    Reset kiosk PIN
+                  </button>
                   <button
                     onClick={() => toggleMute.mutate()}
                     disabled={toggleMute.isPending}
@@ -596,12 +714,21 @@ function UserRow({
                     <BellOff className="w-3.5 h-3.5" />
                     {user.notificationsMuted ? "Unmute notifications" : "Mute notifications"}
                   </button>
+                  <button
+                    onClick={() => toggleReceivesNudges.mutate()}
+                    disabled={toggleReceivesNudges.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2 disabled:opacity-50"
+                    title="Nudges = overdue todo reminders, compliance alerts, weekly digest, meeting reminders. Leadership always receives them; flip this on for a specific non-leader who should too."
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    {user.receivesNudges ? "Stop system nudges" : "Receive system nudges"}
+                  </button>
                   {isOwner && (
                     <>
                       <hr className="my-1" />
                       <button
                         onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium"
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 font-medium"
                       >
                         Delete Permanently
                       </button>
@@ -623,12 +750,12 @@ function UserRow({
               </div>
               <p className="text-sm text-muted mb-4">Set a new password for <span className="font-medium text-foreground">{user.name}</span></p>
               {resetError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
                   {resetError}
                 </div>
               )}
               {resetSuccess ? (
-                <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm">
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-700 dark:text-emerald-300 text-sm">
                   <CheckCircle2 className="w-4 h-4" />
                   Password reset successfully!
                 </div>
@@ -666,7 +793,7 @@ function UserRow({
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
@@ -678,7 +805,7 @@ function UserRow({
                 Are you sure you want to permanently delete <span className="font-medium text-foreground">{user.name}</span>? All their data (todos, rocks, issues, timesheets, etc.) will be removed or unlinked.
               </p>
               {deleteUser.isError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
                   {deleteUser.error instanceof Error ? deleteUser.error.message : "Failed to delete user"}
                 </div>
               )}
@@ -699,6 +826,13 @@ function UserRow({
               </div>
             </div>
           </div>
+        )}
+        {showServiceAccess && (
+          <AssignToServiceDialog
+            userId={user.id}
+            userName={user.name}
+            onClose={() => setShowServiceAccess(false)}
+          />
         )}
       </td>
     </tr>
@@ -732,9 +866,9 @@ const entityTypeOptions = [
 ];
 
 const actionBadge: Record<string, string> = {
-  create: "bg-emerald-50 text-emerald-700",
-  update: "bg-blue-50 text-blue-700",
-  delete: "bg-red-50 text-red-700",
+  create: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300",
+  update: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300",
+  delete: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300",
 };
 
 function ActivityLogPanel() {
@@ -820,7 +954,7 @@ function ActivityLogPanel() {
                     .join(", ");
 
                   return (
-                    <tr key={log.id} className="border-b border-gray-50 hover:bg-surface/50">
+                    <tr key={log.id} className="border-b border-border/50 hover:bg-surface/50">
                       <td className="py-2.5 px-3 text-xs text-muted whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleDateString("en-AU", {
                           day: "2-digit",
@@ -1354,7 +1488,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
           /* ——— State 2: Connected but unmapped ——— */
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                 Connected to {status?.tenantName}
               </span>
@@ -1370,7 +1504,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               <button
                 onClick={() => xeroDisconnect.mutate()}
                 disabled={xeroDisconnect.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Unlink className="w-3.5 h-3.5" />
                 Disconnect
@@ -1381,7 +1515,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
           /* ——— State 3: Connected and mapped ——— */
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                 Connected to {status?.tenantName}
               </span>
@@ -1406,7 +1540,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                 ? `Last synced: ${formatRelativeTime(status.lastSyncAt)}`
                 : "Never synced"}
               {status?.lastSyncStatus === "error" && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-xs font-medium">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs font-medium">
                   Sync error
                 </span>
               )}
@@ -1414,7 +1548,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
 
             {/* Sync success message */}
             {syncSuccess && (
-              <div className="mb-3 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm flex items-center gap-2">
+              <div className="mb-3 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-sm flex items-center gap-2">
                 <Check className="w-4 h-4" />
                 Sync completed successfully
               </div>
@@ -1449,7 +1583,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               <button
                 onClick={() => xeroDisconnect.mutate()}
                 disabled={xeroDisconnect.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Unlink className="w-3.5 h-3.5" />
                 Disconnect
@@ -1495,7 +1629,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                   mappingStep === 1
                     ? "bg-brand text-white"
-                    : "bg-green-100 text-green-700"
+                    : "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
                 )}
               >
                 {mappingStep > 1 ? (
@@ -1878,7 +2012,7 @@ function PermissionsPanel() {
                 {section.rows.map((row) => (
                   <tr
                     key={row.label}
-                    className="border-b border-gray-50 hover:bg-surface/50"
+                    className="border-b border-border/50 hover:bg-surface/50"
                   >
                     <td className="py-2 px-3 text-sm text-foreground/80">
                       {row.label}
@@ -2009,10 +2143,10 @@ function ApiKeysSection() {
   }
 
   function getKeyStatus(key: { revokedAt: string | null; expiresAt: string | null }) {
-    if (key.revokedAt) return { label: "Revoked", color: "bg-red-100 text-red-700" };
+    if (key.revokedAt) return { label: "Revoked", color: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300" };
     if (key.expiresAt && new Date(key.expiresAt) < new Date())
-      return { label: "Expired", color: "bg-yellow-100 text-yellow-700" };
-    return { label: "Active", color: "bg-emerald-100 text-emerald-700" };
+      return { label: "Expired", color: "bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300" };
+    return { label: "Active", color: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300" };
   }
 
   function formatDate(d: string | null) {
@@ -2083,7 +2217,7 @@ function ApiKeysSection() {
                         {key.scopes.map((scope) => (
                           <span
                             key={scope}
-                            className="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-700"
+                            className="text-xs px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
                           >
                             {scope.replace(":", " ")}
                           </span>
@@ -2220,7 +2354,7 @@ function ApiKeysSection() {
               <h4 className="text-lg font-semibold text-foreground">API Key Created</h4>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
               <p className="text-sm text-amber-800 font-medium">
                 Copy this key now. It will not be shown again.
               </p>
@@ -2299,12 +2433,12 @@ function OwnaIntegrationSection() {
         </div>
         <div className="flex items-center gap-2">
           {status?.configured ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               API Configured
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               Not Configured
             </span>
@@ -2584,7 +2718,7 @@ function BudgetTiersSection() {
                 <th className="pb-2 font-medium w-20" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border/50">
               {tiers.map((tier, idx) => (
                 <tr key={idx}>
                   <td className="py-2 text-foreground">{tier.minWeeklyChildren}+</td>
@@ -2674,7 +2808,7 @@ const SECTION_COLORS: Record<string, string> = {
   sentiment: "bg-rose-500",
   attendance: "bg-teal-500",
   duplicates: "bg-orange-500",
-  unknown: "bg-gray-400",
+  unknown: "bg-muted/60",
 };
 
 function AiUsageDashboard() {
@@ -2715,7 +2849,7 @@ function AiUsageDashboard() {
               className={cn(
                 "px-3 py-1 text-xs rounded-full font-medium transition-colors",
                 days === d
-                  ? "bg-purple-100 text-purple-700"
+                  ? "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300"
                   : "text-muted hover:bg-surface"
               )}
             >
@@ -2736,25 +2870,25 @@ function AiUsageDashboard() {
         <div className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-lg bg-purple-50 p-3">
+            <div className="rounded-lg bg-purple-50 dark:bg-purple-950/40 p-3">
               <div className="flex items-center gap-1.5 text-xs text-purple-600 mb-1">
                 <Zap className="w-3.5 h-3.5" /> Calls
               </div>
               <p className="text-xl font-bold text-purple-900">{data.totalCalls}</p>
             </div>
-            <div className="rounded-lg bg-blue-50 p-3">
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/40 p-3">
               <div className="flex items-center gap-1.5 text-xs text-blue-600 mb-1">
                 <BarChart3 className="w-3.5 h-3.5" /> Input Tokens
               </div>
               <p className="text-xl font-bold text-blue-900">{formatTokens(data.totalInput)}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 p-3">
+            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3">
               <div className="flex items-center gap-1.5 text-xs text-emerald-600 mb-1">
                 <BarChart3 className="w-3.5 h-3.5" /> Output Tokens
               </div>
               <p className="text-xl font-bold text-emerald-900">{formatTokens(data.totalOutput)}</p>
             </div>
-            <div className="rounded-lg bg-amber-50 p-3">
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 p-3">
               <div className="flex items-center gap-1.5 text-xs text-amber-600 mb-1">
                 <DollarSign className="w-3.5 h-3.5" /> Est. Cost
               </div>
@@ -2771,7 +2905,7 @@ function AiUsageDashboard() {
                   <span className="text-xs text-muted w-24 capitalize truncate">{section}</span>
                   <div className="flex-1 bg-surface rounded-full h-5 overflow-hidden">
                     <div
-                      className={cn("h-full rounded-full transition-all", SECTION_COLORS[section] || "bg-gray-400")}
+                      className={cn("h-full rounded-full transition-all", SECTION_COLORS[section] || "bg-muted/60")}
                       style={{ width: `${(stats.calls / maxSectionCalls) * 100}%` }}
                     />
                   </div>
@@ -2795,7 +2929,7 @@ function AiUsageDashboard() {
                 </thead>
                 <tbody>
                   {userEntries.map(([uid, stats]) => (
-                    <tr key={uid} className="border-b border-gray-50">
+                    <tr key={uid} className="border-b border-border/50">
                       <td className="py-1.5 text-foreground/80">{stats.name}</td>
                       <td className="py-1.5 text-right text-muted">{stats.calls}</td>
                       <td className="py-1.5 text-right text-muted text-xs">
@@ -2836,6 +2970,12 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
   const [showBulkInvite, setShowBulkInvite] = useState(false);
   const [showImportStaff, setShowImportStaff] = useState(false);
+  // Which group is open, and the search box. Deliberately local state
+  // rather than a URL param: nothing here is worth deep-linking to, and
+  // `useSearchParams` would drag the whole page under a Suspense
+  // boundary for a bookmark nobody has asked for.
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const isOwner = userRole === "owner";
   const isHeadOffice = userRole === "head_office";
   const canManageUsers = isOwner || isHeadOffice;
@@ -2851,42 +2991,194 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
     enabled: canManageUsers,
   });
 
+  const groups = visibleGroups(userRole);
+  const active = resolveGroup(activeGroup, userRole);
+  const results = searchSettings(query, userRole);
+  const searching = query.trim().length > 0;
+  /** Which group is on screen — used by every section's render guard. */
+  const showing = active?.key ?? null;
+
   return (
-    <div
-      data-v2="staff"
-      className="max-w-4xl mx-auto space-y-8"
-    >
+    <div data-v2="staff" className="max-w-6xl mx-auto space-y-6">
       <PageHeader title="Settings" description="Organisation settings, integrations, and user management" />
 
+      {/* Search first: for anyone who knows what they want, typing it is
+          faster than learning which of five groups we filed it under. */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search settings…"
+          aria-label="Search settings"
+          className="w-full pl-9 pr-3 py-2.5 border border-border rounded-lg text-base sm:text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand/30"
+        />
+      </div>
+
+      {searching ? (
+        <div className="space-y-2">
+          {results.length === 0 && (
+            <p className="text-sm text-muted py-8 text-center">
+              Nothing matches “{query.trim()}”.
+            </p>
+          )}
+          {results.map(({ group, item }) => {
+            const body = (
+              <>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {item.label}
+                  </h3>
+                  <p className="text-xs text-muted mt-0.5">{item.description}</p>
+                  <p className="text-2xs text-muted mt-1">in {group.label}</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted ml-auto shrink-0" />
+              </>
+            );
+            const cls =
+              "w-full flex items-center gap-4 bg-card rounded-xl border border-border p-4 hover:border-brand/40 transition-all text-left";
+            // An item with its own page navigates; an inline one jumps to
+            // the group that renders it and clears the search.
+            return item.href ? (
+              <Link key={item.key} href={item.href} className={cls}>
+                {body}
+              </Link>
+            ) : (
+              <button
+                key={item.key}
+                type="button"
+                className={cls}
+                onClick={() => {
+                  setActiveGroup(group.key);
+                  setQuery("");
+                }}
+              >
+                {body}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-6">
+          {/* Group nav. Horizontal scroll on mobile, a rail on desktop. */}
+          <nav
+            aria-label="Settings sections"
+            className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible sm:w-56 sm:shrink-0"
+          >
+            {groups.map((g) => (
+              <button
+                key={g.key}
+                type="button"
+                onClick={() => setActiveGroup(g.key)}
+                aria-current={showing === g.key ? "page" : undefined}
+                className={cn(
+                  "px-3 py-2 rounded-lg text-sm text-left whitespace-nowrap transition-colors",
+                  showing === g.key
+                    ? "bg-brand text-white"
+                    : "text-muted hover:bg-surface",
+                )}
+              >
+                {g.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex-1 min-w-0 space-y-6">
+            {active && (
+              <p className="text-sm text-muted">{active.description}</p>
+            )}
+
       {/* Organisation Settings (owner only) */}
-      {isOwner && <OrgSettingsSection isOwner={isOwner} />}
+      {showing === "organisation" && isOwner && <OrgSettingsSection isOwner={isOwner} />}
+
+      {/* Runtime configuration lives on its own page. */}
+      {showing === "organisation" && (isOwner || userRole === "admin") && (
+        <SettingsLink
+          href="/settings/organisation"
+          icon={SlidersHorizontal}
+          title="Runtime configuration"
+          description="Email sender, default educator ratio, health score weights."
+        />
+      )}
 
       {/* System Banners (owner/head_office) */}
-      {(isOwner || isHeadOffice) && <BannerManagementSection />}
+      {showing === "organisation" && (isOwner || isHeadOffice) && <BannerManagementSection />}
+
+      {/* Budget Tiers (owner/head_office) */}
+      {showing === "organisation" && isOwner && <BudgetTiersSection />}
 
       {/* Xero Integration (owner only) */}
-      {isOwner && (
+      {showing === "integrations" && isOwner && (
         <XeroIntegrationSection isOwner={isOwner} />
       )}
 
       {/* OWNA Integration (owner/admin) */}
-      {(userRole === "owner" || userRole === "admin") && (
+      {showing === "integrations" && (userRole === "owner" || userRole === "admin") && (
         <OwnaIntegrationSection />
       )}
 
+      {showing === "integrations" && (isOwner || isHeadOffice) && (
+        <SettingsLink
+          href="/settings/payroll"
+          icon={Receipt}
+          title="Payroll"
+          description="Employment Hero connection and employee sync."
+        />
+      )}
+
       {/* API Keys (owner only) */}
-      {isOwner && <ApiKeysSection />}
+      {showing === "integrations" && isOwner && <ApiKeysSection />}
 
       {/* Time-clock kiosks (owner/head_office/admin) — 2026-05-04 (timeclock v1) */}
-      {(userRole === "owner" || userRole === "head_office" || userRole === "admin") && (
+      {showing === "people" && (userRole === "owner" || userRole === "head_office" || userRole === "admin") && (
         <KiosksPanel />
       )}
 
-      {/* Budget Tiers (owner/head_office) */}
-      {isOwner && <BudgetTiersSection />}
+      {showing === "people" && (isOwner || userRole === "admin") && (
+        <SettingsLink
+          href="/settings/permissions"
+          icon={Shield}
+          title="Role permissions"
+          description="The page-by-page access matrix."
+        />
+      )}
+
+      {showing === "communications" && (isOwner || userRole === "admin") && (
+        <SettingsLink
+          href="/settings/email-templates"
+          icon={Mail}
+          title="Email templates"
+          description="Subject and body for transactional emails."
+        />
+      )}
+
+      {/* Rooms migration (owner/head office).
+          Registering an item in settings-sections.ts puts it in SEARCH
+          and in the group nav, but the browse view renders each href
+          item as its own tile here — so an entry added only to the
+          config is findable by typing its name and invisible to anyone
+          scrolling. */}
+      {showing === "system" && (isOwner || isHeadOffice) && (
+        <SettingsLink
+          href="/settings/rooms-migration"
+          icon={DoorOpen}
+          title="Rooms migration"
+          description="Progress moving rooms out of fixed slots, and the check that has to pass before the next step."
+        />
+      )}
+
+      {showing === "system" && (isOwner || isHeadOffice || userRole === "admin") && (
+        <SettingsLink
+          href="/settings/ai-knowledge"
+          icon={Sparkles}
+          title="AI knowledge"
+          description="Content the assistant searches when staff ask questions."
+        />
+      )}
 
       {/* Seed Template Data (owner/admin) */}
-      {(userRole === "owner" || userRole === "admin") && (
+      {showing === "system" && (userRole === "owner" || userRole === "admin") && (
         <Link
           href="/settings/seed"
           className="flex items-center gap-4 bg-card rounded-xl border border-border p-6 hover:border-brand/40 hover:shadow-sm transition-all group"
@@ -2907,7 +3199,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       )}
 
       {/* User Management (owner + head_office) */}
-      {canManageUsers && (
+      {showing === "people" && canManageUsers && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -3003,7 +3295,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
         </div>
       )}
 
-      {!canManageUsers && (
+      {showing === "people" && !canManageUsers && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-5 h-5 text-muted" />
@@ -3019,10 +3311,10 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       )}
 
       {/* AI Usage Dashboard (owner/head_office) */}
-      {(isOwner || isHeadOffice) && <AiUsageDashboard />}
+      {showing === "system" && (isOwner || isHeadOffice) && <AiUsageDashboard />}
 
       {/* Adoption Metrics (owner/admin/head_office) */}
-      {(isOwner || isHeadOffice || userRole === "admin") && (
+      {showing === "system" && (isOwner || isHeadOffice || userRole === "admin") && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-5 h-5 text-muted" />
@@ -3035,13 +3327,13 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       )}
 
       {/* Activity Log (owner/head_office/admin) */}
-      {(userRole === "owner" || userRole === "head_office" || userRole === "admin") && <ActivityLogPanel />}
+      {showing === "system" && (userRole === "owner" || userRole === "head_office" || userRole === "admin") && <ActivityLogPanel />}
 
       {/* Permissions overview (owner only) */}
-      {isOwner && <PermissionsPanel />}
+      {showing === "people" && isOwner && <PermissionsPanel />}
 
       {/* Notification Log (coordinator+) */}
-      {(userRole === "owner" || userRole === "head_office" || userRole === "admin" || userRole === "member") && (
+      {showing === "communications" && (userRole === "owner" || userRole === "head_office" || userRole === "admin" || userRole === "member") && (
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-4">
             <Mail className="w-5 h-5 text-muted" />
@@ -3052,6 +3344,48 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
           <NotificationLogTab />
         </div>
       )}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * A settings area that lives on its own page.
+ *
+ * These used to be reachable only from the sidebar, which meant Settings
+ * showed you eleven cards and silently omitted six more. Rendering them
+ * as rows inside the group they belong to is what makes the area
+ * complete — you can see everything from here, whether or not it opens
+ * in place.
+ */
+function SettingsLink({
+  href,
+  icon: Icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-4 bg-card rounded-xl border border-border p-6 hover:border-brand/40 hover:shadow-sm transition-all group"
+    >
+      <div className="p-2.5 rounded-lg bg-brand/10 text-brand shrink-0">
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold text-foreground group-hover:text-brand transition-colors">
+          {title}
+        </h3>
+        <p className="text-xs text-muted mt-0.5">{description}</p>
+      </div>
+      <ArrowRight className="w-4 h-4 text-muted group-hover:text-brand ml-auto shrink-0 transition-colors" />
+    </Link>
   );
 }

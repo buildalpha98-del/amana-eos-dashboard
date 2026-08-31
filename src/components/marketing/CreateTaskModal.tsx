@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import {
   useCreateMarketingTask,
@@ -135,6 +136,7 @@ export function CreateTaskModal({
             <h2 className="text-lg font-semibold text-foreground">New Task</h2>
             <button
               onClick={handleClose}
+              aria-label="Close"
               className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-foreground"
             >
               <X className="h-5 w-5" />
@@ -269,7 +271,7 @@ export function CreateTaskModal({
 
               {/* Error */}
               {error && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-600 dark:text-red-400">
                   {error}
                 </p>
               )}
@@ -277,20 +279,17 @@ export function CreateTaskModal({
 
             {/* Footer */}
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface"
-              >
+              <Button type="button" variant="secondary" size="sm" onClick={handleClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                variant="primary"
+                size="sm"
                 disabled={createTask.isPending}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
               >
                 {createTask.isPending ? "Creating..." : "Create Task"}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

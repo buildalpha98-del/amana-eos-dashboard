@@ -127,7 +127,7 @@ export function InstallBanner({
       aria-label="Install the Amana Parents app"
       data-testid="parent-install-banner"
       className={cn(
-        "relative rounded-2xl border border-[#e8e4df] bg-gradient-to-br from-[#FFFAE6] to-white p-4 shadow-sm",
+        "relative rounded-2xl border border-border bg-gradient-to-br from-[#FFFAE6] to-white p-4 shadow-sm",
         !prefersReducedMotion && "transition-transform duration-300 ease-out",
         className,
       )}
@@ -139,20 +139,20 @@ export function InstallBanner({
         type="button"
         onClick={handleDismiss}
         aria-label="Dismiss install banner"
-        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full text-[#7c7c8a] hover:text-[#1a1a2e] hover:bg-[#F2EDE8] transition-colors min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px]"
+        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full text-muted hover:text-foreground hover:bg-surface transition-colors min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px]"
       >
         <X className="w-4 h-4" />
       </button>
 
       <div className="flex items-start gap-3 pr-8">
-        <div className="w-10 h-10 shrink-0 rounded-xl bg-[#004E64] flex items-center justify-center shadow-sm">
+        <div className="w-10 h-10 shrink-0 rounded-xl bg-brand flex items-center justify-center shadow-sm">
           <Download className="w-5 h-5 text-white" aria-hidden="true" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-heading font-bold text-[#1a1a2e]">
+          <h3 className="text-sm font-heading font-bold text-foreground">
             Add Amana Parents to your home screen
           </h3>
-          <p className="text-xs text-[#7c7c8a] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Tap, open, and stay up to date — no app store needed.
           </p>
         </div>
@@ -163,7 +163,7 @@ export function InstallBanner({
           <button
             type="button"
             onClick={handleInstall}
-            className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2.5 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-xl transition-colors active:scale-[0.99]"
+            className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2.5 px-4 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl transition-colors active:scale-[0.99]"
           >
             <Download className="w-4 h-4" aria-hidden="true" />
             Install app
@@ -181,7 +181,7 @@ export function InstallBanner({
 function IosHint() {
   return (
     <ol
-      className="space-y-2 text-sm text-[#1a1a2e]"
+      className="space-y-2 text-sm text-foreground"
       data-testid="install-ios-hint"
     >
       <Step n={1}>
@@ -200,7 +200,7 @@ function IosHint() {
 function AndroidFallbackHint() {
   return (
     <ol
-      className="space-y-2 text-sm text-[#1a1a2e]"
+      className="space-y-2 text-sm text-foreground"
       data-testid="install-android-hint"
     >
       <Step n={1}>Open this page in Chrome on your phone.</Step>
@@ -216,10 +216,10 @@ function AndroidFallbackHint() {
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-2.5">
-      <span className="w-5 h-5 shrink-0 mt-0.5 rounded-full bg-[#004E64] text-white text-[10px] font-bold flex items-center justify-center">
+      <span className="w-5 h-5 shrink-0 mt-0.5 rounded-full bg-brand text-white text-2xs font-bold flex items-center justify-center">
         {n}
       </span>
-      <span className="text-xs text-[#1a1a2e] leading-relaxed">{children}</span>
+      <span className="text-xs text-foreground leading-relaxed">{children}</span>
     </li>
   );
 }
@@ -229,7 +229,7 @@ function IosShareIcon() {
     <svg
       viewBox="0 0 16 16"
       aria-hidden="true"
-      className="inline-block w-4 h-4 align-text-bottom mx-0.5 text-[#004E64]"
+      className="inline-block w-4 h-4 align-text-bottom mx-0.5 text-brand"
       fill="currentColor"
     >
       <path d="M8 1.5a.75.75 0 0 1 .53.22l2.5 2.5a.75.75 0 1 1-1.06 1.06L8.75 3.56V10a.75.75 0 0 1-1.5 0V3.56L5.53 5.28A.75.75 0 0 1 4.47 4.22l2.5-2.5A.75.75 0 0 1 8 1.5Z" />

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
 import { updateParentPostSchema } from "@/lib/schemas/parent-post";
+import { notifyPostPublished } from "@/lib/notifications/posts";
 
 /** Org-wide roles that can access any service. */
 const ORG_WIDE_ROLES = new Set(["owner", "head_office"]);
@@ -37,7 +38,7 @@ export const PATCH = withApiAuth(
       // Verify post exists and belongs to this service
       const existing = await tx.parentPost.findUnique({
         where: { id: postId },
-        select: { id: true, serviceId: true, authorId: true },
+        select: { id: true, serviceId: true, authorId: true, status: true },
       });
 
       if (!existing || existing.serviceId !== serviceId) {
@@ -100,10 +101,21 @@ export const PATCH = withApiAuth(
         },
       });
 
-      return updated;
+      return { ...updated, _wasDraft: existing.status !== "published" };
     });
 
-    return NextResponse.json(post);
+    // Publishing an existing draft is the same moment as creating a
+    // published post — the families haven't seen it either way. Only on
+    // the TRANSITION: re-saving an already-published post must not
+    // notify the whole centre a second time.
+    if (post.status === "published" && post._wasDraft) {
+      notifyPostPublished(post.id).catch(() => {});
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _wasDraft, ...responsePost } = post;
+
+    return NextResponse.json(responsePost);
   },
   { roles: ["owner", "head_office", "admin", "member"] },
 );

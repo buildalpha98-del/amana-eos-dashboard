@@ -4,23 +4,20 @@ import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
-import { getWeekStart } from "@/lib/utils";
+import { getWeekStart, getCurrentQuarter } from "@/lib/utils";
+import { siteUrl } from "@/lib/site-url";
 
 // ── Brand constants ─────────────────────────────────────────
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
-const DASHBOARD_URL =
-  process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+const DASHBOARD_URL = siteUrl();
 
 // ── Helpers ─────────────────────────────────────────────────
 
-function getCurrentQuarter(): string {
-  const now = new Date();
-  const month = now.getMonth(); // 0-11
-  const year = now.getFullYear();
-  const q = month < 3 ? 1 : month < 6 ? 2 : month < 9 ? 3 : 4;
-  return `Q${q} ${year}`;
-}
+// 2026-07-28: this file defined its OWN getCurrentQuarter() returning the
+// SPACE-separated "Q3 2026", then queried Rock.quarter with it — the exact
+// hand-rolled-variant bug CLAUDE.md warns about, which matched zero rocks.
+// Now uses the canonical FY-aware helper from @/lib/utils.
 
 // ── Email template ──────────────────────────────────────────
 
@@ -247,7 +244,10 @@ export const GET = withApiHandler(async (req) => {
     const users = await prisma.user.findMany({
       where: {
         active: true,
-        role: { in: ["owner", "admin", "member"] },
+        // 2026-08-31: head_office/eos/eos_implementer added — the old list
+        // predated those roles. eos_viewer (read-only) + marketing + staff
+        // stay excluded on purpose.
+        role: { in: ["owner", "head_office", "admin", "member", "eos", "eos_implementer"] },
       },
       select: { id: true, name: true, email: true },
     });

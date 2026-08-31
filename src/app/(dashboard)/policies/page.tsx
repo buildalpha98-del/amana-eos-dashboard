@@ -22,7 +22,7 @@ export default function PoliciesPage() {
         }
       />
       {status === "loading" ? (
-        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-12 text-center text-sm text-muted">
           Loading…
         </div>
       ) : isAdmin ? (

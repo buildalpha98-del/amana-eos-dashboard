@@ -6,6 +6,8 @@ import {
   type DigestNotification,
 } from "@/lib/email-templates";
 import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
+import { quarterLabel } from "@/lib/utils";
+import { siteUrl } from "@/lib/site-url";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,7 +30,7 @@ export async function buildAndSendDailyDigest(): Promise<DigestResult> {
   const in30d = new Date(now.getTime() + 30 * 86400000);
   const yesterday = new Date(now.getTime() - 86400000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
-  const currentQuarter = `Q${Math.ceil((now.getMonth() + 1) / 3)}-${now.getFullYear()}`;
+  const currentQuarter = quarterLabel(now);
   const twentyHoursAgo = new Date(now.getTime() - 20 * 60 * 60 * 1000);
 
   // Get all active users
@@ -185,7 +187,7 @@ export async function buildAndSendDailyDigest(): Promise<DigestResult> {
   let emailsSent = 0;
   let skipped = 0;
   const errors: string[] = [];
-  const dashboardUrl = `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/dashboard`;
+  const dashboardUrl = `${siteUrl()}/dashboard`;
 
   for (const user of users) {
     const prefs = parseJsonField(user.notificationPrefs, notificationPrefsSchema, {});

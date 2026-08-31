@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { isPublicParentRoute } from "@/lib/parent-routes";
 import { useParentInstallEffects } from "@/hooks/useParentInstallEffects";
 
 interface ParentAuthContext {
@@ -47,7 +48,10 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(!!active);
     setIsLoading(false);
 
-    if (!active && pathname !== "/parent/login") {
+    // Must exempt every public route, not just /parent/login — a parent
+    // confirming their email or signing up has no session yet by
+    // definition, and redirecting them here made those pages unreachable.
+    if (!active && !isPublicParentRoute(pathname)) {
       router.replace("/parent/login");
     }
   }, [pathname, router]);

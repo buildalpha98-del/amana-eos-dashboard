@@ -10,6 +10,7 @@ import {
   AWARD_LEVEL_LABELS,
   type UserOption,
 } from "./constants";
+import { uploadFileSmart } from "@/lib/upload-client";
 
 export interface ContractFormValue {
   userId: string;
@@ -101,19 +102,9 @@ export function ContractFormFields({
     setUploadError(null);
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      // Raw fetch (not fetchApi) — FormData uploads are a documented
-      // exception since fetchApi sets JSON content-type.
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(body.error ?? "Upload failed");
-      }
-      const { fileUrl } = (await res.json()) as { fileUrl: string };
+      // uploadFileSmart owns the FormData/direct-to-blob choice; a raw fetch
+      // here 413'd on any contract PDF over ~4.5MB.
+      const { fileUrl } = await uploadFileSmart(file);
       onChange({ ...value, documentUrl: fileUrl, documentId: null });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
@@ -219,7 +210,9 @@ export function ContractFormFields({
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground/80 mb-1">
-            Hours / Week{" "}
+            {value.contractType === "ct_part_time"
+              ? "Minimum hours / Week"
+              : "Hours / Week"}{" "}
             {value.contractType === "ct_casual" && (
               <span className="text-muted font-normal">(optional)</span>
             )}
@@ -231,9 +224,21 @@ export function ContractFormFields({
             max="60"
             value={value.hoursPerWeek}
             onChange={(e) => set("hoursPerWeek", e.target.value)}
-            placeholder={value.contractType === "ct_casual" ? "Variable" : "38"}
+            placeholder={
+              value.contractType === "ct_casual"
+                ? "Variable"
+                : value.contractType === "ct_part_time"
+                  ? "20"
+                  : "38"
+            }
             className={inputCls}
           />
+          {value.contractType === "ct_part_time" && (
+            <p className="mt-1 text-xs text-muted">
+              Staff will be rostered at least this many hours per week; the
+              Employer may roster more where operational needs require.
+            </p>
+          )}
         </div>
       </div>
 

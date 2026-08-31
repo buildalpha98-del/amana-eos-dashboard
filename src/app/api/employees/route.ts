@@ -141,7 +141,18 @@ export const GET = withApiAuth(async (req, session) => {
         // /team UI surfaces a red badge for these so we don't quietly
         // ship someone without payslips / leave / expenses access.
         employmentHeroEmployeeId: true,
+        hrWarningsMuted: true,
         service: { select: { id: true, name: true } },
+        // 2026-07-08: include active service memberships so /team can
+        // show every centre a user is attached to, not just their
+        // primary. Ordered by service name for stable display.
+        serviceMemberships: {
+          where: { status: "active" },
+          select: {
+            service: { select: { id: true, name: true } },
+          },
+          orderBy: { service: { name: "asc" } },
+        },
       },
     }),
     prisma.user.count({ where }),
@@ -168,8 +179,16 @@ export const GET = withApiAuth(async (req, session) => {
       )
     : new Set<string>();
 
-  const employees = users.map((u) =>
-    formatEmployeeRow(
+  const employees = users.map((u) => {
+    // 2026-07-08: dedupe membership services against the primary
+    // service. Users with a primary set to Service A shouldn't show
+    // Service A twice if they also have a A-membership row.
+    const primaryId = u.service?.id ?? null;
+    const additionalServices = u.serviceMemberships
+      .map((m) => m.service)
+      .filter((s) => s.id !== primaryId);
+
+    return formatEmployeeRow(
       {
         id: u.id,
         name: u.name,
@@ -181,12 +200,14 @@ export const GET = withApiAuth(async (req, session) => {
         lastLoginAt: u.lastLoginAt,
         tags: u.tags ?? [],
         service: u.service ?? null,
+        additionalServices,
         employmentHeroEmployeeId: u.employmentHeroEmployeeId ?? null,
         hasActiveContract: contractedUserIds.has(u.id),
+        hrWarningsMuted: u.hrWarningsMuted,
       },
       role,
-    ),
-  );
+    );
+  });
 
   return NextResponse.json({
     employees,

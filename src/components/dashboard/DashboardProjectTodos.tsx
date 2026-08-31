@@ -97,7 +97,7 @@ export function DashboardProjectTodos({
                   {first.projectName}
                 </Link>
                 {first.serviceName && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded-md">
+                  <span className="inline-flex items-center gap-1 text-2xs font-medium text-muted bg-surface px-1.5 py-0.5 rounded-md">
                     <Building2 className="w-3 h-3" />
                     {first.serviceName}
                   </span>
@@ -126,6 +126,7 @@ export function DashboardProjectTodos({
                         disabled={toggleTodo.isPending}
                         className="w-4.5 h-4.5 rounded border-2 border-border hover:border-brand flex items-center justify-center flex-shrink-0 transition-colors"
                         title="Mark complete"
+                        aria-label="Mark complete"
                       >
                         <CheckSquare className="w-0 h-0 group-hover:w-3 group-hover:h-3 text-brand transition-all" />
                       </button>
@@ -135,7 +136,7 @@ export function DashboardProjectTodos({
                         <p className="text-sm text-foreground/80 truncate">
                           {todo.title}
                         </p>
-                        <p className="text-[10px] text-muted">
+                        <p className="text-2xs text-muted">
                           {todo.assigneeName} &middot;{" "}
                           <span className={st.color}>{st.label}</span>
                         </p>
@@ -146,7 +147,7 @@ export function DashboardProjectTodos({
                         className={cn(
                           "flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md shrink-0",
                           todo.isOverdue
-                            ? "bg-red-50 text-red-600"
+                            ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
                             : "bg-surface/50 text-muted"
                         )}
                       >

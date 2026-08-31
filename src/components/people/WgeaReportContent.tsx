@@ -101,7 +101,7 @@ export function WgeaReportContent() {
         internal HR analysis.
       </p>
 
-      <div className="rounded-md border border-blue-200 bg-blue-50/40 p-4 text-sm text-blue-900 flex items-start gap-2">
+      <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50/40 p-4 text-sm text-blue-900 dark:text-blue-200 flex items-start gap-2">
         <Shield className="w-5 h-5 flex-shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="font-semibold">About this report</p>

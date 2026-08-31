@@ -5,7 +5,7 @@
  * EmailTemplateOverride (key "contracts.issued"). Defaults below.
  */
 
-import { baseLayout, buttonHtml } from "./base";
+import { baseLayout, buttonHtml, escapeHtml } from "./base";
 import { applyEmailTemplateOverride } from "@/lib/email-template-overrides";
 
 const CONTRACT_ISSUED_DEFAULT_SUBJECT =
@@ -35,21 +35,12 @@ export async function contractIssuedEmail(args: {
     defaultSubject: CONTRACT_ISSUED_DEFAULT_SUBJECT,
     defaultBody: CONTRACT_ISSUED_DEFAULT_BODY,
     vars: {
-      name: escape(args.name),
-      contractName: escape(args.contractName),
-      portalUrl: escape(args.portalUrl),
-      pdfUrl: escape(args.pdfUrl),
+      name: escapeHtml(args.name),
+      contractName: escapeHtml(args.contractName),
+      portalUrl: escapeHtml(args.portalUrl),
+      pdfUrl: escapeHtml(args.pdfUrl),
       reviewButton: buttonHtml("Review & acknowledge", args.portalUrl),
     },
     wrap: baseLayout,
   });
-}
-
-function escape(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }

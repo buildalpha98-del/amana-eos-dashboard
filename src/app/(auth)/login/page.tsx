@@ -63,7 +63,18 @@ function LoginForm() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password");
+      // 2026-07-08: don't mask the real error — a rate-limited login
+      // was showing as "Invalid email or password", which made users
+      // think their password was wrong when it was actually the
+      // 5-attempts-per-15-min throttle. NextAuth surfaces our thrown
+      // Error.message through result.error; when it falls back to the
+      // default "CredentialsSignin" code we still show a friendly
+      // generic message.
+      const msg =
+        result.error === "CredentialsSignin"
+          ? "Invalid email or password"
+          : result.error;
+      setError(msg);
       setLoading(false);
     } else {
       // Fetch the fresh session so we can route service-scoped roles directly
@@ -131,7 +142,7 @@ function LoginForm() {
           </h2>
 
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200/60 text-red-600 text-sm">
+            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200/60 text-red-600 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -150,7 +161,7 @@ function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-muted focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                 placeholder="you@amanaoshc.com.au"
                 autoComplete="email"
               />
@@ -169,7 +180,7 @@ function LoginForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-muted focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                 placeholder="Enter your password"
                 autoComplete="current-password"
               />
@@ -234,7 +245,7 @@ function LoginForm() {
           </form>
         </div>
 
-        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-[11px] mt-6">
+        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-2xs mt-6">
           Amana OSHC Leadership Team Portal
         </p>
       </div>

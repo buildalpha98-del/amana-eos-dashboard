@@ -51,16 +51,16 @@ const CATEGORIES = [
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  physical_play: "bg-blue-100 text-blue-700",
-  creative_arts: "bg-pink-100 text-pink-700",
-  music_movement: "bg-purple-100 text-purple-700",
-  literacy: "bg-amber-100 text-amber-700",
-  numeracy: "bg-emerald-100 text-emerald-700",
-  nature_outdoors: "bg-green-100 text-green-700",
-  cooking_nutrition: "bg-orange-100 text-orange-700",
-  social_emotional: "bg-rose-100 text-rose-700",
-  quiet_time: "bg-sky-100 text-sky-700",
-  free_play: "bg-teal-100 text-teal-700",
+  physical_play: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  creative_arts: "bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300",
+  music_movement: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300",
+  literacy: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  numeracy: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
+  nature_outdoors: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  cooking_nutrition: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300",
+  social_emotional: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300",
+  quiet_time: "bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300",
+  free_play: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300",
   other: "bg-surface text-foreground/80",
 };
 
@@ -258,7 +258,7 @@ function TemplateCard({
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-1 rounded hover:bg-red-50"
+              className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/40"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-400" />
             </button>
@@ -523,7 +523,7 @@ function TemplateModal({
                       {isAdmin && (
                         <button
                           onClick={() => handleDeleteFile(f.id)}
-                          className="p-1 rounded hover:bg-red-50"
+                          className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/40"
                         >
                           <Trash2 className="w-3.5 h-3.5 text-red-400" />
                         </button>

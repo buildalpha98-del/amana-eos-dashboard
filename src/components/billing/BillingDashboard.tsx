@@ -1,8 +1,20 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, DollarSign, FileText, AlertTriangle, Send, CreditCard, Eye, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CreditCard,
+  DollarSign,
+  Eye,
+  FileText,
+  Plus,
+  Send,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { FamilyBillingSection } from "@/components/billing/FamilyBillingSection";
+import { GenerateStatementDialog } from "@/components/billing/GenerateStatementDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -38,12 +50,12 @@ const STATUS_OPTIONS = [
 ] as const;
 
 const STATUS_BADGE: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-600",
-  issued: "bg-blue-100 text-blue-700",
-  paid: "bg-green-100 text-green-700",
-  unpaid: "bg-amber-100 text-amber-700",
-  overdue: "bg-red-100 text-red-600",
-  void: "bg-gray-100 text-gray-400 line-through",
+  draft: "bg-surface text-muted",
+  issued: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300",
+  paid: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300",
+  unpaid: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+  overdue: "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400",
+  void: "bg-surface text-muted/70 line-through",
 };
 
 // ---------------------------------------------------------------------------
@@ -53,10 +65,12 @@ const STATUS_BADGE: Record<string, string> = {
 export function BillingDashboard() {
   // Filters
   const [serviceId, setServiceId] = useState("");
+  const [view, setView] = useState<"statements" | "families">("statements");
   const [status, setStatus] = useState("");
 
   // Dialogs / panels
   const [newOpen, setNewOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<{
     statementId: string;
     contactId: string;
@@ -124,6 +138,20 @@ export function BillingDashboard() {
           icon: Plus,
           onClick: () => setNewOpen(true),
         }}
+        secondaryActions={[
+          {
+            label: "Generate from bookings",
+            icon: Sparkles,
+            onClick: () => setGenerateOpen(true),
+          },
+        ]}
+      />
+
+      {/* Builds a draft from what a child actually attended, instead of
+          requiring every line to be retyped by hand. */}
+      <GenerateStatementDialog
+        open={generateOpen}
+        onOpenChange={setGenerateOpen}
       />
 
       {/* Summary Cards */}
@@ -146,6 +174,30 @@ export function BillingDashboard() {
           value={String(summary.overdue)}
           color={summary.overdue > 0 ? "text-red-600" : "text-green-600"}
         />
+      </div>
+
+      {/* Statements vs the family accounts behind them. Two different
+          jobs — chasing a statement, and setting up who gets debited when
+          — so they get their own view rather than one long page. */}
+      <div className="flex gap-1 bg-surface rounded-xl p-1 mb-4 w-fit">
+        {(
+          [
+            ["statements", "Statements"],
+            ["families", "Family accounts"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              view === key
+                ? "bg-background text-foreground shadow-sm"
+                : "text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
@@ -178,8 +230,15 @@ export function BillingDashboard() {
         </select>
       </div>
 
-      {/* Statements Table */}
-      {statements.length === 0 ? (
+      {view === "families" ? (
+        <FamilyBillingSection
+          serviceId={serviceId || undefined}
+          serviceName={
+            serviceOptions.find((s) => s.id === serviceId)?.name ?? undefined
+          }
+        />
+      ) : /* Statements Table */
+      statements.length === 0 ? (
         <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
           <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3">
             <FileText className="w-6 h-6 text-brand" />
@@ -233,7 +292,7 @@ export function BillingDashboard() {
                       <span
                         className={cn(
                           "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold capitalize",
-                          STATUS_BADGE[stmt.status] ?? "bg-gray-100 text-gray-600"
+                          STATUS_BADGE[stmt.status] ?? "bg-surface text-muted"
                         )}
                       >
                         {stmt.status}
@@ -391,7 +450,7 @@ function ActionBtn({
       className={cn(
         "p-2 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center",
         destructive
-          ? "text-red-500 hover:bg-red-50 hover:text-red-600"
+          ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600"
           : "text-muted hover:bg-surface hover:text-foreground"
       )}
     >

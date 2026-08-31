@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useUpdateTodo } from "@/hooks/useTodos";
 import { getWeekStart, formatDateAU } from "@/lib/utils";
 import Link from "next/link";
@@ -23,7 +23,6 @@ import {
   ClipboardCheck,
   UserCircle,
 } from "lucide-react";
-import { ErrorState } from "@/components/ui/ErrorState";
 import { MobileQuickActions } from "@/components/dashboard/MobileQuickActions";
 import { ReportToHOModal } from "@/components/shared/ReportToHOModal";
 import { DirectorAnalyticsWidget } from "@/components/dashboard/DirectorAnalyticsWidget";
@@ -175,19 +174,19 @@ function StatCard({
 function CertBadge({ status }: { status: CertData["status"] }) {
   const config = {
     valid: {
-      bg: "bg-green-50",
+      bg: "bg-green-50 dark:bg-green-950/40",
       text: "text-green-700",
       border: "border-green-200",
       label: "Valid",
     },
     expiring: {
-      bg: "bg-amber-50",
+      bg: "bg-amber-50 dark:bg-amber-950/40",
       text: "text-amber-700",
       border: "border-amber-200",
       label: "Expiring",
     },
     expired: {
-      bg: "bg-red-50",
+      bg: "bg-red-50 dark:bg-red-950/40",
       text: "text-red-700",
       border: "border-red-200",
       label: "Expired",
@@ -316,13 +315,27 @@ export function StaffDashboard() {
   const weekStart = getWeekStart();
   const [showReportModal, setShowReportModal] = useState(false);
 
-  // Fetch hub data
-  const { data, isLoading } = useQuery<MyHubData>({
+  // Fetch hub data. 2026-07-08: on a 401 we're in "stale session"
+  // territory — middleware let the user through because they have a
+  // cookie, but the JWT was rejected (expired, tokenVersion bumped,
+  // secret rotated). Sign them out and bounce to /login instead of
+  // showing an unactionable "Failed to load hub data" error state.
+  const { data, isLoading, error } = useQuery<MyHubData>({
     queryKey: ["my-hub"],
     queryFn: async () => {
       const res = await fetch("/api/dashboard/my-hub");
+      if (res.status === 401) {
+        await signOut({ redirect: false });
+        window.location.href = "/login";
+        throw new Error("Session expired");
+      }
       if (!res.ok) throw new Error("Failed to load hub data");
       return res.json();
+    },
+    retry: (failureCount, err) => {
+      // Don't retry on session expiry — we're already redirecting.
+      if (err instanceof Error && err.message === "Session expired") return false;
+      return failureCount < 2;
     },
   });
 
@@ -363,13 +376,44 @@ export function StaffDashboard() {
   }
 
   if (!data) {
+    // 2026-07-08: don't just show Retry — if the fetch keeps failing
+    // the user needs an escape hatch. Sign Out clears the cookie and
+    // sends them to /login, which is the working recovery path for
+    // stale sessions that somehow slip past the 401 handler above.
+    const isSessionExpired =
+      error instanceof Error && error.message === "Session expired";
     return (
       <div className="max-w-7xl mx-auto">
-        <ErrorState
-          title="Unable to load dashboard"
-          error={new Error("Failed to load your dashboard data. Please try again.")}
-          onRetry={() => window.location.reload()}
-        />
+        <div className="rounded-xl border border-border bg-card p-8 text-center max-w-md mx-auto mt-12">
+          <AlertCircle className="w-10 h-10 text-danger mx-auto mb-3" />
+          <h2 className="text-lg font-semibold text-foreground mb-1">
+            {isSessionExpired ? "Signing you out…" : "Unable to load dashboard"}
+          </h2>
+          <p className="text-sm text-muted mb-5">
+            {isSessionExpired
+              ? "Your session expired. Redirecting to sign-in."
+              : "We couldn't load your dashboard data. Try again — or sign out and log back in if it keeps failing."}
+          </p>
+          {!isSessionExpired && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors"
+              >
+                Try again
+              </button>
+              <button
+                onClick={async () => {
+                  await signOut({ redirect: false });
+                  window.location.href = "/login";
+                }}
+                className="px-4 py-2 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-surface transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -419,9 +463,9 @@ export function StaffDashboard() {
         if (actions.length === 0) return null;
 
         return (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center mt-0.5">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center mt-0.5">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
               </div>
               <div className="flex-1 min-w-0">
@@ -545,7 +589,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">My Compliance</p>
-            <p className="text-[10px] text-muted">Upload certificates</p>
+            <p className="text-2xs text-muted">Upload certificates</p>
           </div>
         </Link>
         <Link href="/leave" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -554,7 +598,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Leave</p>
-            <p className="text-[10px] text-muted">Request time off</p>
+            <p className="text-2xs text-muted">Request time off</p>
           </div>
         </Link>
         <Link href="/my-portal" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -563,7 +607,7 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">My Portal</p>
-            <p className="text-[10px] text-muted">Profile & payslips</p>
+            <p className="text-2xs text-muted">Profile & payslips</p>
           </div>
         </Link>
         <Link href="/onboarding" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
@@ -572,16 +616,16 @@ export function StaffDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Training</p>
-            <p className="text-[10px] text-muted">Courses & modules</p>
+            <p className="text-2xs text-muted">Courses & modules</p>
           </div>
         </Link>
         <button onClick={() => setShowReportModal(true)} className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-amber-300 hover:shadow-sm transition-all group text-left">
-          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
             <Send className="w-4.5 h-4.5 text-amber-600" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Report Issue</p>
-            <p className="text-[10px] text-muted">Contact Head Office</p>
+            <p className="text-2xs text-muted">Contact Head Office</p>
           </div>
         </button>
       </div>

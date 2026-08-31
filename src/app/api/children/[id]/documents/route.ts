@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { enrolmentDocumentsFor } from "@/lib/enrolment-documents";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { z } from "zod";
 import { ChildDocumentType } from "@prisma/client";
 import { uploadFile } from "@/lib/storage/uploadFile";
+import { assertServiceAccess } from "@/lib/authz-scope";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -16,10 +18,12 @@ export const GET = withApiAuth(async (req, session, context) => {
 
   const child = await prisma.child.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, serviceId: true, enrolmentId: true },
   });
 
   if (!child) throw ApiError.notFound("Child not found");
+  // Centre-scope: non-admin roles only see documents for their own centre's children.
+  assertServiceAccess(session, child.serviceId);
 
   const documents = await prisma.childDocument.findMany({
     where: { childId: id },
@@ -39,7 +43,13 @@ export const GET = withApiAuth(async (req, session, context) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ documents });
+  // Files the family attached to the enrolment form. They're on the
+  // submission as JSON, not ChildDocument rows, so without this someone
+  // checking whether a birth certificate had been supplied would
+  // conclude it hadn't.
+  const enrolmentDocs = await enrolmentDocumentsFor(child.enrolmentId);
+
+  return NextResponse.json({ documents, enrolmentDocs });
 });
 
 export const POST = withApiAuth(async (req, session, context) => {
@@ -47,10 +57,12 @@ export const POST = withApiAuth(async (req, session, context) => {
 
   const child = await prisma.child.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, serviceId: true },
   });
 
   if (!child) throw ApiError.notFound("Child not found");
+  // Centre-scope: non-admin roles may only upload to their own centre's children.
+  assertServiceAccess(session, child.serviceId);
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;

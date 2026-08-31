@@ -3,12 +3,14 @@ import { uploadFile } from "@/lib/storage";
 import { logger } from "@/lib/logger";
 import { BRAND, drawLogo } from "@/lib/pdf/branding";
 
-const SESSION_LABELS: Record<string, string> = {
-  bsc: "Before School Care",
-  asc: "After School Care",
-  vc: "Vacation Care",
-};
-
+/**
+ * No label map here any more.
+ *
+ * Stage 2 of docs/rooms-migration-plan.md: the Session column reads the
+ * ROOM's own name, joined off the line's `roomId`. The map this replaces
+ * knew three codes, so a line for a room the enum never knew about
+ * printed as "extra1" — on the document a family keeps.
+ */
 function fmtDate(d: Date | string): string {
   return new Date(d).toLocaleDateString("en-AU", {
     day: "2-digit",
@@ -33,7 +35,10 @@ export async function generateStatementPdf(statementId: string): Promise<string>
       contact: { select: { firstName: true, lastName: true, email: true } },
       service: { select: { id: true, name: true } },
       lineItems: {
-        include: { child: { select: { firstName: true, surname: true } } },
+        include: {
+          child: { select: { firstName: true, surname: true } },
+          room: { select: { name: true } },
+        },
         orderBy: { date: "asc" },
       },
     },
@@ -96,7 +101,9 @@ export async function generateStatementPdf(statementId: string): Promise<string>
   const tableBody = statement.lineItems.map((li: typeof statement.lineItems[number]) => [
     `${li.child.firstName} ${li.child.surname}`,
     fmtDate(li.date),
-    SESSION_LABELS[li.sessionType] ?? li.sessionType,
+    // Falls back to the slot code only if the room record is somehow
+    // missing — a blank cell on a statement is worse than a code.
+    li.room?.name ?? li.sessionType,
     fmtCurrency(li.grossFee),
     fmtCurrency(li.ccsAmount),
     fmtCurrency(li.gapAmount),

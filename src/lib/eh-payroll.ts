@@ -253,18 +253,54 @@ const EMPLOYEE_FIELDS = [
   "externalId",
 ] as const;
 
-/** List every employee in the business. Used by the daily mapping cron
- *  to refresh `User.employmentHeroEmployeeId`. */
+/** EH/KeyPay's default (and maximum) page size for `/employee`. */
+const EMPLOYEE_PAGE_SIZE = 100;
+
+/** Hard ceiling on pagination (50 pages = 5,000 employees) — a runaway
+ *  guard, far above any realistic headcount for the business. */
+const EMPLOYEE_MAX_PAGES = 50;
+
+/**
+ * List every employee in the business. Used by the daily mapping cron
+ * to refresh `User.employmentHeroEmployeeId`.
+ *
+ * 2026-08-07: PAGINATED. This used to be a single `GET /employee`,
+ * which EH silently caps at 100 rows (OData default page size). The
+ * business has >100 EH employees, so mapped employees past the first
+ * page looked "missing" to the sync — which then treated them as
+ * terminated and CLEARED their `employmentHeroEmployeeId` (9 mappings
+ * wiped in the 2026-08-04 run alone). We now page with `$top`/`$skip`
+ * until a short page, and throw if pagination doesn't advance (an API
+ * that ignores `$skip` would loop forever returning page 1 — better to
+ * fail the sync loudly than to feed it a truncated list).
+ */
 export async function listEmployees(): Promise<EhEmployee[]> {
-  const raw = await request<Array<Record<string, unknown>>>("/employee");
-  return raw.map((e) => {
-    const out: Partial<EhEmployee> = {};
-    for (const f of EMPLOYEE_FIELDS) {
-      // Loose copy — EH's response is permissive about field presence.
-      (out as Record<string, unknown>)[f] = (e as Record<string, unknown>)[f] ?? null;
+  const all: EhEmployee[] = [];
+  const seenIds = new Set<number>();
+  for (let page = 0; page < EMPLOYEE_MAX_PAGES; page++) {
+    const raw = await request<Array<Record<string, unknown>>>(
+      `/employee?$top=${EMPLOYEE_PAGE_SIZE}&$skip=${page * EMPLOYEE_PAGE_SIZE}`,
+    );
+    for (const e of raw) {
+      const out: Partial<EhEmployee> = {};
+      for (const f of EMPLOYEE_FIELDS) {
+        // Loose copy — EH's response is permissive about field presence.
+        (out as Record<string, unknown>)[f] = (e as Record<string, unknown>)[f] ?? null;
+      }
+      const emp = out as EhEmployee;
+      if (seenIds.has(emp.id)) {
+        throw new EhPayrollError(
+          502,
+          null,
+          `EH /employee pagination did not advance (employee ${emp.id} repeated on page ${page + 1}) — aborting rather than returning a truncated list`,
+        );
+      }
+      seenIds.add(emp.id);
+      all.push(emp);
     }
-    return out as EhEmployee;
-  });
+    if (raw.length < EMPLOYEE_PAGE_SIZE) break;
+  }
+  return all;
 }
 
 /** Single-employee fetch by EH id. Used when we know the mapping and
@@ -488,6 +524,57 @@ export interface CreateLeaveRequestInput {
   hours: number;
   leaveCategoryId: number;
   notes?: string;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Termination (2026-07-08)
+// ─────────────────────────────────────────────────────────────
+//
+// When a SeparationRecord is created / updated in the dashboard with a
+// lastWorkingDay, we push the termination to Employment Hero so
+// payroll stops treating the employee as active. EH accepts a
+// `terminationDate` on the employee itself — we PATCH the employee
+// record rather than calling a dedicated /termination endpoint, which
+// works consistently across EH Aus API versions and lets us re-sync
+// (correct a date, reopen, etc.) without extra endpoints.
+//
+// Failure mode is soft: local Separation record is authoritative. If
+// EH rejects (date in the past, invalid employeeId, EH down), the
+// caller stamps SeparationRecord.ehTerminationError with the message
+// and surfaces a "Retry" button in the UI.
+
+export interface TerminateEmployeeInput {
+  /** ISO YYYY-MM-DD. EH normalises to a date-only field. */
+  terminationDate: string;
+  /** Free-text reason mirrored into the EH employee record. */
+  terminationReason?: string;
+}
+
+/**
+ * Sets the `terminationDate` on the EH employee record. Idempotent —
+ * calling with a new date updates it; calling with the existing date
+ * is a no-op on the EH side.
+ *
+ * Throws `EhPayrollError` on non-2xx so callers can catch, log the
+ * message onto SeparationRecord.ehTerminationError, and keep going.
+ */
+export async function terminateEmployee(
+  employeeId: number,
+  input: TerminateEmployeeInput,
+): Promise<{ ok: true; terminationDate: string }> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.terminationDate)) {
+    throw new EhPayrollError(400, "terminationDate must be YYYY-MM-DD");
+  }
+  await request<unknown>(`/employee/${employeeId}`, {
+    method: "PUT",
+    body: {
+      // EH ignores fields it doesn't recognise on PUT; sending only
+      // termination-related fields avoids clobbering unrelated data.
+      terminationDate: input.terminationDate,
+      terminationReason: input.terminationReason ?? "",
+    },
+  });
+  return { ok: true, terminationDate: input.terminationDate };
 }
 
 export async function createLeaveRequest(

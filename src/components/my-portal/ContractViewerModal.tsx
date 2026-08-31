@@ -273,7 +273,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
               title="Contract content"
               srcDoc={styledHtml}
               sandbox="allow-same-origin"
-              className="w-full h-full bg-white border-0"
+              className="w-full h-full bg-card border-0"
               data-testid="contract-viewer-iframe"
             />
           )}
@@ -282,7 +282,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
             <iframe
               title="Contract PDF"
               src={contract.documentUrl}
-              className="w-full h-full bg-white border-0"
+              className="w-full h-full bg-card border-0"
               data-testid="contract-viewer-iframe"
             />
           )}
@@ -346,14 +346,14 @@ export function ContractViewerModal({ contract, onClose }: Props) {
         >
           <div className="flex items-center gap-3 text-xs text-muted">
             {isAcknowledged ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {justAcknowledged
                   ? "Signed just now"
                   : `Signed${contract.acknowledgedAt ? ` on ${formatDate(contract.acknowledgedAt)}` : ""}`}
               </span>
             ) : contract.canAcknowledge ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-semibold">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Action required
               </span>

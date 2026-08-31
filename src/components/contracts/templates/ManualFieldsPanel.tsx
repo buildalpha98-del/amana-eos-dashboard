@@ -52,7 +52,7 @@ export function ManualFieldsPanel({
       </div>
 
       {value.length === 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           No manual fields. Add fields the issuer must fill in at issue time
           (e.g. probation period, custom clauses).
         </p>
@@ -108,7 +108,7 @@ export function ManualFieldsPanel({
             <button
               type="button"
               onClick={() => removeRow(idx)}
-              className="p-1 text-red-500 hover:bg-red-50 rounded"
+              className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded"
               aria-label="Remove field"
             >
               <Trash2 className="w-3 h-3" />

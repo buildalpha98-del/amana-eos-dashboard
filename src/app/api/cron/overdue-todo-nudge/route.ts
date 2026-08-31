@@ -5,11 +5,15 @@ import { acquireCronLock } from "@/lib/cron-guard";
 import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import {
+  shouldReceiveNudge,
+  NUDGE_LEADERSHIP_ROLES,
+} from "@/lib/notification-recipients";
+import { siteUrl } from "@/lib/site-url";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
-const DASHBOARD_URL =
-  process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+const DASHBOARD_URL = siteUrl();
 
 interface OverdueTodo {
   id: string;
@@ -174,7 +178,10 @@ export const GET = withApiHandler(async (req) => {
             id: true,
             name: true,
             email: true,
+            role: true,
             notificationPrefs: true,
+            notificationsMuted: true,
+            receivesNudges: true,
             active: true,
           },
         },
@@ -204,7 +211,15 @@ export const GET = withApiHandler(async (req) => {
     for (const todo of overdueTodos) {
       if (!todo.assignee || !todo.assignee.active) continue;
 
-      // Respect notification preferences
+      // 2026-07-24: system-wide nudge policy — only leadership + opted-in
+      // users receive direct nudge emails. Staff/coordinator/marketing
+      // without `receivesNudges` see overdue todos in-app only. The admin
+      // summary further down still goes out so leadership stays across the
+      // full pile.
+      if (!shouldReceiveNudge(todo.assignee)) continue;
+
+      // Respect the legacy notificationPrefs.overdueTodos toggle too — if
+      // an admin has explicitly turned off overdue nudges, honour it.
       const prefs = parseJsonField(todo.assignee.notificationPrefs, notificationPrefsSchema, {});
       if (prefs.overdueTodos === false) continue;
 
@@ -252,8 +267,16 @@ export const GET = withApiHandler(async (req) => {
 
     // Admin summary
     if (userSummaries.length > 0) {
+      // 2026-07-24: broadened admin summary from [owner, admin] to the full
+      // NUDGE_LEADERSHIP_ROLES set (owner/head_office/admin/eos) so State
+      // Managers + EOS Members see the roll-up too. Muted users still opt
+      // out via the sendEmail suppression list.
       const admins = await prisma.user.findMany({
-        where: { role: { in: ["owner", "admin"] }, active: true },
+        where: {
+          role: { in: [...NUDGE_LEADERSHIP_ROLES] },
+          active: true,
+          notificationsMuted: false,
+        },
         select: { email: true },
       });
 

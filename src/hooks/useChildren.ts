@@ -15,6 +15,8 @@ export interface ChildParent {
 }
 
 export interface ChildRecord {
+  /** Why they're at this service — "Holiday Quest" etc. Null = term care. */
+  placementReason?: string | null;
   id: string;
   enrolmentId: string;
   serviceId: string | null;

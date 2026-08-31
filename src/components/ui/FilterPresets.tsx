@@ -79,7 +79,7 @@ export function FilterPresets({ pageKey, currentFilters, onLoadPreset }: FilterP
 
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-0.5 -mb-0.5 scrollbar-hide">
-      <Bookmark className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+      <Bookmark className="w-3.5 h-3.5 text-muted flex-shrink-0" />
 
       {/* Preset pills */}
       {presets.map((preset) => {
@@ -125,7 +125,7 @@ export function FilterPresets({ pageKey, currentFilters, onLoadPreset }: FilterP
       {activePreset && (
         <button
           onClick={handleClear}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap flex-shrink-0"
+          className="text-xs text-muted hover:text-foreground transition-colors whitespace-nowrap flex-shrink-0"
         >
           Clear
         </button>
@@ -136,7 +136,7 @@ export function FilterPresets({ pageKey, currentFilters, onLoadPreset }: FilterP
         <div className="relative flex-shrink-0" ref={popoverRef}>
           <button
             onClick={() => setShowSavePopover(!showSavePopover)}
-            className="inline-flex items-center gap-1 bg-surface border border-border rounded-full px-3 py-1 text-sm text-muted-foreground hover:text-foreground hover:border-brand transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1 bg-surface border border-border rounded-full px-3 py-1 text-sm text-muted hover:text-foreground hover:border-brand transition-colors whitespace-nowrap"
           >
             <Save className="w-3 h-3" />
             Save Current
@@ -144,7 +144,7 @@ export function FilterPresets({ pageKey, currentFilters, onLoadPreset }: FilterP
 
           {showSavePopover && (
             <div className="absolute top-full mt-2 left-0 z-50 bg-card border border-border rounded-lg shadow-lg p-3 w-56">
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+              <label className="block text-xs font-medium text-muted mb-1.5">
                 Preset name
               </label>
               <input

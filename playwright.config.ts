@@ -30,7 +30,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: process.env.CI ? "github" : "html",
+  // "github" alone only emits annotations for failures, so a CI run that is
+  // still going gives no progress signal at all — a timeout looks identical to
+  // a hang. "list" adds a line per test so partial runs are diagnosable.
+  reporter: process.env.CI ? [["github"], ["list"]] : "html",
   timeout: 60_000,
 
   use: {
@@ -40,9 +43,23 @@ export default defineConfig({
   },
 
   projects: [
+    // auth.setup.ts writes .playwright/auth/{owner,staff,admin}.json, which
+    // most specs consume via `test.use({ storageState: ... })`. It was never
+    // declared as a setup project, so Playwright treated it as an ordinary
+    // spec and ran it in alphabetical order — after admin-management.spec.ts
+    // and most others. Those specs then failed with "Error reading storage
+    // state from .playwright/auth/owner.json" because the file did not exist
+    // yet. Declaring it as a dependency guarantees it runs first.
+    {
+      name: "setup",
+      testMatch: /.*\.setup\.ts/,
+    },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+      // Without this the setup file would also run as a normal spec here.
+      testIgnore: /.*\.setup\.ts/,
     },
   ],
 

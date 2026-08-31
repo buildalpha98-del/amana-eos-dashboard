@@ -42,7 +42,7 @@ export function ServicesBelowRatioCard() {
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-md)] border border-rose-300 bg-rose-50/70",
+        "rounded-[var(--radius-md)] border border-rose-300 dark:border-rose-800 bg-rose-50/70",
         "p-3 flex items-start gap-3",
       )}
     >
@@ -53,7 +53,7 @@ export function ServicesBelowRatioCard() {
         </p>
         <ul className="mt-1 space-y-0.5">
           {items.slice(0, 5).map((r) => (
-            <li key={`${r.serviceId}-${r.sessionType}`} className="text-[12px] text-rose-800">
+            <li key={`${r.serviceId}-${r.sessionType}`} className="text-xs text-rose-800">
               <Link
                 href={`/services/${r.serviceId}?tab=daily&sub=ratios`}
                 className="underline-offset-2 hover:underline"

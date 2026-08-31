@@ -24,6 +24,7 @@ import {
 import { toast } from "@/hooks/useToast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AiButton } from "@/components/ui/AiButton";
+import { Button } from "@/components/ui/Button";
 import type { PipelineStage, TouchpointType } from "@prisma/client";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 
@@ -45,18 +46,18 @@ const stageOptions: { key: PipelineStage; label: string }[] = [
 ];
 
 const stageColors: Record<string, string> = {
-  new_lead: "bg-indigo-100 text-indigo-700 border-indigo-300",
-  reviewing: "bg-purple-100 text-purple-700 border-purple-300",
-  contact_made: "bg-blue-100 text-blue-700 border-blue-300",
-  follow_up_1: "bg-sky-100 text-sky-700 border-sky-300",
-  follow_up_2: "bg-cyan-100 text-cyan-700 border-cyan-300",
-  meeting_booked: "bg-teal-100 text-teal-700 border-teal-300",
-  proposal_sent: "bg-amber-100 text-amber-700 border-amber-300",
-  submitted: "bg-orange-100 text-orange-700 border-orange-300",
-  negotiating: "bg-red-100 text-red-700 border-red-300",
-  won: "bg-emerald-100 text-emerald-700 border-emerald-300",
-  lost: "bg-gray-100 text-gray-600 border-gray-300",
-  on_hold: "bg-gray-100 text-gray-500 border-gray-300",
+  new_lead: "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800",
+  reviewing: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800",
+  contact_made: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800",
+  follow_up_1: "bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-800",
+  follow_up_2: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800",
+  meeting_booked: "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-800",
+  proposal_sent: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800",
+  submitted: "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-800",
+  negotiating: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800",
+  won: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
+  lost: "bg-surface text-muted border-border",
+  on_hold: "bg-surface text-muted border-border",
 };
 
 const touchpointTypeOptions: { key: string; label: string }[] = [
@@ -251,11 +252,12 @@ export function LeadDetailDrawer({
                 onClick={startEditing}
                 className="p-1.5 rounded-md text-muted hover:text-brand hover:bg-brand/10 transition-colors"
                 title="Edit lead"
+                aria-label="Edit lead"
               >
                 <Pencil className="w-4 h-4" />
               </button>
             )}
-            <button onClick={onClose} className="p-1 rounded-md text-muted hover:text-foreground">
+            <button onClick={onClose} aria-label="Close" className="p-1 rounded-md text-muted hover:text-foreground">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -268,19 +270,17 @@ export function LeadDetailDrawer({
             <div className="space-y-4">
               {/* Save / Cancel */}
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={saveEdits}
                   disabled={saving || !editForm.schoolName.trim()}
-                  className="px-4 py-2 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 transition-colors"
                 >
                   {saving ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={() => setEditing(false)}
-                  className="px-4 py-2 text-xs font-medium text-muted border rounded-lg hover:text-foreground/80 transition-colors"
-                >
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setEditing(false)}>
                   Cancel
-                </button>
+                </Button>
               </div>
 
               {/* School / Source / Capacity */}
@@ -465,8 +465,8 @@ export function LeadDetailDrawer({
                   <span
                     className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                       lead.source === "tender"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-emerald-100 text-emerald-700"
+                        ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
+                        : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                     }`}
                   >
                     {lead.source}
@@ -491,7 +491,7 @@ export function LeadDetailDrawer({
                       key={s.key}
                       onClick={() => updateLead.mutate({ id: leadId, pipelineStage: s.key })}
                       className={cn(
-                        "px-2 py-1 text-[10px] font-medium rounded-md border transition-colors",
+                        "px-2 py-1 text-2xs font-medium rounded-md border transition-colors",
                         lead.pipelineStage === s.key
                           ? stageColors[s.key] || "bg-surface text-muted border-border"
                           : "bg-card border-border text-muted hover:border-border"
@@ -546,7 +546,7 @@ export function LeadDetailDrawer({
                       });
                     }}
                     disabled={scoreLead.isPending}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {scoreLead.isPending ? (
                       <>
@@ -569,10 +569,10 @@ export function LeadDetailDrawer({
                         className={cn(
                           "text-lg font-bold px-3 py-1 rounded-full",
                           lead.aiScore >= 70
-                            ? "bg-emerald-100 text-emerald-700"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                             : lead.aiScore >= 40
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-red-100 text-red-700",
+                              ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                              : "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
                         )}
                       >
                         {lead.aiScore}
@@ -593,7 +593,7 @@ export function LeadDetailDrawer({
                         {scoreFactors.map((factor, i) => (
                           <span
                             key={i}
-                            className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-muted"
+                            className="text-2xs px-2 py-0.5 rounded-full bg-surface text-muted"
                           >
                             {factor}
                           </span>
@@ -656,7 +656,7 @@ export function LeadDetailDrawer({
                         {showAcquisition ? "Hide Analysis" : "Show Analysis"}
                       </button>
                       {showAcquisition && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                        <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
                           {acquisitionResult}
                         </div>
                       )}
@@ -795,14 +795,15 @@ export function LeadDetailDrawer({
 
           {/* Actions */}
           <div className="border-t pt-4 flex gap-2">
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={onSendEmail}
               disabled={!lead.contactEmail}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              iconLeft={<Send className="w-3.5 h-3.5" />}
             >
-              <Send className="w-3.5 h-3.5" />
               Send Email
-            </button>
+            </Button>
           </div>
 
           {/* Touchpoint Timeline */}
@@ -851,20 +852,22 @@ export function LeadDetailDrawer({
                   className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-brand-dark"
                 />
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     type="submit"
+                    variant="primary"
+                    size="xs"
                     disabled={createTouchpoint.isPending}
-                    className="px-3 py-1.5 text-xs bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
                   >
                     {createTouchpoint.isPending ? "Adding..." : "Add Touchpoint"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => setShowAddTouchpoint(false)}
-                    className="px-3 py-1.5 text-xs text-muted hover:text-foreground/80"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
@@ -883,7 +886,7 @@ export function LeadDetailDrawer({
                           <span className="text-xs font-medium text-foreground/80 capitalize">
                             {tp.type.replace(/_/g, " ")}
                           </span>
-                          <span className="text-[10px] text-muted">
+                          <span className="text-2xs text-muted">
                             {new Date(tp.sentAt).toLocaleDateString("en-AU", {
                               day: "numeric",
                               month: "short",
@@ -903,7 +906,7 @@ export function LeadDetailDrawer({
                           </p>
                         )}
                         {tp.sentBy && (
-                          <p className="text-[10px] text-muted mt-0.5">
+                          <p className="text-2xs text-muted mt-0.5">
                             by {tp.sentBy.name}
                           </p>
                         )}
@@ -922,11 +925,12 @@ export function LeadDetailDrawer({
         <div className="border-t border-border px-6 py-3 flex justify-between">
           <button
             onClick={() => setShowDelete(true)}
+            aria-label="Delete lead"
             className="text-muted hover:text-danger transition-colors"
           >
             <Trash2 className="w-4 h-4" />
           </button>
-          <p className="text-[10px] text-muted">
+          <p className="text-2xs text-muted">
             Created{" "}
             {new Date(lead.createdAt).toLocaleDateString("en-AU", {
               day: "numeric",

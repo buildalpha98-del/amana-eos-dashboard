@@ -116,7 +116,7 @@ function StatBlock({ icon, label, value, muted, compact }: StatBlockProps) {
     <div>
       <div className="flex items-center gap-1.5 mb-0.5">
         {icon}
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+        <p className="text-2xs font-semibold uppercase tracking-wider text-muted">
           {label}
         </p>
       </div>
