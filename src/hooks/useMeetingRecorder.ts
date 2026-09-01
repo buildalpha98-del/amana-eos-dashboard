@@ -65,10 +65,28 @@ export function useMeetingRecorder({
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      setError(
-        "Microphone access was blocked. Allow the mic in your browser's site settings, then try again.",
-      );
+    } catch (err) {
+      // 2026-09-01: name the ACTUAL cause — lumping everything into
+      // "blocked" sent people hunting site permissions when the real
+      // problem was the macOS-level Chrome mic toggle or a busy device.
+      const name = err instanceof DOMException ? err.name : "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setError(
+          "Microphone permission was denied. Check BOTH: the site permission (icon next to the address bar → Microphone → Allow), and on a Mac, System Settings → Privacy & Security → Microphone → allow your browser, then fully quit and reopen it.",
+        );
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setError(
+          "No microphone was found. Plug one in (or check the input device in your browser's microphone settings) and try again.",
+        );
+      } else if (name === "NotReadableError" || name === "AbortError") {
+        setError(
+          "The microphone is busy — another app (Teams/Zoom/etc.) is probably using it. Close it and try again.",
+        );
+      } else {
+        setError(
+          `Couldn't access the microphone${name ? ` (${name})` : ""}. Check browser and system mic permissions, then try again.`,
+        );
+      }
       return;
     }
 
