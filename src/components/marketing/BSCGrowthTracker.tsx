@@ -3,6 +3,16 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
 
+// Subset of the /api/marketing/occupancy centre payload this tracker reads
+interface OccupancyCentre {
+  serviceId: string;
+  serviceName: string;
+  serviceCode: string;
+  currentBSC: number;
+  bscTarget: number;
+  weekOnWeekTrend: number;
+}
+
 interface BSCCentre {
   serviceId: string;
   serviceName: string;
@@ -25,23 +35,22 @@ export function BSCGrowthTracker({ serviceId }: { serviceId?: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (serviceId) params.set("serviceId", serviceId);
-    params.set("bscOnly", "true");
-
-    fetch(`/api/marketing/occupancy?${params}`)
+    fetch("/api/marketing/occupancy")
       .then((r) => r.json())
       .then((res) => {
         // Extract BSC-specific data from occupancy endpoint
-        const centres: BSCCentre[] = (res.centres || []).map((c: any) => ({
-          serviceId: c.serviceId,
-          serviceName: c.serviceName,
-          serviceCode: c.serviceCode,
-          bscEnrolled: c.bscEnrolled ?? 0,
-          bscTarget: c.bscTarget ?? 0,
-          weekOnWeekChange: c.bscTrend ?? 0,
-          percentOfTarget: c.bscTarget > 0 ? Math.round((c.bscEnrolled / c.bscTarget) * 100) : 0,
-        }));
+        const centres: BSCCentre[] = ((res.centres || []) as OccupancyCentre[])
+          .filter((c) => !serviceId || c.serviceId === serviceId)
+          .map((c) => ({
+            serviceId: c.serviceId,
+            serviceName: c.serviceName,
+            serviceCode: c.serviceCode,
+            bscEnrolled: c.currentBSC ?? 0,
+            bscTarget: c.bscTarget ?? 0,
+            weekOnWeekChange: c.weekOnWeekTrend ?? 0,
+            percentOfTarget:
+              c.bscTarget > 0 ? Math.round(((c.currentBSC ?? 0) / c.bscTarget) * 100) : 0,
+          }));
 
         const totalEnrolled = centres.reduce((s: number, c: BSCCentre) => s + c.bscEnrolled, 0);
         const totalTarget = centres.reduce((s: number, c: BSCCentre) => s + c.bscTarget, 0);
@@ -143,11 +152,11 @@ export function BSCGrowthTracker({ serviceId }: { serviceId?: string }) {
                 <td className="py-2 text-right">
                   {c.weekOnWeekChange > 0 ? (
                     <span className="flex items-center justify-end gap-0.5 text-green-600 text-xs">
-                      <TrendingUp className="h-3 w-3" />+{c.weekOnWeekChange}
+                      <TrendingUp className="h-3 w-3" />+{c.weekOnWeekChange}%
                     </span>
                   ) : c.weekOnWeekChange < 0 ? (
                     <span className="flex items-center justify-end gap-0.5 text-red-600 text-xs">
-                      <TrendingDown className="h-3 w-3" />{c.weekOnWeekChange}
+                      <TrendingDown className="h-3 w-3" />{c.weekOnWeekChange}%
                     </span>
                   ) : (
                     <span className="text-muted text-xs">—</span>
