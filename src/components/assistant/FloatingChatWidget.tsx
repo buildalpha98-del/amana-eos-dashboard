@@ -74,9 +74,10 @@ export function FloatingChatWidget() {
           onClick={() => setOpen(true)}
           aria-label="Open AI assistant"
           className={cn(
-            "fixed bottom-4 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors",
-            // Mobile: sidebar hidden → flush left
-            "left-4",
+            "fixed z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand text-white shadow-lg hover:bg-brand/90 transition-colors",
+            // Mobile: sidebar hidden → flush left; sit above the
+            // bottom tab bar (65px, md:hidden) so it doesn't cover it
+            "left-4 bottom-20 md:bottom-4",
             // Desktop: clear of the sidebar
             collapsed ? "md:left-20" : "md:left-72",
           )}
@@ -96,8 +97,9 @@ export function FloatingChatWidget() {
             "fixed z-50 bg-card border border-border shadow-2xl flex flex-col",
             // Mobile: full-screen sheet
             "inset-0 sm:inset-auto",
-            // Desktop: bottom-left anchored panel, offset past sidebar
-            "sm:bottom-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
+            // Desktop: bottom-left anchored panel, offset past sidebar;
+            // above the bottom tab bar while it's visible (sm–md)
+            "sm:bottom-20 md:bottom-4 sm:w-[420px] sm:h-[600px] sm:max-h-[80vh] sm:rounded-xl",
             collapsed ? "sm:left-20" : "sm:left-72",
           )}
           role="dialog"

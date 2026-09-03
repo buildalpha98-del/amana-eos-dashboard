@@ -38,7 +38,10 @@ test.describe("Parent portal — unauthenticated", () => {
     await expect(page.locator('input[type="email"], input[name="email"]')).toBeVisible({
       timeout: 10_000,
     });
-    await expect(page.getByRole("button", { name: /send|continue|link|sign/i })).toBeVisible();
+    // The page now has both a "Sign in" submit and a "Forgot your password?
+    // Email me a login link" fallback button — a broad regex matches both
+    // (strict-mode violation). Assert the submit button specifically.
+    await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 
   test("POST send-link returns success for a known email", async ({ request }) => {

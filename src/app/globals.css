@@ -393,6 +393,20 @@ td, th {
   --color-surface: #22222e;
   color-scheme: dark;
 
+  /* Brand family — one token serves both text-brand (needs light-on-dark
+     contrast) and bg-brand/text-white buttons (needs dark-under-white), so
+     the dark value is a deliberate midpoint: #1E9BC0 gives text-brand
+     5.8:1 on the page bg and 5.2:1 on cards (WCAG AA), while white button
+     labels sit at 3.2:1 (large-text/UI threshold). Don't lighten it further
+     without restyling every solid bg-brand button. */
+  --color-brand: #1E9BC0;
+  --color-brand-hover: #1B8AAD; /* darker hover keeps white button text ≥3.9:1 */
+  --color-brand-light: #64BFDB; /* brighten-on-hover text, 8.9:1 on bg */
+  /* --color-brand-dark deliberately NOT overridden: it's the sidebar's
+     permanent dark surface (from-brand-dark gradient, white text in both
+     themes) and the text colour on yellow bg-accent buttons — both need it
+     to stay deep. */
+
   /* Parent Portal v2 — dark overrides */
   --color-cream-deep: #1e1e28;
   --color-cream-soft: #242430;
