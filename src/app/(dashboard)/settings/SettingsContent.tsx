@@ -1323,16 +1323,39 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
     mappingStep === 2
   );
 
-  // Initialize centre mappings from current state when modal opens
+  // Initialize centre mappings from current state when modal opens.
+  // The API speaks the save contract (serviceId/xeroTrackingOptionId,
+  // xeroAccountCode/localCategory); transform into local UI state, the
+  // inverse of handleSaveMappings.
   useEffect(() => {
     if (currentMappings?.centreMappings) {
-      setCentreMappings(currentMappings.centreMappings);
+      setCentreMappings(
+        (
+          currentMappings.centreMappings as {
+            serviceId: string;
+            xeroTrackingOptionId: string;
+          }[]
+        ).map((m) => ({
+          xeroOptionId: m.xeroTrackingOptionId,
+          serviceId: m.serviceId,
+        }))
+      );
     }
     if (currentMappings?.trackingCategoryId) {
       setSelectedCategoryId(currentMappings.trackingCategoryId);
     }
     if (currentMappings?.accountMappings) {
-      setAccountMappings(currentMappings.accountMappings);
+      setAccountMappings(
+        (
+          currentMappings.accountMappings as {
+            xeroAccountCode: string;
+            localCategory: string;
+          }[]
+        ).map((m) => ({
+          xeroAccountId: m.xeroAccountCode,
+          category: m.localCategory,
+        }))
+      );
     }
   }, [currentMappings]);
 
