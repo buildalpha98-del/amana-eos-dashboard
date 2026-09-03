@@ -32,10 +32,10 @@ import {
 } from "@/lib/email-templates/parent-account";
 import { matchSchoolToService } from "@/lib/school-service-match";
 import { cancelPreEnrolmentNurture } from "@/lib/nurture-scheduler";
+import { bookingGridFromSessions } from "@/lib/booking-grid";
 import {
   draftSubmittable,
   firstIncompleteStep,
-  WEEKDAYS,
   type DraftChild,
   type EnrolDraft,
 } from "@/lib/enrol-draft";
@@ -172,66 +172,25 @@ export const POST = withParentAuth(async (req, ctx) => {
   /**
    * Translate the parent's booking grid into the shape the DASHBOARD reads.
    *
-   * Everything downstream of an enrolment — generateBookings() (approval,
-   * assign-service, the booking-generator and booking-extend crons), the
-   * enrolment PDF, and the service's children tab — reads
-   * `bookingPrefs.sessionTypes` plus `bookingPrefs.days` keyed BY SESSION
-   * TYPE with lowercase weekday names:
-   *
-   *   { sessionTypes: ["asc"], days: { asc: ["monday", "tuesday"] } }
-   *
-   * This route wrote neither. It wrote a flat capitalised list under
-   * `days`, built by reading `sessions.beforeSchool` and
-   * `sessions.afterSchool` — two keys no writer has ever produced (the
-   * grid's keys are SESSION_ROWS': riseAndShine / amanaAfternoons /
-   * holidayQuest). So the list was always empty, and even when it wasn't
-   * it was the wrong shape for every reader.
-   *
-   * The effect was silent and total: a family picked Rise and Shine on
-   * Monday and Tuesday, and their child's booking preferences printed
-   * blank on the enrolment pack, read "Not set" on the centre's children
-   * list, and generated ZERO bookings on approval — so the child never
-   * reached the roll.
+   * The mapping itself lives in src/lib/booking-grid.ts, because the
+   * backfill for enrolments submitted before this existed has to make
+   * exactly the same translation — two copies is how they drift.
    */
-  const SESSION_TYPE_FOR_ROW: Record<string, string> = {
-    riseAndShine: "bsc",
-    amanaAfternoons: "asc",
-    holidayQuest: "vc",
-  };
-  const WEEKDAY_LOOKUP = new Map<string, string>(
-    WEEKDAYS.map((d) => [d.toLowerCase(), d.toLowerCase()]),
-  );
-
-  const gridSessionTypes: string[] = [];
-  const gridDays: Record<string, string[]> = {};
-  for (const [rowKey, picked] of Object.entries(billing.sessions ?? {})) {
-    const sessionType = SESSION_TYPE_FOR_ROW[rowKey];
-    if (!sessionType || !Array.isArray(picked) || picked.length === 0) continue;
-    gridSessionTypes.push(sessionType);
-    // A whole-of-session tick stores ["yes"] rather than weekdays (casual
-    // bookings, and Holiday Quest always). That's a real selection but not
-    // a weekly pattern — keeping it here would have generateBookings look
-    // up a weekday called "yes". The session still shows on the pack.
-    gridDays[sessionType] = picked
-      .map((d) => WEEKDAY_LOOKUP.get(String(d).toLowerCase()))
-      .filter((d): d is string => Boolean(d));
-  }
+  const bookingGrid = bookingGridFromSessions(billing.sessions);
 
   // A draft started before the booking grid existed stored a flat day list
   // with no way to tell WHICH session those days belong to. Guessing would
   // put a child on the wrong session's roll, so it goes to staff — the
   // same call the unmatched-school branch below makes.
-  if (gridSessionTypes.length === 0 && (billing.days ?? []).length > 0) {
+  if (
+    bookingGrid.sessionTypes.length === 0 &&
+    (billing.days ?? []).length > 0
+  ) {
     logger.warn("Enrolment: pre-grid booking days, session type unknown", {
       accountId,
       days: billing.days,
     });
   }
-
-  const bookingGrid = {
-    sessionTypes: gridSessionTypes,
-    days: gridDays,
-  };
 
   const enrichedChildren = children.map((c: DraftChild) => ({
     ...c,
