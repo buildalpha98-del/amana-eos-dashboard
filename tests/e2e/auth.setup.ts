@@ -42,6 +42,14 @@ async function loginAndSaveState(
   });
   await expect(page.locator("body")).toBeVisible();
 
+  // Mark the welcome tour as completed BEFORE saving state. The tour modal
+  // (OnboardingTourWrapper, dashboard layout) opens 1.5s after load for any
+  // context without this localStorage flag and overlays the whole page, so
+  // every click in every spec would hang until the test timeout.
+  // storageState captures localStorage per origin, so stamping it here
+  // propagates to all contexts restored from this file.
+  await page.evaluate(() => localStorage.setItem("amana-tour-completed", "true"));
+
   await page.context().storageState({ path: path.join(AUTH_DIR, stateFile) });
 }
 

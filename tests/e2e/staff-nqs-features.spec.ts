@@ -24,7 +24,13 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   test.beforeEach(async ({ page }) => {
     // Landing page gives us a service id we can click through to.
     await page.goto("/services");
-    await page.waitForLoadState("networkidle");
+    // networkidle is unreliable here — the services page keeps polling
+    // (React Query refetches), which can starve the idle window for 60s.
+    // The service link being visible is the signal we actually need.
+    await page
+      .locator("a[href^='/services/']")
+      .first()
+      .waitFor({ state: "attached", timeout: 30_000 });
   });
 
   test("Reflections tab renders under Compliance and opens create modal", async ({
@@ -32,6 +38,10 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — waitForLoadState resolves immediately on SPA
+    // route changes, so wait for the URL to actually be a detail page before
+    // reading it back.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     // Flip the v2 flag via URL override so we hit the new shell.
@@ -43,14 +53,15 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/Reflections/i).first()).toBeVisible();
+    await expect(page.getByText(/Reflections/i).filter({ visible: true }).first()).toBeVisible();
 
     // Click "New reflection" if present
     const newBtn = page.getByRole("button", { name: /New reflection/i });
     if (await newBtn.isVisible().catch(() => false)) {
       await newBtn.click();
+      // The button we just clicked also matches — target the modal copy.
       await expect(
-        page.getByText(/New reflection/i, { exact: false }),
+        page.getByText(/New reflection/i).filter({ visible: true }).last(),
       ).toBeVisible({ timeout: 5_000 });
     }
   });
@@ -60,6 +71,10 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — waitForLoadState resolves immediately on SPA
+    // route changes, so wait for the URL to actually be a detail page before
+    // reading it back.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
@@ -77,8 +92,8 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
     if (await newBtn.isVisible().catch(() => false)) {
       await newBtn.click();
       // MTOP outcomes should appear as chips
-      await expect(page.getByText(/Identity/i)).toBeVisible({ timeout: 5_000 });
-      await expect(page.getByText(/Learners/i)).toBeVisible();
+      await expect(page.getByText(/Identity/i).filter({ visible: true }).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/Learners/i).filter({ visible: true }).first()).toBeVisible();
     }
   });
 
@@ -87,6 +102,10 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — waitForLoadState resolves immediately on SPA
+    // route changes, so wait for the URL to actually be a detail page before
+    // reading it back.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
@@ -96,7 +115,7 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
     await page.goto(url.toString());
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByText(/Medication/i).first()).toBeVisible({
+    await expect(page.getByText(/Medication/i).filter({ visible: true }).first()).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -106,6 +125,10 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — waitForLoadState resolves immediately on SPA
+    // route changes, so wait for the URL to actually be a detail page before
+    // reading it back.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
@@ -115,7 +138,7 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
     await page.goto(url.toString());
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByText(/Risk assessments/i)).toBeVisible({
+    await expect(page.getByText(/Risk assessments/i).filter({ visible: true }).first()).toBeVisible({
       timeout: 15_000,
     });
     const newBtn = page.getByRole("button", { name: /New assessment/i });
@@ -130,6 +153,10 @@ test.describe("Staff Dashboard v2 — NQS features", () => {
   test("Ratios sub-tab renders Live + snapshots history", async ({ page }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — waitForLoadState resolves immediately on SPA
+    // route changes, so wait for the URL to actually be a detail page before
+    // reading it back.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
@@ -153,6 +180,10 @@ test.describe("Staff Dashboard v2 — AI Newsletter flow (smoke)", () => {
     await page.waitForLoadState("networkidle");
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — waitForLoadState resolves immediately on SPA
+    // route changes, so wait for the URL to actually be a detail page before
+    // reading it back.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
@@ -184,6 +215,10 @@ test.describe("Shift Handover widget", () => {
     await page.waitForLoadState("networkidle");
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — waitForLoadState resolves immediately on SPA
+    // route changes, so wait for the URL to actually be a detail page before
+    // reading it back.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());

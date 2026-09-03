@@ -41,22 +41,26 @@ test.describe("Owner daily flow", () => {
     await page.goto("/rocks");
     await page.waitForLoadState("networkidle");
 
-    // Page heading
-    await expect(page.getByText("Rocks")).toBeVisible({ timeout: 15_000 });
+    // Page heading — "Rocks" appears in the sidebar, kanban column labels
+    // and rock cards too, so target the heading role, not bare text.
+    await expect(
+      page.getByRole("heading", { name: "Rocks" }).first(),
+    ).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByText("Track your quarterly 90-day goals"),
     ).toBeVisible();
 
-    // View toggle buttons (kanban and list)
-    await expect(page.getByRole("button", { name: "Kanban view" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "List view" })).toBeVisible();
+    // View toggle buttons (kanban and list) — rendered twice (mobile +
+    // desktop layouts), so .first() to avoid a strict-mode violation.
+    await expect(page.getByRole("button", { name: "Kanban view" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "List view" }).first()).toBeVisible();
 
     // Can switch to list view
-    await page.getByRole("button", { name: "List view" }).click();
+    await page.getByRole("button", { name: "List view" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // Can switch back to kanban view
-    await page.getByRole("button", { name: "Kanban view" }).click();
+    await page.getByRole("button", { name: "Kanban view" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // No error states
@@ -72,9 +76,21 @@ test.describe("Owner daily flow", () => {
     // Main content loads
     await expect(page.locator("main")).toBeVisible();
 
-    // Should show scorecard-related UI — either measurables or empty state
-    const hasMeasurables = await page.getByText("Owner").isVisible().catch(() => false);
-    const hasEmptyState = await page.getByText("No measurables").isVisible().catch(() => false);
+    // Should show scorecard-related UI — either measurables or empty state.
+    // "Owner" appears many times (column header + per-row owner chips), so a
+    // bare getByText is a strict-mode violation that isVisible() turns into a
+    // silent false. Match on the measurable wording instead, first() to
+    // sidestep multiple matches.
+    const hasMeasurables = await page
+      .getByText(/measurable/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasEmptyState = await page
+      .getByText(/no measurables|no data entered/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
 
     // One of these should be true — page loaded with content or empty state
     expect(hasMeasurables || hasEmptyState).toBeTruthy();

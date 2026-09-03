@@ -54,7 +54,7 @@ test.describe("4a × 4b: Weekly grid + bulk endpoint", () => {
       return;
     }
 
-    await page.goto(`${href}?tab=daily-ops&sub=roll-call&rollCallView=weekly`);
+    await page.goto(`${href}?tab=daily&sub=roll-call&rollCallView=weekly`);
     await page.waitForLoadState("networkidle");
 
     // The week label is the canonical "grid mounted" marker (see weekly-roll-call.spec.ts).
@@ -135,7 +135,7 @@ test.describe("4a × 4b: Roll call sign-in — UTC date stability (PR #24 regres
     d.setUTCDate(d.getUTCDate() - 3);
     const iso = d.toISOString().slice(0, 10);
 
-    await page.goto(`${href}?tab=daily-ops&sub=roll-call&rollCallView=daily&date=${iso}`);
+    await page.goto(`${href}?tab=daily&sub=roll-call&rollCallView=daily&date=${iso}`);
     await page.waitForLoadState("networkidle");
 
     // Confirm the daily view actually honored the `date` param rather than
@@ -263,7 +263,7 @@ test.describe("8a: Feedback widget → inbox → resolve", () => {
     const uniqueMessage = `Roadmap verify ${Date.now()}`;
     await page.locator("#fb-message").fill(uniqueMessage);
     await page.getByRole("button", { name: /submit feedback/i }).click();
-    await expect(page.getByText(/feedback submitted/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/feedback submitted/i).first()).toBeVisible({ timeout: 10_000 });
 
     await page.goto("/admin/feedback");
     await page.waitForLoadState("networkidle");
@@ -371,11 +371,17 @@ test.describe("Middleware + canAccessPage agree for key paths (staff view)", () 
 test.describe("Middleware + canAccessPage agree for key paths (owner view)", () => {
   test.use({ storageState: ".playwright/auth/owner.json" });
 
-  for (const path of ["/admin/feedback", "/contracts", "/recruitment"]) {
+  // /admin/feedback deliberately redirects to /feedback?tab=internal since the
+  // 2026-07-05 nav consolidation, so assert the destination it settles on.
+  for (const [path, settlesOn] of [
+    ["/admin/feedback", "/feedback"],
+    ["/contracts", "/contracts"],
+    ["/recruitment", "/recruitment"],
+  ] as const) {
     test(`owner can open ${path}`, async ({ page }) => {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
-      expect(page.url()).toContain(path);
+      expect(page.url()).toContain(settlesOn);
       await expect(page.getByText("Something went wrong")).not.toBeVisible();
     });
   }
@@ -401,7 +407,12 @@ test.describe("4a smoke: services detail lands on Today tab by default", () => {
     // on the sync effect — either the URL was updated to tab=today, or the Today
     // tab content is visible. Both indicate the right default.
     const urlMentionsToday = page.url().includes("tab=today");
-    const todayVisible = await page.getByText(/today/i).first().isVisible().catch(() => false);
+    const todayVisible = await page
+      .getByText(/today/i)
+      .filter({ visible: true })
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(urlMentionsToday || todayVisible).toBeTruthy();
     await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
@@ -427,7 +438,7 @@ test.describe("4a smoke: services detail lands on Today tab by default", () => {
       test.skip(true, "No services in DB");
       return;
     }
-    await page.goto(`${href}?tab=daily-ops&sub=roll-call&rollCallView=monthly`);
+    await page.goto(`${href}?tab=daily&sub=roll-call&rollCallView=monthly`);
     await page.waitForLoadState("networkidle");
     await expect(page.getByTestId("monthly-range-label")).toBeVisible({ timeout: 15_000 });
 
@@ -442,9 +453,9 @@ test.describe("4a smoke: services detail lands on Today tab by default", () => {
     const dateKey = (testId ?? "").replace(/^monthly-cell-/, "");
 
     await dayCell.click();
-    await page.waitForLoadState("networkidle");
-
-    expect(page.url()).toContain("rollCallView=daily");
+    // router.replace is async — page.url() polled via waitForURL, not read
+    // synchronously (a one-shot expect raced the client-side URL update).
+    await page.waitForURL(/rollCallView=daily/, { timeout: 10_000 });
     expect(page.url()).toContain(`date=${dateKey}`);
   });
 });

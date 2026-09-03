@@ -27,6 +27,14 @@ export interface SectionShellProps<TKey extends string> {
   accentActiveClass: string;
   subTabs: ReadonlyArray<SectionSubTab<TKey>>;
   defaultTab?: TKey;
+  /**
+   * Controlled mode: when provided (with onTabChange), the parent owns the
+   * active sub-tab. Needed for deep links that arrive AFTER mount — a
+   * defaultTab only seeds the initial render, so e.g. the Quick Action that
+   * sets `?edit=personal` post-mount could never switch the tab.
+   */
+  activeTab?: TKey;
+  onTabChange?: (key: TKey) => void;
   children: (active: TKey) => React.ReactNode;
 }
 
@@ -37,10 +45,17 @@ export function SectionShell<TKey extends string>({
   accentActiveClass,
   subTabs,
   defaultTab,
+  activeTab,
+  onTabChange,
   children,
 }: SectionShellProps<TKey>) {
   const initial = defaultTab ?? subTabs[0].key;
-  const [active, setActive] = useState<TKey>(initial);
+  const [internal, setInternal] = useState<TKey>(initial);
+  const active = activeTab ?? internal;
+  const setActive = (key: TKey) => {
+    onTabChange?.(key);
+    if (activeTab === undefined) setInternal(key);
+  };
 
   return (
     <section

@@ -4,8 +4,9 @@
  * Covers:
  *  1. Admin logs in → navigates to /contracts?tab=templates → seeded template visible
  *  2. Admin clicks "New Contract" on Issued tab → IssueFromTemplateModal opens
- *  3. Walks through the 5-step modal (no manual fields → step 3 is skipped)
- *  4. "Issue & Email" fires → modal closes → contract row appears in issued list
+ *  3. Walks through the 3-step modal (choose → contract details → review & sign;
+ *     a "fill custom fields" step appears only when the template has manual fields)
+ *  4. Admin signs the signature pad → "Sign & Issue" → modal closes → contract row appears
  *  5. DB assertions: EmploymentContract has templateId, templateValues, documentUrl
  *  6. Staff logs in → My Portal shows the contract → staff clicks "Acknowledge Contract"
  *  7. DB assertion: acknowledgedByStaff === true
@@ -59,7 +60,16 @@ async function loginAs(
   await page.fill('input[name="email"], input[type="email"]', email);
   await page.fill('input[name="password"], input[type="password"]', PASSWORD);
   await page.click('button[type="submit"]');
-  await page.waitForURL("**/dashboard", { timeout: 20_000 });
+  // Don't assume a /dashboard landing — getPostLoginPath sends staff with a
+  // serviceId to /services/{id}?tab=today. Leaving /login is the actual
+  // signal that the credentials were accepted (same as auth.setup.ts).
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), {
+    timeout: 20_000,
+  });
+  // Dismiss the welcome tour before saving state — it opens 1.5s after load
+  // for any context without this flag and overlays the page, blocking every
+  // click in the tests that restore this session (same as auth.setup.ts).
+  await page.evaluate(() => localStorage.setItem("amana-tour-completed", "true"));
   await page.context().storageState({ path: sessionPath });
 }
 
@@ -178,9 +188,9 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
     await ctx.close();
   });
 
-  // ── Step B: Issue a contract from the template (full 4-step modal, step 3 skipped) ──
+  // ── Step B: Issue a contract from the template (3-step modal — details, then review & sign) ──
 
-  test("admin issues a contract from template via 5-step modal", async ({ browser }) => {
+  test("admin issues a contract from template via the issue modal", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: ADMIN_SESSION });
     const page = await ctx.newPage();
 
@@ -196,56 +206,63 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
     await expect(page.getByText(/issue contract from template/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/step 1/i)).toBeVisible();
 
-    // Step 1: select the seeded template
-    const templateSelect = page.locator("select").first();
+    // Step 1: select the seeded template. Target by label — positional
+    // select locators kept resolving to the /contracts page's own filter
+    // selects sitting behind the modal.
+    const templateSelect = page.getByLabel("Template", { exact: true });
+    await expect(templateSelect).toBeEnabled({ timeout: 30_000 });
     await templateSelect.selectOption({ label: "E2E Test Template" });
 
     // Step 1: select the seeded staff member by value (user ID is seeded and known)
-    const staffSelect = page.locator("select").nth(1);
+    const staffSelect = page.getByLabel("Staff member", { exact: true });
     await staffSelect.selectOption({ value: seededStaffId });
 
     // Click Next
     await page.getByRole("button", { name: /next/i }).click();
 
-    // Step 2: resolved tags review — wait for preview or "All staff tags resolved" message
-    await page.waitForLoadState("networkidle");
-    // The step 2 label or the "All staff tags resolved" banner should appear
-    const step2Visible = await page
-      .getByText(/step 2|review resolved tags|all staff tags resolved/i)
-      .first()
-      .isVisible({ timeout: 15_000 })
-      .catch(() => false);
-    expect(step2Visible).toBe(true);
-
-    // Wait until Next button is enabled (preview data loaded, no blocking tags)
+    // Step 2 of 3: contract details now come BEFORE the review step — the
+    // 2026-07-27 modal redesign merged tag review + signing into one final
+    // "Review & sign" step.
     await expect(
-      page.getByRole("button", { name: /next/i }),
-    ).toBeEnabled({ timeout: 15_000 });
+      page.getByText(/contract details/i).first(),
+    ).toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole("button", { name: /next/i }).click();
-
-    // Step 3 is skipped (no manual fields) — we should be on step 4 now
-    await expect(page.getByText(/step.*4|contract details/i)).toBeVisible({ timeout: 10_000 });
-
-    // Step 4: fill required contract fields
+    // Fill required contract fields
     // Pay rate
     await page.fill('input[type="number"][placeholder*="28"]', "30");
-    // Hours per week
-    await page.fill('input[type="number"][placeholder*="38"]', "38");
+    // Hours per week — the placeholder depends on contract type (part-time,
+    // the default, shows "e.g. 20"; other types show "e.g. 38").
+    await page.getByPlaceholder(/e\.g\. (20|38)/).fill("38");
     // Start date
     const startDate = page.locator('input[type="date"]').first();
     await startDate.fill("2026-06-01");
     // Position
     await page.fill('input[placeholder*="Educator"]', "Educator");
 
+    await expect(
+      page.getByRole("button", { name: /next/i }),
+    ).toBeEnabled({ timeout: 15_000 });
     await page.getByRole("button", { name: /next/i }).click();
 
-    // Step 5: final preview
-    await expect(page.getByText(/step.*5|final preview/i)).toBeVisible({ timeout: 15_000 });
+    // Step 3 of 3: review & sign — resolved-tag checks + final preview +
+    // admin signature pad.
+    await expect(
+      page.getByText(/review & sign|all staff tags resolved|final preview/i).first(),
+    ).toBeVisible({ timeout: 15_000 });
 
-    // "Issue & Email" button — click it
-    const issueBtn = page.getByRole("button", { name: /issue.*email/i });
-    await expect(issueBtn).toBeVisible({ timeout: 15_000 });
+    // "Sign & Issue" stays disabled until the admin actually signs — draw a
+    // stroke on the signature-pad canvas.
+    const signatureCanvas = page.locator("canvas").last();
+    await signatureCanvas.scrollIntoViewIfNeeded();
+    const box = await signatureCanvas.boundingBox();
+    expect(box).toBeTruthy();
+    await page.mouse.move(box!.x + 20, box!.y + box!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + box!.width - 20, box!.y + box!.height / 2, { steps: 8 });
+    await page.mouse.up();
+
+    const issueBtn = page.getByRole("button", { name: /sign & issue/i });
+    await expect(issueBtn).toBeEnabled({ timeout: 15_000 });
     await issueBtn.click();
 
     // Modal closes after successful issue
@@ -256,7 +273,7 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
 
     // The contracts table should now include the staff member's name or email
     await expect(
-      page.getByText(/CT E2E Staff/i),
+      page.getByText(/CT E2E Staff/i).filter({ visible: true }).first(),
     ).toBeVisible({ timeout: 15_000 });
 
     await ctx.close();
@@ -300,25 +317,43 @@ test.describe("Contract-templates — admin issues, staff acknowledges", () => {
     await staffPage.waitForLoadState("networkidle");
     await expect(staffPage.locator("main")).toBeVisible({ timeout: 15_000 });
 
-    // The contract section should mention the template name or show "Acknowledge Contract"
-    const contractSection = await staffPage
-      .getByText(/acknowledge contract|contract requires acknowledgement/i)
-      .first()
-      .isVisible({ timeout: 10_000 })
-      .catch(() => false);
+    // Acknowledgement is now a read-first flow: the Active Contract card's
+    // "Read & acknowledge" CTA opens the inline contract viewer, and the
+    // acknowledge action lives inside it (contract-viewer-acknowledge).
+    const readBtn = staffPage
+      .getByRole("button", { name: /read & acknowledge/i })
+      .first();
+    await expect(readBtn).toBeVisible({ timeout: 10_000 });
+    await readBtn.click();
 
-    if (!contractSection) {
-      // The contract may be in the active contract card — scroll down
-      await staffPage.getByText(/E2E Test Template|active contract/i).first().scrollIntoViewIfNeeded().catch(() => {});
-    }
+    const viewer = staffPage.getByTestId("contract-viewer-dialog");
+    await expect(viewer).toBeVisible({ timeout: 10_000 });
 
-    // Click the acknowledge button
-    const ackBtn = staffPage.getByRole("button", { name: /acknowledge contract/i });
+    // "Sign Contract" switches the footer into signing mode: the staff member
+    // draws on a signature pad, then confirms.
+    const ackBtn = staffPage.getByTestId("contract-viewer-acknowledge");
     await expect(ackBtn).toBeVisible({ timeout: 10_000 });
     await ackBtn.click();
 
-    // Button should disappear or change to confirmed state
-    await expect(ackBtn).not.toBeVisible({ timeout: 15_000 });
+    const staffPad = viewer.locator("canvas").last();
+    await staffPad.scrollIntoViewIfNeeded();
+    const padBox = await staffPad.boundingBox();
+    expect(padBox).toBeTruthy();
+    await staffPage.mouse.move(padBox!.x + 20, padBox!.y + padBox!.height / 2);
+    await staffPage.mouse.down();
+    await staffPage.mouse.move(
+      padBox!.x + padBox!.width - 20,
+      padBox!.y + padBox!.height / 2,
+      { steps: 8 },
+    );
+    await staffPage.mouse.up();
+
+    const confirmBtn = staffPage.getByRole("button", { name: /confirm signature/i });
+    await expect(confirmBtn).toBeEnabled({ timeout: 10_000 });
+    await confirmBtn.click();
+
+    // Signing UI resolves to the acknowledged state.
+    await expect(confirmBtn).not.toBeVisible({ timeout: 15_000 });
 
     // DB assertion: acknowledgedByStaff is now true
     const updated = await prisma.employmentContract.findUnique({

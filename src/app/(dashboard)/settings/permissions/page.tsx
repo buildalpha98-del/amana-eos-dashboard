@@ -281,9 +281,11 @@ export default function RolePermissionsPage() {
               ))}
             </tr>
           </thead>
-          <tbody>
-            {Object.entries(grouped).map(([groupName, pages]) => (
-              <tbody key={groupName} className="contents">
+          {/* One <tbody> per group — sibling tbodys are valid HTML, whereas the
+              previous outer-tbody-wrapping-inner-tbody nesting is not, and
+              caused a React hydration error on every load of this page. */}
+          {Object.entries(grouped).map(([groupName, pages]) => (
+              <tbody key={groupName}>
                 <tr className="bg-surface/30">
                   <td
                     colSpan={ROLES_ORDER.length + 1}
@@ -325,8 +327,7 @@ export default function RolePermissionsPage() {
                   </tr>
                 ))}
               </tbody>
-            ))}
-          </tbody>
+          ))}
         </table>
       </div>
 

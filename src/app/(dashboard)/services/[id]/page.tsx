@@ -304,7 +304,13 @@ export default function ServiceDetailPage() {
     const currentSub = activeSubTab[activeGroup];
     const group = tabGroups.find((g) => g.key === activeGroup);
     const hasSubTabs = group && group.subTabs.length > 0;
-    const params = new URLSearchParams();
+    // Start from the live query string so params owned by individual tabs
+    // (rollCallView, date, …) survive this sync — building from scratch
+    // stripped them on mount, which broke deep links like
+    // ?tab=daily&sub=roll-call&rollCallView=weekly.
+    const params = new URLSearchParams(window.location.search);
+    params.delete("tab");
+    params.delete("sub");
     if (activeGroup !== "today") {
       params.set("tab", activeGroup);
       if (hasSubTabs && currentSub) params.set("sub", currentSub);

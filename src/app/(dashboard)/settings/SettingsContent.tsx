@@ -1999,8 +1999,12 @@ function PermissionsPanel() {
             </tr>
           </thead>
           <tbody>
-            {sections.map((section) => (
-              <Fragment key={`section-${section.name}`}>
+            {sections.map((section, sectionIdx) => (
+              // Keyed by index: the section list is rebuilt on every change of
+              // row.section, so the same name can appear more than once and a
+              // name-based key duplicates (React "two children with the same
+              // key" console error).
+              <Fragment key={`section-${sectionIdx}`}>
                 <tr>
                   <td
                     colSpan={8}

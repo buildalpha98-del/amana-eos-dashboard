@@ -18,7 +18,12 @@ test.use({ storageState: ".playwright/auth/owner.json" });
 test.describe("AI Buttons — surface coverage", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/services");
-    await page.waitForLoadState("networkidle");
+    // networkidle can be starved by React Query polling; the service link
+    // being attached is the signal we actually need (same as staff-nqs).
+    await page
+      .locator("a[href^='/services/']")
+      .first()
+      .waitFor({ state: "attached", timeout: 30_000 });
   });
 
   test("Reflection create dialog has an AiButton, disabled until title set", async ({
@@ -26,6 +31,8 @@ test.describe("AI Buttons — surface coverage", () => {
   }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — wait for the detail URL before reading it.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
@@ -60,6 +67,8 @@ test.describe("AI Buttons — surface coverage", () => {
   }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — wait for the detail URL before reading it.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
@@ -85,6 +94,8 @@ test.describe("AI Buttons — surface coverage", () => {
   }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — wait for the detail URL before reading it.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
@@ -110,6 +121,8 @@ test.describe("AI Buttons — surface coverage", () => {
   }) => {
     const firstService = page.locator("a[href^='/services/']").first();
     await firstService.click();
+    // Client-side navigation — wait for the detail URL before reading it.
+    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
     const url = new URL(page.url());
