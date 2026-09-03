@@ -43,7 +43,7 @@
 **Files:**
 - Verify: `src/components/layout/PageHeader.tsx` props
 
-- [ ] **Step 1:** Read `PageHeader` — if it supports title+description+primaryAction without EOS chrome, use it directly on the new pages and create nothing. Record the decision in the first commit message of Task 1.2.
+- [x] **Step 1:** Read `PageHeader` — if it supports title+description+primaryAction without EOS chrome, use it directly on the new pages and create nothing. Record the decision in the first commit message of Task 1.2.
 
 ### Task 1.2: `/my-pay` — the Pay destination
 
@@ -55,10 +55,10 @@
 - Modify: `src/components/my-portal/MyPayslipsCard.tsx` (consume the lifted hook)
 - Test: `src/__tests__/components/my-pay.test.tsx`
 
-- [ ] **Step 1:** Create `useMyPayslips` by lifting the query (queryKey `["my-payslips"]`, `meta.suppressGlobalErrorToast`, terminal-404/503 retry predicate) out of `MyPayslipsCard`; card and page share it. Write a failing render test for `PayslipHeroCard`: fixture must satisfy the full `PayslipSummary` type (including `id` and `payPeriodStarting`). It shows `$1,284.60`, "net", a gross/**deductions**(=gross−net — NOT "tax": the delta includes super sacrifice etc.)/hours line, View link at `/api/my-portal/payslips/{payRunId}/download` and Download at the same URL with `?download=1`.
-- [ ] **Step 2:** Run the test, verify it fails. Implement `PayslipHeroCard` per `Pay.dc.html`/`MobilePay.dc.html`: dark `bg-sidebar` hero card, headline via `font-heading`, accent CTA (`bg-accent` with dark text), responsive `sm:` split. Verify pass.
-- [ ] **Step 3:** `MyPayContent`: hero (latest slip) + totals strip computed client-side from returned slips (sum gross/net/hours; label honestly "across the payslips shown" — the API returns recent slips, do NOT claim FY totals) + history list (reuse the row layout from `MyPayslipsCard`, full-width). Same not-linked/503/empty states and copy as the card.
-- [ ] **Step 4:** Page shell mirrors `/my-portal/page.tsx` conventions. Live-check as staff at 375px and desktop. Commit.
+- [x] **Step 1:** Create `useMyPayslips` by lifting the query (queryKey `["my-payslips"]`, `meta.suppressGlobalErrorToast`, terminal-404/503 retry predicate) out of `MyPayslipsCard`; card and page share it. Write a failing render test for `PayslipHeroCard`: fixture must satisfy the full `PayslipSummary` type (including `id` and `payPeriodStarting`). It shows `$1,284.60`, "net", a gross/**deductions**(=gross−net — NOT "tax": the delta includes super sacrifice etc.)/hours line, View link at `/api/my-portal/payslips/{payRunId}/download` and Download at the same URL with `?download=1`.
+- [x] **Step 2:** Run the test, verify it fails. Implement `PayslipHeroCard` per `Pay.dc.html`/`MobilePay.dc.html`: dark `bg-sidebar` hero card, headline via `font-heading`, accent CTA (`bg-accent` with dark text), responsive `sm:` split. Verify pass.
+- [x] **Step 3:** `MyPayContent`: hero (latest slip) + totals strip computed client-side from returned slips (sum gross/net/hours; label honestly "across the payslips shown" — the API returns recent slips, do NOT claim FY totals) + history list (reuse the row layout from `MyPayslipsCard`, full-width). Same not-linked/503/empty states and copy as the card.
+- [x] **Step 4:** Page shell mirrors `/my-portal/page.tsx` conventions. Live-check as staff at 375px and desktop. Commit.
 
 ### Task 1.3: `/my-leave` — the Leave destination
 
@@ -67,8 +67,8 @@
 - Create: `src/components/my-leave/MyLeaveContent.tsx`
 - Note: `ApplyLeaveModal` is ALREADY exported from `MyLeaveRequestsCard.tsx` — import it, modify nothing.
 
-- [ ] **Step 1:** `MyLeaveContent` per `Leave.dc.html`/`MobileLeave.dc.html`: balances row (reuse `MyLeaveBalanceCard` data logic; restyle container), Apply CTA opening the EXISTING `ApplyLeaveModal`, requests list. Not-linked state = one full-page friendly explanation, not multiple cards of it. Do not fork the cards.
-- [ ] **Step 2:** Live-check both viewports incl. opening the apply modal (EH may 503 locally — verify that state renders cleanly). Commit.
+- [x] **Step 1:** `MyLeaveContent` per `Leave.dc.html`/`MobileLeave.dc.html`: balances row (reuse `MyLeaveBalanceCard` data logic; restyle container), Apply CTA opening the EXISTING `ApplyLeaveModal`, requests list. Not-linked state = one full-page friendly explanation, not multiple cards of it. Do not fork the cards.
+- [x] **Step 2:** Live-check both viewports incl. opening the apply modal (EH may 503 locally — verify that state renders cleanly). Commit.
 
 ### Task 1.4: `/my-expenses` — Reimbursements destination
 
@@ -77,7 +77,7 @@
 - Create: `src/components/my-expenses/MyExpensesContent.tsx`
 - Modify: `src/components/my-portal/MyExpensesCard.tsx` (export the submit modal)
 
-- [ ] **Step 1:** Per `Expenses.dc.html`/`MobileExpenses.dc.html`: "snap your receipt" hero (buttons open the existing submit modal; add `capture="environment"` to the file input for phones), totals strip (pending sum + paid sum from statuses), claims list with the Submitted → Approval → In-your-pay pipeline strip on pending rows. Live-check, commit.
+- [x] **Step 1:** Per `Expenses.dc.html`/`MobileExpenses.dc.html`: "snap your receipt" hero (buttons open the existing submit modal; add `capture="environment"` to the file input for phones), totals strip (pending sum + paid sum from statuses), claims list with the Submitted → Approval → In-your-pay pipeline strip on pending rows. Live-check, commit.
 
 ### Task 1.5: Role-aware mobile tab bar + nav/permissions wiring
 
@@ -87,8 +87,8 @@
 - Modify: `src/lib/role-permissions.ts` (`allPages` + staff, member, marketing lists)
 - Test: extend existing role-permission tests if present
 
-- [ ] **Step 1:** Tab bar (LOCKED decisions from plan review): the bar renders 4 tabs + the required More button (More opens the sidebar via `onMorePress` from `(dashboard)/layout.tsx` — it must stay; 6 slots would overflow 375px). Staff/member/marketing set: `[Home:/my-portal, My Day:/my-day, Pay:/my-pay, Leave:/my-leave]` + More ("Me"/profile and Expenses are reached via Home tiles and the sidebar). Other roles keep the current set. `MobileTabBar` has no `useSession` today — add the import; while the session loads render the generic set. Icons: Wallet, CalendarDays (lucide).
-- [ ] **Step 2:** Wiring (LOCKED): pages go into `allPages` (so office roles can open them by URL — they are employees too) AND into staff/member/marketing lists; nav items get `roles: ["staff", "member", "marketing"]` so the sidebar only shows them to staff-tier roles (`filterNavByRole` otherwise surfaces them to owners via allPages). Keep the My Portal section contiguous (`nav-config.ts:139-155`). Run any role-permission vitest files. Live-check: staff sees new tabs + sidebar items; owner's nav unchanged but URLs open. Commit.
+- [x] **Step 1:** Tab bar (LOCKED decisions from plan review): the bar renders 4 tabs + the required More button (More opens the sidebar via `onMorePress` from `(dashboard)/layout.tsx` — it must stay; 6 slots would overflow 375px). Staff/member/marketing set: `[Home:/my-portal, My Day:/my-day, Pay:/my-pay, Leave:/my-leave]` + More ("Me"/profile and Expenses are reached via Home tiles and the sidebar). Other roles keep the current set. `MobileTabBar` has no `useSession` today — add the import; while the session loads render the generic set. Icons: Wallet, CalendarDays (lucide).
+- [x] **Step 2:** Wiring (LOCKED): pages go into `allPages` (so office roles can open them by URL — they are employees too) AND into staff/member/marketing lists; nav items get `roles: ["staff", "member", "marketing"]` so the sidebar only shows them to staff-tier roles (`filterNavByRole` otherwise surfaces them to owners via allPages). Keep the My Portal section contiguous (`nav-config.ts:139-155`). Run any role-permission vitest files. Live-check: staff sees new tabs + sidebar items; owner's nav unchanged but URLs open. Commit.
 
 ### Task 1.6: `/my-portal` becomes the Home hub
 
@@ -96,9 +96,9 @@
 - Modify: `src/app/(dashboard)/my-portal/page.tsx`
 - Modify: `tests/e2e/staff-portal.spec.ts` — the spec that actually targets `/my-portal`, with loose regexes (`/leave|balance|annual/i`, `getByRole("button", {name: /request leave|new request/i})`) that will break or go vacuous when sections move. Repoint at the new routes; heed CLAUDE.md E2E gotcha #2 (substring matches → strict-mode traps).
 
-- [ ] **Step 1:** Per `Main.dc.html`/`MobileHome.dc.html`, restructure the TOP of the page: greeting (existing), next-shift/clock hero (compose existing `MyClockCard` + upcoming-shift data — no duplicate queries), four glance tiles (Last pay → `/my-pay`, Annual leave → `/my-leave`, Reimbursements → `/my-expenses`, Compliance → `/compliance`) reusing the respective hooks with a "—" not-linked fallback, quick-actions row, one consolidated "Needs your attention" card (pending policies / swaps / cert expiry — data already fetched on this page).
-- [ ] **Step 2:** REMOVE the moved sections (payslips, leave balance+requests, expenses). Keep: profile summary, quiet hours, D&I, kiosk PIN, notification prefs, sessions, compliance summary, onboarding/offboarding progress. Update E2E selectors that pointed at removed sections to the new routes; update Getting Started hrefs if any pointed at moved anchors.
-- [ ] **Step 3:** Full phase verification (rule 6). Commit. Open PR "feat: staff portal v2 phase 1 — mobile shell + Pay/Leave/Expenses destinations".
+- [x] **Step 1:** Per `Main.dc.html`/`MobileHome.dc.html`, restructure the TOP of the page: greeting (existing), next-shift/clock hero (compose existing `MyClockCard` + upcoming-shift data — no duplicate queries), four glance tiles (Last pay → `/my-pay`, Annual leave → `/my-leave`, Reimbursements → `/my-expenses`, Compliance → `/compliance`) reusing the respective hooks with a "—" not-linked fallback, quick-actions row, one consolidated "Needs your attention" card (pending policies / swaps / cert expiry — data already fetched on this page).
+- [x] **Step 2:** REMOVE the moved sections (payslips, leave balance+requests, expenses). Keep: profile summary, quiet hours, D&I, kiosk PIN, notification prefs, sessions, compliance summary, onboarding/offboarding progress. Update E2E selectors that pointed at removed sections to the new routes; update Getting Started hrefs if any pointed at moved anchors.
+- [x] **Step 3:** Full phase verification (rule 6). Commit. Open PR "feat: staff portal v2 phase 1 — mobile shell + Pay/Leave/Expenses destinations".
 
 ---
 
@@ -207,3 +207,4 @@
 
 - 2026-09-04: Plan created. Nothing executed yet.
 - 2026-09-04: Plan review applied (21 findings). Phase 1 Tasks 1.2-1.4 committed: ef48e1d6, e7667418, ed55d72a.
+- 2026-09-04: Phase 1 complete on feat/staff-portal-v2 — commits ef48e1d6 (my-pay), e7667418 (my-leave), ed55d72a (my-expenses), 521d918a (tab bar + wiring), f3a7ba75 (Home hub + E2E repoint + cert-status DST fix). Full suite 6439/6439 green. Owner-side live click-through deferred (browser pane closed); code-level owner checks green.
