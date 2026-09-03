@@ -71,12 +71,15 @@ function ContactCentreContent() {
     }
   }, [activeTab, searchParams, router]);
 
-  // Sync tab from URL changes (e.g. back/forward navigation)
-  useEffect(() => {
+  // Sync tab from URL changes (e.g. back/forward navigation) —
+  // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect"
+  const [prevTabParam, setPrevTabParam] = useState(tabParam);
+  if (tabParam !== prevTabParam) {
+    setPrevTabParam(tabParam);
     if (tabParam && TABS.some((t) => t.key === tabParam) && tabParam !== activeTab) {
       setActiveTab(tabParam as TabKey);
     }
-  }, [tabParam]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   return (
     <div

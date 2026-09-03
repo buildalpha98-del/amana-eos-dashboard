@@ -12,7 +12,30 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated / non-source directories — without these, bare `eslint` lints
+    // coverage reports, Playwright artifacts, logs, and stale worktree
+    // checkouts, drowning real findings in ~200k phantom problems.
+    "coverage/**",
+    "playwright-report/**",
+    "test-results/**",
+    ".playwright/**",
+    ".claude/**",
+    "logs/**",
+    "node_modules/**",
   ]),
+  {
+    // ── Test/script relaxation (2026-09-03) ──────────────────────
+    // Test mocks, one-off recovery scripts, and seeds legitimately reach for
+    // `any` when faking Prisma/fetch shapes — typing them fully is churn, not
+    // safety. Keep the signal visible as a warning here; production code
+    // (src/app, src/components, src/hooks, src/lib) stays at error severity
+    // per the no-unsafe-casts standard.
+    name: "test-and-script-any-as-warning",
+    files: ["src/__tests__/**", "tests/**", "scripts/**", "prisma/**"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
   {
     // ── Design-token rails (2026-07-11) ──────────────────────────
     // The palette lives in src/app/globals.css @theme. Raw Tailwind grays,

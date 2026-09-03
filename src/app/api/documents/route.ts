@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { DocumentCategory, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
@@ -36,9 +37,13 @@ const { searchParams } = new URL(req.url);
   const isServiceScoped = ["staff", "member"].includes(session!.user.role);
   const staffServiceId = session!.user.serviceId;
 
-  const where: Record<string, unknown> = {
+  // Coerce the query-string category to the Prisma enum; unknown values are
+  // ignored rather than reaching Prisma's where clause.
+  const categoryFilter = Object.values(DocumentCategory).find((c) => c === category);
+
+  const where: Prisma.DocumentWhereInput = {
     deleted: false,
-    ...(category ? { category: category as any } : {}),
+    ...(categoryFilter ? { category: categoryFilter } : {}),
     ...(folderId === "root" ? { folderId: null } : folderId ? { folderId } : {}),
     ...(search
       ? {
@@ -99,7 +104,7 @@ const { searchParams } = new URL(req.url);
 
   const [documents, total] = await Promise.all([
     prisma.document.findMany({
-      where: where as any,
+      where,
       include: {
         uploadedBy: { select: { id: true, name: true, email: true } },
         centre: { select: { id: true, name: true, code: true } },
@@ -109,7 +114,7 @@ const { searchParams } = new URL(req.url);
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.document.count({ where: where as any }),
+    prisma.document.count({ where }),
   ]);
 
   return NextResponse.json({

@@ -239,7 +239,7 @@ export function CallsTab() {
   const [datePreset, setDatePreset] = useState("today");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCall, setSelectedCall] = useState<VapiCall | null>(null);
-  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [initialNow] = useState(() => Date.now());
 
 
   // Build query params
@@ -257,7 +257,7 @@ export function CallsTab() {
   }, [callTypeFilter, urgencyFilter, statusFilter, centreFilter, datePreset, searchTerm]);
 
   // Fetch calls
-  const { data: callsData, isLoading: callsLoading } = useQuery<{ calls: VapiCall[]; total: number }>({
+  const { data: callsData, isLoading: callsLoading, dataUpdatedAt } = useQuery<{ calls: VapiCall[]; total: number }>({
     queryKey: ["vapi-calls", queryParams],
     queryFn: () => fetchApi(`/api/calls?${queryParams}`),
     retry: 2,
@@ -265,20 +265,17 @@ export function CallsTab() {
     refetchInterval: 30_000,
   });
 
-  // Track last updated
-  useEffect(() => {
-    if (callsData) setLastUpdated(Date.now());
-  }, [callsData]);
+  // Track last updated — derived from the query rather than mirrored into state
+  const lastUpdated = dataUpdatedAt || initialNow;
 
   const calls = callsData?.calls ?? [];
 
   // Auto-open deep-linked call once the list loads
-  useEffect(() => {
-    if (deepLinkId && calls.length > 0 && !selectedCall) {
-      const found = calls.find((c) => c.id === deepLinkId);
-      if (found) setSelectedCall(found);
-    }
-  }, [deepLinkId, calls, selectedCall]);
+  // (adjust-state-during-render pattern — see react.dev "You Might Not Need an Effect")
+  if (deepLinkId && calls.length > 0 && !selectedCall) {
+    const found = calls.find((c) => c.id === deepLinkId);
+    if (found) setSelectedCall(found);
+  }
 
   // Fetch stats
   const { data: stats } = useQuery<CallStats>({
@@ -672,9 +669,13 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
     !!(call.parentName || call.parentPhone || call.parentEmail || call.childName || call.centreName);
   const [transcriptOpen, setTranscriptOpen] = useState(!hasCallerInfoInit);
 
-  useEffect(() => {
+  // Reset the notes draft when the underlying call's notes change
+  // (adjust-state-during-render pattern — see react.dev "You Might Not Need an Effect")
+  const [prevCallNotes, setPrevCallNotes] = useState(call.notes ?? "");
+  if (prevCallNotes !== (call.notes ?? "")) {
+    setPrevCallNotes(call.notes ?? "");
     setNotes(call.notes ?? "");
-  }, [call.notes]);
+  }
 
   const details = (call.callDetails as Record<string, unknown>) ?? {};
   const hasCallerInfo =

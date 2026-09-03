@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { IssueData } from "@/hooks/useIssues";
 import { cn } from "@/lib/utils";
 import {
@@ -88,6 +89,7 @@ export function IssueCard({
   onClick: (opts?: IssueCardOpenOpts) => void;
   isDragging?: boolean;
 }) {
+  const [now] = useState(() => Date.now());
   const p = priorityConfig[issue.priority];
   const s = statusConfig[issue.status];
   const PriorityIcon = p.icon;
@@ -95,7 +97,7 @@ export function IssueCard({
 
   // Calculate days open
   const daysOpen = issue.status !== "closed" && issue.status !== "solved"
-    ? Math.floor((Date.now() - new Date(issue.identifiedAt).getTime()) / 86400000)
+    ? Math.floor((now - new Date(issue.identifiedAt).getTime()) / 86400000)
     : null;
 
   return (

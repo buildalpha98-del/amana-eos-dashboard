@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 // GET /api/leave/calendar — approved + pending leave for a service in a month
@@ -22,7 +23,7 @@ export const GET = withApiAuth(async (req, session) => {
   const monthStart = new Date(yearNum, monthNum - 1, 1);
   const monthEnd = new Date(yearNum, monthNum, 0); // last day of month
 
-  const where: Record<string, unknown> = {
+  const where: Prisma.LeaveRequestWhereInput = {
     status: { in: ["leave_approved", "leave_pending"] },
     // Leave overlaps with the month if startDate <= monthEnd AND endDate >= monthStart
     startDate: { lte: monthEnd },
@@ -32,7 +33,7 @@ export const GET = withApiAuth(async (req, session) => {
   if (serviceId) where.serviceId = serviceId;
 
   const requests = await prisma.leaveRequest.findMany({
-    where: where as any,
+    where,
     include: {
       user: { select: { id: true, name: true } },
     },

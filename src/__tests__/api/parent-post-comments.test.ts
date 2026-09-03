@@ -24,7 +24,7 @@ const mockParentPayload = {
 let parentAuthEnabled = true;
 
 vi.mock("@/lib/parent-auth", () => ({
-  withParentAuth: (handler: Function) => async (req: Request, routeContext?: unknown) => {
+  withParentAuth: (handler: (...args: unknown[]) => unknown) => async (req: Request, routeContext?: unknown) => {
     const { NextResponse } = await import("next/server");
     if (!parentAuthEnabled) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

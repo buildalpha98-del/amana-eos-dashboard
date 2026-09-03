@@ -1,37 +1,31 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 export function NavigationProgress() {
   const pathname = usePathname();
   const [state, setState] = useState<"idle" | "loading" | "complete">("idle");
-  const prevPathname = useRef(pathname);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [prevPathname, setPrevPathname] = useState(pathname);
 
-  useEffect(() => {
-    if (pathname === prevPathname.current) return;
-    prevPathname.current = pathname;
-
-    // Clear any pending timeout
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
-    // Start loading animation
+  // Route change → start the loading animation (render-time sync guarded by
+  // the last-seen pathname)
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setState("loading");
+  }
 
-    // After the bar reaches ~80%, snap to complete
-    timeoutRef.current = setTimeout(() => {
-      setState("complete");
-      // Then hide after fade-out
-      timeoutRef.current = setTimeout(() => {
-        setState("idle");
-      }, 300);
-    }, 500);
-
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [pathname]);
+  // Timer chain: loading → (500ms, bar reaches ~80%) → complete →
+  // (300ms fade-out) → idle. `prevPathname` in the deps restarts the
+  // loading timer when another navigation lands mid-animation.
+  useEffect(() => {
+    if (state === "idle") return;
+    const timeout = setTimeout(
+      () => setState(state === "loading" ? "complete" : "idle"),
+      state === "loading" ? 500 : 300,
+    );
+    return () => clearTimeout(timeout);
+  }, [state, prevPathname]);
 
   if (state === "idle") return null;
 

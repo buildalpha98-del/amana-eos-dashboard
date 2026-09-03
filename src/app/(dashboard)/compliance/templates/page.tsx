@@ -321,7 +321,7 @@ function TemplateDetail({
         itemIds: newItems.map((i) => i.id),
       });
     },
-    [template?.items, templateId, reorder]
+    [template, templateId, reorder]
   );
 
   if (isLoading) {

@@ -586,10 +586,11 @@ function Step1({
   return (
     <div className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-foreground mb-1.5">
+        <label htmlFor="issue-template-select" className="block text-sm font-medium text-foreground mb-1.5">
           Template
         </label>
         <select
+          id="issue-template-select"
           value={templateId}
           onChange={(e) => setTemplateId(e.target.value)}
           className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
@@ -603,10 +604,11 @@ function Step1({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-foreground mb-1.5">
+        <label htmlFor="issue-staff-select" className="block text-sm font-medium text-foreground mb-1.5">
           Staff member
         </label>
         <select
+          id="issue-staff-select"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
           className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"

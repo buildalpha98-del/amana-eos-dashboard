@@ -149,7 +149,7 @@ export const GET = withApiHandler(async (req) => {
         title,
         description,
         status: "todo",
-        priority: priority as any,
+        priority,
         dueDate,
         assigneeId: svc.managerId || null,
         serviceId: svc.id,

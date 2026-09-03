@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
@@ -45,29 +45,25 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      <QuickAddToDoModal isOpen={todoOpen} onClose={() => setTodoOpen(false)} />
-      <QuickAddIssueModal isOpen={issueOpen} onClose={() => setIssueOpen(false)} />
-      <QuickAddRockModal isOpen={rockOpen} onClose={() => setRockOpen(false)} />
+      {/* Mounted only while open — each open gets a freshly-initialised form,
+          so no "reset on open" effect is needed. */}
+      {todoOpen && <QuickAddToDoModal onClose={() => setTodoOpen(false)} />}
+      {issueOpen && <QuickAddIssueModal onClose={() => setIssueOpen(false)} />}
+      {rockOpen && <QuickAddRockModal onClose={() => setRockOpen(false)} />}
     </QuickAddContext.Provider>
   );
 }
 
 // ─── Quick Add To-Do Modal ───────────────────────────────────
 
-function QuickAddToDoModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+function QuickAddToDoModal({ onClose }: { onClose: () => void }) {
   useEscapeClose(onClose);
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState(getDefaultDueDate);
-  const [assigneeId, setAssigneeId] = useState("");
+  const [assigneeId, setAssigneeId] = useState(() => session?.user?.id || "");
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -78,20 +74,7 @@ function QuickAddToDoModal({
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: isOpen,
   });
-
-  // Reset form every time modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setTitle("");
-      setDescription("");
-      setDueDate(getDefaultDueDate());
-      setAssigneeId(session?.user?.id || "");
-      setShowSuccess(false);
-      setErrorMsg("");
-    }
-  }, [isOpen, session?.user?.id]);
 
   const createTodoMutation = useMutation({
     mutationFn: async (data: {
@@ -143,8 +126,6 @@ function QuickAddToDoModal({
       description: description || undefined,
     });
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
@@ -255,30 +236,13 @@ function QuickAddToDoModal({
 
 // ─── Quick Add Issue Modal ───────────────────────────────────
 
-function QuickAddIssueModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+function QuickAddIssueModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"medium" | "high" | "critical" | "low">("medium");
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  // Reset form every time modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setTitle("");
-      setDescription("");
-      setPriority("medium");
-      setShowSuccess(false);
-      setErrorMsg("");
-    }
-  }, [isOpen]);
 
   const createIssueMutation = useMutation({
     mutationFn: async (data: {
@@ -323,8 +287,6 @@ function QuickAddIssueModal({
       description: description || undefined,
     });
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
@@ -420,13 +382,7 @@ function QuickAddIssueModal({
 
 // ─── Quick Add Rock Modal ────────────────────────────────────
 
-function QuickAddRockModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+function QuickAddRockModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
@@ -435,18 +391,6 @@ function QuickAddRockModal({
   const [rockType, setRockType] = useState<"company" | "personal">("personal");
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  // Reset form every time modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setTitle("");
-      setDescription("");
-      setPriority("medium");
-      setRockType("personal");
-      setShowSuccess(false);
-      setErrorMsg("");
-    }
-  }, [isOpen]);
 
   const createRockMutation = useMutation({
     mutationFn: async (data: {
@@ -499,8 +443,6 @@ function QuickAddRockModal({
       description: description || undefined,
     });
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">

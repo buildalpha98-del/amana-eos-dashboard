@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useQuery } from "@tanstack/react-query";
@@ -60,12 +60,15 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [error, setError] = useState("");
 
-  // Sync scheduledDate when the modal opens with a defaultDate
-  useEffect(() => {
+  // Sync scheduledDate when the modal opens with a defaultDate (render-time
+  // sync guarded by the last-seen open/defaultDate values)
+  const [prevSync, setPrevSync] = useState({ open, defaultDate });
+  if (prevSync.open !== open || prevSync.defaultDate !== defaultDate) {
+    setPrevSync({ open, defaultDate });
     if (open && defaultDate) {
       setScheduledDate(defaultDate);
     }
-  }, [open, defaultDate]);
+  }
 
   function resetForm() {
     setTitle("");

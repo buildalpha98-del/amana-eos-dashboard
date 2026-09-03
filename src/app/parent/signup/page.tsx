@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { MetaPixel } from "@/components/analytics/MetaPixel";
 
 // Ambassadors: educator QR codes land here as /parent/signup?ref=CODE.
 // window.location (not useSearchParams) so the page needs no Suspense
@@ -127,6 +128,8 @@ export default function ParentSignupPage() {
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-[#001824] via-[#003344] to-[#0A5E7E] px-4 py-10">
+      {/* Meta Pixel (production only) — signup page, not the staff dashboard. */}
+      <MetaPixel />
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-heading font-bold text-white tracking-tight">

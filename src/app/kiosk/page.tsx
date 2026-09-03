@@ -62,6 +62,7 @@ export default function KioskPage() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe hydration read: the pairing token lives in localStorage, unavailable during server render
     setToken(readToken());
     setHydrated(true);
   }, []);

@@ -21,6 +21,27 @@ env:
   NODE_VERSION: "20"
 
 jobs:
+  # ── Lint (every push) ──────────────────────────────────────
+  # Errors fail the build; warnings (unused-vars, design-token rails,
+  # exhaustive-deps) are visible in the log but non-blocking. The repo was
+  # brought to zero lint errors on 2026-09-03 — this job keeps it there.
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: ESLint
+        run: npx eslint .
+
   # ── Unit Tests (every push) ────────────────────────────────
   unit:
     name: Unit Tests

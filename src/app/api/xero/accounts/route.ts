@@ -14,9 +14,9 @@ interface XeroAccount {
 
 export const GET = withApiAuth(async (req, session) => {
   try {
-    const data = await xeroApiRequest("/Accounts");
+    const data = await xeroApiRequest<{ Accounts: XeroAccount[] }>("/Accounts");
 
-    const filtered = (data.Accounts as XeroAccount[])
+    const filtered = data.Accounts
       .filter(
         (account) =>
           account.Status === "ACTIVE" &&

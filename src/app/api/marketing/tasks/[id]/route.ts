@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -67,7 +68,9 @@ const { id } = await context!.params!;
     where: { id },
     data: {
       ...restData,
-      ...(subtasks !== undefined ? { subtasks: subtasks as any } : {}),
+      ...(subtasks !== undefined
+        ? { subtasks: subtasks === null ? Prisma.JsonNull : subtasks }
+        : {}),
     },
     include: taskIncludes,
   });

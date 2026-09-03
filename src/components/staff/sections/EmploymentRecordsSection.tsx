@@ -9,6 +9,7 @@
  * 2026-05-04: introduced (spec PR #77, PR 3).
  */
 
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Phone } from "lucide-react";
 import type { EmergencyContact } from "@prisma/client";
@@ -67,12 +68,23 @@ export function EmploymentRecordsSection({
   canManageSeparation = false,
 }: EmploymentRecordsSectionProps) {
   // Deep-link from the header's "Edit profile" Quick Action — see
-  // StaffProfileHeader.handleEditProfile. When `?edit=personal` is set we
-  // surface the Personal-details sub-tab on first render so the user lands
-  // directly on the editor instead of the default Employment-details view.
+  // StaffProfileHeader.handleEditProfile. The param usually appears AFTER
+  // mount (router.replace from the header button), so the tab must be
+  // controlled here and synced by effect: an initial-render-only defaultTab
+  // never switched it, which silently broke the Quick Action.
   const searchParams = useSearchParams();
-  const initialTab: SubTab =
-    searchParams.get("edit") === "personal" ? "personal" : "employment";
+  const wantsPersonal = searchParams.get("edit") === "personal";
+  const [activeTab, setActiveTab] = useState<SubTab>(
+    wantsPersonal ? "personal" : "employment",
+  );
+  // One-way, render-phase sync (React's "adjust state on prop change"
+  // pattern): only react to the param APPEARING. PersonalTab strips it once
+  // the editor opens, and that removal must not bounce the tab back.
+  const [prevWantsPersonal, setPrevWantsPersonal] = useState(wantsPersonal);
+  if (wantsPersonal !== prevWantsPersonal) {
+    setPrevWantsPersonal(wantsPersonal);
+    if (wantsPersonal) setActiveTab("personal");
+  }
 
   // Conversion, References and Separation sub-tabs are admin-only.
   // Sub-tab order: details → personal → emergency → position →
@@ -94,7 +106,8 @@ export function EmploymentRecordsSection({
       accentDotClass="bg-purple-500"
       accentActiveClass="bg-purple-100 dark:bg-purple-950/50 text-purple-900 dark:text-purple-200 border-purple-300 dark:border-purple-800"
       subTabs={subTabs}
-      defaultTab={initialTab}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
     >
       {(active) => {
         if (active === "employment") {

@@ -80,17 +80,18 @@ export function AuditResultsTab() {
   });
 
   // Filter by search term
+  const instances = data?.instances;
   const filteredInstances = useMemo(() => {
-    if (!data?.instances) return [];
-    if (!searchTerm.trim()) return data.instances;
+    if (!instances) return [];
+    if (!searchTerm.trim()) return instances;
     const term = searchTerm.toLowerCase();
-    return data.instances.filter(
+    return instances.filter(
       (i) =>
         i.template.name.toLowerCase().includes(term) ||
         i.service.name.toLowerCase().includes(term) ||
         i.auditorName?.toLowerCase().includes(term)
     );
-  }, [data?.instances, searchTerm]);
+  }, [instances, searchTerm]);
 
   // Export to CSV
   const handleExport = () => {

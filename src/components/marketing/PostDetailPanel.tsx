@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Trash2, Pencil, ExternalLink, Unlink, Link2, Check, XCircle, ShieldCheck, Palette, Image, Eye, History } from "lucide-react";
 import { usePost, useUpdatePost, useDeletePost, useSocialConnections, useApprovePost, useRejectPost } from "@/hooks/useMarketing";
 import type { PostData } from "@/hooks/useMarketing";
@@ -61,30 +61,34 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
   const [rejectionReason, setRejectionReason] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // Captured once on mount so render stays pure (hour-level granularity label)
+  const [now] = useState(() => Date.now());
   const { data: socialConnections } = useSocialConnections();
 
-  useEffect(() => {
-    if (post) {
-      setTitle(post.title);
-      setPlatform(post.platform);
-      setScheduledDate(
-        post.scheduledDate
-          ? new Date(post.scheduledDate).toISOString().slice(0, 16)
-          : ""
-      );
-      setContent(post.content ?? "");
-      setPillar(post.pillar ?? "");
-      setNotes(post.notes ?? "");
-      setDesignLink(post.designLink ?? "");
-      setLikes(post.likes);
-      setComments(post.comments);
-      setShares(post.shares);
-      setReach(post.reach);
-      setServiceIds(
-        post.services?.map((s) => s.service.id) ?? []
-      );
-    }
-  }, [post]);
+  // Hydrate form state during render when a new post payload arrives (same
+  // reference-based trigger as the previous effect).
+  const [loadedPost, setLoadedPost] = useState<typeof post | null>(null);
+  if (post && post !== loadedPost) {
+    setLoadedPost(post);
+    setTitle(post.title);
+    setPlatform(post.platform);
+    setScheduledDate(
+      post.scheduledDate
+        ? new Date(post.scheduledDate).toISOString().slice(0, 16)
+        : ""
+    );
+    setContent(post.content ?? "");
+    setPillar(post.pillar ?? "");
+    setNotes(post.notes ?? "");
+    setDesignLink(post.designLink ?? "");
+    setLikes(post.likes);
+    setComments(post.comments);
+    setShares(post.shares);
+    setReach(post.reach);
+    setServiceIds(
+      post.services?.map((s) => s.service.id) ?? []
+    );
+  }
 
   function autoSave(field: string, value: string | number | null) {
     updatePost.mutate({ id: postId, [field]: value });
@@ -581,7 +585,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                           Last synced:{" "}
                           {(() => {
                             const diff =
-                              Date.now() -
+                              now -
                               new Date(post.engagementSyncedAt).getTime();
                             const hours = Math.floor(diff / 3600000);
                             if (hours < 1) return "just now";

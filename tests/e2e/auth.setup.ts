@@ -4,55 +4,33 @@
  * Wired as the `setup` project in playwright.config.ts, which the chromium
  * project depends on, so these run before any spec that does
  * `test.use({ storageState: ".playwright/auth/owner.json" })`.
+ *
+ * The login flow itself (including why it doesn't assert a landing URL, and
+ * the welcome-tour stamp that must land before storage state is saved)
+ * lives in helpers/session.ts, shared with every spec that logs in via the
+ * UI.
  */
 
-import { test as setup, expect } from "@playwright/test";
+import { test as setup } from "@playwright/test";
 import path from "path";
+import { loginViaUi } from "./helpers/session";
 
 const AUTH_DIR = path.join(__dirname, "../../.playwright/auth");
-const PASSWORD = "TestPassword123!";
-
-/**
- * Log in and persist the session.
- *
- * Deliberately does NOT assert a specific landing URL. Where you land is
- * role-dependent — see getPostLoginPath in src/app/(auth)/login/page.tsx:
- * `staff`/`member` with a serviceId go to /services/{serviceId}?tab=today,
- * EOS roles go to /rocks, and everyone else goes to /dashboard. This file
- * previously waited on "**\/dashboard" for all three roles, so the staff
- * login timed out even though it had authenticated fine — and because setup
- * is a dependency, that one failure blocked all 130 specs from running.
- *
- * Leaving /login is the actual signal we care about: it means the credentials
- * were accepted and a session cookie exists, which is all the saved state
- * needs to be valid.
- */
-async function loginAndSaveState(
-  page: import("@playwright/test").Page,
-  email: string,
-  stateFile: string,
-) {
-  await page.goto("/login");
-  await page.fill('input[name="email"], input[type="email"]', email);
-  await page.fill('input[name="password"], input[type="password"]', PASSWORD);
-  await page.click('button[type="submit"]');
-
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"), {
-    timeout: 15_000,
-  });
-  await expect(page.locator("body")).toBeVisible();
-
-  await page.context().storageState({ path: path.join(AUTH_DIR, stateFile) });
-}
 
 setup("authenticate as owner", async ({ page }) => {
-  await loginAndSaveState(page, "test-owner@amana-test.local", "owner.json");
+  await loginViaUi(page, "test-owner@amana-test.local", {
+    saveStatePath: path.join(AUTH_DIR, "owner.json"),
+  });
 });
 
 setup("authenticate as staff", async ({ page }) => {
-  await loginAndSaveState(page, "test-staff@amana-test.local", "staff.json");
+  await loginViaUi(page, "test-staff@amana-test.local", {
+    saveStatePath: path.join(AUTH_DIR, "staff.json"),
+  });
 });
 
 setup("authenticate as admin", async ({ page }) => {
-  await loginAndSaveState(page, "test-admin@amana-test.local", "admin.json");
+  await loginViaUi(page, "test-admin@amana-test.local", {
+    saveStatePath: path.join(AUTH_DIR, "admin.json"),
+  });
 });

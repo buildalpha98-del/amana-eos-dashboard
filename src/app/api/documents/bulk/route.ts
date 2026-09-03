@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
+import { DocumentCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage";
 import { withApiAuth } from "@/lib/server-auth";
@@ -163,6 +164,11 @@ const formData = await req.formData();
     );
   }
 
+  // metadata.category was validated against VALID_CATEGORIES above; this
+  // narrows it to the Prisma enum without an unsafe cast.
+  const documentCategory: DocumentCategory =
+    Object.values(DocumentCategory).find((c) => c === metadata.category) ?? "other";
+
   // Create Document records in a transaction
   const created = await prisma.$transaction(
     uploadResults.map((upload) =>
@@ -173,7 +179,7 @@ const formData = await req.formData();
           fileUrl: upload.fileUrl,
           fileSize: upload.fileSize,
           mimeType: upload.mimeType,
-          category: (metadata.category || "other") as any,
+          category: documentCategory,
           centreId: metadata.centreId || null,
           folderId: metadata.folderId || null,
           tags: metadata.tags || [],

@@ -82,6 +82,7 @@ export function ContractViewerModal({ contract, onClose }: Props) {
   useEffect(() => {
     if (!contract.isTemplateBased) return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch effect: reset loading/error flags for the new request
     setLoading(true);
     setHtmlError(null);
     fetch(`/api/contracts/${contract.id}/render`)

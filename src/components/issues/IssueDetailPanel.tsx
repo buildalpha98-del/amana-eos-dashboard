@@ -57,6 +57,8 @@ export function IssueDetailPanel({
   const [editTitle, setEditTitle] = useState(false);
   const [title, setTitle] = useState("");
   const [resolution, setResolution] = useState("");
+  // Snapshot "now" once per mount so render stays pure (day-level granularity)
+  const [now] = useState(() => Date.now());
   const [showDelete, setShowDelete] = useState(false);
   const [showAddTodo, setShowAddTodo] = useState(false);
   const [newTodoTitle, setNewTodoTitle] = useState("");
@@ -66,13 +68,14 @@ export function IssueDetailPanel({
   const [showResolvePrompt, setShowResolvePrompt] = useState(false);
   const [resolveNote, setResolveNote] = useState("");
 
-  // Sync local state when issue data loads
-  useEffect(() => {
-    if (issue) {
-      setTitle(issue.title);
-      setResolution(issue.resolution || "");
-    }
-  }, [issue]);
+  // Sync local state when issue data loads —
+  // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect"
+  const [prevIssue, setPrevIssue] = useState<typeof issue>(undefined);
+  if (issue && issue !== prevIssue) {
+    setPrevIssue(issue);
+    setTitle(issue.title);
+    setResolution(issue.resolution || "");
+  }
 
   // When opened with focus="spawnedTodos", scroll the list into view.
   // Runs after the issue loads so the section is rendered.
@@ -154,7 +157,7 @@ export function IssueDetailPanel({
               Issue Details
             </h3>
             {issue.status !== "closed" && issue.status !== "solved" && (() => {
-              const daysOpen = Math.floor((Date.now() - new Date(issue.identifiedAt).getTime()) / 86400000);
+              const daysOpen = Math.floor((now - new Date(issue.identifiedAt).getTime()) / 86400000);
               return (
                 <span
                   className={cn(

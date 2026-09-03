@@ -21,6 +21,7 @@ import { useRocks, useUpdateRock } from "@/hooks/useRocks";
 import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
 import { isLeadershipMeetingRole } from "@/lib/role-enum";
 import { useIssues, useUpdateIssue, useCreateIssue } from "@/hooks/useIssues";
+import type { IssuePriority } from "@prisma/client";
 import type { MeetingData } from "@/hooks/useMeetings";
 import { useServices } from "@/hooks/useServices";
 import {
@@ -48,6 +49,10 @@ import { MeetingAiReviewPanel } from "./MeetingAiReviewPanel";
 import { useMeetingRecorder } from "@/hooks/useMeetingRecorder";
 import { useCreateRecording } from "@/hooks/useMeetingRecordings";
 import { uploadFileSmart } from "@/lib/upload-client";
+
+const ISSUE_PRIORITIES = ["critical", "high", "medium", "low"] as const;
+const isIssuePriority = (v: string): v is IssuePriority =>
+  (ISSUE_PRIORITIES as readonly string[]).includes(v);
 
 export function ActiveMeetingView({
   meeting,
@@ -387,7 +392,7 @@ export function ActiveMeetingView({
     (title: string, priority?: string) => {
       createIssue.mutate({
         title,
-        priority: (priority || "medium") as any,
+        priority: priority && isIssuePriority(priority) ? priority : "medium",
         serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
         category: "short_term",
       });
@@ -460,7 +465,8 @@ export function ActiveMeetingView({
 
   const handleUpdatePriority = useCallback(
     (id: string, priority: string) => {
-      updateIssue.mutate({ id, priority: priority as any });
+      if (!isIssuePriority(priority)) return;
+      updateIssue.mutate({ id, priority });
     },
     [updateIssue]
   );

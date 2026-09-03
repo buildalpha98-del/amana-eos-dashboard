@@ -169,7 +169,7 @@ function EmptyReflections({ onCreate }: { onCreate: () => void }) {
         No reflections yet
       </p>
       <p className="text-xs text-[color:var(--color-muted)] mt-1 mb-4">
-        Weekly or critical reflections help surface what's working and what to
+        Weekly or critical reflections help surface what&apos;s working and what to
         change.
       </p>
       <BrandButton onClick={onCreate}>Write your first reflection</BrandButton>
@@ -328,7 +328,7 @@ function ReflectionCard({
               Delete this reflection?
             </DialogTitle>
             <p className="text-sm text-[color:var(--color-muted)] mb-4">
-              "{reflection.title}" will be removed. This can't be undone.
+              &quot;{reflection.title}&quot; will be removed. This can&apos;t be undone.
             </p>
             <div className="flex justify-end gap-2">
               <button

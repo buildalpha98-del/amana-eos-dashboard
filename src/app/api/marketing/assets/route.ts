@@ -15,13 +15,14 @@ const createAssetSchema = z.object({
 // GET /api/marketing/assets — list assets with optional filters
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
-  const type = searchParams.get("type");
+  const typeParsed = createAssetSchema.shape.type.removeDefault().safeParse(searchParams.get("type"));
+  const type = typeParsed.success ? typeParsed.data : null;
   const search = searchParams.get("search");
 
   const assets = await prisma.marketingAsset.findMany({
     where: {
       deleted: false,
-      ...(type ? { type: type as any } : {}),
+      ...(type ? { type } : {}),
       ...(search
         ? {
             OR: [

@@ -12,6 +12,12 @@ test.describe("Admin management flow", () => {
     storageState: ".playwright/auth/owner.json",
   });
 
+  // The settings page is split into sections (Organisation / People & access
+  // / Integrations / Communications / System) behind a section nav. The nav
+  // buttons render twice (mobile + desktop), so filter to the visible one.
+  const settingsSection = (page: import("@playwright/test").Page, name: string) =>
+    page.getByRole("button", { name }).filter({ visible: true }).first();
+
   test("settings page renders with organisation settings", async ({
     page,
   }) => {
@@ -20,9 +26,11 @@ test.describe("Admin management flow", () => {
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
 
-    // Owner should see Organisation Settings section
+    // Default section is Organisation. getByText("Organisation Settings")
+    // also matches the page subtitle ("Organisation settings, integrations,
+    // and user management") — target the heading.
     await expect(
-      page.getByText("Organisation Settings"),
+      page.getByRole("heading", { name: "Organisation Settings" }),
     ).toBeVisible({ timeout: 15_000 });
 
     // Should see Organisation Name field
@@ -30,13 +38,20 @@ test.describe("Admin management flow", () => {
       page.getByText("Organisation Name"),
     ).toBeVisible();
 
-    // Should see API Keys section (owner only)
-    await expect(page.getByText("API Keys")).toBeVisible({ timeout: 15_000 });
+    // API Keys moved into the Integrations section (owner only)
+    await settingsSection(page, "Integrations").click();
+    await expect(
+      page.getByRole("heading", { name: "API Keys" }),
+    ).toBeVisible({ timeout: 15_000 });
 
-    // Should see Invite Team Member button or section
-    const hasInvite = await page.getByText(/Invite Team Member/i).isVisible().catch(() => false);
-    const hasTeamSection = await page.getByText(/Team|Members|Users/i).first().isVisible().catch(() => false);
-    expect(hasInvite || hasTeamSection).toBeTruthy();
+    // User management (with invites) lives under People & access
+    await settingsSection(page, "People & access").click();
+    await expect(
+      page.getByRole("heading", { name: "User Management" }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByRole("button", { name: /invite user/i }).first(),
+    ).toBeVisible();
 
     // No error states
     await expect(page.getByText("Something went wrong")).not.toBeVisible();
@@ -48,13 +63,22 @@ test.describe("Admin management flow", () => {
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
 
-    // Owner should see Role Permissions section
+    // Role permissions is a card under People & access that links to the
+    // page-by-page access matrix at /settings/permissions.
+    await settingsSection(page, "People & access").click();
+    const permissionsLink = page.getByRole("link", { name: /role permissions/i }).first();
+    await expect(permissionsLink).toBeVisible({ timeout: 15_000 });
+
+    await permissionsLink.click();
+    await page.waitForURL(/settings\/permissions/);
     await expect(
-      page.getByText("Role Permissions"),
+      page.getByText(/role permissions/i).first(),
     ).toBeVisible({ timeout: 15_000 });
   });
 
-  test("team page renders with accountability chart and view toggle", async ({
+  // /team was rebuilt as the employee directory (search + filter + table);
+  // the accountability chart moved to its own /accountability-chart page.
+  test("team page renders the employee directory", async ({
     page,
   }) => {
     await page.goto("/team");
@@ -62,57 +86,42 @@ test.describe("Admin management flow", () => {
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
 
-    // Should show chart or list heading
-    const hasChartHeading = await page
-      .getByText(/Accountability Chart|Performance List/i)
-      .isVisible()
-      .catch(() => false);
-    expect(hasChartHeading).toBeTruthy();
+    await expect(
+      page.getByRole("heading", { name: "Team" }).first(),
+    ).toBeVisible({ timeout: 15_000 });
 
-    // View toggle (chart vs list) should be visible
-    const chartToggle = page.locator("button[title], button").filter({ hasText: /chart|list/i });
-    const hasToggle = await chartToggle.first().isVisible().catch(() => false);
+    // Search + export affordances
+    await expect(page.getByRole("searchbox", { name: /search employees/i })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /export|csv/i }).first(),
+    ).toBeVisible();
 
-    // Should have export button
-    const hasExport = await page.getByRole("button", { name: /export|csv/i }).isVisible().catch(() => false);
-
-    expect(hasToggle || hasExport).toBeTruthy();
-
-    // Should show team members or empty state
-    const hasMembers = await page.locator("main").textContent();
-    expect(hasMembers!.length).toBeGreaterThan(20);
+    // Should show the employee table (Name/Role/Service/Status columns)
+    await expect(page.getByRole("columnheader", { name: "Name" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Role" })).toBeVisible();
 
     // No error states
     await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 
-  test("team page can toggle between chart and list views", async ({
+  test("accountability chart page renders the org structure", async ({
     page,
   }) => {
-    await page.goto("/team");
+    await page.goto("/accountability-chart");
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
 
-    // Default view is chart — should show Accountability Chart
     await expect(
-      page.getByText("Accountability Chart"),
+      page.getByRole("heading", { name: /accountability chart/i }).first(),
     ).toBeVisible({ timeout: 15_000 });
 
-    // Find and click the list view toggle
-    // The toggle uses LayoutGrid and List icons with title attributes
-    const listButton = page.locator("button").filter({ hasText: /list/i }).first();
-    const hasListButton = await listButton.isVisible().catch(() => false);
+    // Seat cards render (Visionary/Integrator are the canonical EOS roots)
+    await expect(page.getByText("Visionary").first()).toBeVisible();
+    await expect(page.getByText("Integrator").first()).toBeVisible();
 
-    if (hasListButton) {
-      await listButton.click();
-      await page.waitForLoadState("networkidle");
-
-      // Should now show Performance List heading
-      await expect(
-        page.getByText("Performance List"),
-      ).toBeVisible({ timeout: 15_000 });
-    }
+    // No error states
+    await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 
   test("documents page renders with document management UI", async ({

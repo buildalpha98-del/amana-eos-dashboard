@@ -12,7 +12,7 @@
 ## Commands
 - `npm run dev` — start dev server
 - `npm run build` — production build (`prisma generate && next build`; always verify after changes). It deliberately does NOT run `prisma migrate deploy` — production migrations come from `vercel.json`'s `buildCommand`. Putting them in the npm script meant a local build pointed `migrate deploy` at the production DB, and broke CI's E2E job with P3005.
-- `npm run lint` — ESLint check
+- `npm run lint` — ESLint check. Zero-error state reached 2026-09-03 and enforced by the CI `lint` job (test.yml): errors fail the build, warnings (unused-vars, design-token rails, exhaustive-deps) are visible but non-blocking — don't add new errors. `@typescript-eslint/no-explicit-any` is warn-only in `src/__tests__`/`tests`/`scripts`/`prisma`, error in production code.
 - `npm test` — run Vitest unit tests
 - `npm run test:integration` — integration tests
 - `npm run test:e2e` — Playwright end-to-end tests
@@ -182,7 +182,8 @@
 
 ## Testing
 - **Unit/Integration**: Vitest (`vitest.config.mts`, `vitest.integration.config.mts`) — 700+ tests across 46 files
-- **E2E**: Playwright (`playwright.config.ts`) — 34 tests across 7 files (requires test DB). Local runs require `.env.local` with `NEXTAUTH_URL=http://localhost:3000` (not the Vercel URL — the magic-link verify redirects off-host otherwise) and `PARENT_JWT_SECRET` set. `playwright.config.ts` has an inline `dotenv` loader so test helpers (which run out-of-process via Prisma) pick these up.
+- **E2E**: Playwright (`playwright.config.ts`) — ~130 tests across 14 files (requires test DB). Local runs require `.env.local` with `NEXTAUTH_URL=http://localhost:3000` (not the Vercel URL — the magic-link verify redirects off-host otherwise) and `PARENT_JWT_SECRET` set. `playwright.config.ts` has an inline `dotenv` loader so test helpers (which run out-of-process via Prisma) pick these up. Seed local test users with `seedTestData()` from `src/lib/test-utils/seed-test-data.ts` (same as CI).
+- **E2E gotchas** (each one broke the 2026-09-02 nightly): (1) the welcome tour modal opens 1.5s after load for any context without `localStorage["amana-tour-completed"]` and silently blocks EVERY click — `auth.setup.ts` stamps the flag before saving storageState; any spec that logs in via the UI must stamp it too. (2) `getByText("X")` is substring + case-insensitive; page copy like subtitles routinely creates strict-mode violations — prefer `getByRole` or `.first()`, and remember `isVisible().catch(() => false)` turns a strict-mode throw into a silent false. (3) After clicking a client-side link, `waitForLoadState("networkidle")` resolves immediately — `waitForURL` before reading `page.url()`. (4) `request.newContext()` inside the runner inherits `test.use({ storageState })`; pass `storageState: { cookies: [], origins: [] }` when creating a session-minting context. (5) `/_vercel/speed-insights/script.js` 404s as HTML off-Vercel — it's in the smoke spec's ignore list, don't fail on it.
 - **Test dir**: `src/__tests__/` with `api/` (route tests), `lib/` (utility tests)
 - **Test helpers**: `src/__tests__/helpers/` — `prisma-mock.ts` (auto-mock with `$transaction` support), `auth-mock.ts` (`mockSession`/`mockNoSession`), `request.ts` (`createRequest`)
 - **Route test coverage**: auth, users, services, todos, rocks, enquiries, webhooks, marketing, CRM, attendance, financials, enrolments, communication, timesheets, incidents, leave, contracts
