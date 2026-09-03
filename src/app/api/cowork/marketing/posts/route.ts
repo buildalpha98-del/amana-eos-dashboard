@@ -71,8 +71,8 @@ export const POST = withApiHandler(async (req) => {
         const post = await prisma.marketingPost.create({
           data: {
             title: p.title,
-            platform: p.platform as any,
-            status: p.status as any,
+            platform: p.platform,
+            status: p.status,
             scheduledDate: p.scheduledDate ? new Date(p.scheduledDate) : null,
             content: p.content || null,
             notes: p.notes || null,
@@ -82,7 +82,7 @@ export const POST = withApiHandler(async (req) => {
             canvaExportUrl: p.canvaExportUrl || null,
             pillar: p.pillar || null,
             campaignId: p.campaignId || null,
-            recurring: p.recurring as any,
+            recurring: p.recurring,
           },
         });
 
@@ -150,8 +150,10 @@ export const GET = withApiHandler(async (req) => {
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
-  const platform = searchParams.get("platform");
+  const statusParsed = createPostSchema.shape.status.removeDefault().safeParse(searchParams.get("status"));
+  const status = statusParsed.success ? statusParsed.data : null;
+  const platformParsed = createPostSchema.shape.platform.safeParse(searchParams.get("platform"));
+  const platform = platformParsed.success ? platformParsed.data : null;
   const serviceCode = searchParams.get("serviceCode");
   const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
 
@@ -167,8 +169,8 @@ export const GET = withApiHandler(async (req) => {
   const posts = await prisma.marketingPost.findMany({
     where: {
       deleted: false,
-      ...(status ? { status: status as any } : {}),
-      ...(platform ? { platform: platform as any } : {}),
+      ...(status ? { status } : {}),
+      ...(platform ? { platform } : {}),
       ...(serviceId ? { services: { some: { serviceId } } } : {}),
     },
     include: {

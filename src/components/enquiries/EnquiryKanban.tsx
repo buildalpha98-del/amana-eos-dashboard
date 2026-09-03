@@ -12,7 +12,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { KanbanColumn } from "./KanbanColumn";
-import { EnquiryCard } from "./EnquiryCard";
+import { EnquiryCard, type KanbanEnquiry } from "./EnquiryCard";
 
 const COLUMNS = [
   { id: "new_enquiry", label: "New Enquiry" },
@@ -36,7 +36,7 @@ export function EnquiryKanban({
   refreshKey,
   onSelectEnquiry,
 }: EnquiryKanbanProps) {
-  const [enquiries, setEnquiries] = useState<any[]>([]);
+  const [enquiries, setEnquiries] = useState<KanbanEnquiry[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,6 +57,7 @@ export function EnquiryKanban({
   }, [serviceId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount/param change; setLoading(true) marks the in-flight request
     fetchEnquiries();
   }, [fetchEnquiries, refreshKey]);
 

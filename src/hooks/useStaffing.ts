@@ -1,10 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
-import type { NetworkSummary } from "@/lib/staffing-analysis";
+import type { NetworkSummary, WeekAnalysis } from "@/lib/staffing-analysis";
 
 interface StaffingDashboardData {
   today: NetworkSummary;
   tomorrow: NetworkSummary;
+}
+
+interface ServiceStaffingData {
+  week: WeekAnalysis;
+  monthlyOverstaffCost: number;
 }
 
 export function useStaffingDashboard() {
@@ -17,15 +22,15 @@ export function useStaffingDashboard() {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function useServiceStaffing(serviceId: string, weekStart?: string) {
-  return useQuery<any>({
+  return useQuery<ServiceStaffingData>({
     staleTime: 30_000,
     queryKey: ["service-staffing", serviceId, weekStart],
     queryFn: () => {
       const sp = new URLSearchParams({ serviceId });
       if (weekStart) sp.set("weekStart", weekStart);
-      return fetchApi(`/api/services/staffing?${sp}`);
+      return fetchApi<ServiceStaffingData>(`/api/services/staffing?${sp}`);
     },
     retry: 2,
     enabled: !!serviceId,

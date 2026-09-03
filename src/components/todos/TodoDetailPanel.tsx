@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
 import { formatDateAU } from "@/lib/utils";
@@ -51,8 +51,10 @@ export function TodoDetailPanel({
   const [isPrivate, setIsPrivate] = useState(todo.isPrivate);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Reset when todo changes
-  useEffect(() => {
+  // Reset when todo changes (adjust-during-render pattern)
+  const [prevTodo, setPrevTodo] = useState(todo);
+  if (todo !== prevTodo) {
+    setPrevTodo(todo);
     setTitle(todo.title);
     setDescription(todo.description || "");
     setAssigneeId(todo.assigneeId);
@@ -62,7 +64,7 @@ export function TodoDetailPanel({
     setRockId(todo.rockId || "");
     setIsPrivate(todo.isPrivate);
     setShowDeleteConfirm(false);
-  }, [todo]);
+  }
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],

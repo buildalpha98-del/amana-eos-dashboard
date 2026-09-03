@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 /**
  * Subscribes to a CSS media query. Safe to call during SSR (returns false on
@@ -11,23 +11,29 @@ import { useEffect, useState } from "react";
  * const isMobile = useMediaQuery("(max-width: 639px)");
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    if (typeof window.matchMedia !== "function") return false;
-    return window.matchMedia(query).matches;
-  });
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (
+        typeof window === "undefined" ||
+        typeof window.matchMedia !== "function"
+      ) {
+        return () => {};
+      }
+      const mql = window.matchMedia(query);
+      mql.addEventListener("change", onStoreChange);
+      return () => mql.removeEventListener("change", onStoreChange);
+    },
+    [query],
+  );
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (typeof window.matchMedia !== "function") return;
-    const mql = window.matchMedia(query);
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
-    setMatches(mql.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, [query]);
-
-  return matches;
+  return useSyncExternalStore(
+    subscribe,
+    () => {
+      if (typeof window.matchMedia !== "function") return false;
+      return window.matchMedia(query).matches;
+    },
+    () => false,
+  );
 }
 
 /** Tailwind's `sm` breakpoint is 640px — anything below is "mobile" here. */

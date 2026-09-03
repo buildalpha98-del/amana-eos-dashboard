@@ -28,6 +28,23 @@ import {
   ArrowDownCircle,
 } from "lucide-react";
 
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface CascadeMeetingOption {
+  id: string;
+  title: string;
+  date: string;
+}
+
+interface CascadeMessage {
+  id: string;
+  message: string;
+  publishedAt: string;
+  meeting?: { title?: string; date?: string } | null;
+  acknowledgments?: Array<{ user?: { id: string; name: string } }>;
+  _count?: { acknowledgments?: number };
+}
+
 // ─── Publish Modal ──────────────────────────────────────────────────────────
 
 function PublishCascadeModal({
@@ -43,7 +60,9 @@ function PublishCascadeModal({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const { data: meetings, isLoading: meetingsLoading } = useQuery<any[]>({
+  const { data: meetings, isLoading: meetingsLoading } = useQuery<
+    CascadeMeetingOption[]
+  >({
     queryKey: ["meetings-for-cascade"],
     queryFn: async () => {
       const res = await fetch("/api/meetings");
@@ -69,7 +88,7 @@ function PublishCascadeModal({
     }
 
     publishCascade.mutate(
-      { meetingId, message: message.trim() } as any,
+      { meetingId, message: message.trim() },
       {
         onSuccess: () => {
           setMeetingId("");
@@ -82,7 +101,7 @@ function PublishCascadeModal({
     );
   };
 
-  const formatMeetingOption = (meeting: any) => {
+  const formatMeetingOption = (meeting: CascadeMeetingOption) => {
     const date = new Date(meeting.date).toLocaleDateString("en-AU", {
       day: "numeric",
       month: "short",
@@ -135,7 +154,7 @@ function PublishCascadeModal({
                 className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select a meeting...</option>
-                {meetings?.map((m: any) => (
+                {meetings?.map((m) => (
                   <option key={m.id} value={m.id}>
                     {formatMeetingOption(m)}
                   </option>
@@ -224,7 +243,7 @@ function CascadeCard({
   isAdmin,
   team,
 }: {
-  msg: any;
+  msg: CascadeMessage;
   teamCount: number;
   isAdmin: boolean;
   team: Array<{ id: string; name: string }> | undefined;
@@ -443,7 +462,7 @@ export function CascadeBoardTab() {
   const { data: team } = useTeam();
   const [showPublishModal, setShowPublishModal] = useState(false);
 
-  const userRole = (session?.user as any)?.role;
+  const userRole = session?.user?.role;
   // 2026-08-31: head_office added — the API always allowed it; the
   // client gate had drifted narrower.
   const isAdmin =
@@ -526,7 +545,7 @@ export function CascadeBoardTab() {
       {/* Timeline feed */}
       {!isLoading && !isError && messages && messages.length > 0 && (
         <div className="border-l-2 border-accent ml-1.5 pl-0">
-          {messages.map((msg: any) => (
+          {messages.map((msg: CascadeMessage) => (
             <CascadeCard
               key={msg.id}
               msg={msg}

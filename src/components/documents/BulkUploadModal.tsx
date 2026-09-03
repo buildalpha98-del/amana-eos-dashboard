@@ -157,9 +157,9 @@ export function BulkUploadModal({
           description: `${result.created} document${result.created !== 1 ? "s" : ""} uploaded successfully${result.failed > 0 ? ` (${result.failed} failed)` : ""}`,
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({
-        description: err.message || "Bulk upload failed",
+        description: err instanceof Error && err.message ? err.message : "Bulk upload failed",
         variant: "destructive",
       });
     }

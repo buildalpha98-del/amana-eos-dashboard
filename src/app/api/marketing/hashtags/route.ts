@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { MarketingHashtagCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -12,12 +13,16 @@ const createHashtagSetSchema = z.object({
 // GET /api/marketing/hashtags — list hashtag sets with optional filters
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
-  const category = searchParams.get("category");
+  const category = z
+    .nativeEnum(MarketingHashtagCategory)
+    .nullable()
+    .catch(null)
+    .parse(searchParams.get("category"));
 
   const hashtagSets = await prisma.marketingHashtagSet.findMany({
     where: {
       deleted: false,
-      ...(category ? { category: category as any } : {}),
+      ...(category ? { category } : {}),
     },
     orderBy: [{ category: "asc" }, { name: "asc" }],
   });

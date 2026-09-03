@@ -78,7 +78,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
       }
       return prev;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [form.role, form.serviceId, form.employmentType, services]);
 
   const handleSubmit = async (e: React.FormEvent) => {

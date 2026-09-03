@@ -31,6 +31,7 @@
  */
 
 import { readFileSync } from "node:fs";
+import dotenv from "dotenv";
 import { PrismaClient, type SessionType } from "@prisma/client";
 import {
   DEFAULT_SESSION_TIMES,
@@ -41,11 +42,9 @@ import {
 } from "../src/lib/responsible-person";
 
 // Best-effort env load so the script picks up the local DATABASE_URL the
-// same way the dev server does. Guarded — if dotenv isn't present the
+// same way the dev server does. Guarded — if loading fails the
 // PrismaClient will still use whatever's already in process.env.
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const dotenv = require("dotenv");
   dotenv.config({ path: ".env.local" });
   dotenv.config();
 } catch {

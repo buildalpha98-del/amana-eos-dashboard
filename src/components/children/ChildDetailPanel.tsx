@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   X,
   ChevronDown,
@@ -528,15 +528,17 @@ function EditMedicalDialog({
   const [customCondition, setCustomCondition] = useState("");
   const [customDietary, setCustomDietary] = useState("");
 
-  useEffect(() => {
-    if (data) {
-      setConditions(data.medicalConditions);
-      setDietary(data.dietaryRequirements);
-      setAnaphylaxisPlan(data.anaphylaxisActionPlan);
-      setMedicationDetails(data.medicationDetails ?? "");
-      setAdditionalNeeds(data.additionalNeeds ?? "");
-    }
-  }, [data]);
+  // Populate form when medical data loads —
+  // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect"
+  const [prevData, setPrevData] = useState<typeof data>(undefined);
+  if (data && data !== prevData) {
+    setPrevData(data);
+    setConditions(data.medicalConditions);
+    setDietary(data.dietaryRequirements);
+    setAnaphylaxisPlan(data.anaphylaxisActionPlan);
+    setMedicationDetails(data.medicationDetails ?? "");
+    setAdditionalNeeds(data.additionalNeeds ?? "");
+  }
 
   const toggleItem = (
     list: string[],

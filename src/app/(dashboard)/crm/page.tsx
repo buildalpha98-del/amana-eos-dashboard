@@ -503,6 +503,8 @@ interface SchoolHealthEntry {
 }
 
 function SchoolHealthSection() {
+  // Captured once on mount so render stays pure (day-level granularity)
+  const [now] = useState(() => Date.now());
   const { data, isLoading } = useQuery<{ schools: SchoolHealthEntry[] }>({
     queryKey: ["school-health"],
     queryFn: async () => {
@@ -553,7 +555,7 @@ function SchoolHealthSection() {
           <tbody className="divide-y divide-border/50">
             {schools.map((s) => {
               const daysSinceVisit = s.lastPrincipalVisit
-                ? Math.floor((Date.now() - new Date(s.lastPrincipalVisit).getTime()) / (1000 * 60 * 60 * 24))
+                ? Math.floor((now - new Date(s.lastPrincipalVisit).getTime()) / (1000 * 60 * 60 * 24))
                 : null;
               return (
                 <tr key={s.serviceId} className="hover:bg-surface">

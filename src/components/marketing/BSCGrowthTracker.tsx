@@ -13,6 +13,17 @@ interface BSCCentre {
   percentOfTarget: number;
 }
 
+// Raw centre shape from /api/marketing/occupancy — only the fields this
+// component reads. The bsc* figures may be absent, hence the ?? 0 guards.
+interface OccupancyCentre {
+  serviceId: string;
+  serviceName: string;
+  serviceCode: string;
+  bscEnrolled?: number;
+  bscTarget?: number;
+  bscTrend?: number;
+}
+
 interface BSCData {
   centres: BSCCentre[];
   totalEnrolled: number;
@@ -33,15 +44,19 @@ export function BSCGrowthTracker({ serviceId }: { serviceId?: string }) {
       .then((r) => r.json())
       .then((res) => {
         // Extract BSC-specific data from occupancy endpoint
-        const centres: BSCCentre[] = (res.centres || []).map((c: any) => ({
-          serviceId: c.serviceId,
-          serviceName: c.serviceName,
-          serviceCode: c.serviceCode,
-          bscEnrolled: c.bscEnrolled ?? 0,
-          bscTarget: c.bscTarget ?? 0,
-          weekOnWeekChange: c.bscTrend ?? 0,
-          percentOfTarget: c.bscTarget > 0 ? Math.round((c.bscEnrolled / c.bscTarget) * 100) : 0,
-        }));
+        const centres: BSCCentre[] = (res.centres || []).map((c: OccupancyCentre) => {
+          const bscEnrolled = c.bscEnrolled ?? 0;
+          const bscTarget = c.bscTarget ?? 0;
+          return {
+            serviceId: c.serviceId,
+            serviceName: c.serviceName,
+            serviceCode: c.serviceCode,
+            bscEnrolled,
+            bscTarget,
+            weekOnWeekChange: c.bscTrend ?? 0,
+            percentOfTarget: bscTarget > 0 ? Math.round((bscEnrolled / bscTarget) * 100) : 0,
+          };
+        });
 
         const totalEnrolled = centres.reduce((s: number, c: BSCCentre) => s + c.bscEnrolled, 0);
         const totalTarget = centres.reduce((s: number, c: BSCCentre) => s + c.bscTarget, 0);

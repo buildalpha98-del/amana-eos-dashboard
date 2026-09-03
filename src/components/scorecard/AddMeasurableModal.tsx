@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
@@ -53,8 +53,13 @@ export function AddMeasurableModal({
   const [unit, setUnit] = useState("");
   const [error, setError] = useState("");
 
-  // Pre-fill form when editing
-  useEffect(() => {
+  // Pre-fill form when editing (adjust-during-render pattern)
+  const [prevFill, setPrevFill] = useState({ editingMeasurable, open });
+  if (
+    editingMeasurable !== prevFill.editingMeasurable ||
+    open !== prevFill.open
+  ) {
+    setPrevFill({ editingMeasurable, open });
     if (editingMeasurable) {
       setTitle(editingMeasurable.title);
       setDescription(editingMeasurable.description || "");
@@ -71,7 +76,7 @@ export function AddMeasurableModal({
       setUnit("");
     }
     setError("");
-  }, [editingMeasurable, open]);
+  }
 
   const createMeasurable = useMutation({
     mutationFn: async (data: {

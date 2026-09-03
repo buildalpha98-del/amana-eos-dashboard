@@ -46,6 +46,7 @@ export function useTemplateAutosave(args: {
     if (args.enabled === false) return;
     const serialized = JSON.stringify(args.value);
     if (serialized === lastSavedSerializedRef.current) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- "dirty" must flip exactly when this effect schedules the debounced save; deriving it in render would desync it from the debounce/save lifecycle
     setState("dirty");
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {

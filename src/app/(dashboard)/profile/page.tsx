@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
@@ -145,10 +145,12 @@ export default function ProfilePage() {
   const [bankBSB, setBankBSB] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
 
-  // Populate form when profile loads
-  useEffect(() => {
-    if (profile) {
-      setPhone(profile.phone ?? "");
+  // Populate form when profile loads —
+  // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect"
+  const [prevProfile, setPrevProfile] = useState<typeof profile>(undefined);
+  if (profile && profile !== prevProfile) {
+    setPrevProfile(profile);
+    setPhone(profile.phone ?? "");
       setAddressStreet(profile.addressStreet ?? "");
       setAddressSuburb(profile.addressSuburb ?? "");
       setAddressState(profile.addressState ?? "");
@@ -160,8 +162,7 @@ export default function ProfilePage() {
       setBankAccountName(profile.bankAccountName ?? "");
       setBankBSB(profile.bankBSB ?? "");
       setBankAccountNumber(profile.bankAccountNumber ?? "");
-    }
-  }, [profile]);
+  }
 
   const updateMutation = useMutation({
     mutationFn: async (data: Record<string, string>) => {

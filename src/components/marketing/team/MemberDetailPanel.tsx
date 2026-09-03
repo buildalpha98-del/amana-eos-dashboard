@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { usePatchMember, useDeleteMember, type TeamMember } from "@/hooks/useContentTeam";
@@ -54,7 +54,14 @@ export function MemberDetailPanel({ member, onClose }: MemberDetailPanelProps) {
   const [pauseReason, setPauseReason] = useState("");
   const [notes, setNotes] = useState("");
 
-  useEffect(() => {
+  // Re-seed the form whenever a different member is shown (render-time sync
+  // guarded by the last-synced member id, per React's "adjusting state when
+  // props change" pattern)
+  const [prevMemberId, setPrevMemberId] = useState<string | undefined>(
+    undefined,
+  );
+  if (member?.id !== prevMemberId) {
+    setPrevMemberId(member?.id);
     if (member) {
       setName(member.name);
       setRole(member.role);
@@ -66,7 +73,7 @@ export function MemberDetailPanel({ member, onClose }: MemberDetailPanelProps) {
       setNotes(member.notes ?? "");
       setEditing(false);
     }
-  }, [member?.id]);
+  }
 
   if (!member) {
     return (

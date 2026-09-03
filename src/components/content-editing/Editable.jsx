@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable react/no-unknown-property */
+ 
 /**
  * Generic inline-edit primitives wired to ContentEditingContext.
  *

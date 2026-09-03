@@ -49,7 +49,7 @@ vi.mock("@/lib/server-auth", () => {
     requireAuth: vi.fn(() =>
       Promise.resolve({ session: mockSession, error: null })
     ),
-    withApiAuth: vi.fn((handler: Function) => {
+    withApiAuth: vi.fn((handler: (...args: unknown[]) => unknown) => {
       return async (req: any, context?: any) => {
         return handler(req, mockSession, context);
       };

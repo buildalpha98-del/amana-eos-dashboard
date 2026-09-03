@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { MarketingCampaignStatus, MarketingCampaignType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
@@ -58,11 +59,11 @@ export const POST = withApiHandler(async (req) => {
     const campaign = await prisma.marketingCampaign.create({
       data: {
         name: data.name,
-        type: data.type as any,
-        status: data.status as any,
+        type: data.type,
+        status: data.status,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
-        platforms: (data.platforms as any) || [],
+        platforms: data.platforms || [],
         goal: data.goal || data.description || null,
         notes: data.notes || null,
         designLink: data.designLink || null,
@@ -139,11 +140,17 @@ export const GET = withApiHandler(async (req) => {
     serviceId = service?.id;
   }
 
+  // Coerce query-string filters to the Prisma enums; unknown values are
+  // ignored rather than reaching Prisma's where clause (same convention as
+  // parseRoleParam — see src/lib/role-enum.ts).
+  const statusFilter = Object.values(MarketingCampaignStatus).find((s) => s === status);
+  const typeFilter = Object.values(MarketingCampaignType).find((t) => t === type);
+
   const campaigns = await prisma.marketingCampaign.findMany({
     where: {
       deleted: false,
-      ...(status ? { status: status as any } : {}),
-      ...(type ? { type: type as any } : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(typeFilter ? { type: typeFilter } : {}),
       ...(serviceId ? { services: { some: { serviceId } } } : {}),
     },
     include: {

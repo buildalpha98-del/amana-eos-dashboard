@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   X,
   Zap,
@@ -52,8 +52,10 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
   const { data: services } = useServices("active");
   const applyTemplate = useApplyMarketingTaskTemplate();
 
-  // Reset state when modal opens
-  useEffect(() => {
+  // Reset state when modal opens (adjust-during-render pattern)
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setExpandedId(null);
       setSelectedId(null);
@@ -61,7 +63,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
       setServiceId("");
       setStartDate("");
     }
-  }, [open]);
+  }
 
   if (!open) return null;
 

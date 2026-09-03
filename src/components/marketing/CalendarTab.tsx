@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, GanttChart } from "lucide-react";
 import { usePosts, useCampaigns, useMarketingTasks } from "@/hooks/useMarketing";
-import type { PostData } from "@/hooks/useMarketing";
+import type { PostData, MarketingTaskData } from "@/hooks/useMarketing";
 import { TimelineView } from "./TimelineView";
 import { CreatePostModal } from "./CreatePostModal";
 
@@ -96,7 +96,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
 
   // Group tasks by due date
   const tasksByDate = useMemo(() => {
-    const map: Record<string, any[]> = {};
+    const map: Record<string, MarketingTaskData[]> = {};
     if (!tasks) return map;
     for (const task of tasks) {
       if (!task.dueDate) continue;
@@ -250,7 +250,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                         <span className="truncate">{post.title}</span>
                       </button>
                     ))}
-                    {dayTasks.slice(0, Math.max(1, 3 - dayPosts.length)).map((task: any) => (
+                    {dayTasks.slice(0, Math.max(1, 3 - dayPosts.length)).map((task) => (
                       <button
                         key={task.id}
                         onClick={(e) => { e.stopPropagation(); onSelectTask?.(task.id); }}

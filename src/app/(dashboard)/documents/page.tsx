@@ -300,8 +300,11 @@ export default function DocumentsPage() {
     try {
       await deleteFolder.mutateAsync(folderId);
       setDeleteFolderId(null);
-    } catch (err: any) {
-      toast({ description: err.message || "Failed to delete folder", variant: "destructive" });
+    } catch (err) {
+      toast({
+        description: err instanceof Error && err.message ? err.message : "Failed to delete folder",
+        variant: "destructive",
+      });
     }
   };
 
@@ -328,7 +331,7 @@ export default function DocumentsPage() {
   const handleExport = () => {
     if (!documents || documents.length === 0) return;
     exportToCSV(
-      documents.map((doc: any) => ({
+      documents.map((doc) => ({
         title: doc.title,
         category: doc.category,
         centre: doc.centre?.name || "",

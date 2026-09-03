@@ -34,9 +34,9 @@ const { serviceIds } = role === "marketing" ? { serviceIds: null } : await getCe
 
   if (status) {
     if (status.includes(",")) {
-      where.status = { in: status.split(",") as any };
+      where.status = { in: status.split(",") };
     } else {
-      where.status = status as any;
+      where.status = status;
     }
   }
   if (priority) where.priority = priority;

@@ -706,7 +706,7 @@ function ImportFromOWNAModal({
         const workbook = XLSX.read(data, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, {
+        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
           defval: "",
         });
 
@@ -774,7 +774,7 @@ function ImportFromOWNAModal({
           }
 
           // Handle time values
-          const parseTime = (val: any): string => {
+          const parseTime = (val: unknown): string => {
             if (typeof val === "number") {
               // Excel serial time
               const totalMins = Math.round(val * 24 * 60);
@@ -820,8 +820,12 @@ function ImportFromOWNAModal({
 
         setParsedEntries(validEntries);
         setStep("preview");
-      } catch (err: any) {
-        setParseError(err.message || "Failed to parse file");
+      } catch (err) {
+        setParseError(
+          err instanceof Error && err.message
+            ? err.message
+            : "Failed to parse file"
+        );
       }
     };
     reader.readAsBinaryString(file);
@@ -1191,7 +1195,7 @@ function TimesheetDetail({
               {formatDate(ts.weekEnding)}
             </h4>
             <p className="text-xs text-muted mt-0.5">
-              {entries.length} entries &middot; {formatHours(entries.reduce((sum: number, e: any) => sum + (e.totalHours || 0), 0))} hrs
+              {entries.length} entries &middot; {formatHours(entries.reduce((sum, e) => sum + (e.totalHours || 0), 0))} hrs
               total
             </p>
           </div>
@@ -1450,7 +1454,11 @@ export default function TimesheetsPage() {
       const res = await fetch("/api/services");
       if (!res.ok) return [];
       const data = await res.json();
-      return data.map((s: any) => ({ id: s.id, name: s.name, code: s.code }));
+      return data.map((s: ServiceOption) => ({
+        id: s.id,
+        name: s.name,
+        code: s.code,
+      }));
     },
   });
 
@@ -1464,7 +1472,7 @@ export default function TimesheetsPage() {
     return Object.keys(f).length > 0 ? f : undefined;
   }, [filterService, filterStatus, filterFrom, filterTo]);
 
-  const { data: timesheets, isLoading, error, refetch } = useTimesheets(filters as any);
+  const { data: timesheets, isLoading, error, refetch } = useTimesheets(filters);
   const { data: summaryData } = useTimesheetsSummary(
     filterService || undefined,
     filterFrom || undefined,

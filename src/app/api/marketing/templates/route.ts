@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { MarketingPlatform } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -23,12 +24,18 @@ const createTemplateSchema = z.object({
 // GET /api/marketing/templates — list templates with optional filters
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
-  const platform = searchParams.get("platform");
+  const platformParam = searchParams.get("platform");
+  const platformParsed = platformParam
+    ? z.nativeEnum(MarketingPlatform).safeParse(platformParam)
+    : null;
+  if (platformParsed && !platformParsed.success) {
+    return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
+  }
 
   const templates = await prisma.marketingTemplate.findMany({
     where: {
       deleted: false,
-      ...(platform ? { platform: platform as any } : {}),
+      ...(platformParsed?.success ? { platform: platformParsed.data } : {}),
     },
     orderBy: { createdAt: "desc" },
   });
