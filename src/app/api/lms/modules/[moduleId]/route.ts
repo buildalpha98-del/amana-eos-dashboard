@@ -25,12 +25,12 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const module = await prisma.lMSModule.update({
+  const updatedModule = await prisma.lMSModule.update({
     where: { id: moduleId },
     data: parsed.data,
   });
 
-  return NextResponse.json(module);
+  return NextResponse.json(updatedModule);
 }, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/lms/modules/[moduleId] — delete a module

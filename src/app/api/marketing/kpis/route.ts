@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { MarketingKPIPeriod, MarketingKPICategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -17,14 +18,26 @@ const createKPISchema = z.object({
 // GET /api/marketing/kpis — list KPIs with optional filters
 export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
-  const period = searchParams.get("period");
-  const category = searchParams.get("category");
+  const periodParam = searchParams.get("period");
+  const categoryParam = searchParams.get("category");
+  const periodParsed = periodParam
+    ? z.nativeEnum(MarketingKPIPeriod).safeParse(periodParam)
+    : null;
+  if (periodParsed && !periodParsed.success) {
+    return NextResponse.json({ error: "Invalid period" }, { status: 400 });
+  }
+  const categoryParsed = categoryParam
+    ? z.nativeEnum(MarketingKPICategory).safeParse(categoryParam)
+    : null;
+  if (categoryParsed && !categoryParsed.success) {
+    return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+  }
 
   const kpis = await prisma.marketingKPI.findMany({
     where: {
       deleted: false,
-      ...(period ? { period: period as any } : {}),
-      ...(category ? { category: category as any } : {}),
+      ...(periodParsed?.success ? { period: periodParsed.data } : {}),
+      ...(categoryParsed?.success ? { category: categoryParsed.data } : {}),
     },
     orderBy: [{ category: "asc" }, { name: "asc" }],
   });

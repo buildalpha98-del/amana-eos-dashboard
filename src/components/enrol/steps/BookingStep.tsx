@@ -71,7 +71,7 @@ export function BookingStep({ data, updateData }: Props) {
 
   return (
     <div className="space-y-6">
-      <ChildTabs children={data.children} activeIndex={activeChild} onChange={setActiveChild} />
+      <ChildTabs activeIndex={activeChild} onChange={setActiveChild}>{data.children}</ChildTabs>
 
       <h3 className="text-lg font-semibold text-foreground">
         Booking Preferences — {data.children[activeChild]?.firstName || `Child ${activeChild + 1}`}

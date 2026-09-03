@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { MarketingCampaignStatus, MarketingCampaignType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody, ApiError } from "@/lib/api-error";
@@ -45,11 +46,17 @@ export const GET = withApiAuth(async (req, session) => {
   const type = searchParams.get("type");
   const serviceId = searchParams.get("serviceId");
 
+  // Coerce query-string filters to the Prisma enums; unknown values are
+  // ignored rather than reaching Prisma's where clause (same convention as
+  // parseRoleParam — see src/lib/role-enum.ts).
+  const statusFilter = Object.values(MarketingCampaignStatus).find((s) => s === status);
+  const typeFilter = Object.values(MarketingCampaignType).find((t) => t === type);
+
   const campaigns = await prisma.marketingCampaign.findMany({
     where: {
       deleted: false,
-      ...(status ? { status: status as any } : {}),
-      ...(type ? { type: type as any } : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(typeFilter ? { type: typeFilter } : {}),
       ...(serviceId ? { services: { some: { serviceId } } } : {}),
     },
     include: {

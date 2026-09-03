@@ -4,9 +4,21 @@ import { toast } from "@/hooks/useToast";
 
 // ─── Status ──────────────────────────────────────────────────────────────────
 
+export interface XeroStatus {
+  status: string;
+  tenantName?: string | null;
+  trackingCategoryId?: string | null;
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  lastSyncError?: string | null;
+  syncedFinancialPeriods?: unknown;
+  mappedCentres?: number;
+  accountMappings?: number;
+}
+
 // Special error handling: returns default on failure — keep raw fetch
 export function useXeroStatus() {
-  return useQuery<any>({
+  return useQuery<XeroStatus>({
     staleTime: 30_000,
     queryKey: ["xero-status"],
     queryFn: async () => {
@@ -54,18 +66,38 @@ export function useXeroDisconnect() {
 
 // ─── Tracking Categories ─────────────────────────────────────────────────────
 
+interface XeroRawTrackingOption {
+  TrackingOptionID: string;
+  Name: string;
+  Status: string;
+}
+
+interface XeroRawTrackingCategory {
+  TrackingCategoryID: string;
+  Name: string;
+  Status: string;
+  Options?: XeroRawTrackingOption[];
+}
+
+export interface XeroTrackingCategory {
+  id: string;
+  name: string;
+  status: string;
+  options: { id: string; name: string; status: string }[];
+}
+
 export function useXeroTrackingCategories(enabled = false) {
-  return useQuery<any[]>({
+  return useQuery<XeroTrackingCategory[]>({
     staleTime: 30_000,
     queryKey: ["xero-tracking-categories"],
     queryFn: async () => {
-      const data = await fetchApi<any[]>("/api/xero/tracking-categories");
+      const data = await fetchApi<XeroRawTrackingCategory[]>("/api/xero/tracking-categories");
       // Normalize Xero PascalCase to lowercase for component use
-      return (data || []).map((cat: any) => ({
+      return (data || []).map((cat) => ({
         id: cat.TrackingCategoryID,
         name: cat.Name,
         status: cat.Status,
-        options: (cat.Options || []).map((opt: any) => ({
+        options: (cat.Options || []).map((opt) => ({
           id: opt.TrackingOptionID,
           name: opt.Name,
           status: opt.Status,
@@ -79,15 +111,33 @@ export function useXeroTrackingCategories(enabled = false) {
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
 
+interface XeroRawAccount {
+  Code: string;
+  Name: string;
+  Type?: string;
+  Class?: string;
+}
+
+export interface XeroAccount {
+  id: string;
+  code: string;
+  name: string;
+  type?: string;
+  Code: string;
+  Name: string;
+  Type?: string;
+  Class?: string;
+}
+
 export function useXeroAccounts(enabled = false) {
-  return useQuery<any[]>({
+  return useQuery<XeroAccount[]>({
     staleTime: 30_000,
     queryKey: ["xero-accounts"],
     queryFn: async () => {
-      const data = await fetchApi<any[]>("/api/xero/accounts");
+      const data = await fetchApi<XeroRawAccount[]>("/api/xero/accounts");
       // Normalize Xero PascalCase to lowercase for component use
       // Also keep originals for the save handler
-      return (data || []).map((acc: any) => ({
+      return (data || []).map((acc) => ({
         id: acc.Code,
         code: acc.Code,
         name: acc.Name,
@@ -105,12 +155,19 @@ export function useXeroAccounts(enabled = false) {
 
 // ─── Mappings ────────────────────────────────────────────────────────────────
 
+export interface XeroMappingsData {
+  trackingCategoryId: string | null;
+  services: { id: string; name: string; code: string; xeroTrackingOptionId: string | null }[];
+  centreMappings?: { xeroOptionId: string; serviceId: string }[];
+  accountMappings: { xeroAccountId: string; category: string }[];
+}
+
 export function useXeroMappings(enabled = false) {
-  return useQuery<any>({
+  return useQuery<XeroMappingsData>({
     staleTime: 30_000,
     queryKey: ["xero-mappings"],
     queryFn: async () => {
-      return fetchApi("/api/xero/mappings");
+      return fetchApi<XeroMappingsData>("/api/xero/mappings");
     },
     enabled,
     retry: 2,

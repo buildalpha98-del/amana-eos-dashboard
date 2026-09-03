@@ -51,7 +51,7 @@ const { id: courseId } = await context!.params!;
     _max: { sortOrder: true },
   });
 
-  const module = await prisma.lMSModule.create({
+  const createdModule = await prisma.lMSModule.create({
     data: {
       courseId,
       title: parsed.data.title,
@@ -71,10 +71,10 @@ const { id: courseId } = await context!.params!;
       userId: session!.user.id,
       action: "create",
       entityType: "LMSModule",
-      entityId: module.id,
-      details: { title: module.title, courseId },
+      entityId: createdModule.id,
+      details: { title: createdModule.title, courseId },
     },
   });
 
-  return NextResponse.json(module, { status: 201 });
+  return NextResponse.json(createdModule, { status: 201 });
 }, { roles: ["owner", "head_office", "admin"] });

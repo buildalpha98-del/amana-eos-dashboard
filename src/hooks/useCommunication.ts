@@ -8,13 +8,36 @@ import { toast } from "@/hooks/useToast";
 // ANNOUNCEMENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/** Announcement row as serialised by /api/communication/announcements. */
+export interface CommunicationAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  audience: string;
+  priority: string;
+  pinned: boolean;
+  serviceId: string | null;
+  publishedAt: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
+  author: { id: string; name: string | null; avatar: string | null } | null;
+  service?: { id: string; name: string } | null;
+  _count?: { readReceipts: number };
+  /** Only present on the single-announcement (detail) endpoint. */
+  readReceipts?: Array<{
+    id: string;
+    readAt: string;
+    user: { id: string; name: string | null };
+  }>;
+}
+
 export function useAnnouncements(audience?: string) {
   return useQuery({
     staleTime: 30_000,
     queryKey: ["announcements", audience],
     queryFn: async () => {
       const params = audience ? `?audience=${audience}` : "";
-      return fetchApi<any>(`/api/communication/announcements${params}`);
+      return fetchApi<CommunicationAnnouncement[]>(`/api/communication/announcements${params}`);
     },
     retry: 2,
   });
@@ -25,7 +48,7 @@ export function useAnnouncement(id: string) {
     staleTime: 30_000,
     queryKey: ["announcement", id],
     queryFn: async () => {
-      return fetchApi<any>(`/api/communication/announcements/${id}`);
+      return fetchApi<CommunicationAnnouncement>(`/api/communication/announcements/${id}`);
     },
     enabled: !!id,
     retry: 2,
@@ -129,12 +152,30 @@ export function useMarkAnnouncementRead() {
 // CASCADE MESSAGES
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Cascade message as serialised by /api/communication/cascade. The list
+ * endpoint returns only the current user's acknowledgment (no `user`); the
+ * detail endpoint returns every acknowledgment with its user.
+ */
+export interface CascadeMessageRecord {
+  id: string;
+  message: string;
+  publishedAt: string;
+  meeting: { id: string; title: string; date: string } | null;
+  acknowledgments?: Array<{
+    id?: string;
+    acknowledgedAt?: string;
+    user?: { id: string; name: string };
+  }>;
+  _count?: { acknowledgments: number };
+}
+
 export function useCascadeMessages() {
   return useQuery({
     staleTime: 30_000,
     queryKey: ["cascade-messages"],
     queryFn: async () => {
-      return fetchApi<any>("/api/communication/cascade");
+      return fetchApi<CascadeMessageRecord[]>("/api/communication/cascade");
     },
     retry: 2,
   });
@@ -145,7 +186,7 @@ export function useCascadeMessage(id: string) {
     staleTime: 30_000,
     queryKey: ["cascade-message", id],
     queryFn: async () => {
-      return fetchApi<any>(`/api/communication/cascade/${id}`);
+      return fetchApi<CascadeMessageRecord>(`/api/communication/cascade/${id}`);
     },
     enabled: !!id,
     retry: 2,
@@ -238,6 +279,26 @@ export function useAcknowledgeCascade() {
 // WEEKLY PULSE
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/** Weekly pulse row as serialised by /api/communication/pulse. */
+export interface WeeklyPulseRecord {
+  id: string;
+  /** Absent on the summary endpoint's trimmed rows. */
+  weekOf?: string;
+  userId?: string;
+  wins: string | null;
+  priorities: string | null;
+  blockers: string | null;
+  mood: number | null;
+  notes: string | null;
+  submittedAt: string | null;
+  user?: {
+    id: string;
+    name: string | null;
+    email?: string | null;
+    avatar?: string | null;
+  } | null;
+}
+
 export function usePulses(weekOf?: string, userId?: string) {
   return useQuery({
     queryKey: ["pulses", weekOf, userId],
@@ -246,7 +307,7 @@ export function usePulses(weekOf?: string, userId?: string) {
       if (weekOf) params.set("weekOf", weekOf);
       if (userId) params.set("userId", userId);
       const qs = params.toString();
-      return fetchApi<any>(
+      return fetchApi<WeeklyPulseRecord[]>(
         `/api/communication/pulse${qs ? `?${qs}` : ""}`
       );
     },
@@ -264,7 +325,7 @@ export function usePulse(id: string) {
     staleTime: 30_000,
     queryKey: ["pulse", id],
     queryFn: async () => {
-      return fetchApi<any>(`/api/communication/pulse/${id}`);
+      return fetchApi<WeeklyPulseRecord>(`/api/communication/pulse/${id}`);
     },
     enabled: !!id,
     retry: 2,
@@ -347,12 +408,21 @@ export function useDeletePulse() {
   });
 }
 
+/** Response shape of /api/communication/pulse/summary. */
+export interface PulseSummary {
+  totalUsers: number;
+  submitted: number;
+  avgMood: number;
+  blockerCount: number;
+  pulses: WeeklyPulseRecord[];
+}
+
 export function usePulseSummary(weekOf: string) {
   return useQuery({
     staleTime: 30_000,
     queryKey: ["pulse-summary", weekOf],
     queryFn: async () => {
-      return fetchApi<any>(
+      return fetchApi<PulseSummary>(
         `/api/communication/pulse/summary?weekOf=${weekOf}`
       );
     },

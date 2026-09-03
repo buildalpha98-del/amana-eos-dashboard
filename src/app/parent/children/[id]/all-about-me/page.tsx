@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
@@ -76,9 +76,12 @@ export default function AllAboutMePage({
     staleTime: 30_000,
   });
 
-  useEffect(() => {
-    if (data) setForm(fromServer(data.allAboutMe));
-  }, [data]);
+  // Sync form state from the latest server data (adjust-during-render pattern)
+  const [syncedData, setSyncedData] = useState<typeof data>(undefined);
+  if (data && data !== syncedData) {
+    setSyncedData(data);
+    setForm(fromServer(data.allAboutMe));
+  }
 
   const save = useMutation({
     mutationFn: async (next: FormState) => {
@@ -136,7 +139,7 @@ export default function AllAboutMePage({
         </h1>
         <p className="text-sm text-[color:var(--color-muted)]">
           Filling this in before the first day helps our educators greet your
-          child by nickname, swap a snack they don't like, and steer clear of
+          child by nickname, swap a snack they don&apos;t like, and steer clear of
           known fears. Nothing here is required — share what feels useful.
         </p>
         {data?.allAboutMe?.submittedAt && (

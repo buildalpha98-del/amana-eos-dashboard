@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
@@ -71,7 +72,7 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "Leave request not found" }, { status: 404 });
   }
 
-  const data: Record<string, unknown> = {};
+  const data: Prisma.LeaveRequestUncheckedUpdateInput = {};
 
   // Status change to approved/rejected requires owner/admin
   if (
@@ -130,7 +131,7 @@ const { id } = await context!.params!;
 
   const updated = await prisma.leaveRequest.update({
     where: { id },
-    data: data as any,
+    data,
     include: {
       user: { select: { id: true, name: true, email: true, avatar: true } },
       reviewedBy: { select: { id: true, name: true, email: true } },

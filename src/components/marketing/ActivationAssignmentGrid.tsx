@@ -98,12 +98,16 @@ export function ActivationAssignmentGrid({
     });
   }, [services, assignments]);
 
-  // Sync merged rows into local state when data changes (but not when dirty)
-  useEffect(() => {
+  // Sync merged rows into local state when data changes (but not when dirty).
+  // Adjusted during render with the same trigger semantics as the previous
+  // effect (re-evaluates when mergedRows or dirty changes).
+  const [prevSync, setPrevSync] = useState<{ mergedRows: RowData[]; dirty: boolean } | null>(null);
+  if (prevSync === null || prevSync.mergedRows !== mergedRows || prevSync.dirty !== dirty) {
+    setPrevSync({ mergedRows, dirty });
     if (!dirty && mergedRows.length > 0) {
       setRows(mergedRows);
     }
-  }, [mergedRows, dirty]);
+  }
 
   const updateRow = (serviceId: string, field: keyof RowData, value: unknown) => {
     setDirty(true);

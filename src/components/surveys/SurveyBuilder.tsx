@@ -15,7 +15,7 @@
  * surfaces as a red banner when relevant.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -122,9 +122,11 @@ export function SurveyBuilder({ surveyId, onDone, onCancel }: Props) {
   const [closesAt, setClosesAt] = useState("");
   const [questions, setQuestions] = useState<QuestionInput[]>([]);
 
-  // Seed form from existing survey when editing.
-  useEffect(() => {
-    if (!existing) return;
+  // Seed form from existing survey when editing (adjusted during render on a
+  // new payload reference — same trigger as the previous effect).
+  const [seededFrom, setSeededFrom] = useState<typeof existing | null>(null);
+  if (existing && existing !== seededFrom) {
+    setSeededFrom(existing);
     setTitle(existing.title);
     setDescription(existing.description ?? "");
     setAnonymous(existing.anonymous);
@@ -143,7 +145,7 @@ export function SurveyBuilder({ surveyId, onDone, onCancel }: Props) {
         sortOrder: q.sortOrder,
       })),
     );
-  }, [existing]);
+  }
 
   const editLocked = useMemo(
     () => !!existing && (existing._count?.responses ?? 0) > 0,

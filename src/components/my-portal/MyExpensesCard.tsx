@@ -16,12 +16,16 @@
  * banner if Submit without one).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Receipt, X, AlertTriangle, Paperclip } from "lucide-react";
 import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+
+// Static "store" for the is-mounted check — never notifies, only the
+// server/client snapshots differ.
+const mountedSubscribe = () => () => {};
 
 interface ExpenseLineItem {
   id: number;
@@ -328,8 +332,11 @@ function SubmitExpenseModal({ onClose, onSubmitted }: SubmitExpenseModalProps) {
   // switch height to `dvh` (dynamic viewport height) so the footer with
   // the Submit button stays reachable behind iOS Safari's URL bar —
   // reports of "the submit button isn't clickable" on iPhone.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    mountedSubscribe,
+    () => true, // client: mounted
+    () => false // server: not mounted
+  );
   if (!mounted) return null;
 
   const modal = (

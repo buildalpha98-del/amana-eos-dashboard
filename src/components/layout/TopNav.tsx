@@ -60,11 +60,14 @@ export function TopNav({ onMobileMenu }: TopNavProps) {
     return order.map((key) => ({ key, items: byKey.get(key)! }));
   }, [session?.user?.role]);
 
-  // Close the open dropdown when the user clicks outside / presses Esc /
-  // navigates to a new page.
-  useEffect(() => {
+  // Close the open dropdown when the user navigates to a new page —
+  // adjust-state-during-render pattern, see react.dev "You Might Not Need an Effect".
+  // (Click-outside / Esc closing is handled by the effect below.)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setOpenSection(null);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     if (!openSection) return;

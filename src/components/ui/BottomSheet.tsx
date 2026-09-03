@@ -16,6 +16,7 @@ interface BottomSheetProps {
 
 export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe mount flag: createPortal needs document, so the portal can only render after hydration
   useEffect(() => setMounted(true), []);
   const sheetRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);

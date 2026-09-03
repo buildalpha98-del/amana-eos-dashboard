@@ -39,14 +39,16 @@ vi.mock("@/lib/api-error", () => {
   };
 });
 
-vi.mock("@/lib/api-handler", () => ({
-  handleApiError: vi.fn((_req: unknown, err: unknown, _reqId?: string) => {
-    const { NextResponse } = require("next/server");
-    const status = (err as { statusCode?: number })?.statusCode ?? 500;
-    const message = (err as { message?: string })?.message ?? "Internal error";
-    return NextResponse.json({ error: message }, { status });
-  }),
-}));
+vi.mock("@/lib/api-handler", async () => {
+  const { NextResponse } = await import("next/server");
+  return {
+    handleApiError: vi.fn((_req: unknown, err: unknown, _reqId?: string) => {
+      const status = (err as { statusCode?: number })?.statusCode ?? 500;
+      const message = (err as { message?: string })?.message ?? "Internal error";
+      return NextResponse.json({ error: message }, { status });
+    }),
+  };
+});
 
 // Fixture: CentreContact (family) has ONLY email, firstName, lastName, serviceId per pre-flight.
 // Address/mobile come from EnrolmentSubmission.primaryParent JSON.
