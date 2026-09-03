@@ -13,8 +13,14 @@ on:
   # confirm a fix. Declaring it here makes the existing condition reachable.
   workflow_dispatch:
 
+# Push/PR runs dedupe per ref — a newer push supersedes the running one. But
+# dispatch and schedule runs get a unique group (run_id): they exist to produce
+# a verdict (manual E2E validation, the nightly), and letting a routine merge
+# cancel them is how a type-broken main went unnoticed across 4 merges on
+# 2026-09-03 — every main run (including the would-be nightly signal) was
+# cancelled before its E2E build step could fail.
 concurrency:
-  group: tests-${{ github.ref }}
+  group: tests-${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.run_id || github.ref }}
   cancel-in-progress: true
 
 env:
