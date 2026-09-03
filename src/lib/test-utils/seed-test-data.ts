@@ -384,5 +384,29 @@ export async function seedTestData() {
     ),
   );
 
+  // ── 9. Accountability chart seats ───────────────────────
+  // The /accountability-chart E2E asserts the canonical EOS roots render.
+  // Without these rows the page shows its empty state — whose helper copy
+  // happens to contain the word "Visionary", so only the Integrator
+  // assertion catches the missing data.
+  const visionarySeat = await prisma.accountabilitySeat.create({
+    data: {
+      title: "Visionary",
+      responsibilities: ["20 Ideas", "Big Relationships", "Culture"],
+      parentId: null,
+      order: 0,
+      assignees: { create: { userId: ownerId } },
+    },
+  });
+  await prisma.accountabilitySeat.create({
+    data: {
+      title: "Integrator",
+      responsibilities: ["LMA", "P&L / Business Plan", "Remove Obstacles & Barriers"],
+      parentId: visionarySeat.id,
+      order: 0,
+      assignees: { create: { userId: adminId } },
+    },
+  });
+
   return { users, services, rocks, measurables };
 }
