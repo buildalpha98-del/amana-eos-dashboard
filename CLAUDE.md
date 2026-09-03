@@ -12,7 +12,7 @@
 ## Commands
 - `npm run dev` — start dev server
 - `npm run build` — production build (`prisma generate && next build`; always verify after changes). It deliberately does NOT run `prisma migrate deploy` — production migrations come from `vercel.json`'s `buildCommand`. Putting them in the npm script meant a local build pointed `migrate deploy` at the production DB, and broke CI's E2E job with P3005.
-- `npm run lint` — ESLint check. Zero-error state reached 2026-09-03 and enforced by the CI `lint` job (test.yml): errors fail the build, warnings (unused-vars, design-token rails, exhaustive-deps) are visible but non-blocking — don't add new errors. `@typescript-eslint/no-explicit-any` is warn-only in `src/__tests__`/`tests`/`scripts`/`prisma`, error in production code.
+- `npm run lint` — ESLint check, scoped to `src` + `tests` (a bare `eslint .` also sweeps local-only generated dirs — `.claude/worktrees/`, `coverage/`, playwright artifacts — and reports tens of thousands of phantom errors). Zero-error state reached 2026-09-03 and enforced by the CI `lint` job (test.yml): errors fail the build, warnings (unused-vars, design-token rails, exhaustive-deps) are visible but non-blocking — don't add new errors. `@typescript-eslint/no-explicit-any` is warn-only in `src/__tests__`/`tests`/`scripts`/`prisma`, error in production code.
 - `npm test` — run Vitest unit tests
 - `npm run test:integration` — integration tests
 - `npm run test:e2e` — Playwright end-to-end tests

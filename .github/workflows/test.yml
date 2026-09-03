@@ -25,6 +25,11 @@ jobs:
   # Errors fail the build; warnings (unused-vars, design-token rails,
   # exhaustive-deps) are visible in the log but non-blocking. The repo was
   # brought to zero lint errors on 2026-09-03 — this job keeps it there.
+  # Scoped to src + tests (via `npm run lint`) so CI and local runs lint the
+  # same set: a bare `eslint .` on a developer machine also sweeps generated
+  # dirs a clean CI checkout never has (.claude/worktrees/ checkouts,
+  # coverage/, playwright artifacts) and drowns real findings in tens of
+  # thousands of phantom errors.
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -39,8 +44,8 @@ jobs:
 
       - run: npm ci
 
-      - name: ESLint
-        run: npx eslint .
+      - name: ESLint (src + tests)
+        run: npm run lint
 
   # ── Unit Tests (every push) ────────────────────────────────
   unit:
