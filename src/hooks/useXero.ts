@@ -158,8 +158,8 @@ export function useXeroAccounts(enabled = false) {
 export interface XeroMappingsData {
   trackingCategoryId: string | null;
   services: { id: string; name: string; code: string; xeroTrackingOptionId: string | null }[];
-  centreMappings?: { xeroOptionId: string; serviceId: string }[];
-  accountMappings: { xeroAccountId: string; category: string }[];
+  centreMappings?: { serviceId: string; xeroTrackingOptionId: string }[];
+  accountMappings: { xeroAccountCode: string; localCategory: string }[];
 }
 
 export function useXeroMappings(enabled = false) {

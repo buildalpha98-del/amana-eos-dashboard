@@ -1330,12 +1330,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
   useEffect(() => {
     if (currentMappings?.centreMappings) {
       setCentreMappings(
-        (
-          currentMappings.centreMappings as {
-            serviceId: string;
-            xeroTrackingOptionId: string;
-          }[]
-        ).map((m) => ({
+        currentMappings.centreMappings.map((m) => ({
           xeroOptionId: m.xeroTrackingOptionId,
           serviceId: m.serviceId,
         }))
@@ -1346,12 +1341,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
     }
     if (currentMappings?.accountMappings) {
       setAccountMappings(
-        (
-          currentMappings.accountMappings as {
-            xeroAccountCode: string;
-            localCategory: string;
-          }[]
-        ).map((m) => ({
+        currentMappings.accountMappings.map((m) => ({
           xeroAccountId: m.xeroAccountCode,
           category: m.localCategory,
         }))
