@@ -20,7 +20,7 @@ import {
 } from "@/hooks/useMyPayslips";
 
 export function PayslipHeroCard({ slip }: { slip: PayslipSummary }) {
-  const tax = Math.max(0, slip.grossEarnings - slip.netEarnings);
+  const deductions = Math.max(0, slip.grossEarnings - slip.netEarnings);
   const downloadUrl = payslipDownloadUrl(slip.payRunId);
 
   return (
@@ -48,9 +48,9 @@ export function PayslipHeroCard({ slip }: { slip: PayslipSummary }) {
             </strong>
           </div>
           <div>
-            Tax{" "}
+            Deductions{" "}
             <strong className="text-white font-semibold">
-              {formatCurrency(tax)}
+              {formatCurrency(deductions)}
             </strong>
           </div>
           {slip.totalHours > 0 && (

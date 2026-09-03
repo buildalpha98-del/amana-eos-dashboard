@@ -26,11 +26,11 @@ describe("PayslipHeroCard", () => {
     expect(screen.getByText(/net/i)).toBeTruthy();
   });
 
-  it("shows the gross / tax / hours breakdown (tax = gross − net)", () => {
+  it("shows the gross / deductions / hours breakdown (deductions = gross − net)", () => {
     const { container } = render(<PayslipHeroCard slip={latestSlip} />);
     const text = container.textContent ?? "";
     expect(text).toContain("$1,562.30"); // gross
-    expect(text).toContain("$277.70"); // tax = 1562.30 − 1284.60
+    expect(text).toContain("$277.70"); // deductions = 1562.30 − 1284.60
     expect(text).toContain("38.5"); // hours
   });
 

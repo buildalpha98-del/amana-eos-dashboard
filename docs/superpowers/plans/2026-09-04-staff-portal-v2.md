@@ -8,9 +8,13 @@
 
 **Tech Stack:** Next.js 16 app router, Prisma 5.22 (new migrations only where a phase says so), React Query, Tailwind tokens from `src/app/globals.css`, Vitest, existing `withApiAuth`/`ApiError`/`fetchApi` conventions.
 
-**Design source of truth:** the mockup canvas working files in
-`/private/tmp/claude-503/-Users-jaydenkowaider-Developer-amana-eos-dashboard/bd7b5961-00c2-4489-af41-6debab68c4e8/scratchpad/design/` —
-`MobileHome.dc.html`, `MobileMyDay.dc.html`, `MobilePay.dc.html`, `MobileLeave.dc.html`, `MobileExpenses.dc.html`, `Main.dc.html`, `Pay.dc.html`, `Leave.dc.html`, `Expenses.dc.html`, `StaffFile.dc.html`. If that directory is gone, the canvas is at https://claude.ai/code/artifact/252516c2-5c19-4c85-a687-05d75f0c0d09. Translate the mockups' inline styles into design-system tokens (`bg-card`, `text-muted`, `border-border`, `bg-brand`, `text-2xs`, `shadow-warm*`, radius tokens) — NEVER hex-in-className outside `src/components/charts/`.
+**Design source of truth:** `docs/design/staff-portal-v2/*.dc.html` (checked into this repo; also published at https://claude.ai/code/artifact/252516c2-5c19-4c85-a687-05d75f0c0d09). Translate the mockups' inline styles into design-system tokens (`bg-card`, `text-muted`, `border-border`, `bg-brand`, `text-2xs`, `shadow-warm*`, radius tokens) — NEVER hex-in-className outside `src/components/charts/`.
+
+**Schema-change procedure (Phases 7 and 10):** the local dev DB is maintained with `npx prisma db push` (CLAUDE.md), so `prisma migrate dev` will report drift. Procedure: edit `prisma/schema.prisma` → `npx prisma db push` locally → generate the production migration file with schema-to-schema `prisma migrate diff` (the repo's established practice — see the memory note `reference_local-db-and-worktrees`), placed under `prisma/migrations/`. Never point any command at `PROD_DATABASE_URL`.
+
+**Live-check credentials prerequisite:** `test-staff@` / `test-owner@amana-test.local` come from `seedTestData()` (`src/lib/test-utils/seed-test-data.ts`). They already exist in the local dev DB in this environment; if absent, run `seedTestData()` against `amana_eos_dev` before the rule-6 sweeps.
+
+**Leave systems note (affects Phases 1 and 5):** there are TWO leave systems. Staff apply via Employment Hero (`/api/my-portal/leave/*` — what `/my-leave` fronts). The internal `/leave` module holds the pre-switchover backlog and internal `LeaveRequest` rows. Phase 5's roster overlay reads internal approved leave and therefore will NOT show EH-only leave — Task 5.4 must surface that limitation in the UI copy or additionally pull EH approved upcoming leave from the existing admin endpoint if per-day granularity is available.
 
 **Branch/PR strategy:** all work on `feat/staff-portal-v2` off `origin/main`. Commit per task; open one PR per phase (small phases may batch two) so the user can merge incrementally. `git fetch origin` before each phase — this checkout is shared with other sessions and main moves fast; rebase early.
 
@@ -51,7 +55,7 @@
 - Modify: `src/components/my-portal/MyPayslipsCard.tsx` (consume the lifted hook)
 - Test: `src/__tests__/components/my-pay.test.tsx`
 
-- [ ] **Step 1:** Create `useMyPayslips` by lifting the query (queryKey `["my-payslips"]`, `meta.suppressGlobalErrorToast`, terminal-404/503 retry predicate) out of `MyPayslipsCard`; card and page share it. Write a failing render test for `PayslipHeroCard`: given `slips[0] = {grossEarnings: 1562.3, netEarnings: 1284.6, totalHours: 38.5, payPeriodEnding: "28/08/2026", isPublished: true, payRunId: 7}` it shows `$1,284.60`, "net", a gross/tax(=gross−net)/hours line, and View + Download links pointing at `/api/my-portal/payslips/7/download`.
+- [ ] **Step 1:** Create `useMyPayslips` by lifting the query (queryKey `["my-payslips"]`, `meta.suppressGlobalErrorToast`, terminal-404/503 retry predicate) out of `MyPayslipsCard`; card and page share it. Write a failing render test for `PayslipHeroCard`: fixture must satisfy the full `PayslipSummary` type (including `id` and `payPeriodStarting`). It shows `$1,284.60`, "net", a gross/**deductions**(=gross−net — NOT "tax": the delta includes super sacrifice etc.)/hours line, View link at `/api/my-portal/payslips/{payRunId}/download` and Download at the same URL with `?download=1`.
 - [ ] **Step 2:** Run the test, verify it fails. Implement `PayslipHeroCard` per `Pay.dc.html`/`MobilePay.dc.html`: dark `bg-sidebar` hero card, headline via `font-heading`, accent CTA (`bg-accent` with dark text), responsive `sm:` split. Verify pass.
 - [ ] **Step 3:** `MyPayContent`: hero (latest slip) + totals strip computed client-side from returned slips (sum gross/net/hours; label honestly "across the payslips shown" — the API returns recent slips, do NOT claim FY totals) + history list (reuse the row layout from `MyPayslipsCard`, full-width). Same not-linked/503/empty states and copy as the card.
 - [ ] **Step 4:** Page shell mirrors `/my-portal/page.tsx` conventions. Live-check as staff at 375px and desktop. Commit.
@@ -61,7 +65,7 @@
 **Files:**
 - Create: `src/app/(dashboard)/my-leave/page.tsx`, `loading.tsx`
 - Create: `src/components/my-leave/MyLeaveContent.tsx`
-- Modify: `src/components/my-portal/MyLeaveRequestsCard.tsx` (export `ApplyLeaveModal`)
+- Note: `ApplyLeaveModal` is ALREADY exported from `MyLeaveRequestsCard.tsx` — import it, modify nothing.
 
 - [ ] **Step 1:** `MyLeaveContent` per `Leave.dc.html`/`MobileLeave.dc.html`: balances row (reuse `MyLeaveBalanceCard` data logic; restyle container), Apply CTA opening the EXISTING `ApplyLeaveModal`, requests list. Not-linked state = one full-page friendly explanation, not multiple cards of it. Do not fork the cards.
 - [ ] **Step 2:** Live-check both viewports incl. opening the apply modal (EH may 503 locally — verify that state renders cleanly). Commit.
@@ -83,14 +87,14 @@
 - Modify: `src/lib/role-permissions.ts` (`allPages` + staff, member, marketing lists)
 - Test: extend existing role-permission tests if present
 
-- [ ] **Step 1:** Tab bar: two tab sets keyed off `useSession().user.role` — staff/member/marketing → `[Home:/my-portal, My Day:/my-day, Pay:/my-pay, Leave:/my-leave, Me:/profile]`; other roles keep the current set. Icons: Wallet, CalendarDays, UserCircle (lucide). Active state via `pathname.startsWith`.
-- [ ] **Step 2:** Wire nav-config + role-permissions (rule 1). Run any role-permission vitest files. Live-check: staff sees new tabs + sidebar items; owner unaffected. Commit.
+- [ ] **Step 1:** Tab bar (LOCKED decisions from plan review): the bar renders 4 tabs + the required More button (More opens the sidebar via `onMorePress` from `(dashboard)/layout.tsx` — it must stay; 6 slots would overflow 375px). Staff/member/marketing set: `[Home:/my-portal, My Day:/my-day, Pay:/my-pay, Leave:/my-leave]` + More ("Me"/profile and Expenses are reached via Home tiles and the sidebar). Other roles keep the current set. `MobileTabBar` has no `useSession` today — add the import; while the session loads render the generic set. Icons: Wallet, CalendarDays (lucide).
+- [ ] **Step 2:** Wiring (LOCKED): pages go into `allPages` (so office roles can open them by URL — they are employees too) AND into staff/member/marketing lists; nav items get `roles: ["staff", "member", "marketing"]` so the sidebar only shows them to staff-tier roles (`filterNavByRole` otherwise surfaces them to owners via allPages). Keep the My Portal section contiguous (`nav-config.ts:139-155`). Run any role-permission vitest files. Live-check: staff sees new tabs + sidebar items; owner's nav unchanged but URLs open. Commit.
 
 ### Task 1.6: `/my-portal` becomes the Home hub
 
 **Files:**
 - Modify: `src/app/(dashboard)/my-portal/page.tsx`
-- Modify: affected E2E specs (grep for `my-payslips-card`, `my-leave-requests-card`, `my-expenses-card`, "Request Leave")
+- Modify: `tests/e2e/staff-portal.spec.ts` — the spec that actually targets `/my-portal`, with loose regexes (`/leave|balance|annual/i`, `getByRole("button", {name: /request leave|new request/i})`) that will break or go vacuous when sections move. Repoint at the new routes; heed CLAUDE.md E2E gotcha #2 (substring matches → strict-mode traps).
 
 - [ ] **Step 1:** Per `Main.dc.html`/`MobileHome.dc.html`, restructure the TOP of the page: greeting (existing), next-shift/clock hero (compose existing `MyClockCard` + upcoming-shift data — no duplicate queries), four glance tiles (Last pay → `/my-pay`, Annual leave → `/my-leave`, Reimbursements → `/my-expenses`, Compliance → `/compliance`) reusing the respective hooks with a "—" not-linked fallback, quick-actions row, one consolidated "Needs your attention" card (pending policies / swaps / cert expiry — data already fetched on this page).
 - [ ] **Step 2:** REMOVE the moved sections (payslips, leave balance+requests, expenses). Keep: profile summary, quiet hours, D&I, kiosk PIN, notification prefs, sessions, compliance summary, onboarding/offboarding progress. Update E2E selectors that pointed at removed sections to the new routes; update Getting Started hrefs if any pointed at moved anchors.
@@ -105,7 +109,7 @@
 - Create: `src/components/my-day/OnShiftHero.tsx`
 - Modify: `src/components/my-portal/MyClockCard.tsx` (export `fmtElapsed`)
 
-- [ ] **Task 2.1:** Per `MobileMyDay.dc.html`: when clocked in (active shift from the same `["my-shifts"]` query source as `MyClockCard`), render `OnShiftHero` — "On shift · clocked in HH:MM" with a green dot, elapsed timer recomputed per minute, Clock out via `useClockOut`. Not clocked in → current layout stands.
+- [ ] **Task 2.1:** Per `MobileMyDay.dc.html`: when clocked in, render `OnShiftHero` — "On shift · clocked in HH:MM" with a green dot, elapsed timer recomputed per minute, Clock out via `useClockOut`. CACHE NOTE: the clock query key is `["my-shifts", userId, from, to]` — export the range/key builder AND `fmtElapsed` from `MyClockCard.tsx` and reuse both, or the hero silently double-fetches with a mismatched window (`from`/`to` must be built with `toLocalIsoDate`). Not clocked in → current layout stands.
 - [ ] **Task 2.2:** Roll-call callout: `bg-accent` card above checklists — "Roll call · N children not yet marked in" when the Now-card data exposes booked vs present counts; plain Roll Call row when counts unavailable. Link to the existing roll-call deep link.
 - [ ] **Task 2.3:** Session snapshot strip (in care / booked / educators on) from the same data; hidden when serviceless. Verify live as staff (zeros locally are fine — check layout), tsc/lint/tests, commit. PR may batch with Phase 3.
 
@@ -113,12 +117,14 @@
 
 ## Chunk 3: Phase 3 — Notifications inbox + push
 
-**Existing plumbing:** `UserNotification` model (with `link`, `read`), `/api/notifications/unread-count`, `NotificationBell`, `PushSubscription` model, `src/lib/push/register.ts`, `public/manifest.webmanifest`, `public/sw.js`. Missing: a full inbox page, mark-all-read, an opt-in surface.
+**Existing plumbing (corrected by plan review):** `UserNotification` model; ALL client endpoints live in `src/hooks/useNotifications.ts` — `GET /api/notifications` (hardcoded take 50, no cursor), `/api/notifications/unread-count`, `/api/notifications/[id]/mark-read`, and **`/api/notifications/mark-all-read` which ALREADY EXISTS** (do not build a duplicate). `/api/notifications/dismiss` and `/log` also exist. Push: `src/lib/push/register.ts` exports `getPushStatus`, `registerParentServiceWorker`, `subscribeParentPush` (NOT `registerPush`); `src/lib/push/webPush.ts` has `sendPush`/`sendPushToContact` but **no `sendPushToUser`** — staff notification writers only do `userNotification.create`, so without new fan-out work, staff who enable push receive nothing, ever.
 
-- [ ] **Task 3.1:** Read `NotificationBell.tsx` to find the existing list/mark-read endpoints; extend with cursor pagination (`?cursor=&limit=`, max 50) if absent, and add `POST /api/notifications/read-all`. Route tests (auth / happy / idempotent re-run) in the existing style. Commit.
-- [ ] **Task 3.2:** Page `/notifications`: Today / Earlier groups, unread dot, whole-row link to `n.link` (linkless rows non-navigating), "Mark all read" Button, `EmptyState`, cursor "Load more". Nav (My Portal section, core all roles) + role-permissions (all roles). Point the Getting Started notifications item at `/notifications`. Commit.
-- [ ] **Task 3.3:** Push opt-in: card on `/my-portal` for staff-tier roles — renders only when `Notification.permission === "default"` and no active subscription; "Enable notifications" calls the existing `registerPush()`; dismissal persisted in localStorage. Verify register.ts is safe to re-run before wiring. Commit.
-- [ ] **Task 3.4:** PWA polish: manifest `start_url` → `/my-day`, add shortcuts (My Day, Pay, Notifications). Verify the manifest is linked from the root layout. Live-check + tests. Open the phase PR.
+- [ ] **Task 3.1:** Cursor pagination on `GET /api/notifications` (`?cursor=&limit=`, max 50; keep the default-call shape backward compatible for the popover). Route tests. Commit.
+- [ ] **Task 3.2:** Page `/notifications`: Today / Earlier groups, unread dot, whole-row link to `n.link` (linkless rows non-navigating), "Mark all read" wired to the EXISTING mark-all-read endpoint via `useNotifications`, `EmptyState`, cursor "Load more". Decide and note whether `dismiss` gets a row affordance (default: yes, reuse the existing endpoint). Nav (My Portal section, core all roles) + role-permissions (all roles). Point the Getting Started notifications item at `/notifications`. Commit.
+- [ ] **Task 3.3a (security, do first):** `POST /api/push/subscribe` is `withApiHandler` and trusts a client-supplied `userId` — any caller can register a subscription against any user. Split the staff path onto `withApiAuth` taking userId from the session (keep the parent/contact path working — read how the parent flow authenticates before touching it). Route tests. Commit.
+- [ ] **Task 3.3b:** Staff push delivery: add `sendPushToUser(userId, payload)` to `src/lib/push/webPush.ts` (subscriptions where `userId`), and fan it out from the shared user-notification creation path (find the common helper the writers use — cascade-notify, open-shift-notify, creative-request notify, term-pack, meeting-digest — or add one thin `notifyUser()` they all call; keep it swallow-and-log). Unit test the fan-out. Commit.
+- [ ] **Task 3.3c:** Push opt-in card on `/my-portal` for staff-tier roles — renders only when `getPushStatus()` says unsubscribed and permission is `default`; "Enable notifications" calls `registerParentServiceWorker()` + `subscribeParentPush()` (decide at implementation whether to rename the `*Parent*` helpers now that staff use them — smallest honest change wins); dismissal persisted in localStorage. Commit.
+- [ ] **Task 3.4:** PWA polish (LOCKED: `start_url` STAYS `/dashboard` — the manifest is role-agnostic and `sw.js` pre-caches the dashboard shell; changing it would strand office installs and stale caches). Add manifest `shortcuts` (My Day, Pay, Notifications) only. Verify the manifest link in the root layout. Live-check + tests. Open the phase PR.
 
 ---
 
@@ -126,9 +132,9 @@
 
 **Existing plumbing:** `src/hooks/useOffboarding.ts` (6 hooks, zero importers), `/api/offboarding/{packs,packs/[id],assign,seed}`, `offboarding.*` features in role-permissions, staff-side progress card on `/my-portal`, `SeparationTab` on the staff profile.
 
-- [ ] **Task 4.1:** `/onboarding` gets an "Offboarding" tab: packs CRUD panel (mirror `OnboardingPacksTab` structure under `src/components/offboarding/`, swap in the offboarding hooks), assignments list with per-task progress, "Start offboarding" flow (user picker + pack picker via `useInitiateOffboarding`). Use `Dialog`/Button + proper loading/empty/error states — do not inherit the onboarding page's known gaps. Tests for any route changes. Commit.
+- [ ] **Task 4.1:** `/onboarding` gets an "Offboarding" tab: packs CRUD panel (mirror `OnboardingPacksTab` structure under `src/components/offboarding/`, swap in the offboarding hooks — NOTE: `useOffboarding.ts` has no update/delete pack hooks; the routes support PATCH/DELETE on `packs/[id]`, so add `useUpdateOffboardingPack`/`useDeleteOffboardingPack` first), assignments list with per-task progress, "Start offboarding" flow (user picker + pack picker via `useInitiateOffboarding`). Use `Dialog`/Button + proper loading/empty/error states — do not inherit the onboarding page's known gaps. Tests for any route changes. Commit.
 - [ ] **Task 4.2:** `/team` row menu: "Start offboarding…" (gated by the `offboarding.create` feature) opening the same dialog (shared component). Commit.
-- [ ] **Task 4.3:** Deactivate↔separation: in both deactivate confirms (team row + staff-profile quick action), warn when the target has no `Separation` record, linking to the profile's Separation tab. Server provides `hasSeparation` where the client needs it (smallest API change that serves both). Tests. Live-check, commit, phase PR.
+- [ ] **Task 4.3:** Deactivate↔separation: in both deactivate confirms (team row + staff-profile quick action), warn when the target has no **`SeparationRecord`** (that is the Prisma model name — NOT `Separation`), linking to the profile's Separation tab. Server provides `hasSeparation` where the client needs it (smallest API change that serves both). Tests. Live-check, commit, phase PR.
 
 ---
 
@@ -140,8 +146,8 @@
 
 - [ ] **Task 5.1:** New page `/roster` for owner/head_office/admin + member (member auto-scoped to their service): week picker (local-date maths), per-service collapsible sections reusing `ServiceWeeklyShiftsGrid`.
 - [ ] **Task 5.2:** Unassigned shifts visible: the grid renders an "Open shifts" row pinned first instead of skipping `!shift.userId` rows; open-shift chips show claim counts if cheaply available.
-- [ ] **Task 5.3:** Create open shifts: `ShiftEditModal` gains an "Open shift (no assignee)" option; POST `/api/roster/shifts` accepts null `userId`, with cert/induction guards deferred to claim time (verify the claim route enforces both — it should already). Route tests updated.
-- [ ] **Task 5.4:** Leave overlay: staff rows show an "On leave" chip on days inside approved internal leave (new batch endpoint, admin+member gated, tested). EH-pending overlay only if the data supports per-day granularity cheaply — otherwise note it as out of scope in this doc.
+- [ ] **Task 5.3:** Create open shifts — CLIENT-ONLY per plan review: `POST /api/roster/shifts` ALREADY accepts null `userId` and the claim route already enforces cert + induction guards. The only change is `src/components/roster/ShiftEditModal.tsx` (~line 115 `if (!userId) return`): add an "Open shift (no assignee)" option. No route work.
+- [ ] **Task 5.4:** Leave overlay: staff rows show an "On leave" chip on days inside approved INTERNAL leave (new batch endpoint, admin+member gated, tested). Per the Leave-systems note in the header: EH-applied leave will not appear here unless the EH admin endpoint yields per-day data cheaply — if it doesn't, the overlay's legend must say "internal leave only" and this doc records the limitation.
 - [ ] **Task 5.5:** Cross-centre staff: include `UserServiceMembership` members in the grid's staff list (extend `/api/team?service=` or the grid's source — pick the smaller change after reading). Nav + role-permissions wiring. Tests + live check + phase PR.
 
 ---
@@ -151,7 +157,7 @@
 *(Rule 10 applies.)*
 
 - [ ] **Task 6.1:** Bulk approve: `POST /api/timesheets/bulk-approve` `{ids}` (zod, cap 50) approving only `submitted` sheets not submitted by the caller; returns `{approved, skipped: [{id, reason}]}`; share an extracted `approveTimesheet()` helper with the single route so notifications/activity stay identical. Tests: auth/role/self-skip/mixed/happy. UI: row checkboxes + "Approve selected (N)" with skip-reason toast.
-- [ ] **Task 6.2:** Wire the orphaned `useUpdateTimesheetEntry`/`useDeleteTimesheetEntry` into `TimesheetDetail`: per-entry edit dialog + delete with ConfirmDialog, allowed only on `draft`/`submitted` sheets — and ENFORCE that server-side on the entry PATCH/DELETE routes (add 409 on approved/exported; tests).
+- [ ] **Task 6.2:** Wire the orphaned `useUpdateTimesheetEntry`/`useDeleteTimesheetEntry` (`src/hooks/useTimesheets.ts:288,322`) into `TimesheetDetail` — which is NOT its own file: it lives inside `src/app/(dashboard)/timesheets/page.tsx`. The entry routes are `src/app/api/timesheet-entries/[id]/route.ts` (PATCH/DELETE — note `/api/timesheets/[id]/entries/` is POST-only). Per-entry edit dialog + delete with ConfirmDialog, allowed only on `draft`/`submitted` sheets — and ENFORCE that server-side on the entry PATCH/DELETE routes (add 409 on approved/exported; tests).
 - [ ] **Task 6.3:** Honest export: hide "Export to Xero" behind an env flag defaulting off; provide a real "Export CSV" of the sheet's entries via the existing csv-export helper; fix the page header copy. Tests, live-check, phase PR.
 
 ---
@@ -180,7 +186,7 @@
 *(Rule 10 applies.)*
 
 - [ ] **Task 9.1:** Org-settings JSON (no new table): `compliance.requiredCertsByRole` (strict zod, cert types from the existing list; sensible defaults for staff/member; empty for office roles). Settings → Organisation gets a role×type checkbox matrix (owner/head_office).
-- [ ] **Task 9.2:** Consume via one shared `getRequiredCertTypes(role, orgSettings)` lib: staff `/compliance` shows "Required for your role" first with the rest collapsed; the `/my-portal` compliance tile and the staff-profile ring count required-only. Lib + zod tests. Live-check both roles + phase PR.
+- [ ] **Task 9.2:** Consume via one shared `getRequiredCertTypes(role, orgSettings)` lib. CLIENT ACCESS RULE: staff cannot read `GET /api/org-settings` (role-gated) — expose `compliance.requiredCertsByRole` on the client-safe `GET /api/org-settings/config` slice, and resolve server-side via `getOrgSettings()` (60s cache) everywhere else. Staff `/compliance` shows "Required for your role" first with the rest collapsed; the `/my-portal` compliance tile and the staff-profile ring count required-only. Lib + zod tests. Live-check both roles + phase PR.
 
 ---
 
@@ -200,3 +206,4 @@
 *(Append REAL events only — dates, commit hashes, PR links — as they happen.)*
 
 - 2026-09-04: Plan created. Nothing executed yet.
+- 2026-09-04: Plan review applied (21 findings). Phase 1 Tasks 1.2-1.4 committed: ef48e1d6, e7667418, ed55d72a.
