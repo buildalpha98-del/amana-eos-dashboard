@@ -2,7 +2,7 @@ import chromium from "@sparticuz/chromium";
 import puppeteer, { type Browser } from "puppeteer-core";
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __contractBrowser: Browser | undefined;
 }
 

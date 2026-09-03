@@ -175,6 +175,7 @@ export function CreateProjectModal({
     if (!templates?.length) return;
     const tpl = templates.find((t) => t.id === preselectedTemplateId);
     if (!tpl) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: a render-body guard cascaded renders with query refetches (bug-10, comment above)
     setTemplateId(tpl.id);
     setName(tpl.name);
     setDescription(tpl.description || "");

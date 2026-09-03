@@ -121,13 +121,13 @@ const { id } = await context!.params!;
       await prisma.meetingAttendee.upsert({
         where: { meetingId_userId: { meetingId: id, userId: au.userId } },
         update: {
-          ...(au.status !== undefined ? { status: au.status as any } : {}),
+          ...(au.status !== undefined ? { status: au.status } : {}),
           ...(au.rating !== undefined ? { rating: au.rating } : {}),
         },
         create: {
           meetingId: id,
           userId: au.userId,
-          status: (au.status || "present") as any,
+          status: au.status || "present",
           rating: au.rating,
         },
       });

@@ -15,7 +15,7 @@
  * 2026-06-02.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, RotateCcw, ShieldCheck, AlertTriangle } from "lucide-react";
@@ -91,9 +91,9 @@ export default function RolePermissionsPage() {
   );
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate working copy from server data on first load.
-  useEffect(() => {
-    if (!data || hydrated) return;
+  // Hydrate working copy from server data on first load
+  // (adjust-during-render pattern).
+  if (data && !hydrated) {
     const next: Record<Role, Set<string>> = {
       owner: new Set(),
       head_office: new Set(),
@@ -111,7 +111,7 @@ export default function RolePermissionsPage() {
     }
     setWorking(next);
     setHydrated(true);
-  }, [data, hydrated]);
+  }
 
   const grouped = useMemo(
     () => (data ? groupPages(data.pages) : {}),

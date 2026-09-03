@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { LeaveRequestStatus, LeaveType, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -14,7 +15,7 @@ const { searchParams } = new URL(req.url);
   const startAfter = searchParams.get("startAfter");
   const startBefore = searchParams.get("startBefore");
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.LeaveRequestWhereInput = {};
 
   // Every non-admin is locked to their OWN requests (previously only `staff`
   // was — member/marketing/eos could omit ?userId= and dump everyone's leave
@@ -26,23 +27,28 @@ const { searchParams } = new URL(req.url);
     where.userId = userId;
   }
 
-  if (status) where.status = status;
+  // Coerce query-string enum filters; unknown values are ignored rather than
+  // reaching Prisma's where clause (same convention as parseRoleParam).
+  const statusFilter = Object.values(LeaveRequestStatus).find((s) => s === status);
+  if (statusFilter) where.status = statusFilter;
   // serviceId is an admin-only centre narrowing filter. Non-admins are
   // already locked to their own userId above; applying a serviceId filter to
   // them would wrongly hide their own leave with a null serviceId (the cowork
   // sync leaves it null when no serviceCode is provided).
   const scopedServiceId = resolveServiceIdFilter(session, serviceId);
   if (isAdmin && scopedServiceId) where.serviceId = scopedServiceId;
-  if (leaveType) where.leaveType = leaveType;
+  const leaveTypeFilter = Object.values(LeaveType).find((t) => t === leaveType);
+  if (leaveTypeFilter) where.leaveType = leaveTypeFilter;
 
   if (startAfter || startBefore) {
-    where.startDate = {};
-    if (startAfter) (where.startDate as Record<string, unknown>).gte = new Date(startAfter);
-    if (startBefore) (where.startDate as Record<string, unknown>).lte = new Date(startBefore);
+    where.startDate = {
+      ...(startAfter ? { gte: new Date(startAfter) } : {}),
+      ...(startBefore ? { lte: new Date(startBefore) } : {}),
+    };
   }
 
   const requests = await prisma.leaveRequest.findMany({
-    where: where as any,
+    where,
     include: {
       user: { select: { id: true, name: true, email: true, avatar: true } },
       reviewedBy: { select: { id: true, name: true, email: true } },

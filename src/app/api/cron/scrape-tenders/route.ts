@@ -121,7 +121,7 @@ export const GET = withApiHandler(async (req) => {
   });
 
   try {
-    let allResults: AusTenderResult[] = [];
+    const allResults: AusTenderResult[] = [];
 
     // Search each keyword
     for (const keyword of SEARCH_KEYWORDS) {

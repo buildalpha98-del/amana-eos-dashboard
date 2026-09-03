@@ -278,7 +278,7 @@ function PreShiftView({
           pending && "opacity-50 cursor-not-allowed",
         )}
       >
-        I don't have a scheduled shift — clock in unscheduled
+        I don&apos;t have a scheduled shift — clock in unscheduled
       </button>
     </div>
   );
@@ -305,7 +305,7 @@ function AmbiguousCandidates({
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted">
-        You have multiple shifts in this window — pick the one you're starting.
+        You have multiple shifts in this window — pick the one you&apos;re starting.
       </p>
       <ul className="space-y-1">
         {candidates.map((c) => (

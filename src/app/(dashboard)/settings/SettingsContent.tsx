@@ -1045,14 +1045,15 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
     },
   });
 
-  // Sync local state when data loads
-  useEffect(() => {
-    if (orgSettings) {
-      setOrgName(orgSettings.name);
-      setPrimaryColor(orgSettings.primaryColor);
-      setAccentColor(orgSettings.accentColor);
-    }
-  }, [orgSettings]);
+  // Sync local state when data loads (adjusted during render, keyed on the
+  // fetched object reference — same trigger as the previous effect)
+  const [loadedSettings, setLoadedSettings] = useState<OrgSettingsData | null>(null);
+  if (orgSettings && orgSettings !== loadedSettings) {
+    setLoadedSettings(orgSettings);
+    setOrgName(orgSettings.name);
+    setPrimaryColor(orgSettings.primaryColor);
+    setAccentColor(orgSettings.accentColor);
+  }
 
   const updateOrg = useMutation({
     mutationFn: async (data: { name?: string; primaryColor?: string; accentColor?: string }) => {

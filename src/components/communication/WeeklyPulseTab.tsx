@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import {
   ChevronLeft,
@@ -45,12 +45,28 @@ function getMoodEmoji(rating: number): string {
   return MOOD_EMOJIS[rating - 1].emoji;
 }
 
+interface Pulse {
+  id: string;
+  wins?: string | null;
+  priorities?: string | null;
+  blockers?: string | null;
+  mood?: number | null;
+  notes?: string | null;
+  submittedAt?: string | null;
+  user?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    avatar?: string | null;
+  } | null;
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function WeeklyPulseTab() {
   const { data: session } = useSession();
-  const userId = (session?.user as any)?.id;
-  const userRole = (session?.user as any)?.role;
+  const userId = session?.user?.id;
+  const userRole = session?.user?.role;
   const isLeader = userRole === "owner" || userRole === "admin" || userRole === "head_office";
   const isAdmin = isAdminRole(userRole);
 
@@ -71,7 +87,7 @@ export function WeeklyPulseTab() {
   const [notes, setNotes] = useState("");
 
   const { data: myPulses } = usePulses(weekOf, userId);
-  const myPulse: any = myPulses?.[0];
+  const myPulse: Pulse | undefined = myPulses?.[0];
   const isSubmitted = !!myPulse?.submittedAt;
 
   // Track the pulse id (or a sentinel for "no pulse for this week") we've
@@ -79,21 +95,19 @@ export function WeeklyPulseTab() {
   // by week is wrong: object ref changes on every refetch (clearing input
   // mid-typing), and week-only misses the empty→has-pulse transition. The
   // pulse's primary key is the only stable, meaningful trigger to re-hydrate.
-  const loadedPulseIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    // Sentinel: no pulse exists for this week. Compose with weekOf so changing
-    // weeks still resets even when both weeks have no pulse.
-    const currentKey: string = myPulse?.id ?? `empty:${weekOf}`;
-    if (loadedPulseIdRef.current === currentKey) return;
-    loadedPulseIdRef.current = currentKey;
-
+  // Sentinel: no pulse exists for this week. Compose with weekOf so changing
+  // weeks still resets even when both weeks have no pulse. Hydration happens
+  // during render (React's "adjust state when a prop changes" pattern).
+  const currentPulseKey: string = myPulse?.id ?? `empty:${weekOf}`;
+  const [loadedPulseKey, setLoadedPulseKey] = useState<string | null>(null);
+  if (loadedPulseKey !== currentPulseKey) {
+    setLoadedPulseKey(currentPulseKey);
     setWins(myPulse?.wins ?? "");
     setPriorities(myPulse?.priorities ?? "");
     setBlockers(myPulse?.blockers ?? "");
     setMood(myPulse?.mood ?? 0);
     setNotes(myPulse?.notes ?? "");
-  }, [myPulse?.id, weekOf]);
+  }
 
   const submitPulse = useSubmitPulse();
 
@@ -128,7 +142,7 @@ export function WeeklyPulseTab() {
 
   // ── Week Selector ─────────────────────────────────────────────────────
 
-  function WeekSelector() {
+  function renderWeekSelector() {
     return (
       <div className="flex items-center gap-3">
         <button
@@ -159,7 +173,7 @@ export function WeeklyPulseTab() {
 
   // ── My Pulse View ───────────────────────────────────────────────────────
 
-  function MyPulseView() {
+  function renderMyPulseView() {
     const canSubmit = wins.trim().length > 0 && priorities.trim().length > 0 && mood > 0;
 
     return (
@@ -290,12 +304,12 @@ export function WeeklyPulseTab() {
 
   // ── Team Pulse View ─────────────────────────────────────────────────────
 
-  function TeamPulseView() {
+  function renderTeamPulseView() {
     const totalUsers = summary?.totalUsers ?? 0;
     const submitted = summary?.submitted ?? 0;
     const avgMood = summary?.avgMood ?? 0;
     const blockerCount = summary?.blockerCount ?? 0;
-    const pulses: any[] = summary?.pulses ?? [];
+    const pulses: Pulse[] = summary?.pulses ?? [];
     const submissionRate = totalUsers > 0 ? Math.round((submitted / totalUsers) * 100) : 0;
 
     return (
@@ -369,7 +383,7 @@ export function WeeklyPulseTab() {
           </div>
         ) : (
           <div className="space-y-3">
-            {pulses.map((pulse: any) => (
+            {pulses.map((pulse) => (
               <div
                 key={pulse.id}
                 className="rounded-lg border border-border bg-card p-4 hover:shadow-sm transition-shadow"
@@ -478,11 +492,11 @@ export function WeeklyPulseTab() {
             </button>
           )}
         </div>
-        <WeekSelector />
+        {renderWeekSelector()}
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
-        {view === "my" ? <MyPulseView /> : view === "team" ? <TeamPulseView /> : <PulseAdminView weekOf={weekOf} />}
+        {view === "my" ? renderMyPulseView() : view === "team" ? renderTeamPulseView() : <PulseAdminView weekOf={weekOf} />}
       </div>
     </div>
   );

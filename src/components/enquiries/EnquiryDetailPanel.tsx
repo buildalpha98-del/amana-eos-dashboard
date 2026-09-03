@@ -39,6 +39,45 @@ interface QuickActionModalState {
   channel: string;
 }
 
+interface EnquiryTouchpoint {
+  id: string;
+  type: string;
+  channel: string;
+  status: string;
+  content?: string | null;
+  generatedByCowork?: boolean;
+  createdAt: string;
+}
+
+interface EnquiryDetail {
+  id: string;
+  parentName: string;
+  parentEmail: string | null;
+  parentPhone?: string | null;
+  channel?: string | null;
+  parentDriver?: string | null;
+  notes?: string | null;
+  stage: string;
+  stageChangedAt: string;
+  ccsEducated?: boolean;
+  formStarted?: boolean;
+  formCompleted?: boolean;
+  lastEmailSentAt?: string | null;
+  childName?: string | null;
+  childAge?: number | null;
+  childrenDetails?: { name: string; age?: number | null }[] | null;
+  service: {
+    id: string;
+    name: string;
+    code: string;
+    bscDailyRate?: number | null;
+    ascDailyRate?: number | null;
+    bscCasualRate?: number | null;
+    ascCasualRate?: number | null;
+  };
+  touchpoints: EnquiryTouchpoint[];
+}
+
 const STAGE_LABELS: Record<string, string> = {
   new_enquiry: "New Enquiry",
   info_sent: "Info Sent",
@@ -60,7 +99,7 @@ export function EnquiryDetailPanel({
   onUpdated,
 }: EnquiryDetailPanelProps) {
   useEscapeClose(onClose);
-  const [enquiry, setEnquiry] = useState<any>(null);
+  const [enquiry, setEnquiry] = useState<EnquiryDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCCS, setShowCCS] = useState(false);
   const [actionModal, setActionModal] = useState<QuickActionModalState>({
@@ -210,8 +249,12 @@ export function EnquiryDetailPanel({
     if (!enquiry) return;
     setActionLoading(action);
 
-    let touchpointData: any = null;
-    let enquiryUpdate: any = null;
+    let touchpointData: {
+      type: string;
+      channel: string;
+      content: string;
+    } | null = null;
+    let enquiryUpdate: { stage?: string; ccsEducated?: boolean } | null = null;
 
     switch (action) {
       case "send_info":
@@ -518,7 +561,7 @@ export function EnquiryDetailPanel({
                 )}
                 {childDisplay && (
                   <p className="text-muted">
-                    {(enquiry.childrenDetails as any[])?.length > 1
+                    {(enquiry.childrenDetails?.length ?? 0) > 1
                       ? "Children"
                       : "Child"}
                     : {childDisplay}
@@ -720,7 +763,7 @@ export function EnquiryDetailPanel({
             </h4>
             {enquiry.touchpoints?.length > 0 ? (
               <div className="space-y-3">
-                {enquiry.touchpoints.map((tp: any) => (
+                {enquiry.touchpoints.map((tp) => (
                   <div
                     key={tp.id}
                     className="bg-surface/50 rounded-lg p-3 text-sm"

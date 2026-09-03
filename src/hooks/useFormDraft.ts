@@ -22,13 +22,13 @@ export function useFormDraft<T extends Record<string, unknown>>(
   initialData: T,
 ) {
   const storageKey = `${DRAFT_PREFIX}${key}`;
-  const [hasDraft, setHasDraft] = useState(false);
   const initialRef = useRef(initialData);
-  const hasRestoredRef = useRef(false);
 
-  // Initialize data from draft or initial
-  const [data, setData] = useState<T>(() => {
-    if (typeof window === "undefined") return initialData;
+  // Initialize data from draft or initial (computed once on mount)
+  const [restore] = useState<{ data: T; restored: boolean }>(() => {
+    if (typeof window === "undefined") {
+      return { data: initialData, restored: false };
+    }
 
     try {
       const stored = localStorage.getItem(storageKey);
@@ -36,29 +36,26 @@ export function useFormDraft<T extends Record<string, unknown>>(
         const parsed = JSON.parse(stored) as T;
         // Only restore if different from initial
         if (JSON.stringify(parsed) !== JSON.stringify(initialData)) {
-          hasRestoredRef.current = true;
-          return parsed;
+          return { data: parsed, restored: true };
         }
       }
     } catch {
       // Ignore parse errors
     }
-    return initialData;
+    return { data: initialData, restored: false };
   });
+  const [data, setData] = useState<T>(restore.data);
+  const [hasDraft, setHasDraft] = useState(restore.restored);
 
   // Show toast after mount if draft was restored
   useEffect(() => {
-    if (hasRestoredRef.current) {
-      setHasDraft(true);
+    if (restore.restored) {
       toast({ description: "Draft restored" });
-      hasRestoredRef.current = false;
     }
-  }, []);
+  }, [restore.restored]);
 
   // Debounced auto-save to localStorage
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dataRef = useRef(data);
-  dataRef.current = data;
 
   useEffect(() => {
     // Don't save if data matches initial
@@ -70,7 +67,9 @@ export function useFormDraft<T extends Record<string, unknown>>(
 
     timerRef.current = setTimeout(() => {
       try {
-        localStorage.setItem(storageKey, JSON.stringify(dataRef.current));
+        // `data` is current at fire time: this effect re-runs (and clears the
+        // timer) on every data change, so only the latest schedule can fire.
+        localStorage.setItem(storageKey, JSON.stringify(data));
         setHasDraft(true);
       } catch {
         // localStorage full or unavailable

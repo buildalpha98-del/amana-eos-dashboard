@@ -191,6 +191,7 @@ export function MessagingInbox() {
       >
         {selectedId ? (
           <ConversationThread
+            key={selectedId}
             conversationId={selectedId}
             onBack={handleBack}
           />
@@ -298,11 +299,8 @@ function ConversationThread({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation?.messages.length]);
 
-  // Reset reply when switching conversations
-  useEffect(() => {
-    setReplyText("");
-    resetAttachments();
-  }, [conversationId, resetAttachments]);
+  // Switching conversations remounts this component (key={conversationId} at
+  // the render site), so reply text and attachments start fresh per thread.
 
   const canSend =
     !isAttachmentUploading &&

@@ -17,7 +17,7 @@
  * server defaults it to +1 day.
  */
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { X, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -101,6 +101,9 @@ function toDateInput(iso?: string | null): string {
   // Local-day slice, not toISOString().slice(0,10) — timezone-safe.
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+// Stable no-op subscribe for the SSR-safe `mounted` flag below.
+const emptySubscribe = () => () => {};
 
 export function NewFamilyBalanceContactModal({
   onClose,
@@ -214,10 +217,11 @@ export function NewFamilyBalanceContactModal({
   // make itself the containing block for the modal — which was clipping
   // the header off-screen and leaving the app's top nav visible above the
   // black overlay.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true, // client snapshot — mounted once hydration completes
+    () => false, // server snapshot — nothing rendered during SSR
+  );
   if (!mounted) return null;
 
   const modal = (

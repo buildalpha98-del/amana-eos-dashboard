@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -34,7 +35,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: "Entry not found" }, { status: 404 });
   }
 
-  const data: Record<string, unknown> = { ...parsed.data };
+  const data: Prisma.TimesheetEntryUpdateInput = { ...parsed.data };
 
   // Recalculate totalHours if shift times or break changed
   if (parsed.data.shiftStart || parsed.data.shiftEnd || parsed.data.breakMinutes !== undefined) {
@@ -65,7 +66,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 
   const updated = await prisma.timesheetEntry.update({
     where: { id },
-    data: data as any,
+    data,
     include: {
       user: { select: { id: true, name: true, email: true } },
     },

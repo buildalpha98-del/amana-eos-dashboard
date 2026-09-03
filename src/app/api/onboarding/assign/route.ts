@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
@@ -34,11 +35,11 @@ export const GET = withApiAuth(async (req, session) => {
 
   const targetUserId = isAdminLike ? userId : session!.user.id;
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.StaffOnboardingWhereInput = {};
   if (targetUserId) where.userId = targetUserId;
 
   const assignments = await prisma.staffOnboarding.findMany({
-    where: where as any,
+    where,
     include: {
       user: {
         select: {

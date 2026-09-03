@@ -115,7 +115,7 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
   ];
 
   const ranked = useMemo(() => {
-    let filtered = stateFilter
+    const filtered = stateFilter
       ? centres.filter((c) => c.state === stateFilter)
       : centres;
 

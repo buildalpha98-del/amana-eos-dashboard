@@ -31,7 +31,8 @@ export function StaffingForecastCard({ serviceId }: { serviceId: string }) {
 
   if (!data?.week) return null;
 
-  const { week, monthlyOverstaffingCost } = data;
+  // API field is `monthlyOverstaffCost` — keep the local name used below.
+  const { week, monthlyOverstaffCost: monthlyOverstaffingCost } = data;
 
   return (
     <div>

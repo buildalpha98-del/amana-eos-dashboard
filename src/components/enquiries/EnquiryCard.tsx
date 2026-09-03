@@ -1,6 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { Phone, Mail, MessageCircle, Globe, UserCheck, Users, Clock } from "lucide-react";
+
+export interface KanbanEnquiry {
+  id: string;
+  stage: string;
+  stageChangedAt: string;
+  channel: string;
+  parentName: string;
+  childName?: string | null;
+  service?: { name?: string | null } | null;
+  waitlistOfferedAt?: string | null;
+  waitlistPosition?: number | null;
+  parentDriver?: string | null;
+  nextActionDue?: string | null;
+}
 
 const CHANNEL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   phone: Phone,
@@ -21,7 +36,7 @@ const DRIVER_COLOURS: Record<string, string> = {
 };
 
 interface EnquiryCardProps {
-  enquiry: any;
+  enquiry: KanbanEnquiry;
   onClick: () => void;
   waitlistPosition?: number;
 }
@@ -39,14 +54,15 @@ function getOfferCountdown(offeredAt: string): string | null {
 }
 
 export function EnquiryCard({ enquiry, onClick, waitlistPosition }: EnquiryCardProps) {
+  const [now] = useState(() => Date.now());
   const daysInStage = Math.round(
-    (Date.now() - new Date(enquiry.stageChangedAt).getTime()) /
+    (now - new Date(enquiry.stageChangedAt).getTime()) /
       (1000 * 60 * 60 * 24),
   );
   const isStuck = daysInStage > 2;
   const ChannelIcon = CHANNEL_ICONS[enquiry.channel] || Mail;
   const isWaitlisted = enquiry.stage === "waitlisted";
-  const hasOffer = isWaitlisted && enquiry.waitlistOfferedAt;
+  const offeredAt = isWaitlisted ? enquiry.waitlistOfferedAt : null;
 
   return (
     <div
@@ -86,14 +102,14 @@ export function EnquiryCard({ enquiry, onClick, waitlistPosition }: EnquiryCardP
       </div>
 
       {/* Waitlist offer status */}
-      {hasOffer && (
+      {offeredAt && (
         <div className="flex items-center gap-1 mb-2">
           <span className="text-2xs px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 font-medium">
             Offered
           </span>
           <span className="text-2xs text-muted flex items-center gap-0.5">
             <Clock className="w-3 h-3" />
-            {getOfferCountdown(enquiry.waitlistOfferedAt)}
+            {getOfferCountdown(offeredAt)}
           </span>
         </div>
       )}
