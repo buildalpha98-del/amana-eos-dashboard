@@ -14,7 +14,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { ClipboardCheck, ChevronRight, UserCircle } from "lucide-react";
+import { ClipboardCheck, ChevronRight, UserCircle, Info } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
 import { MyDayNowCard } from "@/components/my-portal/MyDayNowCard";
@@ -24,7 +24,7 @@ import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 
 export default function MyDayPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const userId = session?.user?.id;
   const serviceId = (session?.user as { serviceId?: string | null } | undefined)
     ?.serviceId;
@@ -44,6 +44,20 @@ export default function MyDayPage() {
           service page stays the laptop and iPad one, because nine groups
           and forty pages don't shrink onto 390px, they just get worse. */}
       {serviceId && <MyDayNowCard serviceId={serviceId} />}
+
+      {/* No centre assigned — explain why the service-scoped cards
+          (Now, Roll Call, checklists) are missing instead of silently
+          hiding them. */}
+      {status === "authenticated" && !serviceId && (
+        <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
+          <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-brand" />
+          <p className="text-sm text-muted">
+            You&apos;re not assigned to a centre yet, so today&apos;s roll call
+            and checklists aren&apos;t available. Your manager can assign you to
+            a centre.
+          </p>
+        </div>
+      )}
 
       {/* Morning brief — quiet until the 6am cron has run. */}
       <MorningBriefCard />

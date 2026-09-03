@@ -120,13 +120,28 @@ function OnboardingPageInner() {
   const [expandedEnrollmentId, setExpandedEnrollmentId] = useState<string | null>(null);
 
   // Data
-  const { data: packs = [], isLoading: packsLoading } = useOnboardingPacks();
+  const {
+    data: packs = [],
+    isLoading: packsLoading,
+    error: packsError,
+    refetch: refetchPacks,
+  } = useOnboardingPacks();
   // Only admin-tier roles see all assignments; everyone else sees only their own.
   // Backend enforces this same rule too (defence-in-depth) — see /api/onboarding/assign.
-  const { data: assignments = [], isLoading: assignmentsLoading } = useOnboardingAssignments(
+  const {
+    data: assignments = [],
+    isLoading: assignmentsLoading,
+    error: assignmentsError,
+    refetch: refetchAssignments,
+  } = useOnboardingAssignments(
     isAdmin ? undefined : session?.user?.id
   );
-  const { data: courses = [], isLoading: coursesLoading } = useLMSCourses();
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+    error: coursesError,
+    refetch: refetchCourses,
+  } = useLMSCourses();
   const { data: users = [] } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
@@ -321,7 +336,25 @@ function OnboardingPageInner() {
     });
   };
 
-  const isLoading = packsLoading || assignmentsLoading || coursesLoading;
+  // Error banner — dismissable, with a retry that re-fires whichever of the
+  // three primary queries failed.
+  const [errorBannerDismissed, setErrorBannerDismissed] = useState(false);
+  const anyQueryError = packsError || assignmentsError || coursesError;
+  const handleRetryQueries = () => {
+    setErrorBannerDismissed(false);
+    if (packsError) void refetchPacks();
+    if (assignmentsError) void refetchAssignments();
+    if (coursesError) void refetchCourses();
+  };
+
+  // Only block the page on the queries the ACTIVE tab actually needs —
+  // tabs like Induction / Compliance / Surveys / Exit Surveys fetch their
+  // own data and should render immediately.
+  const isLoading =
+    (activeTab === "onboarding" && (packsLoading || assignmentsLoading)) ||
+    (activeTab === "lms" && coursesLoading) ||
+    (activeTab === "assignments" && (coursesLoading || assignmentsLoading)) ||
+    (activeTab === "records" && assignmentsLoading);
 
   if (isLoading) {
     return (
@@ -336,6 +369,27 @@ function OnboardingPageInner() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {anyQueryError && !errorBannerDismissed && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg">
+          <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+          <p className="text-sm text-rose-800 dark:text-rose-300">
+            Some data failed to load —{" "}
+            <button
+              onClick={handleRetryQueries}
+              className="font-medium underline hover:no-underline"
+            >
+              retry
+            </button>
+          </p>
+          <button
+            onClick={() => setErrorBannerDismissed(true)}
+            aria-label="Dismiss error"
+            className="ml-auto text-rose-400 hover:text-rose-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       <PageHeader
         title="Onboarding & Training"
         description={isStaff

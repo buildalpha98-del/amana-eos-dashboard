@@ -19,7 +19,7 @@
  * 2026-05-04: timeclock v1 sub-PR (followup to PR #62).
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
 import { Loader2, RefreshCw, X, Check, AlertCircle } from "lucide-react";
 
 // ── localStorage helpers ──────────────────────────────────────────
@@ -105,18 +105,34 @@ export default function KioskPage() {
 
 // Outer chrome — full-screen, no app sidebar (this page lives outside
 // the (dashboard) layout). Brand-cream background; large tap targets.
+// Stable no-op subscription — the kiosk label never changes after pairing,
+// so useSyncExternalStore only needs the snapshot split (server "" vs
+// client localStorage) to avoid the hydration mismatch without a
+// setState-in-effect cascade.
+const subscribeNoop = () => () => {};
+const getKioskLabel = () => {
+  try {
+    return window.localStorage.getItem(LABEL_KEY) ?? "";
+  } catch {
+    return "";
+  }
+};
+const getServerKioskLabel = () => "";
+
 function KioskShell({ children }: { children: React.ReactNode }) {
+  const label = useSyncExternalStore(
+    subscribeNoop,
+    getKioskLabel,
+    getServerKioskLabel,
+  );
+
   return (
     <div className="min-h-screen bg-[color:var(--color-cream-deep,#fff8ee)] flex flex-col">
       <header className="px-6 py-4 flex items-center justify-between border-b border-border bg-card">
         <div className="text-sm font-semibold text-foreground">
           Amana OSHC · Time clock
         </div>
-        <div className="text-xs text-muted">
-          {typeof window !== "undefined"
-            ? window.localStorage.getItem(LABEL_KEY) ?? ""
-            : ""}
-        </div>
+        <div className="text-xs text-muted">{label}</div>
       </header>
       <main className="flex-1 p-6 sm:p-10">{children}</main>
     </div>
@@ -469,6 +485,7 @@ function PinPadForUser({
           onClick={() =>
             setPin((p) => (p.length === 0 ? "" : p.slice(0, -1)))
           }
+          ariaLabel="Delete digit"
         >
           ⌫
         </PinKey>
@@ -509,14 +526,17 @@ function PinPadForUser({
 function PinKey({
   onClick,
   children,
+  ariaLabel,
 }: {
   onClick: () => void;
   children: React.ReactNode;
+  ariaLabel?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={ariaLabel}
       className="min-h-[56px] rounded-lg bg-surface border border-border text-lg font-medium hover:bg-card active:scale-[0.97] transition-all"
     >
       {children}

@@ -38,7 +38,6 @@ vi.mock("@/lib/logger", () => ({
 // Import AFTER mocks are set up
 import { GET, POST } from "@/app/api/timesheets/route";
 import {
-  GET as getTimesheet,
   PATCH,
 } from "@/app/api/timesheets/[id]/route";
 import { POST as submitTimesheet } from "@/app/api/timesheets/[id]/submit/route";
@@ -339,6 +338,30 @@ describe("POST /api/timesheets/[id]/approve", () => {
     expect(args.data.type).toBe("timesheet_approved");
     expect(args.data.title).toBe("Timesheet approved");
     expect(args.data.link).toBe("/timesheets?id=ts-1");
+  });
+
+  it("rejects self-approval with 403", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "owner" });
+
+    prismaMock.timesheet.findUnique.mockResolvedValue({
+      id: "ts-1",
+      serviceId: "svc-1",
+      weekEnding: new Date("2026-04-18"),
+      status: "submitted",
+      submittedById: "approver-1", // same user as the session — self-approval
+      deleted: false,
+    });
+
+    const req = createRequest("POST", "/api/timesheets/ts-1/approve");
+    const res = await approveTimesheet(req, {
+      params: Promise.resolve({ id: "ts-1" }),
+    } as any);
+
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe("You can't approve a timesheet you submitted");
+    expect(prismaMock.timesheet.update).not.toHaveBeenCalled();
+    expect(prismaMock.userNotification.create).not.toHaveBeenCalled();
   });
 
   it("still approves when notification creation fails", async () => {

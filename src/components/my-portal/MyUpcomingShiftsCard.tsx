@@ -7,7 +7,7 @@ import { fetchApi } from "@/lib/fetch-api";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
 import { ShiftSwapDialog } from "@/components/roster/ShiftSwapDialog";
 import { useReleaseShift } from "@/hooks/useOpenShifts";
-import { cn } from "@/lib/utils";
+import { cn, toLocalIsoDate } from "@/lib/utils";
 
 interface MineShift extends ShiftChipShift {
   date: string; // ISO string from the API
@@ -19,12 +19,12 @@ interface MyUpcomingShiftsCardProps {
 }
 
 function nextSevenDays(): { from: string; to: string } {
+  // toLocalIsoDate, not toISOString: UTC dates put "from" on yesterday
+  // for Australian timezones every morning.
   const today = new Date();
-  const from = today.toISOString().split("T")[0];
   const end = new Date(today);
   end.setDate(end.getDate() + 7);
-  const to = end.toISOString().split("T")[0];
-  return { from, to };
+  return { from: toLocalIsoDate(today), to: toLocalIsoDate(end) };
 }
 
 function formatDate(iso: string): string {

@@ -63,6 +63,9 @@ export function MyPayslipsCard() {
   const { data, isLoading, error } = useQuery<PayslipsResponse, ApiResponseError>({
     queryKey: ["my-payslips"],
     queryFn: () => fetchApi<PayslipsResponse>("/api/my-portal/payslips"),
+    // This card renders its own inline error/empty states (404 = not
+    // linked, 503 = not configured) — the global error toast is noise.
+    meta: { suppressGlobalErrorToast: true },
     // Payslips don't change often. 5 min stale window is plenty.
     staleTime: 5 * 60_000,
     retry: (failureCount, err) => {
@@ -94,8 +97,8 @@ export function MyPayslipsCard() {
         </p>
       ) : errorStatus === 404 ? (
         <p className="text-sm text-muted">
-          Your account isn&apos;t linked to a payroll record yet. Contact your
-          manager so they can set you up in Settings → Team.
+          Your account isn&apos;t linked to a payroll record yet. Ask your
+          manager to set this up — it only takes a minute.
         </p>
       ) : error ? (
         <p className="text-sm text-red-600">

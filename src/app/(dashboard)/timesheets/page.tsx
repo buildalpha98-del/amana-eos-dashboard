@@ -1130,7 +1130,7 @@ function TimesheetDetail({
   timesheetId: string;
   onClose: () => void;
 }) {
-  const { data: ts, isLoading } = useTimesheet(timesheetId);
+  const { data: ts, isLoading, error, refetch } = useTimesheet(timesheetId);
   const submitTimesheet = useSubmitTimesheet();
   const approveTimesheet = useApproveTimesheet();
   const rejectTimesheet = useRejectTimesheet();
@@ -1140,6 +1140,18 @@ function TimesheetDetail({
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  if (error || (!isLoading && !ts)) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-6 mt-2">
+        <ErrorState
+          title="Failed to load timesheet"
+          error={error as Error | undefined}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   if (isLoading || !ts) {
     return (
