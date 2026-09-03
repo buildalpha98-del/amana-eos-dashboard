@@ -118,7 +118,7 @@ describe("POST /api/leave/requests (retired 2026-06-29)", () => {
     expect(res.status).toBe(410);
     const body = await res.json();
     expect(body.error).toContain("My Portal");
-    expect(body.redirectTo).toBe("/my-portal#leave");
+    expect(body.redirectTo).toBe("/my-leave");
     expect(prismaMock.leaveRequest.create).not.toHaveBeenCalled();
     expect(prismaMock.userNotification.create).not.toHaveBeenCalled();
   });
