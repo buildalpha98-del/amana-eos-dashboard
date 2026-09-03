@@ -76,27 +76,27 @@ test.describe("Owner daily flow", () => {
     // Main content loads
     await expect(page.locator("main")).toBeVisible();
 
-    // Should show scorecard-related UI — either measurables or empty state.
-    // "Owner" appears many times (column header + per-row owner chips), so a
-    // bare getByText is a strict-mode violation that isVisible() turns into a
-    // silent false. Match on the measurable wording instead, first() to
-    // sidestep multiple matches.
-    const hasMeasurables = await page
-      .getByText(/measurable/i)
+    // Should show the scorecard CONTENT area — the measurables grid table or
+    // the explicit empty state. (Matching /measurable/i was vacuous: the
+    // static PageHeader description contains "measurables", so it stayed
+    // green even when the data area errored.)
+    const hasGrid = await page
+      .locator("main table")
       .first()
       .isVisible()
       .catch(() => false);
     const hasEmptyState = await page
-      .getByText(/no measurables|no data entered/i)
+      .getByText("No Measurables Yet")
       .first()
       .isVisible()
       .catch(() => false);
 
     // One of these should be true — page loaded with content or empty state
-    expect(hasMeasurables || hasEmptyState).toBeTruthy();
+    expect(hasGrid || hasEmptyState).toBeTruthy();
 
-    // No error states
+    // No error states — neither the global boundary nor the scorecard's own
     await expect(page.getByText("Something went wrong")).not.toBeVisible();
+    await expect(page.getByText("Failed to load scorecard")).not.toBeVisible();
   });
 
   test("todos page renders with filter and week selector", async ({

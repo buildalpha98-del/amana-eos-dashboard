@@ -372,16 +372,18 @@ test.describe("Middleware + canAccessPage agree for key paths (owner view)", () 
   test.use({ storageState: ".playwright/auth/owner.json" });
 
   // /admin/feedback deliberately redirects to /feedback?tab=internal since the
-  // 2026-07-05 nav consolidation, so assert the destination it settles on.
+  // 2026-07-05 nav consolidation — wait for the DESTINATION URL rather than
+  // substring-matching page.url(): the source path already contains
+  // "/feedback", which let the old assertion pass without the redirect firing.
   for (const [path, settlesOn] of [
-    ["/admin/feedback", "/feedback"],
-    ["/contracts", "/contracts"],
-    ["/recruitment", "/recruitment"],
+    ["/admin/feedback", /\/feedback\?tab=internal/],
+    ["/contracts", /\/contracts/],
+    ["/recruitment", /\/recruitment/],
   ] as const) {
     test(`owner can open ${path}`, async ({ page }) => {
       await page.goto(path);
+      await page.waitForURL(settlesOn, { timeout: 15_000 });
       await page.waitForLoadState("networkidle");
-      expect(page.url()).toContain(settlesOn);
       await expect(page.getByText("Something went wrong")).not.toBeVisible();
     });
   }

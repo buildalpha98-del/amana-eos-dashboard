@@ -27,6 +27,7 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import { PrismaClient } from "@prisma/client";
 import { hashSync } from "bcryptjs";
+import { loginViaUi, TEST_PASSWORD } from "./helpers/session";
 
 // ── Prisma client (out-of-process from the Next.js server) ───────────────────
 const prisma = new PrismaClient();
@@ -46,8 +47,7 @@ let issuedContractId: string;
 const unique = crypto.randomUUID().slice(0, 8);
 const adminEmail = `ct-e2e-admin+${unique}@amana-test.local`;
 const staffEmail = `ct-e2e-staff+${unique}@amana-test.local`;
-const PASSWORD = "TestPassword123!";
-const PASSWORD_HASH = hashSync(PASSWORD, 10);
+const PASSWORD_HASH = hashSync(TEST_PASSWORD, 10);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -56,21 +56,9 @@ async function loginAs(
   email: string,
   sessionPath: string,
 ): Promise<void> {
-  await page.goto("/login");
-  await page.fill('input[name="email"], input[type="email"]', email);
-  await page.fill('input[name="password"], input[type="password"]', PASSWORD);
-  await page.click('button[type="submit"]');
-  // Don't assume a /dashboard landing — getPostLoginPath sends staff with a
-  // serviceId to /services/{id}?tab=today. Leaving /login is the actual
-  // signal that the credentials were accepted (same as auth.setup.ts).
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"), {
-    timeout: 20_000,
-  });
-  // Dismiss the welcome tour before saving state — it opens 1.5s after load
-  // for any context without this flag and overlays the page, blocking every
-  // click in the tests that restore this session (same as auth.setup.ts).
-  await page.evaluate(() => localStorage.setItem("amana-tour-completed", "true"));
-  await page.context().storageState({ path: sessionPath });
+  // Shared UI login (helpers/session.ts) — waits to leave /login and stamps
+  // the welcome-tour flag before the storage state is saved.
+  await loginViaUi(page, email, { saveStatePath: sessionPath });
 }
 
 // ── Seed / cleanup ────────────────────────────────────────────────────────────

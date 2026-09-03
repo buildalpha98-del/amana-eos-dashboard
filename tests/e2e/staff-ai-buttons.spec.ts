@@ -12,35 +12,19 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { gotoFirstService } from "./helpers/goto-first-service";
 
 test.use({ storageState: ".playwright/auth/owner.json" });
 
 test.describe("AI Buttons — surface coverage", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/services");
-    // networkidle can be starved by React Query polling; the service link
-    // being attached is the signal we actually need (same as staff-nqs).
-    await page
-      .locator("a[href^='/services/']")
-      .first()
-      .waitFor({ state: "attached", timeout: 30_000 });
-  });
-
   test("Reflection create dialog has an AiButton, disabled until title set", async ({
     page,
   }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    // Client-side navigation — wait for the detail URL before reading it.
-    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
-    await page.waitForLoadState("networkidle");
-
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "compliance");
-    url.searchParams.set("sub", "reflections");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "compliance",
+      sub: "reflections",
+    });
 
     const newBtn = page.getByRole("button", { name: /New reflection/i });
     if (!(await newBtn.isVisible().catch(() => false))) {
@@ -65,18 +49,11 @@ test.describe("AI Buttons — surface coverage", () => {
   test("Observation create dialog has an AiButton with MTOP chip context", async ({
     page,
   }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    // Client-side navigation — wait for the detail URL before reading it.
-    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
-    await page.waitForLoadState("networkidle");
-
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "program");
-    url.searchParams.set("sub", "observations");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "program",
+      sub: "observations",
+    });
 
     const newBtn = page.getByRole("button", { name: /New observation/i });
     if (!(await newBtn.isVisible().catch(() => false))) {
@@ -92,18 +69,11 @@ test.describe("AI Buttons — surface coverage", () => {
   test("Risk hazards editor has 'Suggest hazards' AI button", async ({
     page,
   }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    // Client-side navigation — wait for the detail URL before reading it.
-    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
-    await page.waitForLoadState("networkidle");
-
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "compliance");
-    url.searchParams.set("sub", "risk");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "compliance",
+      sub: "risk",
+    });
 
     const newBtn = page.getByRole("button", { name: /New assessment/i });
     if (!(await newBtn.isVisible().catch(() => false))) {
@@ -119,18 +89,11 @@ test.describe("AI Buttons — surface coverage", () => {
   test("Newsletter generator surface — Comms tab exposes the trigger", async ({
     page,
   }) => {
-    const firstService = page.locator("a[href^='/services/']").first();
-    await firstService.click();
-    // Client-side navigation — wait for the detail URL before reading it.
-    await page.waitForURL(/\/services\/[^/?]+/, { timeout: 15_000 });
-    await page.waitForLoadState("networkidle");
-
-    const url = new URL(page.url());
-    url.searchParams.set("v2", "1");
-    url.searchParams.set("tab", "compliance");
-    url.searchParams.set("sub", "comms");
-    await page.goto(url.toString());
-    await page.waitForLoadState("networkidle");
+    await gotoFirstService(page, {
+      v2: "1",
+      tab: "compliance",
+      sub: "comms",
+    });
 
     const btn = page.getByRole("button", {
       name: /Generate weekly newsletter/i,

@@ -12,6 +12,7 @@
 
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { TEST_PASSWORD, dismissWelcomeTour } from "./helpers/session";
 
 const SMOKE_PAGES = ["/dashboard", "/services", "/compliance", "/team"];
 
@@ -27,7 +28,7 @@ const SMOKE_PAGES = ["/dashboard", "/services", "/compliance", "/team"];
 // prisma seed's account (whose password may have been rotated) — not a login
 // tests can use.
 const EMAIL = process.env.E2E_EMAIL || "test-admin@amana-test.local";
-const PASSWORD = process.env.E2E_PASSWORD || "TestPassword123!";
+const PASSWORD = process.env.E2E_PASSWORD || TEST_PASSWORD;
 
 // Console noise that isn't a product defect.
 const IGNORED_CONSOLE = [
@@ -58,10 +59,9 @@ test.describe("smoke: console + axe on key pages", () => {
     await page.getByRole("button", { name: /sign in/i }).click();
     await page.waitForURL(/dashboard/, { timeout: 30_000 });
 
-    // Dismiss the welcome tour before walking pages — it opens 1.5s after
-    // load for any context without this flag and would sit over every page
-    // this spec screenshots and axe-scans.
-    await page.evaluate(() => localStorage.setItem("amana-tour-completed", "true"));
+    // Dismiss the welcome tour before walking pages — it would sit over
+    // every page this spec screenshots and axe-scans.
+    await dismissWelcomeTour(page);
 
     for (const path of SMOKE_PAGES) {
       const consoleErrors: string[] = [];

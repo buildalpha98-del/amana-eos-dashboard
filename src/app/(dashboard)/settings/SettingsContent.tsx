@@ -1947,16 +1947,17 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
 
 function PermissionsPanel() {
   const roleLabels = useRoleLabels();
-  // Group rows by section
-  const sections: { name: string; rows: PermissionRow[] }[] = [];
-  let currentSection = "";
+  // Group rows by section NAME, not by run-length: permissionsTable appends
+  // late additions out of section order (a second run of "Pages"/"Actions"
+  // rows after the "Admin" block), and run-length grouping rendered
+  // duplicate section headers for them.
+  const sectionMap = new Map<string, PermissionRow[]>();
   for (const row of permissionsTable) {
-    if (row.section !== currentSection) {
-      currentSection = row.section;
-      sections.push({ name: currentSection, rows: [] });
-    }
-    sections[sections.length - 1].rows.push(row);
+    const rows = sectionMap.get(row.section);
+    if (rows) rows.push(row);
+    else sectionMap.set(row.section, [row]);
   }
+  const sections = Array.from(sectionMap, ([name, rows]) => ({ name, rows }));
 
   return (
     <div className="bg-card rounded-xl border border-border p-6">
@@ -1999,12 +2000,8 @@ function PermissionsPanel() {
             </tr>
           </thead>
           <tbody>
-            {sections.map((section, sectionIdx) => (
-              // Keyed by index: the section list is rebuilt on every change of
-              // row.section, so the same name can appear more than once and a
-              // name-based key duplicates (React "two children with the same
-              // key" console error).
-              <Fragment key={`section-${sectionIdx}`}>
+            {sections.map((section) => (
+              <Fragment key={section.name}>
                 <tr>
                   <td
                     colSpan={8}
