@@ -2,16 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Sun,
   LayoutDashboard,
   CheckSquare,
   Building2,
   MoreHorizontal,
+  Home,
+  Wallet,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const tabs = [
+// 2026-09-04 staff portal v2: two tab sets. Staff-tier roles get the
+// self-service app (Home hub, My Day, Pay, Leave — Expenses and profile
+// are one tap away via Home tiles and More); everyone else keeps the
+// ops-centric set. Four tabs + the More button is the ceiling — six
+// slots at min-w-[64px] overflow a 375px viewport.
+const STAFF_TIER_ROLES = new Set(["staff", "member", "marketing"]);
+
+const staffTabs = [
+  { href: "/my-portal", label: "Home", icon: Home },
+  { href: "/my-day", label: "My Day", icon: Sun },
+  { href: "/my-pay", label: "Pay", icon: Wallet },
+  { href: "/my-leave", label: "Leave", icon: CalendarDays },
+] as const;
+
+const defaultTabs = [
   // 2026-07-06 design system: My Day leads — educators on phones land
   // on their during-session surface (clock, roll call, checklists).
   { href: "/my-day", label: "My Day", icon: Sun },
@@ -26,6 +44,11 @@ interface MobileTabBarProps {
 
 export function MobileTabBar({ onMorePress }: MobileTabBarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = session?.user?.role as string | undefined;
+  // While the session loads, render the generic set — a one-render swap
+  // at 4 items is imperceptible and avoids a blank bar.
+  const tabs = role && STAFF_TIER_ROLES.has(role) ? staffTabs : defaultTabs;
 
   return (
     <nav
