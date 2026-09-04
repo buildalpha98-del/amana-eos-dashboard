@@ -70,15 +70,15 @@ export function PerformanceSection({
         }
         if (active === "talent")
           return (
-            <PerformanceEmpty
+            <PerformancePlanned
               icon={Grid3x3}
-              message="9-Box talent grid placement will appear here. Coming in next release."
+              feature="9-Box talent grid"
             />
           );
         return (
-          <PerformanceEmpty
+          <PerformancePlanned
             icon={NotebookPen}
-            message="Management notes will appear here. Coming in next release."
+            feature="Management notes"
           />
         );
       }}
@@ -86,17 +86,30 @@ export function PerformanceSection({
   );
 }
 
-function PerformanceEmpty({
+/**
+ * Honest "planned" placeholder for features that are on the roadmap but
+ * not built. Deliberately muted and visually distinct from shipped
+ * tabs — a dashed "Planned" badge and no interactive affordance — so
+ * nobody mistakes an empty screen for missing data. (Locked decision,
+ * staff-portal-v2 Task 8.3.)
+ */
+function PerformancePlanned({
   icon: Icon,
-  message,
+  feature,
 }: {
   icon: React.ComponentType<{ className?: string }>;
-  message: string;
+  feature: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-center">
-      <Icon className="h-10 w-10 text-border mb-3" />
-      <p className="text-sm text-muted italic">{message}</p>
+    <div className="flex flex-col items-center justify-center py-10 text-center rounded-xl border border-dashed border-border">
+      <Icon className="h-8 w-8 text-border mb-3" />
+      <span className="inline-flex items-center rounded-full border border-dashed border-border px-2.5 py-0.5 text-2xs font-medium uppercase tracking-wide text-muted mb-2">
+        Planned — not built yet
+      </span>
+      <p className="text-sm text-muted">{feature} is on the roadmap.</p>
+      <p className="text-xs text-muted/70 mt-1">
+        Nothing is recorded here today.
+      </p>
     </div>
   );
 }

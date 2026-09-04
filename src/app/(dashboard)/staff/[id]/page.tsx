@@ -198,6 +198,12 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     activeRocks,
     openTodos,
     nextShift,
+    policyAckRows,
+    publishedPolicies,
+    inductionEnrollmentRows,
+    practicalSignedCount,
+    practicalItemCount,
+    formSubmissionRows,
   ] = await Promise.all([
     prisma.emergencyContact.findMany({
       where: { userId: id },
@@ -266,6 +272,68 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
         status: true,
       },
     }).catch(() => null),
+    // Policy acknowledgements — every version this user has ever
+    // acknowledged, newest first (history, not just current versions).
+    prisma.policyDocumentAcknowledgement.findMany({
+      where: { userId: id },
+      orderBy: { acknowledgedAt: "desc" },
+      select: {
+        id: true,
+        versionId: true,
+        acknowledgedAt: true,
+        version: {
+          select: {
+            versionNumber: true,
+            document: { select: { title: true } },
+          },
+        },
+      },
+    }),
+    // Live policies (non-archived with a current version) — used below
+    // to compute which CURRENT versions the user has NOT acknowledged.
+    prisma.policyDocument.findMany({
+      where: { isArchived: false, currentVersionId: { not: null } },
+      orderBy: { title: "asc" },
+      select: {
+        id: true,
+        title: true,
+        currentVersionId: true,
+        currentVersion: { select: { versionNumber: true } },
+      },
+    }),
+    // Induction (essential-track) LMS enrollments. Published courses
+    // only — mirrors getInductionReadiness, which is the gate's truth.
+    prisma.lMSEnrollment.findMany({
+      where: {
+        userId: id,
+        course: { track: "essential", status: "published", deleted: false },
+      },
+      orderBy: { course: { sortOrder: "asc" } },
+      select: {
+        id: true,
+        status: true,
+        score: true,
+        completedAt: true,
+        course: { select: { title: true } },
+      },
+    }),
+    // Week-1 practical sign-off progress. Two cheap counts instead of
+    // the 4-query getInductionReadiness — the overall induction state
+    // is already on targetUser.inductionStatus.
+    prisma.practicalSignoff.count({ where: { userId: id } }).catch(() => 0),
+    prisma.practicalChecklistItem.count({ where: { active: true } }).catch(() => 0),
+    // Form (staff survey) submissions. Anonymous responses carry a
+    // NULL respondentId so they can never surface here by design.
+    prisma.surveyResponse.findMany({
+      where: { respondentId: id, survey: { deleted: false } },
+      orderBy: { submittedAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        submittedAt: true,
+        survey: { select: { title: true, status: true } },
+      },
+    }),
   ]);
 
   // Aggregate timesheets by weekEnding (last 5 weeks)
@@ -299,6 +367,39 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
   const validCertCount = certStatuses.filter((s) => s.status === "valid").length;
   const expiringCertCount = certStatuses.filter((s) => s.status === "expiring").length;
 
+  // Policies: flatten acks and compute which CURRENT versions are still
+  // unacknowledged. An ack of an older version does NOT satisfy the
+  // current one — same rule as getInductionReadiness.
+  const ackedVersionIds = new Set(policyAckRows.map((a) => a.versionId));
+  const policyAcks = policyAckRows.map((a) => ({
+    id: a.id,
+    documentTitle: a.version.document.title,
+    versionNumber: a.version.versionNumber,
+    acknowledgedAt: a.acknowledgedAt,
+  }));
+  const unackedPolicies = publishedPolicies
+    .filter(
+      (p) => p.currentVersionId !== null && !ackedVersionIds.has(p.currentVersionId),
+    )
+    .map((p) => ({
+      documentId: p.id,
+      title: p.title,
+      versionNumber: p.currentVersion?.versionNumber ?? null,
+    }));
+  const inductionEnrollments = inductionEnrollmentRows.map((e) => ({
+    id: e.id,
+    courseTitle: e.course.title,
+    status: e.status,
+    score: e.score,
+    completedAt: e.completedAt,
+  }));
+  const formSubmissions = formSubmissionRows.map((r) => ({
+    id: r.id,
+    title: r.survey.title,
+    submittedAt: r.submittedAt,
+    surveyStatus: r.survey.status,
+  }));
+
   const data: StaffProfileData = {
     targetUser,
     emergencyContacts,
@@ -309,6 +410,14 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     qualifications,
     certificates,
     documents,
+    policyAcks,
+    unackedPolicies,
+    inductionEnrollments,
+    practicalSignoff: {
+      signedCount: Number(practicalSignedCount) || 0,
+      totalItems: Number(practicalItemCount) || 0,
+    },
+    formSubmissions,
     nextShift,
     stats: {
       activeRocks: Number(activeRocks) || 0,

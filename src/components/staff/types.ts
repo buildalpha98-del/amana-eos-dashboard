@@ -18,6 +18,8 @@ import type {
   StaffQualification,
   ComplianceCertificate,
   Document,
+  LMSEnrollmentStatus,
+  SurveyStatus,
 } from "@prisma/client";
 
 interface TimesheetSummary {
@@ -38,6 +40,48 @@ export interface StaffProfileNextShift {
   status: string;
 }
 
+/** One row per PolicyDocumentAcknowledgement by the target user. */
+export interface StaffPolicyAck {
+  id: string;
+  documentTitle: string;
+  versionNumber: number;
+  acknowledgedAt: Date;
+}
+
+/** A published (non-archived, has a current version) policy whose
+ *  CURRENT version the target user has not acknowledged. */
+export interface StaffUnackedPolicy {
+  documentId: string;
+  title: string;
+  versionNumber: number | null;
+}
+
+/** Essential-track (induction) LMS enrollment summary. */
+export interface StaffInductionEnrollment {
+  id: string;
+  courseTitle: string;
+  status: LMSEnrollmentStatus;
+  score: number | null;
+  completedAt: Date | null;
+}
+
+/** Week-1 practical sign-off progress (items signed vs active items).
+ *  The overall induction state itself lives on targetUser.inductionStatus. */
+export interface StaffPracticalSignoffState {
+  signedCount: number;
+  totalItems: number;
+}
+
+/** A form (staff survey) submission by the target user. There is no
+ *  dedicated FormSubmission model — staff-submitted forms are
+ *  SurveyResponse rows (non-anonymous only, by query). */
+export interface StaffFormSubmission {
+  id: string;
+  title: string;
+  submittedAt: Date;
+  surveyStatus: SurveyStatus;
+}
+
 export interface StaffProfileData {
   targetUser: User & { service?: Service | null };
   emergencyContacts: EmergencyContact[];
@@ -48,6 +92,11 @@ export interface StaffProfileData {
   qualifications: StaffQualification[];
   certificates: ComplianceCertificate[];
   documents: Document[];
+  policyAcks: StaffPolicyAck[];
+  unackedPolicies: StaffUnackedPolicy[];
+  inductionEnrollments: StaffInductionEnrollment[];
+  practicalSignoff: StaffPracticalSignoffState;
+  formSubmissions: StaffFormSubmission[];
   nextShift: StaffProfileNextShift | null;
   stats: {
     activeRocks: number;
