@@ -60,7 +60,7 @@ export function ServiceStaffTab({ serviceId }: { serviceId: string }) {
     return members.filter(
       (m) =>
         m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q) ||
+        (m.email ?? "").toLowerCase().includes(q) ||
         m.membership.roleAtService.toLowerCase().includes(q),
     );
   }, [members, search]);
@@ -243,7 +243,9 @@ function StaffTableRow({
               {member.name}
               {member.isPrimary ? <PrimaryBadge /> : null}
             </p>
-            <p className="text-xs text-muted">{member.email}</p>
+            {member.email ? (
+              <p className="text-xs text-muted">{member.email}</p>
+            ) : null}
           </div>
         </div>
       </td>
@@ -315,7 +317,9 @@ function StaffMobileCard({
           {member.name}
           {member.isPrimary ? <PrimaryBadge /> : null}
         </p>
-        <p className="text-xs text-muted truncate">{member.email}</p>
+        {member.email ? (
+          <p className="text-xs text-muted truncate">{member.email}</p>
+        ) : null}
         <div className="mt-1.5 text-xs text-foreground/80 space-y-0.5">
           <div>{member.membership.roleAtService}</div>
           <div className="text-muted">

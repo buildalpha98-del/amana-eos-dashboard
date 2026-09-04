@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { useTeam } from "@/hooks/useTeam";
+import { useServiceStaff } from "@/hooks/useServiceStaff";
 import { useShiftTemplates } from "@/hooks/useShiftTemplates";
 import { toast } from "@/hooks/useToast";
 import { Button } from "@/components/ui/Button";
@@ -84,8 +84,11 @@ export function ShiftEditModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, shift?.id]);
 
-  // Load team — scope to this service, active staff only.
-  const { data: team } = useTeam({ service: serviceId });
+  // Staff source (staff-portal-v2 Chunk 5, Task 5.5): the per-service staff
+  // endpoint — primary users PLUS active memberships, so cross-centre staff
+  // are assignable. Shares the ["service-staff", serviceId] cache with
+  // ServiceWeeklyShiftsGrid, so opening the modal costs no extra fetch.
+  const { data: staffData } = useServiceStaff(serviceId);
 
   // Load shift templates — pre-fills sessionType / start / end / role
   // on the create form. Skipped in edit mode (no point altering an
@@ -105,13 +108,12 @@ export function ShiftEditModal({
     setRole(t.role ?? "");
   }
   const activeAtService = useMemo(() => {
-    if (!team) return [];
-    return team.filter((m) => {
-      const isAtService = m.service?.id === serviceId;
-      const isActive = (m as { active?: boolean }).active !== false;
-      return isAtService && isActive;
-    });
-  }, [team, serviceId]);
+    // Endpoint is already service-scoped; just drop deactivated accounts
+    // and map to the id/name shape the select renders.
+    return (staffData?.members ?? [])
+      .filter((m) => m.isActive)
+      .map((m) => ({ id: m.userId, name: m.name }));
+  }, [staffData]);
 
   if (!open) return null;
 

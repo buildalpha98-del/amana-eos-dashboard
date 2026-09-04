@@ -109,6 +109,8 @@ describe("service staff API", () => {
         (m: { userId: string }) => m.userId === PRIMARY_USER.id,
       );
       expect(primary.isPrimary).toBe(true);
+      // Admin callers see emails.
+      expect(primary.email).toBe("priya@example.com");
       expect(primary.membership.id).toBe("primary:primary-u1");
       expect(primary.membership.roleAtService).toBe("OSHC Educator");
       expect(primary.membership.accessLevel).toBe("admin");
@@ -140,16 +142,44 @@ describe("service staff API", () => {
       expect(findManyCall.where.status).toBe("active");
     });
 
-    it("cross-service educator can still read (read access is permissive)", async () => {
+    it("403 for a cross-service educator (2026-09-04 authz fix — was org-wide)", async () => {
       mockSession({ id: "u-other", name: "O", role: "staff", serviceId: "s99" });
-      prismaMock.user.findMany.mockResolvedValue([]);
-      prismaMock.userServiceMembership.findMany.mockResolvedValue([]);
+
+      const res = await GET(
+        createRequest("GET", "/api/services/s1/staff"),
+        await ctx(),
+      );
+      expect(res.status).toBe(403);
+      expect(prismaMock.user.findMany).not.toHaveBeenCalled();
+    });
+
+    it("same-service non-admin can read but gets email: null", async () => {
+      mockSession({ id: "edu-1", name: "E", role: "staff", serviceId: "s1" });
+      prismaMock.user.findMany.mockResolvedValue([PRIMARY_USER]);
+      prismaMock.userServiceMembership.findMany.mockResolvedValue([
+        {
+          id: "m1",
+          serviceId: "s1",
+          userId: "extra-u2",
+          roleAtService: "Room Leader",
+          accessLevel: "contributor",
+          startDate: new Date("2026-04-01T00:00:00Z"),
+          endDate: null,
+          status: "active",
+          user: ADDITIONAL_USER,
+        },
+      ]);
 
       const res = await GET(
         createRequest("GET", "/api/services/s1/staff"),
         await ctx(),
       );
       expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.members).toHaveLength(2);
+      for (const m of body.members) {
+        expect(m.email).toBeNull();
+      }
     });
   });
 

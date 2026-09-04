@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRosterShifts, type RosterShiftListItem } from "@/hooks/useRosterShifts";
 import { useRoster } from "@/hooks/useRoster";
-import { useTeam } from "@/hooks/useTeam";
+import { useServiceStaff } from "@/hooks/useServiceStaff";
+import { useRosterLeave } from "@/hooks/useRosterLeave";
 import { useRosterCost } from "@/hooks/useRosterCost";
 import { computeRatio } from "@/lib/roster-ratio";
 import {
@@ -106,7 +107,12 @@ export function ServiceWeeklyShiftsGrid({
     refetch,
   } = useRosterShifts(serviceId, weekStart);
 
-  const { data: teamData, isLoading: teamLoading } = useTeam({ service: serviceId });
+  // Staff source (staff-portal-v2 Chunk 5, Task 5.5): the per-service staff
+  // endpoint — primary users PLUS active UserServiceMembership rows — so
+  // cross-centre staff appear in the grid. Replaces useTeam, which only knew
+  // primary assignments (and fetched the whole org). Shares its query cache
+  // with ShiftEditModal (["service-staff", serviceId]).
+  const { data: staffData, isLoading: staffLoading } = useServiceStaff(serviceId);
   // 2026-05-02: pull child bookings for the same week so the ratio row
   // can show real numerators (PR #50).
   const { data: rosterData } = useRoster(serviceId, weekStart);
@@ -127,13 +133,42 @@ export function ServiceWeeklyShiftsGrid({
   const { rollup: certStatusByUser } = useStaffCertStatus(serviceId, weekFriday);
 
   const staff = useMemo(() => {
-    if (!teamData) return [];
-    return teamData.filter((m) => {
-      const atService = m.service?.id === serviceId;
-      const isActive = (m as { active?: boolean }).active !== false;
-      return atService && isActive;
-    });
-  }, [teamData, serviceId]);
+    if (!staffData) return [];
+    // Map userId → id: the grid keys rows/cells on `id` (a User id) and the
+    // staff endpoint is already service-scoped, so only the active filter
+    // is needed here.
+    return staffData.members
+      .filter((m) => m.isActive)
+      .map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar }));
+  }, [staffData]);
+
+  // Approved internal leave overlay (Task 5.4) — keyed on the visible
+  // staff's userIds, never serviceId (nullable on LeaveRequest).
+  const staffIds = useMemo(() => staff.map((s) => s.id), [staff]);
+  const { data: leaveData } = useRosterLeave(
+    staffIds,
+    weekDates[0],
+    weekDates[weekDates.length - 1],
+  );
+  const leaveByUserAndDay = useMemo(() => {
+    const out: Record<string, Record<string, { isHalfDay: boolean }>> = {};
+    for (const entry of leaveData?.leave ?? []) {
+      // @db.Date fields serialise as midnight-UTC ISO strings — slice(0,10)
+      // is the calendar date, comparable lexicographically with weekDates.
+      const start = entry.startDate.slice(0, 10);
+      const end = entry.endDate.slice(0, 10);
+      for (const day of weekDates) {
+        if (day < start || day > end) continue;
+        if (!out[entry.userId]) out[entry.userId] = {};
+        // A full-day entry wins over a half-day one on the same date.
+        const existing = out[entry.userId][day];
+        out[entry.userId][day] = {
+          isHalfDay: (existing?.isHalfDay ?? true) && entry.isHalfDay,
+        };
+      }
+    }
+    return out;
+  }, [leaveData, weekDates]);
 
   // Build grid: userId → dateIso → shifts[]. Null-userId shifts are OPEN
   // shifts — they get their own pinned row above the staff rows instead of
@@ -299,7 +334,7 @@ export function ServiceWeeklyShiftsGrid({
     }
   };
 
-  const isLoading = shiftsLoading || teamLoading;
+  const isLoading = shiftsLoading || staffLoading;
 
   return (
     <div className="space-y-4">
@@ -483,6 +518,7 @@ export function ServiceWeeklyShiftsGrid({
                   {weekDates.map((date) => {
                     const daysShifts = shiftsByUserAndDay[member.id]?.[date] ?? [];
                     const emptyCellClickable = canEdit && daysShifts.length === 0;
+                    const leave = leaveByUserAndDay[member.id]?.[date];
                     return (
                       <td
                         key={date}
@@ -497,6 +533,7 @@ export function ServiceWeeklyShiftsGrid({
                         }
                         data-testid={`shift-cell-${member.id}-${date}`}
                       >
+                        {leave && <OnLeaveChip isHalfDay={leave.isHalfDay} />}
                         {daysShifts.length === 0 ? (
                           <div className="min-h-[44px] flex items-center justify-center text-xs text-muted/70">
                             {canEdit ? "+ Add" : "—"}
@@ -572,6 +609,13 @@ export function ServiceWeeklyShiftsGrid({
               ))}
             </tfoot>
           </table>
+          {/* Leave-overlay honesty note (Task 5.4): staff apply for leave in
+              Employment Hero — those requests never reach the internal
+              LeaveRequest table this overlay reads. */}
+          <p className="mt-1.5 text-2xs text-muted">
+            Internal leave only — leave applied in Employment Hero won&apos;t
+            appear here.
+          </p>
         </div>
       )}
 
@@ -627,6 +671,25 @@ export function ServiceWeeklyShiftsGrid({
   );
 }
 
+
+// ── OnLeaveChip ────────────────────────────────────────────────────
+//
+// Amber overlay chip rendered in a staff/day cell when that person has
+// APPROVED internal leave covering the date (½-day variant when every
+// covering entry is a half day). Data via useRosterLeave — internal
+// LeaveRequest rows only; EH-applied leave never appears (see the grid's
+// legend line).
+
+function OnLeaveChip({ isHalfDay }: { isHalfDay: boolean }) {
+  return (
+    <span
+      data-testid="on-leave-chip"
+      className="mb-1 inline-flex items-center px-1.5 py-0.5 rounded-full border text-2xs font-medium border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200"
+    >
+      {isHalfDay ? "On leave · ½ day" : "On leave"}
+    </span>
+  );
+}
 
 // ── Ratio summary banner ────────────────────────────────────────────
 //

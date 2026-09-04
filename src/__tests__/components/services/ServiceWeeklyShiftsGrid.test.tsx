@@ -47,39 +47,35 @@ function makeClient() {
   });
 }
 
-const TEAM_MEMBERS = [
-  {
-    id: "staff-1",
-    name: "Jane Doe",
-    email: "jane@example.com",
-    role: "staff",
+// Members in the /api/services/[id]/staff shape (useServiceStaff) — the
+// grid's staff source since Task 5.5 (primary users + active memberships).
+function staffMember(
+  userId: string,
+  name: string,
+  overrides?: Partial<{ isActive: boolean; isPrimary: boolean }>,
+) {
+  return {
+    userId,
+    name,
+    email: null,
     avatar: null,
-    service: { id: "svc-1", name: "Lakemba" },
-    active: true,
-    activeRocks: 0,
-    totalTodos: 0,
-    completedTodos: 0,
-    todoCompletionPct: 0,
-    openIssues: 0,
-    managedServices: 0,
-    rocks: [],
-  },
-  {
-    id: "staff-2",
-    name: "Bob Smith",
-    email: "bob@example.com",
     role: "staff",
-    avatar: null,
-    service: { id: "svc-1", name: "Lakemba" },
-    active: true,
-    activeRocks: 0,
-    totalTodos: 0,
-    completedTodos: 0,
-    todoCompletionPct: 0,
-    openIssues: 0,
-    managedServices: 0,
-    rocks: [],
-  },
+    isPrimary: overrides?.isPrimary ?? true,
+    isActive: overrides?.isActive ?? true,
+    membership: {
+      id: `primary:${userId}`,
+      roleAtService: "OSHC Educator",
+      accessLevel: "contributor",
+      startDate: "2026-01-01",
+      endDate: null,
+      status: "active",
+    },
+  };
+}
+
+const STAFF_MEMBERS = [
+  staffMember("staff-1", "Jane Doe"),
+  staffMember("staff-2", "Bob Smith", { isPrimary: false }),
 ];
 
 const SHIFT_SAMPLE = {
@@ -108,6 +104,10 @@ function installFetchMock(opts?: {
   shifts?: unknown[];
   /** dateString → sessionType → children[] for /api/bookings/roster. */
   bookingsRoster?: Record<string, Record<string, unknown[]>>;
+  /** Approved internal leave rows for /api/roster/leave. */
+  leave?: unknown[];
+  /** Overrides the /api/services/[id]/staff members list. */
+  members?: unknown[];
 }) {
   const capture: { calls: Array<{ url: string; init?: RequestInit }> } = {
     calls: [],
@@ -116,12 +116,31 @@ function installFetchMock(opts?: {
     const u = String(url);
     capture.calls.push({ url: u, init });
 
-    if (u.includes("/api/team")) {
+    // Must be checked before the plain /staff matcher below.
+    if (u.includes("/staff-certificates")) {
       return {
         ok: true,
         status: 200,
         headers: new Headers({ "content-type": "application/json" }),
-        json: async () => TEAM_MEMBERS,
+        json: async () => ({ certificates: [] }),
+      } as unknown as Response;
+    }
+
+    if (u.includes("/api/services/svc-1/staff")) {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ members: opts?.members ?? STAFF_MEMBERS }),
+      } as unknown as Response;
+    }
+
+    if (u.includes("/api/roster/leave")) {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ leave: opts?.leave ?? [] }),
       } as unknown as Response;
     }
 
@@ -448,12 +467,20 @@ describe("ServiceWeeklyShiftsGrid", () => {
     sessionRef.role = "admin";
     global.fetch = vi.fn().mockImplementation(async (url: string | URL) => {
       const u = String(url);
-      if (u.includes("/api/team")) {
+      if (u.includes("/staff-certificates")) {
         return {
           ok: true,
           status: 200,
           headers: new Headers({ "content-type": "application/json" }),
-          json: async () => [],
+          json: async () => ({ certificates: [] }),
+        } as unknown as Response;
+      }
+      if (u.includes("/api/services/svc-1/staff")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
+          json: async () => ({ members: [] }),
         } as unknown as Response;
       }
       return {
@@ -471,6 +498,82 @@ describe("ServiceWeeklyShiftsGrid", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/no active staff/i)).toBeDefined();
+    });
+  });
+
+  it("filters deactivated members out of the staff rows", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      members: [
+        staffMember("staff-1", "Jane Doe"),
+        staffMember("staff-gone", "Departed Dave", { isActive: false }),
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Jane Doe")).toBeDefined();
+    });
+    expect(screen.queryByText("Departed Dave")).toBeNull();
+  });
+
+  it("overlays an On leave chip on covered days and shows the EH-honesty legend", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      leave: [
+        {
+          userId: "staff-1",
+          leaveType: "annual",
+          startDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          endDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          isHalfDay: false,
+        },
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("on-leave-chip")).toBeDefined();
+    });
+    expect(screen.getByTestId("on-leave-chip").textContent).toBe("On leave");
+    // The chip sits inside Jane's Monday cell.
+    const mondayCell = screen.getByTestId(`shift-cell-staff-1-${MONDAY_ISO}`);
+    expect(mondayCell.contains(screen.getByTestId("on-leave-chip"))).toBe(true);
+    // Legend: internal leave only, EH leave never appears.
+    expect(
+      screen.getByText(/leave applied in Employment Hero/i),
+    ).toBeDefined();
+  });
+
+  it("renders the ½-day variant when the covering leave is a half day", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      leave: [
+        {
+          userId: "staff-2",
+          leaveType: "personal",
+          startDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          endDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          isHalfDay: true,
+        },
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/On leave · ½ day/)).toBeDefined();
     });
   });
 });
