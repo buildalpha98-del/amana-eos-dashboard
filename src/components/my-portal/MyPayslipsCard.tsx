@@ -7,6 +7,9 @@
  * Payroll. Each row has a "View" button that opens the existing
  * FileViewerModal pointed at our proxy endpoint, plus a download link.
  *
+ * Data comes from the shared `useMyPayslips` hook (also powering the
+ * /my-pay destination — same query key, same cache entry).
+ *
  * Empty + error states are deliberately distinct:
  *   - integration not configured (503): "Payroll integration not set up."
  *   - user not mapped (404):             "Contact your manager."
@@ -18,67 +21,23 @@
  */
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Download, Eye, Wallet } from "lucide-react";
 import { FileViewerModal } from "@/components/files/FileViewerModal";
-import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
-
-interface PayslipSummary {
-  id: number;
-  payRunId: number;
-  payPeriodStarting: string | null;
-  payPeriodEnding: string | null;
-  grossEarnings: number;
-  netEarnings: number;
-  totalHours: number;
-  isPublished: boolean;
-}
-
-interface PayslipsResponse {
-  payslips: PayslipSummary[];
-}
-
-// EH returns dates as DD/MM/YYYY strings — pass them through to the UI
-// rather than re-parsing, so what staff see matches what EH would show
-// in their own portal. If we ever switch source, this helper isolates
-// the formatting.
-function formatPayPeriod(slip: PayslipSummary): string {
-  const start = slip.payPeriodStarting;
-  const end = slip.payPeriodEnding;
-  if (start && end) return `${start} – ${end}`;
-  return end ?? start ?? "—";
-}
-
-function formatCurrency(n: number): string {
-  return n.toLocaleString("en-AU", {
-    style: "currency",
-    currency: "AUD",
-    minimumFractionDigits: 2,
-  });
-}
+import {
+  useMyPayslips,
+  formatCurrency,
+  formatPayPeriod,
+  payslipDownloadUrl,
+  type PayslipSummary,
+} from "@/hooks/useMyPayslips";
 
 export function MyPayslipsCard() {
   const [viewing, setViewing] = useState<PayslipSummary | null>(null);
 
-  const { data, isLoading, error } = useQuery<PayslipsResponse, ApiResponseError>({
-    queryKey: ["my-payslips"],
-    queryFn: () => fetchApi<PayslipsResponse>("/api/my-portal/payslips"),
-    // This card renders its own inline error/empty states (404 = not
-    // linked, 503 = not configured) — the global error toast is noise.
-    meta: { suppressGlobalErrorToast: true },
-    // Payslips don't change often. 5 min stale window is plenty.
-    staleTime: 5 * 60_000,
-    retry: (failureCount, err) => {
-      // 404 (user not mapped) and 503 (not configured) are terminal —
-      // retrying won't help and burns API budget.
-      const status = (err as ApiResponseError)?.status;
-      if (status === 404 || status === 503) return false;
-      return failureCount < 2;
-    },
-  });
+  const { data, isLoading, error } = useMyPayslips();
 
   const slips = data?.payslips ?? [];
-  const errorStatus = (error as ApiResponseError | undefined)?.status;
+  const errorStatus = error?.status;
 
   return (
     <div className="bg-card rounded-xl border border-border p-6" data-testid="my-payslips-card">
@@ -144,7 +103,7 @@ export function MyPayslipsCard() {
                 View
               </button>
               <a
-                href={`/api/my-portal/payslips/${slip.payRunId}/download?download=1`}
+                href={`${payslipDownloadUrl(slip.payRunId)}?download=1`}
                 className="inline-flex items-center gap-1 text-sm text-brand hover:underline shrink-0"
                 data-testid="payslip-download-link"
               >
@@ -161,8 +120,8 @@ export function MyPayslipsCard() {
           open={!!viewing}
           onClose={() => setViewing(null)}
           title={`Payslip — ${formatPayPeriod(viewing)}`}
-          viewerUrl={`/api/my-portal/payslips/${viewing.payRunId}/download`}
-          downloadUrl={`/api/my-portal/payslips/${viewing.payRunId}/download?download=1`}
+          viewerUrl={payslipDownloadUrl(viewing.payRunId)}
+          downloadUrl={`${payslipDownloadUrl(viewing.payRunId)}?download=1`}
           fileName={`payslip-${viewing.payRunId}.pdf`}
         />
       )}

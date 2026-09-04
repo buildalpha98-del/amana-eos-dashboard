@@ -71,7 +71,7 @@ export const POST = withApiAuth(async () => {
     {
       error:
         "This endpoint is retired. Submit new leave via My Portal → Leave — requests now land in Employment Hero directly.",
-      redirectTo: "/my-portal#leave",
+      redirectTo: "/my-leave",
     },
     { status: 410 },
   );

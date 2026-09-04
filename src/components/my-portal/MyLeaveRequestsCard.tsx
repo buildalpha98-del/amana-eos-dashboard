@@ -196,7 +196,7 @@ interface ApplyLeaveModalProps {
   onSubmitted: () => void;
 }
 
-function ApplyLeaveModal({ onClose, onSubmitted }: ApplyLeaveModalProps) {
+export function ApplyLeaveModal({ onClose, onSubmitted }: ApplyLeaveModalProps) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [hours, setHours] = useState<string>("");

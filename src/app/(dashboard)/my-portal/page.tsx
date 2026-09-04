@@ -33,23 +33,24 @@ import {
   MessageSquare,
   Star,
   Send,
+  Wallet,
+  Receipt,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, toLocalIsoDate } from "@/lib/utils";
 import Link from "next/link";
 import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
 import { SessionManagement } from "@/components/settings/SessionManagement";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
-import { mutateApi } from "@/lib/fetch-api";
+import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { Button } from "@/components/ui/Button";
 import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
-import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 import { MyClockCard } from "@/components/my-portal/MyClockCard";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
-import { MyPayslipsCard } from "@/components/my-portal/MyPayslipsCard";
-import { MyLeaveRequestsCard } from "@/components/my-portal/MyLeaveRequestsCard";
-import { MyExpensesCard } from "@/components/my-portal/MyExpensesCard";
+import { useMyPayslips, formatCurrency } from "@/hooks/useMyPayslips";
+import { totalAmount, type ExpenseRequest } from "@/components/my-portal/MyExpensesCard";
+import { CLOCK_IN_WINDOW_MS, shiftStartMs } from "@/lib/timeclock-pick";
 import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
 import { MyPerformanceReviewsCard } from "@/components/my-portal/MyPerformanceReviewsCard";
 import { MyPositionDescriptionCard } from "@/components/my-portal/MyPositionDescriptionCard";
@@ -311,6 +312,440 @@ function PolicyAckModal({
             {isPending ? "Acknowledging..." : "Confirm Acknowledgement"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Home hub — next-shift hero, glance tiles, quick actions, attention  */
+/* (Staff Portal v2 Task 1.6 — per Main.dc.html / MobileHome.dc.html)  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared retry predicate for the EH-backed glance queries — mirrors the
+ * destination pages exactly: 404 (not linked) and 503 (not configured)
+ * are terminal, everything else retries twice.
+ */
+function terminalRetry(count: number, err: unknown): boolean {
+  const status = (err as ApiResponseError)?.status;
+  if (status === 404 || status === 503) return false;
+  return count < 2;
+}
+
+interface HeroShift {
+  id: string;
+  date: string;
+  shiftStart: string;
+  shiftEnd: string;
+  actualStart: string | null;
+  actualEnd: string | null;
+  service?: { id: string; name: string } | null;
+}
+
+// Same window as MyClockCard's internal clockWindowRange() — yesterday
+// (overnight clock-outs) through +7 days. Matching it exactly means our
+// useQuery below shares the card's cache entry instead of double-fetching.
+function clockWindowRange() {
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate() - 1);
+  const end = new Date(today);
+  end.setDate(end.getDate() + 7);
+  return { from: toLocalIsoDate(start), to: toLocalIsoDate(end) };
+}
+
+/**
+ * Next-shift / clock hero. MyClockCard renders itself (clock in/out,
+ * ambiguous picker, error state) and hides entirely on a quiet day —
+ * this wrapper subscribes to the SAME query (identical key + options,
+ * so React Query dedupes) and, when the card's own hide predicate is
+ * true, shows a compact next-shift line instead so the hero slot is
+ * never just empty.
+ */
+function NextShiftHero({ userId }: { userId: string }) {
+  const { from, to } = clockWindowRange();
+  const { data, isSuccess } = useQuery<{ shifts: HeroShift[] }>({
+    queryKey: ["my-shifts", userId, from, to],
+    queryFn: () =>
+      fetchApi<{ shifts: HeroShift[] }>(
+        `/api/roster/shifts/mine?from=${from}&to=${to}`,
+      ),
+    enabled: !!userId,
+    retry: 2,
+    refetchInterval: 60_000,
+  });
+
+  const shifts = useMemo(() => data?.shifts ?? [], [data]);
+
+  // Same minute-tick as MyClockCard, so the fallback line swaps out in
+  // step with the card appearing when a shift enters its window.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Replicates MyClockCard's visibility predicate: active shift, or a
+  // shift inside the ±2h clock-in window. (Ambiguous-candidate state
+  // only arises after a clock-in attempt, which requires an eligible
+  // shift — covered by the same predicate.)
+  const clockCardVisible = useMemo(() => {
+    const nowMs = now.getTime();
+    return shifts.some((s) => {
+      if (s.actualStart && !s.actualEnd) return true; // clocked in
+      if (s.actualStart) return false;
+      const startMs = shiftStartMs({
+        id: s.id,
+        date: new Date(s.date),
+        shiftStart: s.shiftStart,
+        shiftEnd: s.shiftEnd,
+        actualStart: null,
+        actualEnd: null,
+      });
+      return Math.abs(nowMs - startMs) <= CLOCK_IN_WINDOW_MS;
+    });
+  }, [shifts, now]);
+
+  const nextShift = useMemo(() => {
+    const today = toLocalIsoDate(now);
+    return (
+      shifts
+        .filter(
+          (s) => !s.actualStart && toLocalIsoDate(new Date(s.date)) >= today,
+        )
+        .sort((a, b) =>
+          `${toLocalIsoDate(new Date(a.date))}T${a.shiftStart}`.localeCompare(
+            `${toLocalIsoDate(new Date(b.date))}T${b.shiftStart}`,
+          ),
+        )[0] ?? null
+    );
+  }, [shifts, now]);
+
+  return (
+    <div data-testid="next-shift-hero">
+      <MyClockCard userId={userId} />
+      {isSuccess && !clockCardVisible && (
+        <Link
+          href="/my-day"
+          className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-brand/30 transition-colors"
+          data-testid="next-shift-line"
+        >
+          <Clock className="w-4 h-4 text-brand flex-shrink-0" aria-hidden />
+          {nextShift ? (
+            <span className="text-sm text-foreground min-w-0 truncate">
+              <span className="text-muted">Next shift · </span>
+              <strong>
+                {new Date(nextShift.date).toLocaleDateString("en-AU", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                })}{" "}
+                · {nextShift.shiftStart}–{nextShift.shiftEnd}
+              </strong>
+              {nextShift.service?.name && (
+                <span className="text-muted"> · {nextShift.service.name}</span>
+              )}
+            </span>
+          ) : (
+            <span className="text-sm text-muted">
+              No shifts rostered in the next 7 days
+            </span>
+          )}
+          <ChevronRight className="w-4 h-4 text-muted ml-auto flex-shrink-0" aria-hidden />
+        </Link>
+      )}
+    </div>
+  );
+}
+
+/* ---- Glance tiles ---- */
+
+interface GlanceLeaveBalance {
+  leaveCategoryId: number;
+  leaveCategoryName: string;
+  accruedAmount: number;
+  unitType: "Hours" | "Days" | "Weeks";
+}
+
+/** Standard 7.6-hour day — same constant as MyLeaveContent's ≈days hint. */
+const HOURS_PER_DAY = 7.6;
+
+function GlanceTile({
+  href,
+  icon: Icon,
+  label,
+  value,
+  sub,
+  subClass,
+  testId,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  sub?: string;
+  subClass?: string;
+  testId: string;
+}) {
+  return (
+    <Link
+      href={href}
+      data-testid={testId}
+      className="bg-card rounded-xl border border-border p-4 flex flex-col gap-1 min-w-0 hover:border-brand/30 transition-colors"
+    >
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+        <Icon className="w-3.5 h-3.5 text-brand" aria-hidden />
+        {label}
+      </span>
+      <span className="text-2xl font-heading font-bold tracking-tight text-foreground truncate">
+        {value}
+      </span>
+      <span className={cn("text-2xs", subClass ?? "text-muted")}>
+        {sub ?? " "}
+      </span>
+    </Link>
+  );
+}
+
+/**
+ * Four glance tiles → the dedicated destinations. Pay reuses the shared
+ * useMyPayslips hook; leave/expenses use the SAME queryKey + options as
+ * MyLeaveContent / MyExpensesContent (there is no extracted hook for
+ * those yet — the keys matching means one cache entry, no double fetch).
+ * Every tile falls back to "—" when not linked / loading / errored.
+ */
+function GlanceTiles({
+  certStats,
+}: {
+  certStats: { valid: number; expiring: number; expired: number; total: number } | null;
+}) {
+  const payslipsQuery = useMyPayslips();
+
+  const balancesQuery = useQuery<{ balances: GlanceLeaveBalance[] }, ApiResponseError>({
+    queryKey: ["my-leave-balances-eh"],
+    queryFn: () => fetchApi("/api/my-portal/leave/balances"),
+    meta: { suppressGlobalErrorToast: true },
+    staleTime: 5 * 60_000,
+    retry: terminalRetry,
+  });
+
+  const expensesQuery = useQuery<{ requests: ExpenseRequest[] }, ApiResponseError>({
+    queryKey: ["my-expenses"],
+    queryFn: () => fetchApi("/api/my-portal/expenses"),
+    meta: { suppressGlobalErrorToast: true },
+    staleTime: 60_000,
+    retry: terminalRetry,
+  });
+
+  // Pay — latest slip's net.
+  const latestSlip = payslipsQuery.data?.payslips[0];
+  const payValue = latestSlip ? formatCurrency(latestSlip.netEarnings) : "—";
+  const paySub = latestSlip
+    ? `net · ${latestSlip.totalHours.toFixed(1)} hrs`
+    : undefined;
+
+  // Leave — the annual-leave category (fall back to the first balance).
+  const balances = balancesQuery.data?.balances ?? [];
+  const annual =
+    balances.find((b) => /annual/i.test(b.leaveCategoryName)) ?? balances[0];
+  const leaveValue = annual
+    ? annual.unitType === "Hours"
+      ? `${annual.accruedAmount.toFixed(1)} hrs`
+      : `${annual.accruedAmount.toFixed(1)} ${annual.unitType.toLowerCase()}`
+    : "—";
+  const leaveSub =
+    annual && annual.unitType === "Hours"
+      ? `≈ ${(annual.accruedAmount / HOURS_PER_DAY).toFixed(1)} days available`
+      : annual
+        ? annual.leaveCategoryName
+        : undefined;
+
+  // Expenses — pending (awaiting-approval) claims. Same pending
+  // predicate as MyExpensesContent's statusKind: anything that isn't
+  // approved/paid/processed, rejected/declined, or cancelled.
+  const requests = expensesQuery.data?.requests ?? [];
+  const pendingClaims = requests.filter((r) => {
+    const s = r.status.toLowerCase();
+    return !(
+      s.startsWith("approv") ||
+      s.startsWith("paid") ||
+      s.startsWith("process") ||
+      s.startsWith("reject") ||
+      s.startsWith("declin") ||
+      s.startsWith("cancel")
+    );
+  });
+  const pendingSum = pendingClaims.reduce((sum, r) => sum + totalAmount(r), 0);
+  const expensesValue = expensesQuery.data ? formatCurrency(pendingSum) : "—";
+  const expensesSub = expensesQuery.data
+    ? pendingClaims.length > 0
+      ? `${pendingClaims.length} claim${pendingClaims.length === 1 ? "" : "s"} awaiting approval`
+      : "No claims awaiting approval"
+    : undefined;
+
+  // Compliance — valid count from the certs this page already fetched.
+  const complianceValue = certStats
+    ? `${certStats.valid} of ${certStats.total}`
+    : "—";
+  const complianceSub = certStats
+    ? certStats.expired > 0
+      ? `${certStats.expired} expired`
+      : certStats.expiring > 0
+        ? `${certStats.expiring} expiring soon`
+        : "up to date"
+    : undefined;
+  const complianceSubClass =
+    certStats && certStats.expired > 0
+      ? "text-red-600 dark:text-red-400 font-semibold"
+      : certStats && certStats.expiring > 0
+        ? "text-amber-600 dark:text-amber-400 font-semibold"
+        : undefined;
+
+  return (
+    <div
+      className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+      data-testid="glance-tiles"
+    >
+      <GlanceTile
+        href="/my-pay"
+        icon={Wallet}
+        label="Last pay"
+        value={payValue}
+        sub={paySub}
+        testId="glance-pay"
+      />
+      <GlanceTile
+        href="/my-leave"
+        icon={CalendarDays}
+        label="Annual leave"
+        value={leaveValue}
+        sub={leaveSub}
+        testId="glance-leave"
+      />
+      <GlanceTile
+        href="/my-expenses"
+        icon={Receipt}
+        label="Reimbursements"
+        value={expensesValue}
+        sub={expensesSub}
+        subClass={pendingClaims.length > 0 ? "text-amber-600 dark:text-amber-400 font-semibold" : undefined}
+        testId="glance-expenses"
+      />
+      <GlanceTile
+        href="/compliance"
+        icon={ShieldCheck}
+        label="Compliance"
+        value={complianceValue}
+        sub={complianceSub}
+        subClass={complianceSubClass}
+        testId="glance-compliance"
+      />
+    </div>
+  );
+}
+
+/* ---- Quick actions ---- */
+
+const QUICK_ACTIONS = [
+  { href: "/my-leave", label: "Apply leave", icon: Plane },
+  { href: "/my-expenses", label: "Claim expense", icon: Receipt },
+  { href: "/my-training", label: "My training", icon: GraduationCap },
+  { href: "/documents", label: "Documents", icon: FileText },
+] as const;
+
+function QuickActionsRow() {
+  return (
+    <div
+      className="grid grid-cols-4 gap-2 sm:gap-3"
+      data-testid="quick-actions"
+    >
+      {QUICK_ACTIONS.map((a) => (
+        <Link
+          key={a.href}
+          href={a.href}
+          className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-card px-2 py-3 hover:border-brand/30 transition-colors"
+        >
+          <span className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
+            <a.icon className="w-5 h-5 text-brand" aria-hidden />
+          </span>
+          <span className="text-2xs font-semibold text-foreground text-center">
+            {a.label}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/* ---- Needs your attention ---- */
+
+interface AttentionItem {
+  key: string;
+  chip: string;
+  chipClass: string;
+  label: React.ReactNode;
+  /** Exactly one of onClick / href; neither = informational row. */
+  onClick?: () => void;
+  href?: string;
+}
+
+function AttentionRow({ item }: { item: AttentionItem }) {
+  const inner = (
+    <>
+      <span
+        className={cn(
+          "text-2xs font-bold rounded-full px-2.5 py-0.5 flex-shrink-0",
+          item.chipClass,
+        )}
+      >
+        {item.chip}
+      </span>
+      <span className="text-sm text-foreground flex-1 min-w-0 text-left">
+        {item.label}
+      </span>
+      {(item.onClick || item.href) && (
+        <ChevronRight className="w-4 h-4 text-muted flex-shrink-0" aria-hidden />
+      )}
+    </>
+  );
+  const rowClass =
+    "flex items-center gap-3 rounded-lg bg-surface px-3.5 py-3 w-full";
+  if (item.href) {
+    return (
+      <Link href={item.href} className={cn(rowClass, "hover:bg-border/50 transition-colors")}>
+        {inner}
+      </Link>
+    );
+  }
+  if (item.onClick) {
+    return (
+      <button
+        type="button"
+        onClick={item.onClick}
+        className={cn(rowClass, "hover:bg-border/50 transition-colors")}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return <div className={rowClass}>{inner}</div>;
+}
+
+function AttentionCard({ items }: { items: AttentionItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div
+      className="bg-card rounded-xl border border-border p-5"
+      data-testid="needs-attention"
+    >
+      <h3 className="text-sm font-bold text-foreground mb-3">
+        Needs your attention
+      </h3>
+      <div className="space-y-2">
+        {items.map((item) => (
+          <AttentionRow key={item.key} item={item} />
+        ))}
       </div>
     </div>
   );
@@ -586,6 +1021,86 @@ export default function MyPortalPage() {
   const { profile, leaveBalances, activeContract, historicalContracts, pendingPolicies, onboardingProgress, offboardingProgress, lmsEnrollments, complianceCerts } = data;
   const firstName = getFirstName(profile.name);
 
+  /* ---- "Needs your attention" — consolidated from data this page
+     already fetches: pending policy acks, unsigned contract, pending
+     internal leave requests, and expiring/expired certs. (Swap requests
+     aren't fetched on this page, so they're not represented here.) ---- */
+  const attentionItems: AttentionItem[] = [
+    ...pendingPolicies.map((policy) => ({
+      key: `policy-${policy.id}`,
+      chip: "Policy",
+      chipClass:
+        "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300",
+      label: (
+        <>
+          Acknowledge <strong>{policy.title}</strong>
+        </>
+      ),
+      onClick: () => {
+        setAckPolicyId(policy.id);
+        setAckPolicyTitle(policy.title);
+      },
+    })),
+    ...(pendingItemCounts.contract
+      ? [
+          {
+            key: "contract",
+            chip: "Contract",
+            chipClass: "bg-brand/10 text-brand",
+            label: (
+              <>
+                Your contract needs a <strong>signature</strong>
+              </>
+            ),
+            onClick: () =>
+              document
+                .getElementById("section-contract")
+                ?.scrollIntoView({ behavior: "smooth" }),
+          },
+        ]
+      : []),
+    ...(pendingItemCounts.leave > 0
+      ? [
+          {
+            key: "leave-pending",
+            chip: "Leave",
+            chipClass: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300",
+            label: (
+              <>
+                {pendingItemCounts.leave} leave{" "}
+                {pendingItemCounts.leave === 1 ? "request" : "requests"} awaiting
+                approval
+              </>
+            ),
+          },
+        ]
+      : []),
+    ...complianceCerts
+      .filter((c) => c.expiryDate && daysUntilExpiry(c.expiryDate) <= 30)
+      .map((cert) => {
+        const days = daysUntilExpiry(cert.expiryDate!);
+        return {
+          key: `cert-${cert.id}`,
+          chip: "Cert",
+          chipClass:
+            "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300",
+          label:
+            days < 0 ? (
+              <>
+                {certTypeLabels[cert.type] || cert.type} expired{" "}
+                <strong>{Math.abs(days)} days ago</strong> — renew
+              </>
+            ) : (
+              <>
+                {certTypeLabels[cert.type] || cert.type} expires in{" "}
+                <strong>{days} days</strong> — renew
+              </>
+            ),
+          href: "/compliance",
+        };
+      }),
+  ];
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* ============================================================ */}
@@ -619,40 +1134,18 @@ export default function MyPortalPage() {
       <MorningBriefCard />
 
       {/* ============================================================ */}
-      {/* 2. QUICK ACTIONS BANNER                                      */}
+      {/* 2. HOME HUB — next-shift hero, glance tiles, quick actions,  */}
+      {/* consolidated "Needs your attention" (Staff Portal v2 1.6).   */}
+      {/* Payslips / EH leave / expenses moved to /my-pay, /my-leave,  */}
+      {/* /my-expenses — the tiles below link there.                   */}
       {/* ============================================================ */}
-      {pendingItemCounts.total > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-2 flex-1">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-amber-800">
-              {pendingItemCounts.policies > 0 && (
-                <button
-                  onClick={() => document.getElementById("section-policies")?.scrollIntoView({ behavior: "smooth" })}
-                  className="font-medium hover:underline"
-                >
-                  {pendingItemCounts.policies} pending {pendingItemCounts.policies === 1 ? "policy" : "policies"} to acknowledge
-                </button>
-              )}
-              {pendingItemCounts.leave > 0 && (
-                <span className="font-medium">
-                  {pendingItemCounts.leave} pending leave {pendingItemCounts.leave === 1 ? "request" : "requests"}
-                </span>
-              )}
-              {pendingItemCounts.contract && (
-                <button
-                  onClick={() => document.getElementById("section-contract")?.scrollIntoView({ behavior: "smooth" })}
-                  className="font-medium hover:underline"
-                >
-                  Contract requires signature
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {session?.user?.id && <NextShiftHero userId={session.user.id} />}
+
+      <GlanceTiles certStats={certStats} />
+
+      <QuickActionsRow />
+
+      <AttentionCard items={attentionItems} />
 
       {/* ============================================================ */}
       {/* 3. PROFILE SUMMARY CARD                                      */}
@@ -741,43 +1234,11 @@ export default function MyPortalPage() {
       </div>
 
       {/* ============================================================ */}
-      {/* 3b. MY COMPLIANCE + MY LEAVE BALANCE (self-service)           */}
+      {/* 3b. MY COMPLIANCE (self-service)                              */}
+      {/* EH payslips / leave / expenses moved to their own pages —     */}
+      {/* /my-pay, /my-leave, /my-expenses (Staff Portal v2 Phase 1).   */}
       {/* ============================================================ */}
-      {session?.user?.id && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <MyComplianceCard userId={session.user.id} />
-          <MyLeaveBalanceCard userId={session.user.id} />
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* 3b-i. MY PAYSLIPS (2026-06-01 — EH Payroll integration)       */}
-      {/* Surfaces the 12 most recent payslips for the signed-in user.  */}
-      {/* Self-renders "not configured" or "not mapped" states quietly  */}
-      {/* so the layout doesn't shift for users without payroll yet.    */}
-      {/* ============================================================ */}
-      {session?.user?.id && <MyPayslipsCard />}
-
-      {/* ============================================================ */}
-      {/* 3b-ii. MY LEAVE REQUESTS (2026-06-01 — EH Payroll)            */}
-      {/* History + "Apply for leave" form. Submissions flow straight   */}
-      {/* into EH where managers approve. Auto-refreshes balances on    */}
-      {/* successful submit so the deducted hours show immediately.     */}
-      {/* ============================================================ */}
-      {session?.user?.id && (
-        <div id="leave">
-          <MyLeaveRequestsCard />
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* 3b-iii. MY EXPENSES (2026-06-01 — EH Payroll)                 */}
-      {/* Submit reimbursement claims with optional receipt upload.     */}
-      {/* Each submission is one line item; staff with multiple         */}
-      {/* expenses just submit multiple forms. Receipts flow through    */}
-      {/* our proxy → EH's two-step create-then-attach flow.            */}
-      {/* ============================================================ */}
-      {session?.user?.id && <MyExpensesCard />}
+      {session?.user?.id && <MyComplianceCard userId={session.user.id} />}
 
       {/* ============================================================ */}
       {/* 3b-iv. QUIET HOURS — right to disconnect (s333M Fair Work)    */}
@@ -817,14 +1278,8 @@ export default function MyPortalPage() {
       {session?.user?.id && <SetKioskPinCard />}
 
       {/* ============================================================ */}
-      {/* 3b1. TIMECLOCK (PR #62 — primary clock-in/out widget)         */}
-      {/* Hidden when no shift is in the ±2h window. Lives ABOVE the    */}
-      {/* upcoming-shifts list so the active CTA dominates the page.    */}
-      {/* ============================================================ */}
-      {session?.user?.id && <MyClockCard userId={session.user.id} />}
-
-      {/* ============================================================ */}
       {/* 3c. MY UPCOMING SHIFTS (next 7 days)                          */}
+      {/* (Timeclock now lives in the NextShiftHero at the top.)        */}
       {/* ============================================================ */}
       {session?.user?.id && (
         <MyUpcomingShiftsCard userId={session.user.id} />
@@ -846,17 +1301,15 @@ export default function MyPortalPage() {
               <Plane className="w-5 h-5 text-brand" />
               Leave Balances
             </h3>
-            {/* 2026-09-03: was a Link to /leave, which bounces staff back
-                here — the leave request form lives on this page, so jump
-                to it instead (same pattern as the pending-item anchors). */}
-            <button
-              type="button"
-              onClick={() => document.getElementById("leave")?.scrollIntoView({ behavior: "smooth" })}
+            {/* 2026-09-04: the leave request form moved to /my-leave
+                (Staff Portal v2 Phase 1) — link there, not an anchor. */}
+            <Link
+              href="/my-leave"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
             >
               Request Leave
               <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+            </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {leaveBalances.map((lb) => {

@@ -45,6 +45,7 @@ import {
   Activity,
   CalendarCheck,
   Receipt,
+  Wallet,
   Mail,
   Network,
   Brain,
@@ -141,6 +142,12 @@ export const navItems: NavItem[] = [
   { href: "/my-training", label: "My Training", icon: GraduationCap, section: "My Portal", tooltip: "Your induction and ongoing training courses", core: true },
   { href: "/surveys", label: "My Surveys", icon: ClipboardList, section: "My Portal", tooltip: "Surveys sent to you — feedback, check-ins, culture", core: true },
   { href: "/roster/me", label: "My Roster", icon: CalendarDays, section: "My Portal", tooltip: "Your published shifts and swap requests", core: true },
+  // 2026-09-04 staff portal v2: dedicated self-service destinations. Nav
+  // visibility is staff-tier only (office roles reach them by URL — they
+  // are employees too, but their sidebar shouldn't grow for it).
+  { href: "/my-pay", label: "My Pay", icon: Wallet, section: "My Portal", tooltip: "Your payslips and pay history", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
+  { href: "/my-leave", label: "My Leave", icon: CalendarDays, section: "My Portal", tooltip: "Leave balances and requests", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
+  { href: "/my-expenses", label: "My Expenses", icon: Receipt, section: "My Portal", tooltip: "Claim reimbursements and track their status", roles: ["staff", "member", "marketing"], core: ["staff", "member", "marketing"] },
   { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "My Portal", tooltip: "Your onboarding checklist — get up to speed quickly" , core: true },
   // Same route as Operations → Compliance, deliberately filed under "me"
   // for centre roles: to an Educator, compliance means their own WWCC and

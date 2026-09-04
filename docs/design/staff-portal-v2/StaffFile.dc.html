@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; color: #1a1a2e; }
+    a { color: #004E64; text-decoration: none; } a:hover { color: #003D52; }
+  </style>
+</helmet>
+<div style="width: 1440px; height: 980px; background: #FAF8F5; padding: 32px 48px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; box-sizing: border-box;">
+
+  <!-- Sticky profile header -->
+  <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 20px; padding: 24px 28px; box-shadow: 0 4px 16px -2px rgba(140,120,90,0.1); display: flex; align-items: center; gap: 20px;">
+    <div style="width: 64px; height: 64px; border-radius: 999px; background: #004E64; color: #ffffff; display: flex; align-items: center; justify-content: center; font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 22px;">SA</div>
+    <div style="flex: 1;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 22px;">Sara Ahmed</div>
+        <span style="background: #D4F4D4; color: #1F5E1F; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700;">Active</span>
+        <span style="background: #E6F3F7; color: #004E64; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700;">Part-time</span>
+      </div>
+      <div style="display: flex; gap: 18px; margin-top: 6px; font-size: 13px; color: #6b6b78;">
+        <span>OSHC Educator · Beaumont Hills</span>
+        <span>EMP-0042</span>
+        <span>Started 12 Feb 2025 · 1 yr 7 mo</span>
+        <span>sara.a@amanaoshc.com.au</span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <div style="border: 1px solid #e8e4df; border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 600; color: #004E64;">Message</div>
+      <div style="border: 1px solid #e8e4df; border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 600; color: #004E64;">Actions <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#004E64" stroke-width="2" stroke-linecap="round" style="vertical-align: -1px;"><path d="M6 9l6 6 6-6"/></svg></div>
+      <div style="background: #004E64; color: #ffffff; border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 600;">Edit profile</div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div style="display: flex; gap: 4px; border-bottom: 1px solid #e8e4df; padding: 0 4px;">
+    <div style="padding: 10px 18px; font-size: 14px; font-weight: 700; color: #004E64; border-bottom: 2px solid #004E64;">Overview</div>
+    <div style="padding: 10px 18px; font-size: 14px; color: #6b6b78;">Employment</div>
+    <div style="padding: 10px 18px; font-size: 14px; color: #6b6b78;">Pay &amp; leave</div>
+    <div style="padding: 10px 18px; font-size: 14px; color: #6b6b78;">Documents</div>
+    <div style="padding: 10px 18px; font-size: 14px; color: #6b6b78;">Compliance</div>
+    <div style="padding: 10px 18px; font-size: 14px; color: #6b6b78;">Performance</div>
+    <div style="padding: 10px 18px; font-size: 14px; color: #6b6b78;">Health &amp; WHS</div>
+  </div>
+
+  <!-- Overview grid -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; flex: 1; min-height: 0;">
+
+    <!-- Compliance at a glance -->
+    <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 22px; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08);">
+      <div style="font-size: 14px; font-weight: 700; margin-bottom: 14px;">Compliance</div>
+      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 14px;">
+        <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#F2EDE8" stroke-width="8"/><circle cx="32" cy="32" r="26" fill="none" stroke="#059669" stroke-width="8" stroke-dasharray="130 163" stroke-linecap="round" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-size="15" font-weight="700" fill="#1a1a2e" font-family="DM Sans, sans-serif">4/5</text></svg>
+        <div style="font-size: 13px; color: #6b6b78;">Four certificates current.<br><span style="color: #DC2626; font-weight: 600;">First Aid expires 25 Sep.</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between;"><span>WWCC</span><span style="color: #059669; font-weight: 600;">Valid · Jun 2029</span></div>
+        <div style="display: flex; justify-content: space-between;"><span>First Aid (HLTAID012)</span><span style="color: #DC2626; font-weight: 700;">21 days left</span></div>
+        <div style="display: flex; justify-content: space-between;"><span>CPR</span><span style="color: #059669; font-weight: 600;">Valid · Mar 2027</span></div>
+        <div style="display: flex; justify-content: space-between;"><span>Child Protection</span><span style="color: #059669; font-weight: 600;">Valid · Feb 2027</span></div>
+      </div>
+      <div style="margin-top: 14px; border-top: 1px solid #F2EDE8; padding-top: 12px;"><a href="#" style="font-size: 13px; font-weight: 600;">Send renewal reminder →</a></div>
+    </div>
+
+    <!-- Employment snapshot -->
+    <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 22px; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08);">
+      <div style="font-size: 14px; font-weight: 700; margin-bottom: 14px;">Employment</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; font-size: 13px;">
+        <div><div style="color: #6b6b78; font-size: 12px;">Position</div><div style="font-weight: 600;">OSHC Educator</div></div>
+        <div><div style="color: #6b6b78; font-size: 12px;">Classification</div><div style="font-weight: 600;">Children's Services Level 3.2</div></div>
+        <div><div style="color: #6b6b78; font-size: 12px;">Contract</div><div style="font-weight: 600;">Part-time · signed 12 Feb 2025</div></div>
+        <div><div style="color: #6b6b78; font-size: 12px;">Base rate</div><div style="font-weight: 600;">$40.58 / hr</div></div>
+        <div><div style="color: #6b6b78; font-size: 12px;">Payroll</div><div style="font-weight: 600; color: #059669;">Linked to Employment Hero</div></div>
+        <div><div style="color: #6b6b78; font-size: 12px;">Probation</div><div style="font-weight: 600;">Completed May 2025</div></div>
+      </div>
+      <div style="margin-top: 16px; background: #FFFDF9; border: 1px dashed #e8e4df; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #6b6b78;">
+        <strong style="color: #1a1a2e;">Rate history:</strong> $38.20 (Feb 25) → $40.58 (Jul 26, award increase)
+      </div>
+      <div style="margin-top: 12px;"><a href="#" style="font-size: 13px; font-weight: 600;">View contract →</a></div>
+    </div>
+
+    <!-- Leave + activity -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 22px; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08);">
+        <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Leave</div>
+        <div style="display: flex; gap: 24px; font-size: 13px;">
+          <div><div style="color: #6b6b78; font-size: 12px;">Annual</div><div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 20px;">64.4 hrs</div></div>
+          <div><div style="color: #6b6b78; font-size: 12px;">Personal</div><div style="font-family: 'Bricolage Grotesque', ui-sans-serif, sans-serif; font-weight: 700; font-size: 20px;">41.2 hrs</div></div>
+          <div><div style="color: #6b6b78; font-size: 12px;">Upcoming</div><div style="font-weight: 600; margin-top: 4px;">29 Sep – 3 Oct<br><span style="color:#8B4513; font-weight: 400;">requested</span></div></div>
+        </div>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e8e4df; border-radius: 14px; padding: 22px; box-shadow: 0 2px 8px -1px rgba(140,120,90,0.08); flex: 1;">
+        <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Recent activity</div>
+        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+          <div style="display: flex; gap: 10px;"><span style="color: #6b6b78; width: 52px; flex-shrink: 0;">2 Sep</span><span>Acknowledged <strong>Water Safety Policy</strong> v2</span></div>
+          <div style="display: flex; gap: 10px;"><span style="color: #6b6b78; width: 52px; flex-shrink: 0;">28 Aug</span><span>Completed <strong>Child Protection refresher</strong> · 92%</span></div>
+          <div style="display: flex; gap: 10px;"><span style="color: #6b6b78; width: 52px; flex-shrink: 0;">19 Aug</span><span>Expense claim <strong>$23.95</strong> approved</span></div>
+          <div style="display: flex; gap: 10px;"><span style="color: #6b6b78; width: 52px; flex-shrink: 0;">11 Aug</span><span>Personal leave <strong>12 Aug</strong> approved</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
