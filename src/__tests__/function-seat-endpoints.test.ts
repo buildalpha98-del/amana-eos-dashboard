@@ -37,7 +37,7 @@ vi.mock("@/lib/prisma", () => {
     coworkTodo: { create: fn() },
     photoComplianceLog: { upsert: fn() },
     schoolRelationship: { upsert: fn() },
-    rosterShift: { upsert: fn() },
+    rosterShift: { upsert: fn(), findFirst: fn(), update: fn(), create: fn() },
     activityLog: { create: fn() },
   };
   return {
@@ -694,7 +694,12 @@ describe("POST /api/cowork/ops/roster", () => {
     (prisma.service.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
       SERVICE
     );
-    (prisma.rosterShift.upsert as ReturnType<typeof vi.fn>).mockResolvedValue(
+    // Ingest is findFirst+update/create since the unique key moved to
+    // userId (staffName dedup lives in application code now).
+    (prisma.rosterShift.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      null
+    );
+    (prisma.rosterShift.create as ReturnType<typeof vi.fn>).mockResolvedValue(
       {}
     );
 

@@ -430,7 +430,7 @@ describe("POST /api/roster/shifts", () => {
     expect(inductionLookups).toHaveLength(0);
   });
 
-  it("returns 409 when an identical open shift already exists (P2002)", async () => {
+  it("returns 409 when the user already has a shift at this start (P2002)", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.rosterShift.create.mockRejectedValue(
       Object.assign(new Error("Unique constraint failed"), { code: "P2002" }),
@@ -443,7 +443,7 @@ describe("POST /api/roster/shifts", () => {
     );
     expect(res.status).toBe(409);
     const body = await res.json();
-    expect(body.error).toMatch(/open shift already exists at this start time/i);
+    expect(body.error).toMatch(/already has a shift starting at this time/i);
   });
 });
 
@@ -653,7 +653,7 @@ describe("PATCH /api/roster/shifts/[id]", () => {
     expect(call.data).not.toHaveProperty("staffName");
   });
 
-  it("returns 409 when unassigning collides with an existing open shift (P2002)", async () => {
+  it("returns 409 when the unique key collides (P2002)", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.rosterShift.findUnique.mockResolvedValue(
       makeShift({ userId: "u-1", staffName: "Alice" }),
@@ -670,7 +670,7 @@ describe("PATCH /api/roster/shifts/[id]", () => {
     );
     expect(res.status).toBe(409);
     const body = await res.json();
-    expect(body.error).toMatch(/open shift already exists at this start time/i);
+    expect(body.error).toMatch(/already has a shift starting at this time/i);
   });
 });
 
@@ -874,7 +874,8 @@ describe("POST /api/roster/copy-week", () => {
     prismaMock.rosterShift.findMany.mockResolvedValue([
       makeShift({ date: new Date("2026-04-13") }),
     ]);
-    prismaMock.rosterShift.findUnique.mockResolvedValue(
+    // Collision lookup is findFirst since the unique key moved to userId.
+    prismaMock.rosterShift.findFirst.mockResolvedValue(
       makeShift({ id: "sh-target-draft", status: "draft" }),
     );
     prismaMock.rosterShift.delete.mockResolvedValue(makeShift());
@@ -898,7 +899,7 @@ describe("POST /api/roster/copy-week", () => {
     prismaMock.rosterShift.findMany.mockResolvedValue([
       makeShift({ date: new Date("2026-04-13"), staffName: "Alice" }),
     ]);
-    prismaMock.rosterShift.findUnique.mockResolvedValue(
+    prismaMock.rosterShift.findFirst.mockResolvedValue(
       makeShift({ id: "sh-target-pub", status: "published" }),
     );
 
