@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useMyPortal } from "@/hooks/useMyPortal";
@@ -40,6 +40,8 @@ import { NotificationPreferences } from "@/components/settings/NotificationPrefe
 import { SessionManagement } from "@/components/settings/SessionManagement";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
+import { mutateApi } from "@/lib/fetch-api";
+import { Button } from "@/components/ui/Button";
 import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
@@ -216,16 +218,40 @@ function PolicyAckModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+
+  // Escape closes the dialog (unless the acknowledgement is in flight).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) onCancel();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isPending, onCancel]);
+
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-card rounded-2xl shadow-xl w-full max-w-md">
+    <div
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+      onClick={() => {
+        if (!isPending) onCancel();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="policy-ack-title"
+        className="bg-card rounded-2xl shadow-xl w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-5 border-b border-border/50">
-          <h3 className="text-lg font-semibold text-foreground">
+          <h3 id="policy-ack-title" className="text-lg font-semibold text-foreground">
             Acknowledge Policy
           </h3>
           <button
             onClick={onCancel}
             disabled={isPending}
+            aria-label="Close"
             className="p-1.5 rounded-lg hover:bg-surface transition-colors"
           >
             <X className="w-5 h-5 text-muted" />
@@ -243,11 +269,24 @@ function PolicyAckModal({
             understood this policy and agree to abide by its terms.
           </p>
           <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand" id="policy-ack-checkbox" />
+            <input
+              type="checkbox"
+              className="mt-0.5 w-4 h-4 accent-brand"
+              checked={confirmed}
+              onChange={(e) => {
+                setConfirmed(e.target.checked);
+                if (e.target.checked) setShowValidation(false);
+              }}
+            />
             <span className="text-sm text-foreground/80 select-none">
               I have read and understood this policy
             </span>
           </label>
+          {showValidation && (
+            <p className="text-xs text-red-600 dark:text-red-400 font-medium" role="alert">
+              Please tick the box to confirm you have read the policy.
+            </p>
+          )}
         </div>
         <div className="flex items-center justify-end gap-3 p-5 border-t border-border/50">
           <button
@@ -259,9 +298,8 @@ function PolicyAckModal({
           </button>
           <button
             onClick={() => {
-              const cb = document.getElementById("policy-ack-checkbox") as HTMLInputElement | null;
-              if (!cb?.checked) {
-                cb?.focus();
+              if (!confirmed) {
+                setShowValidation(true);
                 return;
               }
               onConfirm();
@@ -293,9 +331,8 @@ function PulseSurveySection() {
   const queryClient = useQueryClient();
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [feedback, setFeedback] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
-  const { data: surveys } = useQuery<Array<{
+  const { data: surveys, isError } = useQuery<Array<{
     id: string;
     periodMonth: string;
     q1Happy: number | null;
@@ -307,39 +344,47 @@ function PulseSurveySection() {
       if (!res.ok) throw new Error("Failed to fetch surveys");
       return res.json();
     },
+    staleTime: 30_000,
+    retry: 2,
   });
 
   const pendingSurveys = surveys?.filter((s) => !s.submittedAt) || [];
 
-  const handleSubmit = async (surveyId: string) => {
-    const allRated = PULSE_QUESTIONS.every((q) => ratings[q.key]);
-    if (!allRated) return;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/staff-pulse", {
+  const submitMutation = useMutation({
+    mutationFn: (surveyId: string) =>
+      mutateApi("/api/staff-pulse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           surveyId,
           q1Happy: ratings.q1Happy,
           q2Supported: ratings.q2Supported,
           q3Schedule: ratings.q3Schedule,
           q4Recommend: ratings.q4Recommend,
           q5Feedback: feedback || undefined,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to submit");
+        },
+      }),
+    onSuccess: () => {
       setRatings({});
       setFeedback("");
       queryClient.invalidateQueries({ queryKey: ["pulse-surveys-pending"] });
-    } catch {
-      alert("Failed to submit survey. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to submit survey. Please try again.",
+      });
+    },
+  });
+  const submitting = submitMutation.isPending;
+
+  const handleSubmit = (surveyId: string) => {
+    const allRated = PULSE_QUESTIONS.every((q) => ratings[q.key]);
+    if (!allRated) return;
+    submitMutation.mutate(surveyId);
   };
 
+  // Low-stakes section — disappear quietly if the pending list won't load.
+  if (isError) return null;
   if (pendingSurveys.length === 0) return null;
 
   const survey = pendingSurveys[0];
@@ -441,7 +486,7 @@ function PulseSurveySection() {
 export default function MyPortalPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
-  const { data, isLoading, error } = useMyPortal();
+  const { data, isLoading, error, refetch } = useMyPortal();
 
   const [ackPolicyId, setAckPolicyId] = useState<string | null>(null);
   const [ackPolicyTitle, setAckPolicyTitle] = useState("");
@@ -526,6 +571,14 @@ export default function MyPortalPage() {
         <p className="text-sm text-muted max-w-sm">
           Something went wrong while loading your data. Please try refreshing the page.
         </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-4"
+          onClick={() => refetch()}
+        >
+          Try again
+        </Button>
       </div>
     );
   }
@@ -711,7 +764,11 @@ export default function MyPortalPage() {
       {/* into EH where managers approve. Auto-refreshes balances on    */}
       {/* successful submit so the deducted hours show immediately.     */}
       {/* ============================================================ */}
-      {session?.user?.id && <MyLeaveRequestsCard />}
+      {session?.user?.id && (
+        <div id="leave">
+          <MyLeaveRequestsCard />
+        </div>
+      )}
 
       {/* ============================================================ */}
       {/* 3b-iii. MY EXPENSES (2026-06-01 — EH Payroll)                 */}
@@ -789,13 +846,17 @@ export default function MyPortalPage() {
               <Plane className="w-5 h-5 text-brand" />
               Leave Balances
             </h3>
-            <Link
-              href="/leave"
+            {/* 2026-09-03: was a Link to /leave, which bounces staff back
+                here — the leave request form lives on this page, so jump
+                to it instead (same pattern as the pending-item anchors). */}
+            <button
+              type="button"
+              onClick={() => document.getElementById("leave")?.scrollIntoView({ behavior: "smooth" })}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
             >
               Request Leave
               <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+            </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {leaveBalances.map((lb) => {
@@ -1059,8 +1120,10 @@ export default function MyPortalPage() {
             </>
           )}
 
+          {/* 2026-09-03: was /onboarding (the admin LMS console, which
+              bounces staff) — /my-training is the learner hub. */}
           <Link
-            href="/onboarding"
+            href="/my-training"
             className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-brand hover:underline"
           >
             Go to Onboarding
@@ -1080,7 +1143,7 @@ export default function MyPortalPage() {
               Training &amp; Courses
             </h3>
             <Link
-              href="/onboarding"
+              href="/my-training"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
             >
               View All
@@ -1101,7 +1164,7 @@ export default function MyPortalPage() {
 
               return (
                 <Link
-                  href="/onboarding"
+                  href="/my-training"
                   key={enrollment.id}
                   className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer"
                 >

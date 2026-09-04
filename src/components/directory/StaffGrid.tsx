@@ -6,9 +6,21 @@ export interface StaffGridProps {
   staff: StaffCardUser[];
   showRole: boolean;
   showEmail: boolean;
+  /** Whether the viewer's role can open other people's /staff/[id]
+   *  profiles. Self cards are always linked regardless. */
+  canOpenProfiles: boolean;
+  /** The viewer's own user id — their card stays linked even when
+   *  canOpenProfiles is false. */
+  viewerId?: string;
 }
 
-export function StaffGrid({ staff, showRole, showEmail }: StaffGridProps) {
+export function StaffGrid({
+  staff,
+  showRole,
+  showEmail,
+  canOpenProfiles,
+  viewerId,
+}: StaffGridProps) {
   if (staff.length === 0) {
     return (
       <div className="text-center py-12 text-muted text-sm">
@@ -25,6 +37,7 @@ export function StaffGrid({ staff, showRole, showEmail }: StaffGridProps) {
           user={user}
           showRole={showRole}
           showEmail={showEmail}
+          canOpenProfile={canOpenProfiles || user.id === viewerId}
         />
       ))}
     </div>

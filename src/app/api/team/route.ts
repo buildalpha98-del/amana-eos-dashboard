@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { parsePagination } from "@/lib/pagination";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseRoleParam } from "@/lib/role-enum";
+import { isAdminRole } from "@/lib/role-permissions";
 
-export const GET = withApiAuth(async (req) => {
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const pagination = parsePagination(searchParams);
 
@@ -101,10 +102,16 @@ export const GET = withApiAuth(async (req) => {
     rocksByUser[r.ownerId].push(r);
   });
 
+  // Emails are admin-only: /directory deliberately hides the email row from
+  // non-admin viewers (StaffCard showEmail), so the API must not hand the
+  // addresses to every authenticated role either. The route itself stays
+  // open — all roles need names/avatars for the directory.
+  const includeEmail = isAdminRole(session.user.role);
+
   const teamMembers = users.map((u) => ({
     id: u.id,
     name: u.name,
-    email: u.email,
+    ...(includeEmail ? { email: u.email } : {}),
     role: u.role,
     avatar: u.avatar,
     service: u.service ? { id: u.service.id, name: u.service.name } : null,

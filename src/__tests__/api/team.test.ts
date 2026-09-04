@@ -80,7 +80,7 @@ describe("GET /api/team", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns full team for authenticated staff user", async () => {
+  it("returns full team for authenticated staff user (without emails)", async () => {
     mockSession({ id: "staff-1", name: "Staff", role: "staff" });
     const req = createRequest("GET", "/api/team");
     const res = await GET(req);
@@ -90,6 +90,20 @@ describe("GET /api/team", () => {
     expect(body).toHaveLength(2);
     expect(body[0].service).toEqual({ id: "svc-1", name: "Parramatta" });
     expect(body[1].service).toBeNull();
+    // 2026-09-04: email is admin-only — /directory hides it from non-admin
+    // viewers, so the API must not leak it to every authenticated role.
+    expect(body[0]).not.toHaveProperty("email");
+    expect(body[1]).not.toHaveProperty("email");
+  });
+
+  it("includes emails for admin viewers", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    const req = createRequest("GET", "/api/team");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body[0].email).toBe("jane@example.com");
+    expect(body[1].email).toBe("mark@example.com");
   });
 
   it("empty filters returns all active users", async () => {

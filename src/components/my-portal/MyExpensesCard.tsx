@@ -111,6 +111,8 @@ export function MyExpensesCard() {
   >({
     queryKey: ["my-expenses"],
     queryFn: () => fetchApi("/api/my-portal/expenses"),
+    // Inline error/empty states cover this card — skip the global toast.
+    meta: { suppressGlobalErrorToast: true },
     staleTime: 60_000,
     retry: (n, e) => {
       const s = (e as ApiResponseError)?.status;
@@ -153,8 +155,8 @@ export function MyExpensesCard() {
         </p>
       ) : errorStatus === 404 ? (
         <p className="text-sm text-muted">
-          Your account isn&apos;t linked to a payroll record yet. Contact your
-          manager so they can set you up in Settings → Team.
+          Your account isn&apos;t linked to a payroll record yet. Ask your
+          manager to set this up — it only takes a minute.
         </p>
       ) : error ? (
         <p className="text-sm text-red-600">

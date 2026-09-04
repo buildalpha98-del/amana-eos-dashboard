@@ -21,7 +21,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, LogIn, LogOut, Loader2 } from "lucide-react";
-import { fetchApi } from "@/lib/fetch-api";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import {
   useAutoClockIn,
   useClockIn,
@@ -29,7 +30,7 @@ import {
   useUnscheduledClockIn,
 } from "@/hooks/useTimeclock";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
+import { cn, toLocalIsoDate } from "@/lib/utils";
 import { CLOCK_IN_WINDOW_MS, shiftStartMs } from "@/lib/timeclock-pick";
 
 interface MineShift {
@@ -49,13 +50,17 @@ interface MyClockCardProps {
   userId: string;
 }
 
-function nextSevenDays() {
+// Local-timezone dates (toISOString() is UTC and lands on the previous
+// day for AU timezones in the morning). Yesterday is included so an
+// overnight shift the user forgot to clock out of still surfaces its
+// Clock out button; a week ahead matches the card's lookahead needs.
+function clockWindowRange() {
   const today = new Date();
-  const from = today.toISOString().split("T")[0];
+  const start = new Date(today);
+  start.setDate(start.getDate() - 1);
   const end = new Date(today);
-  end.setDate(end.getDate() + 1);
-  const to = end.toISOString().split("T")[0];
-  return { from, to };
+  end.setDate(end.getDate() + 7);
+  return { from: toLocalIsoDate(start), to: toLocalIsoDate(end) };
 }
 
 function fmtTime(iso: string): string {
@@ -75,8 +80,8 @@ function fmtElapsed(since: Date, now: Date): string {
 }
 
 export function MyClockCard({ userId }: MyClockCardProps) {
-  const { from, to } = nextSevenDays();
-  const { data, isLoading } = useQuery<{ shifts: MineShift[] }>({
+  const { from, to } = clockWindowRange();
+  const { data, isLoading, error, refetch } = useQuery<{ shifts: MineShift[] }>({
     queryKey: ["my-shifts", userId, from, to],
     queryFn: () =>
       fetchApi<{ shifts: MineShift[] }>(
@@ -142,6 +147,30 @@ export function MyClockCard({ userId }: MyClockCardProps) {
     );
   }
 
+  // Never hide a failure: without this, a failed shifts fetch made the
+  // whole card vanish and the clock-in button silently disappeared.
+  if (error) {
+    return (
+      <section className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <header className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-brand" />
+          <h3 className="text-sm font-semibold text-foreground">Time clock</h3>
+        </header>
+        <p className="text-xs text-muted">
+          Couldn&apos;t load your shifts, so clock in/out is unavailable.
+        </p>
+        <Button
+          onClick={() => refetch()}
+          variant="outline"
+          size="sm"
+          className="w-full justify-center"
+        >
+          Try again
+        </Button>
+      </section>
+    );
+  }
+
   // Hide the card entirely when there's nothing to do — no active
   // shift AND no eligible window AND no ambiguous follow-up. Keeps
   // My Portal quiet on a non-shift day.
@@ -175,11 +204,19 @@ export function MyClockCard({ userId }: MyClockCardProps) {
           onPick={(id) => {
             // explicit clock-in falls through useClockIn(eligible[0]),
             // but for ambiguous picks we fire a one-off mutation.
-            void fetch(`/api/roster/shifts/${id}/clock-in`, { method: "POST" })
+            void mutateApi(`/api/roster/shifts/${id}/clock-in`, {
+              method: "POST",
+            })
               .then(() => {
                 // refetch handled by the query invalidation in the
                 // useTimeclock hooks; no qc here.
                 window.location.reload();
+              })
+              .catch((err: Error) => {
+                toast({
+                  variant: "destructive",
+                  description: err.message || "Clock-in failed — try again.",
+                });
               });
           }}
           pending={pending}

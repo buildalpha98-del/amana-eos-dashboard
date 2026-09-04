@@ -79,11 +79,15 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
     // the callback only runs after construction completes.
     const client: QueryClient = new QueryClient({
       queryCache: new QueryCache({
-        onError: (error) => {
+        onError: (error, query) => {
           if (is401(error)) {
             handleSessionExpired();
             return;
           }
+          // Queries that render their own inline error/empty state opt out
+          // of the global toast — e.g. the EH payroll cards, whose expected
+          // "not linked yet" 404s were stacking four red toasts on My Portal.
+          if (query.meta?.suppressGlobalErrorToast) return;
           toast({
             title: "Error loading data",
             description: getErrorMessage(error),

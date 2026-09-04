@@ -137,8 +137,8 @@ export const CHECKLISTS: Record<RoleKey, ChecklistItem[]> = {
       key: "staff_incidents",
       title: "Log any incidents",
       description:
-        "Report accidents, injuries, or behavioural incidents as they happen.",
-      href: "/incidents",
+        "Report accidents, injuries, or behavioural incidents from My Day as they happen.",
+      href: "/my-day",
       icon: AlertCircle,
       category: "Daily Tasks",
     },
@@ -152,9 +152,10 @@ export const CHECKLISTS: Record<RoleKey, ChecklistItem[]> = {
     },
     {
       key: "staff_timesheet",
-      title: "Submit your timesheet",
-      description: "Confirm your hours before the weekly payroll cut-off.",
-      href: "/timesheets",
+      title: "Confirm your hours",
+      description:
+        "Clock in and out of every shift so your hours are recorded before the weekly payroll cut-off.",
+      href: "/my-portal",
       icon: Clock,
       category: "Weekly Tasks",
     },
@@ -178,10 +179,10 @@ export const CHECKLISTS: Record<RoleKey, ChecklistItem[]> = {
     },
     {
       key: "staff_notifications",
-      title: "Check your notifications",
+      title: "Set your notification preferences",
       description:
-        "Stay up to date with announcements, assignments, and reminders.",
-      href: "/notifications",
+        "Choose how announcements, assignments, and reminders reach you from your portal.",
+      href: "/my-portal",
       icon: Bell,
       category: "Stay Connected",
     },

@@ -402,11 +402,17 @@ export function useRejectTimesheet() {
 // ── Export to Xero (placeholder) ───────────────────────────────
 
 export function useExportTimesheetToXero() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      return mutateApi(`/api/timesheets/${id}/export-to-xero`, {
+      return mutateApi<{ message?: string }>(`/api/timesheets/${id}/export-to-xero`, {
         method: "POST",
       });
+    },
+    onSuccess: (data) => {
+      toast({ description: data?.message || "Timesheet exported to Xero" });
+      qc.invalidateQueries({ queryKey: ["timesheets"] });
+      qc.invalidateQueries({ queryKey: ["timesheet"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });

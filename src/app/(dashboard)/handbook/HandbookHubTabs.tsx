@@ -177,8 +177,7 @@ function EmployeeHandbookTab() {
       <div className="mt-4 rounded-xl border border-border overflow-hidden bg-card shadow-warm-sm">
         <iframe
           src="/employee-handbook.html"
-          className="w-full border-0"
-          style={{ height: "calc(100vh - 200px)", minHeight: "700px" }}
+          className="w-full border-0 h-[60vh] min-h-[320px] md:h-[calc(100vh-200px)] md:min-h-[700px]"
           title="Amana OSHC Employee Handbook"
         />
       </div>
@@ -214,19 +213,7 @@ function OnePagerTab() {
         ]}
       />
 
-      <div
-        className="mt-4 rounded-xl border border-border bg-card shadow-warm-sm"
-        style={{
-          width: "100%",
-          height: "calc(100vh - 200px)",
-          minHeight: "600px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "24px",
-          overflow: "auto",
-        }}
-      >
+      <div className="mt-4 rounded-xl border border-border bg-card shadow-warm-sm w-full h-[60vh] min-h-[320px] md:h-[calc(100vh-200px)] md:min-h-[600px] flex items-center justify-center p-6 overflow-auto">
         <img
           src={ONE_PAGER_IMAGE_PATH}
           alt="Amana OSHC Proven Process"

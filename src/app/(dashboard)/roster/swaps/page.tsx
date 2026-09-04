@@ -90,6 +90,12 @@ export default function SwapsInboxPage() {
   function mutationOptionsFor(
     endpoint: "accept" | "reject" | "approve" | "cancel",
   ) {
+    const successMessage: Record<typeof endpoint, string> = {
+      accept: "Swap accepted.",
+      reject: "Swap rejected.",
+      approve: "Swap approved.",
+      cancel: "Swap cancelled.",
+    };
     return {
       mutationFn: (swapId: string) =>
         mutateApi(`/api/shift-swaps/${swapId}/${endpoint}`, {
@@ -97,7 +103,7 @@ export default function SwapsInboxPage() {
           body: endpoint === "reject" ? {} : undefined,
         }),
       onSuccess: () => {
-        toast({ description: `Swap ${endpoint}ed.` });
+        toast({ description: successMessage[endpoint] });
         queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
         void refetch();
       },

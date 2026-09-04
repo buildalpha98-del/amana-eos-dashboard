@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, Plus, UserPlus, ChevronRight, Sparkles } from "lucide-react";
+import { X, Plus, UserPlus, Sparkles } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
 import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
 import { CandidateDetailPanel } from "@/components/recruitment/CandidateDetailPanel";
 import { useAiScreenCandidate } from "@/hooks/useRecruitment";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import { uploadFileSmart } from "@/lib/upload-client";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
@@ -75,13 +77,19 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
   });
 
   const handleStatusChange = async (status: string) => {
-    await fetch(`/api/recruitment/${vacancyId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
-    onUpdated();
+    try {
+      await mutateApi(`/api/recruitment/${vacancyId}`, {
+        method: "PATCH",
+        body: { status },
+      });
+      queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
+      onUpdated();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: (err as Error).message || "Failed to update vacancy status",
+      });
+    }
   };
 
   // Toggle whether this role appears on the public careers page by adding /
@@ -91,13 +99,19 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
     const next = show
       ? Array.from(new Set([...current, "website"]))
       : current.filter((c: string) => c !== "website");
-    await fetch(`/api/recruitment/${vacancyId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postedChannels: next }),
-    });
-    queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
-    onUpdated();
+    try {
+      await mutateApi(`/api/recruitment/${vacancyId}`, {
+        method: "PATCH",
+        body: { postedChannels: next },
+      });
+      queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
+      onUpdated();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: (err as Error).message || "Failed to update careers page visibility",
+      });
+    }
   };
 
   const handleAddCandidate = async (e: React.FormEvent) => {
@@ -114,20 +128,29 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
       setCandidateForm({ name: "", email: "", phone: "", source: "indeed", notes: "", resumeText: "", resumeFileUrl: "" });
       setShowAddCandidate(false);
       queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
-    } catch {
-      alert("Failed to add candidate");
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: (err as Error)?.message || "Failed to add candidate",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleStageChange = async (candidateId: string, stage: string) => {
-    await fetch(`/api/recruitment/candidates/${candidateId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stage }),
-    });
-    queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
+    try {
+      await mutateApi(`/api/recruitment/candidates/${candidateId}`, {
+        method: "PATCH",
+        body: { stage },
+      });
+      queryClient.invalidateQueries({ queryKey: ["recruitment-vacancy", vacancyId] });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: (err as Error).message || "Failed to update candidate stage",
+      });
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,7 +164,10 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
       const { fileUrl } = await uploadFileSmart(file);
       setCandidateForm((prev) => ({ ...prev, resumeFileUrl: fileUrl }));
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to upload file");
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Failed to upload file",
+      });
     } finally {
       setUploading(false);
     }
@@ -342,6 +368,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                   <input
                     type="text"
                     placeholder="Name *"
+                    aria-label="Candidate name (required)"
                     value={candidateForm.name}
                     onChange={(e) => setCandidateForm({ ...candidateForm, name: e.target.value })}
                     className="px-3 py-2 text-sm border border-border rounded-lg"
@@ -365,6 +392,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                   <input
                     type="email"
                     placeholder="Email"
+                    aria-label="Candidate email"
                     value={candidateForm.email}
                     onChange={(e) => setCandidateForm({ ...candidateForm, email: e.target.value })}
                     className="px-3 py-2 text-sm border border-border rounded-lg"
@@ -372,6 +400,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                   <input
                     type="tel"
                     placeholder="Phone"
+                    aria-label="Candidate phone"
                     value={candidateForm.phone}
                     onChange={(e) => setCandidateForm({ ...candidateForm, phone: e.target.value })}
                     className="px-3 py-2 text-sm border border-border rounded-lg"
@@ -395,6 +424,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                 {/* Resume Text Paste */}
                 <textarea
                   placeholder="Or paste resume text here..."
+                  aria-label="Resume text"
                   value={candidateForm.resumeText}
                   onChange={(e) => setCandidateForm({ ...candidateForm, resumeText: e.target.value })}
                   className="col-span-2 px-3 py-2 text-sm border border-border rounded-lg h-20 resize-none"
@@ -481,6 +511,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                       </button>
                       <select
                         value={c.stage}
+                        aria-label={`Stage for ${c.name}`}
                         onChange={(e) => handleStageChange(c.id, e.target.value)}
                         className={`text-xs rounded-full px-3 py-1 font-medium border-0 ${STAGE_STYLES[c.stage] || "bg-surface text-foreground/80"}`}
                       >

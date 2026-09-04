@@ -1,10 +1,12 @@
 import { type NextAuthOptions } from "next-auth";
+import { NextRequest } from "next/server";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { getOrgSettings } from "@/lib/org-settings";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -164,6 +166,44 @@ export const authOptions: NextAuthOptions = {
           (token.inductionGraceUntil as string | null | undefined) ?? null;
       }
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      // Feed the "Recent Login Sessions" panel (/api/auth/sessions reads
+      // SecurityAuditLog rows with action "user.login"). Never let a logging
+      // failure block sign-in — logAuditEvent is fire-and-forget, and the
+      // try/catch guards against anything synchronous going wrong.
+      try {
+        // Best-effort request context — same pattern as the remember-me
+        // cookie read in the jwt callback (headers() is available in the
+        // auth route's request scope). logAuditEvent extracts ip/userAgent
+        // from the request's headers, which is what the "Recent Login
+        // Sessions" panel (/api/auth/sessions) displays.
+        let req: NextRequest | undefined;
+        try {
+          const h = await headers();
+          req = new NextRequest("http://internal/api/auth/signin", {
+            headers: h,
+          });
+        } catch {
+          // Outside a request scope — record the login without ip/userAgent.
+        }
+
+        logAuditEvent(
+          {
+            action: "user.login",
+            actorId: user.id,
+            actorEmail: user.email ?? null,
+            targetId: user.id,
+            targetType: "User",
+            metadata: { provider: "credentials" },
+          },
+          req
+        );
+      } catch {
+        // Swallow — sign-in must never fail because audit logging did.
+      }
     },
   },
   pages: {

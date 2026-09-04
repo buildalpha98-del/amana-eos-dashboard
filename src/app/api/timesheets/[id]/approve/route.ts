@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ApiError } from "@/lib/api-error";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { logger } from "@/lib/logger";
 // POST /api/timesheets/[id]/approve — approve a submitted timesheet
@@ -17,6 +18,11 @@ const { id } = await context!.params!;
       { error: "Can only approve submitted timesheets" },
       { status: 400 }
     );
+  }
+
+  // Self-approval guard — an approver can't sign off a timesheet they submitted.
+  if (timesheet.submittedById === session!.user.id) {
+    throw ApiError.forbidden("You can't approve a timesheet you submitted");
   }
 
   const updated = await prisma.timesheet.update({
