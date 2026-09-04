@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useLMS";
 import { ExitSurveyDashboard } from "@/components/exit-surveys/ExitSurveyDashboard";
 import { OnboardingPacksTab } from "@/components/onboarding/OnboardingPacksTab";
+import { OffboardingPacksTab } from "@/components/offboarding/OffboardingPacksTab";
 import { LmsCoursesTab } from "@/components/onboarding/LmsCoursesTab";
 import { InductionAdminTab } from "@/components/induction/InductionAdminTab";
 import { TrainingComplianceTab } from "@/components/onboarding/TrainingComplianceTab";
@@ -42,6 +43,7 @@ import {
   Download,
   AlertTriangle,
   FileSignature,
+  UserX,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -66,9 +68,9 @@ interface ServiceOption {
 // Single source of truth for the tab ids — used for the state union, the
 // deep-link allow-list, and the URL round-trip. Admin-only tabs are gated so
 // a non-admin deep link can't land on a blank body.
-const TAB_IDS = ["onboarding", "lms", "induction", "assignments", "records", "compliance", "surveys", "exit-surveys"] as const;
+const TAB_IDS = ["onboarding", "lms", "induction", "assignments", "records", "compliance", "surveys", "offboarding", "exit-surveys"] as const;
 type TabId = (typeof TAB_IDS)[number];
-const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "assignments", "records", "compliance", "surveys"];
+const ADMIN_ONLY_TABS: readonly TabId[] = ["induction", "assignments", "records", "compliance", "surveys", "offboarding"];
 
 function isTabId(value: string): value is TabId {
   return (TAB_IDS as readonly string[]).includes(value);
@@ -534,6 +536,18 @@ function OnboardingPageInner() {
             Surveys
           </button>
         )}
+        {isAdmin && (
+          <button
+            onClick={() => changeTab("offboarding")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "offboarding" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            <UserX className="w-4 h-4" />
+            Offboarding
+          </button>
+        )}
         <button
           onClick={() => changeTab("exit-surveys")}
           className={cn(
@@ -629,6 +643,10 @@ function OnboardingPageInner() {
       )}
       {/* Surveys Tab (generic Microsoft-Forms-style builder) */}
       {activeTab === "surveys" && isAdmin && <SurveysTab />}
+
+      {/* Offboarding Tab — self-contained (fetches its own data, so the
+          page's shared loading gate deliberately excludes it). */}
+      {activeTab === "offboarding" && isAdmin && <OffboardingPacksTab />}
 
       {/* Exit Surveys Tab */}
       {activeTab === "exit-surveys" && (

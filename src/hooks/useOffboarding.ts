@@ -101,6 +101,41 @@ export function useCreateOffboardingPack() {
   });
 }
 
+export function useUpdateOffboardingPack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string } & Record<string, unknown>) => {
+      return mutateApi(`/api/offboarding/packs/${id}`, {
+        method: "PATCH",
+        body: data,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["offboarding-packs"] });
+      qc.invalidateQueries({ queryKey: ["offboarding-pack"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useDeleteOffboardingPack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return mutateApi(`/api/offboarding/packs/${id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["offboarding-packs"] });
+      qc.invalidateQueries({ queryKey: ["offboarding-pack"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
 export function useOffboardingAssignments(userId?: string) {
   return useQuery<StaffOffboardingData[]>({
     staleTime: 30_000,
