@@ -125,7 +125,7 @@ export const POST = withApiAuth(async (req, session) => {
       (err as { code: string }).code === "P2002"
     ) {
       throw ApiError.conflict(
-        "An open shift already exists at this start time — vary the start time or edit the existing one.",
+        "This staff member already has a shift starting at this time.",
       );
     }
     throw err;

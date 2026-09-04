@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRosterShifts, type RosterShiftListItem } from "@/hooks/useRosterShifts";
 import { useRoster } from "@/hooks/useRoster";
-import { useTeam } from "@/hooks/useTeam";
+import { useServiceStaff } from "@/hooks/useServiceStaff";
+import { useRosterLeave } from "@/hooks/useRosterLeave";
 import { useRosterCost } from "@/hooks/useRosterCost";
 import { computeRatio } from "@/lib/roster-ratio";
 import {
@@ -15,6 +15,12 @@ import {
 } from "@/hooks/useServiceStaffCertificates";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
+import {
+  WeekPicker,
+  addDaysIso,
+  currentWeekStartIso,
+  parseIsoDateLocal,
+} from "@/components/roster/WeekPicker";
 import { RatioBadge } from "@/components/roster/RatioBadge";
 import { ShiftEditModal } from "@/components/roster/ShiftEditModal";
 import { ShiftSwapDialog } from "@/components/roster/ShiftSwapDialog";
@@ -25,11 +31,25 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { isAdminRole } from "@/lib/role-permissions";
 import { toast } from "@/hooks/useToast";
-import { cn, getWeekStart, toLocalIsoDate } from "@/lib/utils";
+import { cn, toLocalIsoDate } from "@/lib/utils";
 
 interface ServiceWeeklyShiftsGridProps {
   serviceId: string;
   serviceName?: string;
+  /**
+   * Controlled week (Monday `YYYY-MM-DD`). When provided the grid renders
+   * that week and drops its internal week state — the `/roster` command
+   * centre drives many grids from a single page-level WeekPicker this way.
+   * When absent the grid keeps its own state (service-detail tab).
+   */
+  weekStart?: string;
+  /**
+   * Week-change callback for controlled mode. When provided alongside
+   * `weekStart`, the grid still renders its own WeekPicker and delegates
+   * navigation here; when `weekStart` is given WITHOUT this, the picker is
+   * hidden entirely (the parent owns navigation).
+   */
+  onWeekChange?: (weekStart: string) => void;
 }
 
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -40,22 +60,11 @@ const SESSION_LABELS: Record<(typeof SESSION_TYPES)[number], string> = {
   vc: "VC",
 };
 
-function getMondayIso(offsetWeeks: number): string {
-  const monday = getWeekStart();
-  monday.setDate(monday.getDate() + offsetWeeks * 7);
-  return toLocalIsoDate(monday);
-}
-
-function formatWeekRange(mondayIso: string): string {
-  const monday = new Date(mondayIso);
-  const friday = new Date(monday);
-  friday.setDate(friday.getDate() + 4);
-  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
-  return `${monday.toLocaleDateString("en-AU", opts)} – ${friday.toLocaleDateString("en-AU", { ...opts, year: "numeric" })}`;
-}
-
 function dateIso(date: string | Date): string {
-  return (typeof date === "string" ? new Date(date) : date).toISOString().split("T")[0];
+  // toLocalIsoDate, not toISOString().split — serialising a local-time Date
+  // through UTC shifts the calendar day back in AEST/AEDT (the "Monday
+  // column shows nothing" bug).
+  return toLocalIsoDate(typeof date === "string" ? new Date(date) : date);
 }
 
 type ModalState =
@@ -63,20 +72,31 @@ type ModalState =
   | { mode: "edit"; shift: RosterShiftListItem }
   | null;
 
-export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridProps) {
+export function ServiceWeeklyShiftsGrid({
+  serviceId,
+  serviceName,
+  weekStart: weekStartProp,
+  onWeekChange,
+}: ServiceWeeklyShiftsGridProps) {
   const { data: session } = useSession();
   const role = session?.user?.role ?? "";
   const sessionServiceId = (session?.user as { serviceId?: string | null } | undefined)?.serviceId ?? null;
   const canEdit =
     isAdminRole(role) || (role === "member" && sessionServiceId === serviceId);
 
-  const [weekOffset, setWeekOffset] = useState(0);
-  const weekStart = useMemo(() => getMondayIso(weekOffset), [weekOffset]);
+  // Week state: internal by default; controlled when a `weekStart` prop is
+  // provided (see the props doc-comment).
+  const [internalWeekStart, setInternalWeekStart] = useState(currentWeekStartIso);
+  const weekStart = weekStartProp ?? internalWeekStart;
+  const handleWeekChange = onWeekChange ?? setInternalWeekStart;
+  const showWeekPicker = weekStartProp === undefined || onWeekChange !== undefined;
+
   const weekDates = useMemo(() => {
     return Array.from({ length: 5 }, (_, i) => {
-      const d = new Date(weekStart);
+      const d = parseIsoDateLocal(weekStart);
       d.setDate(d.getDate() + i);
-      return d.toISOString().split("T")[0];
+      // toLocalIsoDate, not toISOString().split — see dateIso() above.
+      return toLocalIsoDate(d);
     });
   }, [weekStart]);
 
@@ -87,7 +107,12 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
     refetch,
   } = useRosterShifts(serviceId, weekStart);
 
-  const { data: teamData, isLoading: teamLoading } = useTeam({ service: serviceId });
+  // Staff source (staff-portal-v2 Chunk 5, Task 5.5): the per-service staff
+  // endpoint — primary users PLUS active UserServiceMembership rows — so
+  // cross-centre staff appear in the grid. Replaces useTeam, which only knew
+  // primary assignments (and fetched the whole org). Shares its query cache
+  // with ShiftEditModal (["service-staff", serviceId]).
+  const { data: staffData, isLoading: staffLoading } = useServiceStaff(serviceId);
   // 2026-05-02: pull child bookings for the same week so the ratio row
   // can show real numerators (PR #50).
   const { data: rosterData } = useRoster(serviceId, weekStart);
@@ -100,7 +125,7 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   // anyone whose cert has already expired by week-end, and an amber shield
   // for anyone with a cert expiring within 30 days.
   const weekFriday = useMemo(() => {
-    const d = new Date(weekStart);
+    const d = parseIsoDateLocal(weekStart);
     d.setDate(d.getDate() + 4);
     d.setHours(23, 59, 59, 999);
     return d;
@@ -108,25 +133,63 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   const { rollup: certStatusByUser } = useStaffCertStatus(serviceId, weekFriday);
 
   const staff = useMemo(() => {
-    if (!teamData) return [];
-    return teamData.filter((m) => {
-      const atService = m.service?.id === serviceId;
-      const isActive = (m as { active?: boolean }).active !== false;
-      return atService && isActive;
-    });
-  }, [teamData, serviceId]);
+    if (!staffData) return [];
+    // Map userId → id: the grid keys rows/cells on `id` (a User id) and the
+    // staff endpoint is already service-scoped, so only the active filter
+    // is needed here.
+    return staffData.members
+      .filter((m) => m.isActive)
+      .map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar }));
+  }, [staffData]);
 
-  // Build grid: userId → dateIso → shifts[]
-  const shiftsByUserAndDay = useMemo(() => {
-    const out: Record<string, Record<string, RosterShiftListItem[]>> = {};
-    for (const shift of shiftsData?.shifts ?? []) {
-      if (!shift.userId) continue;
-      const key = dateIso(shift.date);
-      if (!out[shift.userId]) out[shift.userId] = {};
-      if (!out[shift.userId][key]) out[shift.userId][key] = [];
-      out[shift.userId][key].push(shift);
+  // Approved internal leave overlay (Task 5.4) — keyed on the visible
+  // staff's userIds, never serviceId (nullable on LeaveRequest).
+  const staffIds = useMemo(() => staff.map((s) => s.id), [staff]);
+  const { data: leaveData } = useRosterLeave(
+    staffIds,
+    weekDates[0],
+    weekDates[weekDates.length - 1],
+  );
+  const leaveByUserAndDay = useMemo(() => {
+    const out: Record<string, Record<string, { isHalfDay: boolean }>> = {};
+    for (const entry of leaveData?.leave ?? []) {
+      // @db.Date fields serialise as midnight-UTC ISO strings — slice(0,10)
+      // is the calendar date, comparable lexicographically with weekDates.
+      const start = entry.startDate.slice(0, 10);
+      const end = entry.endDate.slice(0, 10);
+      for (const day of weekDates) {
+        if (day < start || day > end) continue;
+        if (!out[entry.userId]) out[entry.userId] = {};
+        // A full-day entry wins over a half-day one on the same date.
+        const existing = out[entry.userId][day];
+        out[entry.userId][day] = {
+          isHalfDay: (existing?.isHalfDay ?? true) && entry.isHalfDay,
+        };
+      }
     }
     return out;
+  }, [leaveData, weekDates]);
+
+  // Build grid: userId → dateIso → shifts[]. Null-userId shifts are OPEN
+  // shifts — they get their own pinned row above the staff rows instead of
+  // being silently dropped (staff-portal-v2 Chunk 5, Task 5.2).
+  const { shiftsByUserAndDay, openShiftsByDay, openShiftCount } = useMemo(() => {
+    const byUser: Record<string, Record<string, RosterShiftListItem[]>> = {};
+    const open: Record<string, RosterShiftListItem[]> = {};
+    let openCount = 0;
+    for (const shift of shiftsData?.shifts ?? []) {
+      const key = dateIso(shift.date);
+      if (!shift.userId) {
+        if (!open[key]) open[key] = [];
+        open[key].push(shift);
+        openCount++;
+        continue;
+      }
+      if (!byUser[shift.userId]) byUser[shift.userId] = {};
+      if (!byUser[shift.userId][key]) byUser[shift.userId][key] = [];
+      byUser[shift.userId][key].push(shift);
+    }
+    return { shiftsByUserAndDay: byUser, openShiftsByDay: open, openShiftCount: openCount };
   }, [shiftsData]);
 
   // Per-day × session-type rostered staff count (for ratio badges)
@@ -136,6 +199,11 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
       out[dateKey] = { bsc: 0, asc: 0, vc: 0 };
     }
     for (const shift of shiftsData?.shifts ?? []) {
+      // LOCKED decision (plan Task 5.2): open shifts (userId null) are
+      // visible in the grid but must NOT count toward the ratio numerator —
+      // an unfilled slot doesn't supervise children, and counting it would
+      // make a cell look compliant while it still needs a person.
+      if (!shift.userId) continue;
       const key = dateIso(shift.date);
       if (!out[key]) continue;
       const st = shift.sessionType;
@@ -229,9 +297,9 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   };
 
   const handleCopyLastWeek = async () => {
-    const prev = new Date(weekStart);
-    prev.setDate(prev.getDate() - 7);
-    const sourceWeekStart = prev.toISOString().split("T")[0];
+    // addDaysIso works in local time — toISOString().split here shifted the
+    // source week back a day in AEST/AEDT.
+    const sourceWeekStart = addDaysIso(weekStart, -7);
     setCopying(true);
     try {
       const res = await fetch("/api/roster/copy-week", {
@@ -266,34 +334,15 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
     }
   };
 
-  const isLoading = shiftsLoading || teamLoading;
+  const isLoading = shiftsLoading || staffLoading;
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button
-            size="xs"
-            variant="secondary"
-            iconLeft={<ChevronLeft className="w-4 h-4" />}
-            onClick={() => setWeekOffset((p) => p - 1)}
-            aria-label="Previous week"
-          />
-          <span className="text-sm font-medium text-foreground min-w-[200px] text-center">
-            {formatWeekRange(weekStart)}
-          </span>
-          <Button
-            size="xs"
-            variant="secondary"
-            iconLeft={<ChevronRight className="w-4 h-4" />}
-            onClick={() => setWeekOffset((p) => p + 1)}
-            aria-label="Next week"
-          />
-          {weekOffset !== 0 && (
-            <Button size="xs" variant="ghost" onClick={() => setWeekOffset(0)}>
-              Today
-            </Button>
+          {showWeekPicker && (
+            <WeekPicker weekStart={weekStart} onWeekChange={handleWeekChange} />
           )}
           {costData && costData.totalHours > 0 && (
             <RosterCostChip
@@ -359,11 +408,14 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
         </div>
       ) : staff.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted">
-          No active staff assigned to this service.
+          No active staff assigned to {serviceName ?? "this service"}.
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse">
+          <table
+            className="min-w-full border-collapse"
+            aria-label={serviceName ? `${serviceName} weekly roster` : "Weekly roster"}
+          >
             <thead>
               <tr>
                 <th className="text-left p-2 border border-border bg-surface text-xs font-semibold uppercase tracking-wide text-muted">
@@ -387,6 +439,64 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
               </tr>
             </thead>
             <tbody>
+              {/* Pinned "Open shifts" row — unassigned (userId null) shifts.
+                  Rendered first so unfilled slots are impossible to miss.
+                  Deliberately excluded from the ratio numerators above. */}
+              {openShiftCount > 0 && (
+                <tr data-testid="open-shifts-row">
+                  <td className="p-2 border border-border align-top min-w-[160px] bg-surface/60">
+                    <span className="text-sm font-medium text-foreground">
+                      Open shifts
+                    </span>
+                    <p className="text-2xs text-muted mt-0.5">
+                      Unassigned — not counted in ratios
+                    </p>
+                  </td>
+                  {weekDates.map((date) => {
+                    const dayShifts = openShiftsByDay[date] ?? [];
+                    return (
+                      <td
+                        key={date}
+                        className="p-1 border border-border align-top min-w-[140px] bg-surface/60"
+                        data-testid={`open-shift-cell-${date}`}
+                      >
+                        {dayShifts.length === 0 ? (
+                          <div className="min-h-[44px]" />
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            {dayShifts.map((s) => {
+                              const chipShift: ShiftChipShift = {
+                                id: s.id,
+                                userId: s.userId,
+                                staffName: s.staffName,
+                                shiftStart: s.shiftStart,
+                                shiftEnd: s.shiftEnd,
+                                sessionType: s.sessionType,
+                                role: s.role,
+                                status: s.status,
+                                date: s.date,
+                                actualStart: s.actualStart,
+                                actualEnd: s.actualEnd,
+                              };
+                              return (
+                                <ShiftChip
+                                  key={s.id}
+                                  shift={chipShift}
+                                  onClick={
+                                    canEdit
+                                      ? () => setModalState({ mode: "edit", shift: s })
+                                      : undefined
+                                  }
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              )}
               {staff.map((member) => {
                 const certStatus = certStatusByUser[member.id];
                 return (
@@ -408,6 +518,7 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                   {weekDates.map((date) => {
                     const daysShifts = shiftsByUserAndDay[member.id]?.[date] ?? [];
                     const emptyCellClickable = canEdit && daysShifts.length === 0;
+                    const leave = leaveByUserAndDay[member.id]?.[date];
                     return (
                       <td
                         key={date}
@@ -422,6 +533,7 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                         }
                         data-testid={`shift-cell-${member.id}-${date}`}
                       >
+                        {leave && <OnLeaveChip isHalfDay={leave.isHalfDay} />}
                         {daysShifts.length === 0 ? (
                           <div className="min-h-[44px] flex items-center justify-center text-xs text-muted/70">
                             {canEdit ? "+ Add" : "—"}
@@ -497,6 +609,13 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
               ))}
             </tfoot>
           </table>
+          {/* Leave-overlay honesty note (Task 5.4): staff apply for leave in
+              Employment Hero — those requests never reach the internal
+              LeaveRequest table this overlay reads. */}
+          <p className="mt-1.5 text-2xs text-muted">
+            Internal leave only — leave applied in Employment Hero won&apos;t
+            appear here.
+          </p>
         </div>
       )}
 
@@ -552,6 +671,25 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   );
 }
 
+
+// ── OnLeaveChip ────────────────────────────────────────────────────
+//
+// Amber overlay chip rendered in a staff/day cell when that person has
+// APPROVED internal leave covering the date (½-day variant when every
+// covering entry is a half day). Data via useRosterLeave — internal
+// LeaveRequest rows only; EH-applied leave never appears (see the grid's
+// legend line).
+
+function OnLeaveChip({ isHalfDay }: { isHalfDay: boolean }) {
+  return (
+    <span
+      data-testid="on-leave-chip"
+      className="mb-1 inline-flex items-center px-1.5 py-0.5 rounded-full border text-2xs font-medium border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200"
+    >
+      {isHalfDay ? "On leave · ½ day" : "On leave"}
+    </span>
+  );
+}
 
 // ── Ratio summary banner ────────────────────────────────────────────
 //

@@ -31,6 +31,7 @@ vi.mock("@/hooks/useToast", () => ({
 }));
 
 import { ServiceWeeklyShiftsGrid } from "@/components/services/ServiceWeeklyShiftsGrid";
+import { getWeekStart, toLocalIsoDate } from "@/lib/utils";
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -46,39 +47,35 @@ function makeClient() {
   });
 }
 
-const TEAM_MEMBERS = [
-  {
-    id: "staff-1",
-    name: "Jane Doe",
-    email: "jane@example.com",
-    role: "staff",
+// Members in the /api/services/[id]/staff shape (useServiceStaff) — the
+// grid's staff source since Task 5.5 (primary users + active memberships).
+function staffMember(
+  userId: string,
+  name: string,
+  overrides?: Partial<{ isActive: boolean; isPrimary: boolean }>,
+) {
+  return {
+    userId,
+    name,
+    email: null,
     avatar: null,
-    service: { id: "svc-1", name: "Lakemba" },
-    active: true,
-    activeRocks: 0,
-    totalTodos: 0,
-    completedTodos: 0,
-    todoCompletionPct: 0,
-    openIssues: 0,
-    managedServices: 0,
-    rocks: [],
-  },
-  {
-    id: "staff-2",
-    name: "Bob Smith",
-    email: "bob@example.com",
     role: "staff",
-    avatar: null,
-    service: { id: "svc-1", name: "Lakemba" },
-    active: true,
-    activeRocks: 0,
-    totalTodos: 0,
-    completedTodos: 0,
-    todoCompletionPct: 0,
-    openIssues: 0,
-    managedServices: 0,
-    rocks: [],
-  },
+    isPrimary: overrides?.isPrimary ?? true,
+    isActive: overrides?.isActive ?? true,
+    membership: {
+      id: `primary:${userId}`,
+      roleAtService: "OSHC Educator",
+      accessLevel: "contributor",
+      startDate: "2026-01-01",
+      endDate: null,
+      status: "active",
+    },
+  };
+}
+
+const STAFF_MEMBERS = [
+  staffMember("staff-1", "Jane Doe"),
+  staffMember("staff-2", "Bob Smith", { isPrimary: false }),
 ];
 
 const SHIFT_SAMPLE = {
@@ -97,7 +94,21 @@ const SHIFT_SAMPLE = {
   user: { id: "staff-1", name: "Jane Doe", avatar: null },
 };
 
-function installFetchMock(opts?: { withShift?: boolean }) {
+// Monday of the CURRENT week as local YYYY-MM-DD — always inside the grid's
+// default visible week, whatever day the test runs on.
+const MONDAY_ISO = toLocalIsoDate(getWeekStart());
+
+function installFetchMock(opts?: {
+  withShift?: boolean;
+  /** Overrides the shifts list entirely when provided. */
+  shifts?: unknown[];
+  /** dateString → sessionType → children[] for /api/bookings/roster. */
+  bookingsRoster?: Record<string, Record<string, unknown[]>>;
+  /** Approved internal leave rows for /api/roster/leave. */
+  leave?: unknown[];
+  /** Overrides the /api/services/[id]/staff members list. */
+  members?: unknown[];
+}) {
   const capture: { calls: Array<{ url: string; init?: RequestInit }> } = {
     calls: [],
   };
@@ -105,12 +116,40 @@ function installFetchMock(opts?: { withShift?: boolean }) {
     const u = String(url);
     capture.calls.push({ url: u, init });
 
-    if (u.includes("/api/team")) {
+    // Must be checked before the plain /staff matcher below.
+    if (u.includes("/staff-certificates")) {
       return {
         ok: true,
         status: 200,
         headers: new Headers({ "content-type": "application/json" }),
-        json: async () => TEAM_MEMBERS,
+        json: async () => ({ certificates: [] }),
+      } as unknown as Response;
+    }
+
+    if (u.includes("/api/services/svc-1/staff")) {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ members: opts?.members ?? STAFF_MEMBERS }),
+      } as unknown as Response;
+    }
+
+    if (u.includes("/api/roster/leave")) {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ leave: opts?.leave ?? [] }),
+      } as unknown as Response;
+    }
+
+    if (u.includes("/api/bookings/roster")) {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => opts?.bookingsRoster ?? {},
       } as unknown as Response;
     }
 
@@ -119,7 +158,9 @@ function installFetchMock(opts?: { withShift?: boolean }) {
         ok: true,
         status: 200,
         headers: new Headers({ "content-type": "application/json" }),
-        json: async () => ({ shifts: opts?.withShift ? [SHIFT_SAMPLE] : [] }),
+        json: async () => ({
+          shifts: opts?.shifts ?? (opts?.withShift ? [SHIFT_SAMPLE] : []),
+        }),
       } as unknown as Response;
     }
 
@@ -284,16 +325,162 @@ describe("ServiceWeeklyShiftsGrid", () => {
     });
   });
 
+  it("renders a pinned Open shifts row for null-userId shifts", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      shifts: [
+        SHIFT_SAMPLE,
+        {
+          ...SHIFT_SAMPLE,
+          id: "shift-open-1",
+          userId: null,
+          user: null,
+          staffName: "Open shift",
+          // Local noon on Monday — lands on Monday's column in every TZ.
+          date: `${MONDAY_ISO}T12:00:00`,
+        },
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Open shifts")).toBeDefined();
+      expect(screen.getByText("Open shift")).toBeDefined();
+    });
+    // The pinned row exists and holds the unassigned chip.
+    expect(screen.getByTestId("open-shifts-row")).toBeDefined();
+  });
+
+  it("does not render the Open shifts row when every shift is assigned", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({ withShift: true });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    // "Jane Doe" appears in both her staff row AND her shift chip — use
+    // getAllByText to avoid a multiple-match throw.
+    await waitFor(() => {
+      expect(screen.getAllByText("Jane Doe").length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByTestId("open-shifts-row")).toBeNull();
+  });
+
+  it("excludes open shifts from ratio numerators (unfilled slot must not look compliant)", async () => {
+    sessionRef.role = "admin";
+    // ONE open (unassigned) ASC shift on Monday + 5 ASC children booked that
+    // day. If the open shift counted toward the numerator the badge would
+    // read "5:1 within limit"; the locked decision is that it must not, so
+    // the cell shows a breach ("No staff rostered").
+    installFetchMock({
+      shifts: [
+        {
+          ...SHIFT_SAMPLE,
+          id: "shift-open-1",
+          userId: null,
+          user: null,
+          staffName: "Open shift",
+          date: `${MONDAY_ISO}T12:00:00`,
+          sessionType: "asc",
+        },
+      ],
+      bookingsRoster: {
+        [MONDAY_ISO]: {
+          asc: Array.from({ length: 5 }, (_, i) => ({
+            childId: `child-${i}`,
+            firstName: `Kid${i}`,
+            surname: "Test",
+            bookingType: "permanent",
+            hasMedical: false,
+            hasDietary: false,
+          })),
+        },
+      },
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Open shifts")).toBeDefined();
+    });
+    await waitFor(() => {
+      expect(screen.getByText("No staff rostered")).toBeDefined();
+    });
+    expect(screen.queryByText(/within limit/i)).toBeNull();
+  });
+
+  it("honours a controlled weekStart prop and hides its own week picker", async () => {
+    sessionRef.role = "admin";
+    const capture = installFetchMock();
+
+    const qc = makeClient();
+    render(
+      <ServiceWeeklyShiftsGrid serviceId="svc-1" weekStart="2026-08-31" />,
+      { wrapper: makeWrapper(qc) },
+    );
+
+    await waitFor(() => {
+      const call = capture.calls.find(
+        (c) =>
+          c.url.includes("/api/roster/shifts") &&
+          c.url.includes("weekStart=2026-08-31"),
+      );
+      expect(call).toBeDefined();
+    });
+    // Controlled without onWeekChange: the parent owns navigation.
+    expect(screen.queryByRole("button", { name: /previous week/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /next week/i })).toBeNull();
+  });
+
+  it("renders its own picker and delegates when onWeekChange is provided", async () => {
+    sessionRef.role = "admin";
+    installFetchMock();
+    const onWeekChange = vi.fn();
+
+    const qc = makeClient();
+    render(
+      <ServiceWeeklyShiftsGrid
+        serviceId="svc-1"
+        weekStart="2026-08-31"
+        onWeekChange={onWeekChange}
+      />,
+      { wrapper: makeWrapper(qc) },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /next week/i })).toBeDefined();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /next week/i }));
+    expect(onWeekChange).toHaveBeenCalledWith("2026-09-07");
+  });
+
   it("renders empty-state when service has no active staff", async () => {
     sessionRef.role = "admin";
     global.fetch = vi.fn().mockImplementation(async (url: string | URL) => {
       const u = String(url);
-      if (u.includes("/api/team")) {
+      if (u.includes("/staff-certificates")) {
         return {
           ok: true,
           status: 200,
           headers: new Headers({ "content-type": "application/json" }),
-          json: async () => [],
+          json: async () => ({ certificates: [] }),
+        } as unknown as Response;
+      }
+      if (u.includes("/api/services/svc-1/staff")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
+          json: async () => ({ members: [] }),
         } as unknown as Response;
       }
       return {
@@ -311,6 +498,82 @@ describe("ServiceWeeklyShiftsGrid", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/no active staff/i)).toBeDefined();
+    });
+  });
+
+  it("filters deactivated members out of the staff rows", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      members: [
+        staffMember("staff-1", "Jane Doe"),
+        staffMember("staff-gone", "Departed Dave", { isActive: false }),
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Jane Doe")).toBeDefined();
+    });
+    expect(screen.queryByText("Departed Dave")).toBeNull();
+  });
+
+  it("overlays an On leave chip on covered days and shows the EH-honesty legend", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      leave: [
+        {
+          userId: "staff-1",
+          leaveType: "annual",
+          startDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          endDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          isHalfDay: false,
+        },
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("on-leave-chip")).toBeDefined();
+    });
+    expect(screen.getByTestId("on-leave-chip").textContent).toBe("On leave");
+    // The chip sits inside Jane's Monday cell.
+    const mondayCell = screen.getByTestId(`shift-cell-staff-1-${MONDAY_ISO}`);
+    expect(mondayCell.contains(screen.getByTestId("on-leave-chip"))).toBe(true);
+    // Legend: internal leave only, EH leave never appears.
+    expect(
+      screen.getByText(/leave applied in Employment Hero/i),
+    ).toBeDefined();
+  });
+
+  it("renders the ½-day variant when the covering leave is a half day", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      leave: [
+        {
+          userId: "staff-2",
+          leaveType: "personal",
+          startDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          endDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          isHalfDay: true,
+        },
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/On leave · ½ day/)).toBeDefined();
     });
   });
 });

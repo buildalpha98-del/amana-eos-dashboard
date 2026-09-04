@@ -192,6 +192,13 @@ export const allPages = [
   "/marketing/email/compose",
   // Staff profile (People module)
   "/staff/[id]",
+  // Roster command centre — all-centres weekly shifts grid (People module,
+  // staff-portal-v2 Chunk 5). NOTE: pathMatches() prefix-matches plain
+  // paths, so granting "/roster" to a role also grants "/roster/me" and
+  // "/roster/swaps" — harmless today (both are self-scoped and already
+  // granted to every staff-bearing role), but keep it in mind before
+  // nesting anything sensitive under /roster/.
+  "/roster",
   // Roster self-view (People module)
   "/roster/me",
   // Roster — shift swap inbox
@@ -340,6 +347,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/incidents",
     "/staff/[id]",
     "/children/[id]",
+    // 2026-09-04: roster command centre — a Director of Service sees only
+    // their own centre's section (getCentreScope on GET /api/services).
+    "/roster",
     "/roster/me",
     "/roster/swaps",
     "/leave",
@@ -1006,6 +1016,7 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Settings", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
   { section: "Pages", label: "My Portal", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: true },
   { section: "Pages", label: "Timesheets", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
+  { section: "Pages", label: "Roster command centre", owner: true, head_office: true, admin: true, marketing: false, member: true, staff: false },
   { section: "Pages", label: "Leave Management", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
   { section: "Pages", label: "Contracts", owner: true, head_office: true, admin: true, marketing: false, member: false, staff: false },
   { section: "Pages", label: "Profile", owner: true, head_office: true, admin: true, marketing: true, member: true, staff: true },

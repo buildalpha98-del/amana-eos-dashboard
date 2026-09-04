@@ -5388,7 +5388,14 @@ model RosterShift {
   actualStart       DateTime?
   actualEnd         DateTime?
 
-  @@unique([serviceId, date, staffName, shiftStart])
+  /// 2026-09-04: was ([serviceId, date, staffName, shiftStart]) — keying on
+  /// a denormalised display name meant two open shifts ("Open shift") at
+  /// the same time collided, and renaming a user desynced the constraint.
+  /// userId NULLs are distinct in Postgres unique indexes, so multiple
+  /// open slots at the same time are allowed by design; a real user can't
+  /// be double-booked at the same start. The OWNA ingest (cowork/ops/roster)
+  /// dedupes by staffName in application code instead.
+  @@unique([serviceId, date, userId, shiftStart])
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])

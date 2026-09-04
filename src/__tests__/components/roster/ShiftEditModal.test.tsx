@@ -21,45 +21,51 @@ function installFetchMock(capture: { calls: Array<{ url: string; init?: RequestI
     const u = String(url);
     capture.calls.push({ url: u, init });
 
-    if (u.includes("/api/team")) {
+    // Staff source is the per-service endpoint (useServiceStaff) since
+    // Task 5.5 — primary users + active memberships, already service-scoped.
+    if (u.includes("/api/services/svc-1/staff")) {
       return {
         ok: true,
         status: 200,
         headers: new Headers({ "content-type": "application/json" }),
-        json: async () => [
-          {
-            id: "user-1",
-            name: "Jane Doe",
-            email: "jane@example.com",
-            role: "staff",
-            avatar: null,
-            service: { id: "svc-1", name: "Lakemba" },
-            active: true,
-            activeRocks: 0,
-            totalTodos: 0,
-            completedTodos: 0,
-            todoCompletionPct: 0,
-            openIssues: 0,
-            managedServices: 0,
-            rocks: [],
-          },
-          {
-            id: "user-2",
-            name: "Other Service Person",
-            email: "other@example.com",
-            role: "staff",
-            avatar: null,
-            service: { id: "svc-other", name: "Other" },
-            active: true,
-            activeRocks: 0,
-            totalTodos: 0,
-            completedTodos: 0,
-            todoCompletionPct: 0,
-            openIssues: 0,
-            managedServices: 0,
-            rocks: [],
-          },
-        ],
+        json: async () => ({
+          members: [
+            {
+              userId: "user-1",
+              name: "Jane Doe",
+              email: null,
+              avatar: null,
+              role: "staff",
+              isPrimary: true,
+              isActive: true,
+              membership: {
+                id: "primary:user-1",
+                roleAtService: "OSHC Educator",
+                accessLevel: "contributor",
+                startDate: "2026-01-01",
+                endDate: null,
+                status: "active",
+              },
+            },
+            {
+              userId: "user-gone",
+              name: "Departed Dave",
+              email: null,
+              avatar: null,
+              role: "staff",
+              isPrimary: false,
+              isActive: false,
+              membership: {
+                id: "m-gone",
+                roleAtService: "OSHC Educator",
+                accessLevel: "contributor",
+                startDate: "2026-01-01",
+                endDate: null,
+                status: "active",
+              },
+            },
+          ],
+        }),
       } as unknown as Response;
     }
 
@@ -126,10 +132,12 @@ describe("ShiftEditModal", () => {
       </Wrapper>,
     );
 
-    // Wait for team to load (for user dropdown options)
+    // Wait for the service staff list to load (for user dropdown options)
     await waitFor(() => {
       expect(screen.getByRole("option", { name: /Jane Doe/i })).toBeDefined();
     });
+    // Deactivated accounts are filtered out of the picker.
+    expect(screen.queryByRole("option", { name: /Departed Dave/i })).toBeNull();
 
     // Pick staff
     const userSelect = screen.getByLabelText(/staff/i) as HTMLSelectElement;

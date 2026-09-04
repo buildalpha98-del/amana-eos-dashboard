@@ -265,6 +265,10 @@ export const navItems: NavItem[] = [
   // 2026-07-05 (nav consolidation phase 1): /diversity-dashboard +
   // /wgea-report collapsed into the /workforce-reports hub (tabs).
   { href: "/workforce-reports", label: "Workforce Reports", icon: BarChart3, section: "People", tooltip: "Diversity & inclusion stats and WGEA workforce-composition reporting", roles: ["owner", "head_office", "admin"] },
+  // 2026-09-04 (staff-portal-v2 Chunk 5): all-centres roster command centre.
+  // Members are auto-scoped to their own centre server-side (getCentreScope
+  // in GET /api/services); educators keep using /roster/me instead.
+  { href: "/roster", label: "Roster", icon: CalendarDays, section: "People", tooltip: "Weekly shifts across every centre — open slots, ratios & publishing", roles: ["owner", "head_office", "admin", "member"], core: true },
   { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero", roles: ALL_NON_MARKETING , core: true },
   // 2026-06-29: `/leave` retired from the sidebar. Every new leave
   // request now goes through My Portal → EH so managers get the

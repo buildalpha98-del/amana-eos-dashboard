@@ -1,9 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+
+// Parent-sheet statuses under which entries may no longer be edited or deleted.
+const LOCKED_STATUSES: string[] = ["approved", "exported_to_xero"];
+
 const updateEntrySchema = z.object({
   date: z.string().optional(),
   shiftStart: z.string().optional(),
@@ -30,9 +34,21 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     );
   }
 
-  const existing = await prisma.timesheetEntry.findUnique({ where: { id } });
+  const existing = await prisma.timesheetEntry.findUnique({
+    where: { id },
+    include: { timesheet: { select: { status: true } } },
+  });
   if (!existing) {
     return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+  }
+
+  // Entries are locked once the parent sheet is approved or exported —
+  // the approval is a sign-off on the exact hours it contained.
+  if (LOCKED_STATUSES.includes(existing.timesheet.status)) {
+    return NextResponse.json(
+      { error: "Entries can't be changed on an approved or exported timesheet" },
+      { status: 409 }
+    );
   }
 
   const data: Prisma.TimesheetEntryUpdateInput = { ...parsed.data };
@@ -79,9 +95,20 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 export const DELETE = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
 
-  const existing = await prisma.timesheetEntry.findUnique({ where: { id } });
+  const existing = await prisma.timesheetEntry.findUnique({
+    where: { id },
+    include: { timesheet: { select: { status: true } } },
+  });
   if (!existing) {
     return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+  }
+
+  // Same lock as PATCH — an approved/exported sheet's entries are final.
+  if (LOCKED_STATUSES.includes(existing.timesheet.status)) {
+    return NextResponse.json(
+      { error: "Entries can't be changed on an approved or exported timesheet" },
+      { status: 409 }
+    );
   }
 
   await prisma.timesheetEntry.delete({ where: { id } });
