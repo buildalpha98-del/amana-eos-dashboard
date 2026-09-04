@@ -182,7 +182,7 @@ export const CHECKLISTS: Record<RoleKey, ChecklistItem[]> = {
       title: "Set your notification preferences",
       description:
         "Choose how announcements, assignments, and reminders reach you from your portal.",
-      href: "/my-portal",
+      href: "/notifications",
       icon: Bell,
       category: "Stay Connected",
     },

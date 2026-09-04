@@ -50,6 +50,7 @@ import {
   Network,
   Brain,
   Palette,
+  Bell,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -139,6 +140,10 @@ export const navItems: NavItem[] = [
   // "me" then "the work" rather than one undifferentiated list.
   { href: "/my-portal", label: "My Portal", icon: UserCircle, section: "My Portal", tooltip: "Your personal HR hub — profile, leave, training & more" , core: true },
   { href: "/my-day", label: "My Day", icon: Sun, section: "My Portal", tooltip: "Clock, roll call, and today's checklists in one place" , core: true },
+  // 2026-09-04 staff portal v2 (3.2): the in-app notification inbox.
+  // Every role receives UserNotifications, so no `roles` allowlist and
+  // core for everyone.
+  { href: "/notifications", label: "Notifications", icon: Bell, section: "My Portal", tooltip: "Everything sent to you — assignments, approvals and reminders", core: true },
   { href: "/my-training", label: "My Training", icon: GraduationCap, section: "My Portal", tooltip: "Your induction and ongoing training courses", core: true },
   { href: "/surveys", label: "My Surveys", icon: ClipboardList, section: "My Portal", tooltip: "Surveys sent to you — feedback, check-ins, culture", core: true },
   { href: "/roster/me", label: "My Roster", icon: CalendarDays, section: "My Portal", tooltip: "Your published shifts and swap requests", core: true },
