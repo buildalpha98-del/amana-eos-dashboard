@@ -15,7 +15,8 @@ import { requireRoomId } from "@/lib/room-resolver";
 const patchShiftSchema = z
   .object({
     serviceId: z.string().min(1),
-    userId: z.string().min(1),
+    // null = unassign → open shift (any qualified staff can claim it).
+    userId: z.string().min(1).nullable(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     sessionType: z.enum(["bsc", "asc", "vc"]),
     shiftStart: z.string().regex(/^\d{2}:\d{2}$/),
@@ -64,7 +65,9 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     throw ApiError.badRequest("shiftEnd must be later than shiftStart");
   }
 
-  // If userId changes, re-hydrate staffName from the new user.
+  // If userId changes, re-hydrate staffName from the new user. Unassigning
+  // (explicit null) resets staffName to the "Open shift" literal so the row
+  // stays internally consistent with open shifts created via POST.
   let staffNameUpdate: string | undefined;
   if (data.userId && data.userId !== existing.userId) {
     const user = await prisma.user.findUnique({
@@ -73,6 +76,8 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     });
     if (!user) throw ApiError.notFound("User not found");
     staffNameUpdate = user.name;
+  } else if (data.userId === null && existing.userId !== null) {
+    staffNameUpdate = "Open shift";
   }
 
   // 2026-05-02: re-validate compliance certs whenever the assignee or the
@@ -80,7 +85,10 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   // is exactly the slip we're guarding against). For a pure time-shift
   // edit (e.g. shiftStart only) we don't re-check; the original
   // assignment was already validated at create-time.
-  const newUserId = data.userId ?? existing.userId;
+  // `!== undefined` (not `??`): an explicit null means the shift is being
+  // unassigned, so the post-write assignee is nobody — don't cert-check the
+  // outgoing user on a simultaneous date change.
+  const newUserId = data.userId !== undefined ? data.userId : existing.userId;
   const newDate = data.date ? new Date(data.date) : existing.date;
   const userOrDateChanged =
     (data.userId && data.userId !== existing.userId) ||
@@ -114,22 +122,39 @@ export const PATCH = withApiAuth(async (req, session, context) => {
       }
     : {};
 
-  const shift = await prisma.rosterShift.update({
-    where: { id },
-    data: {
-      ...roomUpdate,
-      ...(data.serviceId !== undefined && { serviceId: data.serviceId }),
-      ...(data.userId !== undefined && { userId: data.userId }),
-      ...(staffNameUpdate !== undefined && { staffName: staffNameUpdate }),
-      ...(data.date !== undefined && { date: new Date(data.date) }),
-      ...(data.sessionType !== undefined && { sessionType: data.sessionType }),
-      ...(data.shiftStart !== undefined && { shiftStart: data.shiftStart }),
-      ...(data.shiftEnd !== undefined && { shiftEnd: data.shiftEnd }),
-      ...(data.role !== undefined && { role: data.role ?? null }),
-      ...(data.status !== undefined && { status: data.status }),
-    },
-  });
-  return NextResponse.json({ shift });
+  try {
+    const shift = await prisma.rosterShift.update({
+      where: { id },
+      data: {
+        ...roomUpdate,
+        ...(data.serviceId !== undefined && { serviceId: data.serviceId }),
+        ...(data.userId !== undefined && { userId: data.userId }),
+        ...(staffNameUpdate !== undefined && { staffName: staffNameUpdate }),
+        ...(data.date !== undefined && { date: new Date(data.date) }),
+        ...(data.sessionType !== undefined && { sessionType: data.sessionType }),
+        ...(data.shiftStart !== undefined && { shiftStart: data.shiftStart }),
+        ...(data.shiftEnd !== undefined && { shiftEnd: data.shiftEnd }),
+        ...(data.role !== undefined && { role: data.role ?? null }),
+        ...(data.status !== undefined && { status: data.status }),
+      },
+    });
+    return NextResponse.json({ shift });
+  } catch (err) {
+    // @@unique([serviceId, date, staffName, shiftStart]) — unassigning (or
+    // moving) a shift can collide with another "Open shift" row at the same
+    // start time. Surface as a friendly 409 instead of a P2002 500.
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code: string }).code === "P2002"
+    ) {
+      throw ApiError.conflict(
+        "An open shift already exists at this start time — vary the start time or edit the existing one.",
+      );
+    }
+    throw err;
+  }
 });
 
 // ---------------------------------------------------------------------------

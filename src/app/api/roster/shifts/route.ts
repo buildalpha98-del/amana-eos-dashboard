@@ -96,21 +96,38 @@ export const POST = withApiAuth(async (req, session) => {
     await assertUserCleared(data.userId);
   }
 
-  const shift = await prisma.rosterShift.create({
-    data: {
-      serviceId: data.serviceId,
-      userId: data.userId ?? null,
-      staffName,
-      date: new Date(data.date),
-      // Stage 1 dual key — see room-resolver.ts.
-      roomId: await requireRoomId(data.serviceId, data.sessionType),
-      sessionType: data.sessionType,
-      shiftStart: data.shiftStart,
-      shiftEnd: data.shiftEnd,
-      role: data.role ?? null,
-      status: data.status,
-      createdById: session.user.id,
-    },
-  });
-  return NextResponse.json({ shift }, { status: 201 });
+  try {
+    const shift = await prisma.rosterShift.create({
+      data: {
+        serviceId: data.serviceId,
+        userId: data.userId ?? null,
+        staffName,
+        date: new Date(data.date),
+        // Stage 1 dual key — see room-resolver.ts.
+        roomId: await requireRoomId(data.serviceId, data.sessionType),
+        sessionType: data.sessionType,
+        shiftStart: data.shiftStart,
+        shiftEnd: data.shiftEnd,
+        role: data.role ?? null,
+        status: data.status,
+        createdById: session.user.id,
+      },
+    });
+    return NextResponse.json({ shift }, { status: 201 });
+  } catch (err) {
+    // @@unique([serviceId, date, staffName, shiftStart]) — two open shifts
+    // share the literal staffName "Open shift", so a second one at the same
+    // start time collides. Surface as a friendly 409 instead of a P2002 500.
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code: string }).code === "P2002"
+    ) {
+      throw ApiError.conflict(
+        "An open shift already exists at this start time — vary the start time or edit the existing one.",
+      );
+    }
+    throw err;
+  }
 });

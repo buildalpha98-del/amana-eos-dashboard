@@ -399,6 +399,52 @@ describe("POST /api/roster/shifts", () => {
     expect(res.status).toBe(201);
     expect(prismaMock.rosterShift.create).toHaveBeenCalledOnce();
   });
+
+  // ── Open shifts (null userId) ──────────────────────────────────────
+  it("creates an open shift with null userId and skips cert + induction guards", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.rosterShift.create.mockResolvedValue(
+      makeShift({ userId: null, staffName: "Open shift" }),
+    );
+
+    const res = await POST(
+      createRequest("POST", "/api/roster/shifts", {
+        body: { ...validBody, userId: null },
+      }),
+    );
+    expect(res.status).toBe(201);
+
+    const call = prismaMock.rosterShift.create.mock.calls[0][0];
+    expect(call.data.userId).toBeNull();
+    expect(call.data.staffName).toBe("Open shift");
+    // Cert guard is deferred to claim-time for open shifts.
+    expect(prismaMock.complianceCertificate.findMany).not.toHaveBeenCalled();
+    // Induction gate (assertUserCleared selects inductionStatus) skipped too —
+    // the only user.findUnique calls should be server-auth's `active` check.
+    const inductionLookups = prismaMock.user.findUnique.mock.calls.filter(
+      (c: unknown[]) => {
+        const { select } = c[0] as { select?: Record<string, boolean> };
+        return !!select && "inductionStatus" in select;
+      },
+    );
+    expect(inductionLookups).toHaveLength(0);
+  });
+
+  it("returns 409 when an identical open shift already exists (P2002)", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.rosterShift.create.mockRejectedValue(
+      Object.assign(new Error("Unique constraint failed"), { code: "P2002" }),
+    );
+
+    const res = await POST(
+      createRequest("POST", "/api/roster/shifts", {
+        body: { ...validBody, userId: null },
+      }),
+    );
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toMatch(/open shift already exists at this start time/i);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -560,6 +606,71 @@ describe("PATCH /api/roster/shifts/[id]", () => {
       paramsOf("sh-1"),
     );
     expect(res.status).toBe(400);
+  });
+
+  // ── Open shifts: unassign via null userId ─────────────────────────
+  it("unassigning (userId null) resets staffName to \"Open shift\"", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.rosterShift.findUnique.mockResolvedValue(
+      makeShift({ userId: "u-1", staffName: "Alice" }),
+    );
+    prismaMock.rosterShift.update.mockResolvedValue(
+      makeShift({ userId: null, staffName: "Open shift" }),
+    );
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/roster/shifts/sh-1", {
+        body: { userId: null },
+      }),
+      paramsOf("sh-1"),
+    );
+    expect(res.status).toBe(200);
+    const call = prismaMock.rosterShift.update.mock.calls[0][0];
+    expect(call.data.userId).toBeNull();
+    expect(call.data.staffName).toBe("Open shift");
+    // No assignee after the write — cert guard must not run.
+    expect(prismaMock.complianceCertificate.findMany).not.toHaveBeenCalled();
+  });
+
+  it("accepts userId null on an already-open shift without touching staffName", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.rosterShift.findUnique.mockResolvedValue(
+      makeShift({ userId: null, staffName: "Open shift" }),
+    );
+    prismaMock.rosterShift.update.mockResolvedValue(
+      makeShift({ userId: null, staffName: "Open shift", shiftStart: "16:00" }),
+    );
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/roster/shifts/sh-1", {
+        body: { userId: null, shiftStart: "16:00" },
+      }),
+      paramsOf("sh-1"),
+    );
+    expect(res.status).toBe(200);
+    const call = prismaMock.rosterShift.update.mock.calls[0][0];
+    expect(call.data.userId).toBeNull();
+    expect(call.data).not.toHaveProperty("staffName");
+  });
+
+  it("returns 409 when unassigning collides with an existing open shift (P2002)", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.rosterShift.findUnique.mockResolvedValue(
+      makeShift({ userId: "u-1", staffName: "Alice" }),
+    );
+    prismaMock.rosterShift.update.mockRejectedValue(
+      Object.assign(new Error("Unique constraint failed"), { code: "P2002" }),
+    );
+
+    const res = await PATCH(
+      createRequest("PATCH", "/api/roster/shifts/sh-1", {
+        body: { userId: null },
+      }),
+      paramsOf("sh-1"),
+    );
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toMatch(/open shift already exists at this start time/i);
   });
 });
 
