@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRosterShifts, type RosterShiftListItem } from "@/hooks/useRosterShifts";
 import { useRoster } from "@/hooks/useRoster";
 import { useTeam } from "@/hooks/useTeam";
@@ -15,6 +14,12 @@ import {
 } from "@/hooks/useServiceStaffCertificates";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
+import {
+  WeekPicker,
+  addDaysIso,
+  currentWeekStartIso,
+  parseIsoDateLocal,
+} from "@/components/roster/WeekPicker";
 import { RatioBadge } from "@/components/roster/RatioBadge";
 import { ShiftEditModal } from "@/components/roster/ShiftEditModal";
 import { ShiftSwapDialog } from "@/components/roster/ShiftSwapDialog";
@@ -25,11 +30,25 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { isAdminRole } from "@/lib/role-permissions";
 import { toast } from "@/hooks/useToast";
-import { cn, getWeekStart, toLocalIsoDate } from "@/lib/utils";
+import { cn, toLocalIsoDate } from "@/lib/utils";
 
 interface ServiceWeeklyShiftsGridProps {
   serviceId: string;
   serviceName?: string;
+  /**
+   * Controlled week (Monday `YYYY-MM-DD`). When provided the grid renders
+   * that week and drops its internal week state — the `/roster` command
+   * centre drives many grids from a single page-level WeekPicker this way.
+   * When absent the grid keeps its own state (service-detail tab).
+   */
+  weekStart?: string;
+  /**
+   * Week-change callback for controlled mode. When provided alongside
+   * `weekStart`, the grid still renders its own WeekPicker and delegates
+   * navigation here; when `weekStart` is given WITHOUT this, the picker is
+   * hidden entirely (the parent owns navigation).
+   */
+  onWeekChange?: (weekStart: string) => void;
 }
 
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -40,22 +59,11 @@ const SESSION_LABELS: Record<(typeof SESSION_TYPES)[number], string> = {
   vc: "VC",
 };
 
-function getMondayIso(offsetWeeks: number): string {
-  const monday = getWeekStart();
-  monday.setDate(monday.getDate() + offsetWeeks * 7);
-  return toLocalIsoDate(monday);
-}
-
-function formatWeekRange(mondayIso: string): string {
-  const monday = new Date(mondayIso);
-  const friday = new Date(monday);
-  friday.setDate(friday.getDate() + 4);
-  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
-  return `${monday.toLocaleDateString("en-AU", opts)} – ${friday.toLocaleDateString("en-AU", { ...opts, year: "numeric" })}`;
-}
-
 function dateIso(date: string | Date): string {
-  return (typeof date === "string" ? new Date(date) : date).toISOString().split("T")[0];
+  // toLocalIsoDate, not toISOString().split — serialising a local-time Date
+  // through UTC shifts the calendar day back in AEST/AEDT (the "Monday
+  // column shows nothing" bug).
+  return toLocalIsoDate(typeof date === "string" ? new Date(date) : date);
 }
 
 type ModalState =
@@ -63,20 +71,31 @@ type ModalState =
   | { mode: "edit"; shift: RosterShiftListItem }
   | null;
 
-export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridProps) {
+export function ServiceWeeklyShiftsGrid({
+  serviceId,
+  serviceName,
+  weekStart: weekStartProp,
+  onWeekChange,
+}: ServiceWeeklyShiftsGridProps) {
   const { data: session } = useSession();
   const role = session?.user?.role ?? "";
   const sessionServiceId = (session?.user as { serviceId?: string | null } | undefined)?.serviceId ?? null;
   const canEdit =
     isAdminRole(role) || (role === "member" && sessionServiceId === serviceId);
 
-  const [weekOffset, setWeekOffset] = useState(0);
-  const weekStart = useMemo(() => getMondayIso(weekOffset), [weekOffset]);
+  // Week state: internal by default; controlled when a `weekStart` prop is
+  // provided (see the props doc-comment).
+  const [internalWeekStart, setInternalWeekStart] = useState(currentWeekStartIso);
+  const weekStart = weekStartProp ?? internalWeekStart;
+  const handleWeekChange = onWeekChange ?? setInternalWeekStart;
+  const showWeekPicker = weekStartProp === undefined || onWeekChange !== undefined;
+
   const weekDates = useMemo(() => {
     return Array.from({ length: 5 }, (_, i) => {
-      const d = new Date(weekStart);
+      const d = parseIsoDateLocal(weekStart);
       d.setDate(d.getDate() + i);
-      return d.toISOString().split("T")[0];
+      // toLocalIsoDate, not toISOString().split — see dateIso() above.
+      return toLocalIsoDate(d);
     });
   }, [weekStart]);
 
@@ -100,7 +119,7 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   // anyone whose cert has already expired by week-end, and an amber shield
   // for anyone with a cert expiring within 30 days.
   const weekFriday = useMemo(() => {
-    const d = new Date(weekStart);
+    const d = parseIsoDateLocal(weekStart);
     d.setDate(d.getDate() + 4);
     d.setHours(23, 59, 59, 999);
     return d;
@@ -116,17 +135,26 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
     });
   }, [teamData, serviceId]);
 
-  // Build grid: userId → dateIso → shifts[]
-  const shiftsByUserAndDay = useMemo(() => {
-    const out: Record<string, Record<string, RosterShiftListItem[]>> = {};
+  // Build grid: userId → dateIso → shifts[]. Null-userId shifts are OPEN
+  // shifts — they get their own pinned row above the staff rows instead of
+  // being silently dropped (staff-portal-v2 Chunk 5, Task 5.2).
+  const { shiftsByUserAndDay, openShiftsByDay, openShiftCount } = useMemo(() => {
+    const byUser: Record<string, Record<string, RosterShiftListItem[]>> = {};
+    const open: Record<string, RosterShiftListItem[]> = {};
+    let openCount = 0;
     for (const shift of shiftsData?.shifts ?? []) {
-      if (!shift.userId) continue;
       const key = dateIso(shift.date);
-      if (!out[shift.userId]) out[shift.userId] = {};
-      if (!out[shift.userId][key]) out[shift.userId][key] = [];
-      out[shift.userId][key].push(shift);
+      if (!shift.userId) {
+        if (!open[key]) open[key] = [];
+        open[key].push(shift);
+        openCount++;
+        continue;
+      }
+      if (!byUser[shift.userId]) byUser[shift.userId] = {};
+      if (!byUser[shift.userId][key]) byUser[shift.userId][key] = [];
+      byUser[shift.userId][key].push(shift);
     }
-    return out;
+    return { shiftsByUserAndDay: byUser, openShiftsByDay: open, openShiftCount: openCount };
   }, [shiftsData]);
 
   // Per-day × session-type rostered staff count (for ratio badges)
@@ -136,6 +164,11 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
       out[dateKey] = { bsc: 0, asc: 0, vc: 0 };
     }
     for (const shift of shiftsData?.shifts ?? []) {
+      // LOCKED decision (plan Task 5.2): open shifts (userId null) are
+      // visible in the grid but must NOT count toward the ratio numerator —
+      // an unfilled slot doesn't supervise children, and counting it would
+      // make a cell look compliant while it still needs a person.
+      if (!shift.userId) continue;
       const key = dateIso(shift.date);
       if (!out[key]) continue;
       const st = shift.sessionType;
@@ -229,9 +262,9 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   };
 
   const handleCopyLastWeek = async () => {
-    const prev = new Date(weekStart);
-    prev.setDate(prev.getDate() - 7);
-    const sourceWeekStart = prev.toISOString().split("T")[0];
+    // addDaysIso works in local time — toISOString().split here shifted the
+    // source week back a day in AEST/AEDT.
+    const sourceWeekStart = addDaysIso(weekStart, -7);
     setCopying(true);
     try {
       const res = await fetch("/api/roster/copy-week", {
@@ -273,27 +306,8 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button
-            size="xs"
-            variant="secondary"
-            iconLeft={<ChevronLeft className="w-4 h-4" />}
-            onClick={() => setWeekOffset((p) => p - 1)}
-            aria-label="Previous week"
-          />
-          <span className="text-sm font-medium text-foreground min-w-[200px] text-center">
-            {formatWeekRange(weekStart)}
-          </span>
-          <Button
-            size="xs"
-            variant="secondary"
-            iconLeft={<ChevronRight className="w-4 h-4" />}
-            onClick={() => setWeekOffset((p) => p + 1)}
-            aria-label="Next week"
-          />
-          {weekOffset !== 0 && (
-            <Button size="xs" variant="ghost" onClick={() => setWeekOffset(0)}>
-              Today
-            </Button>
+          {showWeekPicker && (
+            <WeekPicker weekStart={weekStart} onWeekChange={handleWeekChange} />
           )}
           {costData && costData.totalHours > 0 && (
             <RosterCostChip
@@ -359,11 +373,14 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
         </div>
       ) : staff.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted">
-          No active staff assigned to this service.
+          No active staff assigned to {serviceName ?? "this service"}.
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse">
+          <table
+            className="min-w-full border-collapse"
+            aria-label={serviceName ? `${serviceName} weekly roster` : "Weekly roster"}
+          >
             <thead>
               <tr>
                 <th className="text-left p-2 border border-border bg-surface text-xs font-semibold uppercase tracking-wide text-muted">
@@ -387,6 +404,64 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
               </tr>
             </thead>
             <tbody>
+              {/* Pinned "Open shifts" row — unassigned (userId null) shifts.
+                  Rendered first so unfilled slots are impossible to miss.
+                  Deliberately excluded from the ratio numerators above. */}
+              {openShiftCount > 0 && (
+                <tr data-testid="open-shifts-row">
+                  <td className="p-2 border border-border align-top min-w-[160px] bg-surface/60">
+                    <span className="text-sm font-medium text-foreground">
+                      Open shifts
+                    </span>
+                    <p className="text-2xs text-muted mt-0.5">
+                      Unassigned — not counted in ratios
+                    </p>
+                  </td>
+                  {weekDates.map((date) => {
+                    const dayShifts = openShiftsByDay[date] ?? [];
+                    return (
+                      <td
+                        key={date}
+                        className="p-1 border border-border align-top min-w-[140px] bg-surface/60"
+                        data-testid={`open-shift-cell-${date}`}
+                      >
+                        {dayShifts.length === 0 ? (
+                          <div className="min-h-[44px]" />
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            {dayShifts.map((s) => {
+                              const chipShift: ShiftChipShift = {
+                                id: s.id,
+                                userId: s.userId,
+                                staffName: s.staffName,
+                                shiftStart: s.shiftStart,
+                                shiftEnd: s.shiftEnd,
+                                sessionType: s.sessionType,
+                                role: s.role,
+                                status: s.status,
+                                date: s.date,
+                                actualStart: s.actualStart,
+                                actualEnd: s.actualEnd,
+                              };
+                              return (
+                                <ShiftChip
+                                  key={s.id}
+                                  shift={chipShift}
+                                  onClick={
+                                    canEdit
+                                      ? () => setModalState({ mode: "edit", shift: s })
+                                      : undefined
+                                  }
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              )}
               {staff.map((member) => {
                 const certStatus = certStatusByUser[member.id];
                 return (
