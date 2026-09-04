@@ -378,6 +378,32 @@ export function useApproveTimesheet() {
   });
 }
 
+// ── Bulk approve timesheets ────────────────────────────────────
+
+export interface BulkApproveResult {
+  approved: string[];
+  skipped: { id: string; reason: string }[];
+}
+
+export function useBulkApproveTimesheets() {
+  const qc = useQueryClient();
+  return useMutation<BulkApproveResult, Error, string[]>({
+    mutationFn: async (ids) => {
+      return mutateApi<BulkApproveResult>("/api/timesheets/bulk-approve", {
+        method: "POST",
+        body: { ids },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["timesheets"] });
+      qc.invalidateQueries({ queryKey: ["timesheet"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
 // ── Reject timesheet ──────────────────────────────────────────
 
 export function useRejectTimesheet() {
