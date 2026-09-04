@@ -10,6 +10,7 @@ import type { CreativeRequestStatus, ProofDecision } from "@prisma/client";
 import { NOTIFICATION_TYPES, type NotificationType } from "@/lib/notification-types";
 import { STATUS_LABELS } from "@/lib/creative-request/constants";
 import { logger } from "@/lib/logger";
+import { notifyUsers } from "@/lib/notify-user";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -33,11 +34,9 @@ async function createFor(
   body: string,
   requestLink: string,
 ): Promise<void> {
-  const unique = [...new Set(userIds)].filter(Boolean);
-  if (unique.length === 0) return;
-  await db.userNotification.createMany({
-    data: unique.map((userId) => ({ userId, type, title, body, link: requestLink })),
-  });
+  // notifyUsers dedupes + drops falsy ids, creates the rows, and fans out
+  // web push (push failures are swallowed inside the helper).
+  await notifyUsers(db, userIds, { type, title, body, link: requestLink });
 }
 
 /**

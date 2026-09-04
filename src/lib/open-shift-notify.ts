@@ -34,6 +34,7 @@ import {
 } from "@/lib/email-templates";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { logger } from "@/lib/logger";
+import { notifyUsers } from "@/lib/notify-user";
 
 interface OpenShiftRow {
   id: string;
@@ -105,16 +106,16 @@ export async function notifyOpenShiftsPosted(
 
   let inAppCreated = 0;
   try {
-    const created = await prismaClient.userNotification.createMany({
-      data: recipients.map((r) => ({
-        userId: r.id,
+    inAppCreated = await notifyUsers(
+      prismaClient,
+      recipients.map((r) => r.id),
+      {
         type: NOTIFICATION_TYPES.OPEN_SHIFT_POSTED,
         title: "Open shift available — first to claim wins",
         body: summaryBody,
         link: "/my-portal",
-      })),
-    });
-    inAppCreated = created.count;
+      },
+    );
   } catch (err) {
     // Don't take the whole publish path down if the bell write fails.
     logger.error("notifyOpenShiftsPosted: in-app createMany failed", {

@@ -10,6 +10,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUsers } from "@/lib/notify-user";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -28,17 +29,14 @@ export async function notifyCascadePublished(
     });
     if (users.length === 0) return;
 
-    await db.userNotification.createMany({
-      data: users.map((u) => ({
-        userId: u.id,
-        type: NOTIFICATION_TYPES.CASCADE_PUBLISHED,
-        title: `New cascade message${count === 1 ? "" : "s"} from ${meetingTitle}`,
-        body:
-          count === 1
-            ? "A message from the leadership meeting needs your acknowledgement."
-            : `${count} messages from the leadership meeting need your acknowledgement.`,
-        link: "/communication?tab=cascade",
-      })),
+    await notifyUsers(db, users.map((u) => u.id), {
+      type: NOTIFICATION_TYPES.CASCADE_PUBLISHED,
+      title: `New cascade message${count === 1 ? "" : "s"} from ${meetingTitle}`,
+      body:
+        count === 1
+          ? "A message from the leadership meeting needs your acknowledgement."
+          : `${count} messages from the leadership meeting need your acknowledgement.`,
+      link: "/communication?tab=cascade",
     });
   } catch (err) {
     logger.error("cascade-notify: publish fan-out failed", { err });

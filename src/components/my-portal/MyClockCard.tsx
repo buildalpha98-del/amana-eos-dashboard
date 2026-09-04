@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/Button";
 import { cn, toLocalIsoDate } from "@/lib/utils";
 import { CLOCK_IN_WINDOW_MS, shiftStartMs } from "@/lib/timeclock-pick";
 
-interface MineShift {
+export interface MineShift {
   id: string;
   serviceId: string;
   date: string;
@@ -54,13 +54,22 @@ interface MyClockCardProps {
 // day for AU timezones in the morning). Yesterday is included so an
 // overnight shift the user forgot to clock out of still surfaces its
 // Clock out button; a week ahead matches the card's lookahead needs.
-function clockWindowRange() {
+//
+// Exported (with myShiftsQueryKey) so other clock surfaces — the
+// /my-day OnShiftHero — subscribe to the IDENTICAL React Query cache
+// entry instead of double-fetching a mismatched window.
+export function clockWindowRange() {
   const today = new Date();
   const start = new Date(today);
   start.setDate(start.getDate() - 1);
   const end = new Date(today);
   end.setDate(end.getDate() + 7);
   return { from: toLocalIsoDate(start), to: toLocalIsoDate(end) };
+}
+
+/** The one true key for the "my shifts" clock window query. */
+export function myShiftsQueryKey(userId: string, from: string, to: string) {
+  return ["my-shifts", userId, from, to] as const;
 }
 
 function fmtTime(iso: string): string {
@@ -71,7 +80,7 @@ function fmtTime(iso: string): string {
 }
 
 /** "1h 23m" elapsed since `since`. */
-function fmtElapsed(since: Date, now: Date): string {
+export function fmtElapsed(since: Date, now: Date): string {
   const ms = Math.max(0, now.getTime() - since.getTime());
   const totalMin = Math.floor(ms / 60_000);
   const h = Math.floor(totalMin / 60);
@@ -82,7 +91,7 @@ function fmtElapsed(since: Date, now: Date): string {
 export function MyClockCard({ userId }: MyClockCardProps) {
   const { from, to } = clockWindowRange();
   const { data, isLoading, error, refetch } = useQuery<{ shifts: MineShift[] }>({
-    queryKey: ["my-shifts", userId, from, to],
+    queryKey: myShiftsQueryKey(userId, from, to),
     queryFn: () =>
       fetchApi<{ shifts: MineShift[] }>(
         `/api/roster/shifts/mine?from=${from}&to=${to}`,

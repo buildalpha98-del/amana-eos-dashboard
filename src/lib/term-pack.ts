@@ -21,6 +21,7 @@ import {
 } from "@/lib/creative-request/request-number";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import { logger } from "@/lib/logger";
+import { notifyUsers } from "@/lib/notify-user";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -165,14 +166,11 @@ export async function notifyTermPackCreated(
       select: { id: true },
     });
     if (marketers.length === 0) return;
-    await db.userNotification.createMany({
-      data: marketers.map((u) => ({
-        userId: u.id,
-        type: NOTIFICATION_TYPES.TERM_PACK_CREATED,
-        title: `Term ${term} ${year} request pack created`,
-        body: `${count} pre-briefed creative requests are ready in the queue.`,
-        link: "/requests",
-      })),
+    await notifyUsers(db, marketers.map((u) => u.id), {
+      type: NOTIFICATION_TYPES.TERM_PACK_CREATED,
+      title: `Term ${term} ${year} request pack created`,
+      body: `${count} pre-briefed creative requests are ready in the queue.`,
+      link: "/requests",
     });
   } catch (err) {
     logger.error("term-pack digest notification failed", { err, term, year });

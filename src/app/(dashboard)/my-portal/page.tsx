@@ -46,7 +46,7 @@ import { fetchApi, mutateApi, ApiResponseError } from "@/lib/fetch-api";
 import { Button } from "@/components/ui/Button";
 import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
-import { MyClockCard } from "@/components/my-portal/MyClockCard";
+import { MyClockCard, clockWindowRange } from "@/components/my-portal/MyClockCard";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
 import { useMyPayslips, formatCurrency } from "@/hooks/useMyPayslips";
 import { totalAmount, type ExpenseRequest } from "@/components/my-portal/MyExpensesCard";
@@ -61,6 +61,7 @@ import {
 } from "@/components/my-portal/ContractViewerModal";
 import { SetKioskPinCard } from "@/components/my-portal/SetKioskPinCard";
 import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
+import { PushOptInCard } from "@/components/notifications/PushOptInCard";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -343,17 +344,6 @@ interface HeroShift {
   service?: { id: string; name: string } | null;
 }
 
-// Same window as MyClockCard's internal clockWindowRange() — yesterday
-// (overnight clock-outs) through +7 days. Matching it exactly means our
-// useQuery below shares the card's cache entry instead of double-fetching.
-function clockWindowRange() {
-  const today = new Date();
-  const start = new Date(today);
-  start.setDate(start.getDate() - 1);
-  const end = new Date(today);
-  end.setDate(end.getDate() + 7);
-  return { from: toLocalIsoDate(start), to: toLocalIsoDate(end) };
-}
 
 /**
  * Next-shift / clock hero. MyClockCard renders itself (clock in/out,
@@ -1132,6 +1122,11 @@ export default function MyPortalPage() {
       {/* cron has composed today's brief for this user.                */}
       {/* ============================================================ */}
       <MorningBriefCard />
+
+      {/* Push opt-in (Staff Portal v2 3.3c) — self-gating: staff-tier
+          roles, push supported, permission "default", not subscribed,
+          not dismissed. Renders null otherwise. */}
+      <PushOptInCard />
 
       {/* ============================================================ */}
       {/* 2. HOME HUB — next-shift hero, glance tiles, quick actions,  */}
