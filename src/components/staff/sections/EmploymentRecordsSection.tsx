@@ -74,8 +74,13 @@ export function EmploymentRecordsSection({
   // never switched it, which silently broke the Quick Action.
   const searchParams = useSearchParams();
   const wantsPersonal = searchParams.get("edit") === "personal";
+  // `?edit=separation` — deep link from the deactivate confirms' "Add
+  // separation record" warning (team row + profile header). Admin-only
+  // sub-tab, so the param is ignored for viewers who can't see it.
+  const wantsSeparation =
+    searchParams.get("edit") === "separation" && canManageSeparation;
   const [activeTab, setActiveTab] = useState<SubTab>(
-    wantsPersonal ? "personal" : "employment",
+    wantsSeparation ? "separation" : wantsPersonal ? "personal" : "employment",
   );
   // One-way, render-phase sync (React's "adjust state on prop change"
   // pattern): only react to the param APPEARING. PersonalTab strips it once
@@ -84,6 +89,12 @@ export function EmploymentRecordsSection({
   if (wantsPersonal !== prevWantsPersonal) {
     setPrevWantsPersonal(wantsPersonal);
     if (wantsPersonal) setActiveTab("personal");
+  }
+  const [prevWantsSeparation, setPrevWantsSeparation] =
+    useState(wantsSeparation);
+  if (wantsSeparation !== prevWantsSeparation) {
+    setPrevWantsSeparation(wantsSeparation);
+    if (wantsSeparation) setActiveTab("separation");
   }
 
   // Conversion, References and Separation sub-tabs are admin-only.

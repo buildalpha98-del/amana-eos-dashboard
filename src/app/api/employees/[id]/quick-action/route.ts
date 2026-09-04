@@ -24,6 +24,35 @@ const bodySchema = z.object({
 
 export type QuickActionType = (typeof ACTIONS)[number];
 
+// GET /api/employees/[id]/quick-action — pre-action context for the
+// deactivate confirm dialogs (/team row + staff profile header):
+// whether a SeparationRecord exists for this user, so the UI can warn
+// "no separation record — record one for the Fair Work file" before
+// the account is switched off. Admin-tier only (matches who can see
+// the deactivate action at all).
+export const GET = withApiAuth(async (req: NextRequest, session, context) => {
+  const { id } = await context!.params!;
+
+  if (!isAdminRole(session!.user.role)) {
+    throw ApiError.forbidden("Admin required");
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!target) {
+    throw ApiError.notFound("Employee not found");
+  }
+
+  const separation = await prisma.separationRecord.findUnique({
+    where: { userId: id },
+    select: { id: true },
+  });
+
+  return NextResponse.json({ hasSeparation: separation !== null });
+});
+
 export const POST = withApiAuth(async (req: NextRequest, session, context) => {
   const { id } = await context!.params!;
   const raw = await parseJsonBody(req);
