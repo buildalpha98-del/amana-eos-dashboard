@@ -242,9 +242,6 @@ describe("ShiftEditModal", () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const Wrapper = makeWrapper(qc);
 
-    // Stub window.confirm → true
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-
     render(
       <Wrapper>
         <ShiftEditModal
@@ -271,8 +268,19 @@ describe("ShiftEditModal", () => {
       expect(screen.getByRole("option", { name: /Jane Doe/i })).toBeDefined();
     });
 
-    const deleteBtn = screen.getByRole("button", { name: /delete/i });
+    // Delete now goes through ConfirmDialog (window.confirm was replaced):
+    // first click opens the dialog, then confirm inside it.
+    const deleteBtn = screen.getByRole("button", { name: /^delete$/i });
     fireEvent.click(deleteBtn);
+
+    const confirmDialogBtn = await screen.findByRole("button", {
+      name: /^delete$/i,
+      hidden: false,
+    });
+    // Two "Delete" buttons exist once the dialog opens — pick the one
+    // inside the confirm dialog (it's the last rendered).
+    const allDeletes = screen.getAllByRole("button", { name: /^delete$/i });
+    fireEvent.click(allDeletes[allDeletes.length - 1] ?? confirmDialogBtn);
 
     await waitFor(() => {
       const delCall = capture.calls.find(
@@ -282,8 +290,6 @@ describe("ShiftEditModal", () => {
       );
       expect(delCall).toBeDefined();
     });
-
-    confirmSpy.mockRestore();
   });
 
   it("shiftEnd <= shiftStart blocks submit and shows an error", async () => {
