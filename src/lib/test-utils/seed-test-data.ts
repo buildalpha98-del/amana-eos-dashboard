@@ -358,7 +358,28 @@ export async function seedTestData() {
     ),
   );
 
-  // ── 8. Leave requests ───────────────────────────────────
+  // ── 8. Accountability chart ─────────────────────────────
+  // The two canonical EOS root seats. Without any seats the chart
+  // renders its empty state — whose helper copy contains the word
+  // "Visionary", which let the admin-management spec's substring
+  // assertion pass vacuously while "Integrator" failed.
+  const visionarySeat = await prisma.accountabilitySeat.create({
+    data: {
+      title: "Visionary",
+      responsibilities: ["Culture", "Big Relationships"],
+      order: 0,
+    },
+  });
+  await prisma.accountabilitySeat.create({
+    data: {
+      title: "Integrator",
+      responsibilities: ["LMA", "Remove Obstacles & Barriers"],
+      parentId: visionarySeat.id,
+      order: 0,
+    },
+  });
+
+  // ── 9. Leave requests ───────────────────────────────────
   const leaveStatuses = [
     "leave_pending",
     "leave_approved",
