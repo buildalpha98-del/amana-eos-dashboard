@@ -1,12 +1,17 @@
 "use client";
 
 /**
- * /my-day — educator field-mode (2026-07-06).
+ * /my-day — educator field-mode (2026-07-06; on-shift hero 2026-09-04,
+ * Staff Portal v2 Phase 2 per MobileMyDay.dc.html).
  *
  * The three things floor staff do standing up — clock in/out, tick the
  * session checklist, open Roll Call — in one thumb-reach column, plus
  * today's brief and claimable shifts. Everything here is composed from
  * existing self-scoping cards; the page adds no new data paths.
+ *
+ * Layout order follows the mockup: on-shift banner (or the clock card
+ * in every non-active state), session snapshot strip, roll-call
+ * callout, quick actions, then the longer-form cards.
  *
  * My Portal remains the full self-service hub (payslips, leave,
  * compliance, policies); this is the during-a-session surface.
@@ -14,11 +19,13 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { ClipboardCheck, ChevronRight, UserCircle, Info } from "lucide-react";
+import { UserCircle, Info } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
-import { MyDayNowCard } from "@/components/my-portal/MyDayNowCard";
-import { MyClockCard } from "@/components/my-portal/MyClockCard";
+import { OnShiftHero } from "@/components/my-day/OnShiftHero";
+import { SessionSnapshot } from "@/components/my-day/SessionSnapshot";
+import { RollCallCallout } from "@/components/my-day/RollCallCallout";
+import { QuickActions } from "@/components/my-day/QuickActions";
 import { TodayChecklistCard } from "@/components/my-portal/TodayChecklistCard";
 import { OpenShiftsCard } from "@/components/my-portal/OpenShiftsCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
@@ -39,11 +46,18 @@ export default function MyDayPage() {
     <div className="mx-auto max-w-xl space-y-4">
       <PageHeader title="My Day" description={today} />
 
-      {/* Right now at the centre, and the four things done with a phone
-          in hand. This is the PHONE surface for floor staff — the
-          service page stays the laptop and iPad one, because nine groups
-          and forty pages don't shrink onto 390px, they just get worse. */}
-      {serviceId && <MyDayNowCard serviceId={serviceId} />}
+      {/* Clock slot — the on-shift banner while clocked in; the clock
+          card handles every other state (pre-shift window, ambiguous
+          picker, errors, quiet days). */}
+      {userId && <OnShiftHero userId={userId} />}
+
+      {/* Right now at the centre — one glanceable strip, same query as
+          the roll-call callout below so the numbers can't disagree. */}
+      {serviceId && <SessionSnapshot serviceId={serviceId} />}
+
+      {/* Roll Call — loud bg-accent callout when children are not yet
+          marked in, quiet row otherwise. */}
+      {serviceId && <RollCallCallout serviceId={serviceId} />}
 
       {/* No centre assigned — explain why the service-scoped cards
           (Now, Roll Call, checklists) are missing instead of silently
@@ -59,31 +73,11 @@ export default function MyDayPage() {
         </div>
       )}
 
+      {/* The other things done with a phone in hand. */}
+      {serviceId && <QuickActions serviceId={serviceId} />}
+
       {/* Morning brief — quiet until the 6am cron has run. */}
       <MorningBriefCard />
-
-      {/* Clock in/out — the primary field action. */}
-      {userId && <MyClockCard userId={userId} />}
-
-      {/* Roll Call shortcut — lives inside the service detail page;
-          this is the one-tap path to it. */}
-      {serviceId && (
-        <Link
-          href={`/services/${serviceId}?tab=daily&sub=roll-call`}
-          className="flex min-h-[56px] items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-surface/50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand/10">
-              <ClipboardCheck className="h-5 w-5 text-brand" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Roll Call</p>
-              <p className="text-xs text-muted">Sign children in and out</p>
-            </div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted" />
-        </Link>
-      )}
 
       {/* Today's session checklists — tap to tick. */}
       {serviceId && <TodayChecklistCard serviceId={serviceId} />}
