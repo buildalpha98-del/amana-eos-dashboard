@@ -24,6 +24,7 @@ import { siteUrl } from "@/lib/site-url";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
 import type { MeetingAiReview } from "@/lib/meeting-review";
+import { notifyUsers } from "@/lib/notify-user";
 
 export async function sendMeetingDigest(recordingId: string): Promise<{
   sent: boolean;
@@ -92,20 +93,19 @@ export async function sendMeetingDigest(recordingId: string): Promise<{
   // ── In-app: all active attendees (muted included) ─────────────────
   let notified = 0;
   try {
-    const rows = attendees.map((u) => ({
-      userId: u.id,
-      type: NOTIFICATION_TYPES.MEETING_REVIEW_READY,
-      title: `AI review ready — ${meeting.title}`,
-      body:
-        proposed > 0
-          ? `${proposed} proposed action item${proposed === 1 ? "" : "s"} waiting for review.`
-          : "Summary and decisions are ready.",
-      link: "/meetings",
-    }));
-    if (rows.length > 0) {
-      const res = await prisma.userNotification.createMany({ data: rows });
-      notified = res.count;
-    }
+    notified = await notifyUsers(
+      prisma,
+      attendees.map((u) => u.id),
+      {
+        type: NOTIFICATION_TYPES.MEETING_REVIEW_READY,
+        title: `AI review ready — ${meeting.title}`,
+        body:
+          proposed > 0
+            ? `${proposed} proposed action item${proposed === 1 ? "" : "s"} waiting for review.`
+            : "Summary and decisions are ready.",
+        link: "/meetings",
+      },
+    );
   } catch (err) {
     logger.error("meeting-digest: in-app fan-out failed", { recordingId, err });
   }

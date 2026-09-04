@@ -153,6 +153,43 @@ export async function sendPushToContact(
 }
 
 /**
+ * Fan out a push to every subscription belonging to a staff User.
+ * Same dead-endpoint pruning as the parent variants.
+ */
+export async function sendPushToUser(
+  userId: string,
+  payload: PushPayload,
+): Promise<{ sent: number; removed: number }> {
+  return sendPushToUsers([userId], payload);
+}
+
+/**
+ * Fan out one payload to every subscription of a set of staff Users in a
+ * single subscription query — used by the notification fan-out helper,
+ * where a cascade/open-shift event notifies many users at once.
+ */
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: PushPayload,
+): Promise<{ sent: number; removed: number }> {
+  const unique = [...new Set(userIds)].filter(Boolean);
+  if (unique.length === 0) return { sent: 0, removed: 0 };
+  if (!isWebPushConfigured()) {
+    logger.warn("Web push not configured — skipping sendPushToUsers", {
+      userCount: unique.length,
+    });
+    return { sent: 0, removed: 0 };
+  }
+
+  const subs = await prisma.pushSubscription.findMany({
+    where: { userId: { in: unique } },
+    select: { id: true, endpoint: true, p256dh: true, auth: true },
+  });
+
+  return fanOutPush(subs, payload, { userIds: unique });
+}
+
+/**
  * Fan out a push to every subscription for a parent identified by email.
  * A parent with children at multiple centres has one CentreContact per
  * service; this joins across all of them so a single subscription reaches
