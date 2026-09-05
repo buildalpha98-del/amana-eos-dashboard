@@ -181,8 +181,8 @@
 
 *(Rule 10 applies.)*
 
-- [ ] **Task 9.1:** Org-settings JSON (no new table): `compliance.requiredCertsByRole` (strict zod, cert types from the existing list; sensible defaults for staff/member; empty for office roles). Settings → Organisation gets a role×type checkbox matrix (owner/head_office).
-- [ ] **Task 9.2:** Consume via one shared `getRequiredCertTypes(role, orgSettings)` lib. CLIENT ACCESS RULE: staff cannot read `GET /api/org-settings` (role-gated) — expose `compliance.requiredCertsByRole` on the client-safe `GET /api/org-settings/config` slice, and resolve server-side via `getOrgSettings()` (60s cache) everywhere else. Staff `/compliance` shows "Required for your role" first with the rest collapsed; the `/my-portal` compliance tile and the staff-profile ring count required-only. Lib + zod tests. Live-check both roles + phase PR.
+- [x] **Task 9.1:** Org-settings JSON (no new table): `compliance.requiredCertsByRole` (strict zod, cert types from the existing list; sensible defaults for staff/member; empty for office roles). Settings → Organisation gets a role×type checkbox matrix (owner/head_office).
+- [x] **Task 9.2:** Consume via one shared `getRequiredCertTypes(role, orgSettings)` lib. CLIENT ACCESS RULE: staff cannot read `GET /api/org-settings` (role-gated) — expose `compliance.requiredCertsByRole` on the client-safe `GET /api/org-settings/config` slice, and resolve server-side via `getOrgSettings()` (60s cache) everywhere else. Staff `/compliance` shows "Required for your role" first with the rest collapsed; the `/my-portal` compliance tile and the staff-profile ring count required-only. Lib + zod tests. Live-check both roles + phase PR.
 
 ---
 
@@ -193,7 +193,7 @@
 - [x] **Task 10.1:** `/workforce-reports` "Workforce" tab: headcount by role/service/employment type, starters & leavers per month (12-mo), tenure distribution, training completion %, cert-expiry 30/60/90 outlook. One summary API (owner/head_office/admin), CSV export per section, charts per `src/components/charts/` conventions. Route tests.
 - [x] **Task 10.2:** Availability: new `StaffAvailability` model (userId, weekday, available, optional start/end "HH:MM", note; unique userId+weekday) + migration. Staff editor on `/profile`; roster grid shows an "Unavailable" hint on those days (batched with the leave overlay fetch — `/api/roster/leave` renamed to `/api/roster/overlays` returning `{leave, availability}`; `useRosterLeave` → `useRosterOverlays`). Self-scoped GET/PUT API with tests.
 - [x] **Task 10.3:** Salary history: `EmploymentContract.classification` (nullable) migration; Pay & compensation lists ALL contracts desc (rate/classification/dates) instead of `findFirst`; issue/upload forms gain the optional classification field.
-- [ ] **Task 10.4:** Program close-out: full test/tsc/lint sweep, live sweep (staff mobile: home/my-day/pay/leave/expenses/notifications; owner: roster/timesheets/offboarding/reports/staff file), update CLAUDE.md with the new routes/conventions, final PR, summary to the user.
+- [x] **Task 10.4:** Program close-out: full test/tsc/lint sweep, live sweep (staff mobile: home/my-day/pay/leave/expenses/notifications; owner: roster/timesheets/offboarding/reports/staff file), update CLAUDE.md with the new routes/conventions, final PR, summary to the user.
 
 ---
 
@@ -208,3 +208,4 @@
 - 2026-09-04: Phase 4 complete — offboarding tab/action/dialog, separation warning, quick-action GET (+5 tests). Suite 6478 green. Admin visual pass deferred (browser pane unresponsive to clicks — environmental).
 - 2026-09-04: Task 5.3 + Phase 8 shipped in PR #280 (merged). Phase 5 complete — 136286bf (/roster page, open-shifts row, ratio honesty), ce18a74f (RosterShift unique key → userId; migration 20260904230000 with dedupe guard; OWNA ingest + copy-week rewritten), finale commit (leave overlay, cross-centre staff via useServiceStaff, cert-shield widening, authz fixes on /api/leave/calendar + /api/services/[id]/staff). Phase 6 complete — d98a8bcf (bulk approve, entry editing + server lock, honest export; live-verified by its implementer). Suite 6529 green.
 - 2026-09-05: Phase 7 complete (agent stalled post-tests; orchestrator finished verification, fixed 3 mock typings). Suite 6544 green.
+- 2026-09-05: Phase 9 complete — 0c5f4196 (cert requirements matrix + shared lib + three consumers; editor gate follows the page's owner/admin, widening to head_office is a recorded policy question). Phase 10 complete — 88868d97 (Workforce reports tab, startDate?​?createdAt labelled honestly for the restore cohort), availability + salary-history commit (StaffAvailability + /api/roster/overlays replacing /api/roster/leave; EmploymentContract.classification; migration 20260905013000). Close-out: suite 6605 green, live sweep of /profile availability, Workforce tab, compliance required-mode (owner path), CLAUDE.md updated. PROGRAM COMPLETE.
