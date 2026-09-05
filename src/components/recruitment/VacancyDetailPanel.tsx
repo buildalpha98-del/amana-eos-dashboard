@@ -2,15 +2,21 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import type { Role } from "@prisma/client";
 import { X, Plus, UserPlus, Sparkles } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
 import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
 import { CandidateDetailPanel } from "@/components/recruitment/CandidateDetailPanel";
-import { useAiScreenCandidate } from "@/hooks/useRecruitment";
+import { useAiScreenCandidate, useConvertCandidate } from "@/hooks/useRecruitment";
+import { useOnboardingPacks } from "@/hooks/useOnboarding";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import { uploadFileSmart } from "@/lib/upload-client";
 import { mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
+import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
 
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
@@ -20,6 +26,8 @@ const ROLE_LABELS: Record<string, string> = {
   director: "Director",
 };
 
+// "hired" is deliberately absent from STAGE_LABELS: it's a terminal stage
+// stamped only by the convert-to-employee flow, never picked from the select.
 const STAGE_LABELS: Record<string, string> = {
   applied: "Applied",
   screened: "Screened",
@@ -38,7 +46,19 @@ const STAGE_STYLES: Record<string, string> = {
   accepted: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300",
   rejected: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300",
   withdrawn: "bg-surface text-muted",
+  hired: "bg-emerald-600 text-white",
 };
+
+// Same offerable roles as AddStaffModal — owner excluded; head_office only
+// when the viewer is an owner. Centre roles inherit the vacancy's centre.
+const CONVERT_BASE_ROLES: Role[] = [
+  "staff",
+  "member",
+  "marketing",
+  "admin",
+  "eos_viewer",
+  "eos_implementer",
+];
 
 interface VacancyDetailPanelProps {
   vacancyId: string;
@@ -66,6 +86,17 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(
     null,
   );
+  const [convertTarget, setConvertTarget] = useState<{
+    id: string;
+    name: string;
+    email: string | null;
+  } | null>(null);
+
+  // Convert-to-employee is owner/admin only — the same gate as the
+  // /api/recruitment/candidates/[id]/convert route (aligned with POST /api/users).
+  const { data: authSession } = useSession();
+  const viewerRole = authSession?.user?.role as Role | undefined;
+  const canConvert = viewerRole === "owner" || viewerRole === "admin";
 
   const { data: vacancy, isLoading } = useQuery({
     queryKey: ["recruitment-vacancy", vacancyId],
@@ -509,16 +540,36 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                         <Sparkles className="h-3 w-3" />
                         {c.aiScreenScore !== null ? "Re-screen" : "AI Screen"}
                       </button>
-                      <select
-                        value={c.stage}
-                        aria-label={`Stage for ${c.name}`}
-                        onChange={(e) => handleStageChange(c.id, e.target.value)}
-                        className={`text-xs rounded-full px-3 py-1 font-medium border-0 ${STAGE_STYLES[c.stage] || "bg-surface text-foreground/80"}`}
-                      >
-                        {Object.entries(STAGE_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>{label}</option>
-                        ))}
-                      </select>
+                      {c.stage === "accepted" && canConvert && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setConvertTarget({ id: c.id, name: c.name, email: c.email })
+                          }
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                        >
+                          <UserPlus className="h-3 w-3" />
+                          Convert to employee
+                        </button>
+                      )}
+                      {c.stage === "hired" ? (
+                        <span
+                          className={`text-xs rounded-full px-3 py-1 font-medium ${STAGE_STYLES.hired}`}
+                        >
+                          Hired
+                        </span>
+                      ) : (
+                        <select
+                          value={c.stage}
+                          aria-label={`Stage for ${c.name}`}
+                          onChange={(e) => handleStageChange(c.id, e.target.value)}
+                          className={`text-xs rounded-full px-3 py-1 font-medium border-0 ${STAGE_STYLES[c.stage] || "bg-surface text-foreground/80"}`}
+                        >
+                          {Object.entries(STAGE_LABELS).map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -535,7 +586,187 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
           onClose={() => setSelectedCandidateId(null)}
         />
       )}
+
+      {convertTarget && (
+        <ConvertCandidateDialog
+          candidate={convertTarget}
+          viewerRole={viewerRole}
+          onClose={() => setConvertTarget(null)}
+          onConverted={() => {
+            setConvertTarget(null);
+            queryClient.invalidateQueries({
+              queryKey: ["recruitment-vacancy", vacancyId],
+            });
+            onUpdated();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function ConvertCandidateDialog({
+  candidate,
+  viewerRole,
+  onClose,
+  onConverted,
+}: {
+  candidate: { id: string; name: string; email: string | null };
+  viewerRole: Role | undefined;
+  onClose: () => void;
+  onConverted: () => void;
+}) {
+  const convert = useConvertCandidate();
+  const { data: packs } = useOnboardingPacks();
+  const [role, setRole] = useState<Role>("staff");
+  const [startDate, setStartDate] = useState("");
+  const [newStarter, setNewStarter] = useState(true);
+  const [onboardingPackId, setOnboardingPackId] = useState("");
+  const [sendInvite, setSendInvite] = useState(true);
+
+  const roleOptions =
+    viewerRole === "owner"
+      ? [...CONVERT_BASE_ROLES, "head_office" as Role]
+      : CONVERT_BASE_ROLES;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (newStarter && !startDate) {
+      toast({
+        variant: "destructive",
+        description: "A start date is required for a new starter.",
+      });
+      return;
+    }
+    convert.mutate(
+      {
+        candidateId: candidate.id,
+        role,
+        newStarter,
+        ...(startDate
+          ? { startDate: new Date(startDate).toISOString() }
+          : {}),
+        ...(onboardingPackId ? { onboardingPackId } : {}),
+        sendInvite,
+      },
+      { onSuccess: onConverted },
+    );
+  }
+
+  const labelCls = "block text-sm font-medium text-foreground/80 mb-1";
+  const inputCls =
+    "w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm focus:outline-none";
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogTitle className="text-lg font-heading font-semibold text-foreground mb-1">
+          Convert {candidate.name} to employee
+        </DialogTitle>
+        <p className="text-sm text-muted mb-4">
+          Creates their staff account on this vacancy&apos;s centre, marks the
+          vacancy filled, and can start their onboarding.
+        </p>
+
+        {!candidate.email && (
+          <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 mb-4">
+            This candidate has no email address — add one on their profile
+            before converting.
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="convert-role" className={labelCls}>Role</label>
+            <select
+              id="convert-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className={inputCls}
+            >
+              {roleOptions.map((r) => (
+                <option key={r} value={r}>{ROLE_DISPLAY_NAMES[r]}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="convert-start" className={labelCls}>Start date</label>
+            <input
+              id="convert-start"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className={inputCls}
+              required={newStarter}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="convert-pack" className={labelCls}>Onboarding pack</label>
+            <select
+              id="convert-pack"
+              value={onboardingPackId}
+              onChange={(e) => setOnboardingPackId(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">No onboarding pack</option>
+              {(packs ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.service ? ` — ${p.service.name}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-border bg-surface/50 p-3">
+            <input
+              type="checkbox"
+              checked={newStarter}
+              onChange={(e) => setNewStarter(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-border text-brand focus:ring-brand"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-foreground">
+                New starter — require induction
+              </span>
+              <span className="block text-xs text-muted mt-0.5">
+                They can&apos;t be rostered or clock in until essential training
+                is complete and their week-1 practical is signed off.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sendInvite}
+              onChange={(e) => setSendInvite(e.target.checked)}
+              className="w-4 h-4 rounded border-border text-brand focus:ring-brand"
+            />
+            <span className="text-sm text-foreground">
+              Email a welcome invite with sign-in details
+            </span>
+          </label>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="secondary" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              loading={convert.isPending}
+              disabled={!candidate.email}
+            >
+              Convert to employee
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

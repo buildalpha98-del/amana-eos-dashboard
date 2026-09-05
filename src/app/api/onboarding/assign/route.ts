@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { assignOnboardingPack } from "@/lib/onboarding-assign";
 const assignSchema = z.object({
   userId: z.string().min(1),
   packId: z.string().min(1),
@@ -242,62 +243,14 @@ const body = (await parseJsonBody(req)) as Record<string, unknown>;
     );
   }
 
-  // Check if already assigned
-  const existing = await prisma.staffOnboarding.findUnique({
-    where: {
-      userId_packId: {
-        userId: parsed.data.userId,
-        packId: parsed.data.packId,
-      },
-    },
-  });
-  if (existing) {
-    return NextResponse.json(
-      { error: "This pack is already assigned to this user" },
-      { status: 409 }
-    );
-  }
-
-  // Create the assignment and pre-create progress entries for each task
-  const pack = await prisma.onboardingPack.findUnique({
-    where: { id: parsed.data.packId },
-    include: { tasks: true },
-  });
-
-  if (!pack || pack.deleted) {
-    return NextResponse.json({ error: "Pack not found" }, { status: 404 });
-  }
-
-  const assignment = await prisma.staffOnboarding.create({
-    data: {
-      userId: parsed.data.userId,
-      packId: parsed.data.packId,
-      dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
-      progress: {
-        create: pack.tasks.map((task) => ({
-          taskId: task.id,
-          completed: false,
-        })),
-      },
-    },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-      pack: { select: { id: true, name: true } },
-      progress: true,
-    },
-  });
-
-  await prisma.activityLog.create({
-    data: {
-      userId: session!.user.id,
-      action: "assign_onboarding",
-      entityType: "StaffOnboarding",
-      entityId: assignment.id,
-      details: {
-        userName: assignment.user.name,
-        packName: assignment.pack.name,
-      },
-    },
+  // Shared with the hire→employee conversion route — identical behaviour:
+  // 409 already-assigned (findUnique pre-check + P2002 race), 404 missing/
+  // deleted pack, progress rows pre-created, activity log written.
+  const assignment = await assignOnboardingPack({
+    userId: parsed.data.userId,
+    packId: parsed.data.packId,
+    dueDate: parsed.data.dueDate,
+    actorId: session!.user.id,
   });
 
   return NextResponse.json(assignment, { status: 201 });

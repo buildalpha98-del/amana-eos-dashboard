@@ -162,8 +162,8 @@
 
 *(Rule 10 applies.)*
 
-- [ ] **Task 7.1:** `POST /api/recruitment/candidates/[id]/convert` (roles aligned with POST /api/users): creates the User (role from zod enum, default `staff`, optional `newStarter`+`startDate`), stamps `RecruitmentVacancy.filledByUserId` and the candidate's stage, optionally assigns an onboarding pack via a helper shared with `/api/onboarding/assign` (P2002 → 409). Linking the candidate to the User may need a nullable `User.candidateId` column — decide at phase start; if a migration is added, follow the local-dev DB rules in CLAUDE.md. Duplicate email → 409 with existing user id. Full route tests.
-- [ ] **Task 7.2:** UI: "Convert to employee" on accepted candidates in `VacancyDetailPanel` → dialog (role, start date, onboarding pack, optional invite email reusing the AddStaffModal invite path — extract, don't duplicate). Success toast links to `/staff/[id]`. Live-check + phase PR.
+- [x] **Task 7.1:** `POST /api/recruitment/candidates/[id]/convert` (roles aligned with POST /api/users): creates the User (role from zod enum, default `staff`, optional `newStarter`+`startDate`), stamps `RecruitmentVacancy.filledByUserId` and the candidate's stage, optionally assigns an onboarding pack via a helper shared with `/api/onboarding/assign` (P2002 → 409). Linking the candidate to the User may need a nullable `User.candidateId` column — decide at phase start; if a migration is added, follow the local-dev DB rules in CLAUDE.md. Duplicate email → 409 with existing user id. Full route tests.
+- [x] **Task 7.2:** UI: "Convert to employee" on accepted candidates in `VacancyDetailPanel` → dialog (role, start date, onboarding pack, optional invite email reusing the AddStaffModal invite path — extract, don't duplicate). Success toast links to `/staff/[id]`. Live-check + phase PR.
 
 ---
 
@@ -207,3 +207,4 @@
 - 2026-09-04: Phases 2+3 complete — 246e9a79 (my-day hero/snapshot/callout; MyDayNowCard deleted), d3ca0351 (cursor pagination, secured push subscribe + DELETE, sendPushToUser + notifyUsers fan-out; follow-up: route-level notification writers still lack push), 9e2de8cb (inbox, opt-in card, manifest shortcuts; dismiss omitted — endpoint is digest-only). Suite 6459 green. Live-checked /my-day + /notifications as staff.
 - 2026-09-04: Phase 4 complete — offboarding tab/action/dialog, separation warning, quick-action GET (+5 tests). Suite 6478 green. Admin visual pass deferred (browser pane unresponsive to clicks — environmental).
 - 2026-09-04: Task 5.3 + Phase 8 shipped in PR #280 (merged). Phase 5 complete — 136286bf (/roster page, open-shifts row, ratio honesty), ce18a74f (RosterShift unique key → userId; migration 20260904230000 with dedupe guard; OWNA ingest + copy-week rewritten), finale commit (leave overlay, cross-centre staff via useServiceStaff, cert-shield widening, authz fixes on /api/leave/calendar + /api/services/[id]/staff). Phase 6 complete — d98a8bcf (bulk approve, entry editing + server lock, honest export; live-verified by its implementer). Suite 6529 green.
+- 2026-09-05: Phase 7 complete (agent stalled post-tests; orchestrator finished verification, fixed 3 mock typings). Suite 6544 green.

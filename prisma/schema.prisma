@@ -826,6 +826,12 @@ model User {
   filledVacancies    RecruitmentVacancy[]   @relation("VacancyFilledBy")
   assignedVacancies  RecruitmentVacancy[]   @relation("VacancyAssignee")
   candidateReferrals RecruitmentCandidate[] @relation("CandidateReferrer")
+  // Set when this account was created by converting a recruitment
+  // candidate (hire → employee). @unique doubles as the "already
+  // converted" guard — one User per candidate. SetNull because
+  // candidates cascade-delete with their vacancy.
+  candidateId        String?                @unique
+  candidate          RecruitmentCandidate?  @relation("UserConvertedFromCandidate", fields: [candidateId], references: [id], onDelete: SetNull)
   staffReferrals     StaffReferral[]        @relation("StaffReferrer")
   pulseSurveys       StaffPulseSurvey[]     @relation("UserPulseSurveys")
 
@@ -5924,6 +5930,7 @@ model RecruitmentCandidate {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   staffReferral    StaffReferral?
+  convertedUser    User?              @relation("UserConvertedFromCandidate")
 
   @@index([vacancyId])
   @@index([stage])

@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getResend, sendEmail } from "@/lib/email";
-import { welcomeEmail } from "@/lib/email-templates";
+import { sendWelcomeInvite } from "@/lib/staff-invite";
 import { passwordSchema } from "@/lib/schemas/auth";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
 import { logAuditEvent } from "@/lib/audit-log";
 import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { withApiAuth } from "@/lib/server-auth";
-import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
 import {
   parseRoleParam,
@@ -214,22 +212,9 @@ export const POST = withApiAuth(async (req, session) => {
   const { seedOnboardingPackage } = await import("@/lib/onboarding-seed");
   await seedOnboardingPackage(user.id, { serviceId: user.serviceId });
 
-  // Send welcome email with temporary password
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const loginUrl = `${baseUrl}/login`;
-  const { subject, html } = await welcomeEmail(name.split(" ")[0], password, loginUrl);
-
-  const resend = getResend();
-  if (resend) {
-    try {
-      await sendEmail({ to: email, subject, html });
-    } catch (emailErr) {
-      logger.error("Failed to send welcome email", { err: emailErr });
-      // Don't fail user creation if email fails
-    }
-  } else {
-    if (process.env.NODE_ENV !== "production") console.log(`[DEV] Welcome email for ${email} — temp password: ${password}`);
-  }
+  // Send welcome email with temporary password (shared with the
+  // hire→employee conversion route — swallow-and-log on failure).
+  await sendWelcomeInvite({ email, name, tempPassword: password });
 
   return NextResponse.json(user, { status: 201 });
 }, { roles: ["owner", "admin"] });
