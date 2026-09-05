@@ -59,6 +59,12 @@ const securityHeaders = (opts: { metaPixel?: boolean } = {}) => [
 ];
 
 const nextConfig: NextConfig = {
+  // Pin the workspace root: Turbopack otherwise infers it from lockfiles in
+  // parent directories, which mis-resolved module lookups (a stray
+  // ~/package-lock.json once dragged the root to the home dir).
+  turbopack: {
+    root: __dirname,
+  },
   serverExternalPackages: ["jsdom", "mammoth", "@sparticuz/chromium", "puppeteer-core"],
   // @sparticuz/chromium loads its brotli-compressed binaries from disk at
   // runtime (paths are constructed dynamically), so Next.js's file tracer
