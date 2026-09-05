@@ -139,7 +139,7 @@ function setup(certs: ReturnType<typeof makeCert>[], opts?: { existingAlertKeys?
     existingAlerts.add(key);
     return Promise.resolve({ id: `alert-${key}`, ...args.data, sentAt: new Date() });
   });
-  prismaMock.userNotification.create.mockResolvedValue({ id: "notif-1" });
+  prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
   prismaMock.auditInstance.findMany.mockResolvedValue([]); // no audit escalation
 
   return existingAlerts;
@@ -190,13 +190,13 @@ describe("GET /api/cron/compliance-alerts", () => {
     expect(emailCall.to).not.toContain("staff@test.com");
     expect(resolveNudgeRecipients).toHaveBeenCalledWith("svc-1");
 
-    // in-app notif
-    const notifCall = prismaMock.userNotification.create.mock.calls[0][0] as {
-      data: { userId: string; type: string; link: string };
+    // in-app notif (via notifyUser → createMany)
+    const notifCall = prismaMock.userNotification.createMany.mock.calls[0][0] as {
+      data: { userId: string; type: string; link: string }[];
     };
-    expect(notifCall.data.type).toBe("cert_expiring_30d");
-    expect(notifCall.data.userId).toBe("user-1");
-    expect(notifCall.data.link).toBe("/staff/user-1?tab=compliance");
+    expect(notifCall.data[0].type).toBe("cert_expiring_30d");
+    expect(notifCall.data[0].userId).toBe("user-1");
+    expect(notifCall.data[0].link).toBe("/staff/user-1?tab=compliance");
 
     // dedup row
     const alertCall = prismaMock.complianceCertificateAlert.create.mock.calls[0][0] as {
@@ -216,12 +216,12 @@ describe("GET /api/cron/compliance-alerts", () => {
     // First run
     await GET(authed());
     expect(resendSend).toHaveBeenCalledTimes(1);
-    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(1);
     expect(prismaMock.complianceCertificateAlert.create).toHaveBeenCalledTimes(1);
 
     // Second run — the dedup marker we just created means findUnique returns it
     resendSend.mockClear();
-    prismaMock.userNotification.create.mockClear();
+    prismaMock.userNotification.createMany.mockClear();
     prismaMock.complianceCertificateAlert.create.mockClear();
 
     const res2 = await GET(authed());
@@ -232,7 +232,7 @@ describe("GET /api/cron/compliance-alerts", () => {
     expect(body2.alertsRecorded).toBe(0);
     expect(body2.skippedDuplicates).toBe(1);
     expect(resendSend).not.toHaveBeenCalled();
-    expect(prismaMock.userNotification.create).not.toHaveBeenCalled();
+    expect(prismaMock.userNotification.createMany).not.toHaveBeenCalled();
     expect(prismaMock.complianceCertificateAlert.create).not.toHaveBeenCalled();
     // existing set still has the marker from run 1
     expect(existing.has("c1:30")).toBe(true);
@@ -266,10 +266,10 @@ describe("GET /api/cron/compliance-alerts", () => {
       };
       expect(alertCall.data.threshold).toBe(c.threshold);
 
-      const notifCall = prismaMock.userNotification.create.mock.calls[0][0] as {
-        data: { type: string };
+      const notifCall = prismaMock.userNotification.createMany.mock.calls[0][0] as {
+        data: { type: string }[];
       };
-      expect(notifCall.data.type).toBe(c.notifType);
+      expect(notifCall.data[0].type).toBe(c.notifType);
     }
   });
 

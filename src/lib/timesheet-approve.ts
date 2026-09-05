@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
 
 /**
@@ -45,14 +46,11 @@ export async function approveTimesheet(
   try {
     if (timesheet.submittedById) {
       const weekEndingStr = new Date(timesheet.weekEnding).toISOString().slice(0, 10);
-      await prisma.userNotification.create({
-        data: {
-          userId: timesheet.submittedById,
-          type: NOTIFICATION_TYPES.TIMESHEET_APPROVED,
-          title: "Timesheet approved",
-          body: `Your timesheet for week ending ${weekEndingStr} was approved`,
-          link: `/timesheets?id=${timesheet.id}`,
-        },
+      await notifyUser(prisma, timesheet.submittedById, {
+        type: NOTIFICATION_TYPES.TIMESHEET_APPROVED,
+        title: "Timesheet approved",
+        body: `Your timesheet for week ending ${weekEndingStr} was approved`,
+        link: `/timesheets?id=${timesheet.id}`,
       });
     }
   } catch (err) {

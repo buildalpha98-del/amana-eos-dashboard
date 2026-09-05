@@ -6,6 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 import { logger } from "@/lib/logger";
 const updateLeaveSchema = z.object({
   status: z
@@ -159,20 +160,17 @@ const { id } = await context!.params!;
       const endStr = updated.endDate.toISOString().slice(0, 10);
       const approved = parsed.data.status === "leave_approved";
       const reviewNotes = typeof data.reviewNotes === "string" ? data.reviewNotes : "";
-      await prisma.userNotification.create({
-        data: {
-          userId: existing.userId,
-          type: approved
-            ? NOTIFICATION_TYPES.LEAVE_APPROVED
-            : NOTIFICATION_TYPES.LEAVE_DENIED,
-          title: approved ? "Leave approved" : "Leave denied",
-          body: approved
-            ? `Your leave from ${startStr} to ${endStr} was approved`
-            : reviewNotes
-              ? `Your leave from ${startStr} to ${endStr} was denied: ${reviewNotes}`
-              : `Your leave from ${startStr} to ${endStr} was denied`,
-          link: `/leave?id=${id}`,
-        },
+      await notifyUser(prisma, existing.userId, {
+        type: approved
+          ? NOTIFICATION_TYPES.LEAVE_APPROVED
+          : NOTIFICATION_TYPES.LEAVE_DENIED,
+        title: approved ? "Leave approved" : "Leave denied",
+        body: approved
+          ? `Your leave from ${startStr} to ${endStr} was approved`
+          : reviewNotes
+            ? `Your leave from ${startStr} to ${endStr} was denied: ${reviewNotes}`
+            : `Your leave from ${startStr} to ${endStr} was denied`,
+        link: `/leave?id=${id}`,
       });
     }
   } catch (err) {

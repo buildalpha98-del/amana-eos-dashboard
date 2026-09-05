@@ -6,6 +6,7 @@ import { resolveAssignee } from "../_lib/resolve-assignee";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 
 // POST /api/cowork/todos — Create daily to-dos
 export const POST = withApiHandler(async (req: NextRequest) => {
@@ -57,14 +58,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     created
       .filter((t) => t.assignedToId)
       .map((t) =>
-        prisma.userNotification.create({
-          data: {
-            userId: t.assignedToId!,
-            type: NOTIFICATION_TYPES.QUEUE_ITEM_ASSIGNED,
-            title: "New task in your queue",
-            body: t.title,
-            link: "/queue",
-          },
+        // Per-todo notifyUser (not one notifyUsers) because the body is
+        // the todo's own title — different content per recipient.
+        notifyUser(prisma, t.assignedToId!, {
+          type: NOTIFICATION_TYPES.QUEUE_ITEM_ASSIGNED,
+          title: "New task in your queue",
+          body: t.title,
+          link: "/queue",
         }),
       ),
   );

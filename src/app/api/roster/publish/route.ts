@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUsers } from "@/lib/notify-user";
 import { notifyOpenShiftsPosted } from "@/lib/open-shift-notify";
 import { logger } from "@/lib/logger";
 import type { OpenShiftSummary } from "@/lib/email-templates";
@@ -76,14 +77,11 @@ export const POST = withApiAuth(async (req, session) => {
     );
 
     if (distinctUserIds.length > 0) {
-      await tx.userNotification.createMany({
-        data: distinctUserIds.map((userId) => ({
-          userId,
-          type: NOTIFICATION_TYPES.ROSTER_PUBLISHED,
-          title: "Your roster for the week is published",
-          body: `View your shifts for week of ${weekStart}`,
-          link: `/roster/me?weekStart=${weekStart}`,
-        })),
+      await notifyUsers(tx, distinctUserIds, {
+        type: NOTIFICATION_TYPES.ROSTER_PUBLISHED,
+        title: "Your roster for the week is published",
+        body: `View your shifts for week of ${weekStart}`,
+        link: `/roster/me?weekStart=${weekStart}`,
       });
     }
 

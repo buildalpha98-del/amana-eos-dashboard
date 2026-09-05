@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUsers } from "@/lib/notify-user";
 
 /**
  * POST /api/communication/cascade/[id]/remind
@@ -36,15 +37,16 @@ export const POST = withApiAuth(
 
     if (pending.length > 0) {
       try {
-        await prisma.userNotification.createMany({
-          data: pending.map((u) => ({
-            userId: u.id,
+        await notifyUsers(
+          prisma,
+          pending.map((u) => u.id),
+          {
             type: NOTIFICATION_TYPES.CASCADE_REMINDER,
             title: `Reminder: acknowledge the cascade from ${cascade.meeting?.title ?? "the leadership meeting"}`,
             body: cascade.message.slice(0, 140),
             link: "/communication?tab=cascade",
-          })),
-        });
+          },
+        );
       } catch (err) {
         logger.error("cascade remind: fan-out failed", { cascadeId: id, err });
         return NextResponse.json({ error: "Reminder failed" }, { status: 500 });
