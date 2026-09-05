@@ -25,7 +25,9 @@ import { toast } from "@/hooks/useToast";
 import {
   ORG_SETTINGS_DEFAULTS,
   ROLE_LABEL_DEFAULTS,
+  REQUIRED_CERT_TYPE_VALUES,
   type OrgSettingsConfig,
+  type RequiredCertType,
   type RoleLabels,
 } from "@/lib/org-settings-shared";
 import {
@@ -793,7 +795,123 @@ export function OrganisationSettingsClient({ initialConfig }: Props) {
           </div>
         </div>
       </Section>
+
+      {/* Certificate requirements by role */}
+      <RequiredCertsSection config={config} setConfig={setConfig} />
     </div>
+  );
+}
+
+/**
+ * RequiredCertsSection — role × certificate-type checkbox matrix editing
+ * `config.compliance.requiredCertsByRole` (Staff Portal v2 Phase 9).
+ *
+ * Drives the staff /compliance "Required for your role" split, the
+ * /my-portal compliance glance tile, and the staff-profile snapshot counts
+ * (all via getRequiredCertTypes in src/lib/cert-requirements.ts). Saved via
+ * the same full-replace PATCH as every other section — this page is
+ * already gated to the settings-owner tier server-side (page.tsx redirect
+ * + the PATCH route's `roles` option).
+ */
+const CERT_TYPE_LABELS: Record<RequiredCertType, string> = {
+  wwcc: "WWCC",
+  first_aid: "First Aid",
+  anaphylaxis: "Anaphylaxis",
+  asthma: "Asthma",
+  cpr: "CPR",
+  police_check: "Police Check",
+  annual_review: "Annual Review",
+  child_protection: "Child Protection",
+  geccko: "GECCKO",
+  food_safety: "Food Safety",
+  food_handler: "Food Handler",
+  mandatory_reporter_training: "Mandatory Reporter Training",
+  child_safe_code_of_conduct: "Child Safe Code of Conduct",
+};
+
+function RequiredCertsSection({
+  config,
+  setConfig,
+}: {
+  config: OrgSettingsConfig;
+  setConfig: React.Dispatch<React.SetStateAction<OrgSettingsConfig>>;
+}) {
+  const byRole = config.compliance.requiredCertsByRole;
+
+  function toggle(role: keyof RoleLabels, type: RequiredCertType) {
+    setConfig((c) => {
+      const current = c.compliance.requiredCertsByRole[role];
+      const next = current.includes(type)
+        ? current.filter((t) => t !== type)
+        : // Keep canonical enum order so the stored list is stable across
+          // edits (nicer diffs in the activity log, deterministic UI order).
+          REQUIRED_CERT_TYPE_VALUES.filter(
+            (t) => current.includes(t) || t === type,
+          );
+      return {
+        ...c,
+        compliance: {
+          requiredCertsByRole: {
+            ...c.compliance.requiredCertsByRole,
+            [role]: next,
+          },
+        },
+      };
+    });
+  }
+
+  return (
+    <Section
+      title="Certificate requirements by role"
+      description="Which compliance certificates each role must hold. Drives the 'Required for your role' section on staff Compliance, the My Portal compliance tile, and the staff-profile snapshot counts. Roles with no ticks fall back to showing all certificate types without a required split."
+      onReset={() =>
+        setConfig((c) => ({
+          ...c,
+          compliance: ORG_SETTINGS_DEFAULTS.compliance,
+        }))
+      }
+    >
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th className="text-left font-medium text-muted py-2 pr-4">
+                Certificate
+              </th>
+              {ROLE_KEYS.map((role) => (
+                <th
+                  key={role}
+                  className="text-center font-medium text-muted py-2 px-2 whitespace-nowrap"
+                  title={ROLE_HINTS[role]}
+                >
+                  {config.roleLabels[role]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {REQUIRED_CERT_TYPE_VALUES.map((type) => (
+              <tr key={type} className="border-t border-border">
+                <td className="py-2 pr-4 text-foreground whitespace-nowrap">
+                  {CERT_TYPE_LABELS[type]}
+                </td>
+                {ROLE_KEYS.map((role) => (
+                  <td key={role} className="text-center py-2 px-2">
+                    <input
+                      type="checkbox"
+                      checked={byRole[role].includes(type)}
+                      onChange={() => toggle(role, type)}
+                      aria-label={`${CERT_TYPE_LABELS[type]} required for ${config.roleLabels[role]}`}
+                      className="h-4 w-4 rounded border-border accent-brand"
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Section>
   );
 }
 

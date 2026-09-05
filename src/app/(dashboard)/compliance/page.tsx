@@ -47,6 +47,8 @@ import { QualificationRatiosTab } from "@/components/compliance/QualificationRat
 import { StaffCertUploadModal } from "@/components/compliance/StaffCertUploadModal";
 import { uploadFileSmart } from "@/lib/upload-client";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useOrgConfig } from "@/hooks/useOrgConfig";
+import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import {
   CalendarDays,
   BarChart3,
@@ -56,6 +58,7 @@ import {
   List,
   LayoutGrid,
   ClipboardList,
+  ChevronRight,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -224,6 +227,10 @@ function StaffComplianceView() {
   // with auto today+1y expiry" path, which had no way to capture the real
   // expiry date and silently wrote the wrong data.
   const [modalType, setModalType] = useState<string | null>(null);
+  // Phase 9: role-required split. Config comes from the client-safe
+  // /api/org-settings/config slice (staff cannot read /api/org-settings).
+  const { data: orgConfig } = useOrgConfig();
+  const [showOtherTypes, setShowOtherTypes] = useState(false);
 
   // Per type, pick the latest cert that actually has a file attached. A row
   // with fileUrl=null is metadata-only (OWNA stub or a previous failed
@@ -378,6 +385,117 @@ function StaffComplianceView() {
     );
   }
 
+  // Phase 9 (Staff Portal v2): split the grid into "Required for your
+  // role" (from the org-settings matrix, read via the client-safe
+  // /api/org-settings/config slice) and a collapsed "Other certificate
+  // types" section. While the config is loading, getRequiredCertTypes
+  // falls back to code defaults — no flicker for a default org.
+  const requiredTypes = getRequiredCertTypes(session?.user?.role, orgConfig);
+  const optionalTypes = certTypes.filter(
+    (t) => t !== "other" && !(requiredTypes as string[]).includes(t),
+  );
+
+  const renderCertCard = (type: string) => {
+    const cert = certMap[type];
+    // A cert with expiryDate=null is "valid forever" — skip the days
+    // calculation entirely so it doesn't end up rendered as expired.
+    const hasNoExpiry = !!cert && !cert.expiryDate;
+    const days = cert && cert.expiryDate ? daysUntilExpiry(cert.expiryDate) : null;
+    const status = days !== null ? expiryStatus(days) : null;
+    const isUploading = uploading === type;
+
+    return (
+      <div
+        key={type}
+        className={cn(
+          "bg-card rounded-xl border p-5 transition-all",
+          cert
+            ? status === "expired" || status === "critical"
+              ? "border-red-200"
+              : status === "warning"
+              ? "border-amber-200"
+              : "border-emerald-200"
+            : "border-border border-dashed"
+        )}
+      >
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "text-xs font-semibold px-2.5 py-1 rounded-full",
+                typeBadgeColors[type]
+              )}
+            >
+              {typeLabels[type]}
+            </span>
+            {cert && hasNoExpiry && (
+              <StatusChip level="queue">No expiry</StatusChip>
+            )}
+            {cert && !hasNoExpiry && status && (
+              <StatusChip level={expiryLevel(status)}>
+                {status === "expired"
+                  ? "Expired"
+                  : status === "critical"
+                  ? `${days}d left`
+                  : status === "warning"
+                  ? `${days}d left`
+                  : "Valid"}
+              </StatusChip>
+            )}
+          </div>
+          {!cert && (
+            <span className="text-xs text-muted font-medium">Missing</span>
+          )}
+        </div>
+
+        {cert ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted">Expires</span>
+              <span className="font-medium text-foreground/80">
+                {cert.expiryDate ? formatDate(cert.expiryDate) : "Never"}
+              </span>
+            </div>
+            {cert.fileUrl && (
+              <a
+                href={cert.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-brand hover:underline"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                {cert.fileName || "View document"}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+            <button
+              onClick={() => handleUpload(type)}
+              disabled={isUploading}
+              className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors disabled:opacity-50"
+            >
+              <Upload className="w-4 h-4" />
+              {isUploading ? "Uploading..." : "Upload New Version"}
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-3">
+            <p className="text-sm text-muted mb-3">
+              No document uploaded yet
+            </p>
+            <button
+              onClick={() => handleUpload(type)}
+              disabled={isUploading}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+            >
+              <Upload className="w-4 h-4" />
+              {isUploading ? "Uploading..." : "Upload Document"}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <PageHeader
@@ -385,108 +503,44 @@ function StaffComplianceView() {
         description="Upload and manage your required compliance certificates"
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {certTypes.filter((t) => t !== "other").map((type) => {
-          const cert = certMap[type];
-          // A cert with expiryDate=null is "valid forever" — skip the days
-          // calculation entirely so it doesn't end up rendered as expired.
-          const hasNoExpiry = !!cert && !cert.expiryDate;
-          const days = cert && cert.expiryDate ? daysUntilExpiry(cert.expiryDate) : null;
-          const status = days !== null ? expiryStatus(days) : null;
-          const isUploading = uploading === type;
+      {requiredTypes.length > 0 ? (
+        <>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted mb-3">
+            Required for your role
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {requiredTypes.map((type) => renderCertCard(type))}
+          </div>
 
-          return (
-            <div
-              key={type}
-              className={cn(
-                "bg-card rounded-xl border p-5 transition-all",
-                cert
-                  ? status === "expired" || status === "critical"
-                    ? "border-red-200"
-                    : status === "warning"
-                    ? "border-amber-200"
-                    : "border-emerald-200"
-                  : "border-border border-dashed"
-              )}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "text-xs font-semibold px-2.5 py-1 rounded-full",
-                      typeBadgeColors[type]
-                    )}
-                  >
-                    {typeLabels[type]}
-                  </span>
-                  {cert && hasNoExpiry && (
-                    <StatusChip level="queue">No expiry</StatusChip>
+          {optionalTypes.length > 0 && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowOtherTypes((v) => !v)}
+                aria-expanded={showOtherTypes}
+                className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-foreground transition-colors"
+              >
+                <ChevronRight
+                  className={cn(
+                    "w-4 h-4 transition-transform",
+                    showOtherTypes && "rotate-90"
                   )}
-                  {cert && !hasNoExpiry && status && (
-                    <StatusChip level={expiryLevel(status)}>
-                      {status === "expired"
-                        ? "Expired"
-                        : status === "critical"
-                        ? `${days}d left`
-                        : status === "warning"
-                        ? `${days}d left`
-                        : "Valid"}
-                    </StatusChip>
-                  )}
-                </div>
-                {!cert && (
-                  <span className="text-xs text-muted font-medium">Missing</span>
-                )}
-              </div>
-
-              {cert ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted">Expires</span>
-                    <span className="font-medium text-foreground/80">
-                      {cert.expiryDate ? formatDate(cert.expiryDate) : "Never"}
-                    </span>
-                  </div>
-                  {cert.fileUrl && (
-                    <a
-                      href={cert.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-brand hover:underline"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      {cert.fileName || "View document"}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                  <button
-                    onClick={() => handleUpload(type)}
-                    disabled={isUploading}
-                    className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors disabled:opacity-50"
-                  >
-                    <Upload className="w-4 h-4" />
-                    {isUploading ? "Uploading..." : "Upload New Version"}
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center py-3">
-                  <p className="text-sm text-muted mb-3">
-                    No document uploaded yet
-                  </p>
-                  <button
-                    onClick={() => handleUpload(type)}
-                    disabled={isUploading}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
-                  >
-                    <Upload className="w-4 h-4" />
-                    {isUploading ? "Uploading..." : "Upload Document"}
-                  </button>
+                  aria-hidden
+                />
+                Other certificate types ({optionalTypes.length})
+              </button>
+              {showOtherTypes && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  {optionalTypes.map((type) => renderCertCard(type))}
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {certTypes.filter((t) => t !== "other").map((type) => renderCertCard(type))}
+        </div>
+      )}
 
       <StaffCertUploadModal
         open={modalType !== null}

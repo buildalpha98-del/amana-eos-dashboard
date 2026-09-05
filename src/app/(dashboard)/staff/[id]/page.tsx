@@ -7,6 +7,8 @@ import type { StaffProfileData } from "@/components/staff/types";
 import { StaffProfileLayout } from "@/components/staff/StaffProfileLayout";
 import { getCertStatus } from "@/lib/cert-status";
 import { computeSnapshotStats } from "@/lib/staff/snapshot-stats";
+import { getOrgSettings } from "@/lib/org-settings";
+import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { getCentreScope } from "@/lib/centre-scope";
 
@@ -448,7 +450,17 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
             : null,
         }
       : null,
-    certificates: certificates.map((c) => ({ expiryDate: c.expiryDate })),
+    certificates: certificates.map((c) => ({
+      type: c.type,
+      expiryDate: c.expiryDate,
+    })),
+    // Phase 9: count required-only for the TARGET user's role (org-settings
+    // matrix via the 60s-cached server reader). Roles with no configured
+    // requirements keep the legacy every-document counts.
+    requiredCertTypes: getRequiredCertTypes(
+      targetUser.role,
+      await getOrgSettings(),
+    ),
     activeRocks: Number(activeRocks) || 0,
     openTodos: Number(openTodos) || 0,
   });
