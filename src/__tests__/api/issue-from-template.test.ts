@@ -374,6 +374,8 @@ describe("POST /api/contracts/issue-from-template", () => {
         manual: expect.objectContaining({ probation: "3 months" }),
       }),
     );
+    // classification (Task 10.3) is optional — omitted here, stored null.
+    expect(createCall.data.classification).toBeNull();
 
     // activityLog.create called with correct fields
     expect(prismaMock.activityLog.create).toHaveBeenCalledWith(
@@ -396,6 +398,48 @@ describe("POST /api/contracts/issue-from-template", () => {
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({ to: "jane@test.com" }),
     );
+  });
+
+  // Task 10.3: optional classification flows through to the draft row.
+  it("stores contractMeta.classification on the created contract when provided", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE);
+
+    const req = createRequest("POST", "/api/contracts/issue-from-template", {
+      body: {
+        ...VALID_BODY,
+        contractMeta: {
+          ...VALID_BODY.contractMeta,
+          classification: "Children's Services Employee Level 3.1",
+        },
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const createCall = (
+      prismaMock.employmentContract.create as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0];
+    expect(createCall.data.classification).toBe(
+      "Children's Services Employee Level 3.1",
+    );
+  });
+
+  it("400 when contractMeta.classification exceeds 200 characters", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+    prismaMock.contractTemplate.findUnique.mockResolvedValue(MOCK_TEMPLATE);
+
+    const req = createRequest("POST", "/api/contracts/issue-from-template", {
+      body: {
+        ...VALID_BODY,
+        contractMeta: {
+          ...VALID_BODY.contractMeta,
+          classification: "x".repeat(201),
+        },
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
   });
 
   // ── PDF render failure ────────────────────────────────────────────────────────

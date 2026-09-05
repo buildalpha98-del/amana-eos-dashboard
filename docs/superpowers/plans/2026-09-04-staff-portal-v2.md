@@ -191,8 +191,8 @@
 *(Rule 10 applies.)*
 
 - [x] **Task 10.1:** `/workforce-reports` "Workforce" tab: headcount by role/service/employment type, starters & leavers per month (12-mo), tenure distribution, training completion %, cert-expiry 30/60/90 outlook. One summary API (owner/head_office/admin), CSV export per section, charts per `src/components/charts/` conventions. Route tests.
-- [ ] **Task 10.2:** Availability: new `StaffAvailability` model (userId, weekday, available, optional start/end "HH:MM", note; unique userId+weekday) + migration. Staff editor on `/profile`; roster grid shows an "Unavailable" hint on those days (batched with the leave overlay fetch). Self-scoped GET/PUT API with tests.
-- [ ] **Task 10.3:** Salary history: `EmploymentContract.classification` (nullable) migration; Pay & compensation lists ALL contracts desc (rate/classification/dates) instead of `findFirst`; issue/upload forms gain the optional classification field.
+- [x] **Task 10.2:** Availability: new `StaffAvailability` model (userId, weekday, available, optional start/end "HH:MM", note; unique userId+weekday) + migration. Staff editor on `/profile`; roster grid shows an "Unavailable" hint on those days (batched with the leave overlay fetch — `/api/roster/leave` renamed to `/api/roster/overlays` returning `{leave, availability}`; `useRosterLeave` → `useRosterOverlays`). Self-scoped GET/PUT API with tests.
+- [x] **Task 10.3:** Salary history: `EmploymentContract.classification` (nullable) migration; Pay & compensation lists ALL contracts desc (rate/classification/dates) instead of `findFirst`; issue/upload forms gain the optional classification field.
 - [ ] **Task 10.4:** Program close-out: full test/tsc/lint sweep, live sweep (staff mobile: home/my-day/pay/leave/expenses/notifications; owner: roster/timesheets/offboarding/reports/staff file), update CLAUDE.md with the new routes/conventions, final PR, summary to the user.
 
 ---

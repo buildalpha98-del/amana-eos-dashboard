@@ -25,6 +25,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
 import { MyCertificatesSection } from "@/components/profile/MyCertificatesSection";
+import { MyAvailabilitySection } from "@/components/profile/MyAvailabilitySection";
 
 /* ------------------------------------------------------------------ */
 /* Profile Page                                                        */
@@ -460,6 +461,10 @@ export default function ProfilePage() {
           contacts={profile?.emergencyContacts ?? []}
         />
       )}
+
+      {/* My Availability — recurring weekly availability the roster grid
+          surfaces as an "Unavailable" hint (staff-portal-v2 Task 10.2). */}
+      <MyAvailabilitySection />
 
       {/* Address */}
       <div className="bg-card rounded-xl border border-border p-6">

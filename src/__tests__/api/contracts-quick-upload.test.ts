@@ -49,6 +49,7 @@ function makePdfForm(opts: {
   omitUserId?: boolean;
   contractType?: string;
   payRate?: string;
+  classification?: string;
 }): FormData {
   const form = new FormData();
   if (!opts.omitUserId) {
@@ -66,6 +67,9 @@ function makePdfForm(opts: {
   }
   if (opts.payRate !== undefined) {
     form.append("payRate", opts.payRate);
+  }
+  if (opts.classification !== undefined) {
+    form.append("classification", opts.classification);
   }
   return form;
 }
@@ -221,6 +225,36 @@ describe("POST /api/contracts/quick-upload", () => {
       const createCall =
         prismaMock.employmentContract.create.mock.calls[0]?.[0];
       expect(createCall.data.payRate).toBe(0);
+    });
+
+    // Task 10.3: optional free-text classification for salary history.
+    it("stores the trimmed classification when provided", async () => {
+      const res = await callPost(
+        makePdfForm({
+          classification: "  Children's Services Employee Level 3.1  ",
+        }),
+      );
+      expect(res.status).toBe(201);
+      const createCall =
+        prismaMock.employmentContract.create.mock.calls[0]?.[0];
+      expect(createCall.data.classification).toBe(
+        "Children's Services Employee Level 3.1",
+      );
+    });
+
+    it("stores null classification when omitted or blank", async () => {
+      const res = await callPost(makePdfForm({ classification: "   " }));
+      expect(res.status).toBe(201);
+      const createCall =
+        prismaMock.employmentContract.create.mock.calls[0]?.[0];
+      expect(createCall.data.classification).toBeNull();
+    });
+
+    it("rejects a classification longer than 200 characters", async () => {
+      const res = await callPost(
+        makePdfForm({ classification: "x".repeat(201) }),
+      );
+      expect(res.status).toBe(400);
     });
 
     it("stamps both values into the activity log details", async () => {

@@ -209,6 +209,8 @@ export type IssueFromTemplatePayload = {
     contractType: "ct_casual" | "ct_part_time" | "ct_permanent" | "ct_fixed_term";
     awardLevel?: string | null;
     awardLevelCustom?: string | null;
+    /** Task 10.3: optional free-text award classification (salary history). */
+    classification?: string | null;
     payRate: number;
     hoursPerWeek?: number | null;
     startDate: string;

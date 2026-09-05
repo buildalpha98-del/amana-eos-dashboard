@@ -51,6 +51,8 @@ type ContractMetaState = {
   contractType: "ct_casual" | "ct_part_time" | "ct_permanent" | "ct_fixed_term";
   awardLevel: string | null;
   awardLevelCustom: string | null;
+  /** Task 10.3: optional free-text award classification for salary history. */
+  classification: string;
   payRate: number | string;
   hoursPerWeek: number | string;
   startDate: string;
@@ -62,6 +64,7 @@ const INITIAL_CONTRACT_META: ContractMetaState = {
   contractType: "ct_part_time",
   awardLevel: null,
   awardLevelCustom: null,
+  classification: "",
   payRate: "",
   hoursPerWeek: "",
   startDate: "",
@@ -293,6 +296,7 @@ export function IssueFromTemplateModal({
           contractType: contractMeta.contractType,
           awardLevel: contractMeta.awardLevel || null,
           awardLevelCustom: contractMeta.awardLevelCustom || null,
+          classification: contractMeta.classification.trim() || null,
           payRate: Number(contractMeta.payRate),
           hoursPerWeek: contractMeta.hoursPerWeek
             ? Number(contractMeta.hoursPerWeek)
@@ -951,6 +955,25 @@ function Step4({
           />
         </div>
       )}
+
+      {/* Classification (Task 10.3) — free-text award classification shown
+          in the staff profile's salary history. */}
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1.5">
+          Classification{" "}
+          <span className="text-muted font-normal">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={meta.classification}
+          onChange={(e) =>
+            setMeta({ ...meta, classification: e.target.value })
+          }
+          maxLength={200}
+          placeholder="e.g. Children's Services Employee Level 3.1"
+          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+        />
+      </div>
 
       {/* Start date */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

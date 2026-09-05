@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRosterShifts, type RosterShiftListItem } from "@/hooks/useRosterShifts";
 import { useRoster } from "@/hooks/useRoster";
 import { useServiceStaff } from "@/hooks/useServiceStaff";
-import { useRosterLeave } from "@/hooks/useRosterLeave";
+import { useRosterOverlays } from "@/hooks/useRosterOverlays";
 import { useRosterCost } from "@/hooks/useRosterCost";
 import { computeRatio } from "@/lib/roster-ratio";
 import {
@@ -142,17 +142,18 @@ export function ServiceWeeklyShiftsGrid({
       .map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar }));
   }, [staffData]);
 
-  // Approved internal leave overlay (Task 5.4) — keyed on the visible
+  // Roster overlays (Tasks 5.4 + 10.2) — approved internal leave chips and
+  // recurring "Unavailable" hints in ONE batched fetch, keyed on the visible
   // staff's userIds, never serviceId (nullable on LeaveRequest).
   const staffIds = useMemo(() => staff.map((s) => s.id), [staff]);
-  const { data: leaveData } = useRosterLeave(
+  const { data: overlayData } = useRosterOverlays(
     staffIds,
     weekDates[0],
     weekDates[weekDates.length - 1],
   );
   const leaveByUserAndDay = useMemo(() => {
     const out: Record<string, Record<string, { isHalfDay: boolean }>> = {};
-    for (const entry of leaveData?.leave ?? []) {
+    for (const entry of overlayData?.leave ?? []) {
       // @db.Date fields serialise as midnight-UTC ISO strings — slice(0,10)
       // is the calendar date, comparable lexicographically with weekDates.
       const start = entry.startDate.slice(0, 10);
@@ -168,7 +169,18 @@ export function ServiceWeeklyShiftsGrid({
       }
     }
     return out;
-  }, [leaveData, weekDates]);
+  }, [overlayData, weekDates]);
+
+  // Recurring unavailability hint (Task 10.2): userId → weekday(0-6) set.
+  // Weekday-keyed (repeats every week), unlike the date-keyed leave overlay.
+  const unavailableByUser = useMemo(() => {
+    const out: Record<string, Set<number>> = {};
+    for (const entry of overlayData?.availability ?? []) {
+      if (!out[entry.userId]) out[entry.userId] = new Set();
+      out[entry.userId].add(entry.weekday);
+    }
+    return out;
+  }, [overlayData]);
 
   // Build grid: userId → dateIso → shifts[]. Null-userId shifts are OPEN
   // shifts — they get their own pinned row above the staff rows instead of
@@ -519,6 +531,14 @@ export function ServiceWeeklyShiftsGrid({
                     const daysShifts = shiftsByUserAndDay[member.id]?.[date] ?? [];
                     const emptyCellClickable = canEdit && daysShifts.length === 0;
                     const leave = leaveByUserAndDay[member.id]?.[date];
+                    // Subtle hint only, and leave chips take visual
+                    // precedence — a leave-covered day already explains
+                    // why the person can't work.
+                    const unavailable =
+                      !leave &&
+                      unavailableByUser[member.id]?.has(
+                        parseIsoDateLocal(date).getDay(),
+                      );
                     return (
                       <td
                         key={date}
@@ -534,6 +554,7 @@ export function ServiceWeeklyShiftsGrid({
                         data-testid={`shift-cell-${member.id}-${date}`}
                       >
                         {leave && <OnLeaveChip isHalfDay={leave.isHalfDay} />}
+                        {unavailable && <UnavailableHint />}
                         {daysShifts.length === 0 ? (
                           <div className="min-h-[44px] flex items-center justify-center text-xs text-muted/70">
                             {canEdit ? "+ Add" : "—"}
@@ -676,7 +697,7 @@ export function ServiceWeeklyShiftsGrid({
 //
 // Amber overlay chip rendered in a staff/day cell when that person has
 // APPROVED internal leave covering the date (½-day variant when every
-// covering entry is a half day). Data via useRosterLeave — internal
+// covering entry is a half day). Data via useRosterOverlays — internal
 // LeaveRequest rows only; EH-applied leave never appears (see the grid's
 // legend line).
 
@@ -687,6 +708,24 @@ function OnLeaveChip({ isHalfDay }: { isHalfDay: boolean }) {
       className="mb-1 inline-flex items-center px-1.5 py-0.5 rounded-full border text-2xs font-medium border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200"
     >
       {isHalfDay ? "On leave · ½ day" : "On leave"}
+    </span>
+  );
+}
+
+// ── UnavailableHint ────────────────────────────────────────────────
+//
+// Subtle muted, struck-through hint on a staff/day cell whose weekday the
+// person has marked unavailable on /profile (staff-portal-v2 Task 10.2).
+// Advisory only — the cell stays fully interactive, and leave chips take
+// precedence (the hint is suppressed on leave-covered days).
+
+function UnavailableHint() {
+  return (
+    <span
+      data-testid="unavailable-hint"
+      className="mb-1 block text-2xs text-muted/70 line-through"
+    >
+      Unavailable
     </span>
   );
 }

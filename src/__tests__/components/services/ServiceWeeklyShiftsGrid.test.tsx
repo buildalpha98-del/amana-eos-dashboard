@@ -104,8 +104,10 @@ function installFetchMock(opts?: {
   shifts?: unknown[];
   /** dateString → sessionType → children[] for /api/bookings/roster. */
   bookingsRoster?: Record<string, Record<string, unknown[]>>;
-  /** Approved internal leave rows for /api/roster/leave. */
+  /** Approved internal leave rows for /api/roster/overlays. */
   leave?: unknown[];
+  /** Unavailable-weekday rows for /api/roster/overlays. */
+  availability?: unknown[];
   /** Overrides the /api/services/[id]/staff members list. */
   members?: unknown[];
 }) {
@@ -135,12 +137,15 @@ function installFetchMock(opts?: {
       } as unknown as Response;
     }
 
-    if (u.includes("/api/roster/leave")) {
+    if (u.includes("/api/roster/overlays")) {
       return {
         ok: true,
         status: 200,
         headers: new Headers({ "content-type": "application/json" }),
-        json: async () => ({ leave: opts?.leave ?? [] }),
+        json: async () => ({
+          leave: opts?.leave ?? [],
+          availability: opts?.availability ?? [],
+        }),
       } as unknown as Response;
     }
 
@@ -551,6 +556,56 @@ describe("ServiceWeeklyShiftsGrid", () => {
     expect(
       screen.getByText(/leave applied in Employment Hero/i),
     ).toBeDefined();
+  });
+
+  it("shows an Unavailable hint on cells whose weekday the staff member marked unavailable", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      // Monday → getDay() === 1.
+      availability: [{ userId: "staff-1", weekday: 1, note: null }],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("unavailable-hint")).toBeDefined();
+    });
+    // Exactly one hint — the weekday only matches Monday's column.
+    expect(screen.getAllByTestId("unavailable-hint")).toHaveLength(1);
+    const mondayCell = screen.getByTestId(`shift-cell-staff-1-${MONDAY_ISO}`);
+    expect(
+      mondayCell.contains(screen.getByTestId("unavailable-hint")),
+    ).toBe(true);
+  });
+
+  it("suppresses the Unavailable hint when a leave chip covers the same day", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      leave: [
+        {
+          userId: "staff-1",
+          leaveType: "annual",
+          startDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          endDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          isHalfDay: false,
+        },
+      ],
+      availability: [{ userId: "staff-1", weekday: 1, note: null }],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("on-leave-chip")).toBeDefined();
+    });
+    // Leave takes visual precedence — no doubled-up messaging.
+    expect(screen.queryByTestId("unavailable-hint")).toBeNull();
   });
 
   it("renders the ½-day variant when the covering leave is a half day", async () => {
