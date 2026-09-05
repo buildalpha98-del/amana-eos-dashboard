@@ -33,6 +33,7 @@ import { prepareMeetingAgenda } from "@/lib/l10-prep";
 import { sameLocalDayRange } from "@/lib/meeting-series";
 import { computeForecastAlerts } from "@/lib/forecast-data";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 
 export const maxDuration = 300;
 
@@ -141,14 +142,11 @@ export const GET = withApiHandler(
         created += 1;
 
         if (totalSignalCount(signals) > 0) {
-          await prisma.userNotification.create({
-            data: {
-              userId: user.id,
-              type: NOTIFICATION_TYPES.MORNING_BRIEF_READY,
-              title: "Your morning brief is ready",
-              body: `${totalSignalCount(signals)} item(s) need attention today`,
-              link: "/dashboard",
-            },
+          await notifyUser(prisma, user.id, {
+            type: NOTIFICATION_TYPES.MORNING_BRIEF_READY,
+            title: "Your morning brief is ready",
+            body: `${totalSignalCount(signals)} item(s) need attention today`,
+            link: "/dashboard",
           });
         } else {
           quiet += 1;

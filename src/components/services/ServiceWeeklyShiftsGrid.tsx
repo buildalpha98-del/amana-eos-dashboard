@@ -171,6 +171,26 @@ export function ServiceWeeklyShiftsGrid({
     return out;
   }, [overlayData, weekDates]);
 
+  // Approved EMPLOYMENT HERO leave (Task 5.4 follow-up) — userId → set of
+  // covered dateIso strings. Rendered with the same amber treatment but
+  // labelled "On leave (EH)"; internal leave takes precedence when both
+  // cover a day.
+  const ehLeaveByUserAndDay = useMemo(() => {
+    const out: Record<string, Set<string>> = {};
+    for (const entry of overlayData?.ehLeave ?? []) {
+      // EH dates are ISO datetimes — slice(0,10) is the calendar date,
+      // comparable lexicographically with weekDates (no UTC parse).
+      const start = entry.fromDate.slice(0, 10);
+      const end = entry.toDate.slice(0, 10);
+      for (const day of weekDates) {
+        if (day < start || day > end) continue;
+        if (!out[entry.userId]) out[entry.userId] = new Set();
+        out[entry.userId].add(day);
+      }
+    }
+    return out;
+  }, [overlayData, weekDates]);
+
   // Recurring unavailability hint (Task 10.2): userId → weekday(0-6) set.
   // Weekday-keyed (repeats every week), unlike the date-keyed leave overlay.
   const unavailableByUser = useMemo(() => {
@@ -531,11 +551,16 @@ export function ServiceWeeklyShiftsGrid({
                     const daysShifts = shiftsByUserAndDay[member.id]?.[date] ?? [];
                     const emptyCellClickable = canEdit && daysShifts.length === 0;
                     const leave = leaveByUserAndDay[member.id]?.[date];
-                    // Subtle hint only, and leave chips take visual
-                    // precedence — a leave-covered day already explains
-                    // why the person can't work.
+                    // Internal leave wins when both systems cover a day —
+                    // one chip per cell, no doubled-up messaging.
+                    const ehLeave =
+                      !leave && ehLeaveByUserAndDay[member.id]?.has(date);
+                    // Subtle hint only, and leave chips (either source)
+                    // take visual precedence — a leave-covered day already
+                    // explains why the person can't work.
                     const unavailable =
                       !leave &&
+                      !ehLeave &&
                       unavailableByUser[member.id]?.has(
                         parseIsoDateLocal(date).getDay(),
                       );
@@ -554,6 +579,7 @@ export function ServiceWeeklyShiftsGrid({
                         data-testid={`shift-cell-${member.id}-${date}`}
                       >
                         {leave && <OnLeaveChip isHalfDay={leave.isHalfDay} />}
+                        {ehLeave && <EhLeaveChip />}
                         {unavailable && <UnavailableHint />}
                         {daysShifts.length === 0 ? (
                           <div className="min-h-[44px] flex items-center justify-center text-xs text-muted/70">
@@ -630,12 +656,13 @@ export function ServiceWeeklyShiftsGrid({
               ))}
             </tfoot>
           </table>
-          {/* Leave-overlay honesty note (Task 5.4): staff apply for leave in
-              Employment Hero — those requests never reach the internal
-              LeaveRequest table this overlay reads. */}
+          {/* Leave-overlay provenance note (Task 5.4 follow-up): the overlay
+              now reads BOTH internal LeaveRequest rows and approved EH leave
+              (served from a 5-min server-side cache — hence "every few
+              minutes"). */}
           <p className="mt-1.5 text-2xs text-muted">
-            Internal leave only — leave applied in Employment Hero won&apos;t
-            appear here.
+            Leave shown from internal records and Employment Hero (EH
+            refreshes every few minutes).
           </p>
         </div>
       )}
@@ -697,17 +724,32 @@ export function ServiceWeeklyShiftsGrid({
 //
 // Amber overlay chip rendered in a staff/day cell when that person has
 // APPROVED internal leave covering the date (½-day variant when every
-// covering entry is a half day). Data via useRosterOverlays — internal
-// LeaveRequest rows only; EH-applied leave never appears (see the grid's
-// legend line).
+// covering entry is a half day). Data via useRosterOverlays. Takes
+// precedence over the EH chip when both systems cover a day.
+
+const LEAVE_CHIP_CLASSES =
+  "mb-1 inline-flex items-center px-1.5 py-0.5 rounded-full border text-2xs font-medium border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200";
 
 function OnLeaveChip({ isHalfDay }: { isHalfDay: boolean }) {
   return (
-    <span
-      data-testid="on-leave-chip"
-      className="mb-1 inline-flex items-center px-1.5 py-0.5 rounded-full border text-2xs font-medium border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200"
-    >
+    <span data-testid="on-leave-chip" className={LEAVE_CHIP_CLASSES}>
       {isHalfDay ? "On leave · ½ day" : "On leave"}
+    </span>
+  );
+}
+
+// ── EhLeaveChip ────────────────────────────────────────────────────
+//
+// Same amber treatment for APPROVED Employment Hero leave (Task 5.4
+// follow-up — the 5-min-cached ehLeave overlay slice). Labelled with the
+// source so directors know where to go to change it. Internal leave takes
+// precedence; the EH chip suppresses the Unavailable hint just like the
+// internal one.
+
+function EhLeaveChip() {
+  return (
+    <span data-testid="eh-leave-chip" className={LEAVE_CHIP_CLASSES}>
+      On leave (EH)
     </span>
   );
 }

@@ -167,3 +167,46 @@ describe("GET /api/org-settings/config — compliance.requiredCertsByRole slice 
     expect(json.config.compliance.requiredCertsByRole.member).toEqual([]);
   });
 });
+
+// ── PATCH role gate (2026-09-05: head_office added per Jayden) ─────
+import { PATCH as patchConfig } from "@/app/api/org-settings/config/route";
+import { ORG_SETTINGS_DEFAULTS } from "@/lib/org-settings-shared";
+
+describe("PATCH /api/org-settings/config — role gate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearOrgSettingsCache();
+    _clearEmailBrandingCache();
+    prismaMock.user.findUnique.mockResolvedValue({
+      active: true,
+      id: "user-1",
+      role: "head_office",
+    } as never);
+    prismaMock.orgSettings.upsert.mockResolvedValue({} as never);
+    prismaMock.orgSettings.findUnique.mockResolvedValue({ config: {} } as never);
+    prismaMock.activityLog.create.mockResolvedValue({} as never);
+  });
+
+  it("allows head_office to save org settings", async () => {
+    mockSession({ id: "user-1", name: "State Manager", role: "head_office" });
+    const res = await patchConfig(
+      createRequest("PATCH", "/api/org-settings/config", {
+        body: { config: ORG_SETTINGS_DEFAULTS },
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(prismaMock.orgSettings.upsert).toHaveBeenCalled();
+  });
+
+  it("still rejects marketing with 403", async () => {
+    mockSession({ id: "user-1", name: "Marketer", role: "marketing" });
+    const res = await patchConfig(
+      createRequest("PATCH", "/api/org-settings/config", {
+        body: { config: ORG_SETTINGS_DEFAULTS },
+      }),
+    );
+    expect(res.status).toBe(403);
+    expect(prismaMock.orgSettings.upsert).not.toHaveBeenCalled();
+  });
+});

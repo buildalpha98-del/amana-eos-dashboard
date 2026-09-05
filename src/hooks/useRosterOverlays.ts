@@ -7,9 +7,10 @@
  * Task 10.2) so availability doesn't cost a second round-trip.
  *
  * Backed by GET /api/roster/overlays (userIds-keyed — never serviceId,
- * which is nullable on LeaveRequest). Leave is internal only: leave applied
- * directly in Employment Hero never lands in the LeaveRequest table, and
- * the grid's legend copy says so. Availability rows are the staff-set
+ * which is nullable on LeaveRequest). Leave comes from BOTH systems:
+ * internal LeaveRequest rows (`leave`) and approved Employment Hero
+ * requests (`ehLeave`, from the server-side 5-min cache — empty when EH
+ * is unconfigured or down). Availability rows are the staff-set
  * (available: false) days from /profile — weekday-keyed (0=Sunday …
  * 6=Saturday), so they repeat every week.
  */
@@ -33,9 +34,18 @@ export interface RosterUnavailabilityEntry {
   note: string | null;
 }
 
+export interface RosterEhLeaveEntry {
+  userId: string;
+  /** EH ISO datetime — slice(0, 10) for the calendar date. */
+  fromDate: string;
+  toDate: string;
+  totalHours: number;
+}
+
 export interface RosterOverlaysResponse {
   leave: RosterLeaveEntry[];
   availability: RosterUnavailabilityEntry[];
+  ehLeave: RosterEhLeaveEntry[];
 }
 
 export function useRosterOverlays(

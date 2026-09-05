@@ -120,7 +120,7 @@ describe("POST /api/leave/requests (retired 2026-06-29)", () => {
     expect(body.error).toContain("My Portal");
     expect(body.redirectTo).toBe("/my-leave");
     expect(prismaMock.leaveRequest.create).not.toHaveBeenCalled();
-    expect(prismaMock.userNotification.create).not.toHaveBeenCalled();
+    expect(prismaMock.userNotification.createMany).not.toHaveBeenCalled();
   });
 });
 
@@ -171,7 +171,7 @@ describe("PATCH /api/leave/requests/[id]", () => {
     };
     prismaMock.leaveRequest.update.mockResolvedValue(updated);
     prismaMock.activityLog.create.mockResolvedValue({});
-    prismaMock.userNotification.create.mockResolvedValue({});
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
 
     const req = createRequest("PATCH", "/api/leave/requests/lr-1", {
       body: { status: "leave_approved" },
@@ -184,13 +184,13 @@ describe("PATCH /api/leave/requests/[id]", () => {
     const body = await res.json();
     expect(body.status).toBe("leave_approved");
 
-    // Requester gets a LEAVE_APPROVED notification
-    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
-    const notifCall = prismaMock.userNotification.create.mock.calls[0][0];
-    expect(notifCall.data.userId).toBe("user-2");
-    expect(notifCall.data.type).toBe("leave_approved");
-    expect(notifCall.data.title).toBe("Leave approved");
-    expect(notifCall.data.link).toBe("/leave?id=lr-1");
+    // Requester gets a LEAVE_APPROVED notification (via notifyUser → createMany)
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(1);
+    const notifCall = prismaMock.userNotification.createMany.mock.calls[0][0];
+    expect(notifCall.data[0].userId).toBe("user-2");
+    expect(notifCall.data[0].type).toBe("leave_approved");
+    expect(notifCall.data[0].title).toBe("Leave approved");
+    expect(notifCall.data[0].link).toBe("/leave?id=lr-1");
   });
 
   it("rejects leave request when owner", async () => {
@@ -219,7 +219,7 @@ describe("PATCH /api/leave/requests/[id]", () => {
     };
     prismaMock.leaveRequest.update.mockResolvedValue(updated);
     prismaMock.activityLog.create.mockResolvedValue({});
-    prismaMock.userNotification.create.mockResolvedValue({});
+    prismaMock.userNotification.createMany.mockResolvedValue({ count: 1 });
 
     const req = createRequest("PATCH", "/api/leave/requests/lr-1", {
       body: { status: "leave_rejected", reviewNotes: "Insufficient notice" },
@@ -233,11 +233,11 @@ describe("PATCH /api/leave/requests/[id]", () => {
     expect(body.status).toBe("leave_rejected");
 
     // Requester gets a LEAVE_DENIED notification with the review note in the body
-    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
-    const notifCall = prismaMock.userNotification.create.mock.calls[0][0];
-    expect(notifCall.data.userId).toBe("user-2");
-    expect(notifCall.data.type).toBe("leave_denied");
-    expect(notifCall.data.title).toBe("Leave denied");
-    expect(notifCall.data.body).toContain("Insufficient notice");
+    expect(prismaMock.userNotification.createMany).toHaveBeenCalledTimes(1);
+    const notifCall = prismaMock.userNotification.createMany.mock.calls[0][0];
+    expect(notifCall.data[0].userId).toBe("user-2");
+    expect(notifCall.data[0].type).toBe("leave_denied");
+    expect(notifCall.data[0].title).toBe("Leave denied");
+    expect(notifCall.data[0].body).toContain("Insufficient notice");
   });
 });

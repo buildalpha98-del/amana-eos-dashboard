@@ -27,8 +27,17 @@ vi.mock("@/lib/logger", () => ({
   generateRequestId: () => "test-req-id",
 }));
 
+// Mock the EH leave cache — the route consumes the already-mapped feed and
+// applies its own scoping/window filtering; the cache lib has its own tests.
+vi.mock("@/lib/eh-leave-cache", () => ({
+  getApprovedEhLeave: vi.fn(() => Promise.resolve([])),
+}));
+
 import { _clearUserActiveCache } from "@/lib/server-auth";
+import { getApprovedEhLeave } from "@/lib/eh-leave-cache";
 import { GET } from "@/app/api/roster/overlays/route";
+
+const mockGetApprovedEhLeave = vi.mocked(getApprovedEhLeave);
 
 const APPROVED_ROW = {
   userId: "staff-1",
@@ -57,6 +66,7 @@ describe("GET /api/roster/overlays", () => {
     vi.clearAllMocks();
     _clearUserActiveCache();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
+    mockGetApprovedEhLeave.mockResolvedValue([]);
   });
 
   it("401 when not authenticated", async () => {
@@ -134,8 +144,11 @@ describe("GET /api/roster/overlays", () => {
     const body = await res.json();
     expect(body.leave).toEqual([]);
     expect(body.availability).toEqual([]);
+    expect(body.ehLeave).toEqual([]);
     expect(prismaMock.leaveRequest.findMany).not.toHaveBeenCalled();
     expect(prismaMock.staffAvailability.findMany).not.toHaveBeenCalled();
+    // Short-circuits before the EH cache too.
+    expect(mockGetApprovedEhLeave).not.toHaveBeenCalled();
   });
 
   it("member whose requested ids are all out-of-centre gets empty overlays", async () => {
@@ -146,8 +159,10 @@ describe("GET /api/roster/overlays", () => {
     const body = await res.json();
     expect(body.leave).toEqual([]);
     expect(body.availability).toEqual([]);
+    expect(body.ehLeave).toEqual([]);
     expect(prismaMock.leaveRequest.findMany).not.toHaveBeenCalled();
     expect(prismaMock.staffAvailability.findMany).not.toHaveBeenCalled();
+    expect(mockGetApprovedEhLeave).not.toHaveBeenCalled();
   });
 
   it("happy path: admin gets leave + unavailable days for the window, unscoped", async () => {
@@ -192,5 +207,112 @@ describe("GET /api/roster/overlays", () => {
       weekday: true,
       note: true,
     });
+
+    // Backward-compatible shape: ehLeave rides alongside, empty here.
+    expect(body.ehLeave).toEqual([]);
+  });
+
+  it("ehLeave: filters the cached EH feed to the requested userIds and window", async () => {
+    mockSession({ id: "admin-1", name: "A", role: "admin" });
+    prismaMock.leaveRequest.findMany.mockResolvedValue([]);
+    prismaMock.staffAvailability.findMany.mockResolvedValue([]);
+    mockGetApprovedEhLeave.mockResolvedValue([
+      // Overlaps the window (inclusive) — kept.
+      {
+        userId: "staff-1",
+        fromDate: "2026-09-03T00:00:00",
+        toDate: "2026-09-08T00:00:00",
+        totalHours: 22.8,
+      },
+      // Single day exactly on `to` — inclusive boundary, kept.
+      {
+        userId: "staff-2",
+        fromDate: "2026-09-04T00:00:00",
+        toDate: "2026-09-04T00:00:00",
+        totalHours: 7.6,
+      },
+      // Entirely before the window — dropped.
+      {
+        userId: "staff-1",
+        fromDate: "2026-08-01T00:00:00",
+        toDate: "2026-08-30T00:00:00",
+        totalHours: 7.6,
+      },
+      // Not in the requested userIds — dropped.
+      {
+        userId: "staff-elsewhere",
+        fromDate: "2026-09-01T00:00:00",
+        toDate: "2026-09-02T00:00:00",
+        totalHours: 7.6,
+      },
+    ]);
+
+    // Window is 2026-08-31 → 2026-09-04 (overlaysUrl defaults).
+    const res = await GET(createRequest("GET", overlaysUrl()));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ehLeave).toEqual([
+      {
+        userId: "staff-1",
+        fromDate: "2026-09-03T00:00:00",
+        toDate: "2026-09-08T00:00:00",
+        totalHours: 22.8,
+      },
+      {
+        userId: "staff-2",
+        fromDate: "2026-09-04T00:00:00",
+        toDate: "2026-09-04T00:00:00",
+        totalHours: 7.6,
+      },
+    ]);
+  });
+
+  it("ehLeave: member centre-scoping applies identically to the EH feed", async () => {
+    mockSession({ id: "dir-1", name: "Dee", role: "member", serviceId: "svc-1" });
+    // Only staff-1 is in the member's centre.
+    prismaMock.user.findMany.mockResolvedValue([{ id: "staff-1" }]);
+    prismaMock.leaveRequest.findMany.mockResolvedValue([]);
+    prismaMock.staffAvailability.findMany.mockResolvedValue([]);
+    mockGetApprovedEhLeave.mockResolvedValue([
+      {
+        userId: "staff-1",
+        fromDate: "2026-09-01T00:00:00",
+        toDate: "2026-09-02T00:00:00",
+        totalHours: 15.2,
+      },
+      // staff-2 was requested but is out-of-centre — must never leak.
+      {
+        userId: "staff-2",
+        fromDate: "2026-09-01T00:00:00",
+        toDate: "2026-09-02T00:00:00",
+        totalHours: 7.6,
+      },
+    ]);
+
+    const res = await GET(createRequest("GET", overlaysUrl("staff-1,staff-2")));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ehLeave).toEqual([
+      {
+        userId: "staff-1",
+        fromDate: "2026-09-01T00:00:00",
+        toDate: "2026-09-02T00:00:00",
+        totalHours: 15.2,
+      },
+    ]);
+  });
+
+  it("ehLeave: empty when EH is unconfigured/down (cache returns [])", async () => {
+    mockSession({ id: "admin-1", name: "A", role: "admin" });
+    prismaMock.leaveRequest.findMany.mockResolvedValue([APPROVED_ROW]);
+    prismaMock.staffAvailability.findMany.mockResolvedValue([]);
+    mockGetApprovedEhLeave.mockResolvedValue([]);
+
+    const res = await GET(createRequest("GET", overlaysUrl()));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    // The rest of the overlay still works — degraded, not broken.
+    expect(body.leave).toHaveLength(1);
+    expect(body.ehLeave).toEqual([]);
   });
 });

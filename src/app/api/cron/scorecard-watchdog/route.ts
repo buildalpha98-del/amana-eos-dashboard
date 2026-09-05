@@ -5,6 +5,7 @@ import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
 import { getOrgSettings } from "@/lib/org-settings";
 import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { notifyUser } from "@/lib/notify-user";
 
 /**
  * GET /api/cron/scorecard-watchdog — weekly, Sunday 21:30 UTC (after
@@ -94,16 +95,11 @@ export const GET = withApiHandler(async (req) => {
 
       if (m.ownerId) {
         try {
-          await prisma.userNotification.createMany({
-            data: [
-              {
-                userId: m.ownerId,
-                type: NOTIFICATION_TYPES.SCORECARD_WATCHDOG,
-                title: `Scorecard watchdog: ${m.title}`,
-                body: `Off-track ${weeks} weeks running — an Issue has been raised into IDS.`,
-                link: "/issues",
-              },
-            ],
+          await notifyUser(prisma, m.ownerId, {
+            type: NOTIFICATION_TYPES.SCORECARD_WATCHDOG,
+            title: `Scorecard watchdog: ${m.title}`,
+            body: `Off-track ${weeks} weeks running — an Issue has been raised into IDS.`,
+            link: "/issues",
           });
         } catch (err) {
           logger.error("scorecard-watchdog: notification failed", { err });

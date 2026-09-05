@@ -108,6 +108,8 @@ function installFetchMock(opts?: {
   leave?: unknown[];
   /** Unavailable-weekday rows for /api/roster/overlays. */
   availability?: unknown[];
+  /** Approved Employment Hero leave rows for /api/roster/overlays. */
+  ehLeave?: unknown[];
   /** Overrides the /api/services/[id]/staff members list. */
   members?: unknown[];
 }) {
@@ -145,6 +147,7 @@ function installFetchMock(opts?: {
         json: async () => ({
           leave: opts?.leave ?? [],
           availability: opts?.availability ?? [],
+          ehLeave: opts?.ehLeave ?? [],
         }),
       } as unknown as Response;
     }
@@ -526,7 +529,7 @@ describe("ServiceWeeklyShiftsGrid", () => {
     expect(screen.queryByText("Departed Dave")).toBeNull();
   });
 
-  it("overlays an On leave chip on covered days and shows the EH-honesty legend", async () => {
+  it("overlays an On leave chip on covered days and shows the dual-source legend", async () => {
     sessionRef.role = "admin";
     installFetchMock({
       leave: [
@@ -552,10 +555,104 @@ describe("ServiceWeeklyShiftsGrid", () => {
     // The chip sits inside Jane's Monday cell.
     const mondayCell = screen.getByTestId(`shift-cell-staff-1-${MONDAY_ISO}`);
     expect(mondayCell.contains(screen.getByTestId("on-leave-chip"))).toBe(true);
-    // Legend: internal leave only, EH leave never appears.
+    // Legend: leave comes from BOTH systems now, with the EH cache lag noted.
     expect(
-      screen.getByText(/leave applied in Employment Hero/i),
+      screen.getByText(
+        /Leave shown from internal records and Employment Hero/i,
+      ),
     ).toBeDefined();
+    expect(
+      screen.getByText(/EH refreshes every few minutes/i),
+    ).toBeDefined();
+  });
+
+  it("overlays an On leave (EH) chip on days covered by approved Employment Hero leave", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      ehLeave: [
+        {
+          userId: "staff-1",
+          fromDate: `${MONDAY_ISO}T00:00:00`,
+          toDate: `${MONDAY_ISO}T00:00:00`,
+          totalHours: 7.6,
+        },
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("eh-leave-chip")).toBeDefined();
+    });
+    expect(screen.getByTestId("eh-leave-chip").textContent).toBe(
+      "On leave (EH)",
+    );
+    const mondayCell = screen.getByTestId(`shift-cell-staff-1-${MONDAY_ISO}`);
+    expect(mondayCell.contains(screen.getByTestId("eh-leave-chip"))).toBe(true);
+  });
+
+  it("internal leave takes precedence over EH leave when both cover a day", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      leave: [
+        {
+          userId: "staff-1",
+          leaveType: "annual",
+          startDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          endDate: `${MONDAY_ISO}T00:00:00.000Z`,
+          isHalfDay: false,
+        },
+      ],
+      ehLeave: [
+        {
+          userId: "staff-1",
+          fromDate: `${MONDAY_ISO}T00:00:00`,
+          toDate: `${MONDAY_ISO}T00:00:00`,
+          totalHours: 7.6,
+        },
+      ],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("on-leave-chip")).toBeDefined();
+    });
+    // One chip per cell — the internal one wins.
+    expect(screen.queryByTestId("eh-leave-chip")).toBeNull();
+  });
+
+  it("suppresses the Unavailable hint when an EH leave chip covers the same day", async () => {
+    sessionRef.role = "admin";
+    installFetchMock({
+      ehLeave: [
+        {
+          userId: "staff-1",
+          fromDate: `${MONDAY_ISO}T00:00:00`,
+          toDate: `${MONDAY_ISO}T00:00:00`,
+          totalHours: 7.6,
+        },
+      ],
+      // Monday → getDay() === 1.
+      availability: [{ userId: "staff-1", weekday: 1, note: null }],
+    });
+
+    const qc = makeClient();
+    render(<ServiceWeeklyShiftsGrid serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("eh-leave-chip")).toBeDefined();
+    });
+    // Leave chips (either source) beat the availability hint.
+    expect(screen.queryByTestId("unavailable-hint")).toBeNull();
   });
 
   it("shows an Unavailable hint on cells whose weekday the staff member marked unavailable", async () => {

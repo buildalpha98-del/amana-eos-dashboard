@@ -3,12 +3,13 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { getApprovedEhLeave } from "@/lib/eh-leave-cache";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
 // GET /api/roster/overlays?userIds=a,b,c&from=YYYY-MM-DD&to=YYYY-MM-DD
 //
-// One batched fetch for BOTH roster-grid overlays (replaces the old
+// One batched fetch for ALL roster-grid overlays (replaces the old
 // /api/roster/leave route — staff-portal-v2 Task 10.2):
 //
 //   leave        — approved INTERNAL leave overlapping [from, to] for the
@@ -21,10 +22,14 @@ import { z } from "zod";
 //                  rows with available: false, self-set on /profile) for
 //                  the "Unavailable" cell hint. Weekday-keyed, not
 //                  date-range-keyed, so [from, to] doesn't constrain it.
-//
-// NOTE: staff apply for leave via Employment Hero (/my-leave); the leave
-// overlay only sees the internal LeaveRequest table. The grid surfaces that
-// limitation in its legend copy (plan Task 5.4).
+//   ehLeave      — approved EMPLOYMENT HERO leave (Task 5.4 follow-up):
+//                  staff apply for leave via EH (/my-leave), so internal
+//                  LeaveRequest rows alone miss real upcoming leave. Served
+//                  from the 5-min in-process cache in eh-leave-cache.ts,
+//                  then filtered to the same allow-listed userIds as the
+//                  internal-leave query (member centre-scoping applies
+//                  identically) and to the [from, to] window. Degrades to
+//                  [] when EH is unconfigured or down — never breaks.
 // ---------------------------------------------------------------------------
 
 const querySchema = z.object({
@@ -37,7 +42,7 @@ const querySchema = z.object({
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-const EMPTY = { leave: [], availability: [] };
+const EMPTY = { leave: [], availability: [], ehLeave: [] };
 
 export const GET = withApiAuth(
   async (req, session) => {
@@ -87,7 +92,7 @@ export const GET = withApiAuth(
       }
     }
 
-    const [leave, availability] = await Promise.all([
+    const [leave, availability, ehLeaveAll] = await Promise.all([
       prisma.leaveRequest.findMany({
         where: {
           userId: { in: allowedIds },
@@ -115,9 +120,23 @@ export const GET = withApiAuth(
         select: { userId: true, weekday: true, note: true },
         orderBy: { weekday: "asc" },
       }),
+      // Org-wide approved EH leave from the 5-min cache — scoped below.
+      getApprovedEhLeave(),
     ]);
 
-    return NextResponse.json({ leave, availability });
+    // Same allow-list as the internal-leave query (member centre-scoping
+    // already applied), then inclusive date-range overlap against the
+    // window. EH dates are ISO datetimes — compare the YYYY-MM-DD prefixes
+    // lexicographically; never Date-parse (a UTC parse can shift the day).
+    const allowedSet = new Set(allowedIds);
+    const ehLeave = ehLeaveAll.filter((entry) => {
+      if (!allowedSet.has(entry.userId)) return false;
+      const entryFrom = entry.fromDate.slice(0, 10);
+      const entryTo = entry.toDate.slice(0, 10);
+      return entryFrom <= to && entryTo >= from;
+    });
+
+    return NextResponse.json({ leave, availability, ehLeave });
   },
   { roles: ["owner", "head_office", "admin", "member"] },
 );
