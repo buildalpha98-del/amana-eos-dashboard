@@ -49,6 +49,8 @@ import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCar
 import { MyClockCard, clockWindowRange } from "@/components/my-portal/MyClockCard";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
 import { useMyPayslips, formatCurrency } from "@/hooks/useMyPayslips";
+import { useOrgConfig } from "@/hooks/useOrgConfig";
+import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { totalAmount, type ExpenseRequest } from "@/components/my-portal/MyExpensesCard";
 import { CLOCK_IN_WINDOW_MS, shiftStartMs } from "@/lib/timeclock-pick";
 import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
@@ -507,8 +509,19 @@ function GlanceTile({
  */
 function GlanceTiles({
   certStats,
+  requiredCertStats,
 }: {
   certStats: { valid: number; expiring: number; expired: number; total: number } | null;
+  /** Phase 9: per-TYPE counts over the cert types required for this user's
+   *  role (org-settings matrix). When present it wins over the all-certs
+   *  certStats — "N of M required". Null = no required types configured. */
+  requiredCertStats: {
+    valid: number;
+    expiring: number;
+    expired: number;
+    missing: number;
+    total: number;
+  } | null;
 }) {
   const payslipsQuery = useMyPayslips();
 
@@ -574,23 +587,42 @@ function GlanceTiles({
       : "No claims awaiting approval"
     : undefined;
 
-  // Compliance — valid count from the certs this page already fetched.
-  const complianceValue = certStats
-    ? `${certStats.valid} of ${certStats.total}`
-    : "—";
-  const complianceSub = certStats
-    ? certStats.expired > 0
-      ? `${certStats.expired} expired`
-      : certStats.expiring > 0
-        ? `${certStats.expiring} expiring soon`
-        : "up to date"
-    : undefined;
-  const complianceSubClass =
-    certStats && certStats.expired > 0
-      ? "text-red-600 dark:text-red-400 font-semibold"
-      : certStats && certStats.expiring > 0
-        ? "text-amber-600 dark:text-amber-400 font-semibold"
-        : undefined;
+  // Compliance — required-only type counts when the role has a configured
+  // requirement set (Phase 9); otherwise the legacy all-certs count.
+  const complianceValue = requiredCertStats
+    ? `${requiredCertStats.valid} of ${requiredCertStats.total} required`
+    : certStats
+      ? `${certStats.valid} of ${certStats.total}`
+      : "—";
+  const complianceSub = requiredCertStats
+    ? requiredCertStats.expired > 0
+      ? `${requiredCertStats.expired} expired`
+      : requiredCertStats.missing > 0
+        ? `${requiredCertStats.missing} missing`
+        : requiredCertStats.expiring > 0
+          ? `${requiredCertStats.expiring} expiring soon`
+          : "up to date"
+    : certStats
+      ? certStats.expired > 0
+        ? `${certStats.expired} expired`
+        : certStats.expiring > 0
+          ? `${certStats.expiring} expiring soon`
+          : "up to date"
+      : undefined;
+  const complianceAlert = requiredCertStats
+    ? {
+        red: requiredCertStats.expired > 0 || requiredCertStats.missing > 0,
+        amber: requiredCertStats.expiring > 0,
+      }
+    : {
+        red: !!certStats && certStats.expired > 0,
+        amber: !!certStats && certStats.expiring > 0,
+      };
+  const complianceSubClass = complianceAlert.red
+    ? "text-red-600 dark:text-red-400 font-semibold"
+    : complianceAlert.amber
+      ? "text-amber-600 dark:text-amber-400 font-semibold"
+      : undefined;
 
   return (
     <div
@@ -912,6 +944,8 @@ export default function MyPortalPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useMyPortal();
+  // Phase 9: cert-requirements matrix, via the client-safe config slice.
+  const { data: orgConfig } = useOrgConfig();
 
   const [ackPolicyId, setAckPolicyId] = useState<string | null>(null);
   const [ackPolicyTitle, setAckPolicyTitle] = useState("");
@@ -973,6 +1007,38 @@ export default function MyPortalPage() {
 
     return { valid, expiring, expired, total: data.complianceCerts.length };
   }, [data]);
+
+  // Phase 9: required-only counts for the compliance glance tile. Counts
+  // TYPES (not documents): for each cert type required for this user's
+  // role, take the best cert on file — valid > expiring > expired — or
+  // "missing" when there's none. Falls back to null (tile keeps the
+  // all-certs certStats) when the role has no required types configured.
+  const requiredCertStats = useMemo(() => {
+    if (!data) return null;
+    const requiredTypes = getRequiredCertTypes(data.profile.role, orgConfig);
+    if (requiredTypes.length === 0) return null;
+
+    let valid = 0;
+    let expiring = 0;
+    let expired = 0;
+    let missing = 0;
+    for (const type of requiredTypes) {
+      const ofType = data.complianceCerts.filter((c) => c.type === type);
+      if (ofType.length === 0) {
+        missing++;
+        continue;
+      }
+      const statuses = ofType.map((c) => {
+        if (!c.expiryDate) return "valid";
+        const days = daysUntilExpiry(c.expiryDate);
+        return days < 0 ? "expired" : days <= 30 ? "expiring" : "valid";
+      });
+      if (statuses.includes("valid")) valid++;
+      else if (statuses.includes("expiring")) expiring++;
+      else expired++;
+    }
+    return { valid, expiring, expired, missing, total: requiredTypes.length };
+  }, [data, orgConfig]);
 
   /* ---- Loading State ---- */
   if (isLoading) {
@@ -1136,7 +1202,7 @@ export default function MyPortalPage() {
       {/* ============================================================ */}
       {session?.user?.id && <NextShiftHero userId={session.user.id} />}
 
-      <GlanceTiles certStats={certStats} />
+      <GlanceTiles certStats={certStats} requiredCertStats={requiredCertStats} />
 
       <QuickActionsRow />
 

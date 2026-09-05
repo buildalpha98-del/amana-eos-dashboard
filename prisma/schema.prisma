@@ -801,6 +801,7 @@ model User {
   policyDocVersionUploads   PolicyDocumentVersion[]         @relation("PolicyDocVersionUploader")
   policyDocAcks             PolicyDocumentAcknowledgement[] @relation("PolicyDocAcknowledger")
   offboardings              StaffOffboarding[]              @relation("OffboardingUser")
+  availability              StaffAvailability[]             @relation("UserAvailability")
   apiKeys                   ApiKey[]                        @relation("ApiKeyCreator")
 
   // ── CRM Relations ───────────────────────────────────────────
@@ -4621,6 +4622,10 @@ model EmploymentContract {
   contractType        ContractType
   awardLevel          AwardLevel?
   awardLevelCustom    String?
+  // Staff-portal-v2 Task 10.3: free-text award classification (e.g.
+  // "Children's Services Employee Level 3.1") shown in the salary
+  // history. Optional — legacy contracts leave it null.
+  classification      String?
   payRate             Float
   hoursPerWeek        Float?
   startDate           DateTime       @db.Date
@@ -5409,6 +5414,30 @@ model RosterShift {
   @@index([userId])
   @@index([userId, date])
   @@index([status])
+}
+
+/// Staff-portal-v2 Task 10.2: recurring weekly availability, set by the
+/// staff member themselves on /profile (self-scoped GET/PUT at
+/// /api/my-portal/availability). One row per weekday (0=Sunday … 6=Saturday,
+/// JS Date#getDay convention). `available: false` marks the whole day
+/// unavailable; when `available: true`, the optional `startTime`/`endTime`
+/// ("HH:MM") narrow it to a window. Advisory only — the roster grid overlays
+/// a subtle "Unavailable" hint (batched with the leave overlay via
+/// /api/roster/overlays) but nothing blocks an admin from rostering anyway.
+model StaffAvailability {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserAvailability", fields: [userId], references: [id], onDelete: Cascade)
+  weekday   Int // 0-6, JS Date#getDay convention (0=Sunday)
+  available Boolean  @default(true)
+  startTime String? // "HH:MM" — only meaningful when available
+  endTime   String? // "HH:MM"
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, weekday])
+  @@index([userId])
 }
 
 /// Responsible-person register — under the NQF an approved provider must

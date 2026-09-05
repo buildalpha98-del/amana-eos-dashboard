@@ -103,3 +103,67 @@ describe("GET /api/org-settings/config — branding slice for the composer seed"
     });
   });
 });
+
+describe("GET /api/org-settings/config — compliance.requiredCertsByRole slice (Phase 9)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    _clearOrgSettingsCache();
+    _clearEmailBrandingCache();
+    setupActiveUserMock();
+    // Deliberately a NON-admin session: staff surfaces (/compliance,
+    // /my-portal) resolve required cert types from THIS slice because the
+    // row-level /api/org-settings GET is role-gated away from them.
+    mockSession({ id: "user-1", name: "Marketer", role: "marketing" });
+  });
+
+  it("exposes the default matrix when the stored config has no compliance block", async () => {
+    prismaMock.orgSettings.findUnique.mockImplementation(
+      async (args: { select?: Record<string, boolean> } | undefined) => {
+        if (args?.select?.config) return { config: {} } as never;
+        return { name: "Bright Futures OSHC", primaryColor: "#112233" } as never;
+      },
+    );
+    const res = await getConfig(
+      createRequest("GET", "/api/org-settings/config"),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.config.compliance.requiredCertsByRole.staff).toEqual([
+      "wwcc",
+      "first_aid",
+      "cpr",
+      "anaphylaxis",
+      "child_protection",
+    ]);
+    expect(json.config.compliance.requiredCertsByRole.owner).toEqual([]);
+  });
+
+  it("exposes a customised stored matrix", async () => {
+    prismaMock.orgSettings.findUnique.mockImplementation(
+      async (args: { select?: Record<string, boolean> } | undefined) => {
+        if (args?.select?.config) {
+          return {
+            config: {
+              compliance: {
+                requiredCertsByRole: { staff: ["wwcc", "asthma"], member: [] },
+              },
+            },
+          } as never;
+        }
+        return { name: "Bright Futures OSHC", primaryColor: "#112233" } as never;
+      },
+    );
+    const res = await getConfig(
+      createRequest("GET", "/api/org-settings/config"),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.config.compliance.requiredCertsByRole.staff).toEqual([
+      "wwcc",
+      "asthma",
+    ]);
+    // Explicitly empty stays empty (empty ≠ missing).
+    expect(json.config.compliance.requiredCertsByRole.member).toEqual([]);
+  });
+});

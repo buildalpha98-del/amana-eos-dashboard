@@ -7,6 +7,8 @@ import type { StaffProfileData } from "@/components/staff/types";
 import { StaffProfileLayout } from "@/components/staff/StaffProfileLayout";
 import { getCertStatus } from "@/lib/cert-status";
 import { computeSnapshotStats } from "@/lib/staff/snapshot-stats";
+import { getOrgSettings } from "@/lib/org-settings";
+import { getRequiredCertTypes } from "@/lib/cert-requirements";
 import { buildListWhere } from "@/lib/employees/build-list-where";
 import { getCentreScope } from "@/lib/centre-scope";
 
@@ -188,7 +190,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
   // Fetch all profile data in parallel
   const [
     emergencyContacts,
-    latestContract,
+    contracts,
     balances,
     recentLeaveRequests,
     timesheetEntries,
@@ -209,7 +211,9 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
       where: { userId: id },
       orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
     }),
-    prisma.employmentContract.findFirst({
+    // Task 10.3: ALL contracts, newest first — Pay & compensation renders
+    // the full salary history; consumers wanting "the latest" take [0].
+    prisma.employmentContract.findMany({
       where: { userId: id },
       orderBy: { startDate: "desc" },
     }),
@@ -400,10 +404,13 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     surveyStatus: r.survey.status,
   }));
 
+  const latestContract = contracts[0] ?? null;
+
   const data: StaffProfileData = {
     targetUser,
     emergencyContacts,
     latestContract,
+    contracts,
     balances,
     recentLeaveRequests,
     timesheetWeeks,
@@ -430,13 +437,13 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
 
   // Compute the long-scroll layout's snapshot panel content. The
   // helper is pure — same input always yields the same output, no DB
-  // calls. Parent passes `latestContract.startDate` as the earliest
-  // contract start because the data load only fetches the most-recent
-  // active contract; if that's older than User.createdAt, tenure
-  // back-dates to it.
+  // calls. Since Task 10.3 the load fetches ALL contracts (desc), so
+  // the TRUE earliest start (last row) feeds tenure; if that's older
+  // than User.createdAt, tenure back-dates to it.
   const snapshotStats = computeSnapshotStats({
     user: { createdAt: targetUser.createdAt },
-    earliestContractStart: latestContract?.startDate ?? null,
+    earliestContractStart:
+      contracts[contracts.length - 1]?.startDate ?? null,
     nextShift: nextShift
       ? {
           date: new Date(nextShift.date),
@@ -448,7 +455,17 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
             : null,
         }
       : null,
-    certificates: certificates.map((c) => ({ expiryDate: c.expiryDate })),
+    certificates: certificates.map((c) => ({
+      type: c.type,
+      expiryDate: c.expiryDate,
+    })),
+    // Phase 9: count required-only for the TARGET user's role (org-settings
+    // matrix via the 60s-cached server reader). Roles with no configured
+    // requirements keep the legacy every-document counts.
+    requiredCertTypes: getRequiredCertTypes(
+      targetUser.role,
+      await getOrgSettings(),
+    ),
     activeRocks: Number(activeRocks) || 0,
     openTodos: Number(openTodos) || 0,
   });

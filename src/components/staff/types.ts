@@ -85,7 +85,11 @@ export interface StaffFormSubmission {
 export interface StaffProfileData {
   targetUser: User & { service?: Service | null };
   emergencyContacts: EmergencyContact[];
+  /** Most recent contract by startDate — `contracts[0]`. Kept as its own
+   *  field because several sections only care about the current one. */
   latestContract: EmploymentContract | null;
+  /** ALL contracts, newest first (Task 10.3 — salary history). */
+  contracts: EmploymentContract[];
   balances: LeaveBalance[];
   recentLeaveRequests: LeaveRequest[];
   timesheetWeeks: TimesheetSummary[];

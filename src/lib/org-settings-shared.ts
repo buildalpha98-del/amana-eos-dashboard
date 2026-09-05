@@ -38,6 +38,78 @@ type Role =
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
+// 2026-09-05 (Staff Portal v2 Phase 9): the canonical certificate-type list
+// for the "required certs by role" matrix. Mirrors the `CertificateType`
+// Prisma enum MINUS `other` — "other" is a free-form catch-all that the
+// staff /compliance view deliberately hides, so making it "required" would
+// be unsatisfiable. Inlined as literals for the same Edge-runtime reason as
+// the Role union above (this file must stay free of @prisma/client).
+export const REQUIRED_CERT_TYPE_VALUES = [
+  "wwcc",
+  "first_aid",
+  "anaphylaxis",
+  "asthma",
+  "cpr",
+  "police_check",
+  "annual_review",
+  "child_protection",
+  "geccko",
+  "food_safety",
+  "food_handler",
+  "mandatory_reporter_training",
+  "child_safe_code_of_conduct",
+] as const;
+
+export type RequiredCertType = (typeof REQUIRED_CERT_TYPE_VALUES)[number];
+
+const requiredCertTypeSchema = z.enum(REQUIRED_CERT_TYPE_VALUES);
+
+/** The 5 core child-facing certificate types — default requirement set for
+ *  the on-floor roles (`staff` OSHC Educator, `member` OSHC Coordinator). */
+export const CORE_CHILD_FACING_CERT_TYPES: readonly RequiredCertType[] = [
+  "wwcc",
+  "first_aid",
+  "cpr",
+  "anaphylaxis",
+  "child_protection",
+] as const;
+
+export type RequiredCertsByRole = Record<Role, RequiredCertType[]>;
+
+export const REQUIRED_CERTS_BY_ROLE_DEFAULTS: RequiredCertsByRole = {
+  owner: [],
+  head_office: [],
+  admin: [],
+  marketing: [],
+  member: [...CORE_CHILD_FACING_CERT_TYPES],
+  staff: [...CORE_CHILD_FACING_CERT_TYPES],
+  eos_viewer: [],
+  eos_implementer: [],
+  eos: [],
+};
+
+const requiredCertListSchema = z.array(requiredCertTypeSchema).max(
+  REQUIRED_CERT_TYPE_VALUES.length,
+);
+
+// STRICT object: an unknown role key is a bug (or a typo'd hand-edit), not
+// a forward-compat case — reject it at the write boundary. Per-key defaults
+// cover documents saved before a role existed (same precedent as
+// roleLabels.eos_viewer).
+const requiredCertsByRoleSchema = z
+  .object({
+    owner: requiredCertListSchema.default([]),
+    head_office: requiredCertListSchema.default([]),
+    admin: requiredCertListSchema.default([]),
+    marketing: requiredCertListSchema.default([]),
+    member: requiredCertListSchema.default([...CORE_CHILD_FACING_CERT_TYPES]),
+    staff: requiredCertListSchema.default([...CORE_CHILD_FACING_CERT_TYPES]),
+    eos_viewer: requiredCertListSchema.default([]),
+    eos_implementer: requiredCertListSchema.default([]),
+    eos: requiredCertListSchema.default([]),
+  })
+  .strict();
+
 const ratioStringSchema = z
   .string()
   .regex(/^\d+:\d+$/i, "Use the form '1:15' (educator : children)");
@@ -240,6 +312,21 @@ export const orgSettingsConfigSchema = z.object({
   onboardingWelcome: onboardingWelcomeSchema,
   // 2026-05-16: parent-facing Welcome Pack PDF.
   welcomePack: welcomePackSchema,
+  // 2026-09-05 (Staff Portal v2 Phase 9): which certificate types each role
+  // must hold. Drives the staff /compliance "Required for your role" split,
+  // the /my-portal compliance glance tile, and the staff-profile snapshot
+  // counts — all via getRequiredCertTypes() in src/lib/cert-requirements.ts.
+  // OBJECT-level .default() with the FULL object is mandatory (PATCH is a
+  // strict full-replace; zod v4 .default() short-circuits inner defaults).
+  compliance: z
+    .object({
+      requiredCertsByRole: requiredCertsByRoleSchema.default(
+        structuredClone(REQUIRED_CERTS_BY_ROLE_DEFAULTS),
+      ),
+    })
+    .default({
+      requiredCertsByRole: structuredClone(REQUIRED_CERTS_BY_ROLE_DEFAULTS),
+    }),
 });
 
 export type OrgSettingsConfig = z.infer<typeof orgSettingsConfigSchema>;
@@ -371,6 +458,9 @@ export const ORG_SETTINGS_DEFAULTS: OrgSettingsConfig = {
       { name: "Fuel Up with Amana", desc: "Cooking and nutrition workshops where children learn healthy eating habits." },
       { name: "Holiday Quest", desc: "Full-day vacation care during school holidays with excursions, cooking, sports, and themed activities." },
     ],
+  },
+  compliance: {
+    requiredCertsByRole: structuredClone(REQUIRED_CERTS_BY_ROLE_DEFAULTS),
   },
   onboardingWelcome: {
     title: "Welcome to the Amana Dashboard",
@@ -549,6 +639,52 @@ export function mergeOrgSettings(
       defaults.onboardingWelcome,
     ),
     welcomePack: mergeWelcomePack(safe.welcomePack, defaults.welcomePack),
+    compliance: mergeCompliance(safe.compliance, defaults.compliance),
+  };
+}
+
+function mergeCompliance(
+  partial: unknown,
+  defaults: OrgSettingsConfig["compliance"],
+): OrgSettingsConfig["compliance"] {
+  const safe = (partial && typeof partial === "object" ? partial : {}) as Record<
+    string,
+    unknown
+  >;
+  const byRole = (safe.requiredCertsByRole &&
+  typeof safe.requiredCertsByRole === "object"
+    ? safe.requiredCertsByRole
+    : {}) as Record<string, unknown>;
+  const validTypes = new Set<string>(REQUIRED_CERT_TYPE_VALUES);
+  // Permissive on read: an array is accepted with unknown/duplicate entries
+  // dropped; anything else falls back to the default for that role.
+  const pick = (role: Role): RequiredCertType[] => {
+    const v = byRole[role];
+    if (!Array.isArray(v)) return [...defaults.requiredCertsByRole[role]];
+    const out: RequiredCertType[] = [];
+    for (const entry of v) {
+      if (
+        typeof entry === "string" &&
+        validTypes.has(entry) &&
+        !out.includes(entry as RequiredCertType)
+      ) {
+        out.push(entry as RequiredCertType);
+      }
+    }
+    return out;
+  };
+  return {
+    requiredCertsByRole: {
+      owner: pick("owner"),
+      head_office: pick("head_office"),
+      admin: pick("admin"),
+      marketing: pick("marketing"),
+      member: pick("member"),
+      staff: pick("staff"),
+      eos_viewer: pick("eos_viewer"),
+      eos_implementer: pick("eos_implementer"),
+      eos: pick("eos"),
+    },
   };
 }
 

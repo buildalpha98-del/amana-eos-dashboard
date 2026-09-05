@@ -24,6 +24,9 @@ const issueSchema = z.object({
       .enum(["es1", "es2", "es3", "es4", "cs1", "cs2", "cs3", "cs4", "director", "coordinator", "custom"])
       .nullish(),
     awardLevelCustom: z.string().nullish(),
+    // Task 10.3: optional free-text award classification (e.g.
+    // "Children's Services Employee Level 3.1") for the salary history.
+    classification: z.string().max(200).nullish(),
     payRate: z.number().positive(),
     hoursPerWeek: z.number().positive().nullish(),
     startDate: z.string(),
@@ -157,6 +160,7 @@ export const POST = withApiAuth(
         contractType: data.contractMeta.contractType,
         awardLevel: data.contractMeta.awardLevel ?? null,
         awardLevelCustom: data.contractMeta.awardLevelCustom ?? null,
+        classification: data.contractMeta.classification || null,
         payRate: data.contractMeta.payRate,
         hoursPerWeek: data.contractMeta.hoursPerWeek ?? null,
         startDate,
