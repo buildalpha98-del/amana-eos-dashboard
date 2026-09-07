@@ -25,10 +25,14 @@ const securityHeaders = (opts: { metaPixel?: boolean } = {}) => [
   { key: "X-XSS-Protection", value: "1; mode=block" },
   // Only allow HTTPS after first visit
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-  // Restrict permissions/features
+  // Restrict permissions/features. microphone=(self) is REQUIRED for the
+  // L10 meeting recorder (useMeetingRecorder → getUserMedia): microphone=()
+  // disables the mic for the whole document, so Chrome rejected every
+  // Record attempt with NotAllowedError no matter what site/macOS
+  // permission the user granted (2026-09-01 "still failing, I tried it all").
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=()",
+    value: "camera=(), microphone=(self), geolocation=(), payment=()",
   },
   // Content Security Policy
   {
