@@ -87,4 +87,76 @@ describe("EnrolmentThankYouPage", () => {
       await screen.findByText(/be in touch within one business day/i),
     ).toBeInTheDocument();
   });
+
+  // 2026-09-08: Daniel asked for "extensive info" once a family lands
+  // here — approval number, operating hours, contact, and the map —
+  // all specific to the centre they just enrolled at.
+  describe("centre details", () => {
+    const fullCentre = {
+      id: "svc-1",
+      name: "Mawson Lakes",
+      address: "12 School Rd, Mawson Lakes SA 5095",
+      phone: "08 8123 4567",
+      email: "mawsonlakes@amanaoshc.com.au",
+      serviceApprovalNumber: "SE-00012345",
+      operatingDays: "Mon-Fri",
+      rooms: [
+        { id: "r1", name: "Before School Care", startTime: "06:30", endTime: "08:45" },
+        { id: "r2", name: "After School Care", startTime: "15:00", endTime: "18:00" },
+      ],
+      content: {
+        enrolmentThankYou: "",
+        locationWithinSchool: "Hall, next to the canteen",
+        serviceMapUrl: "https://blob.example/mawson-map.png",
+        serviceMapName: "Mawson Lakes map",
+      },
+    };
+
+    it("shows the centre's contact details, approval number, and operating hours", async () => {
+      mockSearchParams = new URLSearchParams({ submissionId: "sub-1", serviceId: "svc-1" });
+      mockedFetch.mockResolvedValue({ centres: [fullCentre] });
+      renderPage();
+
+      expect(await screen.findByText(/12 School Rd/)).toBeInTheDocument();
+      expect(screen.getByText("Hall, next to the canteen")).toBeInTheDocument();
+      expect(screen.getByText("08 8123 4567")).toBeInTheDocument();
+      expect(screen.getByText("mawsonlakes@amanaoshc.com.au")).toBeInTheDocument();
+      expect(screen.getByText(/SE-00012345/)).toBeInTheDocument();
+      expect(screen.getByText("Before School Care")).toBeInTheDocument();
+      expect(screen.getByText("6:30am – 8:45am")).toBeInTheDocument();
+      expect(screen.getByText("After School Care")).toBeInTheDocument();
+      expect(screen.getByText("3:00pm – 6:00pm")).toBeInTheDocument();
+      expect(screen.getByText(/Mon-Fri/)).toBeInTheDocument();
+    });
+
+    it("links to the map image", async () => {
+      mockSearchParams = new URLSearchParams({ submissionId: "sub-1", serviceId: "svc-1" });
+      mockedFetch.mockResolvedValue({ centres: [fullCentre] });
+      renderPage();
+      const mapLink = await screen.findByRole("link", {
+        name: /map showing where mawson lakes is located/i,
+      });
+      expect(mapLink).toHaveAttribute("href", "https://blob.example/mawson-map.png");
+    });
+
+    it("does not crash and shows no centre section when rooms/address/etc are absent", async () => {
+      mockSearchParams = new URLSearchParams({ submissionId: "sub-1", serviceId: "svc-1" });
+      mockedFetch.mockResolvedValue({
+        centres: [{ id: "svc-1", name: "Mawson Lakes", content: { enrolmentThankYou: "" } }],
+      });
+      renderPage();
+      expect(await screen.findByText("Thank you!")).toBeInTheDocument();
+      expect(screen.queryByText(/Operating hours/)).toBeNull();
+    });
+
+    it("omits the operating hours section when no room has both times set", async () => {
+      mockSearchParams = new URLSearchParams({ submissionId: "sub-1", serviceId: "svc-1" });
+      mockedFetch.mockResolvedValue({
+        centres: [{ ...fullCentre, rooms: [] }],
+      });
+      renderPage();
+      expect(await screen.findByText(/12 School Rd/)).toBeInTheDocument();
+      expect(screen.queryByText(/Operating hours/)).toBeNull();
+    });
+  });
 });
