@@ -59,6 +59,14 @@ export const NOTIFICATION_TYPES = {
   // each school term. ONE digest per active marketing user per run (never
   // per-request notifyRequestSubmitted — 20 services x 4 requests = spam).
   TERM_PACK_CREATED: "term_pack_created",
+  // 2026-09-08: Team tab Onboarding sub-tab — a state manager/admin/owner
+  // flags a new hire; every admin-tier user gets notified to pick it up.
+  NEW_STARTER_REQUEST_SUBMITTED: "new_starter_request_submitted",
+  // 2026-09-08: My Portal Pay discrepancy report — any staff member flags
+  // a pay/hours mismatch; admin-tier gets notified, reporter gets notified
+  // once it's resolved/dismissed.
+  PAY_DISCREPANCY_SUBMITTED: "pay_discrepancy_submitted",
+  PAY_DISCREPANCY_RESOLVED: "pay_discrepancy_resolved",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

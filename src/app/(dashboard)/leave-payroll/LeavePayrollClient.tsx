@@ -30,6 +30,7 @@ import {
 import { fetchApi, ApiResponseError } from "@/lib/fetch-api";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PayDiscrepancyAdminPanel } from "@/components/pay-discrepancy/PayDiscrepancyAdminPanel";
 
 interface LeaveRequest {
   id: number;
@@ -49,12 +50,17 @@ interface LeaveRequest {
   } | null;
 }
 
-type Tab = "pending" | "upcoming" | "all";
+type Tab = "pending" | "upcoming" | "all" | "discrepancies";
 
 const TABS: Array<{ key: Tab; label: string; statusFilter: string | null }> = [
   { key: "pending", label: "Pending approval", statusFilter: "Pending" },
   { key: "upcoming", label: "Upcoming approved", statusFilter: "Approved" },
   { key: "all", label: "All", statusFilter: null },
+  // 2026-09-08: "my pay didn't match my hours" reports from My Portal —
+  // a local DB table, not EH-sourced like the tabs above. Lives here
+  // rather than a new page since this is already the admin payroll
+  // review surface.
+  { key: "discrepancies", label: "Pay discrepancies", statusFilter: null },
 ];
 
 function formatDate(iso: string | null): string {
@@ -103,6 +109,7 @@ export function LeavePayrollClient() {
       return fetchApi(`/api/eh-payroll/admin/leave-requests${qs}`);
     },
     staleTime: 60_000,
+    enabled: tab !== "discrepancies",
   });
 
   // For the "Upcoming approved" tab, narrow to leave starting in the
@@ -162,7 +169,9 @@ export function LeavePayrollClient() {
         ))}
       </div>
 
-      {isLoading ? (
+      {tab === "discrepancies" ? (
+        <PayDiscrepancyAdminPanel />
+      ) : isLoading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 text-sm text-red-900 dark:text-red-200 flex items-start gap-2">

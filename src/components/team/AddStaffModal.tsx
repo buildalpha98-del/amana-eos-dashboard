@@ -20,6 +20,19 @@ interface AddStaffModalProps {
   services: ServiceOption[];
   /** The viewer's role — owners may also create head_office; only owner sees that option. */
   currentUserRole: Role;
+  /** 2026-09-08: pre-fill from an onboarding request — the admin still
+   *  picks email + auth role themselves; those aren't safely inferable
+   *  from a free-text job title. */
+  initialValues?: {
+    name?: string;
+    serviceId?: string;
+    newStarter?: boolean;
+    startDate?: string;
+  };
+  /** 2026-09-08: fires with the new user's id after a successful create —
+   *  lets a caller (e.g. the onboarding-request queue) link the ticket to
+   *  the account it produced. */
+  onCreated?: (userId: string) => void;
 }
 
 // Roles offerable from the Team invite. Owner is deliberately excluded (owners
@@ -40,14 +53,16 @@ export function AddStaffModal({
   onClose,
   services,
   currentUserRole,
+  initialValues,
+  onCreated,
 }: AddStaffModalProps) {
   const qc = useQueryClient();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialValues?.name ?? "");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("staff");
-  const [serviceId, setServiceId] = useState("");
-  const [newStarter, setNewStarter] = useState(false);
-  const [startDate, setStartDate] = useState("");
+  const [serviceId, setServiceId] = useState(initialValues?.serviceId ?? "");
+  const [newStarter, setNewStarter] = useState(initialValues?.newStarter ?? false);
+  const [startDate, setStartDate] = useState(initialValues?.startDate ?? "");
   const [saving, setSaving] = useState(false);
 
   const roleOptions = currentUserRole === "owner" ? [...BASE_ROLES, "head_office" as Role] : BASE_ROLES;
@@ -77,7 +92,7 @@ export function AddStaffModal({
     setSaving(true);
     try {
       // Invite mode: no password — the API mints one and emails a welcome.
-      await mutateApi("/api/users", {
+      const created = await mutateApi<{ id: string }>("/api/users", {
         method: "POST",
         body: {
           name: name.trim(),
@@ -95,6 +110,7 @@ export function AddStaffModal({
           ? `${name.trim()} invited as a new starter — they'll clear induction before rostering.`
           : `${name.trim()} invited. A welcome email with sign-in details is on the way.`,
       });
+      onCreated?.(created.id);
       reset();
       onClose();
     } catch (err) {

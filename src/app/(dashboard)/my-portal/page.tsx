@@ -48,6 +48,7 @@ import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
 import { MyPayslipsCard } from "@/components/my-portal/MyPayslipsCard";
 import { MyLeaveRequestsCard } from "@/components/my-portal/MyLeaveRequestsCard";
 import { MyExpensesCard } from "@/components/my-portal/MyExpensesCard";
+import { MyPayDiscrepancyCard } from "@/components/my-portal/MyPayDiscrepancyCard";
 import { MyQuietHoursCard } from "@/components/my-portal/MyQuietHoursCard";
 import { MyPerformanceReviewsCard } from "@/components/my-portal/MyPerformanceReviewsCard";
 import { MyPositionDescriptionCard } from "@/components/my-portal/MyPositionDescriptionCard";
@@ -721,6 +722,14 @@ export default function MyPortalPage() {
       {/* our proxy → EH's two-step create-then-attach flow.            */}
       {/* ============================================================ */}
       {session?.user?.id && <MyExpensesCard />}
+
+      {/* ============================================================ */}
+      {/* 3b-iii-b. PAY DISCREPANCY (2026-09-08)                        */}
+      {/* "My pay didn't match my hours" — open to every role, instead  */}
+      {/* of emailing admin directly. Plain internal DB record, no EH   */}
+      {/* round-trip. Reviewed by admin/leadership.                    */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyPayDiscrepancyCard />}
 
       {/* ============================================================ */}
       {/* 3b-iv. QUIET HOURS — right to disconnect (s333M Fair Work)    */}

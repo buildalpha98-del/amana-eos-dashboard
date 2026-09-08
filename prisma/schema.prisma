@@ -988,6 +988,20 @@ model User {
   // 2026-08-07 (marketing hub phase 4): saved email audiences this user created.
   emailAudiencesCreated EmailAudience[] @relation("EmailAudiencesCreated")
 
+  // 2026-09-08 (Team tab: onboarding requests): a state manager/admin/owner
+  // flags a known new hire so admin can complete the account creation +
+  // induction pack. Not a candidate pipeline (that's RecruitmentCandidate) —
+  // this is "we've hired someone, please onboard them."
+  newStarterRequestsSubmitted NewStarterRequest[] @relation("NewStarterRequestSubmitter")
+  newStarterRequestsAssigned  NewStarterRequest[] @relation("NewStarterRequestAssignee")
+  newStarterRequestsCompleted NewStarterRequest[] @relation("NewStarterRequestCompletedBy")
+  newStarterRequestAccount    NewStarterRequest?  @relation("NewStarterRequestCompletedUser")
+
+  // 2026-09-08 (My Portal: pay discrepancy reports): any staff member can
+  // flag "my pay didn't match my hours" for admin/leadership to review.
+  payDiscrepanciesReported PayDiscrepancyReport[] @relation("PayDiscrepancyReporter")
+  payDiscrepanciesReviewed PayDiscrepancyReport[] @relation("PayDiscrepancyReviewer")
+
   @@index([serviceId])
   @@index([contentTeamRole, contentTeamStatus])
   @@index([name])
@@ -1004,6 +1018,114 @@ model PasswordResetToken {
 
   @@index([token])
   @@index([userId])
+}
+
+enum NewStarterRequestStatus {
+  pending
+  in_progress
+  completed
+  cancelled
+}
+
+/// 2026-09-08 (Team tab: Onboarding sub-tab, leadership-only). A state
+/// manager/admin/owner flags a known new hire so admin can complete the
+/// actual account creation + induction pack. Deliberately NOT a candidate
+/// pipeline (that's RecruitmentCandidate, tied to a vacancy) — this is a
+/// "we've hired someone, please onboard them" ticket for a person who
+/// doesn't have a User row yet.
+model NewStarterRequest {
+  id String @id @default(cuid())
+
+  fullName    String
+  dateOfBirth DateTime
+  address     String
+
+  /// Free-text job title (e.g. "Social Educator", "Service Coordinator") —
+  /// there's no dedicated job-title enum in the codebase (RecruitmentVacancy
+  /// free-texts the same concept), so this mirrors that rather than
+  /// inventing a parallel taxonomy against the auth Role enum.
+  targetPosition String
+
+  employmentType EmploymentType
+
+  /// Reuses the Children's Services Award levels already on
+  /// EmploymentContract.awardLevel — same taxonomy, same custom-label escape
+  /// hatch.
+  awardLevel       AwardLevel
+  awardLevelCustom String?
+
+  /// Null = no qualification yet ("just nothing at all" per the request).
+  qualification QualificationType?
+
+  serviceId         String
+  service           Service   @relation("ServiceNewStarterRequests", fields: [serviceId], references: [id], onDelete: Restrict)
+  expectedStartDate DateTime
+
+  notes String? @db.Text
+
+  status NewStarterRequestStatus @default(pending)
+
+  requestedById String
+  requestedBy   User   @relation("NewStarterRequestSubmitter", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  assignedAdminId String?
+  assignedAdmin   User?   @relation("NewStarterRequestAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+
+  completedById String?
+  completedBy   User?   @relation("NewStarterRequestCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  completedAt   DateTime?
+
+  /// Set once admin actually creates the User account from this request —
+  /// links the ticket to the real account it produced.
+  completedUserId String? @unique
+  completedUser   User?   @relation("NewStarterRequestCompletedUser", fields: [completedUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([serviceId])
+  @@index([requestedById])
+}
+
+enum PayDiscrepancyStatus {
+  open
+  reviewing
+  resolved
+  dismissed
+}
+
+/// 2026-09-08 (My Portal: Pay discrepancy report). Any staff member can
+/// flag "my pay didn't match my hours worked" instead of emailing admin
+/// directly. Reviewed by admin/leadership.
+model PayDiscrepancyReport {
+  id String @id @default(cuid())
+
+  reporterId String
+  reporter   User   @relation("PayDiscrepancyReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  serviceId String?
+  service   Service? @relation("ServicePayDiscrepancyReports", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  /// The pay period / date the discrepancy relates to.
+  discrepancyDate DateTime
+  /// Hours worked but not reflected in the pay received.
+  hoursShort      Float
+  description     String?  @db.Text
+
+  status PayDiscrepancyStatus @default(open)
+
+  reviewedById    String?
+  reviewedBy      User?     @relation("PayDiscrepancyReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  resolutionNotes String?   @db.Text
+  resolvedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([reporterId])
+  @@index([serviceId])
 }
 
 model CalendarIntegration {
@@ -2764,6 +2886,11 @@ model Service {
   // 2026-08-05 (creative requests v1): design/print work requested by this
   // centre from the marketing team.
   creativeRequests CreativeRequest[] @relation("ServiceCreativeRequests")
+
+  // 2026-09-08: onboarding requests for a new hire joining this centre, and
+  // pay-discrepancy reports raised by staff working here.
+  newStarterRequests    NewStarterRequest[]    @relation("ServiceNewStarterRequests")
+  payDiscrepancyReports PayDiscrepancyReport[] @relation("ServicePayDiscrepancyReports")
 
   @@index([status])
   @@index([managerId])
