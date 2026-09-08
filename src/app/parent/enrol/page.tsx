@@ -121,21 +121,21 @@ export default function ParentEnrolPage() {
       // validate what's there — the debounce would otherwise still be in
       // flight and the submit would fail on stale data.
       await flush();
-      await mutateApi("/api/parent/enrolment-draft/submit", {
-        method: "POST",
-        body: { payment },
-      });
+      const result = await mutateApi<{ submissionId: string; serviceId: string | null }>(
+        "/api/parent/enrolment-draft/submit",
+        { method: "POST", body: { payment } },
+      );
       // The gate in ParentShell reads this; without invalidating, they'd be
       // bounced straight back into the form they just submitted.
       await queryClient.invalidateQueries({ queryKey: ["parent", "state"] });
-      toast({
-        description:
-          "Enrolment submitted. We'll be in touch within one business day.",
-      });
-      // The portal home, not /parent/children — at this point the child
-      // records are still pending review, so a children page would be the
-      // emptiest possible landing for someone who just finished the form.
-      router.replace("/parent");
+      // A dedicated thank-you page, not the portal home — at this point the
+      // child records are still pending review, so a children/home page
+      // would be the emptiest possible landing for someone who just
+      // finished the form. serviceId (may be null — unmatched school)
+      // lets it show a centre-specific message instead of a generic one.
+      const params = new URLSearchParams({ submissionId: result.submissionId });
+      if (result.serviceId) params.set("serviceId", result.serviceId);
+      router.replace(`/parent/enrol/thank-you?${params.toString()}`);
     } catch (err) {
       toast({
         variant: "destructive",
