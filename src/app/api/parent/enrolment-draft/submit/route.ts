@@ -568,7 +568,13 @@ export const POST = withParentAuth(async (req, ctx) => {
     }
   }
 
-  const res = NextResponse.json({ ok: true, submissionId: submission.id });
+  // serviceId lets the thank-you page show centre-specific content without
+  // a second round-trip guessing which of the parent's centres this is.
+  const res = NextResponse.json({
+    ok: true,
+    submissionId: submission.id,
+    serviceId: submissionServiceId,
+  });
 
   /**
    * Re-issue the session with the new enrolment attached.

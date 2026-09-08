@@ -580,6 +580,20 @@ export function ServiceContentTab({ serviceId }: Props) {
         />
       </Section>
 
+      {/* 2026-09-08: shown on the parent-facing thank-you page right after
+          they submit the enrolment form — a chance to say something
+          specific to THIS centre (a start date, uniform pickup, who'll
+          call them) rather than a generic confirmation. */}
+      <Section title="Enrolment thank-you message">
+        <Textarea
+          value={content.enrolmentThankYou}
+          onChange={(v) => setContent((c) => ({ ...c, enrolmentThankYou: v }))}
+          disabled={!canEdit}
+          rows={4}
+          placeholder="What should a family see right after submitting their enrolment for THIS centre? e.g. 'Someone from our team will call within 2 business days to confirm your start date.' Falls back to a generic thank-you when blank."
+        />
+      </Section>
+
       {/* Selected, not "everything for this centre": the library is
           jurisdiction-mixed, and showing a Sydney family a Victorian
           regulation is worse than showing them nothing. The document
