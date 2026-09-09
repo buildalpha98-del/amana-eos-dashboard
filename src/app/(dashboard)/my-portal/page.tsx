@@ -48,6 +48,7 @@ import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 import { MyClockCard, clockWindowRange } from "@/components/my-portal/MyClockCard";
 import { MorningBriefCard } from "@/components/dashboard/MorningBriefCard";
+import { MyPayDiscrepancyCard } from "@/components/my-portal/MyPayDiscrepancyCard";
 import { useMyPayslips, formatCurrency } from "@/hooks/useMyPayslips";
 import { useOrgConfig } from "@/hooks/useOrgConfig";
 import { getRequiredCertTypes } from "@/lib/cert-requirements";
@@ -1300,6 +1301,14 @@ export default function MyPortalPage() {
       {/* /my-pay, /my-leave, /my-expenses (Staff Portal v2 Phase 1).   */}
       {/* ============================================================ */}
       {session?.user?.id && <MyComplianceCard userId={session.user.id} />}
+
+      {/* ============================================================ */}
+      {/* 3b-iii-b. PAY DISCREPANCY (2026-09-08)                        */}
+      {/* "My pay didn't match my hours" — open to every role, instead  */}
+      {/* of emailing admin directly. Plain internal DB record, no EH   */}
+      {/* round-trip. Reviewed by admin/leadership.                    */}
+      {/* ============================================================ */}
+      {session?.user?.id && <MyPayDiscrepancyCard />}
 
       {/* ============================================================ */}
       {/* 3b-iv. QUIET HOURS — right to disconnect (s333M Fair Work)    */}

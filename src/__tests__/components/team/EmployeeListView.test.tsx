@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -8,9 +8,15 @@ import {
   parseFiltersFromUrl,
 } from "@/components/team/EmployeeListView";
 
+// Stable spies across renders so a test can assert on what the
+// pagination controls actually told the router to do.
+const mockReplace = vi.fn();
+const mockPush = vi.fn();
+let mockSearchParams = new URLSearchParams();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ replace: mockReplace, push: mockPush }),
+  useSearchParams: () => mockSearchParams,
 }));
 
 vi.mock("@/lib/fetch-api", () => ({
@@ -57,6 +63,9 @@ function renderWithQuery(node: React.ReactNode) {
 
 beforeEach(() => {
   mockedFetch.mockReset();
+  mockReplace.mockReset();
+  mockPush.mockReset();
+  mockSearchParams = new URLSearchParams();
 });
 
 describe("parseFiltersFromUrl", () => {
@@ -122,12 +131,7 @@ describe("EmployeeListView", () => {
 
   it("renders 'No matches' when filters return zero results", async () => {
     // Mock a URL with filters and an empty result
-    const useSearchParamsMock = await vi.importMock<
-      typeof import("next/navigation")
-    >("next/navigation");
-    (
-      useSearchParamsMock as { useSearchParams: () => URLSearchParams }
-    ).useSearchParams = () => new URLSearchParams("q=zzz");
+    mockSearchParams = new URLSearchParams("q=zzz");
     mockedFetch.mockResolvedValue({
       employees: [],
       total: 0,
@@ -175,5 +179,74 @@ describe("EmployeeListView", () => {
     expect(
       screen.getByRole("button", { name: /Add staff member/i }),
     ).toBeInTheDocument();
+  });
+
+  // Daniel reported (2026-08-18): clicking Previous / a page number on
+  // /team does nothing.
+  describe("pagination", () => {
+    it("clicking 'Previous page' navigates to page - 1", async () => {
+      mockSearchParams = new URLSearchParams("page=2");
+      mockedFetch.mockResolvedValue({
+        employees: [ALICE],
+        total: 120,
+        page: 2,
+        pageSize: 50,
+        totalPages: 3,
+        pendingCount: 0,
+      });
+      renderWithQuery(
+        <EmployeeListView viewerRole="admin" viewerId="viewer-1" services={SERVICES} />,
+      );
+      await screen.findByText("Alice Adams");
+
+      fireEvent.click(screen.getByRole("button", { name: "Previous page" }));
+
+      expect(mockReplace).toHaveBeenCalledTimes(1);
+      expect(mockReplace).toHaveBeenCalledWith("/team", { scroll: false });
+    });
+
+    it("clicking a page number navigates to that page", async () => {
+      mockSearchParams = new URLSearchParams("page=1");
+      mockedFetch.mockResolvedValue({
+        employees: [ALICE],
+        total: 120,
+        page: 1,
+        pageSize: 50,
+        totalPages: 3,
+        pendingCount: 0,
+      });
+      renderWithQuery(
+        <EmployeeListView viewerRole="admin" viewerId="viewer-1" services={SERVICES} />,
+      );
+      await screen.findByText("Alice Adams");
+
+      fireEvent.click(screen.getByRole("button", { name: "3" }));
+
+      expect(mockReplace).toHaveBeenCalledWith("/team?page=3", { scroll: false });
+    });
+
+    it("preserves existing filters when paging", async () => {
+      mockSearchParams = new URLSearchParams("q=ali&status=active&page=1");
+      mockedFetch.mockResolvedValue({
+        employees: [ALICE],
+        total: 120,
+        page: 1,
+        pageSize: 50,
+        totalPages: 3,
+        pendingCount: 0,
+      });
+      renderWithQuery(
+        <EmployeeListView viewerRole="admin" viewerId="viewer-1" services={SERVICES} />,
+      );
+      await screen.findByText("Alice Adams");
+
+      fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+
+      const [url] = mockReplace.mock.calls[0];
+      const qs = new URLSearchParams(url.split("?")[1]);
+      expect(qs.get("q")).toBe("ali");
+      expect(qs.get("status")).toBe("active");
+      expect(qs.get("page")).toBe("2");
+    });
   });
 });
