@@ -39,6 +39,8 @@ const QUALIFICATION_OPTIONS: Array<{ value: QualificationType | ""; label: strin
   { value: "bachelor", label: "Bachelor's degree" },
 ];
 
+const REQUIRED_MARK = <span className="text-red-500">*</span>;
+
 const AWARD_LEVEL_OPTIONS: AwardLevel[] = [
   "cs1",
   "cs2",
@@ -71,7 +73,7 @@ export function NewStarterRequestModal({
     email: "",
     targetPosition: "",
     employmentType: "casual" as EmploymentType,
-    awardLevel: "cs1" as AwardLevel,
+    awardLevel: "" as AwardLevel | "",
     awardLevelCustom: "",
     qualification: "" as QualificationType | "",
     serviceId: services[0]?.id ?? "",
@@ -85,8 +87,16 @@ export function NewStarterRequestModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.fullName.trim() || !form.dateOfBirth || !form.address.trim()) {
-      toast({ variant: "destructive", description: "Full name, date of birth, and address are required." });
+    if (!form.fullName.trim()) {
+      toast({ variant: "destructive", description: "Enter their full name." });
+      return;
+    }
+    if (!form.dateOfBirth) {
+      toast({ variant: "destructive", description: "Enter their date of birth." });
+      return;
+    }
+    if (!form.expectedStartDate) {
+      toast({ variant: "destructive", description: "Enter their expected start date." });
       return;
     }
     if (!form.mobile.trim()) {
@@ -101,12 +111,16 @@ export function NewStarterRequestModal({
       toast({ variant: "destructive", description: "Enter the position they're joining as." });
       return;
     }
-    if (!form.serviceId) {
-      toast({ variant: "destructive", description: "Select which centre they're joining." });
+    if (!form.awardLevel) {
+      toast({ variant: "destructive", description: "Select their award level." });
       return;
     }
-    if (!form.expectedStartDate) {
-      toast({ variant: "destructive", description: "Enter their expected start date." });
+    if (!form.address.trim()) {
+      toast({ variant: "destructive", description: "Enter their address." });
+      return;
+    }
+    if (!form.serviceId) {
+      toast({ variant: "destructive", description: "Select which centre they're joining." });
       return;
     }
     if (form.awardLevel === "custom" && !form.awardLevelCustom.trim()) {
@@ -143,9 +157,10 @@ export function NewStarterRequestModal({
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs text-muted block mb-1">Full name</label>
+            <label className="text-xs text-muted block mb-1">Full name {REQUIRED_MARK}</label>
             <input
               autoFocus
+              required
               type="text"
               value={form.fullName}
               onChange={(e) => set("fullName", e.target.value)}
@@ -156,8 +171,9 @@ export function NewStarterRequestModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted block mb-1">Date of birth</label>
+              <label className="text-xs text-muted block mb-1">Date of birth {REQUIRED_MARK}</label>
               <input
+                required
                 type="date"
                 value={form.dateOfBirth}
                 onChange={(e) => set("dateOfBirth", e.target.value)}
@@ -165,8 +181,9 @@ export function NewStarterRequestModal({
               />
             </div>
             <div>
-              <label className="text-xs text-muted block mb-1">Expected start date</label>
+              <label className="text-xs text-muted block mb-1">Expected start date {REQUIRED_MARK}</label>
               <input
+                required
                 type="date"
                 value={form.expectedStartDate}
                 onChange={(e) => set("expectedStartDate", e.target.value)}
@@ -188,8 +205,9 @@ export function NewStarterRequestModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted block mb-1">Mobile number</label>
+              <label className="text-xs text-muted block mb-1">Mobile number {REQUIRED_MARK}</label>
               <input
+                required
                 type="tel"
                 value={form.mobile}
                 onChange={(e) => set("mobile", e.target.value)}
@@ -198,8 +216,9 @@ export function NewStarterRequestModal({
               />
             </div>
             <div>
-              <label className="text-xs text-muted block mb-1">Email</label>
+              <label className="text-xs text-muted block mb-1">Email {REQUIRED_MARK}</label>
               <input
+                required
                 type="email"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
@@ -211,8 +230,9 @@ export function NewStarterRequestModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted block mb-1">Position</label>
+              <label className="text-xs text-muted block mb-1">Position {REQUIRED_MARK}</label>
               <input
+                required
                 type="text"
                 value={form.targetPosition}
                 onChange={(e) => set("targetPosition", e.target.value)}
@@ -264,12 +284,14 @@ export function NewStarterRequestModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted block mb-1">Award level</label>
+              <label className="text-xs text-muted block mb-1">Award level {REQUIRED_MARK}</label>
               <select
+                required
                 value={form.awardLevel}
-                onChange={(e) => set("awardLevel", e.target.value as AwardLevel)}
+                onChange={(e) => set("awardLevel", e.target.value as AwardLevel | "")}
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-brand"
               >
+                <option value="" disabled>Select award level…</option>
                 {AWARD_LEVEL_OPTIONS.map((v) => (
                   <option key={v} value={v}>{AWARD_LEVEL_LABELS[v]}</option>
                 ))}
