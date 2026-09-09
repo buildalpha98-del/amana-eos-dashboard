@@ -39,7 +39,10 @@ export async function generateText(
     temperature: opts.temperature,
     messages: [{ role: "user", content: prompt }],
   });
-  const block = res.content[0];
-  if (block?.type !== "text") return "";
-  return block.text;
+  // Claude 4.5+/5 responses can lead with thinking blocks — the text block is
+  // not necessarily content[0]. Join every text block.
+  return res.content
+    .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
+    .map((b) => b.text)
+    .join("");
 }

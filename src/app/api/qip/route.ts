@@ -6,6 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { mergeElements, mergeLegalChecks } from "@/lib/sat-document";
 // 2026-04-30: documentType is server-derived from the service's state.
 // NSW services use "sat" (Self-Assessment Tool); everywhere else uses
 // "qip" (Quality Improvement Plan). Clients don't pass it. The optional
@@ -54,11 +55,22 @@ const scope = getServiceScope(session);
         service: { select: { id: true, name: true, code: true, state: true } },
         reviewedBy: { select: { id: true, name: true } },
         qualityAreas: { orderBy: { qualityArea: "asc" } },
+        elements: true,
+        legalChecks: true,
+        improvements: { orderBy: [{ status: "asc" }, { createdAt: "desc" }] },
       },
       orderBy: { updatedAt: "desc" },
     });
 
-    return NextResponse.json({ qips, count: qips.length });
+    // Merge stored rows with the fixed NQS taxonomy — consumers always get
+    // all 40 elements and every legal-check question, stored or empty.
+    const merged = qips.map((qip) => ({
+      ...qip,
+      elements: mergeElements(qip.elements),
+      legalChecks: mergeLegalChecks(qip.legalChecks),
+    }));
+
+    return NextResponse.json({ qips: merged, count: merged.length });
   } catch (err) {
     logger.error("QIP GET", { err });
     return NextResponse.json({ error: "Failed to fetch QIPs" }, { status: 500 });
